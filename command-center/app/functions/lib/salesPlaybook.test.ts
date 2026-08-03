@@ -22,8 +22,12 @@ function item(over: Partial<PlaybookItem> = {}): PlaybookItem {
     id: "i1",
     section: "discovery",
     categoryId: null,
+    kind: "question",
     prompt: "Ask them something",
     hint: "",
+    answerKey: null,
+    formula: "",
+    format: "number",
     sortOrder: 0,
     archivedAt: null,
     ...over,
@@ -35,8 +39,8 @@ function category(over: Partial<PlaybookCategory> = {}): PlaybookCategory {
 }
 
 describe("the sections", () => {
-  it("runs discovery, then pitch, then objections", () => {
-    expect(PLAYBOOK_SECTIONS.map((s) => s.id)).toEqual(["discovery", "pitch", "objections"]);
+  it("runs discovery, then pitch", () => {
+    expect(PLAYBOOK_SECTIONS.map((s) => s.id)).toEqual(["discovery", "pitch"]);
   });
 
   it("gives every section a heading, a blurb and an answer placeholder", () => {
@@ -47,9 +51,12 @@ describe("the sections", () => {
     }
   });
 
-  it("accepts the three ids and rejects everything else", () => {
+  it("accepts the two ids and rejects everything else", () => {
     expect(isPlaybookSection("discovery")).toBe(true);
-    expect(isPlaybookSection("objections")).toBe(true);
+    expect(isPlaybookSection("pitch")).toBe(true);
+    // Cut in 0085. The column is gone, so the id must stop being valid: a row
+    // posted under it would be stored and drawn nowhere.
+    expect(isPlaybookSection("objections")).toBe(false);
     expect(isPlaybookSection("closing")).toBe(false);
     expect(isPlaybookSection(null)).toBe(false);
     expect(isPlaybookSection(7)).toBe(false);
@@ -113,7 +120,6 @@ describe("categoriesForSection", () => {
 
   it("keeps the columns' headings apart", () => {
     expect(categoriesForSection(categories, "pitch").map((c) => c.id)).toEqual(["p"]);
-    expect(categoriesForSection(categories, "objections")).toEqual([]);
   });
 
   it("breaks a tied sort order on id so the list is stable", () => {
@@ -201,9 +207,8 @@ describe("itemsForSection", () => {
     expect(itemsForSection(items, "discovery").map((i) => i.id)).toEqual(["a", "b"]);
   });
 
-  it("leaves the other sections alone", () => {
+  it("leaves the other section alone", () => {
     expect(itemsForSection(items, "pitch").map((i) => i.id)).toEqual(["p"]);
-    expect(itemsForSection(items, "objections")).toEqual([]);
   });
 
   it("breaks a tied sort order on id so the list is stable", () => {

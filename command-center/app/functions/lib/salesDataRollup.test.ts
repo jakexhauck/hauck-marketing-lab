@@ -248,7 +248,7 @@ describe("rowsInMonth", () => {
 });
 
 describe("toCountable", () => {
-  it("hands the shared counting rules a parsed deal and the source", () => {
+  it("hands the shared counting rules a parsed deal, the source and the offer", () => {
     const c = toCountable(
       meeting({
         outcome: "closed",
@@ -256,6 +256,7 @@ describe("toCountable", () => {
         deal: { monthly: 1000 },
         source: "Calendar",
         reason: null,
+        offerVariant: "retainer_no_guarantee",
       }),
     );
     expect(c).toEqual({
@@ -265,7 +266,14 @@ describe("toCountable", () => {
       deal: { monthly: 1000, months: null },
       reason: null,
       source: "Calendar",
+      offerVariant: "retainer_no_guarantee",
     });
+  });
+
+  it("passes a missing offer through as null rather than dropping the key", () => {
+    // Every meeting recorded before 0086 has no offer on it, and byOffer has to
+    // see a null to skip it rather than an absent property to guess at.
+    expect(toCountable(meeting({ outcome: "closed" })).offerVariant).toBeNull();
   });
 
   it("refuses an outcome the app does not recognise rather than passing it on", () => {

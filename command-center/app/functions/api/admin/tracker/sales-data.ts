@@ -11,7 +11,13 @@ import {
   type DerivedSalesDay,
   type SalesCallRow,
 } from "../../../lib/salesDataRollup";
-import { bySource, reasonCounts, type SourceSplitRow } from "../../../lib/salesCalls";
+import {
+  byOffer,
+  bySource,
+  reasonCounts,
+  type OfferSplitRow,
+  type SourceSplitRow,
+} from "../../../lib/salesCalls";
 
 // GET /api/admin/tracker/sales-data?month=YYYY-MM
 //
@@ -48,13 +54,16 @@ interface SalesCallDbRow {
   deal: unknown;
   not_a_fit_reason: string | null;
   source: string | null;
+  // Which offer was on the table (0086). Only the variant: the terms inside it
+  // are what was quoted on one call, and this page counts calls.
+  offer_variant: string | null;
   prospect_name: string | null;
   business_name: string | null;
 }
 
 const SELECT =
   "scheduled_at, appointment_status, outcome, qualified, cash_collected," +
-  " deal, not_a_fit_reason, source, prospect_name, business_name";
+  " deal, not_a_fit_reason, source, offer_variant, prospect_name, business_name";
 
 // numeric arrives as a string on some drivers, so cash is normalised to a
 // number exactly once, here at the boundary.
@@ -74,6 +83,7 @@ function toRow(row: SalesCallDbRow): SalesCallRow {
     deal: row.deal,
     reason: row.not_a_fit_reason,
     source: row.source,
+    offerVariant: row.offer_variant,
     prospectName: row.prospect_name ?? "",
     businessName: row.business_name ?? "",
   };
@@ -98,6 +108,9 @@ interface GetResponse {
   // MEETING rather than per day, which is why it is sent whole rather than
   // summed by the client off the day rows.
   sources: SourceSplitRow[];
+  // The month split by which OFFER was pitched, best close rate first. Only
+  // meetings somebody turned up to: an offer cannot be pitched to a no-show.
+  offers: OfferSplitRow[];
   // How many of the month's nos gave each reason, keyed by SALES_NO_REASONS.
   reasons: Record<string, number>;
 }
@@ -192,6 +205,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     sync,
     undated: rolled.undated,
     sources: bySource(monthRows),
+    offers: byOffer(monthRows),
     reasons: reasonCounts(monthRows),
   };
   return Response.json(body);

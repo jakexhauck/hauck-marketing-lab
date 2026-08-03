@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, Clock } from "lucide-react";
+import { ArrowLeft, Check, Clock, Sigma } from "lucide-react";
 import { useSalesCallsQuery, useRecordSalesCallOutcome } from "../../../hooks/useSalesCalls";
 import type { SalesMeeting } from "../../../lib/api";
 import {
@@ -30,6 +30,13 @@ import {
   sectionProgress,
   type CallState,
 } from "../../../lib/salesCallPlaybook";
+import {
+  buildFacts,
+  factOrder,
+  factsSummary,
+  renderText,
+  type Facts,
+} from "../../../lib/callFacts";
 
 // Sales > On Call.
 //
@@ -37,11 +44,19 @@ import {
 // meetings and the place an outcome is recorded after the fact; this is the
 // half hour in between, which until now happened on paper.
 //
-// Three columns in the order the call runs (discovery, pitch, objections), a
+// Two columns in the order the call runs (discovery, then pitch), a
 // tick and a line of notes against every prompt, and the same outcome recorder
 // Sales Calls uses at the bottom. It writes nothing new: the ticks and notes
 // live in this browser until an outcome is recorded, at which point they are
 // thrown away and the outcome goes where it always went.
+//
+// What was typed does not stay where it was typed. A question can be filed
+// under a key ("installs"), and any later row can say {installs} in its own
+// words: forty minutes after Jake asks how many jobs they ran, the timeline
+// line reads itself back to him with the number already in it. The calcs go
+// further and do the arithmetic he was doing in his head while someone talked
+// at him. All of that is buildFacts (src/lib/callFacts.ts); this page only
+// draws it.
 //
 // What is drawn in the three columns comes from sales_playbook_items (0074) and
 // is edited on Sales > Playbook. Nothing about the call is hardcoded here: this
@@ -49,6 +64,10 @@ import {
 // knows the words.
 
 const PARAM = "meeting";
+
+// The one frame before localStorage has been read. A shared constant rather
+// than a fresh {} each render, so the facts are not rebuilt for nothing.
+const NO_NOTES: Record<string, string> = {};
 
 export default function OnCallSection() {
   const [params, setParams] = useSearchParams();
@@ -260,6 +279,27 @@ function Cockpit({
 
   const outcome = useOutcomeDraft(meeting, record);
 
+  // The keys that are known before anyone types, straight off the booking.
+  // first_name is split here rather than asked for: "I will say Mike" is the
+  // line, and "I will say Mike Trelasky" is not.
+  const seed = useMemo(
+    () => ({
+      name: meeting.prospectName,
+      first_name: meeting.prospectName.trim().split(/\s+/)[0] ?? "",
+      business: meeting.businessName,
+      phone: meeting.phone,
+    }),
+    [meeting.prospectName, meeting.businessName, meeting.phone],
+  );
+
+  // Rebuilt on every keystroke, deliberately. It is a few dozen string reads
+  // and half a dozen four-token formulas, and the alternative is a cache that
+  // can be one letter behind what is on the screen during the one half hour
+  // where that matters.
+  const notes = store?.id === meeting.id ? store.state.notes : NO_NOTES;
+  const facts = useMemo(() => buildFacts({ items, notes, seed }), [items, notes, seed]);
+  const order = useMemo(() => factOrder(items), [items]);
+
   const patch = (fn: (state: CallState) => CallState) =>
     setStore((s) => (s ? { id: s.id, state: fn(s.state) } : s));
 
@@ -291,26 +331,42 @@ function Cockpit({
   const state = loaded.state;
 
   return (
-    <div>
+    // Full width. It was capped at a 72-character measure, which is the right
+    // answer for a page of prose and the wrong one here: a sales script is
+    // mostly one-line questions, so the cap bought a comfortable line length
+    // nothing was long enough to need and paid for it in half a screen of
+    // margin. The header, the script and the outcome share one left edge, which
+    // is what actually makes it read as a document.
+    <div className="w-full">
       <Header meeting={meeting} elapsed={elapsedLabel(state.startedAt, now)} onLeave={onLeave} />
 
-      {/* The call, left to right. One column each on a laptop, stacked on a
-          phone, because three columns of prompts at 390px is none of them. */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {/* The call, top to bottom, as one document at reading width.
+          It was two boards of cards, which is the right shape for a checklist
+          and the wrong one for a script: this is read OUT LOUD, and a page you
+          read down is the shape it was written in. Nothing here is a card, a
+          box or a border between two sentences. */}
+      <div>
         {columns.map(({ section, groups }) => (
-          <Column
+          <ScriptSection
             key={section.id}
             section={section}
             groups={groups}
             ticked={state.ticked}
             notes={state.notes}
+            facts={facts}
             onToggle={toggle}
             onNote={setNote}
           />
         ))}
       </div>
 
-      <OutcomeBand meeting={meeting} record={record} outcome={outcome} onSave={save} />
+      <OutcomeBand
+        meeting={meeting}
+        record={record}
+        outcome={outcome}
+        summary={factsSummary(facts, order)}
+        onSave={save}
+      />
     </div>
   );
 }
@@ -387,13 +443,113 @@ function Header({
   );
 }
 
-// One of the three. A heading that says how far through it you are, then the
-// prompts, each with somewhere to put what they answered.
-function Column({
+// A prompt with its blanks filled in.
+//
+// Split rather than string-replaced so a filled token can be drawn as an answer
+// and an empty one as a grey placeholder. Mid-call that difference is the whole
+// point: you can see the gap coming a line before you read into it, instead of
+// saying "adding dollar sign X a month" out loud to a prospect.
+//
+// Still text. Every part goes through React as a child, never as markup, which
+// is the same trust boundary the playbook has always had.
+function PromptText({ text, facts }: { text: string; facts: Facts }) {
+  const parts = renderText(text, facts);
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.t === "text" ? (
+          <span key={i}>{part.value}</span>
+        ) : (
+          <span
+            key={i}
+            title={part.filled ? part.key : `${part.key} has not been answered yet`}
+            className={
+              part.filled
+                ? "font-semibold text-[var(--brand)]"
+                : "rounded border border-dashed border-[var(--border)] px-1 text-faint"
+            }
+          >
+            {part.value}
+          </span>
+        ),
+      )}
+    </>
+  );
+}
+
+// Where their answer is written down.
+//
+// Not a form field. A form field in the middle of a script is a page you fill
+// in, and this is a page you read: the box is a line ruled under the question,
+// and what is typed on it reads as handwriting on the script rather than as
+// data in a box.
+//
+// Still a textarea, and still grows: "tell me about that" is a paragraph, and a
+// one-line box that scrolls sideways cannot be read back at the recap.
+function AnswerBox({
+  value,
+  placeholder,
+  answerKey,
+  onChange,
+}: {
+  value: string;
+  placeholder: string;
+  answerKey: string | null;
+  onChange: (value: string) => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+
+  // Before paint, so a restored answer on a mid-call refresh is never drawn at
+  // one line and then jumped to three.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    // The one thing that does NOT span the page. An answer is a few words or a
+    // number, and a rule running the full width under every question would be
+    // the page's loudest element by a mile, drawn for content that never fills
+    // it.
+    <div className="mt-1 max-w-[52ch]">
+      <textarea
+        ref={ref}
+        rows={1}
+        className={[
+          "w-full resize-none border-0 border-b border-dashed bg-transparent px-0 py-0.5",
+          "text-[14.5px] leading-[1.6] outline-none transition-colors",
+          "placeholder:text-faint/70 focus:border-solid focus:border-[var(--brand)]",
+          value
+            ? "border-[var(--border)] text-[var(--brand)]"
+            : "border-[var(--border)] text-text",
+        ].join(" ")}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        aria-label={answerKey ? `Answer, saved as ${answerKey}` : "Answer"}
+      />
+      {/* Where this answer goes. Only on the three that go anywhere, and only
+          once something is in it: it is the one thing on the page that explains
+          why a number typed here turns up in a sentence two headings down, and
+          on the other eighteen questions it would be noise. */}
+      {answerKey && value !== "" && (
+        <div className="mt-0.5 text-[10px] uppercase tracking-wider text-faint">
+          used later as {answerKey}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// One half of the call, read down the page.
+function ScriptSection({
   section,
   groups,
   ticked,
   notes,
+  facts,
   onToggle,
   onNote,
 }: {
@@ -401,122 +557,203 @@ function Column({
   groups: PlaybookGroup[];
   ticked: string[];
   notes: Record<string, string>;
+  facts: Facts;
   onToggle: (id: string) => void;
   onNote: (id: string, value: string) => void;
 }) {
   // The column's count is the whole column, headings and loose prompts
   // together. A per-heading count would be four numbers to read mid-call where
   // the only question is "have I finished discovery".
-  const all = groups.flatMap((g) => g.items);
+  //
+  // Calcs are left out of it. There is nothing to do to a calc, so counting one
+  // would mean a column that can never reach the end of itself.
+  const all = groups.flatMap((g) => g.items).filter((i) => i.kind !== "calc");
   const { covered, total } = sectionProgress(all, ticked);
   // An empty column is not a finished one. Without this an unwritten section
   // would show a green 0/0 as though it had been worked through.
   const done = total > 0 && covered === total;
 
   return (
-    <section className="pk-card !p-0">
-      <header className="border-b border-[var(--divider)] px-5 py-4">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-[13px] font-bold uppercase tracking-[0.08em] text-muted">
-            {section.label}
-          </h2>
-          <span
-            className={`text-[12px] font-semibold tabular-nums ${done ? "text-[var(--positive)]" : "text-faint"}`}
-          >
-            {covered}/{total}
-          </span>
-        </div>
-        <p className="mt-1.5 text-[12.5px] leading-snug text-faint">{section.blurb}</p>
+    <section className="mb-14 last:mb-4">
+      {/* The half of the call you are in. A title over a rule, the way a
+          document announces a chapter, rather than a card header. */}
+      <header className="mb-6 flex items-baseline justify-between gap-4 border-b border-[var(--divider)] pb-2.5">
+        <h2 className="text-[15px] font-semibold uppercase tracking-[0.16em] text-text">
+          {section.label}
+        </h2>
+        <span
+          className={`shrink-0 text-[12px] font-semibold tabular-nums ${done ? "text-[var(--positive)]" : "text-faint"}`}
+        >
+          {covered}/{total}
+        </span>
       </header>
 
-      <div className="px-5 py-2">
-        {all.length === 0 && (
-          <p className="py-4 text-[12.5px] text-faint">
-            Nothing written for this part of the call yet. Add prompts on the Playbook page.
+      {groups.every((g) => g.items.length === 0) && (
+        <p className="text-[13.5px] text-faint">
+          Nothing written for this part of the call yet. Add prompts on the Playbook page.
+        </p>
+      )}
+
+      {groups.map((group) => (
+        <div key={group.category?.id ?? "__loose"} className="mb-8 last:mb-0">
+          {/* The heading Jake wrote, set as a heading. Nothing when the block
+              is the unfiled remainder: a heading that said "no heading" would
+              be noise on a column he has not sorted yet, and a label on the
+              loose block only earns its place when there is a real heading
+              above it to distinguish it from. */}
+          {/* The heading, with a rule running from the end of the word to the
+              edge of the page. At full width a bare heading floats over a
+              column of lines with nothing tying it to them; the rule is what
+              makes each block findable at a glance mid-call. */}
+          {group.category && (
+            <h3 className="mb-3 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--brand)]">
+              {group.category.name}
+              <span className="h-px flex-1 bg-[var(--divider)]" aria-hidden />
+            </h3>
+          )}
+          {!group.category && groups.length > 1 && (
+            <h3 className="mb-3 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.16em] text-faint">
+              Anything else
+              <span className="h-px flex-1 bg-[var(--divider)]" aria-hidden />
+            </h3>
+          )}
+
+          {group.items.map((item) => (
+            <Line
+              key={item.id}
+              item={item}
+              section={section}
+              facts={facts}
+              on={ticked.includes(item.id)}
+              note={notes[item.id] ?? ""}
+              onToggle={() => onToggle(item.id)}
+              onNote={(value) => onNote(item.id, value)}
+            />
+          ))}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+// ===== One line of the script =====
+
+// Three shapes, one line of script. A question is asked and answered, a script
+// line is read out, a calc is a number that appeared while you were talking.
+//
+// The tick lives in a gutter to the LEFT of the text rather than inline with
+// it. That is the whole difference between a checklist and a script: the words
+// all start at the same place down the page, so your eye runs down one edge
+// instead of stepping in and out around controls.
+const GUTTER = "pl-8";
+
+function Line({
+  item,
+  section,
+  facts,
+  on,
+  note,
+  onToggle,
+  onNote,
+}: {
+  item: PlaybookItem;
+  section: PlaybookSectionDef;
+  facts: Facts;
+  on: boolean;
+  note: string;
+  onToggle: () => void;
+  onNote: (value: string) => void;
+}) {
+  // A calc has nothing to tick and nothing to type. Set quietly, to the side,
+  // as a number that turned up: it is glanced at, not worked through, and a
+  // line that looked like the ones around it would invite a click that does
+  // nothing.
+  if (item.kind === "calc") {
+    const fact = item.answerKey ? facts.get(item.answerKey) : undefined;
+    const value = fact?.display ?? "";
+    return (
+      <div className={`${GUTTER} flex items-baseline gap-3 py-2`}>
+        <Sigma size={11} aria-hidden className="shrink-0 translate-y-[1px] text-faint" />
+        <span className="text-[13px] text-muted">{item.prompt}</span>
+        <span className="h-px min-w-4 flex-1 self-center bg-[var(--divider)]" aria-hidden />
+        <span
+          className={[
+            "shrink-0 text-[16px] font-semibold tabular-nums",
+            value ? "text-[var(--brand)]" : "text-faint",
+          ].join(" ")}
+        >
+          {/* Blank, not zero. Nothing has been answered yet, and a zero would
+              be a claim about their business. */}
+          {value || "not yet"}
+        </span>
+      </div>
+    );
+  }
+
+  const isScript = item.kind === "script";
+
+  return (
+    <div className="relative py-2.5">
+      {/* Absolute rather than a flex sibling, so the text below it (the hint,
+          the answer) lines up with the words above rather than with a control. */}
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={on}
+        aria-label={on ? "Covered" : "Mark covered"}
+        onClick={onToggle}
+        className="absolute left-0 top-[13px] grid h-[18px] w-[18px] place-items-center"
+      >
+        <span
+          aria-hidden
+          className={[
+            "grid h-[15px] w-[15px] place-items-center rounded-full border transition-colors",
+            on
+              ? "border-[var(--brand)] bg-[var(--brand)] text-white"
+              : "border-[var(--border)] hover:border-[var(--brand)]",
+          ].join(" ")}
+        >
+          {on && <Check size={10} strokeWidth={3} />}
+        </span>
+      </button>
+
+      <div className={GUTTER}>
+        <p
+          className={[
+            // Set for reading aloud: bigger than a UI label, and loose enough
+            // that your eye finds the next line without hunting for it.
+            "text-[15px] leading-[1.65] transition-colors",
+            // A script line keeps its own line breaks and stays regular
+            // weight, because it is a paragraph you say. A question is set in
+            // medium so it stands out as the thing you ask.
+            isScript ? "whitespace-pre-wrap font-normal" : "font-medium",
+            on ? "text-faint" : "text-text",
+          ].join(" ")}
+        >
+          <PromptText text={item.prompt} facts={facts} />
+        </p>
+
+        {/* The direction, not the line. Set small and grey so it is never
+            mistaken for something to read out. */}
+        {item.hint && (
+          <p className="mt-0.5 text-[12px] italic leading-snug text-faint">
+            <PromptText text={item.hint} facts={facts} />
           </p>
         )}
-        {groups.map((group) => (
-          <div key={group.category?.id ?? "__loose"}>
-            {/* The heading, drawn as a rule across the column. Nothing when the
-                block is the unfiled remainder: a heading that said "no heading"
-                would be noise on a column Jake has not sorted yet, and a label
-                on the loose block only earns its place when there is a real
-                heading above it to distinguish it from. */}
-            {group.category && (
-              <div className="mt-3 flex items-center gap-2 first:mt-1">
-                <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-[var(--brand)]">
-                  {group.category.name}
-                </span>
-                <span className="h-px flex-1 bg-[var(--divider)]" aria-hidden />
-              </div>
-            )}
-            {!group.category && groups.length > 1 && (
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-faint">
-                  Anything else
-                </span>
-                <span className="h-px flex-1 bg-[var(--divider)]" aria-hidden />
-              </div>
-            )}
 
-            {group.items.map((item) => {
-              const on = ticked.includes(item.id);
-              return (
-                <div
-                  key={item.id}
-                  className="border-b border-[var(--divider)] py-3 last:border-b-0"
-                >
-              <div className="flex items-start gap-2.5">
-                {/* The tick is the control, so the whole prompt is the hit area
-                    rather than a 16px box you have to aim at mid-conversation. */}
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={on}
-                  onClick={() => onToggle(item.id)}
-                  className="flex flex-1 items-start gap-2.5 text-left"
-                >
-                  <span
-                    aria-hidden
-                    className={[
-                      "mt-[2px] grid h-[17px] w-[17px] shrink-0 place-items-center rounded-[5px] border transition-colors",
-                      on
-                        ? "border-[var(--brand)] bg-[var(--brand)] text-white"
-                        : "border-[var(--border)]",
-                    ].join(" ")}
-                  >
-                    {on && <Check size={12} strokeWidth={3} />}
-                  </span>
-                  <span
-                    className={[
-                      "text-[13.5px] font-medium leading-snug transition-colors",
-                      on ? "text-faint line-through decoration-1" : "text-text",
-                    ].join(" ")}
-                  >
-                    {item.prompt}
-                  </span>
-                </button>
-              </div>
-
-              {item.hint && (
-                <div className="ml-[27px] mt-1 text-[11.5px] leading-snug text-faint">
-                  {item.hint}
-                </div>
-              )}
-
-              <input
-                className="pk-input !mt-2 ml-[27px] !w-[calc(100%-27px)] !py-1.5 !text-[12.5px]"
-                value={notes[item.id] ?? ""}
-                onChange={(e) => onNote(item.id, e.target.value)}
-                placeholder={section.placeholder}
-              />
-                </div>
-              );
-            })}
-          </div>
-        ))}
+        {/* A script line has no box. There is no answer to a paragraph you read
+            out, and an empty box under every one of them made the pre-pitch
+            look unfinished for the whole call. */}
+        {!isScript && (
+          <AnswerBox
+            value={note}
+            placeholder={section.placeholder}
+            answerKey={item.answerKey}
+            onChange={onNote}
+          />
+        )}
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -526,19 +763,42 @@ function OutcomeBand({
   meeting,
   record,
   outcome,
+  summary,
   onSave,
 }: {
   meeting: SalesMeeting;
   record: ReturnType<typeof useRecordSalesCallOutcome>;
   outcome: ReturnType<typeof useOutcomeDraft>;
+  // The call facts as text, ready to go into the notes. Empty when nothing was
+  // answered, which is the case a no-show lands in.
+  summary: string;
   onSave: (chosen: NonNullable<SalesMeeting["outcome"]>) => void;
 }) {
+  // Choosing an outcome writes the facts into the notes box, where they can be
+  // read and edited before saving.
+  //
+  // The per-question answers are still binned with the rest of the call state.
+  // These are the six or eight things the half hour actually established, and
+  // they are worth carrying onto the contact; the half-typed line under
+  // "how's that working for you" is not.
+  //
+  // Appended UNDER whatever the meeting already had, never over it. A
+  // follow-up call's notes are the reason it is not a cold call.
+  const chooseWithFacts = (chosen: NonNullable<SalesMeeting["outcome"]>) => {
+    outcome.choose(chosen);
+    if (!summary) return;
+    const existing = (meeting.notes ?? "").trim();
+    outcome.set({ notes: existing ? `${existing}\n\n${summary}` : summary });
+  };
+
   return (
     <div className="pk-card mt-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-[13px] font-bold uppercase tracking-[0.08em] text-muted">Outcome</h2>
         <span className="text-[11.5px] text-faint">
-          Recording it tags the contact and moves the card. The notes above stay in this browser.
+          {summary
+            ? "Recording it tags the contact and moves the card. The call facts go into the notes; the rest stays in this browser."
+            : "Recording it tags the contact and moves the card. The notes above stay in this browser."}
         </span>
       </div>
 
@@ -553,7 +813,7 @@ function OutcomeBand({
                 key={c.outcome}
                 type="button"
                 disabled={record.isPending}
-                onClick={() => outcome.choose(c.outcome)}
+                onClick={() => chooseWithFacts(c.outcome)}
                 className={[
                   "inline-flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5",
                   "text-[13px] font-semibold leading-none transition-colors",
@@ -581,7 +841,7 @@ function OutcomeBand({
           <button
             type="button"
             disabled={record.isPending}
-            onClick={() => outcome.choose(NO_SHOW_CHOICE.outcome)}
+            onClick={() => chooseWithFacts(NO_SHOW_CHOICE.outcome)}
             className={[
               "inline-flex shrink-0 items-center gap-2 rounded-xl border border-border px-3.5 py-2.5",
               "text-[13px] font-semibold leading-none text-text transition-colors hover:bg-surface-2",

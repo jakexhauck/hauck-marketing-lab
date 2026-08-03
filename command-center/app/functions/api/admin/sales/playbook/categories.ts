@@ -2,7 +2,11 @@ import type { Env, ApiData } from "../../../../lib/env";
 import { readJsonBody } from "../../../../lib/body";
 import { getServiceClient } from "../../../../lib/supabase";
 import { logAdminAction } from "../../../../lib/adminAuth";
-import { cleanCategory, isPlaybookSection } from "../../../../lib/salesPlaybook";
+import {
+  cleanCategory,
+  isPlaybookSection,
+  type PlaybookSectionId,
+} from "../../../../lib/salesPlaybook";
 
 // POST   /api/admin/sales/playbook/categories -> add a heading to a column
 // PATCH  /api/admin/sales/playbook/categories -> rename it / move it
@@ -31,7 +35,7 @@ interface CategoryRow {
 function shape(row: CategoryRow) {
   return {
     id: row.id,
-    section: row.section as "discovery" | "pitch" | "objections",
+    section: row.section as PlaybookSectionId,
     name: row.name,
     sortOrder: row.sort_order,
   };

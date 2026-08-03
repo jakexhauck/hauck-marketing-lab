@@ -3,11 +3,17 @@ import { readJsonBody } from "../../../lib/body";
 import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
 import {
+  cleanAnswerKey,
+  cleanFormat,
   cleanHint,
-  cleanPrompt,
+  cleanText,
+  isPlaybookRowKind,
   isPlaybookSection,
+  RESERVED_KEY_SET,
+  type PlaybookRowKind,
   type PlaybookSectionId,
 } from "../../../lib/salesPlaybook";
+import { compileFormula, type ValueFormat } from "../../../lib/callFormula";
 
 // GET    /api/admin/sales/playbook -> every prompt, in section and sort order
 // POST   /api/admin/sales/playbook -> add one to the bottom of a section (owner)
@@ -33,7 +39,8 @@ import {
 // owner check on each write is the second lock on the same door, matching the
 // cold-call assets endpoint.
 
-const SELECT = "id, section, category_id, prompt, hint, sort_order, archived_at";
+const SELECT =
+  "id, section, category_id, kind, prompt, hint, answer_key, formula, format, sort_order, archived_at";
 
 const CATEGORY_SELECT = "id, section, name, sort_order";
 
@@ -41,8 +48,12 @@ interface ItemRow {
   id: string;
   section: string;
   category_id: string | null;
+  kind: string;
   prompt: string;
   hint: string;
+  answer_key: string | null;
+  formula: string;
+  format: string;
   sort_order: number;
   archived_at: string | null;
 }
@@ -59,12 +70,66 @@ function shape(row: ItemRow) {
     id: row.id,
     section: row.section as PlaybookSectionId,
     categoryId: row.category_id,
+    kind: row.kind as PlaybookRowKind,
     prompt: row.prompt,
     hint: row.hint,
+    answerKey: row.answer_key,
+    formula: row.formula,
+    format: row.format as ValueFormat,
     sortOrder: row.sort_order,
     archivedAt: row.archived_at,
   };
 }
+
+// The three fields a row carries besides its words, checked together because
+// they only make sense together: a key has to be usable in a formula, a formula
+// has to be arithmetic, and a formula on a row that is not a calc is a formula
+// nothing will ever evaluate.
+//
+// The uniqueness of a key is NOT checked here. It is a partial unique index in
+// 0082, and the insert or update below is what trips it. Reading first and
+// writing second would be a race with itself; letting the database refuse is
+// the only version that cannot be wrong.
+function validateAnswerFields(
+  kind: PlaybookRowKind,
+  raw: { answerKey?: unknown; formula?: unknown },
+): { ok: true; answerKey: string | null; formula: string } | { ok: false; error: string } {
+  const key = cleanAnswerKey(raw.answerKey);
+  if (key === null) {
+    return {
+      ok: false,
+      error:
+        "An answer name is lowercase letters, digits and underscores, starting with a letter. For example avg_ticket.",
+    };
+  }
+  if (key && RESERVED_KEY_SET.has(key)) {
+    return {
+      ok: false,
+      error: `"${key}" already comes from the booking. Pick a different name.`,
+    };
+  }
+
+  // A calc IS its formula, so it is refused without one. The other two kinds
+  // store an empty string rather than whatever was left in the box when the
+  // row's type was switched.
+  if (kind !== "calc") return { ok: true, answerKey: key || null, formula: "" };
+
+  if (!key) {
+    return { ok: false, error: "A calculated row needs a name, so other rows can use its number." };
+  }
+  const compiled = compileFormula(raw.formula);
+  if (!compiled.ok) return { ok: false, error: compiled.error };
+  // Compiled to check it, stored as typed: the page shows Jake his own sum back.
+  return { ok: true, answerKey: key, formula: String(raw.formula).trim() };
+}
+
+// The database refusing a duplicate key, said in English. 23505 is a unique
+// violation, and the only unique index on this table is the answer key one.
+function keyTaken(error: { code?: string } | null): boolean {
+  return error?.code === "23505";
+}
+
+const KEY_TAKEN = "Another row on the playbook already files its answer under that name.";
 
 function shapeCategory(row: CategoryRow) {
   return {
@@ -125,8 +190,13 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
 interface PostBody {
   section?: unknown;
+  // Absent means a question, which is what every row was before 0082.
+  kind?: unknown;
   prompt?: unknown;
   hint?: unknown;
+  answerKey?: unknown;
+  formula?: unknown;
+  format?: unknown;
   // Optional: the heading to file it under straight away, so "add a prompt"
   // inside a category does not mean adding it loose and then refiling it.
   categoryId?: unknown;
@@ -142,13 +212,23 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   if (!isPlaybookSection(body.section)) {
     return Response.json({ error: "bad_section" }, { status: 400 });
   }
-  const prompt = cleanPrompt(body.prompt);
+  const kind: PlaybookRowKind = isPlaybookRowKind(body.kind) ? body.kind : "question";
+
+  const prompt = cleanText(kind, body.prompt);
   if (!prompt) {
     return Response.json(
-      { error: "Write the prompt itself, otherwise there is nothing to read." },
+      {
+        error:
+          kind === "calc"
+            ? "Give the calculation a label, so you know what the number is when you read it."
+            : "Write the prompt itself, otherwise there is nothing to read.",
+      },
       { status: 400 },
     );
   }
+
+  const answers = validateAnswerFields(kind, body);
+  if (!answers.ok) return Response.json({ error: answers.error }, { status: 400 });
 
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
@@ -186,14 +266,19 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     .insert({
       section: body.section,
       category_id: categoryId,
+      kind,
       prompt,
       hint: cleanHint(body.hint),
+      answer_key: answers.answerKey,
+      formula: answers.formula,
+      format: cleanFormat(body.format),
       sort_order: sortOrder,
       updated_by: adminId,
     })
     .select(SELECT)
     .single();
   if (error || !data) {
+    if (keyTaken(error)) return Response.json({ error: KEY_TAKEN }, { status: 409 });
     console.error("[sales/playbook] insert failed", error?.message);
     return Response.json({ error: "could not add that" }, { status: 500 });
   }
@@ -208,8 +293,13 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
 interface PatchBody {
   id?: unknown;
+  // Switching a row's type. Absent leaves it as it is.
+  kind?: unknown;
   prompt?: unknown;
   hint?: unknown;
+  answerKey?: unknown;
+  formula?: unknown;
+  format?: unknown;
   sortOrder?: unknown;
   // The heading to file it under. null unfiles it. Absent leaves it alone,
   // which is why the three states have to be told apart by `in` rather than by
@@ -231,6 +321,23 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
 
+  // The row as it stands. Read once, up front, because three separate things
+  // below need it: the text cleaner needs to know whether this row is allowed
+  // line breaks, the answer-field check needs the kind a formula is being
+  // stored against, and refiling needs the section.
+  const { data: current } = await client
+    .from("sales_playbook_items")
+    .select("section, kind, answer_key, formula")
+    .eq("id", id)
+    .maybeSingle();
+  const existing = current as {
+    section: string;
+    kind: string;
+    answer_key: string | null;
+    formula: string;
+  } | null;
+  if (!existing) return Response.json({ error: "not found" }, { status: 404 });
+
   // Only the fields actually sent are touched, so the autosaving editor can
   // PATCH a prompt alone without clearing the hint beside it.
   const patch: Record<string, unknown> = {
@@ -238,8 +345,20 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     updated_by: ctx.data.admin!.id,
   };
 
+  const kind: PlaybookRowKind = isPlaybookRowKind(body.kind)
+    ? body.kind
+    : isPlaybookRowKind(existing.kind)
+      ? existing.kind
+      : "question";
+  if (body.kind !== undefined) {
+    if (!isPlaybookRowKind(body.kind)) {
+      return Response.json({ error: "bad_kind" }, { status: 400 });
+    }
+    patch.kind = kind;
+  }
+
   if (body.prompt !== undefined) {
-    const prompt = cleanPrompt(body.prompt);
+    const prompt = cleanText(kind, body.prompt);
     if (!prompt) {
       return Response.json(
         { error: "Write the prompt itself, otherwise there is nothing to read." },
@@ -249,6 +368,21 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     patch.prompt = prompt;
   }
   if (body.hint !== undefined) patch.hint = cleanHint(body.hint);
+  if (body.format !== undefined) patch.format = cleanFormat(body.format);
+
+  // The key and the formula are validated together, and re-validated whenever
+  // EITHER of them or the kind moves: turning a question into a calc has to
+  // check the formula that question never had, and changing a formula has to
+  // check it against the key it will be stored beside.
+  if (body.answerKey !== undefined || body.formula !== undefined || body.kind !== undefined) {
+    const answers = validateAnswerFields(kind, {
+      answerKey: body.answerKey !== undefined ? body.answerKey : existing.answer_key,
+      formula: body.formula !== undefined ? body.formula : existing.formula,
+    });
+    if (!answers.ok) return Response.json({ error: answers.error }, { status: 400 });
+    patch.answer_key = answers.answerKey;
+    patch.formula = answers.formula;
+  }
   if (body.categoryId !== undefined) {
     if (body.categoryId === null || body.categoryId === "") {
       patch.category_id = null;
@@ -259,13 +393,7 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
       // can offer a mismatch, so this is the guard against a hand-written PATCH
       // filing a discovery question under an objections heading, which would
       // render it nowhere.
-      const { data: pair } = await client
-        .from("sales_playbook_items")
-        .select("section")
-        .eq("id", id)
-        .maybeSingle();
-      const itemSection = (pair as { section: string } | null)?.section;
-      if (!itemSection) return Response.json({ error: "not found" }, { status: 404 });
+      const itemSection = existing.section;
 
       const { data: cat } = await client
         .from("sales_playbook_categories")
@@ -295,6 +423,7 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     .select(SELECT)
     .maybeSingle();
   if (error) {
+    if (keyTaken(error)) return Response.json({ error: KEY_TAKEN }, { status: 409 });
     console.error("[sales/playbook] update failed", error.message);
     return Response.json({ error: "could not save that" }, { status: 500 });
   }

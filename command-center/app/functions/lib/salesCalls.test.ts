@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   SALES_CALL_OUTCOMES,
   SALES_NO_REASONS,
+  byOffer,
   bySource,
   contractValue,
   daysLate,
@@ -20,6 +21,84 @@ import {
 function call(over: Partial<CountableCall> = {}): CountableCall {
   return { scheduledAt: "2026-07-20T15:00:00.000Z", outcome: null, cashCollected: null, ...over };
 }
+
+describe("byOffer", () => {
+  const pitched = (variant: string, outcome: SalesCallOutcome, over: Partial<CountableCall> = {}) =>
+    call({ offerVariant: variant, outcome, ...over });
+
+  it("counts how each offer did", () => {
+    const rows = byOffer([
+      pitched("performance_no_setup", "closed"),
+      pitched("performance_no_setup", "not_interested"),
+      pitched("performance_setup", "not_interested"),
+      pitched("performance_setup", "not_interested"),
+    ]);
+    expect(rows.map((r) => [r.variant, r.pitched, r.closed, r.closeRate])).toEqual([
+      ["performance_no_setup", 2, 1, 0.5],
+      ["performance_setup", 2, 0, 0],
+    ]);
+  });
+
+  it("names the family and the shape, so a row reads without decoding an id", () => {
+    const [row] = byOffer([pitched("retainer_guarantee", "closed")]);
+    expect(row.family).toBe("Monthly retainer");
+    expect(row.label).toContain("Monthly for a set number of appointments");
+  });
+
+  it("leaves a no-show out of the denominator", () => {
+    // The whole reason booked is not the denominator: an offer cannot be
+    // pitched to somebody who never arrived, and counting one would move an
+    // offer's close rate because a prospect overslept.
+    const rows = byOffer([
+      pitched("paid_in_full", "closed"),
+      pitched("paid_in_full", "no_show"),
+    ]);
+    expect(rows[0].pitched).toBe(1);
+    expect(rows[0].closeRate).toBe(1);
+  });
+
+  it("leaves out a meeting nobody has recorded yet", () => {
+    expect(byOffer([call({ offerVariant: "paid_in_full", outcome: null })])).toEqual([]);
+  });
+
+  it("leaves out a meeting with no offer on it", () => {
+    expect(byOffer([call({ outcome: "closed" })])).toEqual([]);
+  });
+
+  it("skips a variant the catalogue no longer has", () => {
+    // A raw id as a row label answers nothing, so the row is not drawn.
+    expect(byOffer([pitched("retired_offer", "closed")])).toEqual([]);
+  });
+
+  it("adds up the money on the closes only", () => {
+    const rows = byOffer([
+      pitched("retainer_no_guarantee", "closed", {
+        cashCollected: 1500,
+        deal: { monthly: 1500, months: 6 },
+      }),
+      pitched("retainer_no_guarantee", "not_interested", {
+        deal: { monthly: 9999, months: 12 },
+      }),
+    ]);
+    expect(rows[0].cash).toBe(1500);
+    // The second call's deal is ignored: it did not close, so it is not revenue.
+    expect(rows[0].mrr).toBe(1500);
+  });
+
+  it("puts the best close rate first, and breaks a tie on how often it was tried", () => {
+    const rows = byOffer([
+      pitched("free_trial", "closed"),
+      pitched("ppl_no_upfront", "closed"),
+      pitched("ppl_no_upfront", "closed"),
+    ]);
+    // Both close 100%; the one tried twice is the one worth reading first.
+    expect(rows.map((r) => r.variant)).toEqual(["ppl_no_upfront", "free_trial"]);
+  });
+
+  it("is empty rather than throwing when nothing has been recorded", () => {
+    expect(byOffer([])).toEqual([]);
+  });
+});
 
 describe("the outcome vocabulary", () => {
   it("matches the CHECK constraint in migration 0067", () => {

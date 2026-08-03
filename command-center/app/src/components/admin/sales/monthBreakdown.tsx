@@ -1,13 +1,13 @@
 import { SALES_NO_REASONS, type SalesNoReason } from "../../../../functions/lib/salesCalls";
-import type { SourceSplitRow } from "../../../../functions/lib/salesCalls";
+import type { OfferSplitRow, SourceSplitRow } from "../../../../functions/lib/salesCalls";
 import { formatMoney } from "../../../lib/salesTracker";
 import { formatPct } from "../../../lib/trackerMonth";
 
-// The two questions the Sales Data grid could not answer, under the grid.
+// The three questions the Sales Data grid could not answer, under the grid.
 //
-// Both are counted per MEETING rather than per day, which is why the endpoint
-// sends them whole instead of the client summing the day rows: a rate summed from
-// daily rates is not the month's rate.
+// All three are counted per MEETING rather than per day, which is why the
+// endpoint sends them whole instead of the client summing the day rows: a rate
+// summed from daily rates is not the month's rate.
 
 // WHERE THE MEETINGS CAME FROM.
 //
@@ -69,6 +69,72 @@ export function SourceSplit({ sources }: { sources: SourceSplitRow[] }) {
       <p className="mt-2 text-[11.5px] text-faint">
         Counted from the meetings themselves. A meeting the app booked reads as a
         cold call; one the calendar read in on its own reads as Calendar.
+      </p>
+    </section>
+  );
+}
+
+// WHICH OFFER CLOSES.
+//
+// The reason the offer is asked for on every outcome and not only on the wins.
+// Every other split on this page counts meetings by where they came from, which
+// answers where the next hour goes; this one answers what to put on the table
+// when you get there, and whether the setup fee is worth what it costs in
+// deals.
+//
+// Shown from ONE row, unlike the source table. A single source is the whole
+// month restated, but a single offer is a real finding: it says Jake has been
+// pitching one thing, and the close rate on it is the number he came for.
+export function OfferSplit({ offers }: { offers: OfferSplitRow[] }) {
+  if (offers.length === 0) return null;
+
+  const pitched = offers.reduce((sum, row) => sum + row.pitched, 0);
+
+  return (
+    <section className="mt-5">
+      <div className="pk-list-sec-h">Which offer closes ({pitched} pitched)</div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[520px] border-collapse text-[13px]">
+          <thead>
+            <tr className="text-left text-[11px] uppercase tracking-wider text-faint">
+              <th className="py-1.5 pr-3 font-semibold">Offer</th>
+              <th className="py-1.5 pr-3 text-right font-semibold">Pitched</th>
+              <th className="py-1.5 pr-3 text-right font-semibold">Closed</th>
+              <th className="py-1.5 pr-3 text-right font-semibold">Close %</th>
+              <th className="py-1.5 pr-3 text-right font-semibold">New MRR</th>
+              <th className="py-1.5 text-right font-semibold">Cash</th>
+            </tr>
+          </thead>
+          <tbody>
+            {offers.map((row) => (
+              <tr key={row.variant} className="border-t border-border">
+                <td className="py-2 pr-3">
+                  {/* The family in bold and the shape under it. One line would
+                      either lose which variant it was or run to sixty
+                      characters, and the variant is the entire point. */}
+                  <div className="font-semibold">{row.family}</div>
+                  <div className="text-[11.5px] leading-snug text-faint">{row.label}</div>
+                </td>
+                <td className="py-2 pr-3 text-right tabular-nums">{row.pitched}</td>
+                <td className="py-2 pr-3 text-right tabular-nums">{row.closed}</td>
+                <td className="py-2 pr-3 text-right tabular-nums text-muted">
+                  {formatPct(row.closeRate)}
+                </td>
+                <td className="py-2 pr-3 text-right tabular-nums">
+                  {row.mrr ? formatMoney(row.mrr) : ""}
+                </td>
+                <td className="py-2 text-right tabular-nums">
+                  {row.cash ? formatMoney(row.cash) : ""}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-2 text-[11.5px] text-faint">
+        Only the meetings somebody turned up to: an offer cannot be pitched to a
+        no-show. Best close rate first, and a rate off one call is one call, not
+        a finding.
       </p>
     </section>
   );

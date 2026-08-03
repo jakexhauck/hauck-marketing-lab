@@ -9,6 +9,7 @@ import {
   parseDeal,
   type SalesDeal,
 } from "../../lib/salesCalls";
+import { cleanOffer, offerSummary, parseOffer, type StoredOffer } from "../../lib/salesOffers";
 import { createFollowUpTask, pushSalesCallTag } from "./salesCallPush";
 
 // Recording what a sales meeting became, in one place.
@@ -57,6 +58,11 @@ export interface RecordBody {
   // figure no deal is stored at all.
   monthly?: unknown;
   months?: unknown;
+  // Which offer was put on the table, and the numbers actually quoted inside
+  // its range (0086). Optional on every outcome, and only kept on one where
+  // somebody turned up.
+  offerVariant?: unknown;
+  offerTerms?: unknown;
   // Whatever was said on the call, in words. Optional on every outcome.
   notes?: unknown;
 }
@@ -90,6 +96,10 @@ export interface MeetingRow {
   // What was sold (0057's jsonb column, first written in 0068's release). Shape
   // is not trusted: parseDeal decides what counts as a deal.
   deal: unknown;
+  // Which offer was pitched, and the numbers quoted inside its range (0086).
+  // Both null on every row recorded before it.
+  offer_variant: string | null;
+  offer_terms: unknown;
   // Notes taken on the call. The column has existed since 0057 and held '' on
   // every row until the record panel started writing it.
   scratchpad: string | null;
@@ -113,7 +123,8 @@ export const MEETING_SELECT =
   " ghl_tag," +
   " lead_id, prospect_name, business_name, phone, email, source, scheduled_at," +
   " appointment_status, calendar_id, calendar_name," +
-  " outcome, not_a_fit_reason, follow_up_at, cash_collected, deal, scratchpad," +
+  " outcome, not_a_fit_reason, follow_up_at, cash_collected, deal," +
+  " offer_variant, offer_terms, scratchpad," +
   " synced_at, updated_at, logged_by, leads(assigned_to)";
 
 export function shapeMeeting(row: MeetingRow) {
@@ -150,6 +161,11 @@ export function shapeMeeting(row: MeetingRow) {
     // Parsed here, once, at the boundary: every page downstream gets a deal or
     // null and never has to wonder what shape the jsonb was.
     deal: parseDeal(row.deal),
+    // Same treatment as the deal: parsed once, here, so every page downstream
+    // gets an offer or null and never has to know what the jsonb looked like.
+    // A variant retired from the catalogue comes back null rather than as a
+    // button that lights up nothing.
+    offer: parseOffer(row.offer_variant, row.offer_terms),
     notes: row.scratchpad ?? "",
     syncedAt: row.synced_at,
     assignedTo: row.leads?.assigned_to ?? null,
@@ -332,6 +348,19 @@ export async function recordSalesCallOutcome(
     }
   }
 
+  // WHICH OFFER WAS PITCHED, on any outcome where somebody turned up.
+  //
+  // Kept on the nos as well as the close, deliberately: which offer gets turned
+  // down is worth more than which one closed, and a no-show never heard one.
+  //
+  // Never required. An unrecognised variant is dropped to null rather than
+  // refused, on the same grounds as the terms inside it: a browser holding an
+  // older bundle should lose the offer, not the outcome it came with.
+  let offer: StoredOffer | null = null;
+  if (meta.showed && body.offerVariant !== undefined && body.offerVariant !== null && body.offerVariant !== "") {
+    offer = cleanOffer(body.offerVariant, body.offerTerms);
+  }
+
   // Whatever was said, on any outcome. Capped rather than refused: a long note
   // is somebody doing the right thing, and losing the outcome over it would be
   // the wrong trade.
@@ -376,6 +405,12 @@ export async function recordSalesCallOutcome(
       // outcome is something other than a close, so a corrected answer cannot
       // leave revenue behind on a deal that did not happen.
       deal: outcome === "closed" ? deal : null,
+      // The offer follows the same rule for the same reason, except its test is
+      // "did they turn up" rather than "did they buy": an offer cannot have been
+      // made to a no-show, so correcting an outcome to no_show must take the
+      // offer with it rather than leave one being read as current.
+      offer_variant: offer?.variant ?? null,
+      offer_terms: offer?.terms ?? null,
       // Notes belong to the meeting, not to the outcome, so they are NOT cleared
       // when an answer changes. Re-recording an outcome without retyping the
       // notes keeps what was written; sending new notes replaces them.
@@ -418,6 +453,9 @@ export async function recordSalesCallOutcome(
     monthly: deal?.monthly ?? null,
     months: deal?.months ?? null,
     reason,
+    // Which offer was on the table, in words, so the audit line reads without
+    // anybody having to decode a variant id.
+    offer: offerSummary(offer) || null,
     tagged: push.tag,
     pushError: push.error,
   });

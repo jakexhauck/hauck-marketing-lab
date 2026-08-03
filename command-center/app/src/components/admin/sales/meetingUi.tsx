@@ -23,6 +23,15 @@ import {
   type SalesCallOutcome,
   type SalesNoReason,
 } from "../../../../functions/lib/salesCalls";
+import {
+  OFFER_FAMILIES,
+  cashLabelFor,
+  collectsFor,
+  offerVariant,
+  variantsOfFamily,
+  type OfferFamilyId,
+  type OfferUnit,
+} from "../../../../functions/lib/salesOffers";
 
 // The parts Cold Call > Booked and Sales > Sales Calls both draw.
 //
@@ -269,6 +278,9 @@ export interface RecordOutcome {
     months?: number | null;
     // Why they said no, on either kind of no. Required by the server.
     reason?: string;
+    // Which offer was pitched, and what was quoted inside its range.
+    offerVariant?: string | null;
+    offerTerms?: Record<string, number>;
     // Notes, allowed on any outcome.
     notes?: string;
   }) => Promise<unknown>;
@@ -286,6 +298,11 @@ interface Draft {
   monthly: string;
   months: string;
   reason: SalesNoReason | "";
+  // Which offer was pitched, and the numbers quoted inside its range (0086).
+  // Terms are held as STRINGS, like every other number on this panel: a
+  // half-typed "1" must not round-trip through Number and come back as 1.
+  offerVariant: string;
+  offerTerms: Record<string, string>;
   notes: string;
 }
 
@@ -295,6 +312,13 @@ function draftFor(meeting: SalesMeeting): Draft {
     cash: meeting.cashCollected === null ? "" : String(meeting.cashCollected),
     monthly: meeting.deal ? String(meeting.deal.monthly) : "",
     months: meeting.deal?.months ? String(meeting.deal.months) : "",
+    // Only a variant the catalogue still has is prefilled, on the same grounds
+    // as the reason below: a retired one would light up no button while still
+    // counting as an answer.
+    offerVariant: offerVariant(meeting.offer?.variant)?.id ?? "",
+    offerTerms: Object.fromEntries(
+      Object.entries(meeting.offer?.terms ?? {}).map(([k, v]) => [k, String(v)]),
+    ),
     // Only a reason still on the list is prefilled. A stored value the list no
     // longer has would otherwise light up no button while still counting as an
     // answer, letting Save fire something the server will refuse.
@@ -325,6 +349,19 @@ export interface OutcomeDraft {
   submit: (outcome: SalesCallOutcome) => Promise<boolean>;
 }
 
+// The typed terms, as numbers, with the blanks left out. A box nobody filled in
+// must not arrive as 0: "he did not write it down" and "he quoted nothing" are
+// different facts, and the server stores the second faithfully.
+function numericTerms(terms: Record<string, string>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [key, raw] of Object.entries(terms)) {
+    if (raw.trim() === "") continue;
+    const n = Number(raw);
+    if (Number.isFinite(n) && n >= 0) out[key] = n;
+  }
+  return out;
+}
+
 export function useOutcomeDraft(meeting: SalesMeeting, record: RecordOutcome): OutcomeDraft {
   const { showToast } = useToast();
   // Which outcome is mid-answer. Null the rest of the time.
@@ -334,19 +371,38 @@ export function useOutcomeDraft(meeting: SalesMeeting, record: RecordOutcome): O
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
   const submit = async (outcome: SalesCallOutcome) => {
+    // Which money figures this offer can even have. The panel hides the boxes
+    // it does not ask for, and this makes sure a figure left over from a
+    // previously recorded outcome is not sent from a hidden box: switching a
+    // close from a retainer to fully performance based must take the retainer
+    // with it, not leave it in the monthly revenue figure.
+    const collects = collectsFor(draft.offerVariant);
+    const takes = (field: "monthly" | "months" | "cash") =>
+      outcome === "closed" && collects.includes(field);
+
     try {
       await record.mutateAsync({
         id: meeting.id,
         outcome,
         followUpAt: outcome === "follow_up" ? draft.followUpAt : undefined,
-        cashCollected:
-          outcome === "closed" ? (draft.cash === "" ? null : Number(draft.cash)) : undefined,
-        // The retainer. Sent only on a close, and only where a monthly figure was
-        // given: an empty box means "not recorded", which the server stores as no
-        // deal rather than as a client worth nothing.
-        monthly: outcome === "closed" && draft.monthly !== "" ? Number(draft.monthly) : undefined,
-        months: outcome === "closed" && draft.months !== "" ? Number(draft.months) : undefined,
+        // Null rather than undefined on a close that collects nothing: absent
+        // would leave whatever was there before, and the answer is that this
+        // deal took no cash.
+        cashCollected: outcome !== "closed" ? undefined : takes("cash") && draft.cash !== "" ? Number(draft.cash) : null,
+        // The retainer. Sent only on a close, only on an offer that has one, and
+        // only where a figure was given: an empty box means "not recorded",
+        // which the server stores as no deal rather than as a client worth
+        // nothing.
+        monthly: takes("monthly") && draft.monthly !== "" ? Number(draft.monthly) : undefined,
+        months: takes("months") && draft.months !== "" ? Number(draft.months) : undefined,
         reason: draft.reason || undefined,
+        // The offer. Sent on every outcome and let the server decide whether it
+        // survives (it keeps one on anything where they turned up, and clears it
+        // on a no-show), rather than this panel keeping its own copy of that
+        // rule. Empty boxes are dropped here so a blank reaches the server as
+        // absent rather than as NaN.
+        offerVariant: draft.offerVariant || null,
+        offerTerms: numericTerms(draft.offerTerms),
         // Sent on every outcome, and only when there is something to send: an
         // empty box must not wipe notes typed earlier.
         notes: draft.notes.trim() || undefined,
@@ -595,6 +651,9 @@ export function RecordPanel({
   // reason is the empty column the reason list exists to prevent. Both block the
   // save rather than being quietly accepted half-answered.
   const incomplete = (outcome === "follow_up" && !draft.followUpAt) || (isNo && !draft.reason);
+  // Which money boxes this offer can even have. Same function the submit uses,
+  // so a box that is not drawn is a figure that is not sent.
+  const collects = collectsFor(draft.offerVariant);
   // Through parseDeal rather than multiplied here, so a half-typed box reads as
   // "no figure yet" instead of "$NaN", and the panel agrees with the server about
   // what counts as a deal.
@@ -612,42 +671,69 @@ export function RecordPanel({
         {outcomeLabel(outcome)}
       </div>
 
-      {outcome === "closed" && (
+      {/* Which offer was on the table. FIRST, because on a close it decides
+          which money boxes appear underneath it. Asked on every outcome where
+          they turned up, not just the close: knowing which offer gets turned
+          down is worth more than knowing which one closed. A no-show never
+          heard one, so it is not asked. */}
+      {outcome !== "no_show" && (
+        <div className="mb-3">
+          <OfferPicker
+            variant={draft.offerVariant}
+            terms={draft.offerTerms}
+            onVariant={(offerVariantId) => set({ offerVariant: offerVariantId })}
+            onTerm={(key, value) => set({ offerTerms: { ...draft.offerTerms, [key]: value } })}
+          />
+        </div>
+      )}
+
+      {/* The money, decided by the offer above rather than always asked.
+          A fully performance-based deal takes nothing at signing, so there is
+          nothing here to fill in; a retainer has all three. With no offer
+          picked, all three are asked, because not knowing which offer it was is
+          not the same as knowing it took nothing. */}
+      {outcome === "closed" && collects.length > 0 && (
         <div className="mb-3 flex flex-wrap items-end gap-3">
-          <Field label="Monthly" hint="What they pay every month">
-            <input
-              className="pk-input !w-[110px]"
-              type="number"
-              min="0"
-              step="1"
-              inputMode="numeric"
-              value={draft.monthly}
-              onChange={(e) => set({ monthly: e.target.value })}
-              autoFocus
-            />
-          </Field>
-          <Field label="Months" hint="Blank for month-to-month">
-            <input
-              className="pk-input !w-[90px]"
-              type="number"
-              min="0"
-              step="1"
-              inputMode="numeric"
-              value={draft.months}
-              onChange={(e) => set({ months: e.target.value })}
-            />
-          </Field>
-          <Field label="Cash today" hint="Taken on the call itself">
-            <input
-              className="pk-input !w-[110px]"
-              type="number"
-              min="0"
-              step="1"
-              inputMode="numeric"
-              value={draft.cash}
-              onChange={(e) => set({ cash: e.target.value })}
-            />
-          </Field>
+          {collects.includes("monthly") && (
+            <Field label="Monthly" hint="What they pay every month">
+              <input
+                className="pk-input !w-[110px]"
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                value={draft.monthly}
+                onChange={(e) => set({ monthly: e.target.value })}
+                autoFocus
+              />
+            </Field>
+          )}
+          {collects.includes("months") && (
+            <Field label="Months" hint="Blank for month-to-month">
+              <input
+                className="pk-input !w-[90px]"
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                value={draft.months}
+                onChange={(e) => set({ months: e.target.value })}
+              />
+            </Field>
+          )}
+          {collects.includes("cash") && (
+            <Field label={cashLabelFor(draft.offerVariant)} hint="Taken on the call itself">
+              <input
+                className="pk-input !w-[110px]"
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                value={draft.cash}
+                onChange={(e) => set({ cash: e.target.value })}
+              />
+            </Field>
+          )}
           {/* The multiplication, done for the reader. Only when both halves are
               there: month-to-month has no total, and printing one would be a
               guess about how long they stay. */}
@@ -657,6 +743,14 @@ export function RecordPanel({
             </div>
           )}
         </div>
+      )}
+
+      {/* Said plainly rather than left as a gap, so a close with no boxes reads
+          as the offer working correctly instead of as the panel failing. */}
+      {outcome === "closed" && collects.length === 0 && (
+        <p className="mb-3 text-[12px] text-muted">
+          Nothing collected at signing on this offer. What they pay is in the terms above.
+        </p>
       )}
 
       {outcome === "follow_up" && (
@@ -724,6 +818,145 @@ export function RecordPanel({
         )}
       </div>
     </form>
+  );
+}
+
+// ===== Which offer was pitched =====
+
+const UNIT_PREFIX: Record<OfferUnit, string> = {
+  money: "$",
+  percent: "",
+  days: "",
+  count: "",
+};
+
+const UNIT_SUFFIX: Record<OfferUnit, string> = {
+  money: "",
+  percent: "%",
+  days: "",
+  count: "",
+};
+
+// Two steps, because six families of offer with ten variants between them is a
+// list nobody reads at the bottom of a form. Pick the family, and only that
+// family's variants open under it; the numbers appear only once a variant is
+// chosen, and only for the ranges that variant actually has.
+//
+// Nothing here is required. An outcome recorded in a hurry with no offer picked
+// is still an outcome, and blocking the save to protect a statistic would be
+// the wrong trade.
+function OfferPicker({
+  variant,
+  terms,
+  onVariant,
+  onTerm,
+}: {
+  variant: string;
+  terms: Record<string, string>;
+  onVariant: (variant: string) => void;
+  onTerm: (key: string, value: string) => void;
+}) {
+  const chosen = offerVariant(variant);
+  // The family the chosen variant belongs to, so reopening a recorded call
+  // lands on the right branch rather than collapsed.
+  const [openFamily, setOpenFamily] = useState<OfferFamilyId | "">(chosen?.family ?? "");
+
+  const pickFamily = (family: OfferFamilyId) => {
+    if (family === openFamily) {
+      // Closing the family it came from clears the answer. Otherwise a variant
+      // stays selected under a collapsed heading, recorded but invisible.
+      setOpenFamily("");
+      if (chosen?.family === family) onVariant("");
+      return;
+    }
+    setOpenFamily(family);
+    const only = variantsOfFamily(family);
+    // A family with one shape has nothing to choose, so choosing the family IS
+    // the answer. Saves a click on three of the six.
+    onVariant(only.length === 1 ? only[0].id : "");
+  };
+
+  return (
+    <div>
+      <div className="mb-1.5 text-[12px] text-muted">
+        Offer pitched <span className="text-faint">Optional</span>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {OFFER_FAMILIES.map((family) => {
+          const on = openFamily === family.id;
+          const answered = chosen?.family === family.id;
+          return (
+            <button
+              key={family.id}
+              type="button"
+              onClick={() => pickFamily(family.id)}
+              className={[
+                "rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold leading-none",
+                "transition-colors",
+                answered || on
+                  ? "border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)]"
+                  : "border-border text-text hover:bg-surface",
+              ].join(" ")}
+            >
+              {family.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {openFamily !== "" && variantsOfFamily(openFamily).length > 1 && (
+        <div className="mt-2 flex flex-col gap-1 border-l border-[var(--divider)] pl-3">
+          {variantsOfFamily(openFamily).map((v) => {
+            const on = v.id === variant;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => onVariant(v.id)}
+                className={[
+                  "text-left text-[12.5px] leading-snug transition-colors",
+                  on ? "font-semibold text-[var(--brand)]" : "text-muted hover:text-text",
+                ].join(" ")}
+              >
+                {on ? "✓ " : ""}
+                {v.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* What was actually said inside the range. The placeholder is what Jake
+          usually quotes, never stored on his behalf: a default that saved
+          itself would fill a year of calls with a number nobody said. */}
+      {chosen && chosen.terms.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-end gap-3 border-l border-[var(--divider)] pl-3">
+          {chosen.terms.map((def) => (
+            <label key={def.key} className="block">
+              <span className="mb-1 block text-[11px] uppercase tracking-wider text-faint">
+                {def.label}
+              </span>
+              <span className="flex items-center gap-1 text-[12.5px] text-muted">
+                {UNIT_PREFIX[def.unit]}
+                <input
+                  className="pk-input !w-[86px]"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputMode="numeric"
+                  value={terms[def.key] ?? ""}
+                  onChange={(e) => onTerm(def.key, e.target.value)}
+                  placeholder={String(def.typical)}
+                  aria-label={`${chosen.label}, ${def.label}`}
+                />
+                {UNIT_SUFFIX[def.unit]}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

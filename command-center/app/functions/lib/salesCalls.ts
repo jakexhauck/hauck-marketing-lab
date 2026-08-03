@@ -8,6 +8,8 @@
 // Pure. No database, no network, so the endpoint and the browser can never
 // disagree about what a show rate is.
 
+import { OFFER_FAMILIES, offerVariant } from "./salesOffers";
+
 export type SalesCallOutcome =
   | "closed"
   | "follow_up"
@@ -161,6 +163,9 @@ export interface CountableCall {
   // Where the meeting came from: "" or "Cold call" when the app booked it,
   // "Calendar" when the sync adopted one nobody typed here.
   source?: string | null;
+  // Which offer was pitched (0086), as the variant id. Optional in the same way
+  // the deal is: a caller that does not pass it simply reports no offer split.
+  offerVariant?: string | null;
 }
 
 export interface SalesCallTotals {
@@ -322,6 +327,82 @@ export function bySource(calls: CountableCall[]): SourceSplitRow[] {
     row.closeRate = rate(row.closed, row.showed);
   }
   return rows.sort((a, b) => b.booked - a.booked || a.source.localeCompare(b.source));
+}
+
+export interface OfferSplitRow {
+  // The variant id, and the two labels for it: the family it belongs to and the
+  // shape within that family. Resolved here rather than in the page, so a
+  // variant renamed in the catalogue is renamed everywhere at once.
+  variant: string;
+  family: string;
+  label: string;
+  // Meetings where they turned up and this offer was on the table. Booked is
+  // deliberately NOT the denominator: an offer cannot be pitched to a no-show,
+  // so counting one against the offer would punish it for somebody's diary.
+  pitched: number;
+  closed: number;
+  cash: number;
+  mrr: number;
+  // Closed over pitched. Null until at least one call has carried this offer,
+  // rather than 0%, which reads as "this offer never closes".
+  closeRate: number | null;
+}
+
+// How each offer actually performs.
+//
+// The question the offer field was added to answer: does the $250 setup fee
+// cost the deal, and does the 10% close as often as the 5%. Nothing else on the
+// page can say, because every other split counts meetings by where they came
+// from rather than by what was put on the table.
+//
+// Only meetings where somebody TURNED UP are counted. A no-show never heard an
+// offer, and letting it into the denominator would mean an offer's close rate
+// moved when a prospect overslept.
+//
+// Best first, so the answer is the top row. An unrecognised variant is skipped
+// rather than becoming its own row: it is a value from a catalogue this build
+// no longer has, and a row labelled with a raw id answers nothing.
+export function byOffer(calls: CountableCall[]): OfferSplitRow[] {
+  const byKey = new Map<string, OfferSplitRow>();
+
+  for (const call of calls) {
+    if (!call.outcome || !SALES_CALL_OUTCOMES[call.outcome].showed) continue;
+    const variant = offerVariant(call.offerVariant);
+    if (!variant) continue;
+
+    let row = byKey.get(variant.id);
+    if (!row) {
+      row = {
+        variant: variant.id,
+        family: OFFER_FAMILIES.find((f) => f.id === variant.family)?.label ?? variant.family,
+        label: variant.label,
+        pitched: 0,
+        closed: 0,
+        cash: 0,
+        mrr: 0,
+        closeRate: null,
+      };
+      byKey.set(variant.id, row);
+    }
+
+    row.pitched += 1;
+    row.cash += call.cashCollected ?? 0;
+    if (call.outcome === "closed") {
+      row.closed += 1;
+      row.mrr += parseDeal(call.deal)?.monthly ?? 0;
+    }
+  }
+
+  const rows = [...byKey.values()];
+  for (const row of rows) row.closeRate = rate(row.closed, row.pitched);
+  // By close rate, then by how much it has been tried: a 1-for-1 offer should
+  // not sit above a 9-for-20 one on the strength of a single call.
+  return rows.sort(
+    (a, b) =>
+      (b.closeRate ?? -1) - (a.closeRate ?? -1) ||
+      b.pitched - a.pitched ||
+      a.variant.localeCompare(b.variant),
+  );
 }
 
 // How many of the nos gave each reason.

@@ -3,7 +3,7 @@ import { handleDemoRequest } from "../demo/handler";
 import { previewHeaders } from "./previewFrame";
 import type { BusinessHealthInputs, PeriodType } from "./businessHealth";
 import type { DerivedSalesDay } from "../../functions/lib/salesDataRollup";
-import type { SourceSplitRow } from "../../functions/lib/salesCalls";
+import type { OfferSplitRow, SourceSplitRow } from "../../functions/lib/salesCalls";
 
 // What one reconciliation against the agency's GoHighLevel calendars did.
 // Shared by the two pages that trigger one: Sales Calls and Sales Data.
@@ -1009,6 +1009,9 @@ export interface SalesDataResponse {
   undated: number;
   // The month split by where the meetings came from, busiest first.
   sources: SourceSplitRow[];
+  // The month split by which offer was pitched (0086), best close rate first.
+  // Only meetings somebody turned up to.
+  offers: OfferSplitRow[];
   // How many of the month's nos gave each reason, keyed by SALES_NO_REASONS.
   reasons: Record<string, number>;
 }
@@ -1822,8 +1825,15 @@ export async function getSalesPlaybook(
 
 export async function createSalesPlaybookItem(input: {
   section: string;
+  // Absent means a question, which is what every row was before 0082.
+  kind?: string;
   prompt: string;
   hint?: string;
+  // The name the answer is filed under, so a later prompt can say {avg_ticket}.
+  answerKey?: string | null;
+  // Calc rows only: arithmetic over other keys.
+  formula?: string;
+  format?: string;
   categoryId?: string | null;
 }): Promise<{ item: ApiPlaybookItem }> {
   return api("/api/admin/sales/playbook", {
@@ -1834,8 +1844,13 @@ export async function createSalesPlaybookItem(input: {
 
 export async function updateSalesPlaybookItem(input: {
   id: string;
+  kind?: string;
   prompt?: string;
   hint?: string;
+  // null clears the key. Leaving it out leaves the key alone.
+  answerKey?: string | null;
+  formula?: string;
+  format?: string;
   sortOrder?: number;
   // null unfiles it; leaving the key out leaves the filing alone.
   categoryId?: string | null;
@@ -1922,6 +1937,11 @@ export interface SalesMeeting {
   // agreed. Null on anything that did not close, and on a close recorded without
   // the figures.
   deal: { monthly: number; months: number | null } | null;
+  // Which offer was put on the table, and the numbers actually quoted inside
+  // its range (0086). Null on a no-show, and on any call recorded before it or
+  // recorded without an offer picked. The variant is an id from
+  // functions/lib/salesOffers.ts.
+  offer: { variant: string; terms: Record<string, number> } | null;
   // Whatever was said on the call. "" when nothing was typed.
   notes: string;
   assignedTo: string | null;
@@ -2004,6 +2024,10 @@ export async function recordSalesCallOutcome(input: {
   // The retainer, on a close. A monthly with no term is month-to-month.
   monthly?: number | null;
   months?: number | null;
+  // Which offer was pitched, and the numbers quoted inside its range. Kept on
+  // every outcome where they turned up, including the nos.
+  offerVariant?: string | null;
+  offerTerms?: Record<string, number>;
   notes?: string;
 }): Promise<{ meeting: SalesMeeting }> {
   return api("/api/admin/sales/calls", {
@@ -2036,6 +2060,8 @@ export async function recordMeetingOutcome(input: {
   cashCollected?: number | null;
   monthly?: number | null;
   months?: number | null;
+  offerVariant?: string | null;
+  offerTerms?: Record<string, number>;
   notes?: string;
 }): Promise<{ meeting: SalesMeeting }> {
   return api("/api/admin/cold-call/meetings", {

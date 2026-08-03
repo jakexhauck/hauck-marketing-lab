@@ -26,6 +26,23 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-03-on-call-answers",
+    date: "3 August 2026",
+    title: "The sales call fills itself in as you go",
+    items: [
+      "On Call: type their answer under a question and it now travels forward. Ask how many replacements they ran last month, and later in the same call the timeline line already reads \"hitting 30 installs/month consistently, and adding $59,850/month in profit\" with both numbers in it.",
+      "Calculations: a row can work a number out from earlier answers, so the extra revenue and the extra profit are done for you rather than in your head while someone is talking.",
+      "Playbook: a row is now a question, a script line you read out, or a calculation. Script lines keep their line breaks and lose the answer box they never needed.",
+      "Discovery and Pitch are the real script now, word for word, under their own headings.",
+      "The Objection handling column is gone. It only ever held the seven placeholder objections it shipped with, and a column of invented lines beside two columns of the real script was one you read past on every call.",
+      "Recording an outcome drops the numbers the call established into the notes, so they go onto the contact instead of being binned with the scratch.",
+      "Recording an outcome now asks which offer was pitched: the six families, the ten variants between them, and a box for the number you actually quoted inside a range. Asked on every outcome where they turned up, because which offer gets turned down is worth more than which one closed.",
+      "The money boxes on a close follow the offer. A monthly retainer asks for the monthly, the term and the cash; a fully performance-based deal asks for nothing, because nothing changes hands at signing. Paid in full can no longer be recorded as a monthly.",
+      "New \"Which offer closes\" table on Sales Data: every offer you pitched this month, how many closed, and the close rate on each, best first.",
+      "Objection handling is gone as a column, and the four pillar blocks are off the Pitch. The pillars are retired rather than deleted, so they are one click from coming back under Show retired lines.",
+    ],
+  },
+  {
     id: "2026-08-02-client-app-on-a-phone",
     date: "2 August 2026",
     title: "The client app works properly on a phone",

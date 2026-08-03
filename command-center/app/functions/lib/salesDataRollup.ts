@@ -43,6 +43,8 @@ export interface SalesCallRow {
   reason?: string | null;
   // Where the meeting came from. Blank means the app booked it.
   source?: string | null;
+  // Which offer was pitched (0086). Null on every meeting recorded before it.
+  offerVariant?: string | null;
   // For the day's "Meetings" cell, so a row can be traced back to who it was.
   prospectName: string;
   businessName: string;
@@ -59,6 +61,7 @@ export function toCountable(row: SalesCallRow): CountableCall {
     deal: parseDeal(row.deal),
     reason: row.reason ?? null,
     source: row.source ?? null,
+    offerVariant: row.offerVariant ?? null,
   };
 }
 

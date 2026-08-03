@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import DailyTracker, { TrackerMonthNav, type TrackerRow } from "./DailyTracker";
 import FullFunnel from "../sales/FullFunnel";
-import { NoReasons, SourceSplit } from "../sales/monthBreakdown";
+import { NoReasons, OfferSplit, SourceSplit } from "../sales/monthBreakdown";
 import { PillarTitleActions } from "../../pillars/PillarKit";
 import { useSalesDataQuery } from "../../../hooks/useApi";
 import type { SalesDataResponse } from "../../../lib/api";
@@ -118,11 +118,12 @@ export default function SalesDataTracker() {
         readOnly
       />
 
-      {/* The two breakdowns the grid cannot show: a grid has one row per day, and
-          both of these are counted per meeting. Under the table because they are
-          the month read a different way, not a detail of it. Each hides itself
-          when it has nothing to say. */}
+      {/* The three breakdowns the grid cannot show: a grid has one row per day,
+          and all three of these are counted per meeting. Under the table because
+          they are the month read a different way, not a detail of it. Each hides
+          itself when it has nothing to say. */}
       <SourceSplit sources={data?.sources ?? []} />
+      <OfferSplit offers={data?.offers ?? []} />
       <NoReasons reasons={data?.reasons ?? {}} />
     </div>
   );
