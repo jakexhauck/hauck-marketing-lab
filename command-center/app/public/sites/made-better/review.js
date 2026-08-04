@@ -259,9 +259,41 @@
 #mbr h2{ font-size:23px; }
 #mbr .panel .sub{ margin-top:8px !important; font-size:15px; }
 
-#mbr .field{ margin-top:20px; text-align:left; }
+#mbr .field{ margin-top:16px; text-align:left; }
+#mbr .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+#mbr .grid2 .field{ margin-top:16px; min-width:0; }
+
+#mbr label{
+  display:block; margin:0 0 6px !important;
+  font-size:12.5px; font-weight:600; letter-spacing:.02em;
+  color:var(--muted); text-transform:none !important;
+}
+
+#mbr input{
+  width:100%; background:var(--wash); color:var(--ink);
+  border:1px solid var(--line); border-radius:10px;
+  padding:12px 14px; font-size:16px; line-height:1.3;
+  font-family:inherit !important; margin:0 !important;
+  max-width:none !important; min-width:0 !important;
+  box-shadow:none !important; text-transform:none !important;
+  letter-spacing:normal !important;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+#mbr input:focus{
+  outline:none; border-color:var(--brass);
+  box-shadow:0 0 0 3px rgba(200,151,75,.20);
+}
+/* 16px on the inputs above is deliberate: iOS Safari zooms the whole page in
+   when a focused field is smaller than that, and on a centred card that zoom
+   never fully undoes itself. */
+#mbr input.is-bad, #mbr textarea.is-bad{ border-color:#C0632B; background:#FCF4EE; }
+
+#mbr .fine{
+  margin-top:12px !important; font-size:12.5px; color:var(--muted); text-align:left;
+}
+
 #mbr textarea{
-  width:100%; min-height:132px; resize:vertical;
+  width:100%; min-height:112px; resize:vertical;
   background:var(--wash); color:var(--ink);
   border:1px solid var(--line); border-radius:10px;
   padding:14px 15px; font-size:16px; line-height:1.55;
@@ -323,6 +355,11 @@
   #mbr .rule{ margin:26px -22px 24px; }
   #mbr h2{ font-size:20px; }
 
+  /* First and last name stop sharing a row: two 16px fields side by side on a
+     320px screen leaves about 105px each, which is narrower than the words
+     they hold. */
+  #mbr .grid2{ grid-template-columns:1fr; gap:0; }
+
   /* The row has to survive a 320px screen, which is the narrowest phone still
      in real use. Budget: 320 - 28 (stage padding) - 44 (card padding) = 248px
      of usable width. Five stars at 36 + 10 padding = 46px each, plus 4 x 2px
@@ -382,12 +419,40 @@
       '<div class="rule"></div>' +
       '<h2>Sorry we missed the mark.</h2>' +
       '<p class="sub">Tell us what we could have done better. We read each one of these to make our service even better!</p>' +
+      // The contact fields are here because GoHighLevel cannot attach a rating
+      // to anybody without something to match on. The webhook arrives as a bare
+      // HTTP request with no session and no link back to the trigger-link click,
+      // so with no email or phone the workflow has a complaint and nobody to
+      // put it against.
+      //
+      // They are prefilled from the URL when the link came from a GHL workflow,
+      // so an attributed visitor sees their own details already filled in and
+      // only has to type the complaint.
       '<form id="mbrForm" novalidate>' +
+        '<div class="grid2">' +
+          '<div class="field">' +
+            '<label for="mbrFirst">First name</label>' +
+            '<input id="mbrFirst" name="first_name" type="text" autocomplete="given-name" required>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label for="mbrLast">Last name</label>' +
+            '<input id="mbrLast" name="last_name" type="text" autocomplete="family-name" required>' +
+          '</div>' +
+        '</div>' +
         '<div class="field">' +
+          '<label for="mbrPhone">Phone</label>' +
+          '<input id="mbrPhone" name="phone" type="tel" autocomplete="tel" inputmode="tel" required>' +
+        '</div>' +
+        '<div class="field">' +
+          '<label for="mbrEmail">Email</label>' +
+          '<input id="mbrEmail" name="email" type="email" autocomplete="email" inputmode="email" required>' +
+        '</div>' +
+        '<div class="field">' +
+          '<label for="mbrText">What could we have done better?</label>' +
           '<textarea id="mbrText" name="feedback" required ' +
-            'aria-label="What could we have done better?" ' +
             'placeholder="What happened, and what should we have done instead?"></textarea>' +
         '</div>' +
+        '<p class="fine">We only use these to follow up and put it right.</p>' +
         '<button class="btn" type="submit">Send</button>' +
       '</form>' +
     '</div>' +
@@ -538,7 +603,13 @@
 
     function withIdentity(payload) {
       var who = identity();
-      Object.keys(who).forEach(function (k) { payload[k] = who[k]; });
+      // Fill only what is missing. What somebody typed into the form outranks
+      // what the URL claimed about them: if the link was forwarded, or the
+      // contact record is stale, the person in front of us is the better
+      // source and must not be overwritten by a merge field.
+      Object.keys(who).forEach(function (k) {
+        if (payload[k] === undefined || payload[k] === "") payload[k] = who[k];
+      });
       // Lets a GHL workflow branch without string-matching an id: an
       // attributed visit can move a contact, an anonymous one cannot.
       payload.attributed = who.contact_id || who.email || who.phone ? "yes" : "no";
@@ -564,6 +635,39 @@
     if (!form) return;
     var btn = form.querySelector("button[type=submit]");
     var btnLabel = btn.textContent;
+    var first = root.querySelector("#mbrFirst");
+    var last = root.querySelector("#mbrLast");
+    var phoneEl = root.querySelector("#mbrPhone");
+    var emailEl = root.querySelector("#mbrEmail");
+
+    // Prefill from the link, so somebody GHL already knows does not retype
+    // their own email to complain about us.
+    (function () {
+      var who = identity();
+      if (who.email && emailEl) emailEl.value = who.email;
+      if (who.phone && phoneEl) phoneEl.value = who.phone;
+    })();
+
+    // Clearing the marker as soon as they start fixing it keeps the red from
+    // following them around while they type.
+    [first, last, phoneEl, emailEl, text].forEach(function (el) {
+      if (el) el.addEventListener("input", function () { el.classList.remove("is-bad"); });
+    });
+
+    function reject(el, message) {
+      if (el) {
+        el.classList.add("is-bad");
+        el.focus({ preventScroll: true });
+      }
+      fail(message);
+      return false;
+    }
+
+    // Deliberately loose. This gates a complaint form, not a payment: the cost
+    // of turning away a real unhappy customer over a clever address or an
+    // unusual phone format is far higher than the cost of one bad record.
+    function looksLikeEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
+    function looksLikePhone(v) { return (v.replace(/\D/g, "").length >= 7); }
 
     function fail(message) {
       btn.disabled = false;
@@ -581,12 +685,19 @@
     form.addEventListener("submit", function (e) {
       e.preventDefault();
 
+      var fn = (first.value || "").trim();
+      var ln = (last.value || "").trim();
+      var ph = (phoneEl.value || "").trim();
+      var em = (emailEl.value || "").trim();
       var body = (text.value || "").trim();
-      if (!body) {
-        fail("Please tell us what went wrong, then we can put it right.");
-        text.focus();
-        return;
-      }
+
+      // Checked in the order they appear, so focus lands on the first thing
+      // wrong rather than jumping down the form.
+      if (!fn) return reject(first, "Please add your first name.");
+      if (!ln) return reject(last, "Please add your last name.");
+      if (!ph || !looksLikePhone(ph)) return reject(phoneEl, "Please add a phone number we can reach you on.");
+      if (!em || !looksLikeEmail(em)) return reject(emailEl, "Please check your email address.");
+      if (!body) return reject(text, "Please tell us what went wrong, then we can put it right.");
 
       // The webhook is the only thing that makes this real. Without it we say
       // so. A thank-you shown over a complaint that went nowhere is worse than
@@ -601,9 +712,17 @@
       btn.disabled = true;
       btn.textContent = "Sending…";
 
+      // Keys named to match GHL's standard contact fields, so the workflow can
+      // map them without hand-typing each one. full_name goes too because some
+      // GHL actions take a single name rather than the pair.
       var params = encode(withIdentity({
         rating: selected,
         feedback: body,
+        first_name: fn,
+        last_name: ln,
+        full_name: fn + " " + ln,
+        phone: ph,
+        email: em,
         outcome: "feedback",
         source: "Made Better LC review funnel"
       }));
