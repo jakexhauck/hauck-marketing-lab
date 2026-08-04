@@ -1,0 +1,21 @@
+<!--
+  HAUCK MARKETING: Book a call
+  GHL step: /book
+
+  Paste both lines below into the GoHighLevel step. Nothing else goes in here.
+  The page is served from command-center/app/public/sites/hauck/site.js and
+  changes ship by deploy, not by reopening the builder.
+
+  Set the step to full width and clear GHL's own padding.
+
+  THE CALENDAR: this page frames the existing GoHighLevel booking widget
+  (CONFIG.bookingWidget in site.js) and loads GHL's own form_embed.js, which is
+  what sizes the iframe to its content. Both are already live and were carried
+  over unchanged from the previous site, so the booking flow itself did not move.
+
+  If the calendar is ever swapped, change CONFIG.bookingWidget in site.js. Do
+  not paste a second widget into this step.
+-->
+
+<div id="hm" data-page="book"></div>
+<script src="https://app.hauckmarketing.com/sites/hauck/site.js"></script>
