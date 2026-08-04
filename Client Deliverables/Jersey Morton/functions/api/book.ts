@@ -16,10 +16,13 @@ import type { Env } from "../lib/composio.ts";
 import { type BookingInput, connectedAccountId, createBooking, getBusy } from "../lib/calendar.ts";
 import { cleanText, digitsOnly, fail, json, looksLikeEmail } from "../lib/http.ts";
 import { type TurnstileEnv, verifyTurnstile } from "../lib/turnstile.ts";
+import { type NotifyEnv, sendBookingNotice } from "../lib/notify.ts";
 
 export async function onRequestPost(context: {
   request: Request;
-  env: Env & TurnstileEnv;
+  env: Env & TurnstileEnv & NotifyEnv;
+  // Pages gives us this to keep work alive after the response has been sent.
+  waitUntil?: (promise: Promise<unknown>) => void;
 }): Promise<Response> {
   const env = context.env;
 
@@ -109,6 +112,27 @@ export async function onRequestPost(context: {
 
   try {
     const event = await createBooking(env, accountId, input);
+
+    // Tell Jersey, after the client has their answer rather than before it.
+    // The appointment is already in her calendar and the invite has already
+    // gone, so nothing here is allowed to fail the booking: waitUntil keeps it
+    // alive past the response, and sendBookingNotice swallows its own errors.
+    const notice = sendBookingNotice(env, {
+      name,
+      email,
+      phone,
+      service: service.name,
+      addons: addons.map((a) => a.name),
+      estimate: price,
+      estimateIsApprox: approx,
+      minutes,
+      startIso: input.startIso,
+      notes,
+      reference,
+      eventId: event.id,
+    });
+    if (context.waitUntil) context.waitUntil(notice);
+
     return json(
       {
         ok: true,
