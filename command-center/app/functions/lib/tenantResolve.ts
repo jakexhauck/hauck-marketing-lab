@@ -148,9 +148,10 @@ export async function loadLiveTenantForHost(
   return loadTenantBySlug(client, liveTenantSlug(env));
 }
 
-// A tenant is "GHL-wired" once it has real creds (not the placeholders the admin
-// console seeds: '', 'pending', 'env'). Until then the runtime falls back to the
-// GHL_* env vars so a half-set-up client still shows the env sub-account.
+// A tenant is "GHL-wired" once it has real creds, rather than the placeholders
+// the admin console seeds: '', 'pending', 'env'. All or nothing: a real
+// location id beside a placeholder token is a half-filled form, not a
+// connection.
 export function tenantHasGhlCreds(t: Pick<TenantRow, "ghl_location_id" | "ghl_token">): boolean {
   const placeholder = (v: string) => {
     const s = (v ?? "").trim().toLowerCase();
@@ -159,20 +160,30 @@ export function tenantHasGhlCreds(t: Pick<TenantRow, "ghl_location_id" | "ghl_to
   return !placeholder(t.ghl_location_id) && !placeholder(t.ghl_token);
 }
 
-// Resolve the GHL creds to call the API with for a tenant, mirroring the live
-// middleware (_middleware.ts): use the tenant's own creds once they are real,
-// else fall back to the GHL_* env vars (the single-tenant fallback that keeps a
-// half-set-up client working). Returns null when neither yields both a location
-// and a token. Admin-tenant endpoints MUST use this instead of reading
-// tenant.ghl_token directly, or a client whose row still holds placeholder creds
-// ('env'/'pending'/'') would send the placeholder to GHL and 401.
+// Which GoHighLevel sub-account to read for this tenant: its own, or none.
+//
+// This used to fall back to the GHL_LOCATION_ID / GHL_TOKEN env vars whenever
+// the tenant's row held placeholders, and the middleware did the same thing in
+// its own copy of the ladder. That was written when there was one client, and
+// the env vars were that client's creds, so "fall back to env" and "fall back
+// to this client" were the same sentence.
+//
+// They stopped being the same sentence the moment there were two clients. The
+// env vars still hold a REAL client's credentials, so a half-wired client did
+// not degrade to an empty page: it showed Willis Windows' leads, conversations,
+// calendar and revenue, under the other client's name, with nothing on screen
+// to say whose numbers they were. Every Fulfillment page showed it, because
+// every Fulfillment page is a read of whatever this returned.
+//
+// So: no env fallback. A client that has not been wired up yet resolves to
+// null, and callers turn that into "not connected", which is the truth.
+//
+// Test-mode sessions are unaffected: _middleware.ts builds their tenant from
+// TEST_GHL_LOCATION_ID / TEST_GHL_TOKEN before reaching here, so those are the
+// tenant's own creds by the time this sees them.
 export function resolveGhlCreds(
   tenant: Pick<TenantRow, "ghl_location_id" | "ghl_token">,
-  env: Pick<Env, "GHL_LOCATION_ID" | "GHL_TOKEN">,
 ): { locationId: string; token: string } | null {
-  const useTenant = tenantHasGhlCreds(tenant);
-  const locationId = useTenant ? tenant.ghl_location_id : env.GHL_LOCATION_ID;
-  const token = useTenant ? tenant.ghl_token : env.GHL_TOKEN;
-  if (!locationId || !token) return null;
-  return { locationId, token };
+  if (!tenantHasGhlCreds(tenant)) return null;
+  return { locationId: tenant.ghl_location_id, token: tenant.ghl_token };
 }

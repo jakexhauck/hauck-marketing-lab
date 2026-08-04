@@ -1,14 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, Clock, Sigma } from "lucide-react";
-import { useSalesCallsQuery, useRecordSalesCallOutcome } from "../../../hooks/useSalesCalls";
+import { Check, Clock, Sigma } from "lucide-react";
+import { useRecordSalesCallOutcome } from "../../../hooks/useSalesCalls";
 import type { SalesMeeting } from "../../../lib/api";
 import {
   NO_SHOW_CHOICE,
-  OUTCOME_TONE,
   RecordPanel,
   SHOWED_CHOICES,
-  outcomeLabel,
   useOutcomeDraft,
   whenLabel,
 } from "./meetingUi";
@@ -38,77 +35,62 @@ import {
   type Facts,
 } from "../../../lib/callFacts";
 
-// Sales > On Call.
+// The call cockpit: what is on screen WHILE the call is happening.
 //
-// The page that is open WHILE the call is happening. Sales Calls is the list of
-// meetings and the place an outcome is recorded after the fact; this is the
-// half hour in between, which until now happened on paper.
+// It used to be a tab of its own, Sales > On Call, with a picker on the front of
+// it asking which meeting you were on. That question already had an answer: you
+// were looking at the meeting on Sales Calls when you decided to open it. The
+// tab is gone, the picker with it, and this now opens as a full-screen panel
+// over the row you clicked (CallModal).
 //
-// Two columns in the order the call runs (discovery, then pitch), a
-// tick and a line of notes against every prompt, and the same outcome recorder
-// Sales Calls uses at the bottom. It writes nothing new: the ticks and notes
-// live in this browser until an outcome is recorded, at which point they are
-// thrown away and the outcome goes where it always went.
+// Sales Calls is the list of meetings and the record of what came of them; this
+// is the half hour in between, which until now happened on paper.
+//
+// The call top to bottom (discovery, then pitch), a tick and a line of notes
+// against every prompt, and the same outcome recorder Sales Calls uses at the
+// bottom. It writes nothing new: the ticks and notes live in this browser until
+// an outcome is recorded, at which point they are thrown away and the outcome
+// goes where it always went.
 //
 // What was typed does not stay where it was typed. A question can be filed
 // under a key ("installs"), and any later row can say {installs} in its own
 // words: forty minutes after Jake asks how many jobs they ran, the timeline
 // line reads itself back to him with the number already in it. The calcs go
 // further and do the arithmetic he was doing in his head while someone talked
-// at him. All of that is buildFacts (src/lib/callFacts.ts); this page only
+// at him. All of that is buildFacts (src/lib/callFacts.ts); this file only
 // draws it.
 //
-// What is drawn in the three columns comes from sales_playbook_items (0074) and
-// is edited on Sales > Playbook. Nothing about the call is hardcoded here: this
-// page knows the shape (three sections, tick, note, outcome) and the playbook
-// knows the words.
-
-const PARAM = "meeting";
+// What is drawn comes from sales_playbook_items (0074) and is edited on Sales >
+// Playbook. Nothing about the call is hardcoded here: this file knows the shape
+// (sections, tick, note, outcome) and the playbook knows the words.
 
 // The one frame before localStorage has been read. A shared constant rather
 // than a fresh {} each render, so the facts are not rebuilt for nothing.
 const NO_NOTES: Record<string, string> = {};
 
-export default function OnCallSection() {
-  const [params, setParams] = useSearchParams();
-  const meetingId = params.get(PARAM) ?? "";
-  const query = useSalesCallsQuery();
+// The cockpit for one meeting, playbook and all.
+//
+// The meeting is handed in rather than looked up: whoever opened this was
+// already holding it, and a second lookup here would be a second chance to
+// disagree about which call is on screen.
+export default function CallCockpit({
+  meeting,
+  onDone,
+}: {
+  meeting: SalesMeeting;
+  // The outcome saved. The call is over, and whatever is showing this decides
+  // what that means (the modal closes itself).
+  onDone: () => void;
+}) {
   const playbook = useSalesPlaybookQuery();
   const record = useRecordSalesCallOutcome();
 
-  const meetings = query.data?.meetings ?? [];
-  const meeting = meetings.find((m) => m.id === meetingId) ?? null;
-
-  const open = (id: string) => {
-    setParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (id) next.set(PARAM, id);
-        else next.delete(PARAM);
-        return next;
-      },
-      { replace: true },
-    );
-  };
-
-  // Both reads are waited for. The playbook decides which stored ticks are
-  // still real (normalizeCallState), so opening the cockpit before it lands
-  // would drop every tick from a call in progress on a mid-call refresh.
-  if (query.isLoading || playbook.isLoading) {
-    return <div className="pk-empty">Reading the calendar...</div>;
-  }
-  if (query.isError) {
-    return <div className="pk-empty">Could not load the sales calls. Reload to try again.</div>;
-  }
+  // Waited for rather than rendered around. The playbook decides which stored
+  // ticks are still real (normalizeCallState), so drawing the cockpit before it
+  // lands would drop every tick from a call in progress on a mid-call refresh.
+  if (playbook.isLoading) return <div className="pk-empty">Reading the playbook...</div>;
   if (playbook.isError) {
     return <div className="pk-empty">Could not load the playbook. Reload to try again.</div>;
-  }
-
-  // Landed here without a meeting, or on one that is no longer on the calendar.
-  // Both get the picker rather than an error: the second is what happens when a
-  // link is a week old, and it is not a fault.
-  if (!meeting) {
-    return <Picker meetings={meetings} missing={meetingId !== ""} onPick={open} />;
   }
 
   // Keyed so switching prospects tears down the whole cockpit, ticks, notes,
@@ -121,79 +103,8 @@ export default function OnCallSection() {
       items={playbook.data?.items ?? []}
       categories={playbook.data?.categories ?? []}
       record={record}
-      onLeave={() => open("")}
+      onDone={onDone}
     />
-  );
-}
-
-// ===== Choosing who you are about to call =====
-
-// Nearest to now first, in either direction. The call you are about to take and
-// the one you just took are both at the top, which is what "which meeting am I
-// on" actually means; a plain chronological list buries today under next month.
-function nearestFirst(meetings: SalesMeeting[], nowMs: number): SalesMeeting[] {
-  const distance = (m: SalesMeeting) => {
-    const t = m.scheduledAt ? new Date(m.scheduledAt).getTime() : NaN;
-    return Number.isNaN(t) ? Number.POSITIVE_INFINITY : Math.abs(t - nowMs);
-  };
-  return meetings.slice().sort((a, b) => distance(a) - distance(b));
-}
-
-function Picker({
-  meetings,
-  missing,
-  onPick,
-}: {
-  meetings: SalesMeeting[];
-  missing: boolean;
-  onPick: (id: string) => void;
-}) {
-  const ordered = nearestFirst(meetings, Date.now()).slice(0, 12);
-
-  if (ordered.length === 0) {
-    return (
-      <div className="pk-empty">
-        No sales calls on the calendar yet. Book one and it appears here ready to work.
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="mb-4 text-[13px] text-muted">
-        {missing
-          ? "That meeting is no longer on the calendar. Pick the call you are on."
-          : "Pick the call you are on. Normally you get here by pressing Start call on Sales Calls."}
-      </div>
-      <div className="pk-list">
-        {ordered.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            onClick={() => onPick(m.id)}
-            className="pk-li w-full text-left hover:bg-surface-2"
-          >
-            <div className="pk-li-main">
-              <div className="pk-li-label">
-                {m.prospectName || "Unnamed prospect"}
-                {m.businessName ? (
-                  <span className="ml-2 text-[12px] font-normal text-muted">{m.businessName}</span>
-                ) : null}
-              </div>
-              <div className="pk-li-sub font-mono">{m.phone || "No number"}</div>
-            </div>
-            <div className="pk-li-meta">
-              <div style={{ textAlign: "right" }}>
-                <div className="text-[13px] font-semibold">{whenLabel(m.scheduledAt)}</div>
-                <div className="text-[12px] text-muted">
-                  {m.outcome ? outcomeLabel(m.outcome) : "Nothing recorded"}
-                </div>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -230,13 +141,13 @@ function Cockpit({
   items,
   categories,
   record,
-  onLeave,
+  onDone,
 }: {
   meeting: SalesMeeting;
   items: PlaybookItem[];
   categories: PlaybookCategory[];
   record: ReturnType<typeof useRecordSalesCallOutcome>;
-  onLeave: () => void;
+  onDone: () => void;
 }) {
   // Each column cut into its headings, with whatever is unfiled last. The ids
   // across all of them are what a stored tick is checked against, so a prompt
@@ -320,7 +231,7 @@ function Cockpit({
     // would lose the half hour it took to write them.
     if (ok) {
       clearCallState(meeting.id);
-      onLeave();
+      onDone();
     }
   };
 
@@ -338,7 +249,7 @@ function Cockpit({
     // margin. The header, the script and the outcome share one left edge, which
     // is what actually makes it read as a document.
     <div className="w-full">
-      <Header meeting={meeting} elapsed={elapsedLabel(state.startedAt, now)} onLeave={onLeave} />
+      <Header meeting={meeting} elapsed={elapsedLabel(state.startedAt, now)} />
 
       {/* The call, top to bottom, as one document at reading width.
           It was two boards of cards, which is the right shape for a checklist
@@ -372,15 +283,7 @@ function Cockpit({
 }
 
 // Who is on the phone, and how long they have been on it.
-function Header({
-  meeting,
-  elapsed,
-  onLeave,
-}: {
-  meeting: SalesMeeting;
-  elapsed: string;
-  onLeave: () => void;
-}) {
+function Header({ meeting, elapsed }: { meeting: SalesMeeting; elapsed: string }) {
   const source = sourceLabel(meeting.source);
   const facts = [
     whenLabel(meeting.scheduledAt),
@@ -390,16 +293,10 @@ function Header({
   ].filter(Boolean) as string[];
 
   return (
+    // No way out of the call in here any more. Closing is the modal's job and
+    // it owns the one control that does it, top right, in the same place on
+    // every call. Two of them would be two answers to "how do I get out".
     <div className="pk-card mb-4">
-      <button
-        type="button"
-        onClick={onLeave}
-        className="mb-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-muted hover:text-text"
-      >
-        <ArrowLeft size={13} aria-hidden />
-        Pick a different call
-      </button>
-
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="text-[22px] font-semibold leading-tight tracking-[-0.02em]">
@@ -429,14 +326,10 @@ function Header({
             {elapsed}
           </div>
           <div className="mt-1.5 text-[11px] uppercase tracking-wider text-muted">On this call</div>
-          {meeting.outcome && (
-            <div
-              className="mt-2 text-[12px] font-semibold"
-              style={{ color: OUTCOME_TONE[meeting.outcome] }}
-            >
-              Already recorded: {outcomeLabel(meeting.outcome)}
-            </div>
-          )}
+          {/* Nothing about a recorded outcome here any more. A call with one
+              never reaches the cockpit: it is turned away at the top of the
+              page, so the banner that used to say "already recorded" was a
+              state this component can no longer be in. */}
         </div>
       </div>
     </div>
@@ -793,21 +686,26 @@ function OutcomeBand({
 
   return (
     <div className="pk-card mt-4">
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[13px] font-bold uppercase tracking-[0.08em] text-muted">Outcome</h2>
-        <span className="text-[11.5px] text-faint">
-          {summary
-            ? "Recording it tags the contact and moves the card. The call facts go into the notes; the rest stays in this browser."
-            : "Recording it tags the contact and moves the card. The notes above stay in this browser."}
-        </span>
-      </div>
+      {/* The heading, on its own. There was a line beside it explaining that
+          recording tags the contact, moves the card, and keeps the rest of the
+          notes in this browser. All true, none of it news by the second call,
+          and it sat at the end of the script where the only thing worth reading
+          is which button to press.
+
+          It took its wrapper with it. The row was a flex box built to hold two
+          things at opposite ends, and one thing in a two-thing box is a box. */}
+      <h2 className="mb-3 text-[13px] font-bold uppercase tracking-[0.08em] text-muted">
+        Outcome
+      </h2>
 
       {outcome.pending === null ? (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
           <span className="text-[10px] font-bold uppercase tracking-wider text-faint">Showed</span>
+          {/* All five sit unselected. The one that used to draw in its own
+              colour was the outcome already on the meeting, and a meeting with
+              one no longer opens here. */}
           {SHOWED_CHOICES.map((c) => {
             const Icon = c.icon;
-            const on = meeting.outcome === c.outcome;
             return (
               <button
                 key={c.outcome}
@@ -815,20 +713,10 @@ function OutcomeBand({
                 disabled={record.isPending}
                 onClick={() => chooseWithFacts(c.outcome)}
                 className={[
-                  "inline-flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5",
-                  "text-[13px] font-semibold leading-none transition-colors",
-                  "disabled:cursor-not-allowed disabled:opacity-50",
-                  on ? "" : "border-border text-text hover:bg-surface-2",
+                  "inline-flex shrink-0 items-center gap-2 rounded-xl border border-border px-3.5 py-2.5",
+                  "text-[13px] font-semibold leading-none text-text transition-colors",
+                  "hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50",
                 ].join(" ")}
-                style={
-                  on
-                    ? {
-                        borderColor: c.tone,
-                        background: `color-mix(in srgb, ${c.tone} 12%, transparent)`,
-                        color: c.tone,
-                      }
-                    : undefined
-                }
               >
                 <Icon size={15} aria-hidden style={{ color: c.tone }} />
                 {c.label}

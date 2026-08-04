@@ -167,10 +167,6 @@ export default function SetterResults({ tenantId, clientName }: Props) {
           title="Awaiting result"
           icon={<CircleAlert size={15} className="text-danger" aria-hidden />}
         >
-          <p className="mt-1 text-[11.5px] text-faint">
-            Quoted prospects nobody has recorded an outcome for. Cleared by moving the lead in the
-            CRM (owner close-out in the client app comes later).
-          </p>
           {model.awaiting.length === 0 ? (
             <p className="mt-3 text-[12.5px] text-faint">Nothing waiting on a result.</p>
           ) : (

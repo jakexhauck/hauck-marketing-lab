@@ -26,6 +26,42 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-03-client-data-is-that-client",
+    date: "3 August 2026",
+    title: "Every Fulfillment page shows the client you picked",
+    items: [
+      "Picking a client on Fulfillment now shows THAT client. A client whose GoHighLevel is not connected yet was quietly served the agency's env credentials, which are Willis Windows': every page, from Software to Paid Ads to Website, read Willis's leads, conversations, calendar and revenue under the other client's name, with nothing on screen to say whose numbers they were.",
+      "That fallback is gone. A client that has not been wired up says \"not connected\" instead, which is the truth and tells you what to go and do.",
+      "The same fallback was on the Meta ad account, the Google place, the GA4 property and the internal notification numbers. All four now read the client's own or nothing.",
+      "Made Better Landscaping is the client this was hiding: its GoHighLevel is still on \"pending\", so its pages will read as not connected until its credentials go in on Client setup > Wiring. Willis Windows and Test Account both have their own and are unaffected.",
+    ],
+  },
+  {
+    id: "2026-08-03-task-categories-order",
+    date: "3 August 2026",
+    title: "Task categories go in the order you want them",
+    items: [
+      "Manage categories: every category now has an up and a down arrow. The order you set is the order of the filter chips above the checklist and of the dropdown on every row, so you only have to arrange them once.",
+      "The close button on that panel was floating in the middle of its own header. It is on the right, where it has always looked like it should be.",
+    ],
+  },
+  {
+    id: "2026-08-03-call-opens-on-the-row",
+    date: "3 August 2026",
+    title: "A call opens on the row you clicked",
+    items: [
+      "The On Call tab is gone. Click a call on Sales Calls and the whole thing opens over the page: the script, the ticks, the answers, the timer and the outcome, exactly as before.",
+      "No more picker asking which call you are on. You just clicked it.",
+      "Rows you can open lift under the mouse and pick up a green edge, so the page shows you at a glance which calls are still work.",
+      "Calls in the Recorded block do not open. They are answered, their notes were filed when you saved, and what happened on them is on the row itself.",
+      "The outcome buttons stay on the row, so a no-show is still one click from the list without opening anything.",
+      "Old links to a call still work and land in the same place.",
+      "The grey line explaining that an outcome tags the contact and moves the card is off both Sales Calls and the call itself. It was true on every load, which is another way of saying nobody read it twice.",
+      "Same treatment across the Admin Center: the caption describing where a page's numbers come from is gone from Sales Pipeline, Sales Data, Playbook, the funnel and its three breakdown tables, Client setup (intake answers and Wiring), Fulfillment Software, Website pages, Dialing scripts, Objection handling, the Team list and the setter's Awaiting result.",
+      "The amber nags about your own unfinished work are gone too: \"2 meetings have no outcome recorded\", \"3 meetings have no time on the calendar\", \"4 meetings have no calendar recorded\" and \"5 open deals have not moved in 14 days\". What is left in that row is only the kind of warning that means the page cannot be trusted: the account is not connected, the calendar could not be read, no sales calendar was found, a stage is missing. Stale deals are still badged per column on the board itself, beside the cards they are about.",
+    ],
+  },
+  {
     id: "2026-08-03-on-call-answers",
     date: "3 August 2026",
     title: "The sales call fills itself in as you go",

@@ -65,11 +65,14 @@ export const ADMIN_PILLARS: PillarDef[] = [
     // with the caller selector on "Agency", and one number with two pages is one
     // page too many. Sales is the selling now, calendar through to cash.
     //
-    // On Call sits second, straight after the list it is opened from. It is not
-    // a page you browse to: Sales Calls has a Start call button on every row,
-    // and this tab is where that lands. It stays in the strip anyway so a
-    // reload, a bookmark or a second monitor can reach it directly, in which
-    // case it asks which call you are on.
+    // On Call was a tab here, second, straight after the list it was opened
+    // from. It is gone, and nothing was lost with it: it was never a page you
+    // browsed to, and the picker on the front of it existed only to ask which
+    // call you were on, which is a question you had already answered by
+    // clicking a row on Sales Calls. Clicking a call now opens the same cockpit
+    // as a panel over that list. An old ?tab=on-call link is not special-cased:
+    // resolvePillarTab does not know the id, so it lands on Sales Calls, which
+    // is where its ?meeting= is read anyway.
     //
     // Playbook is last, and is deliberately not called Settings: it is one
     // thing (the words said on a call), named for what it is, in the same way
@@ -77,7 +80,6 @@ export const ADMIN_PILLARS: PillarDef[] = [
     // call is a thing you sit down to do, not a thing you open daily.
     tabs: [
       { id: "calls", label: "Sales Calls", ready: true },
-      { id: "on-call", label: "On Call", ready: true },
       { id: "pipeline", label: "Sales Pipeline", ready: true },
       { id: "sales-data", label: "Sales Data", ready: true },
       { id: "playbook", label: "Playbook", ready: true },

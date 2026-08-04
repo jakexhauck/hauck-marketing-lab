@@ -1,13 +1,5 @@
-import { useState } from "react";
-import {
-  CalendarX,
-  Check,
-  CircleSlash,
-  HandCoins,
-  Headphones,
-  Repeat,
-  ThumbsDown,
-} from "lucide-react";
+import { useState, type KeyboardEvent } from "react";
+import { CalendarX, Check, CircleSlash, HandCoins, Repeat, ThumbsDown } from "lucide-react";
 import type { SalesMeeting } from "../../../lib/api";
 import { routeFor } from "../../../../functions/lib/salesPipeline";
 import { useToast } from "../../../context/ToastContext";
@@ -435,16 +427,21 @@ export function MeetingRow({
   // where its card ended up. Cold Call's own page leaves it off, because there
   // every row came from the same place.
   showProvenance = false,
-  // Open the On Call cockpit on this meeting. Only Sales Calls passes it; the
-  // caller's own Booked list has no such page, and a button that went nowhere
-  // is worse than no button.
-  onStartCall,
+  // Open the call cockpit on this meeting. Only Sales Calls passes it, and only
+  // for a call there is still work in: the caller's own Booked list has no such
+  // panel, and a call already answered opens onto a script nobody will read.
+  //
+  // There used to be a "Start call" button here instead. The row IS the button
+  // now: a list where one row in three has a green button on it reads as three
+  // kinds of row, when the only real difference is whether the call has been
+  // answered yet.
+  onOpen,
 }: {
   meeting: SalesMeeting;
   recordable?: boolean;
   record: RecordOutcome;
   showProvenance?: boolean;
-  onStartCall?: (meeting: SalesMeeting) => void;
+  onOpen?: (meeting: SalesMeeting) => void;
 }) {
   const { pending, draft, set, choose, cancel, submit } = useOutcomeDraft(meeting, record);
 
@@ -452,8 +449,29 @@ export function MeetingRow({
 
   const cancelled = /cancel/i.test(meeting.appointmentStatus);
 
+  // Enter and Space, because the row is a button now and a button answers to
+  // both. Space is also page-down, so it is only swallowed on the row itself.
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!onOpen || e.target !== e.currentTarget) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onOpen(meeting);
+    }
+  };
+
   return (
-    <div className="pk-li !flex-col !items-stretch gap-2">
+    <div
+      className={`pk-li !flex-col !items-stretch gap-2${onOpen ? " pk-li-open" : ""}`}
+      {...(onOpen
+        ? {
+            role: "button" as const,
+            tabIndex: 0,
+            onClick: () => onOpen(meeting),
+            onKeyDown,
+            "aria-label": `Open the call with ${meeting.prospectName || "this prospect"}`,
+          }
+        : {})}
+    >
       <div className="flex w-full items-center gap-3">
         <div className="pk-li-main">
           <div className="pk-li-label">
@@ -514,44 +532,23 @@ export function MeetingRow({
         </div>
       </div>
 
-      {(recordable || onStartCall) && pending === null && (
-        // Two groups on one line: the four outcomes where somebody turned up,
-        // then a rule, then the one where they did not. The labels no longer
-        // carry the word "Showed", so the grouping is what keeps a show apart
-        // from a no-show, which is the distinction the show rate rests on.
-        //
-        // Start call leads the row, ahead of the outcomes and separated from
-        // them, because it is the thing you press BEFORE the call and they are
-        // the things you press after it.
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-          {onStartCall && (
-            <>
-              <button
-                type="button"
-                onClick={() => onStartCall(meeting)}
-                title="Open the call cockpit on this meeting"
-                className={[
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5",
-                  "border border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)]",
-                  "text-[12px] font-semibold leading-none text-[var(--brand)]",
-                  "transition-colors hover:bg-[color-mix(in_srgb,var(--brand)_20%,transparent)]",
-                ].join(" ")}
-              >
-                <Headphones size={13} aria-hidden />
-                Start call
-              </button>
-              {recordable && (
-                <span className="mx-1 h-5 w-px shrink-0 bg-[var(--border)]" aria-hidden />
-              )}
-            </>
-          )}
-          {recordable && (
-            <span className="text-[10px] font-bold uppercase tracking-wider text-faint">
-              Showed
-            </span>
-          )}
-          {recordable && (
-            <>
+      {/* Everything below the row's own text is insulated from it. The row
+          opens the call on click; a click on an outcome button, or in a box
+          inside the record panel, must do its own job and nothing else, or
+          answering a no-show in one second would also throw a full-screen
+          script over the top of the list. */}
+      {(recordable || pending !== null) && (
+        <div onClick={(e) => e.stopPropagation()}>
+          {recordable && pending === null && (
+            // Two groups on one line: the four outcomes where somebody turned
+            // up, then a rule, then the one where they did not. The labels no
+            // longer carry the word "Showed", so the grouping is what keeps a
+            // show apart from a no-show, which is the distinction the show rate
+            // rests on.
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-faint">
+                Showed
+              </span>
               {SHOWED_CHOICES.map((c) => (
                 <OutcomeButton
                   key={c.outcome}
@@ -570,21 +567,21 @@ export function MeetingRow({
                 disabled={record.isPending}
                 onPick={choose}
               />
-            </>
+            </div>
+          )}
+
+          {pending !== null && (
+            <RecordPanel
+              meeting={meeting}
+              outcome={pending}
+              draft={draft}
+              set={set}
+              saving={record.isPending}
+              onSave={() => void submit(pending)}
+              onCancel={cancel}
+            />
           )}
         </div>
-      )}
-
-      {pending !== null && (
-        <RecordPanel
-          meeting={meeting}
-          outcome={pending}
-          draft={draft}
-          set={set}
-          saving={record.isPending}
-          onSave={() => void submit(pending)}
-          onCancel={cancel}
-        />
       )}
     </div>
   );

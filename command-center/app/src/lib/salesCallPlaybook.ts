@@ -12,6 +12,12 @@
 //
 // Pure: no React, no storage, no Date.now(). The page owns reading and writing.
 
+// Which call to work is not decided here any more. It was, for one afternoon,
+// while On Call was a page with a picker on the front of it; a call is now
+// opened by clicking its row on Sales Calls, and that page groups its own rows
+// (groupFor) into the ones that are still work and the ones that are history.
+// One answer, in one place, instead of two that can disagree.
+
 export interface CallState {
   // Epoch ms the timer started. Kept rather than recomputed so a mid-call
   // refresh does not restart the clock at zero.

@@ -98,11 +98,6 @@ export default function PlaybookSection() {
 
   return (
     <div className={MEASURE}>
-      <p className="mb-4 text-[13px] leading-relaxed text-muted">
-        The script, as On Call reads it. Click any line to reword it; it saves when you click away.
-        Hover a line for move, retire, and everything else.
-      </p>
-
       <KeyLegend keys={keys} items={items} />
 
       {PLAYBOOK_SECTIONS.map((section) => (

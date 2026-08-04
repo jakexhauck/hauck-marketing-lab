@@ -38,7 +38,6 @@ describe("adminPillars config", () => {
       "sms",
       "leads",
       "calls",
-      "on-call",
       "pipeline",
       "sales-data",
       "playbook",
@@ -56,13 +55,13 @@ describe("adminPillars config", () => {
     // being sent to one of the two tabs before it. It sits last on purpose, so
     // the pillar still lands on Cold Call.
     expect(tabsFor("acquisition").map((t) => t.id)).toEqual(["cold-call", "sms", "leads"]);
-    // Sales Calls leads: it is the page with work on it. On Call is where its
-    // Start call button lands. Sales Pipeline is the board those outcomes land
-    // on, Sales Data is the month read back, and Playbook is where the words
-    // said on the call are written.
+    // Sales Calls leads: it is the page with work on it, and the live call
+    // cockpit is now a panel opened from a row on it rather than the On Call
+    // tab that used to sit here second. Sales Pipeline is the board those
+    // outcomes land on, Sales Data is the month read back, and Playbook is
+    // where the words said on the call are written.
     expect(tabsFor("sales").map((t) => t.id)).toEqual([
       "calls",
-      "on-call",
       "pipeline",
       "sales-data",
       "playbook",

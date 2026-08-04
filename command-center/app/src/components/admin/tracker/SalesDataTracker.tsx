@@ -70,6 +70,11 @@ export default function SalesDataTracker() {
     [monthDays],
   );
 
+  // Said only while the month is still arriving. Once it has, the table used to
+  // caption itself ("one row per day, counted from the meetings themselves,
+  // nothing here is typed"), which is a table saying what it plainly is.
+  const subtitle = isPending && !data ? "Reading the calendar" : undefined;
+
   // The tile row is gone: the funnel strip below says everything those four
   // tiles said and three steps more, and a page carrying both would be stating
   // the same month twice in two shapes.
@@ -90,7 +95,7 @@ export default function SalesDataTracker() {
         </div>
       )}
 
-      <StatusLine data={data ?? null} awaiting={rollup.totals.awaiting} />
+      <StatusLine data={data ?? null} />
 
       {/* The month, calendar through to cash. Above the grid, because the grid
           is the detail behind it. */}
@@ -98,11 +103,7 @@ export default function SalesDataTracker() {
 
       <DailyTracker
         title="Daily sales funnel"
-        subtitle={
-          isPending && !data
-            ? "Reading the calendar"
-            : "One row per day, counted from the meetings themselves. Nothing here is typed."
-        }
+        subtitle={subtitle}
         columns={SALES_COLUMNS}
         cursor={cursor}
         today={today}
@@ -136,13 +137,7 @@ export default function SalesDataTracker() {
 // No read button, same as Sales Calls and the Sales board: the month reconciles
 // itself on load, on focus and on a timer (useSalesDataQuery), so nothing here
 // is waiting to be asked.
-function StatusLine({
-  data,
-  awaiting,
-}: {
-  data: SalesDataResponse | null;
-  awaiting: number;
-}) {
+function StatusLine({ data }: { data: SalesDataResponse | null }) {
   const warnings: string[] = [];
   const sync = data?.sync ?? null;
 
@@ -164,17 +159,12 @@ function StatusLine({
     );
   }
 
-  if (awaiting > 0) {
-    warnings.push(
-      `${awaiting} ${awaiting === 1 ? "meeting has" : "meetings have"} no outcome recorded, so ${awaiting === 1 ? "it is" : "they are"} counted in neither the shows nor the no-shows. Record ${awaiting === 1 ? "it" : "them"} on Sales Calls.`,
-    );
-  }
-
-  if (data && data.undated > 0) {
-    warnings.push(
-      `${data.undated} ${data.undated === 1 ? "meeting has" : "meetings have"} no time on the calendar, so ${data.undated === 1 ? "it belongs" : "they belong"} to no day and ${data.undated === 1 ? "is" : "are"} not counted here.`,
-    );
-  }
+  // Nothing here about meetings with no outcome yet, or meetings with no time
+  // on them. Both were true, both were amber, and both were a note about work
+  // in progress rather than a fault: this page is a month read back, and a
+  // month read back should not open by telling you what you have not finished.
+  // The meetings needing an answer are on Sales Calls, in a block called Needs
+  // an answer, which is where answering them happens.
 
   const changed =
     sync && sync.ok && (sync.added > 0 || sync.updated > 0)
@@ -186,15 +176,14 @@ function StatusLine({
           .join(", ")
       : null;
 
+  // Nothing new and nothing wrong means nothing on the page. "Counted from your
+  // meetings, nothing on this page is typed" used to sit here whenever all was
+  // well, which is to say almost always, which is to say it was furniture.
+  if (!changed && warnings.length === 0) return null;
+
   return (
     <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-      {changed &&<span className="text-[12px] text-muted">{changed} from the calendar.</span>}
-
-      {warnings.length === 0 && data?.configured && (
-        <span className="text-[12px] text-faint">
-          Counted from your meetings. Nothing on this page is typed.
-        </span>
-      )}
+      {changed && <span className="text-[12px] text-muted">{changed} from the calendar.</span>}
 
       {warnings.map((w) => (
         <span key={w} className="text-[12px] font-semibold text-[var(--warning)]">

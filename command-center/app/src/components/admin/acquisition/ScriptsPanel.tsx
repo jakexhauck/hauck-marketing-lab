@@ -109,11 +109,6 @@ export default function ScriptsPanel() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-[15px] font-semibold">Dialing scripts</h3>
-          <p className="mt-1 max-w-[62ch] text-[13px] text-muted">
-            Variations of the same pitch. The caller picks one in the script panel
-            and every outcome they press is recorded against it, so these numbers
-            are dials that happened rather than anybody&apos;s impression.
-          </p>
         </div>
         <button type="button" className="pk-link" onClick={() => setAdding((v) => !v)}>
           <Plus size={14} aria-hidden />
@@ -266,11 +261,6 @@ function ObjectionsCard() {
   return (
     <section className="mt-4 rounded-[var(--radius-lg)] border border-border p-5">
       <h3 className="text-[15px] font-semibold">Objection handling</h3>
-      <p className="mt-1 max-w-[62ch] text-[13px] text-muted">
-        One document, read underneath whichever script is open. It is reached for
-        mid-sentence while somebody is talking, so it sits in the same panel
-        rather than behind a button of its own.
-      </p>
 
       <div className="mt-4">
         <SopDocPicker

@@ -57,11 +57,6 @@ export default function FullFunnel({
           </div>
         </div>
       </div>
-
-      <p className="mt-3 text-[11.5px] text-faint">
-        Counted from the meetings on the sales calendars, wherever they were
-        booked from.
-      </p>
     </div>
   );
 }

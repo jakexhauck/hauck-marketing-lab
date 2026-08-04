@@ -56,7 +56,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // path (tenant's own creds once real, else the GHL_* env fallback). Reading
   // tenant.ghl_token raw here would send a placeholder ('env'/'pending') into
   // the revenue join and fail it silently for any client not yet fully wired.
-  const creds = resolveGhlCreds(tenant, ctx.env);
+  const creds = resolveGhlCreds(tenant);
 
   const zone = tenantTimezone(ctx.env);
   const adsCtx: AdsContext = {

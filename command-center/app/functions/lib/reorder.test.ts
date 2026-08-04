@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { validateReorderBody, renumber } from "./reorder";
 
-// The pure logic behind POST /api/admin/tasks/reorder: body validation and the
-// id -> sort_order assignment. The route itself is a thin Supabase round-trip.
+// The pure logic behind both reorder routes (the Operations checklist and its
+// task categories): body validation and the id -> sort_order assignment. The
+// routes themselves are thin Supabase round-trips.
 
 describe("validateReorderBody", () => {
   it("rejects a missing ids array", () => {

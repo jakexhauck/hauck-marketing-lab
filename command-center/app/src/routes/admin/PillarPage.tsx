@@ -11,7 +11,6 @@ import {
 } from "../../lib/adminPillars";
 import SalesDataTracker from "../../components/admin/tracker/SalesDataTracker";
 import SalesCallsSection from "../../components/admin/sales/SalesCallsSection";
-import OnCallSection from "../../components/admin/sales/OnCallSection";
 import PlaybookSection from "../../components/admin/sales/PlaybookSection";
 import SalesPipelineBoard from "../../components/admin/sales/SalesPipelineBoard";
 import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
@@ -136,14 +135,13 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     case "leads":
       return <LeadsSurface />;
     // The meetings themselves, read from the agency calendars, with the outcome
-    // routed onto the Sales Pipeline.
+    // routed onto the Sales Pipeline. The half hour between booking a meeting
+    // and recording its outcome had its own tab here; it is now a panel opened
+    // by clicking a call on this one, so an old ?tab=on-call link falls through
+    // resolvePillarTab and lands right here, still carrying its ?meeting=.
     case "calls":
       return <SalesCallsSection />;
-    // The half hour between booking a meeting and recording its outcome: the
-    // playbook, worked live, ending in that same outcome.
-    case "on-call":
-      return <OnCallSection />;
-    // Where the words in those three columns are written.
+    // Where the words on that call are written.
     case "playbook":
       return <PlaybookSection />;
     // The board those outcomes land on, read live and read only.

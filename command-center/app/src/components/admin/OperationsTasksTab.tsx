@@ -680,8 +680,14 @@ function OperationsTasksStyle() {
          task (behind a confirm) via useAdminTaskList. */
       .pk-kit .otk-card th.otk-delhead { width: 44px; }
       .pk-kit .otk-card td.otk-delcol { width: 44px; text-align: center; }
+      /* The auto margin belongs to the TABLE CELL, not to the button. It was on
+         .otk-del itself, which centres the button in whatever free space it is
+         given: harmless in a 44px column, but in the categories panel head
+         (a space-between flex row) auto on BOTH sides floated the close button
+         into the middle of the header instead of pinning it right. */
+      .pk-kit .otk-delcol .otk-del { margin: 0 auto; }
       .pk-kit .otk-del {
-        display: grid; place-items: center; width: 28px; height: 28px; margin: 0 auto;
+        display: grid; place-items: center; width: 28px; height: 28px;
         border: 0; border-radius: 8px; background: transparent; color: var(--text-faint);
         cursor: pointer; transition: color .14s, background .14s;
       }
@@ -792,6 +798,22 @@ function OperationsTasksStyle() {
         font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text);
         padding: 7px 10px; border-radius: 9px; transition: background .12s, border-color .12s;
       }
+      /* Two half-height chevrons stacked into one control the size of the
+         delete button beside them, so the row's right edge stays one line of
+         buttons rather than three different heights. */
+      .pk-kit .otk-move { display: grid; grid-template-rows: 1fr 1fr; flex: 0 0 auto; gap: 1px; }
+      .pk-kit .otk-nudge {
+        display: grid; place-items: center; width: 26px; height: 15px;
+        border: 0; border-radius: 5px; background: transparent; color: var(--text-faint);
+        cursor: pointer; padding: 0; transition: color .14s, background .14s;
+      }
+      .pk-kit .otk-nudge:hover:not(:disabled) {
+        color: var(--otk-indigo); background: color-mix(in srgb, var(--otk-indigo) 12%, transparent);
+      }
+      .pk-kit .otk-nudge:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--otk-indigo); }
+      /* At the top or the bottom. Kept in place rather than hidden, so the row
+         does not change width as it travels up the list. */
+      .pk-kit .otk-nudge:disabled { opacity: .25; cursor: default; }
       .pk-kit .otk-catname:hover { background: var(--otk-input-hover); }
       .pk-kit .otk-catname:focus { outline: 0; background: var(--surface); border-color: var(--otk-indigo); }
       /* The expanded colour picker sits on its own line under the row it edits. */

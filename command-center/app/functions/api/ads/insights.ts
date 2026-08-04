@@ -28,7 +28,10 @@ export type { AdsInsightsResponse };
 // to an honest zeroed payload with an error string, never a fabricated number.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const token = ctx.env.META_SYSTEM_USER_TOKEN;
-  let account = resolveAdAccount(ctx.data.tenant?.meta_ad_account_id, ctx.env.META_AD_ACCOUNT_ID);
+  // This client's own ad account, or none. The env META_AD_ACCOUNT_ID is not
+  // consulted: it names a real client's account, so inheriting it showed one
+  // client another client's spend and creatives under their own name.
+  let account = resolveAdAccount(ctx.data.tenant?.meta_ad_account_id, undefined);
   if (!token || !account) {
     // Full empty shape (not a bare { configured: false }) so the client always
     // receives a complete payload and no Paid Ads tab can crash on a missing

@@ -3,7 +3,7 @@ import { ExternalLink } from "lucide-react";
 import BoardScrollbar from "../../BoardScrollbar";
 import { useSalesPipelineQuery } from "../../../hooks/useSalesCalls";
 import { ghlContactUrl, stageTone } from "../../../lib/setterModel";
-import { formatMoney, formatMoneyExact } from "../../../lib/formatMoney";
+import { formatMoneyExact } from "../../../lib/formatMoney";
 import { timeAgo } from "../../../lib/timeAgo";
 import { STALE_AFTER_DAYS, daysStill, isStale } from "../../../../functions/lib/salesPipeline";
 import type { AgencyPipelineCard } from "../../../lib/api";
@@ -36,24 +36,6 @@ export default function SalesPipelineBoard() {
 
   const columns = useMemo(() => data?.columns ?? [], [data]);
 
-  // What the board is holding, counted from the cards themselves. Open only:
-  // totalling won and lost deals from three years alongside them would make the
-  // number an all-time figure wearing a pipeline's clothes.
-  const totals = useMemo(() => {
-    const cards = columns.flatMap((c) => c.cards);
-    const open = cards.filter((c) => c.status === "open");
-    const value = open.reduce((sum, c) => sum + (c.value ?? 0), 0);
-    return {
-      deals: cards.length,
-      openDeals: open.length,
-      openValue: value,
-      // Open deals nobody has touched in a fortnight. The board has always drawn
-      // each card's age and done nothing with it, which let a deal sit still for
-      // a month in plain sight.
-      stale: open.filter((c) => isStale(c, now)).length,
-    };
-  }, [columns, now]);
-
   if (query.isLoading) return <div className="pk-empty">Reading the board...</div>;
   if (query.isError) {
     return (
@@ -69,7 +51,6 @@ export default function SalesPipelineBoard() {
         configured={data?.configured ?? false}
         pipeline={data?.pipeline ?? null}
         truncated={data?.truncated ?? false}
-        totals={totals}
       />
 
       {columns.length === 0 ? (
@@ -281,12 +262,10 @@ function StatusLine({
   configured,
   pipeline,
   truncated,
-  totals,
 }: {
   configured: boolean;
   pipeline: { id: string; name: string; missing: string[] } | null;
   truncated: boolean;
-  totals: { deals: number; openDeals: number; openValue: number; stale: number };
 }) {
   const warnings: string[] = [];
 
@@ -308,31 +287,20 @@ function StatusLine({
     warnings.push("Showing the first 500 deals on this board. There are more than are shown here.");
   }
 
-  // Not a warning about the connection, like the rest of them: a warning about
-  // the selling. It reads in the same amber for the same reason, because it is
-  // the same instruction ("something here needs you").
-  if (totals.stale > 0) {
-    warnings.push(
-      `${totals.stale} open ${totals.stale === 1 ? "deal has" : "deals have"} not moved in ${STALE_AFTER_DAYS} days.`,
-    );
-  }
+  // Nothing here about deals that have gone quiet. That was a warning about the
+  // SELLING rather than about the connection, and this row is only for the
+  // second kind: a line saying the board cannot be trusted. Each column still
+  // badges its own stale count, on the board, next to the cards it is about.
+
+  // Only when something is wrong. The line that used to lead this row named the
+  // board, said it was live from GoHighLevel, and totalled the deals: three
+  // facts the board underneath already shows, restated above it on every load.
+  // With nothing to warn about there is nothing to say, and an empty row would
+  // still draw its own bottom margin.
+  if (warnings.length === 0) return null;
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-      {pipeline && (
-        <span className="text-[12px] text-muted">
-          <span className="font-semibold text-text">{pipeline.name}</span>, live from GoHighLevel.{" "}
-          {totals.deals} {totals.deals === 1 ? "deal" : "deals"}
-          {totals.openDeals > 0 && (
-            <>
-              , {totals.openDeals} still open
-              {totals.openValue > 0 && ` worth ${formatMoney(totals.openValue)}`}
-            </>
-          )}
-          .
-        </span>
-      )}
-
       {warnings.map((w) => (
         <span key={w} className="text-[12px] font-semibold text-[var(--warning)]">
           {w}

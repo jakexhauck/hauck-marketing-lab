@@ -29,7 +29,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const tenant = await loadTenantById(client, tenantId);
   if (!tenant) return Response.json({ error: "client not found" }, { status: 404 });
 
-  const propertyId = (tenant.ga4_property_id || ctx.env.GA4_PROPERTY_ID)?.trim();
+  // This client's own GA4 property, or none. Same rule as the client-app
+  // route next door: no env fallback onto another client's site.
+  const propertyId = tenant.ga4_property_id?.trim();
   const sa = parseServiceAccount(ctx.env.GA4_SA_JSON);
   if (!propertyId || !sa) return Response.json(NOT_CONNECTED_ANALYTICS);
 

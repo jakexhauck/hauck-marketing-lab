@@ -6,7 +6,7 @@ import {
   clientLabelFromHost,
   loadLiveTenantForHost,
   loadTenantById,
-  tenantHasGhlCreds,
+  resolveGhlCreds,
 } from "../lib/tenantResolve";
 import { resolveCaller } from "../lib/identity";
 import { checkStaffAccess } from "../lib/permissions";
@@ -225,32 +225,39 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         );
       }
 
-      const useTenantCreds = tenant ? tenantHasGhlCreds(tenant) : false;
-      const ghlLocationId = useTenantCreds
-        ? tenant!.ghl_location_id
-        : ctx.env.GHL_LOCATION_ID;
-      const ghlToken = useTenantCreds ? tenant!.ghl_token : ctx.env.GHL_TOKEN;
-      if (!ghlLocationId || !ghlToken) {
-        return json(500, { error: "GHL credentials not configured" }, origin, ctx.env);
+      // The client's own sub-account, or none. This had its own copy of the
+      // tenant-vs-env ladder; it now asks the one helper, so the client path
+      // and the admin path cannot answer this differently.
+      //
+      // No env fallback any more, here or there. The GHL_* env vars hold a real
+      // client's credentials, so falling back to them served one client another
+      // client's leads, conversations and revenue under their own name. A
+      // client that is not wired up yet gets a 503 its pages read as "not
+      // connected", which is the truth and is recoverable; the alternative was
+      // plausible, wrong, and silent.
+      const creds = tenant ? resolveGhlCreds(tenant) : null;
+      if (!creds) {
+        return json(503, { error: "crm not connected" }, origin, ctx.env);
       }
       ctx.data.tenant = {
-        ghl_location_id: ghlLocationId,
-        ghl_token: ghlToken,
-        // Per-client ad account, env var as the single-tenant fallback. Unlike
-        // GHL creds there is no placeholder scheme: a real act_ id or nothing.
-        meta_ad_account_id: tenant?.meta_ad_account_id || ctx.env.META_AD_ACCOUNT_ID,
-        // Per-client Google place, env var as the single-tenant fallback.
-        google_place_id: tenant?.google_place_id || ctx.env.GOOGLE_PLACE_ID,
-        // Per-client GA4 property, env var as the single-tenant fallback.
-        ga4_property_id: tenant?.ga4_property_id || ctx.env.GA4_PROPERTY_ID,
+        ghl_location_id: creds.locationId,
+        ghl_token: creds.token,
+        // The same rule for every other per-client integration: this client's
+        // own, or nothing. Each of these fell back to an env var too, which is
+        // how a half-wired client came to show another client's ad spend,
+        // another client's reviews and another client's analytics.
+        meta_ad_account_id: tenant?.meta_ad_account_id ?? undefined,
+        google_place_id: tenant?.google_place_id ?? undefined,
+        ga4_property_id: tenant?.ga4_property_id ?? undefined,
         // Per-client Website > Pages list (0028). No env fallback: an unwired
         // client simply has an empty list until the admin enters its pages.
         website_pages: tenant?.website_pages ?? [],
-        // Per-client internal notification recipients (0043), env var as the
-        // single-tenant fallback. Undefined leaves the source='NOTIFICATION'
-        // signal as the only guard, which still hides GHL's auto-created sinks.
-        internal_recipients:
-          tenant?.internal_recipients || ctx.env.INTERNAL_RECIPIENTS,
+        // Per-client internal notification recipients (0043). No env fallback
+        // either: one client's staff numbers are not another's, and inheriting
+        // them hides the wrong messages from the wrong inbox. Undefined leaves
+        // the source='NOTIFICATION' signal as the only guard, which still hides
+        // GHL's auto-created sinks.
+        internal_recipients: tenant?.internal_recipients ?? undefined,
         slug: tenant?.slug ?? liveTenantSlug(ctx.env),
         mode: "live",
       };

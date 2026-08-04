@@ -8,9 +8,9 @@ import { logAdminAction } from "../../../lib/adminAuth";
 // POST /api/admin/setter/tags (admin-only, gated in _middleware.ts). Adds
 // and/or removes tags on a live CRM contact. These tags fire that client's
 // automations, so this is the riskiest write in the Setter Suite: it MUST
-// use getGhlContextForTenant (never resolveGhlCreds, which falls back to a
-// different, live production client's credentials on a half-configured
-// tenant) and it MUST re-read the contact after writing rather than echo the
+// use getGhlContextForTenant, which THROWS on a half-configured tenant rather
+// than resolving to anything, and it MUST re-read the contact after writing
+// rather than echo the
 // request, so the setter sees what the CRM actually holds.
 //
 // ADD is proven live: POST /contacts/{id}/tags {"tags":[...]} -> 201,

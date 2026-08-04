@@ -66,10 +66,6 @@ export function SourceSplit({ sources }: { sources: SourceSplitRow[] }) {
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-[11.5px] text-faint">
-        Counted from the meetings themselves. A meeting the app booked reads as a
-        cold call; one the calendar read in on its own reads as Calendar.
-      </p>
     </section>
   );
 }
@@ -131,11 +127,6 @@ export function OfferSplit({ offers }: { offers: OfferSplitRow[] }) {
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-[11.5px] text-faint">
-        Only the meetings somebody turned up to: an offer cannot be pitched to a
-        no-show. Best close rate first, and a rate off one call is one call, not
-        a finding.
-      </p>
     </section>
   );
 }
@@ -184,10 +175,6 @@ export function NoReasons({ reasons }: { reasons: Record<string, number> }) {
           </div>
         ))}
       </div>
-      <p className="mt-2 text-[11.5px] text-faint">
-        Recorded when an outcome is answered on Sales Calls. Only the meetings
-        that turned up and said no are here.
-      </p>
     </section>
   );
 }

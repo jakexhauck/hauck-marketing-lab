@@ -164,9 +164,9 @@ body{ margin:0 !important; padding:0 !important; }
 
 /* ===== LAYOUT ===== */
 #mb .wrap{ width:100%; max-width:1180px; margin:0 auto; padding:0 24px; }
-#mb .sec{ padding:112px 0; position:relative; }
+#mb .sec{ padding:88px 0; position:relative; }
 #mb .sec + .sec{ padding-top:0; }
-#mb .sec-head{ max-width:720px; margin-bottom:56px; }
+#mb .sec-head{ max-width:720px; margin-bottom:44px; }
 #mb .sec-head p{ margin-top:16px; font-size:18px; color:var(--muted); }
 
 /* The alternating warm band, applied to a whole section. Willis alternates
@@ -178,7 +178,7 @@ body{ margin:0 !important; padding:0 !important; }
    rest of the page. */
 #mb .band-deep{ background:var(--wash-2); }
 #mb .sec.band, #mb .sec.band + .sec,
-#mb .sec.band-deep, #mb .sec.band-deep + .sec{ padding-top:112px; }
+#mb .sec.band-deep, #mb .sec.band-deep + .sec{ padding-top:88px; }
 
 /* ===== BUTTONS =====
    10px radius, 700 weight, generous padding, and a coloured glow beneath the
@@ -227,8 +227,8 @@ body{ margin:0 !important; padding:0 !important; }
   transition:height .25s, box-shadow .25s, background .25s;
 }
 #mb .hdr.is-stuck{ box-shadow:0 10px 30px -22px rgba(14,19,17,.5); background:rgba(255,255,255,.94); }
-#mb .hdr-in{ display:flex; align-items:center; justify-content:space-between; gap:24px; height:84px; transition:height .25s; }
-#mb .hdr.is-stuck .hdr-in{ height:72px; }
+#mb .hdr-in{ display:flex; align-items:center; justify-content:space-between; gap:32px; height:92px; transition:height .25s; }
+#mb .hdr.is-stuck .hdr-in{ height:78px; }
 #mb .brand{ display:flex; align-items:center; gap:12px; flex:none; }
 #mb .brand-logo{ height:54px; width:auto; transition:height .25s; }
 #mb .hdr.is-stuck .brand-logo{ height:44px; }
@@ -242,12 +242,12 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .brand-name i{ font-style:normal; color:var(--brass); }
 #mb .hdr.is-stuck .brand-name{ font-size:17.5px; }
 
-#mb .nav{ display:flex; align-items:center; gap:30px; }
+#mb .nav{ display:flex; align-items:center; gap:34px; }
 #mb .nav a {
-  font-size:15px; font-weight:600; color:var(--body); letter-spacing:-.01em;
+  font-size:15px; font-weight:600; color:var(--head); letter-spacing:-.01em;
   transition:color .15s; position:relative; padding:6px 0;
 }
-#mb .nav a:hover{ color:var(--head); }
+#mb .nav a:hover{ color:var(--brass-2); }
 #mb .nav a.is-active{ color:var(--head); }
 #mb .nav a.is-active::after {
   content:""; position:absolute; left:0; right:0; bottom:-2px; height:2px;
@@ -271,7 +271,7 @@ body{ margin:0 !important; padding:0 !important; }
    with the estimate form Willis does not have. */
 #mb .hero {
   position:relative; background:var(--ink); color:var(--stone);
-  padding:96px 0 104px; overflow:hidden;
+  padding:80px 0 88px; overflow:hidden;
   --muted:#A8B2AC; --head:#FFFFFF; --body:#C9D1CB;
 }
 #mb .hero-bg{ position:absolute; inset:0; overflow:hidden; }
@@ -354,7 +354,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .trust{ background:var(--wash); border-bottom:1px solid var(--line); }
 #mb .trust-in{
   display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
-  padding:36px 24px; background:transparent;
+  padding:30px 24px; background:transparent;
 }
 #mb .trust-item{
   display:flex; align-items:flex-start; gap:14px;
@@ -523,7 +523,7 @@ body{ margin:0 !important; padding:0 !important; }
 
 /* ===== CLOSING CTA ===== */
 #mb .close {
-  background:var(--ink); color:var(--stone); padding:104px 0;
+  background:var(--ink); color:var(--stone); padding:88px 0;
   --head:#FFFFFF; --muted:#A8B2AC; --body:#C9D1CB;
 }
 #mb .close-in{ display:grid; grid-template-columns:1.2fr .8fr; gap:56px; align-items:center; }
@@ -574,7 +574,7 @@ body{ margin:0 !important; padding:0 !important; }
 
 /* ===== FOOTER ===== */
 #mb .ft {
-  background:var(--ink); color:var(--stone); padding:80px 0 34px;
+  background:var(--ink); color:var(--stone); padding:64px 0 30px;
   --head:#FFFFFF; --muted:#8E9992;
 }
 #mb .ft-in{ display:grid; grid-template-columns:1.6fr 1fr 1fr; gap:48px; }
@@ -590,7 +590,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .ft-links a:hover{ color:var(--brass); }
 #mb .ft-bot {
   display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap;
-  margin-top:56px; padding-top:26px; border-top:1px solid var(--ink-3);
+  margin-top:44px; padding-top:24px; border-top:1px solid var(--ink-3);
   font-size:13px; color:#6F7A74;
 }
 #mb .ft-bot a{ color:#6F7A74; }
@@ -604,7 +604,7 @@ body{ margin:0 !important; padding:0 !important; }
   content:""; position:absolute; inset:0;
   background:linear-gradient(104deg, var(--ink) 8%, rgba(14,19,17,.82) 100%);
 }
-#mb .phead-in{ position:relative; padding:88px 0 84px; max-width:780px; }
+#mb .phead-in{ position:relative; padding:72px 0 68px; max-width:780px; }
 #mb .phead h1{ color:#fff; margin-bottom:18px; }
 #mb .phead p{ font-size:19px; color:#C9D1CB; }
 
@@ -634,7 +634,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .val p{ color:var(--muted); font-size:15.5px; }
 
 /* ===== SERVICE DETAIL ROWS ===== */
-#mb .row{ display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; padding:76px 0; border-bottom:1px solid var(--line); }
+#mb .row{ display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center; padding:60px 0; border-bottom:1px solid var(--line); }
 #mb .row:last-child{ border-bottom:0; }
 #mb .row > img, #mb .row .img-frame{ align-self:center; }
 #mb .row .row-txt{ min-width:0; }
@@ -660,7 +660,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .cblock small{ display:block; font-family:'Inter',sans-serif; font-size:14.5px; font-weight:400; color:var(--muted); margin-top:6px; letter-spacing:0; }
 
 /* ===== THANK YOU ===== */
-#mb .ty{ max-width:660px; margin:0 auto; text-align:center; padding:112px 0 100px; }
+#mb .ty{ max-width:660px; margin:0 auto; text-align:center; padding:88px 0 80px; }
 #mb .ty-mark {
   width:76px; height:76px; border-radius:50%; background:rgba(200,151,75,.12);
   border:1px solid rgba(200,151,75,.5); color:var(--brass);
@@ -725,11 +725,12 @@ body{ margin:0 !important; padding:0 !important; }
 }
 
 @media(max-width:960px){
-  #mb .sec{ padding:76px 0; }
+  #mb .sec{ padding:62px 0; }
   #mb .sec + .sec{ padding-top:0; }
-  #mb .sec.band, #mb .sec.band + .sec{ padding-top:76px; }
-  #mb .sec-head{ margin-bottom:40px; }
-  #mb .hero{ padding:64px 0 72px; }
+  #mb .sec.band, #mb .sec.band + .sec,
+  #mb .sec.band-deep, #mb .sec.band-deep + .sec{ padding-top:62px; }
+  #mb .sec-head{ margin-bottom:34px; }
+  #mb .hero{ padding:52px 0 60px; }
   #mb .svc, #mb .stats, #mb .steps, #mb .split-grid{ grid-template-columns:1fr; }
   #mb .trust-in{ grid-template-columns:1fr 1fr; }
   #mb .gal{ grid-template-columns:repeat(2,1fr); }
@@ -738,8 +739,8 @@ body{ margin:0 !important; padding:0 !important; }
   #mb .row.flip .row-txt{ order:0; }
   #mb .close-in{ grid-template-columns:1fr; gap:34px; }
   #mb .ft-in{ grid-template-columns:1fr; gap:34px; }
-  #mb .phead-in{ padding:62px 0 58px; }
-  #mb .ty{ padding:72px 0 64px; }
+  #mb .phead-in{ padding:52px 0 48px; }
+  #mb .ty{ padding:58px 0 52px; }
   #mb .steps > div{ padding-top:0; }
   #mb .steps-line{ display:none; }
   #mb .nav {
@@ -759,8 +760,8 @@ body{ margin:0 !important; padding:0 !important; }
   #mb .hdr.is-stuck .brand-logo{ height:38px; }
   #mb .brand-name{ font-size:17px; }
   #mb .trust-in{ padding:26px 24px; }
-  #mb .hdr-in{ height:72px; }
-  #mb .hdr.is-stuck .hdr-in{ height:64px; }
+  #mb .hdr-in{ height:76px; }
+  #mb .hdr.is-stuck .hdr-in{ height:68px; }
 }
 
 @media(max-width:640px){

@@ -115,9 +115,6 @@ function PagesEditor({
       <div className="flex items-center justify-between gap-3">
         <div>
           <h4 className="font-display text-[15px] font-semibold text-text">Edit pages</h4>
-          <p className="mt-0.5 text-[12px] text-muted">
-            The list your client sees under Website. Order here is the order they see.
-          </p>
         </div>
         <DeviceToggleSpacer />
       </div>

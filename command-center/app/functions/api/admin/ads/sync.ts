@@ -144,7 +144,9 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const results: SyncResult[] = [];
   for (const tenant of tenants) {
     results.push(
-      await syncTenant(client, tenant, token, ctx.env.META_AD_ACCOUNT_ID, days),
+      // No env account: a client with none of its own is skipped, rather than
+      // having another client's spend synced into its tracker.
+      await syncTenant(client, tenant, token, undefined, days),
     );
   }
 

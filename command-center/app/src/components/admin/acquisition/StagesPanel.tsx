@@ -56,13 +56,16 @@ export default function StagesPanel() {
   return (
     <section className="rounded-[var(--radius-lg)] border border-border p-5">
       <h3 className="text-[15px] font-semibold">Pipeline stages</h3>
-      <p className="mt-1 text-[13px] text-muted">
-        The console&apos;s pages beside the live stages of{" "}
-        <span className="font-medium text-text">{result.pipelineName}</span>.{" "}
-        {result.inSync
-          ? "They agree."
-          : "They do not agree, and a lead in a stage with no page here will show as a plain grey status."}
-      </p>
+      {/* Only the disagreement. The caption said what the table below plainly
+          is, then finished with either "They agree" or a real problem: the
+          first is the table telling you it is a table, and the second is the
+          only sentence here worth interrupting for. */}
+      {!result.inSync && (
+        <p className="mt-1 text-[13px] font-semibold text-[var(--warning)]">
+          These do not match the live stages of {result.pipelineName}, and a lead in a stage with no
+          page here will show as a plain grey status.
+        </p>
+      )}
 
       <ul className="mt-4 flex flex-col gap-1.5">
         {result.rows.map((row) => {

@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, type AdminTaskCategory } from "../lib/api";
 import { normalizeCategoryName, type CategoryColor } from "../lib/taskCategories";
+import { moveItem } from "../lib/taskOrder";
 
 export interface UseAdminTaskCategories {
   categories: AdminTaskCategory[];
@@ -24,6 +25,10 @@ export interface UseAdminTaskCategories {
   addCategory: (name: string, color: CategoryColor) => Promise<AdminTaskCategory | null>;
   renameCategory: (category: AdminTaskCategory, name: string) => Promise<void>;
   recolorCategory: (category: AdminTaskCategory, color: CategoryColor) => Promise<void>;
+  // One place up or down the list. The order is the order of the filter chips
+  // above the checklist and of the dropdown on every row, so this is the only
+  // control over both. A move at either end is a no-op rather than a wrap.
+  moveCategory: (category: AdminTaskCategory, direction: -1 | 1) => Promise<void>;
   // Removes the category. The tasks filed under it are untouched by the server
   // (ON DELETE SET NULL) and fall back to Uncategorised.
   deleteCategory: (category: AdminTaskCategory) => Promise<void>;
@@ -118,6 +123,36 @@ export function useAdminTaskCategories(): UseAdminTaskCategories {
     [patchCategory],
   );
 
+  // Optimistic, then the WHOLE order is posted. The endpoint renumbers from the
+  // list it is sent rather than being told "this one moved up": a relative move
+  // has to be applied against a list the server re-reads, and two tabs nudging
+  // at once interleave into an order neither of them asked for.
+  const moveCategory = useCallback(
+    async (category: AdminTaskCategory, direction: -1 | 1) => {
+      const from = categories.findIndex((c) => c.id === category.id);
+      const to = from + direction;
+      // Off either end. Nothing to do, and nothing to say about it: the button
+      // that would have done it is disabled, so this is only reachable by a
+      // keyboard racing a re-render.
+      if (from < 0 || to < 0 || to >= categories.length) return;
+
+      setError(null);
+      const previous = categories;
+      const next = moveItem(categories, from, to);
+      setCategories(next);
+      try {
+        await api("/api/admin/task-categories/reorder", {
+          method: "POST",
+          body: JSON.stringify({ ids: next.map((c) => c.id) }),
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not reorder the categories");
+        setCategories(previous);
+      }
+    },
+    [categories],
+  );
+
   const deleteCategory = useCallback(async (category: AdminTaskCategory) => {
     setError(null);
     // Optimistic: the chip goes at once, and is put back in place on failure.
@@ -147,6 +182,7 @@ export function useAdminTaskCategories(): UseAdminTaskCategories {
     addCategory,
     renameCategory,
     recolorCategory,
+    moveCategory,
     deleteCategory,
     clearError,
   };

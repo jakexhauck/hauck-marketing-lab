@@ -12,10 +12,13 @@ export type { AdsMediaResponse };
 // adsMedia.buildAdsMedia core. Same shared System-User token and per-client
 // account as insights.ts, so one client can never see another's media.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
+  // This client's own ad account, or none. The env META_AD_ACCOUNT_ID is not
+  // consulted: it names a real client's account, so inheriting it showed one
+  // client another client's spend and creatives under their own name.
   const result = await buildAdsMedia(
     ctx.env.META_SYSTEM_USER_TOKEN,
     ctx.data.tenant?.meta_ad_account_id,
-    ctx.env.META_AD_ACCOUNT_ID,
+    undefined,
   );
   return Response.json(result);
 };

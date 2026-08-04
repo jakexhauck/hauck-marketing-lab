@@ -24,11 +24,13 @@ import { getGhlContextForTenant, TenantGhlError } from "../../../../lib/tenantGh
 // and it only fetches as many upstream pages as the requested window actually
 // needs (see pagesNeeded).
 //
-// Credentials come from getGhlContextForTenant ONLY. resolveGhlCreds in
-// tenantResolve.ts falls back to env.GHL_LOCATION_ID / env.GHL_TOKEN, which
-// are a live production client's credentials: on this cross-client screen
-// that fallback would show a setter another client's real customer
-// conversations, and the send endpoint next door would reply to them.
+// Credentials come from getGhlContextForTenant ONLY. It throws on a
+// half-configured client rather than returning something usable, which is what
+// this cross-client screen needs: showing a setter another client's real
+// customer conversations would have the send endpoint next door reply to them.
+// (resolveGhlCreds used to fall back to the env creds, a live client's, which
+// is exactly the hole this rule was written around. It no longer does, and this
+// rule stands anyway: one helper for cross-client admin writes.)
 
 export interface ApiInboxThread {
   contactId: string;

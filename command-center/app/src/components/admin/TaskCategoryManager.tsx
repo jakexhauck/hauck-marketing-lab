@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Plus, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import type { AdminTaskCategory } from "../../lib/api";
 import {
   CATEGORY_COLORS,
@@ -39,6 +39,7 @@ export default function TaskCategoryManager({
     addCategory,
     renameCategory,
     recolorCategory,
+    moveCategory,
     deleteCategory,
   } = controller;
 
@@ -94,7 +95,7 @@ export default function TaskCategoryManager({
             </div>
           ) : (
             <ul className="otk-catlist">
-              {categories.map((category) => (
+              {categories.map((category, i) => (
                 <li key={category.id} className="otk-catrow">
                   <button
                     type="button"
@@ -116,6 +117,35 @@ export default function TaskCategoryManager({
                       if (e.key === "Enter") e.currentTarget.blur();
                     }}
                   />
+                  {/* Up and down rather than a drag handle. This list is four
+                      or five rows in a 420px panel, where a drag is a gesture
+                      you can miss and a nudge is a button you cannot; the
+                      checklist behind it is long enough to earn dragging and
+                      has it. Both ends disable rather than wrap, so the list
+                      has a visible top and bottom. */}
+                  <div className="otk-move">
+                    <button
+                      type="button"
+                      className="otk-nudge"
+                      aria-label={`Move ${category.name} up`}
+                      title="Move up"
+                      disabled={i === 0}
+                      onClick={() => void moveCategory(category, -1)}
+                    >
+                      <ChevronUp size={14} strokeWidth={2.6} />
+                    </button>
+                    <button
+                      type="button"
+                      className="otk-nudge"
+                      aria-label={`Move ${category.name} down`}
+                      title="Move down"
+                      disabled={i === categories.length - 1}
+                      onClick={() => void moveCategory(category, 1)}
+                    >
+                      <ChevronDown size={14} strokeWidth={2.6} />
+                    </button>
+                  </div>
+
                   <button
                     type="button"
                     className="otk-del"

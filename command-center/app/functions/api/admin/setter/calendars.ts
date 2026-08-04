@@ -7,11 +7,10 @@ import { listCalendars, type Calendar } from "../../lib/appointments";
 // booking panel can offer a real dropdown instead of asking a setter to type
 // a calendar name and hope it matches.
 //
-// Creds come from getGhlContextForTenant, never resolveGhlCreds: this is a
-// cross-client admin surface, and resolveGhlCreds falls back to the env GHL
-// credentials, which belong to one real production client. Listing another
-// client's calendars here would end with a setter booking a stranger's
-// customer into the wrong account.
+// Creds come from getGhlContextForTenant: this is a cross-client admin
+// surface, and that helper throws on a half-configured client rather than
+// resolving to anything. Listing another client's calendars here would end with
+// a setter booking a stranger's customer into the wrong account.
 //
 // Unfiltered beyond active: an admin working the account should see whatever
 // the CRM has. Only event-type calendars support free slots, so a calendar

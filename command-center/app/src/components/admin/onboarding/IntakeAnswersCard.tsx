@@ -44,9 +44,6 @@ export default function IntakeAnswersCard({ tenantId }: { tenantId: string }) {
             <span className="block font-display text-[16.5px] font-semibold text-text">
               What the client told us
             </span>
-            <span className="mt-0.5 block text-[13px] leading-snug text-muted">
-              Their own answers, straight from the intake form.
-            </span>
           </span>
         </button>
 

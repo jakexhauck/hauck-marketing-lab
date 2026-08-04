@@ -24,7 +24,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // path. Reading tenant.ghl_token raw would send a placeholder
   // ('env'/'pending') straight to GHL and 401 for any client not yet fully
   // wired (the same bug the Website Pages admin endpoint guards against).
-  const creds = resolveGhlCreds(tenant, ctx.env);
+  const creds = resolveGhlCreds(tenant);
   if (!creds) return Response.json({ leads: [], total: 0 });
 
   const gctx: GhlContext = { token: creds.token, locationId: creds.locationId };

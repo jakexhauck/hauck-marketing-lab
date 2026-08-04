@@ -79,9 +79,6 @@ export default function WiringCard({ tenantId }: { tenantId: string }) {
         </span>
         <div className="min-w-0">
           <h2 className="font-display text-[16.5px] font-semibold text-text">Wiring</h2>
-          <p className="mt-0.5 text-[13px] leading-snug text-muted">
-            Their credentials. Saved on the client, live on the next request, no deploy.
-          </p>
         </div>
       </header>
 

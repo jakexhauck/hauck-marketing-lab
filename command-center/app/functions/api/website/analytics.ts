@@ -324,7 +324,10 @@ export function ANALYTICS_REPORTS(now: Date): ReportRequest[] {
 }
 
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
-  const propertyId = (ctx.data.tenant.ga4_property_id || ctx.env.GA4_PROPERTY_ID)?.trim();
+  // This client's own GA4 property, or none. No env fallback: it points at a
+  // real client's site, and one client reading another's traffic as their own
+  // is the same leak the GHL creds had.
+  const propertyId = ctx.data.tenant.ga4_property_id?.trim();
   const sa = parseServiceAccount(ctx.env.GA4_SA_JSON);
   if (!propertyId || !sa) return Response.json(NOT_CONNECTED_ANALYTICS);
 

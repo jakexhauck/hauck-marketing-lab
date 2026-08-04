@@ -55,11 +55,6 @@ export default function SoftwareTab({ tenantId }: { tenantId: string }) {
 
   return (
     <div>
-      <p className="mb-4 max-w-[720px] text-[13.5px] leading-relaxed text-muted">
-        Every page of the app as this client sees it, with their real data.
-        Read-only: nothing here can change anything.
-      </p>
-
       <div className="flex min-h-[70vh] gap-5">
         <nav
           aria-label="Client app pages"

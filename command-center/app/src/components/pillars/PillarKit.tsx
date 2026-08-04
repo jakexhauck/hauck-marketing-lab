@@ -291,6 +291,27 @@ export function PillarStyle() {
       .pk-list-sec-h:first-child { margin-top: 4px; }
       .pk-li { display: flex; align-items: center; gap: 16px; padding: 18px 12px; border-bottom: 1px solid var(--divider); text-decoration: none; color: inherit; border-radius: 10px; transition: background .12s; }
       a.pk-li:hover { background: var(--surface-2); }
+
+      /* A row that opens something when you click it (a sales call opening its
+         cockpit). Lifts a little and warms, with a brand bar growing down the
+         left edge: enough to read as "this one is a thing you can pick up",
+         quiet enough to sit under twelve of itself.
+
+         The bar is an ::before rather than a border-left, so the row's text
+         does not shift sideways by 3px on hover. Same reason the lift is a
+         transform and not a margin: nothing below it moves. */
+      .pk-li-open { position: relative; cursor: pointer; transition: transform .15s cubic-bezier(0.16,1,0.3,1), background .15s, box-shadow .15s; }
+      .pk-li-open::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 3px; background: var(--brand); opacity: 0; transform: scaleY(0.3); transform-origin: center; transition: opacity .15s, transform .15s cubic-bezier(0.16,1,0.3,1); }
+      .pk-li-open:hover, .pk-li-open:focus-visible { transform: translateY(-2px); background: var(--surface-2); box-shadow: 0 8px 24px rgba(0,0,0,0.07); outline: none; }
+      .pk-li-open:hover::before, .pk-li-open:focus-visible::before { opacity: 1; transform: scaleY(1); }
+      /* Pressed. A row that lifts on hover has to come back down under the
+         finger, or the click has no bottom to it. */
+      .pk-li-open:active { transform: translateY(0); transition-duration: .06s; }
+      @media (prefers-reduced-motion: reduce) {
+        .pk-li-open, .pk-li-open::before { transition: opacity .15s, background .15s; }
+        .pk-li-open:hover, .pk-li-open:focus-visible, .pk-li-open:active { transform: none; }
+        .pk-li-open:hover::before, .pk-li-open:focus-visible::before { transform: scaleY(1); }
+      }
       .pk-li-idx { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); color: var(--text-muted); font-family: var(--font-display); font-size: 12px; font-weight: 700; display: grid; place-items: center; flex-shrink: 0; }
       .pk-li-main { flex: 1; min-width: 0; }
       .pk-li-label { font-family: var(--font-display); font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }

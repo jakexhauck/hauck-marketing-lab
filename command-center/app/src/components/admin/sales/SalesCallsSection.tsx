@@ -5,6 +5,7 @@ import { useSalesCallsQuery, useRecordSalesCallOutcome } from "../../../hooks/us
 import { daysLate, groupFor, totalsFor } from "../../../../functions/lib/salesCalls";
 import type { SalesMeeting } from "../../../lib/api";
 import { Funnel, MeetingRow } from "./meetingUi";
+import CallModal from "./CallModal";
 
 // Sales > Sales Calls.
 //
@@ -31,18 +32,40 @@ import { Funnel, MeetingRow } from "./meetingUi";
 export default function SalesCallsSection() {
   const query = useSalesCallsQuery();
   const record = useRecordSalesCallOutcome();
-  const [, setParams] = useSearchParams();
+  const [params, setParams] = useSearchParams();
 
-  // Start call: hand this meeting to the On Call cockpit next door. Pushed
-  // rather than replaced, so browser Back walks out of the call and lands on
-  // this list where it left off.
-  const startCall = (meeting: SalesMeeting) => {
+  // Which call is open, in the URL rather than in a useState.
+  //
+  // It costs nothing and buys three things: a refresh mid-call comes back into
+  // the call, browser Back closes the panel instead of leaving the page, and a
+  // link still opens the right one. It is also what the old On Call tab used,
+  // so every link anybody saved to a call still lands on that call, now as a
+  // panel over this list.
+  const openId = params.get("meeting") ?? "";
+
+  const open = (meeting: SalesMeeting) => {
     setParams((prev) => {
       const next = new URLSearchParams(prev);
-      next.set("tab", "on-call");
       next.set("meeting", meeting.id);
+      // The tab this used to point at is gone. Dropped rather than left to rot,
+      // so an old link does not carry a dead tab id back into the address bar.
+      next.delete("tab");
       return next;
     });
+  };
+
+  // Replaced, not pushed: closing a call is undoing the open, and a Back button
+  // that walked through every call you looked at would be a worse way out than
+  // the one on the panel.
+  const close = () => {
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("meeting");
+        return next;
+      },
+      { replace: true },
+    );
   };
 
   const data = query.data;
@@ -79,11 +102,6 @@ export default function SalesCallsSection() {
     [allMeetings, calendarId],
   );
 
-  const undated = useMemo(
-    () => allMeetings.filter((m) => !m.calendarId).length,
-    [allMeetings],
-  );
-
   const { dueBack, awaiting, upcoming, recorded, totals } = useMemo(() => {
     const now = Date.now();
     const countable = meetings.map((m) => ({
@@ -112,6 +130,32 @@ export default function SalesCallsSection() {
     };
   }, [meetings]);
 
+  // The call the panel is showing, if the id in the URL still names one worth
+  // opening.
+  //
+  // Read from ALL the meetings rather than the filtered ones, so changing the
+  // calendar picker mid-call does not shut the call. And read against the same
+  // groupFor the list below is grouped by, so "which calls open" and "which
+  // calls are still work" can never be two different answers: everything except
+  // the Recorded block opens, including a due-back, which carries a follow_up
+  // outcome and is very much still a call to make.
+  const openMeeting = useMemo(() => {
+    if (!openId) return null;
+    const m = allMeetings.find((x) => x.id === openId);
+    if (!m) return null;
+    const group = groupFor(
+      {
+        scheduledAt: m.scheduledAt,
+        outcome: m.outcome,
+        cashCollected: m.cashCollected,
+        followUpAt: m.followUpAt,
+        deal: m.deal,
+      },
+      Date.now(),
+    );
+    return group === "recorded" ? null : m;
+  }, [allMeetings, openId]);
+
   if (query.isLoading) return <div className="pk-empty">Reading the calendar...</div>;
   if (query.isError) {
     return <div className="pk-empty">Could not load the sales calls. Reload to try again.</div>;
@@ -119,6 +163,11 @@ export default function SalesCallsSection() {
 
   return (
     <div>
+      {/* The call, over the top of the list. Mounted last but painted over
+          everything: it portals to <body>, so where it sits in this tree is
+          only about which state it reads. */}
+      {openMeeting && <CallModal meeting={openMeeting} onClose={close} />}
+
       <StatusLine
         configured={data?.configured ?? false}
         sync={data?.sync ?? null}
@@ -126,7 +175,6 @@ export default function SalesCallsSection() {
         calendars={calendars}
         calendarId={calendarId}
         onCalendarChange={setCalendarId}
-        unlabelled={undated}
       />
 
       {meetings.length === 0 ? (
@@ -153,7 +201,7 @@ export default function SalesCallsSection() {
                     recordable
                     record={record}
                     showProvenance
-                    onStartCall={startCall}
+                    onOpen={open}
                   />
                 ))}
               </div>
@@ -171,7 +219,7 @@ export default function SalesCallsSection() {
                     recordable
                     record={record}
                     showProvenance
-                    onStartCall={startCall}
+                    onOpen={open}
                   />
                 ))}
               </div>
@@ -188,7 +236,7 @@ export default function SalesCallsSection() {
                     meeting={m}
                     record={record}
                     showProvenance
-                    onStartCall={startCall}
+                    onOpen={open}
                   />
                 ))}
               </div>
@@ -228,7 +276,6 @@ function StatusLine({
   calendars,
   calendarId,
   onCalendarChange,
-  unlabelled,
 }: {
   configured: boolean;
   sync: NonNullable<ReturnType<typeof useSalesCallsQuery>["data"]>["sync"];
@@ -236,7 +283,6 @@ function StatusLine({
   calendars: { id: string; name: string }[];
   calendarId: string;
   onCalendarChange: (id: string) => void;
-  unlabelled: number;
 }) {
   const warnings: string[] = [];
 
@@ -252,11 +298,9 @@ function StatusLine({
     );
   }
 
-  if (calendars.length > 1 && unlabelled > 0) {
-    warnings.push(
-      `${unlabelled} ${unlabelled === 1 ? "meeting has" : "meetings have"} no calendar recorded, so ${unlabelled === 1 ? "it is" : "they are"} only visible under All calendars. The next read of the calendar fills that in.`,
-    );
-  }
+  // Nothing here about meetings with no calendar recorded. It was true, it was
+  // amber, and it described a gap the next read of the calendar closes on its
+  // own: a note about the data catching up, not about anything being wrong.
 
   if (sync && sync.ok && sync.failedCalendarIds.length > 0) {
     warnings.push(
@@ -286,6 +330,21 @@ function StatusLine({
           .join(", ")
       : null;
 
+  // Nothing to say, so nothing on the page, not an empty row.
+  //
+  // Every part of this line is conditional: the picker only appears on a second
+  // calendar, the count only when something changed, the warnings only when
+  // something is wrong. On a quiet load with one calendar all three are absent,
+  // and the div was still drawing its own bottom margin: an inch of nothing
+  // between the header and the first call, on the ordinary case.
+  //
+  // The line explaining that an outcome tags the contact and a workflow moves
+  // the card used to fill that gap by always being there. It described the
+  // plumbing, it was true on every load, and it was read once. What is left is
+  // what CHANGED and what is WRONG: a status line says something new or it says
+  // nothing at all.
+  if (calendars.length <= 1 && !changed && warnings.length === 0) return null;
+
   return (
     <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
       {/* The calendar picker leads the row: it decides what everything below it
@@ -312,12 +371,6 @@ function StatusLine({
       )}
 
       {changed && <span className="text-[12px] text-muted">{changed} from the calendar.</span>}
-
-      {pipeline && warnings.length === 0 && (
-        <span className="text-[12px] text-faint">
-          An outcome tags the contact; your workflow moves the card on {pipeline.name}.
-        </span>
-      )}
 
       {warnings.map((w) => (
         <span key={w} className="text-[12px] font-semibold text-[var(--warning)]">

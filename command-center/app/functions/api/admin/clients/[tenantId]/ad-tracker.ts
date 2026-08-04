@@ -30,7 +30,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // Resolve creds the way the live middleware does. Reading tenant.ghl_token
   // raw would send a placeholder ('env'/'pending') to GHL and 401 for any
   // client not yet fully wired.
-  const creds = resolveGhlCreds(tenant, ctx.env);
+  const creds = resolveGhlCreds(tenant);
   if (!creds) return Response.json({ error: "crm not connected" }, { status: 503 });
   const gctx: GhlContext = { token: creds.token, locationId: creds.locationId };
 

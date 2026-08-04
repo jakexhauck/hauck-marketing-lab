@@ -733,10 +733,6 @@ function TeamCard({ tenantId, staff, entitlements, ghlConnected, onSaved }: { te
         </Button>
       </div>
 
-      <p className="mb-3 text-[12px] text-muted">
-        Add owners or staff, then use Edit to rename, change role, reset a password, or set which surfaces a person can view and edit. Owners have full access automatically.
-      </p>
-
       {importMsg && <p className="mb-3 text-[13px] text-positive">{importMsg}</p>}
 
       {showAdd && (
