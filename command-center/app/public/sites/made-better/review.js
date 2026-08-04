@@ -498,9 +498,51 @@
       return params;
     }
 
+    // Who this is, when the link was sent from a GHL workflow rather than
+    // scanned off a QR code.
+    //
+    // A pipeline cannot be moved for "somebody". GHL needs an identifier or
+    // there is no contact to act on, so a workflow that sends the link appends
+    // its own merge fields:
+    //   .../review?c={{contact.id}}&e={{contact.email}}&p={{contact.phone}}
+    // and they ride along on every webhook below.
+    //
+    // All three are OPTIONAL and the funnel works exactly as before without
+    // them: a QR code on a truck hands everyone the same URL, so those visits
+    // stay anonymous by nature and simply post no identity. Handing back
+    // whatever GHL gave us, rather than requiring it, is what lets one page
+    // serve both.
+    //
+    // Email and phone ride along because GHL matches contacts on those far
+    // more reliably than on a raw id, and a workflow that cannot resolve the
+    // person cannot move them anywhere.
+    function identity() {
+      var out = {};
+      try {
+        var q = new URLSearchParams(window.location.search);
+        var id = q.get("c") || q.get("contact_id");
+        var email = q.get("e") || q.get("email");
+        var phone = q.get("p") || q.get("phone");
+        if (id) out.contact_id = id;
+        if (email) out.email = email;
+        if (phone) out.phone = phone;
+      } catch (e) {}
+      return out;
+    }
+
+    function withIdentity(payload) {
+      var who = identity();
+      Object.keys(who).forEach(function (k) { payload[k] = who[k]; });
+      // Lets a GHL workflow branch without string-matching an id: an
+      // attributed visit can move a contact, an anonymous one cannot.
+      payload.attributed = who.contact_id || who.email || who.phone ? "yes" : "no";
+      return payload;
+    }
+
     function ping(payload) {
       if (!CONFIG.webhookUrl) return;
       payload.source = "Made Better LC review funnel";
+      withIdentity(payload);
       try {
         var params = encode(payload);
         if (navigator.sendBeacon && navigator.sendBeacon(CONFIG.webhookUrl, params)) return;
@@ -553,12 +595,12 @@
       btn.disabled = true;
       btn.textContent = "Sending…";
 
-      var params = encode({
+      var params = encode(withIdentity({
         rating: selected,
         feedback: body,
         outcome: "feedback",
         source: "Made Better LC review funnel"
-      });
+      }));
 
       // An ordinary cors fetch, so res.ok is real: a complaint that GHL did not
       // accept must not be answered with a thank-you.
