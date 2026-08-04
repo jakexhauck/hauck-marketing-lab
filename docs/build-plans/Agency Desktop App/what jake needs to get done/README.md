@@ -376,11 +376,22 @@ something only you can issue.
       somebody who knows her and guesses in three tries, so if the passcode is
       anything close to her name and a year, treat it as temporary.
 
-- [ ] **Fix her calendar timezone. This is still outstanding and it is hers to
-      do.** `hairbyjersey.tx@gmail.com` is set to UTC, confirmed again on
-      4 August by reading her calendar list. Bookings store correctly, so no
-      client is ever misled, but she reads every appointment five hours late.
-      Google Calendar, Settings, Timezone, Central Time.
+- [ ] **Her calendar timezone, downgraded from a blocker to a tidy-up.** Jake
+      reports her calendar shows Central. The API says her account setting is
+      UTC (`users/me/settings/timezone` = `UTC`, and her primary calendar's own
+      `timeZone` is UTC too). Both are true at once: the Google Calendar phone
+      app defaults to "use device time zone", which overrides the account
+      setting for display, so on a Central phone she sees Central while
+      calendar.google.com in a browser would show UTC.
+
+      Nothing is stored wrongly either way. Every event this system writes
+      carries an explicit `timeZone: America/Chicago` on start and end, so the
+      instant is unambiguous: her 13:30 window is stored as
+      `2026-08-05T13:30:00-05:00` no matter what she is looking at it through.
+
+      Still worth setting the account to Central so every surface agrees, and
+      so it stays right if she uses the web, turns that toggle off, or
+      travels. Google Calendar on the web, Settings, Time zone, Central.
 
 - [ ] **Read the confirmation email.** One is in
       `contact.jakehauck@gmail.com` from the 4 August test: booked Friday
