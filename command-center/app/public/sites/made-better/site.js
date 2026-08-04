@@ -780,25 +780,23 @@ body{ margin:0 !important; padding:0 !important; }
 `;
 
   // =========================================================================
-  // HEADER — one markup, two link sets. On Home the section links are
-  // same-page anchors; everywhere else they have to travel to Home first.
+  // HEADER — the top bar switches pages and does nothing else.
+  //
+  // Home used to carry Our Work, Pricing and Service Area as same-page
+  // anchors, so the nav changed meaning depending on where you were standing:
+  // four of the six items scrolled rather than navigated. It is now the same
+  // four page links everywhere. The sections still have their ids, and the
+  // footer still links into them.
   // =========================================================================
+  var NAV = [
+    ["/home", "Home"],
+    ["/about", "About"],
+    ["/services", "Services"],
+    ["/contact", "Contact"]
+  ];
+
   function header(page) {
-    var links = page === "home"
-      ? [
-          ["/services", "Services"],
-          ["#work", "Our Work"],
-          ["#pricing", "Pricing"],
-          ["#area", "Service Area"],
-          ["/about", "About"],
-          ["/contact", "Contact"]
-        ]
-      : [
-          ["/home", "Home"],
-          ["/services", "Services"],
-          ["/about", "About"],
-          ["/contact", "Contact"]
-        ];
+    var links = NAV;
 
     var nav = links.map(function (l) {
       // The current page is marked rather than linked away from. A class, not
