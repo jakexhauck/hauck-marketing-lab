@@ -62,7 +62,7 @@
     // complaint sent here lands somewhere Seamus does not look. Swap this for
     // Made Better's own inbound webhook before the funnel goes in front of
     // anyone.
-    webhookUrl: "https://services.leadconnectorhq.com/hooks/r0WfsA12qpBv7M185V3v/webhook-trigger/4f0f08da-35ab-44ab-b336-0ceafcfae3c8",
+    webhookUrl: "https://services.leadconnectorhq.com/hooks/r0WfsA12qpBv7M185V3v/webhook-trigger/e991b773-025a-44f8-b447-fd17afe1f861",
 
     // 4 and above goes to Google. Everything below it opens the feedback panel.
     googleThreshold: 4
