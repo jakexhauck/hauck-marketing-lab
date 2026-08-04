@@ -271,7 +271,7 @@ body{ margin:0 !important; padding:0 !important; }
    with the estimate form Willis does not have. */
 #mb .hero {
   position:relative; background:var(--ink); color:var(--stone);
-  padding:80px 0 88px; overflow:hidden;
+  padding:72px 0 88px; overflow:hidden;
   --muted:#A8B2AC; --head:#FFFFFF; --body:#C9D1CB;
 }
 #mb .hero-bg{ position:absolute; inset:0; overflow:hidden; }
@@ -283,7 +283,11 @@ body{ margin:0 !important; padding:0 !important; }
   content:""; position:absolute; inset:0;
   background:linear-gradient(100deg, var(--ink) 4%, rgba(14,19,17,.88) 38%, rgba(14,19,17,.55) 72%, rgba(14,19,17,.42) 100%);
 }
-#mb .hero-in{ position:relative; display:grid; grid-template-columns:1.05fr .95fr; gap:64px; align-items:center; }
+/* Top-aligned, not centred. Centring measured the copy against the form card,
+   which is the taller of the two, so the headline was pushed 88px further down
+   than the heading on every interior page and Home alone looked like it had a
+   gap under the nav bar. Both columns now start at the same line. */
+#mb .hero-in{ position:relative; display:grid; grid-template-columns:1.05fr .95fr; gap:64px; align-items:start; }
 #mb .hero h1{ color:#FFFFFF; }
 #mb .hero h1 em{ font-style:normal; color:var(--brass); }
 #mb .hero-sub{ margin-top:20px; font-size:18.5px; line-height:1.6; color:#C9D1CB; max-width:540px; }
