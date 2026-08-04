@@ -1,8 +1,8 @@
 // index.html carries its own copy of the service list so the page can render
-// before the worker answers. Duplication is deliberate; drift is not. If this
+// before the API answers. Duplication is deliberate; drift is not. If this
 // fails, the page is quoting a price or a length the worker will not honour.
 //
-// Run: node --test "worker/test/parity.test.ts"
+// Run: node --test "test/parity.test.ts"
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -84,8 +84,48 @@ test("the card only pre-frame survives, on the estimate and on the booking scree
   assert.ok(html.includes("This is an estimate"));
 });
 
-test("the booking page sends a Turnstile token and loads the widget", () => {
+test("the booking page loads the Turnstile widget", () => {
   assert.ok(html.includes("challenges.cloudflare.com/turnstile/v0/api.js"), "widget script missing");
-  assert.ok(html.includes("turnstileToken: state.tsToken"), "token is not sent with the booking");
   assert.ok(html.includes('id="ts-box"'), "no container for the widget");
+});
+
+// This is the bug that meant the page could not book anybody, and the earlier
+// version of this test asserted the broken line as if it were correct.
+// submitBooking calls render() before it builds the request; render() remounts
+// the widget; mounting clears state.tsToken. So reading the token after that
+// render sent null every time and the server refused with a 403.
+test("the booking sends the token it captured, not one the render has cleared", () => {
+  const from = html.indexOf("async function submitBooking()");
+  assert.ok(from > -1, "submitBooking is gone");
+  const body = html.slice(from, html.indexOf("function validateClient()", from));
+
+  const captured = body.indexOf("const token = state.tsToken");
+  const paints = body.indexOf("submitting = true");
+  assert.ok(captured > -1, "the token is never captured before the render");
+  assert.ok(captured < paints, "the token is read after the render that clears it: every booking 403s");
+  assert.ok(body.includes("turnstileToken: token"), "the captured token is not the one being sent");
+  assert.ok(!body.includes("turnstileToken: state.tsToken"), "sends the live token, which the render nulled");
+});
+
+test("the widget is not remounted while a booking is in flight", () => {
+  assert.ok(
+    html.includes("if (step === 'details' && !submitting) mountTurnstile();"),
+    "a mid-submit render would spend a fresh token for nothing",
+  );
+});
+
+// Her times are Central. Deriving them from a Date in the browser's own zone
+// showed a client one state over the wrong hour, and one abroad the wrong day.
+test("times are shown in the salon's timezone, never the browser's", () => {
+  assert.ok(!/\.getHours\(\)/.test(html), "a screen still formats time in the browser's zone");
+  assert.ok(html.includes("timeZone: salonTz"), "salonParts is not pinned to the salon timezone");
+  assert.ok(html.includes("salonTz = cfg.timezone"), "the timezone never comes from the API");
+});
+
+// One request covers a fortnight, she books 60 days out. Without a way to step
+// forward, a stylist busy for two weeks is a page that can never be booked.
+test("the client can reach past the first fortnight", () => {
+  assert.ok(html.includes('data-window='), "no control for stepping the fortnight");
+  assert.ok(html.includes("Later"), "no way forward through the horizon");
+  assert.ok(html.includes("She is booked solid"), "no state for a horizon with nothing free");
 });

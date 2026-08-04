@@ -40,13 +40,30 @@ async function call<T>(env: Env, path: string, init: RequestInit = {}): Promise<
   return (text ? JSON.parse(text) : {}) as T;
 }
 
-// A tool or proxy call that fails still arrives as HTTP 200 with successful:
-// false, so the envelope has to be inspected rather than the status code.
+// A tool call that fails still arrives as HTTP 200 with successful: false, so
+// the envelope has to be inspected rather than the status code.
 function unwrap<T>(body: { data: T; error: unknown; successful: boolean }, what: string): T {
   if (!body.successful) {
     throw new Error(`composio ${what} failed: ${JSON.stringify(body.error)}`);
   }
   return body.data;
+}
+
+// The proxy endpoint answers in a DIFFERENT shape and this is easy to get
+// wrong, because getting it wrong is silent:
+//   /tools/execute/<slug>  ->  { data, error, successful }
+//   /tools/execute/proxy   ->  { data, status, headers }   no `successful`
+// Demanding `successful` here therefore rejects every call that worked. The
+// upstream HTTP status is the only signal the proxy gives us.
+function unwrapProxy<T>(body: Record<string, unknown>, what: string): T {
+  if (typeof body?.successful === "boolean" && !body.successful) {
+    throw new Error(`composio ${what} failed: ${JSON.stringify(body.error)}`);
+  }
+  const upstream = typeof body?.status === "number" ? body.status : 200;
+  if (upstream < 200 || upstream >= 300) {
+    throw new Error(`composio ${what} upstream ${upstream}: ${JSON.stringify(body?.data).slice(0, 300)}`);
+  }
+  return body.data as T;
 }
 
 export async function linkAccount(
@@ -117,18 +134,14 @@ export async function proxyCall<T>(
   // Passes through to the provider API using Composio's managed token. Needed
   // for fields no Composio tool exposes, notably extendedProperties, which is
   // how a mirrored event is found again on reschedule.
-  const body = await call<{ data: T; error: unknown; successful: boolean }>(
-    env,
-    "/tools/execute/proxy",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        connected_account_id: opts.connectedAccountId,
-        endpoint: opts.endpoint,
-        method: opts.method,
-        ...(opts.body === undefined ? {} : { body: opts.body }),
-      }),
-    },
-  );
-  return unwrap(body, `proxy ${opts.method} ${opts.endpoint}`);
+  const body = await call<Record<string, unknown>>(env, "/tools/execute/proxy", {
+    method: "POST",
+    body: JSON.stringify({
+      connected_account_id: opts.connectedAccountId,
+      endpoint: opts.endpoint,
+      method: opts.method,
+      ...(opts.body === undefined ? {} : { body: opts.body }),
+    }),
+  });
+  return unwrapProxy<T>(body, `proxy ${opts.method} ${opts.endpoint}`);
 }

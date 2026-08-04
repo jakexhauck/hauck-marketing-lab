@@ -1,4 +1,4 @@
-// Run: node --test "worker/test/availability.test.ts"
+// Run: node --test "test/availability.test.ts"
 import test from "node:test";
 import assert from "node:assert/strict";
 

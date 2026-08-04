@@ -168,6 +168,21 @@
   .day .num{display:block;font-size:20px;font-weight:600;letter-spacing:-.02em;margin-top:3px;font-variant-numeric:tabular-nums}
   .day .mon{display:block;font-size:11px;font-weight:300;color:var(--ink-soft);margin-top:1px}
 
+  /* ---- stepping a fortnight at a time ---- */
+  .weeknav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:2px}
+  .weekstep{
+    -webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;
+    background:none;border:1px solid var(--line);border-radius:var(--r-pill);
+    padding:8px 16px;font-size:13.5px;font-weight:500;
+    transition:border-color .25s,background .25s,opacity .25s;
+  }
+  .weekstep:hover:not(:disabled){border-color:var(--gold);background:var(--paper-2)}
+  .weekstep:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+  .weekstep:disabled{opacity:.3;cursor:not-allowed}
+  .weekrange{font-size:13px;font-weight:300;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  .notice .tel{color:var(--ink);font-weight:500;text-decoration:none;border-bottom:1px solid var(--gold)}
+  .notice .tel:hover{border-bottom-color:var(--ink)}
+
   /* ---- slot grid ---- */
   .slots{display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));margin-top:18px}
   .slot{
@@ -290,12 +305,15 @@ const params = new URLSearchParams(location.search);
 const LOCAL  = location.protocol === 'file:' || ['localhost','127.0.0.1',''].includes(location.hostname);
 const DEMO   = params.has('demo') || (LOCAL && !params.has('live'));
 const DAYS_SHOWN = 14;
+/* How many fortnights forward the first load will look for an open day. Five
+   covers the server's 60 day horizon; the loop stops at the horizon anyway. */
+const MAX_WINDOWS = 5;
 
 /* ============================================================
    2. SERVICES
-   Mirrors worker/src/services.ts. That file is the authority for
+   Mirrors functions/lib/services.ts. That file is the authority for
    pricing and length; this copy exists so the page renders before
-   the worker answers. worker/test/parity.test.ts fails if the two
+   the API answers. test/parity.test.ts fails if the two
    ever drift, so never edit one on its own.
    ============================================================ */
 const SERVICES = {
@@ -341,6 +359,18 @@ let slotCache = null;      // { minutes, from, days:[{date,slots[],startIsos[]}]
 let slotState = 'idle';    // idle | loading | ready | error
 let slotError = '';
 let submitting = false;
+let contactPhone = '';
+let tsWidgetId = null;
+/* Overwritten from /api/config. Every time on this page is HER time: the slot
+   list is already in it, and the two screens that used to re-derive a time
+   from the browser's own zone showed a client in Denver a 6pm appointment as
+   5pm, and a client abroad the wrong day entirely. */
+let salonTz = 'America/Chicago';
+/* The day strip shows a fortnight at a time, but she takes bookings 60 days
+   out. windowFrom is which fortnight is on screen; horizonEnd is the last
+   date the server will accept, and it is what stops "Later" running forever. */
+let windowFrom = null;
+let horizonEnd = '';
 
 const money = n => '$' + n;
 const flow  = () => state.branch === 'color'
@@ -374,6 +404,21 @@ function readableTime(m){
   return h + ' hr' + (r ? ' ' + r + ' min' : '');
 }
 
+/* An instant, split into the salon's own date and clock time. en-CA gives
+   zero padded YYYY-MM-DD, which is the shape the rest of the page speaks. */
+function salonParts(iso){
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: salonTz,
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', hour12:false
+  }).formatToParts(new Date(iso));
+  const p = {};
+  for (const x of parts) p[x.type] = x.value;
+  // hourCycle h23 still reports midnight as 24 in some engines.
+  const hour = p.hour === '24' ? '00' : p.hour;
+  return { date:`${p.year}-${p.month}-${p.day}`, hhmm:`${hour}:${p.minute}` };
+}
+
 /* 14:30 -> "2:30 pm". The client should never read a 24 hour clock. */
 function clockLabel(hhmm){
   const [h, m] = hhmm.split(':').map(Number);
@@ -405,38 +450,85 @@ function longDate(iso){
   const full = {Sun:'Sunday',Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday'}[p.dow];
   return `${full} ${p.num} ${p.mon}`;
 }
+const maxISO = (a, b) => (a > b ? a : b);
+function shortRange(days){
+  if (!days.length) return '';
+  const a = dayParts(days[0].date), b = dayParts(days[days.length-1].date);
+  return `${a.num} ${a.mon} to ${b.num} ${b.mon}`;
+}
+/* Her number comes from /api/config, so it is set once in the Pages
+   environment rather than being another thing to edit and redeploy. Every
+   caller degrades to nothing when it is unset: an empty state that promises a
+   phone call and gives no number is worse than one that promises nothing. */
+function contactLine(lead){
+  if (!contactPhone) return '';
+  const dialable = contactPhone.replace(/[^\d+]/g, '');
+  return `${lead} <a class="tel" href="tel:${esc(dialable)}">${esc(contactPhone)}</a>.`;
+}
 
-/* ---------- talking to the worker ---------- */
+/* ---------- talking to the API ---------- */
 
-async function loadSlots(){
+async function fetchWindow(from){
+  const qs = new URLSearchParams({
+    service: state.service,
+    addons: pickedAddons().map(a => a.id).join(','),
+    from,
+    days: String(DAYS_SHOWN)
+  });
+  const res = await fetch(`${API_BASE}/api/availability?${qs}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Could not load times');
+  return data;
+}
+
+/* Called with no argument on arriving at the time step, and with a date when
+   the client steps the fortnight forward or back themselves.
+
+   The server caps one request at 21 days but takes bookings 60 out, so the
+   horizon has to be walked a fortnight at a time. On the first load an empty
+   fortnight is not an answer, it is a dead end, so we keep walking until a
+   fortnight has something in it. That way a client whose stylist is solid for
+   two weeks still lands on times she can actually book. When the client has
+   navigated deliberately we show them the fortnight they asked for, empty or
+   not, because arguing with a button press is worse than an empty week. */
+async function loadSlots(from){
   const need = minutes();
-  if (slotCache && slotCache.minutes === need) return;
+  const auto = !from;
+  const want = from || todayISO();
+  if (slotCache && slotCache.minutes === need && slotCache.from === want) return;
 
+  windowFrom = want;
   slotState = 'loading';
   slotError = '';
   render();
 
-  const from = todayISO();
-
   if (DEMO){
     await new Promise(r => setTimeout(r, 450));
-    slotCache = { minutes:need, from, days: demoDays(from) };
+    horizonEnd = addDaysISO(todayISO(), 60);
+    slotCache = { minutes:need, from:want, days: demoDays(want) };
     slotState = 'ready';
     render();
     return;
   }
 
+  let start = want;
   try {
-    const qs = new URLSearchParams({
-      service: state.service,
-      addons: pickedAddons().map(a => a.id).join(','),
-      from,
-      days: String(DAYS_SHOWN)
-    });
-    const res = await fetch(`${API_BASE}/api/availability?${qs}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Could not load times');
-    slotCache = { minutes:need, from, days:data.days };
+    let data = null;
+    for (let hop = 0; hop < MAX_WINDOWS; hop++){
+      data = await fetchWindow(start);
+      horizonEnd = data.horizonEnd || horizonEnd;
+      const next = addDaysISO(start, DAYS_SHOWN);
+      const anyFree = data.days.some(d => d.slots.length);
+      const moreToSee = horizonEnd && next <= horizonEnd;
+
+      if (anyFree || !auto || !moreToSee) break;
+      start = next;
+    }
+    // The loop always breaks before this on today's 60 day horizon. If the
+    // horizon is ever raised past MAX_WINDOWS fortnights, showing the last one
+    // fetched beats spinning forever.
+    windowFrom = start;
+    slotCache = { minutes:need, from:start, days:data.days };
     slotState = 'ready';
   } catch (err) {
     slotError = err.message || 'Could not load times';
@@ -454,6 +546,8 @@ async function loadConfig(){
     if (!res.ok) return;
     const cfg = await res.json();
     siteKey = cfg.turnstileSiteKey || '';
+    contactPhone = cfg.contactPhone || '';
+    salonTz = cfg.timezone || salonTz;
     if (siteKey && flow()[stepIndex] === 'details') mountTurnstile();
   } catch { /* the check simply will not appear, and booking will refuse */ }
 }
@@ -464,9 +558,16 @@ async function loadConfig(){
 function mountTurnstile(){
   const box = document.getElementById('ts-box');
   if (!box || DEMO || !siteKey || !window.turnstile) return;
+  // render() has already replaced the DOM, so the old widget's element is gone
+  // but Turnstile still holds it. Without this it leaks a widget per paint and
+  // warns about every one of them.
+  if (tsWidgetId){
+    try { window.turnstile.remove(tsWidgetId); } catch { /* already gone */ }
+    tsWidgetId = null;
+  }
   state.tsToken = null;
   box.innerHTML = '';
-  window.turnstile.render(box, {
+  tsWidgetId = window.turnstile.render(box, {
     sitekey: siteKey,
     theme: 'auto',
     callback: t => { state.tsToken = t; },
@@ -481,6 +582,12 @@ async function submitBooking(){
     state.errors.form = 'Please complete the check below, then try again.';
   }
   if (Object.keys(state.errors).length){ render(); return; }
+
+  /* Read the token BEFORE the render below, and send this copy rather than
+     state.tsToken. render() remounts the widget, and mounting deliberately
+     clears the token, so reading it after the render always sent null and the
+     server refused every single booking with a 403. */
+  const token = state.tsToken;
 
   submitting = true;
   render();
@@ -506,7 +613,7 @@ async function submitBooking(){
         email: state.client.email,
         phone: state.client.phone,
         notes: state.client.notes,
-        turnstileToken: state.tsToken
+        turnstileToken: token
       })
     });
     const data = await res.json();
@@ -548,8 +655,8 @@ function validateClient(){
 }
 
 /* DEMO ONLY. Invents a plausible fortnight so the page can be judged
-   before the worker exists. It is not the real availability logic:
-   that lives in worker/src/availability.ts and is tested there. */
+   before the API existed. It is not the real availability logic:
+   that lives in functions/lib/availability.ts and is tested there. */
 function demoDays(from){
   const out = [];
   for (let i = 0; i < DAYS_SHOWN; i++){
@@ -557,7 +664,7 @@ function demoDays(from){
     const [y,m,d] = date.split('-').map(Number);
     const dow = new Date(Date.UTC(y,m-1,d)).getUTCDay();
     // Bookable START times 13:30 to 18:00, Monday to Friday. An appointment
-    // may run past 18:00. Mirrors worker/src/config.ts.
+    // may run past 18:00. Mirrors functions/lib/config.ts.
     const hours = dow === 0 || dow === 6 ? null : [13*60 + 30, 18*60];
     const slots = [], startIsos = [];
     if (hours && i > 0){
@@ -657,9 +764,33 @@ function timeStepHtml(){
   if (slotState === 'loading'){
     inner = `<div class="skeleton">${'<i></i>'.repeat(10)}</div>`;
   } else if (slotState === 'error'){
-    inner = `<div class="notice bad"><b>${esc(slotError)}</b>Nothing has been booked. Try again in a moment, or call and we will sort it out.</div>`;
+    inner = `<div class="notice bad"><b>${esc(slotError)}</b>Nothing has been booked. Try again in a moment.${contactLine(' If it keeps happening, text her on')}</div>`;
   } else if (slotState === 'ready'){
     const days = slotCache.days;
+    const anyFree = days.some(d => d.slots.length);
+    const earlier = windowFrom > todayISO() ? maxISO(addDaysISO(windowFrom, -DAYS_SHOWN), todayISO()) : null;
+    const later = horizonEnd && addDaysISO(windowFrom, DAYS_SHOWN) <= horizonEnd
+      ? addDaysISO(windowFrom, DAYS_SHOWN)
+      : null;
+
+    /* Nothing free anywhere she is open. The day strip is deliberately gone:
+       every button in it would be dead, and telling someone to pick another
+       day when there is no other day to pick is how a booking page loses a
+       client it already had. */
+    if (!anyFree && !earlier && !later){
+      return `
+        <div class="step" data-active>
+          <h1 class="q tight">She is booked solid</h1>
+          <p class="q-sub">Every appointment through ${longDate(horizonEnd || days[days.length-1].date)} is taken.</p>
+          ${stripHtml()}
+          <div class="notice">
+            <b>Nothing open for a ${readableTime(minutes())} appointment</b>
+            Cancellations happen most weeks, so it is worth trying again in a
+            day or two.${contactLine(' Or text her on')}
+          </div>
+        </div>`;
+    }
+
     const active = state.date && days.some(d => d.date === state.date)
       ? state.date
       : (days.find(d => d.slots.length)?.date ?? days[0]?.date ?? null);
@@ -676,7 +807,19 @@ function timeStepHtml(){
         }).join('')}
       </div>`;
 
-    if (!day || !day.slots.length){
+    /* She books 60 days out but one request covers a fortnight, so without
+       these the client can never see past week two. */
+    if (earlier || later){
+      inner += `<div class="weeknav">
+        <button class="weekstep" data-window="${earlier ?? ''}" ${earlier ? '' : 'disabled'}>Earlier</button>
+        <span class="weekrange">${shortRange(days)}</span>
+        <button class="weekstep" data-window="${later ?? ''}" ${later ? '' : 'disabled'}>Later</button>
+      </div>`;
+    }
+
+    if (!anyFree){
+      inner += `<div class="notice"><b>Nothing free in these two weeks</b>Use Later to look further ahead.${contactLine(' Or text her on')}</div>`;
+    } else if (!day || !day.slots.length){
       inner += `<div class="notice"><b>Nothing free on ${longDate(active)}</b>Pick another day above. Days that are greyed out are fully booked or closed.</div>`;
     } else {
       inner += `<div class="slots">
@@ -695,10 +838,8 @@ function timeStepHtml(){
 }
 
 function detailsStepHtml(){
-  const when = state.startIso ? new Date(state.startIso) : null;
-  const whenLabel = when
-    ? `${longDate(state.date)} at ${clockLabel(String(when.getHours()).padStart(2,'0') + ':' + String(when.getMinutes()).padStart(2,'0'))}`
-    : '';
+  const when = state.startIso ? salonParts(state.startIso) : null;
+  const whenLabel = when ? `${longDate(when.date)} at ${clockLabel(when.hhmm)}` : '';
   return `
     <div class="step" data-active>
       <h1 class="q tight">Last bit</h1>
@@ -719,9 +860,9 @@ function detailsStepHtml(){
 
 function doneStepHtml(){
   const b = state.booking;
-  const when = new Date(b.startIso);
-  const hhmm = String(when.getHours()).padStart(2,'0') + ':' + String(when.getMinutes()).padStart(2,'0');
-  const dateIso = `${when.getFullYear()}-${String(when.getMonth()+1).padStart(2,'0')}-${String(when.getDate()).padStart(2,'0')}`;
+  const when = salonParts(b.startIso);
+  const hhmm = when.hhmm;
+  const dateIso = when.date;
   const s = chosen();
   return `
     <div class="step" data-active>
@@ -835,7 +976,9 @@ function render(){
   if (big) countUp(big, total());
 
   if (step === 'time' && slotState === 'idle') loadSlots();
-  if (step === 'details') mountTurnstile();
+  // Not while a booking is in flight: remounting would spend a fresh token for
+  // nothing, and the one being sent has already been read out of state.
+  if (step === 'details' && !submitting) mountTurnstile();
 }
 
 /* ---------- events ---------- */
@@ -856,6 +999,14 @@ body.addEventListener('click', e => {
       resetSlots();
     }
     render();
+    return;
+  }
+
+  const win = e.target.closest('[data-window]');
+  if (win && win.dataset.window){
+    state.date = null;
+    state.startIso = null;
+    loadSlots(win.dataset.window);
     return;
   }
 
@@ -903,6 +1054,9 @@ function resetSlots(){
   slotError = '';
   state.date = null;
   state.startIso = null;
+  // Back to the first fortnight: a shorter service may well fit in days a
+  // longer one did not, so the search starts from today again.
+  windowFrom = null;
 }
 
 loadConfig();

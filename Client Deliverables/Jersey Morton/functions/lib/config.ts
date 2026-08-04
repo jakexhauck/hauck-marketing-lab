@@ -52,3 +52,10 @@ export const COMPOSIO_USER_ID = "jersey-morton";
 // Which of her Google calendars to read and write. "primary" is the default
 // calendar on the account she connects.
 export const CALENDAR_ID = "primary";
+
+// The number shown when the page has nothing to offer: booked solid, or the
+// calendar unreadable. Set CONTACT_PHONE in the Pages environment rather than
+// here, so changing it is not a redeploy. While it is empty the page says
+// nothing about phoning, which is the honest thing to do when there is no
+// number to give.
+export const CONTACT_PHONE_FALLBACK = "";

@@ -5,11 +5,32 @@ Build lives at `Client Deliverables/Jersey Morton/`, committed on
 
 ## Where it actually is
 
-Working and proven end to end: a real booking wrote into her Google Calendar
-at the correct time and length, and was deleted again. 25 tests pass.
+**Proven from the page itself on 4 August 2026**, on a phone viewport, against
+the live site: survey, times, form, Turnstile, booking. It wrote a real event
+into her calendar at the correct time and length, the slot closed by exactly
+the length plus buffer, the event was deleted again and the slot came back.
+29 tests pass.
 
-Not finished. Turnstile holds Cloudflare's test keys and filters nothing, no
-client has ever used it, and nobody has read the confirmation email it sends.
+Getting there found three defects that the previous pass had missed, all now
+fixed and redeployed:
+
+1. **The page could not book anybody.** `submitBooking` called `render()`
+   before building the request, `render()` remounts the Turnstile widget, and
+   mounting clears the token. So every booking sent `turnstileToken: null` and
+   the server refused it with a 403. The old test asserted the broken line as
+   if it were correct.
+2. **Every time on the last two screens was the browser's, not hers.** They
+   re-derived the hour from a `Date` in local time, so a client one state over
+   read a 6pm appointment as 7pm, and a client abroad would read the wrong day.
+   Both screens now format in her timezone.
+3. **Nobody could see past the first fortnight.** One request covers 14 days
+   and she books 60 out, but the page only ever asked for the first 14 and had
+   no way forward. If she were busy for two weeks the page was a dead end. It
+   now steps the horizon, and skips forward on the first load until it finds a
+   fortnight with something in it.
+
+Not finished. Turnstile holds Cloudflare's test keys and filters nothing, and
+no real client has used it yet.
 
 Architecture, so nobody has to rediscover it: no GoHighLevel and no database.
 Her Google Calendar is the system of record. Availability is her bookable start
@@ -47,18 +68,18 @@ Google Calendar, Settings, Timezone, Central Time.
 **Done when** a test event created at 13:30 Central displays as 13:30 to her.
 
 ### 0.3 Read the confirmation email
-**Jake, 10 minutes.** The whole confirmation story rests on Google's invite mail
-and nobody has looked at one. It may read badly, or land in spam.
+**Jake, 5 minutes.** One is already sitting in `contact.jakehauck@gmail.com`:
+the 4 August test booked Friday 2 Oct at 6:00 pm, then cancelled it, so there
+should be an invite and a cancellation. Nobody has read either.
 
-Book one to a real address, read it on a phone, then delete the event.
-**Done when** the invite arrives, is legible, and shows the right service, time
-and length. If it reads poorly, the fix is `eventDescription` in
-`functions/lib/calendar.ts`.
+**Done when** you have read it on a phone and it shows the right service, time
+and length, and did not land in spam. If it reads poorly, the fix is
+`eventDescription` in `functions/lib/calendar.ts`.
 
 ### 0.4 Click through on a phone
-**Jake, 5 minutes.** Most of her bookings will be mobile and nobody has opened
-it on a handset. Built responsive, never verified.
-**Done when** the survey, day strip, slot grid and form all work one-handed.
+**Done, 4 August.** Driven at 390x844 through the whole funnel, ending in a
+real booking. What is left is a human check on a real handset, which is worth
+five minutes but no longer blocks anything.
 
 ---
 
@@ -87,9 +108,10 @@ Reschedule, both re-running `isStillFree` before writing.
 **Done when** a client can move their own appointment and both sides get mail.
 
 ### 1.3 The whole-horizon empty state
-**1 hour.** Per-day empty copy exists. The case where she is fully booked for
-all 60 days has never been rendered and probably looks broken.
-**Done when** the page says something sensible with zero slots anywhere.
+**Done, 4 August.** It was worse than unrendered: it fell back to day one,
+disabled every day button, and told the client to pick another day. It now
+drops the strip and says she is booked solid, with her number if
+`CONTACT_PHONE` is set. Verified by stubbing an empty horizon in the browser.
 
 ---
 
@@ -122,13 +144,15 @@ problem or the prices are.
 ## Phase 3: elsewhere in the estate
 
 ### 3.1 The same Composio bug is in command-center
-`command-center/app/functions/lib/composio.ts` shares the `unwrap` that requires
-a `successful` field the proxy endpoint never returns. `mirrorAppointment` is
-its only proxy caller and it swallows every failure silently.
+**Fixed, 4 August.** `proxyCall` now has its own `unwrapProxy`, which reads the
+upstream status instead of demanding a `successful` field the proxy endpoint
+never sends. `mirrorAppointment` also logs a genuine failure rather than
+swallowing it. Its old test asserted the wrong envelope shape, which is why the
+bug survived; the test now uses the real one.
 
-That is very likely why mirror-out has never once been proven since 19 July.
-Untouched so far because it is a different project. Roughly an hour to fix and
-test.
+**Not proven against live Composio.** It passes 46 tests but no real
+appointment has been mirrored since the fix. Worth booking one job in the
+console and checking it lands on that tenant's Google Calendar.
 
 ---
 
@@ -151,4 +175,13 @@ test.
 - **The Cloudflare token has Pages but not Workers or Turnstile.** That is why
   this is Pages Functions and why key creation is manual.
 - **Testing against the live API creates real events and emails real invites.**
-  Delete what you create. `jmBookingRef` marks everything this page made.
+  Delete what you create. `jmBookingRef` marks everything this page made. The
+  cleanup script that deletes one by event id is in this session's scratchpad;
+  it lists Jersey's connected accounts under Composio user `jersey-morton` and
+  sends a proxy DELETE with `sendUpdates=all`.
+- **One request covers at most 21 days, she books 60 out.** The page walks the
+  horizon a fortnight at a time. A change to `DAYS_SHOWN` or the horizon has to
+  keep `MAX_WINDOWS` big enough to reach the end.
+- **A Cloudflare deploy is not instantly global.** Straight after a deploy the
+  edge served the previous `index.html` to a browser while curl already had the
+  new one. Give it a minute before concluding a fix did not work.
