@@ -362,9 +362,19 @@ something only you can issue.
 ## Jersey Morton, her hours page (4 August 2026)
 
 - [ ] **Send Jersey her page and her passcode.** The page is
-      `https://book.hairbyjersey.com/hours`. The passcode is
-      `willow-thistle-4108`. She changes it by asking you; it is the
-      `HOURS_PASSCODE` secret on the `book-hairbyjersey` Pages project.
+      `https://book.hairbyjersey.com/hours`. Jake set the passcode himself on
+      4 August and has the value; it is deliberately not written down here,
+      because this file is in the repo and would keep it in git history
+      forever. It lives in the `HOURS_PASSCODE` secret on the
+      `book-hairbyjersey` Pages project. Changing it means a new secret and a
+      redeploy, which is a two minute job for me.
+
+      Worth knowing what it guards: that page can rewrite her whole week,
+      close any day and change every price, and the calendar behind it holds
+      the name, email and phone of every client who has booked. Turnstile on
+      the login form stops a script guessing at speed. It does not stop
+      somebody who knows her and guesses in three tries, so if the passcode is
+      anything close to her name and a year, treat it as temporary.
 
 - [ ] **Fix her calendar timezone. This is still outstanding and it is hers to
       do.** `hairbyjersey.tx@gmail.com` is set to UTC, confirmed again on
