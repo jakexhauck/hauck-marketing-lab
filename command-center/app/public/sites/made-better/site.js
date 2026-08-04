@@ -106,11 +106,19 @@
 html, body{ background:#FFFFFF !important; overflow-x:hidden !important; }
 body{ margin:0 !important; padding:0 !important; }
 
-/* strip padding and width caps off every GHL wrapper level */
+/* strip padding and width caps off every GHL wrapper level.
+   The vertical axis matters as much as the horizontal one: a step whose
+   padding was never cleared in the builder holds the header down off the top
+   of the window, and since only Home's step kept its padding, Home alone
+   opened with a band of white above the nav bar. Left and right were stripped
+   here from the start; top and bottom were not, so the site depended on the
+   builder being set correctly on all seven steps and drifted the moment one
+   was missed. It no longer depends on it. */
 .c-section, .c-wrapper, .c-row, .c-column, .c-element,
 .hl_page-preview--content, .section-wrap, .row-wrap, .col-wrap,
 .inner, .container, .fullSection, .fullRow {
-  padding-left:0 !important; padding-right:0 !important;
+  padding:0 !important;
+  margin-top:0 !important; margin-bottom:0 !important;
   margin-left:0 !important; margin-right:0 !important;
   max-width:100% !important; width:100% !important;
   background-color:transparent !important;
@@ -2149,6 +2157,20 @@ body{ margin:0 !important; padding:0 !important; }
   // =========================================================================
   // MOUNT + BOOT
   // =========================================================================
+  // The wrapper class names in the stylesheet are a list of the ones seen so
+  // far, not a contract: GHL is free to nest a step one level deeper, or to
+  // rename a div, and then its padding sits somewhere no rule here knows to
+  // look. So the ancestors are flattened by position rather than by name.
+  // Whatever stands between the mount point and <body> is GHL's chrome, and
+  // its padding is not ours to inherit.
+  function flattenWrappers(root) {
+    for (var n = root.parentElement; n && n !== document.body; n = n.parentElement) {
+      n.style.setProperty("padding", "0", "important");
+      n.style.setProperty("margin-top", "0", "important");
+      n.style.setProperty("margin-bottom", "0", "important");
+    }
+  }
+
   function mount(root, page) {
     // Injected at runtime rather than carried in a <link> or <style> tag,
     // because GoHighLevel's builder strips <link> out of custom code blocks.
@@ -2160,6 +2182,7 @@ body{ margin:0 !important; padding:0 !important; }
       document.head.appendChild(style);
     }
 
+    flattenWrappers(root);
     root.innerHTML = header(page) + "\n" + PAGES[page] + "\n" + footer(page);
     wire(root, page);
   }
