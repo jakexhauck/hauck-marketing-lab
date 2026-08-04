@@ -47,15 +47,23 @@ test("the ready made sentence has everything she needs to act", () => {
   }
 });
 
-test("an add-on is reported both as text and as a flag", () => {
+test("an add-on is reported as text, as a display line and as a flag", () => {
   const withAddon = buildBookingNotice(base);
   assert.equal(withAddon.addons, "Add a haircut");
+  assert.equal(withAddon.addons_display, "Add a haircut");
   assert.equal(withAddon.has_addons, "yes");
 
   const without = buildBookingNotice({ ...base, addons: [] });
-  assert.equal(without.addons, "");
+  assert.equal(without.addons, "", "a custom field should stay empty, not hold the word None");
+  assert.equal(without.addons_display, "None", "a labelled SMS line must never trail off into nothing");
   assert.equal(without.has_addons, "no");
   assert.ok(!without.message.includes("plus"), "an empty add-on list should not read as 'plus'");
+});
+
+test("the day and time come as one line as well as two", () => {
+  const out = buildBookingNotice(base);
+  assert.equal(out.start_when, "Friday 2 October at 6:00 pm");
+  assert.equal(out.start_when, `${out.start_day} at ${out.start_time}`);
 });
 
 test("an exact price is not dressed up as an estimate", () => {

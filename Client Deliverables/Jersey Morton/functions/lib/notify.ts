@@ -117,7 +117,14 @@ export function buildBookingNotice(input: BookingNotice, tz = TIMEZONE): Record<
     // What
     service: input.service,
     addons,
+    // For a line in a text that has a label in front of it. `addons` is left
+    // empty when there are none, because an SMS reading "Add-On:" with nothing
+    // after it looks broken, while a custom field holding the word "None"
+    // would be worse.
+    addons_display: addons || "None",
     has_addons: input.addons.length ? "yes" : "no",
+    // Both together, for a one line summary: "Friday 2 October at 6:00 pm".
+    start_when: `${day} at ${time}`,
     estimate: String(input.estimate),
     estimate_display: money,
     estimate_is_approx: input.estimateIsApprox ? "yes" : "no",
