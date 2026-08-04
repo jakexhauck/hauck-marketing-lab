@@ -133,9 +133,14 @@ describe("executeTool", () => {
   });
 });
 
+// The proxy endpoint does NOT answer in the same shape as /tools/execute/<slug>.
+// It returns { data, status, headers } and no `successful` field at all, so the
+// upstream HTTP status is the only signal of success. Requiring `successful`
+// here rejects every call that worked, silently, which is what mirrorAppointment
+// had been doing since July.
 describe("proxyCall", () => {
   it("passes a raw provider request through with the connected account", async () => {
-    const f = fakeFetch(200, { data: { id: "ev_1" }, error: null, successful: true });
+    const f = fakeFetch(200, { data: { id: "ev_1" }, status: 200, headers: {} });
     vi.stubGlobal("fetch", f);
 
     const out = await proxyCall(env, {
@@ -155,7 +160,28 @@ describe("proxyCall", () => {
     });
   });
 
-  it("throws when the proxied call reports failure", async () => {
+  it("accepts a 201, which is what creating an event actually returns", async () => {
+    vi.stubGlobal("fetch", fakeFetch(200, { data: { id: "ev_2" }, status: 201, headers: {} }));
+    await expect(
+      proxyCall(env, { connectedAccountId: "ca_1", endpoint: "/x", method: "POST" }),
+    ).resolves.toEqual({ id: "ev_2" });
+  });
+
+  it("succeeds when the envelope omits status entirely", async () => {
+    vi.stubGlobal("fetch", fakeFetch(200, { data: { id: "ev_3" } }));
+    await expect(
+      proxyCall(env, { connectedAccountId: "ca_1", endpoint: "/x", method: "GET" }),
+    ).resolves.toEqual({ id: "ev_3" });
+  });
+
+  it("throws when the upstream provider rejects, though HTTP is still 200", async () => {
+    vi.stubGlobal("fetch", fakeFetch(200, { data: { error: "forbidden" }, status: 403 }));
+    await expect(
+      proxyCall(env, { connectedAccountId: "ca_1", endpoint: "/x", method: "GET" }),
+    ).rejects.toThrow(/403/);
+  });
+
+  it("still honours successful:false if Composio ever sends it", async () => {
     vi.stubGlobal("fetch", fakeFetch(200, { data: null, error: "denied", successful: false }));
     await expect(
       proxyCall(env, { connectedAccountId: "ca_1", endpoint: "/x", method: "GET" }),

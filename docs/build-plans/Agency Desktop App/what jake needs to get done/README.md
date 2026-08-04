@@ -358,3 +358,60 @@ something only you can issue.
       signs every user out including clients; the second unsubscribes every
       device from push with no way back for anyone who dismissed the prompt.
       The panel asks first, but it will do it.
+
+## Jersey Morton, her hours page (4 August 2026)
+
+- [ ] **Send Jersey her page and her passcode.** The page is
+      `https://book.hairbyjersey.com/hours`. Jake set the passcode himself on
+      4 August and has the value; it is deliberately not written down here,
+      because this file is in the repo and would keep it in git history
+      forever. It lives in the `HOURS_PASSCODE` secret on the
+      `book-hairbyjersey` Pages project. Changing it means a new secret and a
+      redeploy, which is a two minute job for me.
+
+      Worth knowing what it guards: that page can rewrite her whole week,
+      close any day and change every price, and the calendar behind it holds
+      the name, email and phone of every client who has booked. Turnstile on
+      the login form stops a script guessing at speed. It does not stop
+      somebody who knows her and guesses in three tries, so if the passcode is
+      anything close to her name and a year, treat it as temporary.
+
+- [x] **Her calendar timezone. DONE 4 August, from our end.** It was UTC on
+      both the account setting and her primary calendar, while her phone showed
+      Central because the Google Calendar app defaults to "use device time
+      zone" and overrides the account for display. Both observations were true.
+
+      Fixed by `PATCH /calendars/hairbyjersey.tx%40gmail.com` with
+      `{ timeZone: "America/Chicago" }`. The Settings resource
+      (`users/me/settings/timezone`) is READ ONLY in the Calendar API, but the
+      Calendars resource is writable and the account display setting follows
+      it. Both now read `America/Chicago`.
+
+      **Trap for next time: `PATCH /calendars/primary` returns 404 through the
+      Composio proxy.** The explicit calendar id works. Reading and writing
+      events at `/calendars/primary/events` is fine, so this is specific to
+      patching the calendar itself.
+
+      Nothing needed shifting, and an offset would have been the wrong fix:
+      every event already carries an explicit `America/Chicago` on start and
+      end, so `2026-08-05T13:30:00-05:00` was always unambiguous. Availability
+      is byte for byte what it was before the change.
+
+- [ ] **Read the confirmation email.** One is in
+      `contact.jakehauck@gmail.com` from the 4 August test: booked Friday
+      2 October 6:00 pm, then cancelled. Nobody has read either. Check it on a
+      phone, and check it did not land in spam.
+
+- [ ] **Click through the booking page on a real handset.** Turnstile now holds
+      real keys and refuses automation by design, so a human completing one
+      booking is the only proof left that a client can. Delete the event
+      afterwards, or tell me and I will.
+
+- [ ] **Decide whether she gets a phone number on the page.** `CONTACT_PHONE`
+      is unset, so when she is booked solid the page says nothing about calling
+      her. Send me the number and it appears; leave it and the page stays quiet,
+      which is better than a dead promise.
+
+- [ ] **Optional: add Workers KV Storage:Edit to the Cloudflare token.** Not
+      needed. Her prices currently live in her own calendar, which works and is
+      proven. It would only let that move to a more conventional store.

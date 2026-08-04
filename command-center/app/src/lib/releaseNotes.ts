@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-04-appointments-reach-google-calendar",
+    date: "4 August 2026",
+    title: "Booked appointments reach the client's Google Calendar",
+    items: [
+      "Booking or moving an appointment copies it to the connected Google Calendar, which is what it was always meant to do. It had been throwing every one of those writes away: the code treated a missing field in Google's reply as a failure, and the failure was swallowed rather than shown, so nothing ever said the calendar had not been written.",
+      "Anything booked before today is not on the calendar and will not appear retroactively. Appointments booked from now on will be.",
+      "A mirror that genuinely fails now writes to the logs instead of disappearing, so the next one is findable.",
+    ],
+  },
+  {
     id: "2026-08-03-client-data-is-that-client",
     date: "3 August 2026",
     title: "Every Fulfillment page shows the client you picked",

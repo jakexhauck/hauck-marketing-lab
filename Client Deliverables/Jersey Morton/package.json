@@ -1,0 +1,10 @@
+{
+  "name": "book-hairbyjersey",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/*.test.ts\"",
+    "dev": "wrangler pages dev public",
+    "deploy": "wrangler pages deploy public --project-name book-hairbyjersey"
+  }
+}

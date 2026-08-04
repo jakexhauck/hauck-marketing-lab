@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your hours</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<style>
+  :root{
+    --paper:#F7F0E7; --paper-2:#FDF9F4; --ink:#2A201A; --ink-soft:#806E5D;
+    --gold:#BE9448; --gold-soft:#EADCBC; --pink-deep:#D4838F; --pink-wash:#FCEEF0;
+    --line:rgba(42,32,26,.11); --danger:#A8443F; --good:#3F7D58;
+    --r-chip:20px; --r-field:14px; --r-pill:999px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#15100D; --paper-2:#201914; --ink:#F5EAE0; --ink-soft:#AF9985;
+      --gold:#DFB76C; --gold-soft:#523E1E; --pink-deep:#EDAFB8; --pink-wash:#2E1E1C;
+      --line:rgba(245,234,224,.13); --danger:#F0A09B; --good:#8FCBA6;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Poppins',system-ui,sans-serif;color:var(--ink);background:var(--paper);
+    min-height:100dvh;font-weight:300;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:clamp(20px,4vw,40px) clamp(16px,4vw,32px) 80px}
+
+  h1{font-size:clamp(26px,5vw,38px);font-weight:500;letter-spacing:-.03em;margin:0 0 6px}
+  .sub{margin:0 0 28px;color:var(--ink-soft);font-size:14.5px;line-height:1.6}
+
+  .card{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-chip);
+    padding:20px 22px;margin-bottom:18px;
+  }
+  .card h2{font-size:17px;font-weight:500;letter-spacing:-.01em;margin:0 0 4px}
+  .card .hint{margin:0 0 16px;font-size:13px;color:var(--ink-soft);line-height:1.6}
+
+  .day-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+  .day-row:first-of-type{border-top:0}
+  .day-name{flex:0 0 92px;font-size:14.5px;font-weight:500;padding-top:9px}
+  .day-windows{flex:1;min-width:210px;display:flex;flex-direction:column;gap:8px}
+  .win{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .win span{font-size:13px;color:var(--ink-soft)}
+  .closed-note{font-size:13.5px;color:var(--ink-soft);padding-top:9px}
+
+  input[type=time],input[type=date],input[type=text],input[type=number],input[type=password]{
+    font:inherit;font-weight:400;color:var(--ink);background:var(--paper);
+    border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0;
+  }
+  input[type=time]{width:118px}
+  input[type=date]{width:150px}
+  input[type=number]{width:82px}
+  input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  button{
+    -webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;
+    background:none;border:1px solid var(--line);border-radius:var(--r-pill);
+    padding:8px 15px;font-size:13.5px;font-weight:500;
+    transition:border-color .2s,background .2s,opacity .2s;
+  }
+  button:hover:not(:disabled){border-color:var(--gold);background:var(--paper)}
+  button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);padding:12px 26px;font-size:15px}
+  button.primary:hover:not(:disabled){background:var(--ink);opacity:.88}
+  button.quiet{border:0;color:var(--ink-soft);padding:8px 8px;font-size:13px}
+  button.quiet:hover{color:var(--danger);background:none}
+  button.toggle[aria-pressed="true"]{background:var(--pink-wash);border-color:var(--pink-deep)}
+
+  .rows{display:flex;flex-direction:column}
+  .row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+  .row:first-child{border-top:0}
+  .row .label{flex:1;min-width:130px;font-size:14.5px;font-weight:400}
+  .row .label small{display:block;font-size:12px;color:var(--ink-soft);font-weight:300}
+  .field-pair{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-soft)}
+
+  .add{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+
+  .note{
+    margin-top:14px;padding:13px 16px;border-radius:var(--r-field);
+    background:var(--paper);border:1px solid var(--line);font-size:13.5px;line-height:1.6;color:var(--ink-soft);
+  }
+  .note b{display:block;color:var(--ink);font-weight:500;margin-bottom:3px}
+  .note.bad{border-color:var(--danger)}
+  .note.bad b{color:var(--danger)}
+  .note.good{border-color:var(--good)}
+  .note.good b{color:var(--good)}
+
+  .bar{
+    position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);
+    padding:14px 0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:8px;
+  }
+  .bar .status{font-size:13.5px;color:var(--ink-soft)}
+
+  .login{max-width:400px;margin:14vh auto 0}
+  .ts{margin:16px 0}
+  .skeleton{height:14px;border-radius:var(--r-pill);background:var(--gold-soft);opacity:.4;margin:9px 0}
+</style>
+</head>
+<body>
+<div class="wrap" id="body"></div>
+
+<script>
+/* ============================================================
+   Jersey's own page. It writes to the SAME Google calendars the
+   booking page reads, so there is nothing to sync: her hours are
+   events on "Booking hours", her days off are busy events on her
+   main calendar. Editing either in the Google app works too.
+   ============================================================ */
+
+const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const body = document.getElementById('body');
+
+let view = 'loading';        // loading | login | ready
+let siteKey = '';
+let tsWidgetId = null;
+let tsToken = null;
+let loginError = '';
+let busy = false;
+let status = '';
+let statusKind = '';
+
+let weekly = [];             // [{weekday, from, to}]
+let closures = [];           // [{date, reason, eventId}]
+let extraDays = [];          // [{date, from, to, eventId}]
+let settings = null;
+let usingFallback = false;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+
+function clockLabel(hhmm){
+  const [h,m] = hhmm.split(':').map(Number);
+  const suffix = h < 12 ? 'am' : 'pm';
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2,'0')} ${suffix}`;
+}
+function longDate(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y,m-1,d));
+  return `${DAY_NAMES[dt.getUTCDay()]} ${d} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]}`;
+}
+
+async function api(path, options = {}){
+  const res = await fetch(path, {
+    ...options,
+    headers: { 'Content-Type':'application/json', ...(options.headers ?? {}) }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401 && view === 'ready'){
+    view = 'login';
+    loginError = 'That session has expired. Sign in again.';
+    render();
+    throw new Error('signed out');
+  }
+  if (!res.ok) throw new Error(data.error || 'That did not work');
+  return data;
+}
+
+/* ---------- loading ---------- */
+
+async function boot(){
+  try {
+    const cfg = await (await fetch('/api/config')).json();
+    siteKey = cfg.turnstileSiteKey || '';
+  } catch { /* the login check simply will not appear */ }
+
+  try {
+    await loadAll();
+    view = 'ready';
+  } catch {
+    view = 'login';
+  }
+  render();
+}
+
+async function loadAll(){
+  const [schedule, closureData, settingsData] = await Promise.all([
+    api('/api/admin/schedule'),
+    api('/api/admin/closures'),
+    api('/api/admin/settings')
+  ]);
+  weekly = schedule.weekly.map(w => ({ weekday: w.weekday, from: w.from, to: w.to }));
+  extraDays = schedule.extraDays ?? [];
+  usingFallback = Boolean(schedule.usingFallback);
+  closures = closureData.closures ?? [];
+  settings = settingsData.settings;
+}
+
+/* ---------- login ---------- */
+
+function mountTurnstile(){
+  const box = document.getElementById('ts-box');
+  if (!box || !siteKey || !window.turnstile) return;
+  if (tsWidgetId){ try { window.turnstile.remove(tsWidgetId); } catch {} tsWidgetId = null; }
+  tsToken = null;
+  box.innerHTML = '';
+  tsWidgetId = window.turnstile.render(box, {
+    sitekey: siteKey, theme: 'auto',
+    callback: t => { tsToken = t; },
+    'error-callback': () => { tsToken = null; },
+    'expired-callback': () => { tsToken = null; }
+  });
+}
+
+async function signIn(){
+  const passcode = document.getElementById('passcode')?.value ?? '';
+  if (!passcode){ loginError = 'Enter your passcode.'; render(); return; }
+  if (siteKey && !tsToken){ loginError = 'Complete the check below, then try again.'; render(); return; }
+
+  // Read before the render that remounts the widget and clears it.
+  const token = tsToken;
+  busy = true; loginError = ''; render();
+
+  try {
+    await api('/api/admin/login', { method:'POST', body: JSON.stringify({ passcode, turnstileToken: token }) });
+    await loadAll();
+    view = 'ready';
+    busy = false;
+    render();
+  } catch (err) {
+    busy = false;
+    loginError = err.message;
+    render();
+  }
+}
+
+function loginHtml(){
+  return `
+    <div class="login">
+      <h1>Your hours</h1>
+      <p class="sub">Sign in to change when you are open, your days off, and your prices.</p>
+      <div class="card">
+        <label class="hint" for="passcode">Passcode</label>
+        <input id="passcode" type="password" autocomplete="current-password" style="width:100%">
+        <div class="ts" id="ts-box"></div>
+        ${loginError ? `<div class="note bad"><b>${esc(loginError)}</b>Nothing has changed.</div>` : ''}
+        <div style="margin-top:16px">
+          <button class="primary" data-act="signin" ${busy ? 'disabled' : ''}>${busy ? 'Checking' : 'Sign in'}</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ---------- weekly hours ---------- */
+
+function windowsFor(weekday){
+  return weekly
+    .map((w, i) => ({ ...w, i }))
+    .filter(w => w.weekday === weekday)
+    .sort((a,b) => a.from.localeCompare(b.from));
+}
+
+function weeklyHtml(){
+  const rows = DAY_NAMES.map((name, weekday) => {
+    const mine = windowsFor(weekday);
+    return `
+      <div class="day-row">
+        <div class="day-name">${name}</div>
+        <div class="day-windows">
+          ${mine.length ? mine.map(w => `
+            <div class="win">
+              <input type="time" value="${w.from}" data-edit="from" data-i="${w.i}" step="900">
+              <span>to</span>
+              <input type="time" value="${w.to}" data-edit="to" data-i="${w.i}" step="900">
+              <button class="quiet" data-act="drop-window" data-i="${w.i}" aria-label="Remove this window">Remove</button>
+            </div>`).join('')
+            : `<div class="closed-note">Closed</div>`}
+          <div><button data-act="add-window" data-day="${weekday}">${mine.length ? 'Add another window' : 'Open this day'}</button></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const nothingOpen = weekly.length === 0;
+  return `
+    <div class="card">
+      <h2>When you are open</h2>
+      <p class="hint">
+        These are the times an appointment can <b>start</b>. A three hour colour
+        booked in your last slot runs past the end, which is on purpose.
+        Two windows on a day gives you a break in the middle.
+      </p>
+      ${rows}
+      ${nothingOpen ? `<div class="note bad"><b>Nobody can book you</b>Every day is closed. Open at least one day, or your booking page will tell clients you are booked solid.</div>` : ''}
+      ${usingFallback ? `<div class="note"><b>Not set up yet</b>Your booking page is running on the hours I set when I built it. Save this once and it will follow this page instead.</div>` : ''}
+    </div>`;
+}
+
+/* ---------- days off and extra days ---------- */
+
+function closuresHtml(){
+  const upcoming = closures.filter(c => c.date >= todayISO());
+  return `
+    <div class="card">
+      <h2>Days off</h2>
+      <p class="hint">Closing a day here blocks it in your main calendar, exactly like blocking the time yourself. Either way the booking page stops offering it.</p>
+      <div class="rows">
+        ${upcoming.length ? upcoming.map(c => `
+          <div class="row">
+            <div class="label">${longDate(c.date)}<small>${esc(c.reason)}</small></div>
+            <button class="quiet" data-act="reopen" data-id="${esc(c.eventId)}">Reopen</button>
+          </div>`).join('')
+          : `<div class="row"><div class="label" style="color:var(--ink-soft);font-weight:300">Nothing coming up.</div></div>`}
+      </div>
+      <div class="add">
+        <input type="date" id="closure-date" min="${todayISO()}">
+        <input type="text" id="closure-reason" placeholder="Holiday" maxlength="60" style="flex:1;min-width:130px">
+        <button data-act="close-day">Close this day</button>
+      </div>
+    </div>`;
+}
+
+function extraHtml(){
+  const upcoming = extraDays.filter(d => d.date >= todayISO());
+  return `
+    <div class="card">
+      <h2>Extra days</h2>
+      <p class="hint">A one-off day you decide to work, on top of your usual week. A Saturday before a holiday, say.</p>
+      <div class="rows">
+        ${upcoming.length ? upcoming.map(d => `
+          <div class="row">
+            <div class="label">${longDate(d.date)}<small>${clockLabel(d.from)} to ${clockLabel(d.to)}</small></div>
+            <button class="quiet" data-act="drop-extra" data-id="${esc(d.eventId)}">Remove</button>
+          </div>`).join('')
+          : `<div class="row"><div class="label" style="color:var(--ink-soft);font-weight:300">Nothing extra.</div></div>`}
+      </div>
+      <div class="add">
+        <input type="date" id="extra-date" min="${todayISO()}">
+        <input type="time" id="extra-from" value="13:30" step="900">
+        <input type="time" id="extra-to" value="18:00" step="900">
+        <button data-act="add-extra">Open this day</button>
+      </div>
+    </div>`;
+}
+
+/* ---------- prices and rules ---------- */
+
+function pricesHtml(){
+  return `
+    <div class="card">
+      <h2>Prices and how long things take</h2>
+      <p class="hint">The price is an estimate the client sees before booking. The length is what gets held in your calendar.</p>
+      <div class="rows">
+        ${settings.services.map(s => `
+          <div class="row">
+            <div class="label">${esc(s.name)}${s.approx ? '<small>Shown as a starting price</small>' : ''}</div>
+            <div class="field-pair">$<input type="number" min="0" max="10000" step="1" value="${s.price}" data-svc="${esc(s.id)}" data-field="price"></div>
+            <div class="field-pair"><input type="number" min="15" max="480" step="15" value="${s.minutes}" data-svc="${esc(s.id)}" data-field="minutes">min</div>
+          </div>`).join('')}
+      </div>
+      <div class="add" style="display:block">
+        <p class="hint" style="margin:0 0 10px">Add-ons</p>
+        <div class="rows">
+          ${settings.addons.map(a => `
+            <div class="row">
+              <div class="label">${esc(a.name)}</div>
+              <div class="field-pair">$<input type="number" min="0" max="10000" step="1" value="${a.price}" data-addon="${esc(a.id)}" data-field="price"></div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+function rulesHtml(){
+  return `
+    <div class="card">
+      <h2>The rules around a booking</h2>
+      <div class="rows">
+        <div class="row">
+          <div class="label">Quiet time either side<small>Cleaning down and running over. Clients never see it.</small></div>
+          <div class="field-pair"><input type="number" min="0" max="120" step="5" value="${settings.bufferMinutes}" data-rule="bufferMinutes">min</div>
+        </div>
+        <div class="row">
+          <div class="label">Least notice<small>Stops someone booking you for an hour from now.</small></div>
+          <div class="field-pair"><input type="number" min="0" max="720" step="1" value="${settings.minNoticeHours}" data-rule="minNoticeHours">hrs</div>
+        </div>
+        <div class="row">
+          <div class="label">How far ahead<small>How far into the future the calendar opens.</small></div>
+          <div class="field-pair"><input type="number" min="1" max="365" step="1" value="${settings.horizonDays}" data-rule="horizonDays">days</div>
+        </div>
+        <div class="row">
+          <div class="label">Times offered every<small>30 gives half past and on the hour.</small></div>
+          <div class="field-pair"><input type="number" min="5" max="120" step="5" value="${settings.slotStepMinutes}" data-rule="slotStepMinutes">min</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ---------- render ---------- */
+
+function render(){
+  if (view === 'loading'){
+    body.innerHTML = `<div class="wrap"><div class="skeleton" style="width:40%"></div><div class="skeleton"></div><div class="skeleton"></div></div>`;
+    return;
+  }
+  if (view === 'login'){
+    body.innerHTML = loginHtml();
+    mountTurnstile();
+    return;
+  }
+
+  body.innerHTML = `
+    <h1>Your hours</h1>
+    <p class="sub">
+      Everything here writes straight into your Google Calendar, so what you see
+      on your phone and what a client sees are always the same thing.
+    </p>
+    ${weeklyHtml()}
+    ${closuresHtml()}
+    ${extraHtml()}
+    ${pricesHtml()}
+    ${rulesHtml()}
+    <div class="bar">
+      <button class="primary" data-act="save" ${busy ? 'disabled' : ''}>${busy ? 'Saving' : 'Save everything'}</button>
+      <span class="status" style="${statusKind === 'bad' ? 'color:var(--danger)' : statusKind === 'good' ? 'color:var(--good)' : ''}">${esc(status)}</span>
+    </div>`;
+}
+
+/* ---------- actions ---------- */
+
+async function save(){
+  busy = true; status = 'Saving'; statusKind = ''; render();
+  try {
+    const saved = await api('/api/admin/schedule', { method:'PUT', body: JSON.stringify({ weekly }) });
+    await api('/api/admin/settings', { method:'PUT', body: JSON.stringify({ settings }) });
+    weekly = saved.weekly.map(w => ({ weekday: w.weekday, from: w.from, to: w.to }));
+    usingFallback = false;
+    busy = false;
+    if (saved.openNothing){
+      status = 'Saved, but you are closed every day. Nobody can book you.';
+      statusKind = 'bad';
+    } else {
+      status = 'Saved. Your booking page is already using it.';
+      statusKind = 'good';
+    }
+    render();
+  } catch (err) {
+    busy = false;
+    status = err.message;
+    statusKind = 'bad';
+    render();
+  }
+}
+
+body.addEventListener('click', async e => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const act = btn.dataset.act;
+
+  if (act === 'signin'){ signIn(); return; }
+  if (act === 'save'){ save(); return; }
+
+  if (act === 'add-window'){
+    const day = Number(btn.dataset.day);
+    const mine = windowsFor(day);
+    weekly.push(mine.length ? { weekday: day, from:'09:00', to:'12:00' } : { weekday: day, from:'13:30', to:'18:00' });
+    status = 'Not saved yet'; statusKind = '';
+    render();
+    return;
+  }
+
+  if (act === 'drop-window'){
+    weekly.splice(Number(btn.dataset.i), 1);
+    status = 'Not saved yet'; statusKind = '';
+    render();
+    return;
+  }
+
+  // The calendar actions below take effect immediately: each one is a single
+  // event, and pretending otherwise means a day off that is not actually off.
+  if (act === 'close-day'){
+    const date = document.getElementById('closure-date')?.value;
+    if (!date){ status = 'Pick a date first'; statusKind = 'bad'; render(); return; }
+    const reason = document.getElementById('closure-reason')?.value || 'Closed';
+    busy = true; status = 'Closing that day'; render();
+    try {
+      const out = await api('/api/admin/closures', { method:'POST', body: JSON.stringify({ date, reason }) });
+      closures = out.closures; status = 'Closed. Nobody can book that day.'; statusKind = 'good';
+    } catch (err){ status = err.message; statusKind = 'bad'; }
+    busy = false; render();
+    return;
+  }
+
+  if (act === 'reopen'){
+    busy = true; status = 'Reopening'; render();
+    try {
+      const out = await api(`/api/admin/closures?eventId=${encodeURIComponent(btn.dataset.id)}`, { method:'DELETE' });
+      closures = out.closures; status = 'Open again.'; statusKind = 'good';
+    } catch (err){ status = err.message; statusKind = 'bad'; }
+    busy = false; render();
+    return;
+  }
+
+  if (act === 'add-extra'){
+    const date = document.getElementById('extra-date')?.value;
+    const from = document.getElementById('extra-from')?.value;
+    const to = document.getElementById('extra-to')?.value;
+    if (!date){ status = 'Pick a date first'; statusKind = 'bad'; render(); return; }
+    busy = true; status = 'Adding that day'; render();
+    try {
+      const out = await api('/api/admin/schedule', { method:'POST', body: JSON.stringify({ date, from, to }) });
+      extraDays = out.extraDays; status = 'Added. Clients can book it now.'; statusKind = 'good';
+    } catch (err){ status = err.message; statusKind = 'bad'; }
+    busy = false; render();
+    return;
+  }
+
+  if (act === 'drop-extra'){
+    busy = true; status = 'Removing'; render();
+    try {
+      const out = await api(`/api/admin/schedule?eventId=${encodeURIComponent(btn.dataset.id)}`, { method:'DELETE' });
+      extraDays = out.extraDays; status = 'Removed.'; statusKind = 'good';
+    } catch (err){ status = err.message; statusKind = 'bad'; }
+    busy = false; render();
+    return;
+  }
+});
+
+/* Inputs live in state, not the DOM, because every render replaces the DOM.
+   Nothing here re-renders on keystroke: doing so would move the cursor and
+   close the phone keyboard between digits. */
+body.addEventListener('input', e => {
+  const el = e.target;
+
+  if (el.dataset.edit){
+    const w = weekly[Number(el.dataset.i)];
+    if (w && el.value) w[el.dataset.edit] = el.value;
+    status = 'Not saved yet'; statusKind = '';
+    const bar = document.querySelector('.bar .status');
+    if (bar){ bar.textContent = status; bar.style.color = ''; }
+    return;
+  }
+
+  if (el.dataset.svc){
+    const s = settings.services.find(x => x.id === el.dataset.svc);
+    if (s) s[el.dataset.field] = Number(el.value);
+  } else if (el.dataset.addon){
+    const a = settings.addons.find(x => x.id === el.dataset.addon);
+    if (a) a[el.dataset.field] = Number(el.value);
+  } else if (el.dataset.rule){
+    settings[el.dataset.rule] = Number(el.value);
+  } else {
+    return;
+  }
+
+  status = 'Not saved yet'; statusKind = '';
+  const bar = document.querySelector('.bar .status');
+  if (bar){ bar.textContent = status; bar.style.color = ''; }
+});
+
+body.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'passcode') signIn();
+});
+
+render();
+boot();
+</script>
+</body>
+</html>

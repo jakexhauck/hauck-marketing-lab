@@ -246,7 +246,11 @@ export async function mirrorAppointment(
       body,
     });
     return { mirrored: true };
-  } catch {
+  } catch (err) {
+    // A failed mirror must not fail the booking, but it should not vanish
+    // either. Until July this returned false for every call, including the
+    // ones that worked, and nothing said so.
+    console.error("mirrorAppointment failed:", err instanceof Error ? err.message : err);
     return { mirrored: false };
   }
 }
