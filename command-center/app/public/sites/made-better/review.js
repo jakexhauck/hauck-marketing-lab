@@ -56,7 +56,13 @@
     //
     // TO CONNECT: add an inbound webhook trigger to a GHL workflow, paste its
     // URL here and deploy.
-    webhookUrl: "",
+    //
+    // NOTE THE SUB-ACCOUNT: r0WfsA12qpBv7M185V3v is the TEST account, not Made
+    // Better's. Fine while nothing is published, but a real customer's
+    // complaint sent here lands somewhere Seamus does not look. Swap this for
+    // Made Better's own inbound webhook before the funnel goes in front of
+    // anyone.
+    webhookUrl: "https://services.leadconnectorhq.com/hooks/r0WfsA12qpBv7M185V3v/webhook-trigger/60489cca-0677-4eb6-af61-77d263052fa3",
 
     // 4 and above goes to Google. Everything below it opens the feedback panel.
     googleThreshold: 4
