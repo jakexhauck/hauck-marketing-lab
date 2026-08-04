@@ -104,21 +104,25 @@ trigger is **Inbound Webhook**, copy the URL it hands back, paste it into
 `CONFIG.webhookUrl`, deploy. Home answers in place (it has a success panel);
 Contact sends the visitor to `/thank-you`.
 
-### It posts form-encoded, and that is not a style choice
+### It posts form-encoded, and it does NOT use no-cors
 
-The estimate posts a `URLSearchParams` body via `navigator.sendBeacon`, falling
-back to `fetch(..., {mode:"no-cors", keepalive:true})`. It must not post JSON.
+The estimate posts a `URLSearchParams` body with an ordinary `fetch`, and reads
+`res.ok`. Both halves were measured against the live hook, not assumed:
 
-A JSON content type makes the request "non-simple", so the browser sends a CORS
-preflight `OPTIONS` first. GHL's hook endpoint does not answer preflights, so
-the estimate is dropped before it ever leaves the browser and the visitor is
-told it failed. Willis Windows hit this and solved it the same way. Verified
-here against a fake hook on a second origin: two `POST`s arrived and no
-`OPTIONS` was ever sent.
+| Measured | Result |
+|---|---|
+| `OPTIONS` preflight to the hook | **204**, `access-control-allow-headers: *`, POST allowed |
+| `POST` form-encoded from a browser on another origin | **200**, `{"status":"Success: ..."}`, readable |
 
-The consequence to keep in mind: a `no-cors` response is opaque, so the reply
-cannot be read. Success on screen means the request **left the browser**, not
-that GHL accepted it. After connecting, watch the workflow rather than the page.
+So GHL **does** answer preflights: JSON would have worked too. Form-encoding is
+a CORS-safelisted content type, which skips the preflight round trip, so this is
+a latency saving rather than a correctness fix.
+
+The half that *is* load-bearing: GHL replies with `access-control-allow-origin:
+*`, so an ordinary cors fetch can read the response and tell a delivered
+estimate from a rejected one. `mode:"no-cors"` would make the reply opaque and
+throw that away, which is how a form ends up showing a thank-you over a lead
+nobody received. Do not add it back.
 
 The single `Name` box is split on the first space into `first_name` and
 `last_name` (with the untouched value also sent as `full_name`). Sending one

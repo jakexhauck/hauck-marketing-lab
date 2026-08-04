@@ -52,7 +52,10 @@
     // the thank-you page having posted nothing, so an estimate request looked
     // received and was silently lost. A form that plainly does nothing is worse
     // than nothing; a form that fakes success is worse than both.
-    webhookUrl: ""
+    // NOTE 2026-08-04: r0WfsA12qpBv7M185V3v is the TEST sub-account, not Made
+    // Better's own. Estimates land in the test account until this is swapped
+    // for a hook created inside Made Better LC's sub-account.
+    webhookUrl: "https://services.leadconnectorhq.com/hooks/r0WfsA12qpBv7M185V3v/webhook-trigger/UL0zE37ObXAfKZGoM2Wh"
   };
 
   var ROOT_ID = "mb";
@@ -2004,50 +2007,39 @@ body{ margin:0 !important; padding:0 !important; }
           source: "Made Better LC website (" + page + ")"
         };
 
-        // Form-encoded, NOT JSON. A JSON content type makes this a non-simple
-        // request, so the browser sends a CORS preflight first, and GHL's hook
-        // endpoint does not answer preflights. The estimate then never leaves
-        // the browser and the visitor is told it failed. Willis Windows hit
-        // exactly this. URLSearchParams keeps it a simple request.
+        // Form-encoded, NOT JSON, and NOT no-cors. Both details are load-bearing
+        // and were both measured against the live hook rather than assumed:
+        //
+        //   1. A URLSearchParams body sets a CORS-safelisted content type, so
+        //      the request is "simple" and skips the preflight round trip. (GHL
+        //      does answer preflights, so JSON would also work; this is a
+        //      latency saving, not a correctness fix.)
+        //   2. GHL replies with "access-control-allow-origin: *", so an ordinary
+        //      cors fetch can READ the reply. no-cors would make it opaque and
+        //      throw that away, leaving the form unable to tell a delivered
+        //      estimate from a rejected one, which is how a form ends up
+        //      claiming success over a lead nobody received.
         var params = new URLSearchParams();
         Object.keys(payload).forEach(function (k) { params.append(k, payload[k]); });
 
-        // sendBeacon survives the page navigating away, which matters on the
-        // contact page because it redirects immediately after.
-        var sent = false;
-        try { sent = !!(navigator.sendBeacon && navigator.sendBeacon(CONFIG.webhookUrl, params)); }
-        catch (err) { sent = false; }
+        fetch(CONFIG.webhookUrl, { method: "POST", body: params, keepalive: true })
+          .then(function (res) {
+            if (!res.ok) throw new Error("HTTP " + res.status);
 
-        if (!sent) {
-          try {
-            fetch(CONFIG.webhookUrl, { method: "POST", body: params, keepalive: true, mode: "no-cors" });
-            sent = true;
-          } catch (err) { sent = false; }
-        }
-
-        if (!sent) {
-          fail('That did not send. Please call us on <a href="' +
-            CONFIG.phoneHref + '">' + CONFIG.phone + '</a>.');
-          return;
-        }
-
-        // A no-cors response is opaque, so the reply cannot be read: "sent" here
-        // means it left the browser, not that GHL liked it. Watch the workflow
-        // after connecting rather than trusting this screen.
-        //
-        // Home answers in place; the contact page has a thank-you page to go to.
-        var wrap = document.getElementById("mbFormWrap"), ok = document.getElementById("mbSuccess");
-        if (wrap && ok) {
-          wrap.style.display = "none";
-          ok.style.display = "block";
-          return;
-        }
-
-        // Hold briefly so the request is on the wire before the page changes.
-        setTimeout(function () {
-          try { window.top.location.href = "/thank-you"; }
-          catch (err) { window.location.href = "/thank-you"; }
-        }, 600);
+            // Home answers in place; contact has a thank-you page to go to.
+            var wrap = document.getElementById("mbFormWrap"), ok = document.getElementById("mbSuccess");
+            if (wrap && ok) {
+              wrap.style.display = "none";
+              ok.style.display = "block";
+              return;
+            }
+            try { window.top.location.href = "/thank-you"; }
+            catch (err) { window.location.href = "/thank-you"; }
+          })
+          .catch(function () {
+            fail('That did not send. Please call us on <a href="' +
+              CONFIG.phoneHref + '">' + CONFIG.phone + '</a>.');
+          });
       });
     }
 

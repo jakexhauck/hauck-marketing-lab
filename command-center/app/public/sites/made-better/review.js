@@ -485,10 +485,11 @@
 
     // Fire and forget. Used for the star tap itself, where the visitor is
     // about to leave for Google and there is nothing to wait for.
-    // Form-encoded, NOT JSON. A JSON content type makes this a non-simple
-    // request, so the browser sends a CORS preflight first, and GHL's hook
-    // endpoint does not answer preflights: the whole thing is dropped before
-    // it leaves the browser. URLSearchParams keeps it a simple request.
+    // Form-encoded rather than JSON: a URLSearchParams body sets a safelisted
+    // content type, so the request is "simple" and skips the CORS preflight
+    // round trip. GHL does answer preflights, so this is a latency saving
+    // rather than a correctness fix, and it also replies with
+    // "access-control-allow-origin: *", so the reply below can be read.
     function encode(payload) {
       var params = new URLSearchParams();
       Object.keys(payload).forEach(function (k) {
@@ -559,15 +560,14 @@
         source: "Made Better LC review funnel"
       });
 
-      // A no-cors response is opaque, so res.ok cannot be read: reaching the
-      // thank-you here means the complaint left the browser, not that GHL
-      // accepted it. Watch the workflow after connecting.
+      // An ordinary cors fetch, so res.ok is real: a complaint that GHL did not
+      // accept must not be answered with a thank-you.
       fetch(CONFIG.webhookUrl, {
         method: "POST",
         body: params,
-        keepalive: true,
-        mode: "no-cors"
-      }).then(function () {
+        keepalive: true
+      }).then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
         finish(
           "Thank you for telling us.",
           'Seamus will look at this himself. If you want it sorted today, call him on ' +
