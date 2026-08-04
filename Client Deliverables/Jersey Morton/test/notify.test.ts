@@ -138,6 +138,6 @@ test("a webhook that fails never throws at the booking", async () => {
 
 test("the webhook url is never hardcoded in the source", async () => {
   const { readFileSync } = await import("node:fs");
-  const src = readFileSync(new URL("../functions/lib/notify.ts", import.meta.url), "utf8");
+  const src = readFileSync(new URL("../functions/lib/notify.ts", import.meta.url), "utf8").replace(/\r\n/g, "\n");
   assert.ok(!/leadconnectorhq|hooks\/[A-Za-z0-9]{10,}/.test(src), "a live webhook url is committed in the source");
 });

@@ -106,7 +106,10 @@ test("an empty week is allowed, because closing for a fortnight is a real thing"
   assert.equal(out.windows.length, 0);
 });
 
-const html = readFileSync(new URL("../public/hours.html", import.meta.url), "utf8");
+// Normalised: Git stores LF and checks out CRLF on Windows, so a pattern that
+// spans a line break passes for whoever wrote it and fails after a fresh
+// checkout.
+const html = readFileSync(new URL("../public/hours.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 
 test("the hours page's own script parses", () => {
   const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];

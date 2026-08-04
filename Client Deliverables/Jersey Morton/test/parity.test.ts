@@ -14,7 +14,12 @@ import { ADDONS, SERVICES } from "../functions/lib/services.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PAGE = path.join(here, "..", "public", "index.html");
-const html = fs.readFileSync(PAGE, "utf8");
+// Normalised, because Git hands Windows a CRLF working copy of a file it
+// stores with LF. Every pattern below would otherwise pass on the machine that
+// wrote the file and fail on the next checkout, and this file is the ONLY
+// thing keeping the page's prices honest against the server's. A parity check
+// that silently stops parsing is worse than not having one.
+const html = fs.readFileSync(PAGE, "utf8").replace(/\r\n/g, "\n");
 
 // Pulls a top-level `const NAME = <literal>;` out of the page and evaluates it.
 function readLiteral(name: string): unknown {
