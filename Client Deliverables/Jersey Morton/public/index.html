@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book with Jersey Morton</title>
+<meta name="description" content="Pick your service, see your estimate and how long it takes, then book a time with Jersey Morton.">
+<meta name="robots" content="index,follow">
+
+<meta property="og:title" content="Book with Jersey Morton">
+<meta property="og:description" content="Pick your service, see your estimate, and book a time.">
+<meta property="og:type" content="website">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<style>
+  :root{
+    --paper:#F7F0E7;
+    --paper-2:#FDF9F4;
+    --ink:#2A201A;
+    --ink-soft:#806E5D;
+    --gold:#BE9448;
+    --gold-soft:#EADCBC;
+    --pink-deep:#D4838F;
+    --pink-wash:#FCEEF0;
+    --line:rgba(42,32,26,.11);
+    --danger:#A8443F;
+    --r-chip:20px;
+    --r-field:14px;
+    --r-pill:999px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#15100D;
+      --paper-2:#201914;
+      --ink:#F5EAE0;
+      --ink-soft:#AF9985;
+      --gold:#DFB76C;
+      --gold-soft:#523E1E;
+      --pink-deep:#EDAFB8;
+      --pink-wash:#2E1E1C;
+      --line:rgba(245,234,224,.13);
+      --danger:#F0A09B;
+    }
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Poppins',system-ui,sans-serif;
+    color:var(--ink);background:var(--paper);
+    min-height:100dvh;position:relative;overflow-x:hidden;
+  }
+
+  .aura{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .aura i{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55;animation:drift 26s ease-in-out infinite alternate}
+  .aura i:nth-child(1){width:52vw;height:52vw;left:-14vw;top:-16vw;background:var(--pink-wash)}
+  .aura i:nth-child(2){width:44vw;height:44vw;right:-12vw;top:6vw;background:var(--gold-soft);animation-duration:32s;animation-delay:-8s}
+  .aura i:nth-child(3){width:38vw;height:38vw;left:22vw;bottom:-18vw;background:var(--pink-wash);animation-duration:38s;animation-delay:-16s}
+  @keyframes drift{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(4vw,-3vw,0) scale(1.12)}}
+
+  .wrap{
+    position:relative;z-index:1;min-height:100dvh;display:flex;flex-direction:column;
+    max-width:1080px;margin:0 auto;
+    padding:clamp(20px,3.5vw,40px) clamp(18px,4vw,40px) clamp(28px,4vw,48px);
+  }
+
+  .top{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .wordmark{font-size:17px;font-weight:500;letter-spacing:-.01em;margin:0}
+  .steps{display:flex;gap:7px}
+  .dot{width:26px;height:4px;border-radius:var(--r-pill);background:var(--gold-soft);transition:background .45s,width .45s cubic-bezier(.16,1,.3,1)}
+  .dot[data-done]{background:var(--pink-deep)}
+  .dot[data-now]{background:var(--gold);width:44px}
+
+  .stage{flex:1;display:flex;flex-direction:column;justify-content:center;padding:clamp(28px,5vw,56px) 0}
+  .stage.top-align{justify-content:flex-start;padding-top:clamp(24px,3.4vw,40px)}
+  .step{display:none}
+  .step[data-active]{display:block;animation:stepIn .6s cubic-bezier(.16,1,.3,1) both}
+
+  .q{font-size:clamp(30px,5.6vw,60px);font-weight:500;letter-spacing:-.035em;line-height:1.02;margin:0 0 12px;max-width:16ch}
+  .q.tight{font-size:clamp(26px,4vw,42px);max-width:22ch}
+  .q-sub{margin:0 0 clamp(26px,3.4vw,40px);color:var(--ink-soft);font-size:15px;font-weight:300;max-width:46ch;line-height:1.65}
+
+  .chips{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(255px,1fr))}
+  .chips.wide{grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
+
+  .chip{
+    -webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;text-align:left;
+    position:relative;overflow:hidden;isolation:isolate;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-chip);padding:20px 22px;
+    transition:transform .3s cubic-bezier(.16,1,.3,1),border-color .3s,box-shadow .3s;
+    animation:chipIn .55s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0) * 60ms);
+  }
+  .chip::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--pink-wash);transform:translateY(101%);transition:transform .45s cubic-bezier(.16,1,.3,1)}
+  .chip:hover{transform:translateY(-3px);border-color:var(--gold);box-shadow:0 20px 36px -26px rgba(90,64,42,.6)}
+  .chip:active{transform:translateY(-1px) scale(.99)}
+  .chip:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+  .chip[aria-pressed="true"]{border-color:var(--pink-deep)}
+  .chip[aria-pressed="true"]::before{transform:translateY(0)}
+
+  .chip-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px}
+  .chip-name{font-size:17px;font-weight:500;letter-spacing:-.015em}
+  .chip-price{font-size:16px;font-weight:600;color:var(--gold);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .chip-desc{margin:7px 0 0;font-size:13px;font-weight:300;color:var(--ink-soft);line-height:1.55}
+  .chip-time{
+    display:inline-flex;align-items:center;gap:6px;margin-top:11px;
+    font-size:12.5px;font-weight:400;color:var(--ink-soft);
+    background:var(--paper);border:1px solid var(--line);border-radius:var(--r-pill);padding:5px 12px;
+  }
+  .chip-time svg{width:13px;height:13px;flex:none;opacity:.75}
+
+  /* ---- summary ---- */
+  .sum{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(24px,4vw,56px);align-items:start}
+  @media (max-width:760px){.sum{grid-template-columns:1fr}}
+  .lines{display:flex;flex-direction:column}
+  .line{display:flex;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--line);font-size:16px;font-weight:300}
+  .line b{font-weight:500;font-variant-numeric:tabular-nums}
+  .howlong{display:flex;align-items:center;gap:9px;padding:18px 0 0;font-size:15px;font-weight:300;color:var(--ink-soft)}
+  .howlong svg{width:16px;height:16px;flex:none;opacity:.8}
+  .howlong b{color:var(--ink);font-weight:500}
+
+  .bignum{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-chip);padding:26px 28px}
+  .bignum span{display:block;font-size:14px;font-weight:300;color:var(--ink-soft)}
+  .bignum b{display:block;margin-top:6px;font-size:clamp(44px,6.5vw,64px);font-weight:600;letter-spacing:-.04em;line-height:1;color:var(--gold);font-variant-numeric:tabular-nums}
+
+  .payframe{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+  .tag{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--pink-wash);border:1px solid var(--pink-deep);color:var(--ink);
+    border-radius:var(--r-pill);padding:7px 15px;font-size:13px;font-weight:500;letter-spacing:.01em;
+  }
+  .tag svg{width:15px;height:15px;flex:none}
+  .payframe p{margin:0;font-size:12.5px;font-weight:300;color:var(--ink-soft);line-height:1.6;flex:1;min-width:190px}
+
+  /* ---- booking strip ---- */
+  .strip{
+    display:flex;align-items:center;gap:12px 22px;flex-wrap:wrap;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-chip);
+    padding:16px 22px;margin-bottom:20px;
+  }
+  .strip .what{font-size:15.5px;font-weight:500;letter-spacing:-.01em}
+  .strip .extra{font-size:13px;font-weight:300;color:var(--ink-soft);margin-top:3px}
+  .strip .cost{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .strip .cost b{font-size:21px;font-weight:600;color:var(--gold);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  @media (max-width:620px){.strip .cost{margin-left:0;width:100%}}
+
+  /* ---- day strip ---- */
+  .days{
+    display:flex;gap:9px;overflow-x:auto;padding:2px 2px 12px;
+    scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
+  }
+  .days::-webkit-scrollbar{height:5px}
+  .days::-webkit-scrollbar-thumb{background:var(--gold-soft);border-radius:var(--r-pill)}
+  .day{
+    -webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;
+    flex:none;scroll-snap-align:start;min-width:74px;text-align:center;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-field);
+    padding:12px 10px 11px;
+    transition:transform .25s cubic-bezier(.16,1,.3,1),border-color .25s,background .25s;
+  }
+  .day:hover:not(:disabled){transform:translateY(-2px);border-color:var(--gold)}
+  .day:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+  .day[aria-pressed="true"]{background:var(--pink-wash);border-color:var(--pink-deep)}
+  .day:disabled{opacity:.34;cursor:not-allowed}
+  .day .dow{display:block;font-size:11.5px;font-weight:400;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-soft)}
+  .day .num{display:block;font-size:20px;font-weight:600;letter-spacing:-.02em;margin-top:3px;font-variant-numeric:tabular-nums}
+  .day .mon{display:block;font-size:11px;font-weight:300;color:var(--ink-soft);margin-top:1px}
+
+  /* ---- slot grid ---- */
+  .slots{display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));margin-top:18px}
+  .slot{
+    -webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-pill);
+    padding:13px 10px;font-size:15px;font-weight:500;font-variant-numeric:tabular-nums;
+    transition:transform .22s cubic-bezier(.16,1,.3,1),border-color .22s,background .22s;
+    animation:chipIn .4s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0) * 24ms);
+  }
+  .slot:hover{transform:translateY(-2px);border-color:var(--gold)}
+  .slot:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+  .slot[aria-pressed="true"]{background:var(--pink-deep);border-color:var(--pink-deep);color:var(--paper-2)}
+
+  .skeleton{display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));margin-top:18px}
+  .skeleton i{
+    display:block;height:45px;border-radius:var(--r-pill);
+    background:linear-gradient(90deg,var(--paper-2) 0%,var(--gold-soft) 50%,var(--paper-2) 100%);
+    background-size:220% 100%;animation:shimmer 1.5s linear infinite;opacity:.65;
+  }
+  @keyframes shimmer{from{background-position:120% 0}to{background-position:-120% 0}}
+
+  .notice{
+    margin-top:18px;padding:18px 20px;border-radius:var(--r-chip);
+    background:var(--paper-2);border:1px solid var(--line);
+    font-size:14px;font-weight:300;color:var(--ink-soft);line-height:1.65;
+  }
+  .notice b{display:block;color:var(--ink);font-weight:500;font-size:15px;margin-bottom:5px}
+  .notice.bad{border-color:var(--danger)}
+  .notice.bad b{color:var(--danger)}
+
+  /* ---- form ---- */
+  .form{display:grid;gap:16px;grid-template-columns:1fr 1fr;max-width:640px}
+  @media (max-width:620px){.form{grid-template-columns:1fr}}
+  .field{display:flex;flex-direction:column;gap:7px}
+  .field.full{grid-column:1/-1}
+  .field label{font-size:13.5px;font-weight:500;letter-spacing:-.005em}
+  .field input,.field textarea{
+    font:inherit;font-size:15.5px;font-weight:300;color:var(--ink);
+    background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-field);
+    padding:13px 15px;width:100%;
+    transition:border-color .25s,box-shadow .25s;
+  }
+  .field textarea{min-height:88px;resize:vertical;line-height:1.6}
+  .field input::placeholder,.field textarea::placeholder{color:var(--ink-soft);opacity:.75}
+  .field input:focus,.field textarea:focus{
+    outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft);
+  }
+  .field .hint{font-size:12.5px;font-weight:300;color:var(--ink-soft);line-height:1.5}
+  .field .err{font-size:12.5px;font-weight:400;color:var(--danger)}
+  .field[data-bad] input,.field[data-bad] textarea{border-color:var(--danger)}
+
+  /* ---- done ---- */
+  .done-card{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-chip);
+    padding:clamp(26px,3.6vw,38px);max-width:600px;
+  }
+  .done-when{font-size:clamp(24px,3.4vw,34px);font-weight:600;letter-spacing:-.03em;line-height:1.15;margin:0 0 6px;color:var(--gold)}
+  .done-what{margin:0 0 20px;font-size:16px;font-weight:300;color:var(--ink-soft)}
+  .done-list{display:flex;flex-direction:column;gap:0;margin:0 0 4px}
+  .done-ref{margin-top:20px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;font-weight:300;color:var(--ink-soft);line-height:1.6}
+
+  /* ---- actions ---- */
+  .actions{display:flex;align-items:center;gap:14px;margin-top:clamp(28px,3.6vw,42px);flex-wrap:wrap}
+  .btn{font:inherit;cursor:pointer;border-radius:var(--r-pill);padding:16px 36px;font-weight:500;font-size:15.5px;white-space:nowrap;
+       transition:transform .22s cubic-bezier(.16,1,.3,1),box-shadow .25s}
+  .btn:active{transform:translateY(1px) scale(.985)}
+  .btn-primary{border:none;background:var(--ink);color:var(--paper-2);box-shadow:0 16px 32px -18px rgba(42,32,26,.85)}
+  .btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 22px 40px -20px rgba(42,32,26,.9)}
+  .btn-primary:disabled{opacity:.28;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn-back{border:1px solid var(--line);background:transparent;color:var(--ink-soft);padding:16px 26px}
+  .btn-back:hover{border-color:var(--gold);color:var(--ink)}
+  .running{margin-left:auto;font-size:14.5px;font-weight:300;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  .running b{color:var(--gold);font-weight:600;font-size:17px}
+
+  .ts{margin-top:22px;min-height:66px}
+
+  .demo{
+    position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:5;
+    background:var(--danger);color:#fff;border-radius:var(--r-pill);
+    padding:7px 18px;font-size:12px;font-weight:500;letter-spacing:.02em;
+    box-shadow:0 10px 24px -12px rgba(0,0,0,.5);
+  }
+
+  @keyframes stepIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  @keyframes chipIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.001ms!important;animation-delay:0ms!important;transition-duration:.001ms!important}
+    .aura i{animation:none}
+    .skeleton i{animation:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="aura" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<div class="wrap">
+  <header class="top">
+    <p class="wordmark">Jersey Morton</p>
+    <div class="steps" id="steps"></div>
+  </header>
+  <main class="stage" id="stage"><div id="body"></div></main>
+</div>
+
+<script>
+/* ============================================================
+   1. THE BOOKING API
+   Served from this same Pages project (../functions), so the
+   calls are same origin and need no base URL and no CORS.
+
+   Deployed, the page books for real. Opened locally it runs in
+   DEMO mode: the times are invented and nothing is booked.
+     ?demo   forces demo anywhere
+     ?live   forces the real API locally
+   ============================================================ */
+const API_BASE = '';
+
+const params = new URLSearchParams(location.search);
+const LOCAL  = location.protocol === 'file:' || ['localhost','127.0.0.1',''].includes(location.hostname);
+const DEMO   = params.has('demo') || (LOCAL && !params.has('live'));
+const DAYS_SHOWN = 14;
+
+/* ============================================================
+   2. SERVICES
+   Mirrors worker/src/services.ts. That file is the authority for
+   pricing and length; this copy exists so the page renders before
+   the worker answers. worker/test/parity.test.ts fails if the two
+   ever drift, so never edit one on its own.
+   ============================================================ */
+const SERVICES = {
+  cut: [
+    {id:'haircut',        name:'Haircut',                   price:14, minutes:90,  desc:'Washed, cut, and finished.'},
+    {id:'blowout',        name:'Blowout',                   price:14, minutes:90,  desc:'Washed, dried, and styled smooth.'},
+    {id:'specialtyStyle', name:'Specialty style',           price:30, minutes:90,  desc:'Updos, curls, and event styling.'}
+  ],
+  color: [
+    {id:'colorRetouch',      name:'Color retouch',            price:36, minutes:120, desc:'Refresh your roots in your current shade.'},
+    {id:'virginColor',       name:'Virgin color application', price:50, minutes:120, desc:'All over color on hair that has never been colored.'},
+    {id:'partialHighlight',  name:'Partial highlight',        price:36, minutes:120, approx:true, desc:'Foils through the top and the sides.'},
+    {id:'fullHighlight',     name:'Full highlight',           price:60, minutes:120, desc:'Foils all the way around, underneath included.'},
+    {id:'bleachToneRetouch', name:'Bleach and tone retouch',  price:60, minutes:180, approx:true, includesTone:true, desc:'Lift the new growth, then tone. Toner is included.'},
+    {id:'bleachTone',        name:'Bleach and tone',          price:80, minutes:180, approx:true, includesTone:true, desc:'Full lift and tone. Toner is included.'},
+    {id:'colorCorrection',   name:'Color correction',         price:84, minutes:180, approx:true, desc:'Fixing color that did not go to plan.'}
+  ]
+};
+
+/* minutes is 0 on every add-on: they change the price, not the length. */
+const ADDONS = [
+  {id:'addHaircut', name:'Add a haircut', price:11, minutes:0, desc:'Cut and finish after your color.'},
+  {id:'addToner',   name:'Add toner',     price:9,  minutes:0, desc:'Evens the tone and knocks out brass.',   needsTone:true},
+  {id:'addGloss',   name:'Add gloss',     price:18, minutes:0, desc:'Shine and depth on top of your color.', needsTone:true}
+];
+
+const PAYMENT_METHOD = 'Card only';
+
+const ICON_CARD  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/></svg>';
+const ICON_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>';
+
+const state = {
+  branch:null, service:null, addons:new Set(),
+  date:null, startIso:null,
+  client:{name:'', email:'', phone:'', notes:''},
+  errors:{},
+  booking:null,
+  tsToken:null
+};
+let siteKey = '';
+let stepIndex = 0;
+let slotCache = null;      // { minutes, from, days:[{date,slots[],startIsos[]}] }
+let slotState = 'idle';    // idle | loading | ready | error
+let slotError = '';
+let submitting = false;
+
+const money = n => '$' + n;
+const flow  = () => state.branch === 'color'
+  ? ['branch','service','addons','summary','time','details','done']
+  : ['branch','service','summary','time','details','done'];
+
+function chosen(){ return (SERVICES[state.branch]||[]).find(s => s.id === state.service) || null; }
+function visibleAddons(){
+  const s = chosen();
+  return ADDONS.filter(a => !(a.needsTone && s && s.includesTone));
+}
+function pickedAddons(){ return visibleAddons().filter(a => state.addons.has(a.id)); }
+function total(){
+  const s = chosen();
+  let t = s ? s.price : 0;
+  pickedAddons().forEach(a => { t += a.price; });
+  return t;
+}
+function minutes(){
+  const s = chosen();
+  let m = s ? s.minutes : 0;
+  pickedAddons().forEach(a => { m += (a.minutes || 0); });
+  return m;
+}
+function isApprox(){ const s = chosen(); return !!(s && s.approx); }
+
+/* 90 -> "1 hr 30 min", 120 -> "2 hr", 45 -> "45 min" */
+function readableTime(m){
+  const h = Math.floor(m / 60), r = m % 60;
+  if (!h) return r + ' min';
+  return h + ' hr' + (r ? ' ' + r + ' min' : '');
+}
+
+/* 14:30 -> "2:30 pm". The client should never read a 24 hour clock. */
+function clockLabel(hhmm){
+  const [h, m] = hhmm.split(':').map(Number);
+  const suffix = h < 12 ? 'am' : 'pm';
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}:${String(m).padStart(2,'0')} ${suffix}`;
+}
+
+function todayISO(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function addDaysISO(iso, n){
+  const [y,m,d] = iso.split('-').map(Number);
+  const next = new Date(Date.UTC(y, m-1, d+n));
+  return `${next.getUTCFullYear()}-${String(next.getUTCMonth()+1).padStart(2,'0')}-${String(next.getUTCDate()).padStart(2,'0')}`;
+}
+function dayParts(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m-1, d));
+  return {
+    dow: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getUTCDay()],
+    num: d,
+    mon: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]
+  };
+}
+function longDate(iso){
+  const p = dayParts(iso);
+  const full = {Sun:'Sunday',Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday'}[p.dow];
+  return `${full} ${p.num} ${p.mon}`;
+}
+
+/* ---------- talking to the worker ---------- */
+
+async function loadSlots(){
+  const need = minutes();
+  if (slotCache && slotCache.minutes === need) return;
+
+  slotState = 'loading';
+  slotError = '';
+  render();
+
+  const from = todayISO();
+
+  if (DEMO){
+    await new Promise(r => setTimeout(r, 450));
+    slotCache = { minutes:need, from, days: demoDays(from) };
+    slotState = 'ready';
+    render();
+    return;
+  }
+
+  try {
+    const qs = new URLSearchParams({
+      service: state.service,
+      addons: pickedAddons().map(a => a.id).join(','),
+      from,
+      days: String(DAYS_SHOWN)
+    });
+    const res = await fetch(`${API_BASE}/api/availability?${qs}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not load times');
+    slotCache = { minutes:need, from, days:data.days };
+    slotState = 'ready';
+  } catch (err) {
+    slotError = err.message || 'Could not load times';
+    slotState = 'error';
+  }
+  render();
+}
+
+/* The Turnstile site key is public, but it lives in the Pages environment so
+   the key pair can be rotated without editing and redeploying this page. */
+async function loadConfig(){
+  if (DEMO) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/config`);
+    if (!res.ok) return;
+    const cfg = await res.json();
+    siteKey = cfg.turnstileSiteKey || '';
+    if (siteKey && flow()[stepIndex] === 'details') mountTurnstile();
+  } catch { /* the check simply will not appear, and booking will refuse */ }
+}
+
+/* Mounted fresh on every paint of the details step, because render() replaces
+   the container's DOM. Tokens are single use, so a re-render deliberately
+   drops the old one and asks for another. */
+function mountTurnstile(){
+  const box = document.getElementById('ts-box');
+  if (!box || DEMO || !siteKey || !window.turnstile) return;
+  state.tsToken = null;
+  box.innerHTML = '';
+  window.turnstile.render(box, {
+    sitekey: siteKey,
+    theme: 'auto',
+    callback: t => { state.tsToken = t; },
+    'error-callback': () => { state.tsToken = null; },
+    'expired-callback': () => { state.tsToken = null; }
+  });
+}
+
+async function submitBooking(){
+  state.errors = validateClient();
+  if (!DEMO && siteKey && !state.tsToken){
+    state.errors.form = 'Please complete the check below, then try again.';
+  }
+  if (Object.keys(state.errors).length){ render(); return; }
+
+  submitting = true;
+  render();
+
+  if (DEMO){
+    await new Promise(r => setTimeout(r, 700));
+    state.booking = { reference:'demo-0000', startIso:state.startIso, minutes:minutes(), estimate:total() };
+    submitting = false;
+    stepIndex = flow().indexOf('done');
+    render();
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/book`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        service: state.service,
+        addons: pickedAddons().map(a => a.id),
+        startIso: state.startIso,
+        name: state.client.name,
+        email: state.client.email,
+        phone: state.client.phone,
+        notes: state.client.notes,
+        turnstileToken: state.tsToken
+      })
+    });
+    const data = await res.json();
+    if (!res.ok){
+      submitting = false;
+      state.tsToken = null; // single use, spent whether it passed or not
+      if (res.status === 409){
+        // The slot went while they were typing. Send them back to pick again.
+        slotCache = null;
+        state.startIso = null;
+        stepIndex = flow().indexOf('time');
+        slotError = data.error;
+        slotState = 'error';
+        render();
+        return;
+      }
+      state.errors.form = data.error || 'The booking did not go through.';
+      render();
+      return;
+    }
+    state.booking = data;
+    submitting = false;
+    stepIndex = flow().indexOf('done');
+    render();
+  } catch {
+    submitting = false;
+    state.errors.form = 'Could not reach the booking system. Please try again.';
+    render();
+  }
+}
+
+function validateClient(){
+  const e = {};
+  const c = state.client;
+  if (c.name.trim().length < 2) e.name = 'Please give your name.';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(c.email.trim())) e.email = 'Please give an email we can send the confirmation to.';
+  if (c.phone.replace(/\D/g,'').length < 7) e.phone = 'Please give a phone number.';
+  return e;
+}
+
+/* DEMO ONLY. Invents a plausible fortnight so the page can be judged
+   before the worker exists. It is not the real availability logic:
+   that lives in worker/src/availability.ts and is tested there. */
+function demoDays(from){
+  const out = [];
+  for (let i = 0; i < DAYS_SHOWN; i++){
+    const date = addDaysISO(from, i);
+    const [y,m,d] = date.split('-').map(Number);
+    const dow = new Date(Date.UTC(y,m-1,d)).getUTCDay();
+    // Bookable START times 13:30 to 18:00, Monday to Friday. An appointment
+    // may run past 18:00. Mirrors worker/src/config.ts.
+    const hours = dow === 0 || dow === 6 ? null : [13*60 + 30, 18*60];
+    const slots = [], startIsos = [];
+    if (hours && i > 0){
+      for (let mins = hours[0]; mins <= hours[1]; mins += 30){
+        if ((i * 7 + mins) % 5 === 0) continue; // a few look taken
+        const hh = String(Math.floor(mins/60)).padStart(2,'0');
+        const mm = String(mins%60).padStart(2,'0');
+        slots.push(`${hh}:${mm}`);
+        startIsos.push(new Date(Date.UTC(y,m-1,d,Math.floor(mins/60)+4,mins%60)).toISOString());
+      }
+    }
+    out.push({date, slots, startIsos});
+  }
+  return out;
+}
+
+/* ---------- rendering ---------- */
+
+const body  = document.getElementById('body');
+const stage = document.getElementById('stage');
+const steps = document.getElementById('steps');
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function chip(o, i, pressed){
+  const price = o.price != null ? `<span class="chip-price">${money(o.price)}${o.approx ? '&plusmn;' : ''}</span>` : '';
+  const time  = o.minutes ? `<span class="chip-time">${ICON_CLOCK} ${readableTime(o.minutes)}</span>` : '';
+  return `
+    <button class="chip" style="--i:${i}" data-pick="${o.id}" aria-pressed="${pressed}">
+      <span class="chip-head"><span class="chip-name">${o.name}</span>${price}</span>
+      ${o.desc ? `<span class="chip-desc">${o.desc}</span>` : ''}
+      ${time}
+    </button>`;
+}
+
+function countUp(el, to){
+  const suffix = isApprox() ? '±' : '';
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches){ el.textContent = '$' + to + suffix; return; }
+  const start = performance.now(), dur = 620;
+  const tick = now => {
+    const p = Math.min(1, (now - start) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = '$' + Math.round(to * eased) + (p === 1 ? suffix : '');
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function payFrame(){
+  return `
+    <div class="payframe">
+      <span class="tag">${ICON_CARD} ${PAYMENT_METHOD}</span>
+      <p>${isApprox()
+          ? 'This is an estimate. Long or dense hair takes more product and more time, so it can land higher. Your exact total is confirmed in the chair before anything starts.'
+          : 'This is an estimate. Your exact total is confirmed in the chair before anything starts.'}</p>
+    </div>`;
+}
+
+function stripHtml(){
+  const s = chosen();
+  const extras = pickedAddons().map(a => a.name).join(', ');
+  return `
+    <div class="strip">
+      <div>
+        <div class="what">${s.name}</div>
+        <div class="extra">${readableTime(minutes())}${extras ? ' &middot; with ' + extras : ''}</div>
+      </div>
+      <div class="cost">
+        <span class="tag">${ICON_CARD} ${PAYMENT_METHOD}</span>
+        <b>${money(total())}${isApprox() ? '&plusmn;' : ''}</b>
+      </div>
+    </div>`;
+}
+
+function field(name, label, opts = {}){
+  const bad = state.errors[name];
+  const val = esc(state.client[name] ?? '');
+  const input = opts.textarea
+    ? `<textarea id="f-${name}" name="${name}" placeholder="${opts.placeholder || ''}">${val}</textarea>`
+    : `<input id="f-${name}" name="${name}" type="${opts.type || 'text'}"
+         ${opts.autocomplete ? `autocomplete="${opts.autocomplete}"` : ''}
+         ${opts.inputmode ? `inputmode="${opts.inputmode}"` : ''}
+         placeholder="${opts.placeholder || ''}" value="${val}">`;
+  return `
+    <div class="field${opts.full ? ' full' : ''}"${bad ? ' data-bad' : ''}>
+      <label for="f-${name}">${label}</label>
+      ${input}
+      ${bad ? `<span class="err">${esc(bad)}</span>` : (opts.hint ? `<span class="hint">${opts.hint}</span>` : '')}
+    </div>`;
+}
+
+function timeStepHtml(){
+  let inner = '';
+
+  if (slotState === 'loading'){
+    inner = `<div class="skeleton">${'<i></i>'.repeat(10)}</div>`;
+  } else if (slotState === 'error'){
+    inner = `<div class="notice bad"><b>${esc(slotError)}</b>Nothing has been booked. Try again in a moment, or call and we will sort it out.</div>`;
+  } else if (slotState === 'ready'){
+    const days = slotCache.days;
+    const active = state.date && days.some(d => d.date === state.date)
+      ? state.date
+      : (days.find(d => d.slots.length)?.date ?? days[0]?.date ?? null);
+    state.date = active;
+    const day = days.find(d => d.date === active);
+
+    inner = `
+      <div class="days">
+        ${days.map(d => {
+          const p = dayParts(d.date);
+          return `<button class="day" data-day="${d.date}" aria-pressed="${d.date === active}" ${d.slots.length ? '' : 'disabled'}>
+            <span class="dow">${p.dow}</span><span class="num">${p.num}</span><span class="mon">${p.mon}</span>
+          </button>`;
+        }).join('')}
+      </div>`;
+
+    if (!day || !day.slots.length){
+      inner += `<div class="notice"><b>Nothing free on ${longDate(active)}</b>Pick another day above. Days that are greyed out are fully booked or closed.</div>`;
+    } else {
+      inner += `<div class="slots">
+        ${day.slots.map((t, i) => `<button class="slot" style="--i:${i}" data-slot="${day.startIsos[i]}" aria-pressed="${state.startIso === day.startIsos[i]}">${clockLabel(t)}</button>`).join('')}
+      </div>`;
+    }
+  }
+
+  return `
+    <div class="step" data-active>
+      <h1 class="q tight">Pick your time</h1>
+      <p class="q-sub">Every time shown has the full ${readableTime(minutes())} free.</p>
+      ${stripHtml()}
+      ${inner}
+    </div>`;
+}
+
+function detailsStepHtml(){
+  const when = state.startIso ? new Date(state.startIso) : null;
+  const whenLabel = when
+    ? `${longDate(state.date)} at ${clockLabel(String(when.getHours()).padStart(2,'0') + ':' + String(when.getMinutes()).padStart(2,'0'))}`
+    : '';
+  return `
+    <div class="step" data-active>
+      <h1 class="q tight">Last bit</h1>
+      <p class="q-sub">${esc(whenLabel)}. We send the confirmation to your email.</p>
+      ${stripHtml()}
+      <div class="form">
+        ${field('name',  'Your name', {autocomplete:'name', placeholder:'First and last'})}
+        ${field('phone', 'Phone',     {type:'tel', autocomplete:'tel', inputmode:'tel', placeholder:'(313) 555 0134'})}
+        ${field('email', 'Email',     {type:'email', autocomplete:'email', inputmode:'email', full:true,
+                                        placeholder:'you@example.com', hint:'Your confirmation and any changes come here.'})}
+        ${field('notes', 'Anything I should know?', {textarea:true, full:true,
+                                        placeholder:'Hair history, what you are going for, a photo link.'})}
+      </div>
+      ${state.errors.form ? `<div class="notice bad"><b>${esc(state.errors.form)}</b>Nothing has been booked yet.</div>` : ''}
+      <div class="ts" id="ts-box"></div>
+    </div>`;
+}
+
+function doneStepHtml(){
+  const b = state.booking;
+  const when = new Date(b.startIso);
+  const hhmm = String(when.getHours()).padStart(2,'0') + ':' + String(when.getMinutes()).padStart(2,'0');
+  const dateIso = `${when.getFullYear()}-${String(when.getMonth()+1).padStart(2,'0')}-${String(when.getDate()).padStart(2,'0')}`;
+  const s = chosen();
+  return `
+    <div class="step" data-active>
+      <h1 class="q tight">You are booked in</h1>
+      <p class="q-sub">A confirmation is on its way to ${esc(state.client.email)}. Add it to your calendar from that email.</p>
+      <div class="done-card">
+        <p class="done-when">${longDate(dateIso)}, ${clockLabel(hhmm)}</p>
+        <p class="done-what">${esc(s.name)}, ${readableTime(b.minutes)}</p>
+        <div class="done-list">
+          <div class="line"><span>Estimated total</span><b>${money(b.estimate)}${b.estimateIsApprox || isApprox() ? '&plusmn;' : ''}</b></div>
+          <div class="line"><span>Payment</span><b>${PAYMENT_METHOD}</b></div>
+        </div>
+        <p class="done-ref">
+          Need to move it or cancel? Reply to your confirmation email.<br>
+          Reference ${esc(b.reference)}
+        </p>
+      </div>
+    </div>`;
+}
+
+function render(){
+  const list = flow();
+  const step = list[stepIndex];
+
+  stage.classList.toggle('top-align', step === 'time' || step === 'details');
+
+  steps.innerHTML = list.map((_, i) =>
+    `<span class="dot"${i < stepIndex ? ' data-done' : (i === stepIndex ? ' data-now' : '')}></span>`
+  ).join('');
+
+  let html = '';
+
+  if (step === 'branch'){
+    html = `
+      <div class="step" data-active>
+        <h1 class="q">What are you booking?</h1>
+        <p class="q-sub">Pick one and the services will show up underneath.</p>
+        <div class="chips wide">
+          ${chip({id:'cut',   name:'Cut and style', desc:'Haircuts, blowouts, and event styling.'}, 0, state.branch==='cut')}
+          ${chip({id:'color', name:'Color',         desc:'Roots, highlights, bleach, and corrections.'}, 1, state.branch==='color')}
+        </div>
+      </div>`;
+  }
+
+  if (step === 'service'){
+    html = `
+      <div class="step" data-active>
+        <h1 class="q">${state.branch === 'color' ? 'Which color service?' : 'Which service?'}</h1>
+        <p class="q-sub">Not sure? Pick the closest one. We sort it out at the start of your appointment.</p>
+        <div class="chips">${SERVICES[state.branch].map((s,i) => chip(s, i, state.service === s.id)).join('')}</div>
+      </div>`;
+  }
+
+  if (step === 'addons'){
+    html = `
+      <div class="step" data-active>
+        <h1 class="q">Anything on top?</h1>
+        <p class="q-sub">All optional, and you can pick more than one. Continue straight through if you do not want any.</p>
+        <div class="chips">${visibleAddons().map((a,i) => chip(a, i, state.addons.has(a.id))).join('')}</div>
+      </div>`;
+  }
+
+  if (step === 'summary'){
+    const s = chosen();
+    html = `
+      <div class="step" data-active>
+        <h1 class="q">Here is your appointment</h1>
+        <p class="q-sub">Times come next, then your details.</p>
+        <div class="sum">
+          <div class="lines">
+            <div class="line"><span>${s.name}</span><b>${money(s.price)}${s.approx ? '&plusmn;' : ''}</b></div>
+            ${pickedAddons().map(a => `<div class="line"><span>${a.name}</span><b>+${money(a.price)}</b></div>`).join('')}
+            <div class="howlong">${ICON_CLOCK} Set aside about <b>${readableTime(minutes())}</b></div>
+          </div>
+          <div>
+            <div class="bignum">
+              <span>Estimated total</span>
+              <b id="bignum">$0</b>
+              ${payFrame()}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  if (step === 'time')    html = timeStepHtml();
+  if (step === 'details') html = detailsStepHtml();
+  if (step === 'done')    html = doneStepHtml();
+
+  const canGo =
+    step === 'branch'  ? !!state.branch :
+    step === 'service' ? !!state.service :
+    step === 'time'    ? !!state.startIso : true;
+
+  if (step !== 'done'){
+    html += `
+      <div class="actions">
+        ${stepIndex > 0 ? `<button class="btn btn-back" data-back>Back</button>` : ''}
+        <button class="btn btn-primary" data-next ${canGo && !submitting ? '' : 'disabled'}>
+          ${step === 'details' ? (submitting ? 'Booking...' : 'Confirm booking')
+            : step === 'summary' ? 'See times'
+            : step === 'addons' ? 'Continue' : 'Next'}
+        </button>
+        ${state.service && step !== 'details' ? `<span class="running">Running total <b>${money(total())}${isApprox()?'±':''}</b></span>` : ''}
+      </div>`;
+  }
+
+  body.innerHTML = html;
+
+  const big = document.getElementById('bignum');
+  if (big) countUp(big, total());
+
+  if (step === 'time' && slotState === 'idle') loadSlots();
+  if (step === 'details') mountTurnstile();
+}
+
+/* ---------- events ---------- */
+
+body.addEventListener('click', e => {
+  const list = flow();
+  const step = list[stepIndex];
+
+  const pick = e.target.closest('[data-pick]');
+  if (pick){
+    const id = pick.dataset.pick;
+    if (step === 'branch'){
+      if (state.branch !== id){ state.branch = id; state.service = null; state.addons.clear(); resetSlots(); }
+    } else if (step === 'service'){
+      if (state.service !== id){ state.service = id; state.addons.clear(); resetSlots(); }
+    } else if (step === 'addons'){
+      state.addons.has(id) ? state.addons.delete(id) : state.addons.add(id);
+      resetSlots();
+    }
+    render();
+    return;
+  }
+
+  const day = e.target.closest('[data-day]');
+  if (day){ state.date = day.dataset.day; state.startIso = null; render(); return; }
+
+  const slot = e.target.closest('[data-slot]');
+  if (slot){ state.startIso = slot.dataset.slot; render(); return; }
+
+  if (e.target.closest('[data-back]')){
+    if (step === 'details') state.errors = {};
+    stepIndex = Math.max(0, stepIndex - 1);
+    render();
+    return;
+  }
+
+  if (e.target.closest('[data-next]')){
+    if (step === 'details'){ submitBooking(); return; }
+    stepIndex = Math.min(list.length - 1, stepIndex + 1);
+    render();
+  }
+});
+
+/* Inputs are re-rendered on every paint, so their values live in state
+   rather than in the DOM. Without this, typing a name and tripping a
+   validation error would wipe the form. */
+body.addEventListener('input', e => {
+  const el = e.target;
+  if (!el.name || !(el.name in state.client)) return;
+  state.client[el.name] = el.value;
+  if (state.errors[el.name]){
+    delete state.errors[el.name];
+    const wrapper = el.closest('.field');
+    if (wrapper){
+      wrapper.removeAttribute('data-bad');
+      const err = wrapper.querySelector('.err');
+      if (err) err.remove();
+    }
+  }
+});
+
+function resetSlots(){
+  slotCache = null;
+  slotState = 'idle';
+  slotError = '';
+  state.date = null;
+  state.startIso = null;
+}
+
+loadConfig();
+
+if (DEMO){
+  const flag = document.createElement('div');
+  flag.className = 'demo';
+  flag.textContent = 'Demo mode: times are invented, nothing is booked';
+  document.body.appendChild(flag);
+}
+
+render();
+</script>
+</body>
+</html>
