@@ -1,0 +1,57 @@
+<!--
+  WILLIS WINDOWS — Facebook ads quote funnel
+  GHL step: whatever path you point the ads at (e.g. /quote)
+
+  THIS IS THE WHOLE THING. Paste both lines below into the GoHighLevel step and
+  never come back. The funnel itself is served from the Command Center, so every
+  question, the webhook and the thank-you page all ship by deploy.
+
+  GHL holds a pointer, not a copy. On a page that costs money per click, that is
+  the difference between changing a question in thirty seconds and reopening a
+  builder you have to re-test afterwards.
+
+  The real file:
+    command-center/app/public/sites/willis/quote.js
+
+  WHAT THE PAGE DOES
+    One card, five steps, no nav and no footer. Tapping a choice advances on
+    its own, so there is no NEXT button to hunt for on a phone.
+      1. Do you live in Metro Detroit?   Yes / No
+      2. What best describes your home?  one story / two / three+ / condo
+      3. What is your timeline?          ASAP / week / month / 3 months+
+      4. Address, prefaced with why we want it
+      5. Name, phone, email  ->  posted to GHL  ->  thank-you
+
+    "No" on step 1 is an automatic disqualification. The funnel stops on a
+    card, NOTHING is posted and no contact is created. Willis covers about 30
+    miles of Metro Detroit, and a lead they cannot drive to burns a call slot.
+
+  HOW TO USE IT IN GHL
+  1. The funnel > this step > Custom JS/HTML element.
+  2. Delete whatever is in there and paste both lines below.
+  3. Set the step to full width and remove GHL's own padding.
+  4. Publish, then open the page ON A PHONE. Nearly all of this traffic is
+     mobile.
+
+  TWO THINGS ARE NOT WIRED YET, both by choice, both one line in quote.js:
+    CONFIG.webhookUrl   — empty, so the last step says plainly that it could
+                          not send and shows the phone number, rather than
+                          faking a thank-you over a lead that went nowhere.
+                          Paste a NEW GHL inbound webhook URL in. Do not reuse
+                          the one on the old news-channel landing page, or ad
+                          leads and news-channel leads cannot be told apart.
+    CONFIG.thankYouUrl  — empty, so a successful submit ends on the funnel's
+                          own thank-you card and nothing navigates. Paste the
+                          URL of a thank-you step built for THIS funnel, so the
+                          Meta pixel fires a conversion on a URL only this
+                          funnel can reach. Note that williswindows.com/thank-you
+                          does NOT exist: it answers 200 with an empty body, so
+                          a status check on it lies.
+
+  NOTHING HERE GOES LIVE UNTIL THE COMMAND CENTER IS DEPLOYED. The stub loads
+  quote.js from app.hauckmarketing.com, so until that deploy runs, the GHL step
+  renders an empty div.
+-->
+
+<div id="wwq"></div>
+<script src="https://app.hauckmarketing.com/sites/willis/quote.js"></script>
