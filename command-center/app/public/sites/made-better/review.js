@@ -375,14 +375,14 @@
     '<div class="panel" id="mbrFeed">' +
       '<div class="rule"></div>' +
       '<h2>Sorry we missed the mark.</h2>' +
-      '<p class="sub">Tell us what we could have done better. Seamus reads these himself, and it goes no further.</p>' +
+      '<p class="sub">Tell us what we could have done better. We read each one of these to make our service even better!</p>' +
       '<form id="mbrForm" novalidate>' +
         '<div class="field">' +
           '<textarea id="mbrText" name="feedback" required ' +
             'aria-label="What could we have done better?" ' +
             'placeholder="What happened, and what should we have done instead?"></textarea>' +
         '</div>' +
-        '<button class="btn" type="submit">Send it to Seamus</button>' +
+        '<button class="btn" type="submit">Send</button>' +
       '</form>' +
     '</div>' +
 
