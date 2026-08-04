@@ -174,7 +174,11 @@ body{ margin:0 !important; padding:0 !important; }
    A banded section needs its own top padding back, and so does whatever
    follows it, or the tint starts flush against the previous section's copy. */
 #mb .band{ background:var(--wash); }
-#mb .sec.band, #mb .sec.band + .sec{ padding-top:112px; }
+/* One step deeper than .band, for the section that should sit forward of the
+   rest of the page. */
+#mb .band-deep{ background:var(--wash-2); }
+#mb .sec.band, #mb .sec.band + .sec,
+#mb .sec.band-deep, #mb .sec.band-deep + .sec{ padding-top:112px; }
 
 /* ===== BUTTONS =====
    10px radius, 700 weight, generous padding, and a coloured glow beneath the
@@ -225,9 +229,18 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .hdr.is-stuck{ box-shadow:0 10px 30px -22px rgba(14,19,17,.5); background:rgba(255,255,255,.94); }
 #mb .hdr-in{ display:flex; align-items:center; justify-content:space-between; gap:24px; height:84px; transition:height .25s; }
 #mb .hdr.is-stuck .hdr-in{ height:72px; }
-#mb .brand{ display:flex; align-items:center; flex:none; }
-#mb .brand-logo{ height:40px; width:auto; transition:height .25s; }
-#mb .hdr.is-stuck .brand-logo{ height:34px; }
+#mb .brand{ display:flex; align-items:center; gap:12px; flex:none; }
+#mb .brand-logo{ height:54px; width:auto; transition:height .25s; }
+#mb .hdr.is-stuck .brand-logo{ height:44px; }
+/* The mark alone does not say who this is. The name sits beside it, set in the
+   display face so the header opens the same way the footer closes. */
+#mb .brand-name {
+  font-family:'Plus Jakarta Sans','Inter',sans-serif;
+  font-size:19px; font-weight:800; letter-spacing:-.02em; color:var(--head);
+  white-space:nowrap; transition:font-size .25s;
+}
+#mb .brand-name i{ font-style:normal; color:var(--brass); }
+#mb .hdr.is-stuck .brand-name{ font-size:17.5px; }
 
 #mb .nav{ display:flex; align-items:center; gap:30px; }
 #mb .nav a {
@@ -334,15 +347,35 @@ body{ margin:0 !important; padding:0 !important; }
 }
 #mb .mb-form-err a{ color:#8C2F19; font-weight:700; text-decoration:underline; }
 
-/* ===== TRUST STRIP ===== */
-#mb .trust{ background:var(--wash-2); border-bottom:1px solid var(--line); }
-#mb .trust-in{ display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); }
-#mb .trust-item{ background:var(--wash-2); padding:30px 26px; }
+/* ===== TRUST STRIP =====
+   Four claims that used to be plain text in a hairline grid, which read as a
+   table. They are cards now, each led by its own mark, so the eye takes one at
+   a time instead of scanning a row. */
+#mb .trust{ background:var(--wash); border-bottom:1px solid var(--line); }
+#mb .trust-in{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
+  padding:36px 24px; background:transparent;
+}
+#mb .trust-item{
+  display:flex; align-items:flex-start; gap:14px;
+  background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-lg);
+  padding:22px 20px; box-shadow:0 1px 2px rgba(14,19,17,.04);
+  transition:border-color .2s, box-shadow .2s, transform .2s cubic-bezier(.16,1,.3,1);
+}
+#mb .trust-item:hover{
+  border-color:rgba(200,151,75,.5); transform:translateY(-2px);
+  box-shadow:0 2px 4px rgba(14,19,17,.05), 0 18px 34px -22px rgba(14,19,17,.35);
+}
+#mb .trust-ico{
+  flex:none; width:42px; height:42px; border-radius:12px; display:grid; place-items:center;
+  background:rgba(200,151,75,.12); border:1px solid rgba(200,151,75,.34);
+}
+#mb .trust-ico svg{ width:21px; height:21px; stroke:var(--brass); fill:none; }
 #mb .trust-item strong {
   display:block; font-family:'Plus Jakarta Sans','Inter',sans-serif;
-  font-size:16px; font-weight:700; color:var(--head); letter-spacing:-.015em; margin-bottom:5px;
+  font-size:15.5px; font-weight:700; color:var(--head); letter-spacing:-.015em; margin-bottom:4px;
 }
-#mb .trust-item span{ font-size:14px; color:var(--muted); line-height:1.5; }
+#mb .trust-item span{ display:block; font-size:13.5px; color:var(--muted); line-height:1.5; }
 
 /* ===== BEFORE / AFTER SLIDER =====
    Made Better's own. Willis has nothing like it. */
@@ -388,8 +421,6 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .ba-thumbs button:hover{ border-color:var(--brass); color:var(--head); }
 #mb .ba-thumbs button[aria-pressed="true"]{ background:var(--ink); border-color:var(--ink); color:#fff; }
 
-#mb .splits{ margin-top:72px; padding-top:56px; border-top:1px solid var(--line); }
-#mb .splits-h{ font-size:24px; margin-bottom:26px; }
 #mb .split-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
 #mb .split-grid figure{ margin:0; border-radius:var(--radius-lg); overflow:hidden; border:1px solid var(--line); background:var(--wash); }
 /* crop the white margin baked into the screenshot before/afters. raise if any
@@ -724,6 +755,10 @@ body{ margin:0 !important; padding:0 !important; }
   #mb .burger{ display:grid; place-items:center; }
   #mb .hdr-phone, #mb .hdr-cta .btn{ display:none; }
   #mb-bar{ display:flex; }
+  #mb .brand-logo{ height:44px; }
+  #mb .hdr.is-stuck .brand-logo{ height:38px; }
+  #mb .brand-name{ font-size:17px; }
+  #mb .trust-in{ padding:26px 24px; }
   #mb .hdr-in{ height:72px; }
   #mb .hdr.is-stuck .hdr-in{ height:64px; }
 }
@@ -736,7 +771,6 @@ body{ margin:0 !important; padding:0 !important; }
   #mb .ba-cap{ flex-direction:column; gap:6px; }
   #mb .close-phone{ font-size:28px; }
   #mb .cblock a, #mb .cblock p{ font-size:21px; }
-  #mb .splits{ margin-top:52px; padding-top:40px; }
 }
 
 @media(prefers-reduced-motion:reduce){
@@ -780,7 +814,8 @@ body{ margin:0 !important; padding:0 !important; }
       '  <header class="hdr">',
       '    <div class="wrap hdr-in">',
       '      <a href="/home" class="brand">',
-      '        <img class="brand-logo" src="' + CONFIG.logo + '" alt="Made Better LC">',
+      '        <img class="brand-logo" src="' + CONFIG.logo + '" alt="">',
+      '        <span class="brand-name">MADE BETTER<i>.</i></span>',
       "      </a>",
       '      <nav class="nav" id="mbNav">',
       "        " + nav,
@@ -919,10 +954,22 @@ body{ margin:0 !important; padding:0 !important; }
   <!-- ================= TRUST ================= -->
   <div class="trust">
     <div class="wrap trust-in">
-      <div class="trust-item"><strong>Licensed &amp; insured</strong><span>Fully covered on every job</span></div>
-      <div class="trust-item"><strong>100% transparent pricing</strong><span>Itemized, no hidden costs, no surprises</span></div>
-      <div class="trust-item"><strong>50+ communities</strong><span>Wayne, Oakland, Macomb, Washtenaw</span></div>
-      <div class="trust-item"><strong>Owner on site</strong><span>Seamus is on the job, not behind a desk</span></div>
+      <div class="trust-item">
+        <span class="trust-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.4 3.4 8.3 8 9 4.6-.7 8-4.6 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <div><strong>Licensed &amp; insured</strong><span>Fully covered on every job</span></div>
+      </div>
+      <div class="trust-item">
+        <span class="trust-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4.8A2 2 0 0 1 4.8 2.8H12a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8Z"/><path d="M7.5 7.5h.01"/></svg></span>
+        <div><strong>100% transparent pricing</strong><span>Itemized, no hidden costs, no surprises</span></div>
+      </div>
+      <div class="trust-item">
+        <span class="trust-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5.5-8 12-8 12s-8-6.5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+        <div><strong>50+ communities</strong><span>Wayne, Oakland, Macomb, Washtenaw</span></div>
+      </div>
+      <div class="trust-item">
+        <span class="trust-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 17H4a8 8 0 0 1 16 0Z"/><path d="M2 17h20"/><path d="M9.5 9.3V5.6a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v3.7"/></svg></span>
+        <div><strong>Owner on site</strong><span>Seamus is on the job, not behind a desk</span></div>
+      </div>
     </div>
   </div>
 
@@ -954,25 +1001,11 @@ body{ margin:0 !important; padding:0 !important; }
         <button aria-pressed="false" data-b="https://drive.google.com/thumbnail?id=1Fq3GAV5pCnpV5qBE_jsrthHtULcTmjxr&amp;sz=w1400" data-a="https://drive.google.com/thumbnail?id=1TMiPlKDntE2c7gZR7vzDljOPP3hF5jF9&amp;sz=w1400" data-c="Brick work rebuilt and reset level.">Patio</button>
         <button aria-pressed="false" data-b="https://drive.google.com/thumbnail?id=1tnL2zxt0oNASjZviDx6DjS1wLWMy1S48&amp;sz=w1400" data-a="https://drive.google.com/thumbnail?id=1IRETMeqWUiGSm-oG39K8CNdKcZCUXKeg&amp;sz=w1400" data-c="Landscape bed cleared, re-edged and replanted.">Porch</button>
       </div>
-      <div class="splits">
-        <h3 class="splits-h">More transformations</h3>
-        <div class="split-grid">
-          <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1Qi4vmWYhJWXY6OP3wVLrZE-djr-nTX3J&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
-          <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1YuTbOca-bnbkzcE0qow3yh1fDX5p3hBV&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
-          <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1-XmB_uirOunnLT_eTTJExLH458UaqOl7&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
-          <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1l4nMoIsbsDZ9cuccRM_O5jkzqQ9KG2Y3&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
-          <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1cLuagJqGpVIROouCSLNrEHuo_xssNWdl&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
-          <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1AZrp7WUsGm_oW_N2xiYIuXuwB4tuTXEL&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
-          <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1Ca5HsIjopeYd_I7JLv0aVPcufd4Qce4X&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
-          <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1UIAzYi5qXxHuuo1HLJiE1doVUGymv_AA&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
-          <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1d0BY3yBDJBL7lr_5GYgfQYZcN92Buy37&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
-        </div>
-      </div>
     </div>
   </section>
 
   <!-- ================= SERVICES ================= -->
-  <section class="sec band" id="services">
+  <section class="sec band-deep" id="services">
     <div class="wrap">
       <div class="sec-head">
         <div class="eyebrow">What we do</div>
@@ -1020,8 +1053,34 @@ body{ margin:0 !important; padding:0 !important; }
     </div>
   </section>
 
+  <!-- ================= MORE TRANSFORMATIONS =================
+       Its own section now, sitting after the services rather than tucked on
+       the end of the slider. The slider proves one job in detail; this proves
+       there are plenty more, which lands better once someone knows what we
+       actually do. -->
+  <section class="sec">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">More transformations</div>
+        <h2>The same story, nine more times.</h2>
+        <p>Every one of these is a real Metro Detroit property, shot from the same spot before and after.</p>
+      </div>
+      <div class="split-grid">
+        <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1Qi4vmWYhJWXY6OP3wVLrZE-djr-nTX3J&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
+        <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1YuTbOca-bnbkzcE0qow3yh1fDX5p3hBV&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
+        <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1-XmB_uirOunnLT_eTTJExLH458UaqOl7&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
+        <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1l4nMoIsbsDZ9cuccRM_O5jkzqQ9KG2Y3&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
+        <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1cLuagJqGpVIROouCSLNrEHuo_xssNWdl&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
+        <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1AZrp7WUsGm_oW_N2xiYIuXuwB4tuTXEL&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
+        <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1Ca5HsIjopeYd_I7JLv0aVPcufd4Qce4X&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
+        <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1UIAzYi5qXxHuuo1HLJiE1doVUGymv_AA&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
+        <figure><img loading="lazy" src="https://drive.google.com/thumbnail?id=1d0BY3yBDJBL7lr_5GYgfQYZcN92Buy37&amp;sz=w1200" alt="Before and after of a Made Better LC project"></figure>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= PRICING TRANSPARENCY ================= -->
-  <section class="sec" id="pricing">
+  <section class="sec band" id="pricing">
     <div class="wrap">
       <div class="sec-head">
         <div class="eyebrow">What you pay for</div>
@@ -1053,7 +1112,7 @@ body{ margin:0 !important; padding:0 !important; }
   </section>
 
   <!-- ================= GALLERY ================= -->
-  <section class="sec band">
+  <section class="sec">
     <div class="wrap">
       <div class="sec-head">
         <div class="eyebrow">Recent jobs</div>
@@ -1073,7 +1132,7 @@ body{ margin:0 !important; padding:0 !important; }
   </section>
 
   <!-- ================= PROCESS ================= -->
-  <section class="sec">
+  <section class="sec band">
     <div class="wrap">
       <div class="sec-head">
         <div class="eyebrow">How it goes</div>
@@ -1113,7 +1172,7 @@ body{ margin:0 !important; padding:0 !important; }
   </div>
 
   <!-- ================= SERVICE AREA ================= -->
-  <section class="sec band" id="area">
+  <section class="sec" id="area">
     <div class="wrap">
       <div class="sec-head">
         <div class="eyebrow">Where we work</div>
@@ -1162,7 +1221,7 @@ body{ margin:0 !important; padding:0 !important; }
   <!-- ================= FAQ =================
        Willis has one and Made Better did not. Every answer here restates
        something the site already commits to further up; nothing is invented. -->
-  <section class="sec">
+  <section class="sec band">
     <div class="wrap">
       <div class="sec-head">
         <div class="eyebrow">Questions</div>
@@ -2108,7 +2167,13 @@ body{ margin:0 !important; padding:0 !important; }
   function boot() {
     var root = document.getElementById(ROOT_ID);
     if (!root) {
-      if (tries++ < 100) setTimeout(boot, 50);
+      if (tries++ < 100) { setTimeout(boot, 50); return; }
+      // Five seconds and no mount point. The page will sit blank, so say why
+      // rather than leaving a white screen with a silent console.
+      console.error(
+        '[made-better] no <div id="' + ROOT_ID + '"> on this page after 5s, so nothing was drawn. ' +
+        'The GHL step needs BOTH lines of the stub: the div and the script tag.'
+      );
       return;
     }
     if (root.getAttribute("data-mb-ready")) return;
