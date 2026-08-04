@@ -376,22 +376,26 @@ something only you can issue.
       somebody who knows her and guesses in three tries, so if the passcode is
       anything close to her name and a year, treat it as temporary.
 
-- [ ] **Her calendar timezone, downgraded from a blocker to a tidy-up.** Jake
-      reports her calendar shows Central. The API says her account setting is
-      UTC (`users/me/settings/timezone` = `UTC`, and her primary calendar's own
-      `timeZone` is UTC too). Both are true at once: the Google Calendar phone
-      app defaults to "use device time zone", which overrides the account
-      setting for display, so on a Central phone she sees Central while
-      calendar.google.com in a browser would show UTC.
+- [x] **Her calendar timezone. DONE 4 August, from our end.** It was UTC on
+      both the account setting and her primary calendar, while her phone showed
+      Central because the Google Calendar app defaults to "use device time
+      zone" and overrides the account for display. Both observations were true.
 
-      Nothing is stored wrongly either way. Every event this system writes
-      carries an explicit `timeZone: America/Chicago` on start and end, so the
-      instant is unambiguous: her 13:30 window is stored as
-      `2026-08-05T13:30:00-05:00` no matter what she is looking at it through.
+      Fixed by `PATCH /calendars/hairbyjersey.tx%40gmail.com` with
+      `{ timeZone: "America/Chicago" }`. The Settings resource
+      (`users/me/settings/timezone`) is READ ONLY in the Calendar API, but the
+      Calendars resource is writable and the account display setting follows
+      it. Both now read `America/Chicago`.
 
-      Still worth setting the account to Central so every surface agrees, and
-      so it stays right if she uses the web, turns that toggle off, or
-      travels. Google Calendar on the web, Settings, Time zone, Central.
+      **Trap for next time: `PATCH /calendars/primary` returns 404 through the
+      Composio proxy.** The explicit calendar id works. Reading and writing
+      events at `/calendars/primary/events` is fine, so this is specific to
+      patching the calendar itself.
+
+      Nothing needed shifting, and an offset would have been the wrong fix:
+      every event already carries an explicit `America/Chicago` on start and
+      end, so `2026-08-05T13:30:00-05:00` was always unambiguous. Availability
+      is byte for byte what it was before the change.
 
 - [ ] **Read the confirmation email.** One is in
       `contact.jakehauck@gmail.com` from the 4 August test: booked Friday
