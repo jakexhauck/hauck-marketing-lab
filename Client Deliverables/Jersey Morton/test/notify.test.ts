@@ -7,7 +7,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildBookingNotice, notifyConfigured, sendBookingNotice } from "../functions/lib/notify.ts";
+import {
+  buildBookingNotice,
+  notifyConfigured,
+  sendBookingNotice,
+  splitName,
+  toE164,
+} from "../functions/lib/notify.ts";
 
 const base = {
   name: "Jane Doe",
@@ -68,6 +74,35 @@ test("missing notes do not become the word undefined", () => {
   const out = buildBookingNotice({ ...base, notes: undefined });
   assert.equal(out.notes, "");
   assert.ok(!out.message.includes("undefined"));
+});
+
+// GoHighLevel takes a first and last name, and splits a single field itself if
+// you let it. Doing it here means the same split every time.
+test("a name splits into something a contact record can take", () => {
+  assert.deepEqual(splitName("Jane Doe"), { first: "Jane", last: "Doe" });
+  assert.deepEqual(splitName("Mary Jane Watson"), { first: "Mary", last: "Jane Watson" });
+  assert.deepEqual(splitName("Cher"), { first: "Cher", last: "" });
+  assert.deepEqual(splitName("  Jane   Doe  "), { first: "Jane", last: "Doe" });
+  assert.deepEqual(splitName(""), { first: "", last: "" });
+});
+
+// It cannot text anyone without E.164, but guessing a country code onto a
+// number we do not understand is worse than passing it through.
+test("a phone number becomes dialable where we can be sure", () => {
+  assert.equal(toE164("3135550134"), "+13135550134");
+  assert.equal(toE164("(313) 555 0134"), "+13135550134");
+  assert.equal(toE164("13135550134"), "+13135550134");
+  assert.equal(toE164("+44 20 7946 0018"), "+442079460018");
+  assert.equal(toE164("5550134"), "5550134", "a number we cannot place must not be given +1");
+  assert.equal(toE164(""), "");
+});
+
+test("the contact fields are on the payload", () => {
+  const out = buildBookingNotice(base);
+  assert.equal(out.first_name, "Jane");
+  assert.equal(out.last_name, "Doe");
+  assert.equal(out.phone_e164, "+13135550134");
+  assert.equal(out.phone, "3135550134", "the number as typed is kept too");
 });
 
 test("with no webhook set it does nothing and says so", async () => {

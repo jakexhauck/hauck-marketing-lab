@@ -35,6 +35,32 @@ export interface BookingNotice {
   eventId?: string;
 }
 
+// GoHighLevel wants a first and last name, not one field, and it splits a
+// single `name` itself if you let it. Splitting here means the workflow maps
+// two fields instead of guessing, and it is the same split every time.
+//
+// A one word name leaves the last name empty, which GoHighLevel accepts. This
+// is a person filling in a booking form, so the surname is whatever follows
+// the first space, double barrelled or not.
+export function splitName(full: string): { first: string; last: string } {
+  const parts = full.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return { first: "", last: "" };
+  if (parts.length === 1) return { first: parts[0], last: "" };
+  return { first: parts[0], last: parts.slice(1).join(" ") };
+}
+
+// GoHighLevel needs E.164 to text anybody. Only the shapes we can be sure
+// about are converted; anything else is handed over untouched rather than
+// given a country code it may not have.
+export function toE164(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  if (raw.trim().startsWith("+")) return `+${digits}`;
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return digits;
+}
+
 function parts(iso: string, tz: string): { day: string; time: string } {
   const at = new Date(iso);
   const day = new Intl.DateTimeFormat("en-GB", {
@@ -69,10 +95,16 @@ export function buildBookingNotice(input: BookingNotice, tz = TIMEZONE): Record<
     `${input.phone}, ${input.email}.` +
     (input.notes ? ` Notes: ${input.notes}` : "");
 
+  const who = splitName(input.name);
+
   return {
-    // Who
+    // Who. first_name and last_name map straight onto a contact; phone_e164 is
+    // the one to map, because the raw one is however the client typed it.
     name: input.name,
+    first_name: who.first,
+    last_name: who.last,
     phone: input.phone,
+    phone_e164: toE164(input.phone),
     email: input.email,
     // When, both readable and exact. The ISO is there so a workflow can do
     // date maths without re-parsing the pretty version.
