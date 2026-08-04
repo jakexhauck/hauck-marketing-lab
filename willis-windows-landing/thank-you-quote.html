@@ -1,0 +1,37 @@
+<!--
+  WILLIS WINDOWS — thank-you page for the Facebook ads quote funnel
+  GHL step: /thank-you-quote
+
+  NOT the same as thank-you.html in this folder. That one belongs to the older
+  news-channel campaign and is in the retired design. This one matches the
+  funnel and the live website.
+
+  THIS IS THE WHOLE THING. Paste both lines below into the GoHighLevel step.
+
+  The real file:
+    command-center/app/public/sites/willis/thanks.js
+
+  THE PATH MATTERS. quote.js redirects here by URL, and it is set to
+  https://williswindows.com/thank-you-quote. Name the step anything else and
+  the redirect lands on a GHL soft 404, which answers 200 with an empty body,
+  so it will look like a blank page rather than an error. If you want a
+  different path, say so and it is one line in quote.js.
+
+  WHY THIS IS A SEPARATE STEP rather than a card the funnel draws in place:
+  a redirect gives the Meta pixel a URL that ONLY a completed lead can reach.
+  Put the conversion event on this page. A card swapped in on the funnel's own
+  URL cannot be counted.
+
+  It knows a lead was submitted and nothing else. No name, no price, no
+  appointment time, and no personal detail passed through the query string.
+
+  HOW TO USE IT IN GHL
+  1. The funnel > new step named thank-you-quote > Custom JS/HTML element.
+  2. Paste both lines below.
+  3. Set the step to full width and remove GHL's own padding.
+  4. Add the Meta pixel conversion event to THIS step.
+  5. Publish.
+-->
+
+<div id="wwt"></div>
+<script src="https://app.hauckmarketing.com/sites/willis/thanks.js"></script>

@@ -66,18 +66,18 @@
     // arriving on the same trigger cannot be told apart afterwards.
     webhookUrl: "",
 
-    // Where they land after a successful submit.
+    // Where they land after a successful submit: the funnel's own thank-you
+    // step, drawn by thanks.js. Its own path, not /thank-you-news-channel, so
+    // the Meta pixel fires a conversion on a URL only this funnel can reach.
     //
-    // While this is EMPTY the funnel shows its own thank-you card in place and
-    // nothing navigates. That is deliberate: a redirect to a page that does not
-    // exist loses the confirmation, and williswindows.com/thank-you is a soft
-    // 404 today. It answers 200 with an empty body, so a status check on it
-    // lies.
+    // THIS PATH MUST EXIST IN GHL. Name the step anything else and the redirect
+    // lands on a GHL soft 404, which answers 200 with an empty body: the lead
+    // is safely in GHL by then, but the homeowner sees a blank page instead of
+    // a confirmation, and the pixel never fires.
     //
-    // TO CONNECT: build a thank-you step for THIS funnel and paste its URL.
-    // Give it its own path rather than reusing /thank-you-news-channel, so the
-    // Meta pixel fires a conversion on a URL only this funnel can reach.
-    thankYouUrl: ""
+    // Emptying this string is a safe fallback, not a break: the funnel then
+    // ends on its own thank-you card in place and nothing navigates.
+    thankYouUrl: "https://williswindows.com/thank-you-quote"
   };
 
   var ROOT_ID = "wwq";
