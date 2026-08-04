@@ -365,9 +365,9 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .hero-in{ position:relative; display:grid; grid-template-columns:1.05fr .95fr; gap:64px; align-items:start; }
 #mb .hero h1{ color:#FFFFFF; }
 #mb .hero h1 em{ font-style:normal; color:var(--brass); }
-#mb .hero-sub{ margin-top:20px; font-size:18.5px; line-height:1.6; color:#C9D1CB; max-width:540px; }
-
-#mb .hero-pts{ list-style:none; margin:30px 0 0; padding:0; display:flex; flex-direction:column; gap:13px; }
+/* The hero sub-paragraph is gone: the four points below now carry the pitch on
+   their own, so a sentence saying the same thing sat directly above them. */
+#mb .hero-pts{ list-style:none; margin:28px 0 0; padding:0; display:flex; flex-direction:column; gap:13px; }
 #mb .hero-pts li{ display:flex; align-items:flex-start; gap:11px; font-size:15.5px; color:#D6DDD8; line-height:1.5; }
 #mb .hero-pts svg{ width:19px; height:19px; flex:none; margin-top:2px; stroke:var(--brass); }
 
@@ -1018,11 +1018,11 @@ body{ margin:0 !important; padding:0 !important; }
       <div>
         <div class="eyebrow">Hardscaping &amp; Landscaping · Metro Detroit</div>
         <h1>Your yard, <em>made better.</em></h1>
-        <p class="hero-sub">Brick pavers, retaining walls, and full exterior work from a young local crew. Honest pricing, itemized down to the last line.</p>
         <ul class="hero-pts">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Free estimate with every cost itemized, no pressure</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Proper base prep, the part that decides if it lasts</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Low overhead, so you get big-company work at a fair price</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Brick paving</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Landscaping</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Full exterior work from a young local crew</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Reliable craftsmanship with honest service, itemized down to the last line</li>
         </ul>
         <div class="hero-actions">
           <a class="btn btn-ghost" href="#work">See the work</a>
@@ -1174,8 +1174,9 @@ body{ margin:0 !important; padding:0 !important; }
           <p>The jobs that don't fit a category. If it's on the outside of the house, ask us.</p>
           <ul class="svc-list">
             <li>Grading &amp; drainage</li>
-            <li>Demolition &amp; haul-away</li>
-            <li>Downspout &amp; water management</li>
+            <li>Gutter cleaning</li>
+            <li>Pressure washing</li>
+            <li>Soft washing</li>
             <li>Seasonal cleanups</li>
             <li>Property maintenance</li>
           </ul>
@@ -1262,47 +1263,13 @@ body{ margin:0 !important; padding:0 !important; }
     </div>
   </section>
 
-  <!-- ================= PROCESS ================= -->
-  <section class="sec band">
-    <div class="wrap">
-      <div class="sec-head">
-        <div class="eyebrow">How it goes</div>
-        <h2>Three steps, no surprises.</h2>
-      </div>
-      <div class="steps-wrap">
-        <svg class="steps-line" viewBox="0 0 1000 40" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M 30 20 L 500 20 L 970 20"></path>
-          <circle cx="30" cy="20"></circle>
-          <circle cx="500" cy="20"></circle>
-          <circle cx="970" cy="20"></circle>
-        </svg>
-      <div class="steps">
-        <div>
-          <div class="step-n">01</div>
-          <h3>We come look</h3>
-          <p>Send the form or call. We walk the property, measure, and talk through what you actually want, usually within a day or two.</p>
-        </div>
-        <div>
-          <div class="step-n">02</div>
-          <h3>You see every number</h3>
-          <p>Materials, labour and disposal broken out line by line, so you know exactly what you are paying for. No line called "miscellaneous," no moving target once we start.</p>
-        </div>
-        <div>
-          <div class="step-n">03</div>
-          <h3>We build it</h3>
-          <p>Base prep, install, cleanup. We leave the site swept and haul off everything we tore out. You get before-and-after photos when it's done.</p>
-        </div>
-      </div>
-      </div>
-    </div>
-  </section>
-
-
   <div class="marq" aria-hidden="true">
     <div class="marq-track" id="mbMarq"></div>
   </div>
 
-  <!-- ================= SERVICE AREA ================= -->
+  <!-- ================= SERVICE AREA =================
+       Sits directly after the marquee now. The three-step process section that
+       used to run between them is gone, so the map pulls up to fill the gap. -->
   <section class="sec" id="area">
     <div class="wrap">
       <div class="sec-head">
