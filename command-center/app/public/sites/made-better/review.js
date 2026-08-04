@@ -340,10 +340,11 @@
 #mbr .tick svg{ width:28px; height:28px; }
 #mbr .tick path{ fill:none; stroke:var(--brass-text); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
 
-#mbr .foot{
-  margin-top:24px !important; font-size:13.5px; color:var(--muted);
-  text-align:center;
-}
+/* There is no footer line. The phone number used to sit under the card on
+   every view; Jake removed it so the page asks one thing and offers no exit.
+   The number still appears in the two failure messages, which is the one place
+   it genuinely helps: something has gone wrong and the visitor needs a way
+   through. */
 
 /* ===== PHONE ===== */
 @media (max-width: 560px){
@@ -467,7 +468,6 @@
     '</div>' +
 
   '</div>' +
-  '<p class="foot">Made Better LC &middot; <a href="' + CONFIG.phoneHref + '">' + CONFIG.phone + '</a></p>' +
 '</div>';
   }
 
@@ -500,7 +500,10 @@
       rate.style.display = "none";
       feed.classList.remove("is-open");
       doneH.textContent = heading;
-      doneP.innerHTML = message;
+      doneP.innerHTML = message || "";
+      // An empty paragraph still carries its top margin, which would leave the
+      // heading floating above a gap. Take it out of the flow entirely.
+      doneP.style.display = message ? "" : "none";
       done.classList.add("is-open");
     }
 
@@ -735,11 +738,7 @@
         keepalive: true
       }).then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
-        finish(
-          "Thank you for telling us.",
-          'Seamus will look at this himself. If you want it sorted today, call him on ' +
-          '<a href="' + CONFIG.phoneHref + '">' + CONFIG.phone + '</a>.'
-        );
+        finish("Thank you for telling us.", "");
       }).catch(function () {
         fail('That did not send. Please call Seamus on <a href="' +
           CONFIG.phoneHref + '">' + CONFIG.phone + '</a>.');
