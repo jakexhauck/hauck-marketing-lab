@@ -1520,7 +1520,7 @@ body{ margin:0 !important; padding:0 !important; }
       <div>
         <div class="eyebrow">Our story</div>
         <h2>A young crew that has to earn it.</h2>
-        <p>Seamus started Made Better LC two years ago, in his twenties, with a truck and a standard he refused to move on. When you are the new crew in a market full of established companies, you do not get to coast on a name. You earn every job, and then you earn the referral.</p>
+        <p>Seamus started Made Better LC two years ago, straight out of school, with a truck and a standard he refused to move on. When you are the new crew in a market full of established companies, you do not get to coast on a name. You earn every job, and then you earn the referral.</p>
         <p>A lot of what we get called for is fixing work somebody else rushed. Patios that sank. Walkways that heaved after one winter. Walls leaning because nobody handled the drainage behind them. Almost always it comes down to the base, the part that gets covered up, so it is the easiest place to cut corners and the hardest place to catch it. We do not cut it.</p>
         <p>The other half of it is the price. We run lean, we do the work ourselves, and we show you where every dollar goes. You should not need a second quote to find out whether the first one was fair.</p>
         <p>That's the whole idea behind the name. Not just built. Made better.</p>
