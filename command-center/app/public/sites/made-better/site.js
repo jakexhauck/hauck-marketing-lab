@@ -75,12 +75,25 @@
    colour is not.
    ========================================================================= */
 
+/* The sticky mobile bar and the scroll progress bar are appended to <body>,
+   which puts them outside #mb, so custom properties declared only on #mb never
+   reached them: var(--brass) resolved to nothing and the bar's "Free estimate"
+   button rendered as #14100A text on no background over a near-black bar, at
+   about 1.05:1. Invisible, and it is the primary call to action on a phone.
+   The handful of values both scopes need live here once, namespaced so a
+   builder theme cannot collide with them. */
+:root{
+  --mb-brass:#C8974B;
+  --mb-ink-3:#26332E;
+  --mb-radius:10px;
+}
+
 #mb {
   /* ===== BRAND COLOURS: swap these to match the logo ===== */
   --ink:#0E1311;        /* basalt, near-black green: dark bands, headings */
   --ink-2:#17201C;      /* raised panel on a dark band */
-  --ink-3:#26332E;      /* hairline on a dark band */
-  --brass:#C8974B;      /* the accent: CTA fills, rules, dots, brass on dark */
+  --ink-3:var(--mb-ink-3); /* hairline on a dark band */
+  --brass:var(--mb-brass); /* the accent: CTA fills, rules, dots, brass on dark */
   --brass-2:#B5843A;    /* pressed / hover */
   --brass-soft:#E8D9BC; /* brass text on a dark band */
   --moss:#4E6B54;       /* secondary accent */
@@ -126,7 +139,7 @@
   --muted:var(--light-muted);  /* secondary copy on light */
   --faint:var(--light-faint);  /* fineprint on light */
 
-  --radius:10px;        /* buttons, inputs */
+  --radius:var(--mb-radius); /* buttons, inputs */
   --radius-lg:16px;     /* cards, media */
   --shadow:0 1px 2px rgba(14,19,17,.04), 0 14px 34px -20px rgba(14,19,17,.30);
   --shadow-lift:0 2px 6px rgba(14,19,17,.06), 0 26px 56px -28px rgba(14,19,17,.38);
@@ -203,7 +216,10 @@ body{ margin:0 !important; padding:0 !important; }
 /* ===== LAYOUT ===== */
 #mb .wrap{ width:100%; max-width:1180px; margin:0 auto; padding:0 24px; }
 #mb .sec{ padding:88px 0; position:relative; }
-#mb .sec + .sec{ padding-top:0; }
+/* The hairline in .sec::before is drawn on the section's top edge, so a
+   padding-top of 0 left the rule sitting directly on the heading it introduces
+   with nothing between them. Consecutive sections keep a half step of air. */
+#mb .sec + .sec{ padding-top:48px; }
 #mb .sec-head{ max-width:720px; margin-bottom:44px; }
 #mb .sec-head p{ margin-top:16px; font-size:18px; color:var(--muted); max-width:62ch; }
 
@@ -216,7 +232,22 @@ body{ margin:0 !important; padding:0 !important; }
    rest of the page. */
 #mb .band-deep{ background:var(--wash-2); }
 #mb .sec.band, #mb .sec.band + .sec,
-#mb .sec.band-deep, #mb .sec.band-deep + .sec{ padding-top:88px; }
+#mb .sec.band-deep, #mb .sec.band-deep + .sec,
+#mb .sec.band-dark, #mb .sec.band-dark + .sec,
+/* .close is a full-bleed dark band and needs its own top padding for the same
+   reason the others do. Without it the closing form card and the "Ready when
+   you are" eyebrow started flush against the top edge of the black. */
+#mb .sec.close{ padding-top:88px; }
+
+/* A dark band for mid-page figures. The numbers on About were three white
+   cards on a white page, which is the one place on the site where the content
+   is the whole point and the surface was doing nothing to say so. */
+#mb .band-dark {
+  background:var(--ink); color:var(--stone);
+  --head:#FFFFFF; --muted:#A8B2AC; --body:#C9D1CB;
+  --brass-text:var(--brass); --brass-display:var(--brass);
+}
+#mb .band-dark .stat{ background:var(--ink-2); border-color:var(--ink-3); box-shadow:none; }
 
 /* ===== BUTTONS =====
    10px radius, 700 weight, generous padding, and a coloured glow beneath the
@@ -404,7 +435,7 @@ body{ margin:0 !important; padding:0 !important; }
   padding:30px 24px; background:transparent;
 }
 #mb .trust-item{
-  display:flex; align-items:flex-start; gap:14px;
+  display:flex; align-items:center; gap:14px;
   background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-lg);
   padding:22px 20px; box-shadow:0 1px 2px rgba(14,19,17,.04);
   transition:border-color .2s, box-shadow .2s, transform .2s cubic-bezier(.16,1,.3,1);
@@ -626,29 +657,31 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .stat span{ font-size:14.5px; color:var(--muted); }
 
 /* ===== FOOTER ===== */
+/* White, not black. It drops the dark-scope token overrides entirely rather
+   than restating them, so every colour in here comes from the same light-band
+   set the rest of the page uses and there is no second copy to drift. */
 #mb .ft {
-  background:var(--ink); color:var(--stone); padding:64px 0 30px;
-  --head:#FFFFFF; --muted:#8E9992;
-  --brass-text:var(--brass); --brass-display:var(--brass);
+  background:var(--paper); color:var(--body); padding:64px 0 30px;
+  border-top:1px solid var(--line);
 }
 #mb .ft-in{ display:grid; grid-template-columns:1.6fr 1fr 1fr; gap:48px; }
 #mb .brand-txt {
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
-  font-size:19px; font-weight:800; color:#fff; letter-spacing:-.02em;
+  font-size:19px; font-weight:800; color:var(--head); letter-spacing:-.02em;
 }
-#mb .brand-txt span{ color:var(--brass); }
-#mb .ft-blurb{ margin-top:14px; font-size:14.5px; color:#8E9992; line-height:1.65; max-width:400px; }
-#mb .ft h4{ color:#fff; font-size:12.5px; letter-spacing:.16em; text-transform:uppercase; margin-bottom:16px; }
+#mb .brand-txt span{ color:var(--brass-text); }
+#mb .ft-blurb{ margin-top:14px; font-size:14.5px; color:var(--muted); line-height:1.65; max-width:400px; }
+#mb .ft h4{ color:var(--head); font-size:12.5px; letter-spacing:.16em; text-transform:uppercase; margin-bottom:16px; }
 #mb .ft-links{ display:flex; flex-direction:column; gap:7px; }
-#mb .ft-links a{ font-size:14.5px; color:#8E9992; transition:color .15s; padding:5px 0; }
-#mb .ft-links a:hover{ color:var(--brass); }
+#mb .ft-links a{ font-size:14.5px; color:var(--muted); transition:color .15s; padding:5px 0; }
+#mb .ft-links a:hover{ color:var(--brass-text); }
 #mb .ft-bot {
   display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap;
-  margin-top:44px; padding-top:24px; border-top:1px solid var(--ink-3);
-  font-size:13px; color:#757F7A;
+  margin-top:44px; padding-top:24px; border-top:1px solid var(--line);
+  font-size:13px; color:var(--muted);
 }
-#mb .ft-bot a{ color:#757F7A; display:inline-block; padding:5px 0; }
-#mb .ft-bot a:hover{ color:var(--brass); }
+#mb .ft-bot a{ color:var(--muted); display:inline-block; padding:5px 0; }
+#mb .ft-bot a:hover{ color:var(--brass-text); }
 
 /* ===== INTERIOR PAGE HEAD ===== */
 #mb .phead {
@@ -715,6 +748,13 @@ body{ margin:0 !important; padding:0 !important; }
 
 /* ===== CONTACT ===== */
 #mb .cgrid{ display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:start; }
+/* The service-area map runs the full width of the grid, under both columns,
+   rather than stacking portrait inside the left one. It is a map of a metro
+   area, which is a wide shape: the 4/5 crop spent most of its height on water
+   above and below the counties actually being named. */
+#mb .cgrid > .map-wide {
+  grid-column:1 / -1; position:static; aspect-ratio:24/7; top:auto;
+}
 #mb .cblock{ padding:24px 0; border-bottom:1px solid var(--line); }
 #mb .cblock:first-of-type{ padding-top:0; }
 #mb .cblock h4{ font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin:0 0 8px; }
@@ -749,20 +789,20 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .ty-next li:last-child{ margin-bottom:0; }
 
 /* ===== SCROLL PROGRESS + STICKY MOBILE BAR ===== */
-#mb-progress{ position:fixed; top:0; left:0; height:3px; width:0; background:var(--brass); z-index:90; }
+#mb-progress{ position:fixed; top:0; left:0; height:3px; width:0; background:var(--mb-brass); z-index:90; }
 #mb-bar {
   position:fixed; left:0; right:0; bottom:0; z-index:80; display:none; gap:10px; padding:11px 14px;
   background:rgba(14,19,17,.95); backdrop-filter:blur(10px);
   transform:translateY(110%); transition:transform .3s cubic-bezier(.16,1,.3,1);
-  border-top:1px solid var(--ink-3);
+  border-top:1px solid var(--mb-ink-3);
 }
 #mb-bar.up{ transform:translateY(0); }
 #mb-bar a {
-  flex:1; text-align:center; padding:13px 10px; border-radius:var(--radius);
+  flex:1; text-align:center; padding:13px 10px; border-radius:var(--mb-radius);
   font-family:'Plus Jakarta Sans','Inter',sans-serif; font-size:14.5px; font-weight:700;
 }
 #mb-bar .b-call{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,.28); }
-#mb-bar .b-est{ background:var(--brass); color:#14100A; }
+#mb-bar .b-est{ background:var(--mb-brass); color:#14100A; }
 
 /* ===== MOTION ===== */
 #mb .reveal, #mb .reveal-l, #mb .reveal-r, #mb .gal figure, #mb .split-grid figure {
@@ -803,9 +843,11 @@ body{ margin:0 !important; padding:0 !important; }
 
 @media(max-width:960px){
   #mb .sec{ padding:62px 0; }
-  #mb .sec + .sec{ padding-top:0; }
+  #mb .sec + .sec{ padding-top:34px; }
   #mb .sec.band, #mb .sec.band + .sec,
-  #mb .sec.band-deep, #mb .sec.band-deep + .sec{ padding-top:62px; }
+  #mb .sec.band-deep, #mb .sec.band-deep + .sec,
+  #mb .sec.band-dark, #mb .sec.band-dark + .sec,
+  #mb .sec.close{ padding-top:62px; }
   #mb .sec-head{ margin-bottom:34px; }
   #mb .hero{ padding:52px 0 60px; }
   #mb .svc, #mb .stats, #mb .steps, #mb .split-grid{ grid-template-columns:1fr; }
@@ -813,6 +855,8 @@ body{ margin:0 !important; padding:0 !important; }
   #mb .gal{ grid-template-columns:repeat(2,1fr); }
   #mb .gal .tall{ grid-row:span 1; aspect-ratio:1; }
   #mb .split, #mb .cgrid, #mb .row, #mb .vals{ grid-template-columns:1fr; gap:36px; }
+  /* 24/7 across a phone is a 100px letterbox slit, not a map */
+  #mb .cgrid > .map-wide{ aspect-ratio:16/10; }
   #mb .row.flip .row-txt{ order:0; }
   #mb .close-in{ grid-template-columns:1fr; gap:34px; }
   #mb .ft-in{ grid-template-columns:1fr; gap:34px; }
@@ -1530,7 +1574,7 @@ body{ margin:0 !important; padding:0 !important; }
     </div>
   </section>
 
-  <section class="sec">
+  <section class="sec band-dark">
     <div class="wrap">
       <div class="stats">
         <div class="stat"><b>50+</b><span>Metro Detroit communities served</span></div>
@@ -1618,9 +1662,6 @@ body{ margin:0 !important; padding:0 !important; }
           <p style="font-size:22px">Metro Detroit</p>
           <small>Wayne, Oakland, Macomb and Washtenaw counties, 50+ communities. Not sure if you're in range? Call and ask.</small>
         </div>
-        <div class="area-map" style="margin-top:26px">
-          <iframe src="https://www.google.com/maps?q=Metro+Detroit+Michigan&output=embed" loading="lazy" title="Made Better LC service area map"></iframe>
-        </div>
       </div>
       <div class="form-card">
         <h3>Request your free estimate</h3>
@@ -1652,6 +1693,9 @@ body{ margin:0 !important; padding:0 !important; }
           <button class="btn btn-primary" type="submit">Request my free estimate</button>
         </form>
         <p class="fineprint">We'll only use your info to quote this project. No spam, ever.</p>
+      </div>
+      <div class="area-map map-wide reveal">
+        <iframe src="https://www.google.com/maps?q=Metro+Detroit+Michigan&output=embed" loading="lazy" title="Made Better LC service area map"></iframe>
       </div>
     </div>
   </section>
