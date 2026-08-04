@@ -434,10 +434,15 @@ body{ margin:0 !important; padding:0 !important; }
   display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
   padding:30px 24px; background:transparent;
 }
+/* The mark sits above the words, centred, rather than beside them. Alongside
+   the text it was reading as a bullet on the left edge of the card, and the
+   four cards wrap to different line counts, so nothing lined up down the row.
+   Stacked and centred, the four marks sit on one line across the row and the
+   card has a middle to look at. */
 #mb .trust-item{
-  display:flex; align-items:center; gap:14px;
+  display:flex; flex-direction:column; align-items:center; text-align:center; gap:12px;
   background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-lg);
-  padding:22px 20px; box-shadow:0 1px 2px rgba(14,19,17,.04);
+  padding:26px 20px 24px; box-shadow:0 1px 2px rgba(14,19,17,.04);
   transition:border-color .2s, box-shadow .2s, transform .2s cubic-bezier(.16,1,.3,1);
 }
 #mb .trust-item:hover{
@@ -454,6 +459,9 @@ body{ margin:0 !important; padding:0 !important; }
   font-size:15.5px; font-weight:700; color:var(--head); letter-spacing:-.015em; margin-bottom:4px;
 }
 #mb .trust-item span{ display:block; font-size:13.5px; color:var(--muted); line-height:1.5; }
+/* Equal heights across the row so the four marks stay on one line even though
+   the copy under them wraps to different depths. */
+#mb .trust-in{ align-items:stretch; }
 
 /* ===== BEFORE / AFTER SLIDER =====
    Made Better's own. Willis has nothing like it. */
