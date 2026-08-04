@@ -80,10 +80,23 @@
   --ink:#0E1311;        /* basalt, near-black green: dark bands, headings */
   --ink-2:#17201C;      /* raised panel on a dark band */
   --ink-3:#26332E;      /* hairline on a dark band */
-  --brass:#C8974B;      /* the accent: CTAs, eyebrows, numerals */
+  --brass:#C8974B;      /* the accent: CTA fills, rules, dots, brass on dark */
   --brass-2:#B5843A;    /* pressed / hover */
   --brass-soft:#E8D9BC; /* brass text on a dark band */
   --moss:#4E6B54;       /* secondary accent */
+
+  /* Brass at #C8974B is a fill colour, not a text colour. On white it reads
+     2.63:1, so every eyebrow, label and numeral set in it failed AA and the
+     small ones were genuinely hard to read. Text keeps the brass hue and
+     takes the contrast: --brass-text clears 4.5:1 on all four light bands,
+     --brass-display clears the 3:1 large-text threshold so the 40px numerals
+     stay bright. Dark bands override both back to --brass, where it already
+     reads 7.13:1. */
+  --light-brass:#876633;    /* brass on light, body-size */
+  --light-brass-lg:#AB8140; /* brass on light, 24px+ or bold 19px+ */
+
+  --brass-text:var(--light-brass);
+  --brass-display:var(--light-brass-lg);
 
   --paper:#FFFFFF;      /* the default band */
   --wash:#F7F6F2;       /* the alternating warm band */
@@ -91,10 +104,27 @@
   --line:#E6E3DA;       /* hairline on a light band */
   --stone:#E9E5DC;      /* primary text on a dark band */
 
-  --head:#0E1311;       /* headings on light */
-  --body:#5B655F;       /* body copy on light */
-  --muted:#7C857F;      /* secondary copy on light */
-  --faint:#98A29C;
+  /* ===== TEXT ON A LIGHT BAND =====
+     Declared once here and referenced by name everywhere else, including by
+     .form-card, which has to restate the whole light set because it is a white
+     card that can sit inside a dark band. It used to restate them as literals
+     and had already drifted: its --muted was still the old failing value after
+     the root was corrected, so the card's helper text stayed at 3.81:1 while
+     the rest of the site moved. One definition, no second copy to miss.
+
+     --muted carries most of the secondary copy on the site and was light
+     enough to fail AA on every band it appears on (3.81:1 on white, 3.25:1 on
+     --wash-2). --faint was worse at 2.63:1 and is used at 12.5px. Both are now
+     the lightest value that still clears 4.5:1 on the deepest light band. */
+  --light-head:#0E1311;
+  --light-body:#5B655F;
+  --light-muted:#646C67;
+  --light-faint:#6B726E;
+
+  --head:var(--light-head);    /* headings on light */
+  --body:var(--light-body);    /* body copy on light */
+  --muted:var(--light-muted);  /* secondary copy on light */
+  --faint:var(--light-faint);  /* fineprint on light */
 
   --radius:10px;        /* buttons, inputs */
   --radius-lg:16px;     /* cards, media */
@@ -167,7 +197,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .eyebrow {
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
   font-size:12.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
-  color:var(--brass); margin-bottom:16px;
+  color:var(--brass-text); margin-bottom:16px;
 }
 
 /* ===== LAYOUT ===== */
@@ -175,7 +205,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .sec{ padding:88px 0; position:relative; }
 #mb .sec + .sec{ padding-top:0; }
 #mb .sec-head{ max-width:720px; margin-bottom:44px; }
-#mb .sec-head p{ margin-top:16px; font-size:18px; color:var(--muted); }
+#mb .sec-head p{ margin-top:16px; font-size:18px; color:var(--muted); max-width:62ch; }
 
 /* The alternating warm band, applied to a whole section. Willis alternates
    white and pale down the page and it is most of why the site reads as calm.
@@ -206,7 +236,7 @@ body{ margin:0 !important; padding:0 !important; }
 }
 #mb .btn-primary:hover{ background:var(--brass-2); border-color:var(--brass-2); box-shadow:0 16px 30px -14px rgba(200,151,75,.95); }
 #mb .btn-ghost{ background:transparent; color:var(--head); border-color:var(--line); }
-#mb .btn-ghost:hover{ border-color:var(--brass); color:var(--brass-2); }
+#mb .btn-ghost:hover{ border-color:var(--brass); color:var(--brass-text); }
 #mb .btn:disabled{ opacity:.55; cursor:default; box-shadow:none; }
 #mb a.btn{ text-decoration:none; }
 
@@ -247,7 +277,7 @@ body{ margin:0 !important; padding:0 !important; }
   font-size:19px; font-weight:800; letter-spacing:-.02em; color:var(--head);
   white-space:nowrap; transition:font-size .25s;
 }
-#mb .brand-name i{ font-style:normal; color:var(--brass); }
+#mb .brand-name i{ font-style:normal; color:var(--brass-text); }
 #mb .hdr.is-stuck .brand-name{ font-size:17.5px; }
 
 #mb .nav{ display:flex; align-items:center; gap:34px; }
@@ -255,7 +285,7 @@ body{ margin:0 !important; padding:0 !important; }
   font-size:15px; font-weight:600; color:var(--head); letter-spacing:-.01em;
   transition:color .15s; position:relative; padding:6px 0;
 }
-#mb .nav a:hover{ color:var(--brass-2); }
+#mb .nav a:hover{ color:var(--brass-text); }
 #mb .nav a.is-active{ color:var(--head); }
 #mb .nav a.is-active::after {
   content:""; position:absolute; left:0; right:0; bottom:-2px; height:2px;
@@ -267,7 +297,7 @@ body{ margin:0 !important; padding:0 !important; }
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
   font-size:15px; font-weight:700; color:var(--head); letter-spacing:-.01em;
 }
-#mb .hdr-phone:hover{ color:var(--brass-2); }
+#mb .hdr-phone:hover{ color:var(--brass-text); }
 #mb .hdr-cta .btn{ padding:11px 20px; font-size:14.5px; }
 #mb .burger {
   display:none; background:transparent; border:1px solid var(--line); border-radius:var(--radius);
@@ -281,6 +311,7 @@ body{ margin:0 !important; padding:0 !important; }
   position:relative; background:var(--ink); color:var(--stone);
   padding:72px 0 88px; overflow:hidden;
   --muted:#A8B2AC; --head:#FFFFFF; --body:#C9D1CB;
+  --brass-text:var(--brass); --brass-display:var(--brass);
 }
 #mb .hero-bg{ position:absolute; inset:0; overflow:hidden; }
 /* The photograph has to survive the wash. Heavy on the left where the headline
@@ -312,7 +343,11 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .form-card {
   background:var(--paper); border-radius:var(--radius-lg); border:1px solid rgba(255,255,255,.10);
   padding:34px 34px 30px; box-shadow:0 30px 70px -30px rgba(0,0,0,.75);
-  --head:#0E1311; --body:#5B655F; --muted:#7C857F;
+  /* A white card that floats on a dark band, so it has to put the light-band
+     text colours back for everything inside it. */
+  --head:var(--light-head); --body:var(--light-body);
+  --muted:var(--light-muted); --faint:var(--light-faint);
+  --brass-text:var(--light-brass); --brass-display:var(--light-brass-lg);
 }
 #mb .form-card h3{ font-size:23px; color:var(--head); }
 #mb .form-note{ margin-top:9px; font-size:14.5px; color:var(--muted); line-height:1.55; }
@@ -423,11 +458,11 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .ba-tag.l{ left:16px; }
 #mb .ba-tag.r{ right:16px; }
 #mb .ba-cap{ display:flex; justify-content:space-between; gap:20px; margin-top:16px; font-size:14.5px; color:var(--muted); }
-#mb .ba-cap p:last-child{ color:var(--brass); font-weight:600; white-space:nowrap; }
+#mb .ba-cap p:last-child{ color:var(--brass-text); font-weight:600; white-space:nowrap; }
 
 #mb .ba-thumbs{ display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
 #mb .ba-thumbs button {
-  padding:9px 18px; border-radius:999px; border:1px solid var(--line); background:var(--paper);
+  padding:9px 18px; min-height:44px; border-radius:999px; border:1px solid var(--line); background:var(--paper);
   font-size:14px; font-weight:600; color:var(--body); cursor:pointer; transition:all .15s;
 }
 #mb .ba-thumbs button:hover{ border-color:var(--brass); color:var(--head); }
@@ -457,10 +492,10 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .svc-num {
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
   font-size:11.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
-  color:var(--brass); margin-bottom:14px;
+  color:var(--brass-text); margin-bottom:14px;
 }
 #mb .svc-card h3{ margin-bottom:12px; }
-#mb .svc-card p{ font-size:15.5px; color:var(--muted); line-height:1.6; }
+#mb .svc-card p{ font-size:15.5px; color:var(--muted); line-height:1.6; max-width:62ch; }
 #mb .svc-list{ list-style:none; margin:20px 0 0; padding:0; display:flex; flex-direction:column; gap:9px; }
 #mb .svc-list li{ position:relative; padding-left:20px; font-size:15px; color:var(--body); }
 #mb .svc-list li::before {
@@ -496,11 +531,11 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .steps > div{ padding-top:72px; }
 #mb .step-n {
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
-  font-size:40px; font-weight:800; color:var(--brass); line-height:1;
+  font-size:40px; font-weight:800; color:var(--brass-display); line-height:1;
   letter-spacing:-.03em; margin-bottom:14px; font-variant-numeric:tabular-nums;
 }
 #mb .steps h3{ margin-bottom:10px; }
-#mb .steps p{ font-size:15.5px; color:var(--muted); }
+#mb .steps p{ font-size:15.5px; color:var(--muted); max-width:62ch; }
 
 /* ===== CITY MARQUEE ===== */
 #mb .marq{ overflow:hidden; background:var(--ink); padding:16px 0; border-top:1px solid var(--ink-3); border-bottom:1px solid var(--ink-3); }
@@ -522,7 +557,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .county {
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
   font-size:12.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
-  color:var(--brass); margin:34px 0 14px;
+  color:var(--brass-text); margin:34px 0 14px;
 }
 #mb .county:first-child{ margin-top:0; }
 /* Willis's city pills */
@@ -537,10 +572,16 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .close {
   background:var(--ink); color:var(--stone); padding:88px 0;
   --head:#FFFFFF; --muted:#A8B2AC; --body:#C9D1CB;
+  --brass-text:var(--brass); --brass-display:var(--brass);
 }
 #mb .close-in{ display:grid; grid-template-columns:1.2fr .8fr; gap:56px; align-items:center; }
-#mb .close h2{ color:#fff; }
-#mb .close p{ margin-top:16px; font-size:18px; color:#C9D1CB; max-width:520px; }
+#mb .close h2{ color:var(--head); }
+/* Scoped to the copy column, not the whole band. As ".close p" it also matched
+   every paragraph inside the white form card sitting in the other column, and
+   beat ".form-note" on specificity: the card's helper text and fineprint were
+   painted #C9D1CB, a dark-band colour, onto white. 1.56:1, near enough to
+   invisible, and blown up to 18px besides. */
+#mb .close-in > div:not(.form-card) p{ margin-top:16px; font-size:18px; color:var(--body); max-width:520px; }
 #mb .close-phone {
   display:inline-block; margin-top:26px;
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
@@ -568,8 +609,8 @@ body{ margin:0 !important; padding:0 !important; }
   transform:rotate(45deg); transition:transform .25s;
 }
 #mb .faq details[open] summary::after{ transform:rotate(-135deg); margin-top:-3px; }
-#mb .faq summary:hover{ color:var(--brass-2); }
-#mb .faq .faq-a{ padding:0 44px 26px 0; font-size:16px; color:var(--muted); line-height:1.65; }
+#mb .faq summary:hover{ color:var(--brass-text); }
+#mb .faq .faq-a{ padding:0 44px 26px 0; font-size:16px; color:var(--muted); line-height:1.65; max-width:62ch; }
 
 /* ===== STAT BLOCK ===== */
 #mb .stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
@@ -579,7 +620,7 @@ body{ margin:0 !important; padding:0 !important; }
 }
 #mb .stat b {
   display:block; font-family:'Plus Jakarta Sans','Inter',sans-serif;
-  font-size:42px; font-weight:800; color:var(--brass); letter-spacing:-.03em;
+  font-size:42px; font-weight:800; color:var(--brass-display); letter-spacing:-.03em;
   line-height:1; margin-bottom:8px; font-variant-numeric:tabular-nums; min-height:42px;
 }
 #mb .stat span{ font-size:14.5px; color:var(--muted); }
@@ -588,6 +629,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .ft {
   background:var(--ink); color:var(--stone); padding:64px 0 30px;
   --head:#FFFFFF; --muted:#8E9992;
+  --brass-text:var(--brass); --brass-display:var(--brass);
 }
 #mb .ft-in{ display:grid; grid-template-columns:1.6fr 1fr 1fr; gap:48px; }
 #mb .brand-txt {
@@ -597,38 +639,51 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .brand-txt span{ color:var(--brass); }
 #mb .ft-blurb{ margin-top:14px; font-size:14.5px; color:#8E9992; line-height:1.65; max-width:400px; }
 #mb .ft h4{ color:#fff; font-size:12.5px; letter-spacing:.16em; text-transform:uppercase; margin-bottom:16px; }
-#mb .ft-links{ display:flex; flex-direction:column; gap:11px; }
-#mb .ft-links a{ font-size:14.5px; color:#8E9992; transition:color .15s; }
+#mb .ft-links{ display:flex; flex-direction:column; gap:7px; }
+#mb .ft-links a{ font-size:14.5px; color:#8E9992; transition:color .15s; padding:5px 0; }
 #mb .ft-links a:hover{ color:var(--brass); }
 #mb .ft-bot {
   display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap;
   margin-top:44px; padding-top:24px; border-top:1px solid var(--ink-3);
-  font-size:13px; color:#6F7A74;
+  font-size:13px; color:#757F7A;
 }
-#mb .ft-bot a{ color:#6F7A74; }
+#mb .ft-bot a{ color:#757F7A; display:inline-block; padding:5px 0; }
 #mb .ft-bot a:hover{ color:var(--brass); }
 
 /* ===== INTERIOR PAGE HEAD ===== */
-#mb .phead{ position:relative; background:var(--ink); color:var(--stone); overflow:hidden; --head:#FFFFFF; }
+#mb .phead {
+  position:relative; background:var(--ink); color:var(--stone); overflow:hidden;
+  --head:#FFFFFF; --brass-text:var(--brass); --brass-display:var(--brass);
+}
 #mb .phead-bg{ position:absolute; inset:0; overflow:hidden; }
 #mb .phead-bg img{ width:100%; height:100%; object-fit:cover; opacity:.26; }
 #mb .phead-bg::after {
   content:""; position:absolute; inset:0;
   background:linear-gradient(104deg, var(--ink) 8%, rgba(14,19,17,.82) 100%);
 }
-#mb .phead-in{ position:relative; padding:72px 0 68px; max-width:780px; }
+/* The measure belongs on the text, not on the container. This element carries
+   "wrap" too, and a 780px max-width on a "margin:0 auto" wrap centred the whole
+   page head in the viewport: on a 1440px screen its left edge landed 178px
+   right of the logo above it and the first section below it, so five of the
+   seven pages opened with their title out of alignment with everything else on
+   the page. The container goes back to the 1180px column every other band uses
+   and the headline keeps its 780px measure. */
+#mb .phead-in{ position:relative; padding:72px 24px 68px; }
+#mb .phead-in h1{ max-width:780px; }
+#mb .phead-in p{ max-width:680px; }
 #mb .phead h1{ color:#fff; margin-bottom:18px; }
 #mb .phead p{ font-size:19px; color:#C9D1CB; }
 
 /* ===== PROSE (legal pages) ===== */
-#mb .prose{ max-width:780px; }
+#mb .prose{ max-width:1180px; }
+#mb .prose h2, #mb .prose h3, #mb .prose h4{ max-width:780px; }
 #mb .prose h2{ font-size:27px; margin:48px 0 14px; }
 #mb .prose h2:first-child{ margin-top:0; }
 #mb .prose h3{ font-size:18px; margin:28px 0 8px; }
-#mb .prose p{ color:var(--muted); margin-bottom:16px; font-size:16px; }
-#mb .prose ul{ color:var(--muted); margin:0 0 18px; padding-left:20px; font-size:16px; }
+#mb .prose p{ color:var(--muted); margin-bottom:16px; font-size:16px; max-width:62ch; }
+#mb .prose ul{ color:var(--muted); margin:0 0 18px; padding-left:20px; font-size:16px; max-width:62ch; }
 #mb .prose li{ margin-bottom:8px; }
-#mb .prose a{ color:var(--brass-2); text-decoration:underline; text-underline-offset:2px; }
+#mb .prose a{ color:var(--brass-text); text-decoration:underline; text-underline-offset:2px; }
 #mb .prose strong{ color:var(--head); }
 #mb .updated{ font-size:13px; color:var(--faint); padding:14px 0 0; border-top:1px solid var(--line); margin-top:10px; }
 
@@ -636,7 +691,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .split{ display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center; }
 #mb .split img{ width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:var(--radius-lg); border:1px solid var(--line); }
 #mb .split h2{ margin-bottom:18px; }
-#mb .split p{ color:var(--muted); margin-bottom:16px; font-size:16.5px; }
+#mb .split p{ color:var(--muted); margin-bottom:16px; font-size:16.5px; max-width:62ch; }
 #mb .vals{ display:grid; grid-template-columns:repeat(2,1fr); gap:22px; }
 #mb .val {
   background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-lg);
@@ -655,7 +710,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .row .img-frame img{ border-radius:0; border:0; }
 #mb .row.flip .row-txt{ order:2; }
 #mb .row h2{ margin-bottom:16px; }
-#mb .row > div > p{ color:var(--muted); font-size:16.5px; margin-bottom:22px; }
+#mb .row > div > p{ color:var(--muted); font-size:16.5px; margin-bottom:22px; max-width:62ch; }
 #mb .row .svc-list{ margin-bottom:26px; }
 
 /* ===== CONTACT ===== */
@@ -668,14 +723,14 @@ body{ margin:0 !important; padding:0 !important; }
   font-size:25px; font-weight:800; letter-spacing:-.025em; color:var(--head);
   overflow-wrap:anywhere; line-height:1.25; display:block;
 }
-#mb .cblock a:hover{ color:var(--brass-2); }
+#mb .cblock a:hover{ color:var(--brass-text); }
 #mb .cblock small{ display:block; font-family:'Inter',sans-serif; font-size:14.5px; font-weight:400; color:var(--muted); margin-top:6px; letter-spacing:0; }
 
 /* ===== THANK YOU ===== */
 #mb .ty{ max-width:660px; margin:0 auto; text-align:center; padding:88px 0 80px; }
 #mb .ty-mark {
   width:76px; height:76px; border-radius:50%; background:rgba(200,151,75,.12);
-  border:1px solid rgba(200,151,75,.5); color:var(--brass);
+  border:1px solid rgba(200,151,75,.5); color:var(--brass-display);
   display:flex; align-items:center; justify-content:center; margin:0 auto 30px; font-size:31px;
 }
 #mb .ty h1{ margin-bottom:16px; }
@@ -687,6 +742,10 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .ty-next h3{ margin-bottom:18px; }
 #mb .ty-next ol{ margin:0; padding-left:20px; color:var(--muted); font-size:15.5px; }
 #mb .ty-next li{ margin-bottom:12px; }
+/* The lead-in of each step was inline-styled to --stone, which is the text
+   colour for a DARK band. On this pale panel it rendered 1.16:1: the three
+   phrases that carry the whole page were invisible. */
+#mb .ty-next strong{ color:var(--head); font-weight:700; }
 #mb .ty-next li:last-child{ margin-bottom:0; }
 
 /* ===== SCROLL PROGRESS + STICKY MOBILE BAR ===== */
@@ -728,8 +787,14 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .px, #mb .px-soft{ will-change:transform; }
 #mb .hero-copy{ will-change:transform, opacity; }
 
-/* ===== RESPONSIVE ===== */
-#mb @media(max-width:1060px){
+/* ===== RESPONSIVE =====
+   This block used to open "#mb @media(...)". An at-rule cannot carry a selector,
+   so the browser threw the whole block away and every rule in it was dead. The
+   casualty that mattered: .hero-in never collapsed to one column, so on a phone
+   the estimate form sat in a second grid column running off the right edge of
+   the screen, roughly two thirds of it unreachable, on the page whose entire
+   job is that form. */
+@media(max-width:1060px){
   #mb .hero-in{ grid-template-columns:1fr; gap:44px; }
   #mb .form-card{ max-width:560px; }
   #mb .area{ grid-template-columns:1fr; gap:36px; }
@@ -1004,7 +1069,7 @@ body{ margin:0 !important; padding:0 !important; }
 
       <div class="ba-cap">
         <p id="mbBACap">Front walkway rebuild with full base excavation, new pavers, polymeric sand.</p>
-        <p style="color:var(--brass)">Drag the handle</p>
+        <p style="color:var(--brass-text)">Drag the handle</p>
       </div>
 
       <div class="ba-thumbs" id="mbBAThumbs">
@@ -1602,9 +1667,9 @@ body{ margin:0 !important; padding:0 !important; }
       <div class="ty-next">
         <h3>What happens next</h3>
         <ol>
-          <li><strong style="color:var(--stone)">We call you back.</strong> Usually the same day, at the number you gave us. If you'd rather not wait, call (313) 506-9238 and we'll pick up if we're not on a job.</li>
-          <li><strong style="color:var(--stone)">We set a time to come look.</strong> Twenty minutes on site to measure, check drainage, and talk through what you want. Evenings and weekends work.</li>
-          <li><strong style="color:var(--stone)">You get an itemized price.</strong> Materials, labour and disposal broken out separately, no obligation to move forward.</li>
+          <li><strong>We call you back.</strong> Usually the same day, at the number you gave us. If you'd rather not wait, call (313) 506-9238 and we'll pick up if we're not on a job.</li>
+          <li><strong>We set a time to come look.</strong> Twenty minutes on site to measure, check drainage, and talk through what you want. Evenings and weekends work.</li>
+          <li><strong>You get an itemized price.</strong> Materials, labour and disposal broken out separately, no obligation to move forward.</li>
         </ol>
       </div>
 
