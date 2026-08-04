@@ -1,0 +1,46 @@
+<!--
+  MADE BETTER LC — Review funnel
+  GHL step: /review
+
+  THIS IS THE WHOLE THING. Paste both lines below into the GoHighLevel step and
+  never come back. The funnel itself is served from the Command Center, so the
+  Google review link, the feedback webhook and every word ship by deploy.
+
+  GHL holds a pointer, not a copy. That matters more here than anywhere else on
+  this account: the Google review URL does not exist yet. When it does, it is
+  one line in one file and a deploy. Nobody reopens this step.
+
+  The real file:
+    command-center/app/public/sites/made-better/review.js
+
+  WHAT THE PAGE DOES
+    One page, three views. Five stars, one tap.
+      4 or 5   -> the Google review page.
+      1, 2, 3  -> a feedback box opens in place, below the stars.
+    Nothing navigates away except the Google redirect.
+
+  It asks for no name, no phone and no email. The link is handed out by QR code
+  and in person, so the feedback arrives anonymous by design.
+
+  HOW TO USE IT IN GHL
+  1. The funnel or website > this step > Custom JS/HTML element.
+  2. Delete whatever is in there and paste everything below.
+  3. Set the step to full width and remove GHL's own padding.
+  4. Publish, then open the page.
+
+  TWO THINGS ARE NOT WIRED YET, both by choice, both one line in review.js:
+    CONFIG.googleReviewUrl — empty, so 4 and 5 stars end on a thank-you card
+                             instead of redirecting to a link that does not
+                             exist. Paste the Google "write a review" URL in.
+    CONFIG.webhookUrl      — empty, so the feedback form says plainly that it
+                             could not send and shows the phone number, rather
+                             than faking a thank-you over a lost complaint.
+                             Paste a GHL inbound webhook URL in.
+
+  NOTHING HERE GOES LIVE UNTIL THE COMMAND CENTER IS DEPLOYED. The stub loads
+  review.js from app.hauckmarketing.com, so until that deploy runs, the GHL
+  step renders an empty div.
+-->
+
+<div id="mbr"></div>
+<script src="https://app.hauckmarketing.com/sites/made-better/review.js"></script>

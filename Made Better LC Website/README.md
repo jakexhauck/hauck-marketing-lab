@@ -22,6 +22,27 @@ The real file: **`command-center/app/public/sites/made-better/site.js`**
 | Privacy Policy | `/privacy-policy` | `privacy-policy.html` |
 | Terms | `/terms` | `terms.html` |
 
+## The review funnel is a separate file
+
+`/review` is **not** one of the seven. It is its own stub (`review.html`) loading
+its own file, `command-center/app/public/sites/made-better/review.js`.
+
+Five stars, one tap. 4 or 5 goes to the Google review page; 1 to 3 opens a
+feedback box in place, below the stars. It asks for no name, phone or email:
+the link is handed out by QR code and in person, so the feedback is anonymous
+by design.
+
+It is deliberately not an eighth page in `site.js`. A funnel wants no nav and
+no footer, it should not pull 120KB of website to ask one question, and editing
+it must not be able to break the seven live pages.
+
+**Two things are unwired on purpose**, both one line in `review.js`:
+
+| Setting | While empty | To connect |
+|---|---|---|
+| `CONFIG.googleReviewUrl` | 4 and 5 stars end on a thank-you card instead of redirecting | Paste the Google Business Profile "write a review" link |
+| `CONFIG.webhookUrl` | The feedback form says plainly it could not send and shows the phone number | Paste a GHL inbound webhook URL |
+
 ## How one file draws seven pages
 
 The stub names its page and nothing else:
