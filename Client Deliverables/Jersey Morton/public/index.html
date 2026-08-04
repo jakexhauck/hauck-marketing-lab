@@ -548,8 +548,51 @@ async function loadConfig(){
     siteKey = cfg.turnstileSiteKey || '';
     contactPhone = cfg.contactPhone || '';
     salonTz = cfg.timezone || salonTz;
+    applyLivePrices(cfg.services, cfg.addons);
     if (siteKey && flow()[stepIndex] === 'details') mountTurnstile();
   } catch { /* the check simply will not appear, and booking will refuse */ }
+}
+
+/* She can change a price from /hours without anyone deploying, so the list
+   above is a starting point rather than the truth: it exists so the first
+   screen paints instantly, and is corrected the moment /api/config answers.
+   The server prices every booking from its own copy either way, so a stale
+   page can only ever show the wrong number, never charge it.
+
+   Matched by id. Anything the page does not know about is ignored, and
+   anything the server does not mention keeps what it had. */
+function applyLivePrices(services, addons){
+  if (!Array.isArray(services)) return;
+  let changed = false;
+
+  const merge = (local, live) => {
+    for (const key of ['name','price','minutes']){
+      if (live[key] === undefined || local[key] === live[key]) continue;
+      local[key] = live[key];
+      changed = true;
+    }
+  };
+
+  for (const group of Object.values(SERVICES)){
+    for (const s of group){
+      const live = services.find(x => x && x.id === s.id);
+      if (live) merge(s, live);
+    }
+  }
+  if (Array.isArray(addons)){
+    for (const a of ADDONS){
+      const live = addons.find(x => x && x.id === a.id);
+      if (live) merge(a, live);
+    }
+  }
+
+  // A changed length means the slots already fetched were sized for the old
+  // one, so they have to go rather than quietly offering times that no longer
+  // fit the appointment.
+  if (changed){
+    resetSlots();
+    render();
+  }
 }
 
 /* Mounted fresh on every paint of the details step, because render() replaces

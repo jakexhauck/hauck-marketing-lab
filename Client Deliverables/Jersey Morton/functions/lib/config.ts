@@ -8,6 +8,19 @@
 // Texas. Central time, so the whole state except the El Paso corner.
 export const TIMEZONE = "America/Chicago";
 
+// The calendar that holds her open windows. She edits it from /hours, or from
+// the Google Calendar app directly: every event on it is a window in which an
+// appointment may start, so the two can never disagree.
+//
+// Renaming this orphans the calendar and quietly drops her back to the HOURS
+// below, which is the safe direction to be wrong in but is still wrong.
+export const HOURS_CALENDAR_NAME = "Booking hours";
+
+// THE FALLBACK, not the schedule. Once the Booking hours calendar exists it is
+// the authority and this is never read. It stays as the answer to "what should
+// the page do if that calendar is missing or she has not set hours yet", where
+// the alternative is telling every client she is booked solid for 60 days.
+//
 // BOOKABLE START TIMES per weekday, 0 = Sunday. A day with no ranges is
 // closed. Several ranges make a split shift, for example a lunch break.
 //

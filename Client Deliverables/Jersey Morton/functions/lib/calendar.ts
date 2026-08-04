@@ -60,6 +60,70 @@ export async function getBusy(env: Env, accountId: string, fromIso: string, toIs
   return parseBusy(raw);
 }
 
+// A day off, as an all-day busy event on her PRIMARY calendar.
+//
+// Deliberately not on the Booking hours calendar. Availability is open windows
+// minus busy, and busy is read from primary, so a closure written here is
+// subtracted by the code path that already works. Blocking the day by hand in
+// Google does exactly the same thing, which is why closing a day needed no new
+// concept.
+export async function closeDay(env: Env, accountId: string, dateISO: string, reason: string): Promise<void> {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d + 1));
+  const end = `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}-${String(next.getUTCDate()).padStart(2, "0")}`;
+
+  await proxyCall(env, {
+    connectedAccountId: accountId,
+    endpoint: `/calendars/${encodeURIComponent(CALENDAR_ID)}/events`,
+    method: "POST",
+    body: {
+      summary: reason || "Closed",
+      start: { date: dateISO },
+      end: { date: end },
+      // The whole point: it has to read as busy or it closes nothing.
+      transparency: "opaque",
+      extendedProperties: { private: { jmKind: "closure", jmDate: dateISO } },
+    },
+  });
+}
+
+export interface Closure {
+  date: string;
+  reason: string;
+  eventId: string;
+}
+
+export async function listClosures(env: Env, accountId: string): Promise<Closure[]> {
+  const qs = new URLSearchParams({ privateExtendedProperty: "jmKind=closure", maxResults: "100" });
+  const res = await proxyCall<{ items?: { id?: string; summary?: string; extendedProperties?: { private?: Record<string, string> } }[] }>(env, {
+    connectedAccountId: accountId,
+    endpoint: `/calendars/${encodeURIComponent(CALENDAR_ID)}/events?${qs}`,
+    method: "GET",
+  });
+  const out: Closure[] = [];
+  for (const e of res?.items ?? []) {
+    const date = e.extendedProperties?.private?.jmDate;
+    if (!date || !e.id) continue;
+    out.push({ date, reason: e.summary ?? "Closed", eventId: e.id });
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Only removes closures this page created. Anything she blocked out herself is
+// hers, and a page that deletes appointments it did not make is a page nobody
+// should trust with a calendar.
+export async function reopenDay(env: Env, accountId: string, eventId: string): Promise<void> {
+  const closures = await listClosures(env, accountId);
+  if (!closures.some((c) => c.eventId === eventId)) {
+    throw new Error("that event was not a closure made here");
+  }
+  await proxyCall(env, {
+    connectedAccountId: accountId,
+    endpoint: `/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`,
+    method: "DELETE",
+  });
+}
+
 export interface BookingInput {
   reference: string;
   serviceName: string;

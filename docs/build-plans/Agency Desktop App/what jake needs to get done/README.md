@@ -358,3 +358,35 @@ something only you can issue.
       signs every user out including clients; the second unsubscribes every
       device from push with no way back for anyone who dismissed the prompt.
       The panel asks first, but it will do it.
+
+## Jersey Morton, her hours page (4 August 2026)
+
+- [ ] **Send Jersey her page and her passcode.** The page is
+      `https://book.hairbyjersey.com/hours`. The passcode is
+      `willow-thistle-4108`. She changes it by asking you; it is the
+      `HOURS_PASSCODE` secret on the `book-hairbyjersey` Pages project.
+
+- [ ] **Fix her calendar timezone. This is still outstanding and it is hers to
+      do.** `hairbyjersey.tx@gmail.com` is set to UTC, confirmed again on
+      4 August by reading her calendar list. Bookings store correctly, so no
+      client is ever misled, but she reads every appointment five hours late.
+      Google Calendar, Settings, Timezone, Central Time.
+
+- [ ] **Read the confirmation email.** One is in
+      `contact.jakehauck@gmail.com` from the 4 August test: booked Friday
+      2 October 6:00 pm, then cancelled. Nobody has read either. Check it on a
+      phone, and check it did not land in spam.
+
+- [ ] **Click through the booking page on a real handset.** Turnstile now holds
+      real keys and refuses automation by design, so a human completing one
+      booking is the only proof left that a client can. Delete the event
+      afterwards, or tell me and I will.
+
+- [ ] **Decide whether she gets a phone number on the page.** `CONTACT_PHONE`
+      is unset, so when she is booked solid the page says nothing about calling
+      her. Send me the number and it appears; leave it and the page stays quiet,
+      which is better than a dead promise.
+
+- [ ] **Optional: add Workers KV Storage:Edit to the Cloudflare token.** Not
+      needed. Her prices currently live in her own calendar, which works and is
+      proven. It would only let that move to a more conventional store.

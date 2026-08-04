@@ -7,10 +7,11 @@
 // for cost or duration is ignored, so a tampered request cannot book a three
 // hour bleach at the price of a blowout.
 
-import { BOOKING_HORIZON_DAYS, TIMEZONE } from "../lib/config.ts";
+import { TIMEZONE } from "../lib/config.ts";
 import { type Interval, isStillFree } from "../lib/availability.ts";
 import { addDays, dateInZone } from "../lib/time.ts";
-import { findService, quote, resolveAddons } from "../lib/services.ts";
+import { findServiceIn, quoteIn, resolveAddonsIn } from "../lib/settings.ts";
+import { loadSchedule } from "../lib/schedule.ts";
 import type { Env } from "../lib/composio.ts";
 import { type BookingInput, connectedAccountId, createBooking, getBusy } from "../lib/calendar.ts";
 import { cleanText, digitsOnly, fail, json, looksLikeEmail } from "../lib/http.ts";
@@ -38,12 +39,6 @@ export async function onRequestPost(context: {
   );
   if (!human) return fail("Please complete the check below and try again.", 403);
 
-  const service = findService(payload.service);
-  if (!service) return fail("Unknown service", 400);
-
-  const addons = resolveAddons(service, payload.addons);
-  const { price, minutes, approx } = quote(service, addons);
-
   const name = cleanText(payload.name, 80);
   const email = cleanText(payload.email, 254);
   const phone = cleanText(payload.phone, 32);
@@ -56,24 +51,45 @@ export async function onRequestPost(context: {
   const startIso = cleanText(payload.startIso, 40);
   const startMs = Date.parse(startIso);
   if (Number.isNaN(startMs)) return fail("Pick a time", 400);
-  if (dateInZone(startMs, TIMEZONE) > addDays(dateInZone(Date.now(), TIMEZONE), BOOKING_HORIZON_DAYS)) {
-    return fail("That is too far ahead to book", 400);
-  }
 
   const accountId = await connectedAccountId(env);
   if (!accountId) return fail("Calendar is not connected yet", 503);
 
-  // The slot may have gone in the seconds since the page listed it.
+  // The slot may have gone in the seconds since the page listed it, so both
+  // reads are fresh. The schedule is re-read too rather than trusted from the
+  // availability call: she may have closed the day in between.
   const from = new Date(startMs - 24 * 3600_000).toISOString();
   const to = new Date(startMs + 48 * 3600_000).toISOString();
   let busy: Interval[];
+  let schedule;
   try {
-    busy = await getBusy(env, accountId, from, to);
+    [busy, schedule] = await Promise.all([
+      getBusy(env, accountId, from, to),
+      loadSchedule(env, accountId, from, to),
+    ]);
   } catch {
     return fail("Could not read the calendar just now", 503);
   }
 
-  if (!isStillFree(startIso, minutes, busy, Date.now())) {
+  const settings = schedule.settings;
+  const service = findServiceIn(settings, payload.service);
+  if (!service) return fail("Unknown service", 400);
+
+  const addons = resolveAddonsIn(settings, service, payload.addons);
+  const { price, minutes, approx } = quoteIn(service, addons);
+
+  if (dateInZone(startMs, TIMEZONE) > addDays(dateInZone(Date.now(), TIMEZONE), settings.horizonDays)) {
+    return fail("That is too far ahead to book", 400);
+  }
+
+  if (
+    !isStillFree(startIso, minutes, busy, Date.now(), TIMEZONE, {
+      windows: schedule.windows,
+      bufferMinutes: settings.bufferMinutes,
+      minNoticeHours: settings.minNoticeHours,
+      stepMinutes: settings.slotStepMinutes,
+    })
+  ) {
     return fail("That time has just gone. Please pick another.", 409);
   }
 

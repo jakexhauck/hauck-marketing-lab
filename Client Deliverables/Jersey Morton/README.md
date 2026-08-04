@@ -10,6 +10,20 @@ busy, and a booking is a Google event with the client invited, which is what
 sends the confirmation email. Anything she blocks out herself closes the slot,
 because there is nowhere else to keep in sync.
 
+She runs it herself from **`/hours`**, and that page writes to the same
+calendars this one reads, so there is nothing to sync there either:
+
+| What she changes | Where it goes |
+|---|---|
+| Her weekly hours | A recurring event per window on the **Booking hours** calendar |
+| An extra day she decides to work | A single event on the same calendar |
+| A day off | An all-day busy event on her **primary** calendar |
+| Prices, lengths, buffer, notice, horizon | JSON in `extendedProperties` on one event on the Booking hours calendar |
+
+Every event on the Booking hours calendar is a window an appointment may start
+in. There is no title convention to get wrong, so editing it in the Google
+Calendar app works exactly as well as the page does.
+
 It runs as **Cloudflare Pages Functions**, not a Worker, so the page and the API
 share an origin and there is no CORS layer at all.
 

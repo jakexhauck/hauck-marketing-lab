@@ -72,6 +72,32 @@ export interface SlotOptions {
   busy: Interval[];
   nowMs: number;
   tz?: string;
+  // Her open windows for this date, read from the Booking hours calendar. When
+  // absent the hardcoded HOURS are used instead, which is what happens before
+  // she has ever set hours and if that calendar is ever missing.
+  windows?: Interval[];
+  // From the stored settings. Defaulted here so every existing caller and test
+  // keeps the behaviour it had.
+  bufferMinutes?: number;
+  minNoticeHours?: number;
+  stepMinutes?: number;
+}
+
+// Windows clipped to the date they are being offered for.
+//
+// A window is only ever asked about on its own day, but the calendar can hand
+// back an event that starts the previous evening or runs past midnight, and an
+// unclipped one would offer 2am start times.
+export function windowsForDate(dateISO: string, windows: Interval[], tz: string): Interval[] {
+  const dayStart = dateTimeToUtc(dateISO, "00:00", tz);
+  const dayEnd = dateTimeToUtc(dateISO, "00:00", tz) + 24 * 60 * MIN;
+  const out: Interval[] = [];
+  for (const w of windows) {
+    const start = Math.max(w.start, dayStart);
+    const end = Math.min(w.end, dayEnd);
+    if (end > start) out.push({ start, end });
+  }
+  return mergeIntervals(out);
 }
 
 // Start times inside one of the day's windows where nothing, including the
@@ -84,13 +110,18 @@ export interface SlotOptions {
 export function slotsForDate(opts: SlotOptions): Slot[] {
   const tz = opts.tz ?? TIMEZONE;
   const busy = mergeIntervals(opts.busy);
-  const earliest = opts.nowMs + MIN_NOTICE_HOURS * 60 * MIN;
-  const step = SLOT_STEP_MINUTES * MIN;
+  const notice = opts.minNoticeHours ?? MIN_NOTICE_HOURS;
+  const earliest = opts.nowMs + notice * 60 * MIN;
+  const step = (opts.stepMinutes ?? SLOT_STEP_MINUTES) * MIN;
   const length = opts.minutes * MIN;
-  const buffer = BUFFER_MINUTES * MIN;
+  const buffer = (opts.bufferMinutes ?? BUFFER_MINUTES) * MIN;
   const out: Slot[] = [];
 
-  for (const window of openWindows(opts.dateISO, tz)) {
+  const windows = opts.windows
+    ? windowsForDate(opts.dateISO, opts.windows, tz)
+    : openWindows(opts.dateISO, tz);
+
+  for (const window of windows) {
     // Align the first candidate to the grid measured from the window's own
     // opening time, so a 13:30 open gives 13:30 and 14:00, never 13:45. The
     // last start is the window's end itself, inclusive.
@@ -124,6 +155,7 @@ export function isStillFree(
   busy: Interval[],
   nowMs: number,
   tz = TIMEZONE,
+  extra: Pick<SlotOptions, "windows" | "bufferMinutes" | "minNoticeHours" | "stepMinutes"> = {},
 ): boolean {
   const start = Date.parse(startIso);
   if (Number.isNaN(start)) return false;
@@ -134,6 +166,7 @@ export function isStillFree(
     busy,
     nowMs,
     tz,
+    ...extra,
   });
   return slots.some((s) => Date.parse(s.startIso) === start);
 }

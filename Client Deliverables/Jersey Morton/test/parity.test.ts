@@ -60,6 +60,18 @@ test("add-ons agree, including which ones need tone", () => {
   }
 });
 
+// She can change a price from /hours now, so the list in the page is the thing
+// that paints first, not the thing that is true. It still has to match the code
+// defaults, because that is what the server falls back to.
+test("the page corrects its built-in prices from the API", () => {
+  assert.ok(html.includes("function applyLivePrices"), "the page never reconciles its prices");
+  assert.ok(html.includes("applyLivePrices(cfg.services, cfg.addons)"), "config is fetched but the prices are ignored");
+  // A changed length invalidates slots already fetched for the old one.
+  const from = html.indexOf("function applyLivePrices");
+  const body = html.slice(from, html.indexOf("function mountTurnstile", from));
+  assert.ok(body.includes("resetSlots()"), "a changed length must drop the slots sized for the old one");
+});
+
 test("the page carries no em dashes", () => {
   assert.equal((html.match(/[—–]/g) ?? []).length, 0);
 });
