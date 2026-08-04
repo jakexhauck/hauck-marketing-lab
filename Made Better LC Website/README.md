@@ -99,9 +99,33 @@ the visitor to the thank-you page having posted nothing, so every estimate
 request looked received and was silently lost. A form that plainly does nothing
 is worse than nothing; a form that fakes success is worse than both.
 
-**To connect it:** create the inbound webhook in GHL, paste its URL into
+**To connect it:** in Made Better's GHL sub-account create a Workflow whose
+trigger is **Inbound Webhook**, copy the URL it hands back, paste it into
 `CONFIG.webhookUrl`, deploy. Home answers in place (it has a success panel);
 Contact sends the visitor to `/thank-you`.
+
+### It posts form-encoded, and that is not a style choice
+
+The estimate posts a `URLSearchParams` body via `navigator.sendBeacon`, falling
+back to `fetch(..., {mode:"no-cors", keepalive:true})`. It must not post JSON.
+
+A JSON content type makes the request "non-simple", so the browser sends a CORS
+preflight `OPTIONS` first. GHL's hook endpoint does not answer preflights, so
+the estimate is dropped before it ever leaves the browser and the visitor is
+told it failed. Willis Windows hit this and solved it the same way. Verified
+here against a fake hook on a second origin: two `POST`s arrived and no
+`OPTIONS` was ever sent.
+
+The consequence to keep in mind: a `no-cors` response is opaque, so the reply
+cannot be read. Success on screen means the request **left the browser**, not
+that GHL accepted it. After connecting, watch the workflow rather than the page.
+
+The single `Name` box is split on the first space into `first_name` and
+`last_name` (with the untouched value also sent as `full_name`). Sending one
+whole name is what leaves business names sitting in the wrong contact fields.
+The other keys are `phone`, `email`, `postal_code`, `service`, `notes` and
+`source`, named to match GHL's standard contact fields so the workflow can map
+them without hand-typing each one.
 
 ## Decisions worth remembering
 

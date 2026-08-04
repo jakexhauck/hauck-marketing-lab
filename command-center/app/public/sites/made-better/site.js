@@ -43,7 +43,9 @@
     email: "madebetterlc@gmail.com",
     logo: "https://drive.google.com/thumbnail?id=1B6zy3IkzRzR4NK3KmoNosWk4N1FBV1jB&sz=w400",
 
-    // The GHL inbound webhook the estimate form posts to.
+    // The GHL inbound webhook the estimate form posts to. Workflow > Trigger >
+    // "Inbound Webhook", then copy the URL it hands back. It looks like:
+    // https://services.leadconnectorhq.com/hooks/<locationId>/webhook-trigger/<uuid>
     //
     // While this is EMPTY the form refuses to pretend: it re-enables the button
     // and shows the phone number. The pasted pages used to send the visitor to
@@ -1971,29 +1973,81 @@ body{ margin:0 !important; padding:0 !important; }
 
         if (btn) { btn.disabled = true; btn.textContent = "Sending…"; }
 
+        // Read by name off form.elements rather than form.<name>. Both work, but
+        // the second collides with the form's own properties (form.action is the
+        // one that bites), and this says what it means.
+        var val = function (n) {
+          var el = form.elements[n];
+          return el && el.value ? String(el.value).trim() : "";
+        };
+
+        // GHL wants a first and last name. One "Name" box is friendlier to fill
+        // in, so it is split here instead: everything before the first space is
+        // the first name, the remainder is the last. Sending the whole thing as
+        // one field is what leaves business names sitting in the wrong slot.
+        var whole = val("name").replace(/\s+/g, " ");
+        var cut = whole.indexOf(" ");
+        var first = cut === -1 ? whole : whole.slice(0, cut);
+        var last = cut === -1 ? "" : whole.slice(cut + 1);
+
+        // Field names match GHL's standard contact keys so the workflow can map
+        // them without hand-typing each one.
         var payload = {
-          name: form.name.value,
-          phone: form.phone.value,
-          email: form.email.value,
-          zip: form.zip.value,
-          service: form.service.value,
-          notes: form.notes.value,
+          first_name: first,
+          last_name: last,
+          full_name: whole,
+          phone: val("phone"),
+          email: val("email"),
+          postal_code: val("zip"),
+          service: val("service"),
+          notes: val("notes"),
           source: "Made Better LC website (" + page + ")"
         };
 
-        fetch(CONFIG.webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        }).then(function () {
-          // Home answers in place; the contact page has a thank-you page to go to.
-          var wrap = document.getElementById("mbFormWrap"), ok = document.getElementById("mbSuccess");
-          if (wrap && ok) { wrap.style.display = "none"; ok.style.display = "block"; return; }
-          window.location.href = "/thank-you";
-        }).catch(function () {
+        // Form-encoded, NOT JSON. A JSON content type makes this a non-simple
+        // request, so the browser sends a CORS preflight first, and GHL's hook
+        // endpoint does not answer preflights. The estimate then never leaves
+        // the browser and the visitor is told it failed. Willis Windows hit
+        // exactly this. URLSearchParams keeps it a simple request.
+        var params = new URLSearchParams();
+        Object.keys(payload).forEach(function (k) { params.append(k, payload[k]); });
+
+        // sendBeacon survives the page navigating away, which matters on the
+        // contact page because it redirects immediately after.
+        var sent = false;
+        try { sent = !!(navigator.sendBeacon && navigator.sendBeacon(CONFIG.webhookUrl, params)); }
+        catch (err) { sent = false; }
+
+        if (!sent) {
+          try {
+            fetch(CONFIG.webhookUrl, { method: "POST", body: params, keepalive: true, mode: "no-cors" });
+            sent = true;
+          } catch (err) { sent = false; }
+        }
+
+        if (!sent) {
           fail('That did not send. Please call us on <a href="' +
             CONFIG.phoneHref + '">' + CONFIG.phone + '</a>.');
-        });
+          return;
+        }
+
+        // A no-cors response is opaque, so the reply cannot be read: "sent" here
+        // means it left the browser, not that GHL liked it. Watch the workflow
+        // after connecting rather than trusting this screen.
+        //
+        // Home answers in place; the contact page has a thank-you page to go to.
+        var wrap = document.getElementById("mbFormWrap"), ok = document.getElementById("mbSuccess");
+        if (wrap && ok) {
+          wrap.style.display = "none";
+          ok.style.display = "block";
+          return;
+        }
+
+        // Hold briefly so the request is on the wire before the page changes.
+        setTimeout(function () {
+          try { window.top.location.href = "/thank-you"; }
+          catch (err) { window.location.href = "/thank-you"; }
+        }, 600);
       });
     }
 

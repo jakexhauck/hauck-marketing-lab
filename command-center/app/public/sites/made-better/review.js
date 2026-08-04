@@ -485,20 +485,29 @@
 
     // Fire and forget. Used for the star tap itself, where the visitor is
     // about to leave for Google and there is nothing to wait for.
+    // Form-encoded, NOT JSON. A JSON content type makes this a non-simple
+    // request, so the browser sends a CORS preflight first, and GHL's hook
+    // endpoint does not answer preflights: the whole thing is dropped before
+    // it leaves the browser. URLSearchParams keeps it a simple request.
+    function encode(payload) {
+      var params = new URLSearchParams();
+      Object.keys(payload).forEach(function (k) {
+        params.append(k, payload[k] == null ? "" : String(payload[k]));
+      });
+      return params;
+    }
+
     function ping(payload) {
       if (!CONFIG.webhookUrl) return;
       payload.source = "Made Better LC review funnel";
       try {
-        var body = JSON.stringify(payload);
-        if (navigator.sendBeacon) {
-          navigator.sendBeacon(CONFIG.webhookUrl, new Blob([body], { type: "application/json" }));
-          return;
-        }
+        var params = encode(payload);
+        if (navigator.sendBeacon && navigator.sendBeacon(CONFIG.webhookUrl, params)) return;
         fetch(CONFIG.webhookUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: body,
-          keepalive: true
+          body: params,
+          keepalive: true,
+          mode: "no-cors"
         }).catch(function () {});
       } catch (e) {}
     }
@@ -543,17 +552,22 @@
       btn.disabled = true;
       btn.textContent = "Sending…";
 
+      var params = encode({
+        rating: selected,
+        feedback: body,
+        outcome: "feedback",
+        source: "Made Better LC review funnel"
+      });
+
+      // A no-cors response is opaque, so res.ok cannot be read: reaching the
+      // thank-you here means the complaint left the browser, not that GHL
+      // accepted it. Watch the workflow after connecting.
       fetch(CONFIG.webhookUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rating: selected,
-          feedback: body,
-          outcome: "feedback",
-          source: "Made Better LC review funnel"
-        })
-      }).then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
+        body: params,
+        keepalive: true,
+        mode: "no-cors"
+      }).then(function () {
         finish(
           "Thank you for telling us.",
           'Seamus will look at this himself. If you want it sorted today, call him on ' +
