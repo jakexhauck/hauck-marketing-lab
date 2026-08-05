@@ -21,11 +21,13 @@
 //
 // HOUSE RULES BAKED IN HERE
 //  - No em dashes anywhere in any copy on this page.
-//  - No claim about a client that Jake has not supplied. Every testimonial slot
-//    ships with a bracketed placeholder for exactly that reason. A made-up
-//    result on a page a buyer reads an hour before a sales call is the single
-//    most expensive kind of filler there is.
+//  - No claim about a client that Jake has not supplied. A made-up result on a
+//    page a buyer reads an hour before a sales call is the single most
+//    expensive kind of filler there is.
 //  - Light and quiet. One accent colour, and it appears about four times.
+//  - No dead vertical space. Three bands, tight padding, then the footer.
+//    Every screen a buyer scrolls past without reading something is a screen
+//    that says there is not much here.
 
 (function () {
   "use strict";
@@ -63,27 +65,10 @@
       { title: "Who this is not for", url: "", poster: "" }
     ],
 
-    // Landscape client videos. Title sits above the tile, same as the layout
-    // this page was modelled on.
-    //
-    // PLACEHOLDERS ARE BRACKETED ON PURPOSE. Replace the whole string. Do not
-    // ship an invented number here.
-    testimonials: [
-      { title: "[Client name: the result, in one line]", url: "", poster: "" },
-      { title: "[Client name: the result, in one line]", url: "", poster: "" },
-      { title: "[Client name: the result, in one line]", url: "", poster: "" },
-      { title: "[Client name: the result, in one line]", url: "", poster: "" },
-      { title: "[Client name: the result, in one line]", url: "", poster: "" },
-      { title: "[Client name: the result, in one line]", url: "", poster: "" }
-    ],
-
-    // Vertical clips. Phone-shot footage belongs here, not in the grid above.
-    clips: [
-      { name: "[Client name]", label: "[Trade, city]", url: "", poster: "" },
-      { name: "[Client name]", label: "[Trade, city]", url: "", poster: "" },
-      { name: "[Client name]", label: "[Trade, city]", url: "", poster: "" },
-      { name: "[Client name]", label: "[Trade, city]", url: "", poster: "" }
-    ],
+    // NOTE: there was a "Real People. Real Progress." block here, six landscape
+    // testimonial tiles plus four vertical clips. Cut on Jake's instruction. The
+    // screenshots below are the proof this page carries now, so the page goes
+    // straight from the objection videos to the numbers.
 
     // The results wall. The same five screenshots the earlier pre-call page
     // uses, served from the app rather than copied, so there is one set of
@@ -112,11 +97,7 @@
 
     // How many show before the button appears. Five is the whole set, so no
     // button. Raise the count above the list length to hide it.
-    winsVisible: 5,
-
-    // The address the confirmation email comes from, said out loud so it does
-    // not get filtered or missed.
-    fromEmail: "jake@hauckmarketing.com"
+    winsVisible: 5
   };
 
   var ROOT_ID = "hpc";
@@ -190,11 +171,18 @@
 
 #hpc img { border:0 !important; max-width:100% !important; }
 
-/* ---- band + shell ------------------------------------------------- */
-#hpc .hp-band { width:100% !important; margin:0 !important; padding:clamp(48px,8vw,84px) var(--pad) !important; }
+/* ---- band + shell -------------------------------------------------
+   BAND PADDING IS THE PAGE'S ONLY VERTICAL RHYTHM, so it is the one number
+   worth tuning. It was clamp(48,8vw,84). Tightened: the page is a shelf of
+   things to watch, and a buyer who has to scroll past an empty half-screen
+   between two rows of videos reads that as "there is not much here". */
+#hpc .hp-band { width:100% !important; margin:0 !important; padding:clamp(34px,5vw,56px) var(--pad) !important; }
 #hpc .hp-band--wash { background:var(--wash) !important; }
 #hpc .hp-band--white { background:var(--white) !important; }
-#hpc .hp-band--top { padding-top:clamp(40px,7vw,64px) !important; }
+/* The first band holds two lines of text and nothing else, so it gets the
+   tightest padding on the page. A confirmation should be the first thing on
+   the screen, not the thing under the first swipe. */
+#hpc .hp-band--top { padding-top:clamp(22px,3.5vw,34px) !important; padding-bottom:clamp(20px,3vw,28px) !important; }
 #hpc .hp-in { width:100% !important; max-width:1040px !important; margin:0 auto !important; padding:0 !important; }
 #hpc .hp-in--tight { max-width:760px !important; }
 
@@ -249,7 +237,7 @@
   border:1px solid var(--line) !important;
   border-radius:999px !important;
   padding:7px 15px !important;
-  margin:0 auto 20px !important;
+  margin:0 auto 14px !important;
   box-shadow:0 1px 2px rgba(16,19,23,.04) !important;
 }
 #hpc .hp-pill svg { flex:0 0 14px !important; color:var(--accent) !important; }
@@ -270,7 +258,6 @@
   font-family:var(--body) !important;
   cursor:default !important;
 }
-#hpc .hp-media--tall { aspect-ratio:9 / 16 !important; border-radius:14px !important; }
 #hpc button.hp-media { cursor:pointer !important; -webkit-appearance:none !important; appearance:none !important; }
 #hpc button.hp-media:hover .hp-play { transform:scale(1.06) !important; background:var(--white) !important; }
 
@@ -292,7 +279,6 @@
   transition:transform .16s ease, background .16s ease !important;
   pointer-events:none !important;
 }
-#hpc .hp-media--tall .hp-play { width:44px !important; height:44px !important; }
 #hpc .hp-soon {
   position:absolute !important; left:0 !important; right:0 !important; bottom:12px !important;
   font-family:var(--body) !important; font-size:.72rem !important; font-weight:500 !important;
@@ -301,10 +287,6 @@
   margin:0 !important; padding:0 !important;
   pointer-events:none !important;
 }
-/* On a portrait clip the name plate already owns the bottom of the tile, so
-   the placeholder line has to sit above it or the two print on top of each
-   other. */
-#hpc .hp-media--tall .hp-soon { bottom:58px !important; }
 #hpc .hp-media iframe, #hpc .hp-media video {
   position:absolute !important; inset:0 !important;
   width:100% !important; height:100% !important;
@@ -319,7 +301,7 @@
 }
 
 /* ---- hero ---------------------------------------------------------- */
-#hpc .hp-hero-media { max-width:760px !important; margin:26px auto 0 !important; }
+#hpc .hp-hero-media { max-width:760px !important; margin:20px auto 0 !important; }
 #hpc .hp-hint {
   font-family:var(--body) !important; font-size:.78rem !important; font-weight:400 !important;
   color:var(--mute) !important; text-align:center !important;
@@ -330,7 +312,7 @@
   gap:clamp(16px,3vw,30px) !important;
   list-style:none !important;
   max-width:760px !important;
-  margin:clamp(26px,4vw,36px) auto 0 !important; padding:0 !important;
+  margin:clamp(20px,3vw,28px) auto 0 !important; padding:0 !important;
 }
 #hpc .hp-points li { margin:0 !important; padding:0 !important; list-style:none !important; text-align:center !important; }
 #hpc .hp-points b {
@@ -350,36 +332,9 @@
   display:grid !important; grid-template-columns:repeat(2,1fr) !important;
   gap:clamp(18px,3vw,28px) !important;
   list-style:none !important;
-  margin:clamp(28px,5vw,44px) 0 0 !important; padding:0 !important;
+  margin:clamp(22px,3.5vw,32px) 0 0 !important; padding:0 !important;
 }
 #hpc .hp-grid li { margin:0 !important; padding:0 !important; list-style:none !important; }
-#hpc .hp-grid--clips { grid-template-columns:repeat(4,1fr) !important; gap:clamp(12px,2vw,18px) !important; }
-#hpc .hp-tlabel {
-  display:block !important;
-  font-family:var(--display) !important; font-weight:600 !important; font-size:.9rem !important;
-  line-height:1.35 !important; letter-spacing:-.01em !important;
-  color:var(--ink) !important; text-align:center !important;
-  margin:0 0 10px !important; padding:0 !important;
-}
-
-/* clip name sits on the footage, same as the layout this came from */
-#hpc .hp-clipfoot {
-  position:absolute !important; left:0 !important; right:0 !important; bottom:0 !important;
-  padding:26px 12px 12px !important;
-  background:linear-gradient(180deg, rgba(16,19,23,0) 0%, rgba(16,19,23,.82) 100%) !important;
-  text-align:left !important;
-  pointer-events:none !important;
-}
-#hpc .hp-clipfoot b {
-  display:block !important;
-  font-family:var(--display) !important; font-weight:600 !important; font-size:.82rem !important;
-  color:#fff !important; letter-spacing:-.01em !important; line-height:1.3 !important;
-}
-#hpc .hp-clipfoot span {
-  display:block !important;
-  font-family:var(--body) !important; font-size:.7rem !important; font-weight:400 !important;
-  color:rgba(255,255,255,.74) !important; line-height:1.4 !important;
-}
 
 /* ---- results wall ---------------------------------------------------
    Stacked, one per row, NOT a masonry. The screenshots are Ads Manager
@@ -388,7 +343,7 @@
    nothing. */
 #hpc .hp-wins {
   list-style:none !important;
-  margin:clamp(28px,5vw,44px) 0 0 !important; padding:0 !important;
+  margin:clamp(22px,3.5vw,32px) 0 0 !important; padding:0 !important;
 }
 #hpc .hp-wins li {
   margin:0 0 clamp(14px,2vw,20px) !important; padding:0 !important;
@@ -448,38 +403,15 @@
   background:var(--accent) !important; display:block !important; flex:0 0 6px !important;
 }
 
-/* ---- closing -------------------------------------------------------- */
-#hpc .hp-mark {
-  display:flex !important; align-items:center !important; justify-content:center !important;
-  width:44px !important; height:44px !important; border-radius:50% !important;
-  background:var(--white) !important; border:1px solid var(--line) !important;
-  color:var(--slate) !important;
-  margin:0 auto 18px !important;
-}
-/* Deliberately NOT a link. Its job is to tell them where to look, and a
-   button that navigates nowhere is worse than a label that never pretended
-   it would. */
-#hpc .hp-cta {
-  display:flex !important; align-items:center !important; justify-content:center !important;
-  gap:9px !important; width:fit-content !important;
-  font-family:var(--display) !important; font-weight:600 !important; font-size:.92rem !important;
-  color:#fff !important;
-  background:var(--accent) !important;
-  border:0 !important; border-radius:10px !important;
-  padding:13px 24px !important;
-  margin:26px auto 0 !important;
-  box-shadow:0 8px 22px -12px rgba(63,169,108,.9) !important;
-}
-#hpc .hp-cta svg { flex:0 0 16px !important; }
-#hpc .hp-fine {
-  font-family:var(--body) !important; font-size:.78rem !important; font-weight:400 !important;
-  color:var(--mute) !important; text-align:center !important;
-  margin:16px auto 0 !important; padding:0 !important; max-width:44ch !important;
-}
+/* ---- closing --------------------------------------------------------
+   The "Next Step: Show Up Ready" band that used to sit here is gone on Jake's
+   instruction, along with its mark, its Check Your Email plate and its fine
+   print. The results wall is now the last thing they read before the footer,
+   which is the right note to leave them on. */
 #hpc .hp-foot {
   border-top:1px solid var(--line) !important;
   text-align:center !important;
-  padding:26px var(--pad) !important; margin:0 !important;
+  padding:22px var(--pad) !important; margin:0 !important;
   background:var(--page) !important;
 }
 #hpc .hp-foot p {
@@ -496,15 +428,14 @@
   margin:0 0 8px !important; padding:0 !important; text-align:center !important;
 }
 
-/* ---- responsive ----------------------------------------------------- */
-@media (max-width:860px) {
-  #hpc .hp-wins { columns:2 !important; }
-  #hpc .hp-grid--clips { grid-template-columns:repeat(2,1fr) !important; }
-}
+/* ---- responsive -----------------------------------------------------
+   The two "columns" rules that used to live here were left over from when the
+   wins wall was a masonry. They survived the rewrite to a stacked list and
+   were quietly putting two Ads Manager tables side by side on a tablet, which
+   is exactly what the stacked layout exists to prevent. Removed. */
 @media (max-width:640px) {
   #hpc .hp-grid { grid-template-columns:1fr !important; }
   #hpc .hp-points { grid-template-columns:1fr !important; gap:18px !important; }
-  #hpc .hp-wins { columns:1 !important; }
   #hpc .hp-play { width:46px !important; height:46px !important; }
 }
 
@@ -517,7 +448,6 @@
   // ------------------------------------------------------------- glyphs
   var TICK = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8.5 6 12l7.5-8"/></svg>';
   var PLAY = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6a1 1 0 0 0 1.53.85l10.7-6.8a1 1 0 0 0 0-1.7L9.53 4.35A1 1 0 0 0 8 5.2z"/></svg>';
-  var MAIL = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="m3 6.5 9 6.2 9-6.2"/></svg>';
 
   function esc(s) {
     return String(s == null ? "" : s)
@@ -569,35 +499,34 @@
     return id ? "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg" : "";
   }
 
-  // opts: { tall:bool, label:string, foot:html }
+  // opts: { label:string }
+  //
+  // Every tile on this page is now 16/9. The portrait variant and the name
+  // plate that sat on the footage went with the testimonial section.
   function media(item, opts) {
     opts = opts || {};
-    var cls = "hp-media" + (opts.tall ? " hp-media--tall" : "");
     var poster = posterFor(item);
     // !important on the inline rule too, so a GHL theme that styles buttons
     // cannot take the poster back off.
     var bg = poster
       ? " style=\"background-image:url('" + esc(poster).replace(/['()]/g, "") + "') !important\""
       : "";
-    var foot = opts.foot || "";
 
     // No URL yet. Not a button, because there is nothing to press.
     if (!item.url) {
-      return '<div class="' + cls + '">' +
+      return '<div class="hp-media">' +
         '<span class="hp-play">' + PLAY + "</span>" +
         '<span class="hp-soon">Video coming soon</span>' +
-        foot +
         "</div>";
     }
 
     var aria = opts.label ? esc(opts.label) : "Play video";
-    return '<button type="button" class="' + cls + '"' + bg +
+    return '<button type="button" class="hp-media"' + bg +
       ' data-src="' + esc(embedUrl(item.url)) + '"' +
       ' data-file="' + (isFile(item.url) ? "1" : "0") + '"' +
       ' aria-label="Play: ' + aria + '">' +
       (poster ? '<span class="hp-shroud"></span>' : "") +
       '<span class="hp-play">' + PLAY + "</span>" +
-      foot +
       "</button>";
   }
 
@@ -617,14 +546,17 @@
           "<h1>You're Booked.</h1>" +
         "</div>" +
       "</div>" +
-      '<div class="hp-band hp-band--white" style="padding-top:clamp(30px,5vw,48px)!important">' +
+      '<div class="hp-band hp-band--white" style="padding-top:clamp(22px,3.5vw,32px)!important">' +
         '<div class="hp-in hp-in--tight">' +
           '<span class="hp-step">Step 1</span>' +
           "<h2>Watch This Short Video</h2>" +
           '<div class="hp-hero-media">' +
             media({ url: CONFIG.heroVideo, poster: CONFIG.heroPoster }, { label: "Welcome video" }) +
           "</div>" +
-          '<p class="hp-hint">' + (CONFIG.heroVideo ? "(click for sound)" : "&nbsp;") + "</p>" +
+          // Nothing at all when there is no video, rather than a blank line
+          // holding the space open. An empty line under an empty tile is the
+          // exact kind of whitespace that has no job.
+          (CONFIG.heroVideo ? '<p class="hp-hint">(click for sound)</p>' : "") +
           '<ul class="hp-points">' + points + "</ul>" +
         "</div>" +
       "</div>";
@@ -646,33 +578,7 @@
         "</div>" +
       "</div>";
 
-    // 3. proof
-    var tests = "";
-    for (i = 0; i < CONFIG.testimonials.length; i++) {
-      var t = CONFIG.testimonials[i];
-      tests += '<li><span class="hp-tlabel">' + esc(t.title) + "</span>" +
-        media(t, { label: t.title }) + "</li>";
-    }
-    var clips = "";
-    for (i = 0; i < CONFIG.clips.length; i++) {
-      var c = CONFIG.clips[i];
-      var foot = '<span class="hp-clipfoot"><b>' + esc(c.name) + "</b><span>" + esc(c.label) + "</span></span>";
-      clips += "<li>" + media(c, { tall: true, label: c.name, foot: foot }) + "</li>";
-    }
-    var proof = '' +
-      '<div class="hp-band hp-band--white">' +
-        '<div class="hp-in">' +
-          "<h2>Real People. Real Progress.</h2>" +
-          '<p class="hp-sub">What contractors say about working with us, in their own words.</p>' +
-          '<ul class="hp-grid">' + tests + "</ul>" +
-          '<div style="margin-top:clamp(40px,6vw,64px)!important">' +
-            '<span class="hp-step">More Success Stories</span>' +
-            '<ul class="hp-grid hp-grid--clips" style="margin-top:18px!important">' + clips + "</ul>" +
-          "</div>" +
-        "</div>" +
-      "</div>";
-
-    // 4. wins wall
+    // 3. wins wall
     var wins = "";
     var total = CONFIG.wins.length;
     if (total) {
@@ -697,8 +603,11 @@
     var moreBtn = total > CONFIG.winsVisible
       ? '<button type="button" class="hp-more" data-more="1">Show all ' + total + " wins</button>"
       : "";
+    // WHITE, not wash. With the testimonial band gone this now sits directly
+    // under Step 2, and two wash bands touching read as one very long section
+    // with a stray heading in the middle of it.
     var winsBlock = '' +
-      '<div class="hp-band hp-band--wash">' +
+      '<div class="hp-band hp-band--white">' +
         '<div class="hp-in">' +
           // The copy names what the screenshots actually are. They are Ads
           // Manager exports, not client conversations, and a heading that
@@ -712,23 +621,14 @@
         "</div>" +
       "</div>";
 
-    // 5. close
-    var close = '' +
-      '<div class="hp-band hp-band--white">' +
-        '<div class="hp-in hp-in--tight">' +
-          '<span class="hp-mark">' + MAIL + "</span>" +
-          "<h2>Next Step: Show Up Ready</h2>" +
-          '<p class="hp-sub">By the time we speak you should already know whether this is a fit. Come with your questions.</p>' +
-          '<p class="hp-cta">' + MAIL + "Check Your Email</p>" +
-          '<p class="hp-fine">Look for an email from ' + esc(CONFIG.fromEmail) + " with your calendar invite.</p>" +
-        "</div>" +
-      "</div>" +
+    // 4. footer. All that is left of the closing section.
+    var foot = '' +
       '<div class="hp-foot">' +
         '<p class="hp-wordmark">Hauck Marketing</p>' +
         "<p>&copy; " + new Date().getFullYear() + " Hauck Marketing. All rights reserved.</p>" +
       "</div>";
 
-    return head + step2 + proof + winsBlock + close;
+    return head + step2 + winsBlock + foot;
   }
 
   // ------------------------------------------------------------ behaviour

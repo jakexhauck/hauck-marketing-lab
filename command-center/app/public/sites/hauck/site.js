@@ -202,8 +202,14 @@ body{ margin:0 !important; padding:0 !important; }
 
 /* ===== LAYOUT ===== */
 #hm .wrap{ width:100%; max-width:var(--maxw); margin:0 auto; padding:0 24px; }
-#hm .sec{ position:relative; padding:100px 0; }
-#hm .sec-tight{ padding:70px 0; }
+/* SECTION PADDING IS THE SITE'S WHOLE VERTICAL RHYTHM. These two numbers set
+   the height of every gap on every page, so they are the only lever worth
+   pulling when the site feels airy. They were 100 and 70. Tightened to 72 and
+   52: at 100 a contractor on a laptop scrolls through most of a screen of
+   cream between finishing one section and starting the next, and that gap
+   reads as padding rather than as breathing room. */
+#hm .sec{ position:relative; padding:72px 0; }
+#hm .sec-tight{ padding:52px 0; }
 /* The alternating band IS opaque here. On cream a translucent wash is invisible,
    so the rhythm between sections has to come from a real second paper tone. */
 #hm .band{ background:var(--band); border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft); }
@@ -326,7 +332,10 @@ body{ margin:0 !important; padding:0 !important; }
 #hm .hdr.open .burger span:nth-child(3){ transform:translateY(-7px) rotate(-45deg); }
 
 /* ===== HERO ===== */
-#hm .hero{ position:relative; padding:88px 0 84px; overflow:hidden; }
+/* The hero sits directly under a sticky header, so its top padding is the
+   first thing anyone sees. 88px pushed the headline below the fold on a
+   laptop for no reason at all. */
+#hm .hero{ position:relative; padding:60px 0 62px; overflow:hidden; }
 #hm .hero-in{ position:relative; z-index:1; max-width:900px; }
 #hm .hero .h1{ margin-top:22px; }
 #hm .hero .lede{ margin-top:22px; font-size:20px; }
@@ -552,12 +561,12 @@ body{ margin:0 !important; padding:0 !important; }
    A deep forest panel on the cream. The page has been light the whole way down,
    so it needs something solid to land on, and this is the one dark surface on
    the site. Everything inside it flips to light type. */
-#hm .cta{ position:relative; padding:70px 0 0; }
+#hm .cta{ position:relative; padding:52px 0 0; }
 #hm .cta > .glow{ display:none; }
 #hm .cta-in{
   position:relative; z-index:1; text-align:center;
   background:var(--text); color:#F3EFE6;
-  border-radius:26px; padding:76px 40px; overflow:hidden;
+  border-radius:26px; padding:58px 40px; overflow:hidden;
 }
 #hm .cta-in::before{
   content:''; position:absolute; left:50%; top:-140px; transform:translateX(-50%);
@@ -575,7 +584,7 @@ body{ margin:0 !important; padding:0 !important; }
 #hm .cta-in .hero-note{ color:rgba(243,239,230,.6); }
 
 /* ===== FOOTER ===== */
-#hm .ftr{ background:var(--bg); border-top:1px solid var(--line); margin-top:70px; padding:52px 0 44px; }
+#hm .ftr{ background:var(--bg); border-top:1px solid var(--line); margin-top:48px; padding:40px 0 34px; }
 #hm .ftr-in{ display:flex; flex-wrap:wrap; gap:26px; align-items:flex-start; }
 #hm .ftr-nav{ display:flex; flex-wrap:wrap; gap:22px; margin-left:auto; }
 #hm .ftr-nav a{ font-size:14.5px; color:var(--muted); }
@@ -628,11 +637,11 @@ body{ margin:0 !important; padding:0 !important; }
   #hm .hdr.open .nav{ opacity:1; transform:none; pointer-events:auto; }
   #hm .nav a{ padding:15px 24px; font-size:16px; border-radius:0; }
   #hm .nav a.here{ background:transparent; box-shadow:none; }
-  #hm .sec{ padding:74px 0; }
-  #hm .sec-tight{ padding:56px 0; }
-  #hm .hero{ padding:60px 0 58px; }
+  #hm .sec{ padding:54px 0; }
+  #hm .sec-tight{ padding:42px 0; }
+  #hm .hero{ padding:44px 0 46px; }
   #hm .hero .lede{ font-size:18px; }
-  #hm .cta-in{ padding:60px 30px; }
+  #hm .cta-in{ padding:46px 30px; }
 }
 
 @media (max-width:640px){
@@ -645,7 +654,7 @@ body{ margin:0 !important; padding:0 !important; }
   #hm .letter p{ font-size:17px; }
   #hm .step{ padding-left:56px; }
   #hm .step::before{ width:40px; height:40px; font-size:15px; }
-  #hm .cta-in{ padding:48px 22px; border-radius:20px; }
+  #hm .cta-in{ padding:40px 22px; border-radius:20px; }
   /* The value columns are fixed width, so on a phone .nm gets squeezed to about
      50px and wraps one word per line. Give the name its own full row and let the
      columns sit underneath it, still aligned to the header because both start at
