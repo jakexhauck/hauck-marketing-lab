@@ -1103,21 +1103,23 @@ body{ margin:0 !important; padding:0 !important; }
       <div class="ba" id="mbBA" style="--pos:50%" tabindex="0" role="slider"
            aria-label="Before and after comparison" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
         <img id="mbBefore" draggable="false" src="https://drive.google.com/thumbnail?id=18FJswUSNeyQ-oGvb3FsptotxfMAhT1Eu&amp;sz=w1400" alt="Yard before work">
-        <img id="mbAfter" draggable="false" class="ba-after" src="https://drive.google.com/thumbnail?id=18PmjXBeqMa8i50PUp9LlbbcwdlGbWcUB&amp;sz=w1400" alt="Finished paver installation">
+        <img id="mbAfter" draggable="false" class="ba-after" src="https://drive.google.com/thumbnail?id=18PmjXBeqMa8i50PUp9LlbbcwdlGbWcUB&amp;sz=w1400" alt="The same view after the work was finished">
         <div class="ba-handle"><div class="ba-knob">&#8646;</div></div>
         <div class="ba-tag l">Before</div>
         <div class="ba-tag r">After</div>
       </div>
 
       <div class="ba-cap">
-        <p id="mbBACap">Front walkway rebuild with full base excavation, new pavers, polymeric sand.</p>
+        <p id="mbBACap">Moss and weeds stripped out of every joint, then re-sanded and locked back down.</p>
         <p style="color:var(--brass-text)">Drag the handle</p>
       </div>
 
       <div class="ba-thumbs" id="mbBAThumbs">
-        <button aria-pressed="true"  data-b="https://drive.google.com/thumbnail?id=18FJswUSNeyQ-oGvb3FsptotxfMAhT1Eu&amp;sz=w1400" data-a="https://drive.google.com/thumbnail?id=18PmjXBeqMa8i50PUp9LlbbcwdlGbWcUB&amp;sz=w1400" data-c="Brick paver installation with full base excavation, new pavers, polymeric sand.">Walkway</button>
-        <button aria-pressed="false" data-b="https://drive.google.com/thumbnail?id=1Fq3GAV5pCnpV5qBE_jsrthHtULcTmjxr&amp;sz=w1400" data-a="https://drive.google.com/thumbnail?id=1TMiPlKDntE2c7gZR7vzDljOPP3hF5jF9&amp;sz=w1400" data-c="Brick work rebuilt and reset level.">Patio</button>
-        <button aria-pressed="false" data-b="https://drive.google.com/thumbnail?id=1tnL2zxt0oNASjZviDx6DjS1wLWMy1S48&amp;sz=w1400" data-a="https://drive.google.com/thumbnail?id=1IRETMeqWUiGSm-oG39K8CNdKcZCUXKeg&amp;sz=w1400" data-c="Landscape bed cleared, re-edged and replanted.">Porch</button>
+        <button aria-pressed="true"  data-b="https://drive.google.com/thumbnail?id=18FJswUSNeyQ-oGvb3FsptotxfMAhT1Eu&amp;sz=w1400" data-a="https://drive.google.com/thumbnail?id=18PmjXBeqMa8i50PUp9LlbbcwdlGbWcUB&amp;sz=w1400" data-c="Moss and weeds stripped out of every joint, then re-sanded and locked back down.">Sanding &amp; restoration</button>
+        <button aria-pressed="false" data-b="https://drive.google.com/thumbnail?id=1tnL2zxt0oNASjZviDx6DjS1wLWMy1S48&amp;sz=w1400" data-a="https://drive.google.com/thumbnail?id=1IRETMeqWUiGSm-oG39K8CNdKcZCUXKeg&amp;sz=w1400" data-c="Landscape bed cleared, re-edged and replanted.">Garden beds</button>
+        <button aria-pressed="false" data-b="https://drive.google.com/thumbnail?id=13u2hfgG8yNEhl4TzxiHwtikUfkO1VEUT&amp;sz=w1400" data-a="https://drive.google.com/thumbnail?id=1DbWFfsoo_LIcRPFiYuGQrI0oE883zYWY&amp;sz=w1400" data-c="Strip of lawn beside the drive replaced with a paver extension and a charcoal border.">Driveway extension</button>
+        <button aria-pressed="false" data-b="https://drive.google.com/thumbnail?id=1xIRVRfrzytz2ne5CeSchyk1SKZUjfWS5&amp;sz=w1400" data-a="https://drive.google.com/thumbnail?id=1cDpD_e8VWpa1EI6_27RWckg-JZY61B0Z&amp;sz=w1400" data-c="Tired brick path lifted and rebuilt as a curved stone walkway with a soldier-course edge.">Walkway</button>
+        <button aria-pressed="false" data-b="https://drive.google.com/thumbnail?id=1DNoRr4NOVvAGPhqbaiBnhvZy3tf8hz1t&amp;sz=w1400" data-a="https://drive.google.com/thumbnail?id=1DRTscWzZfxycaokV7L1NIxWohdT05QNi&amp;sz=w1400" data-c="Same slabs, washed back to the colour the concrete started out.">Power washing</button>
       </div>
     </div>
   </section>
