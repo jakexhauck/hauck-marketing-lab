@@ -1,0 +1,41 @@
+<!--
+  HAUCK MARKETING: Pre-call page
+  GHL step: /pre-call
+
+  THIS IS THE WHOLE THING. Paste both lines below into the GoHighLevel step.
+
+  The real file:
+    command-center/app/public/sites/hauck/precall.js
+
+  WHAT IT IS: what a prospect sees AFTER they pick a time on /book and BEFORE
+  they turn up to the call. Confirmation, a welcome video, seven short videos
+  that kill the usual objections, client proof, and a wins wall.
+
+  It is NOT drawn by site.js. It has its own file because its content changes
+  every time a new video or a new screenshot exists, and a copy tweak here
+  must not be able to break the homepage.
+
+  HOW TO USE IT IN GHL
+  1. The funnel > new step named pre-call > Custom JS/HTML element.
+  2. Paste both lines below.
+  3. Set the step to full width and clear GHL's own padding.
+  4. Set the CALENDAR on /book to redirect here after a booking. Without that
+     redirect nobody ever sees this page.
+  5. Publish.
+
+  THE PATH MATTERS. The calendar redirect is set by hand in GHL. Rename the
+  step and the redirect lands on a GHL soft 404, which answers 200 with an
+  empty body, so it looks like a blank page rather than an error.
+
+  FILLING IT IN: every video slot and every win screenshot lives in the CONFIG
+  block at the top of precall.js. Drop a URL in, deploy, done. Empty slots
+  render a tidy "Video coming soon" tile rather than a broken player, so the
+  page is safe to publish before a single video exists.
+
+  Accepted video links: YouTube, Vimeo, Loom, or a direct .mp4 file. Nothing
+  loads until a visitor clicks it, which is what keeps a page holding
+  seventeen videos fast.
+-->
+
+<div id="hpc"></div>
+<script src="https://app.hauckmarketing.com/sites/hauck/precall.js"></script>
