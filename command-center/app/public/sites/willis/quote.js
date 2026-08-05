@@ -72,7 +72,7 @@
     // (OznT3yyuwK3dqVXDsCaD), NOT the news-channel landing page's
     // (.../webhook-trigger/7f254ff9-...), so ad leads and news-channel leads
     // stay tellable apart.
-    webhookUrl: "https://services.leadconnectorhq.com/hooks/OznT3yyuwK3dqVXDsCaD/webhook-trigger/d3c5438a-4a90-48a2-b84a-ff272a11b594",
+    webhookUrl: "https://services.leadconnectorhq.com/hooks/OznT3yyuwK3dqVXDsCaD/webhook-trigger/DnQegzTCnElUUfG9Sqr1",
 
     // Where they land after a successful submit: the BOOKING step, drawn by
     // booking.js, where they pick a time for the estimate call. That page then
