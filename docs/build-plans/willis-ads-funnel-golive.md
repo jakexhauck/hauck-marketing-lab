@@ -59,7 +59,8 @@ Send me the URL.
 The funnel posts these fields, form-encoded. Confirmed against a real capture:
 
 ```
-first_name  last_name  full_name  name  phone  email  address
+first_name  last_name  full_name  name  phone  email
+address  address1  city  state  postal_code
 metro_detroit  home_type  timeline
 offer  source  page_url  referrer
 utm_source  utm_medium  utm_campaign  utm_content  utm_term
@@ -87,9 +88,22 @@ zero while the ads are working.
 
 ### 2.3 Put the answers somewhere a human will read them
 
-`address`, `home_type` and `timeline` are what let Willis quote before they
-call. Custom fields or a note on the contact, either is fine, as long as they
-show up on the contact record rather than only in the workflow log.
+The address, `home_type` and `timeline` are what let Willis quote before they
+call.
+
+**Map the address onto GHL's own contact address fields**, not a custom field:
+`address1` -> Address, `city` -> City, `state` -> State, `postal_code` ->
+Postal Code. That is why the step asks for three boxes instead of one line. Put
+that way the address shows on the contact card, is searchable, and works with
+anything in GHL that expects a real address. `state` is always `MI` and is not
+asked: step 1 already turned away everyone outside Metro Detroit.
+
+`address` also arrives, as one readable line ("1247 Maple St, Royal Oak, MI
+48067"), for a notification template that wants one string.
+
+`home_type` and `timeline` need custom fields or a note on the contact. Either
+is fine, as long as they show up on the contact record rather than only in the
+workflow log.
 
 ### 2.4 Notify
 
