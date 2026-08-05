@@ -562,22 +562,11 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .gal figure:hover img{ transform:scale(calc(var(--gal-crop) + .08)); filter:saturate(1.1); }
 #mb .gal .tall{ grid-row:span 2; aspect-ratio:1/2.06; }
 
-/* ===== PROCESS ===== */
-#mb .steps-wrap{ position:relative; }
-#mb .steps-line{ position:absolute; top:26px; left:0; width:100%; height:40px; overflow:visible; }
-#mb .steps-line path{ fill:none; stroke:var(--line); stroke-width:2; stroke-dasharray:1400; stroke-dashoffset:1400; transition:stroke-dashoffset 1.4s ease .1s; }
-#mb .steps-line circle{ r:5; fill:var(--brass); opacity:0; transition:opacity .4s ease .6s; }
-#mb .steps-wrap.drawn .steps-line path{ stroke-dashoffset:0; }
-#mb .steps-wrap.drawn .steps-line circle{ opacity:1; }
-#mb .steps{ position:relative; display:grid; grid-template-columns:repeat(3,1fr); gap:34px; }
-#mb .steps > div{ padding-top:72px; }
-#mb .step-n {
-  font-family:'Plus Jakarta Sans','Inter',sans-serif;
-  font-size:40px; font-weight:800; color:var(--brass-display); line-height:1;
-  letter-spacing:-.03em; margin-bottom:14px; font-variant-numeric:tabular-nums;
-}
-#mb .steps h3{ margin-bottom:10px; }
-#mb .steps p{ font-size:15.5px; color:var(--muted); max-width:62ch; }
+/* The three-step process block used to live here, on both the home and the
+   services page. Both are gone: the pricing section and the FAQ already say
+   every word of it. Its CSS, its self-drawing connector line and its reveal
+   hook went with it rather than sitting here waiting for markup that no longer
+   exists. */
 
 /* ===== CITY MARQUEE ===== */
 #mb .marq{ overflow:hidden; background:var(--ink); padding:16px 0; border-top:1px solid var(--ink-3); border-bottom:1px solid var(--ink-3); }
@@ -861,7 +850,7 @@ body{ margin:0 !important; padding:0 !important; }
   #mb .sec.close{ padding-top:62px; }
   #mb .sec-head{ margin-bottom:34px; }
   #mb .hero{ padding:52px 0 60px; }
-  #mb .svc, #mb .stats, #mb .steps, #mb .split-grid{ grid-template-columns:1fr; }
+  #mb .svc, #mb .stats, #mb .split-grid{ grid-template-columns:1fr; }
   #mb .trust-in{ grid-template-columns:1fr 1fr; }
   #mb .gal{ grid-template-columns:repeat(2,1fr); }
   #mb .gal .tall{ grid-row:span 1; aspect-ratio:1; }
@@ -873,8 +862,6 @@ body{ margin:0 !important; padding:0 !important; }
   #mb .ft-in{ grid-template-columns:1fr; gap:34px; }
   #mb .phead-in{ padding:52px 0 48px; }
   #mb .ty{ padding:58px 0 52px; }
-  #mb .steps > div{ padding-top:0; }
-  #mb .steps-line{ display:none; }
   #mb .nav {
     display:none; position:absolute; top:100%; left:0; right:0;
     flex-direction:column; align-items:flex-start; gap:0; padding:12px 24px 20px;
@@ -1435,8 +1422,9 @@ body{ margin:0 !important; padding:0 !important; }
           <p>The jobs that don't fit a category, and the ones that have to happen before the pretty work can start. Water in the wrong place ruins more hardscape than anything else, so grading and drainage usually come first.</p>
           <ul class="svc-list">
             <li>Grading &amp; drainage correction</li>
-            <li>Downspout &amp; water management</li>
-            <li>Demolition &amp; haul-away</li>
+            <li>Gutter cleaning</li>
+            <li>Pressure washing</li>
+            <li>Soft washing</li>
             <li>Seasonal cleanups</li>
             <li>Ongoing property maintenance</li>
           </ul>
@@ -1445,40 +1433,6 @@ body{ margin:0 !important; padding:0 !important; }
         <img loading="lazy" src="https://drive.google.com/thumbnail?id=1VEPh5axiRkH3x_q9XST8Uup6fsJ9VXpS&amp;sz=w1400" alt="Grading and drainage work">
       </div>
 
-    </div>
-  </section>
-
-  <section class="sec">
-    <div class="wrap">
-      <div class="sec-head">
-        <div class="eyebrow">How it goes</div>
-        <h2>Three steps, no surprises.</h2>
-      </div>
-      <div class="steps-wrap">
-        <svg class="steps-line" viewBox="0 0 1000 40" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M 30 20 L 500 20 L 970 20"></path>
-          <circle cx="30" cy="20"></circle>
-          <circle cx="500" cy="20"></circle>
-          <circle cx="970" cy="20"></circle>
-        </svg>
-      <div class="steps">
-        <div>
-          <div class="step-n">01</div>
-          <h3>We come look</h3>
-          <p>Send the form or call. We walk the property, measure, and talk through what you actually want, usually within a day or two.</p>
-        </div>
-        <div>
-          <div class="step-n">02</div>
-          <h3>You see every number</h3>
-          <p>Materials, labour and disposal broken out line by line, so you know exactly what you are paying for. No line called "miscellaneous," no moving target once we start.</p>
-        </div>
-        <div>
-          <div class="step-n">03</div>
-          <h3>We build it</h3>
-          <p>Base prep, install, cleanup. We haul off everything we tore out and leave the site swept. You get before-and-after photos when it's done.</p>
-        </div>
-      </div>
-      </div>
     </div>
   </section>
 
@@ -2013,7 +1967,7 @@ body{ margin:0 !important; padding:0 !important; }
     /* ---------- scroll reveal ---------- */
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var targets = root.querySelectorAll(
-      ".sec-head, .trust-item, .svc-card, .steps > div, .val, .stat, .ba, .ba-cap, .ba-thumbs," +
+      ".sec-head, .trust-item, .svc-card, .val, .stat, .ba, .ba-cap, .ba-thumbs," +
       ".splits-h, .area-map, .cities, .county, .close-in > div, .ft-in > div, .row > div, .row > img," +
       ".split > div, .split > img, .cblock, .prose > *, .ty-mark, .ty > h1, .ty > p, .ty-next"
     );
@@ -2204,16 +2158,6 @@ body{ margin:0 !important; padding:0 !important; }
         es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("line-in"); lio.unobserve(e.target); } });
       }, { threshold: 0.05 });
       secs.forEach(function (s) { lio.observe(s); });
-    })();
-
-    /* ---------- process connector draws itself ---------- */
-    (function () {
-      var wrap = root.querySelector(".steps-wrap"); if (!wrap) return;
-      if (reduce || !("IntersectionObserver" in window)) { wrap.classList.add("drawn"); return; }
-      var dio = new IntersectionObserver(function (es) {
-        es.forEach(function (e) { if (e.isIntersecting) { wrap.classList.add("drawn"); dio.unobserve(e.target); } });
-      }, { threshold: 0.3 });
-      dio.observe(wrap);
     })();
 
     /* ---------- magnetic primary buttons ---------- */
