@@ -285,15 +285,15 @@ export function JobsBoard({
     }
   }
 
-  // Phone: the view switcher owns a full-width row of its own, with the Google
-  // Calendar link right-aligned on the row above it. Both on one row needs
-  // ~430px and the phone column has ~335, so they used to wrap into two ragged
-  // left-aligned rows. At lg they sit back on a single line together.
+  // The switcher and the Google Calendar link. On a calendar view these are
+  // handed to <CalendarViews> as its card `header`, so they sit in the same box
+  // as the date nav and the legend rather than floating above them: the page
+  // used to stack a right-aligned link, then a switcher, then a nav, then a
+  // legend as four unrelated blocks down the screen.
+  //
+  // At lg they sit back on a single line, as before.
   const viewControls = (
     <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:items-center">
-      <div className="flex justify-end lg:contents">
-        <GoogleCalendarLink />
-      </div>
       <Segmented<JobsView>
         stretch
         options={[
@@ -305,21 +305,38 @@ export function JobsBoard({
         value={jobsView}
         onChange={setJobsViewPersist}
       />
+      {/* Full width on a phone so it reads as a row of the settings card, its
+          natural width again at lg. The arbitrary variant reaches the button
+          inside rather than making GoogleCalendarLink take a layout prop it
+          would only ever be given from here. */}
+      <div className="flex [&>span]:flex-1 [&_button]:w-full lg:contents lg:[&>span]:flex-none lg:[&_button]:w-auto">
+        <GoogleCalendarLink />
+      </div>
     </div>
   );
+
+  // On a calendar view the controls move INTO the calendar's own control card,
+  // so nothing is rendered above it.
+  const showControlsAbove = booking || jobsView === "jobs";
 
   return (
     <>
       <div className={JOBS_CONTAINER}>
         {embedded ? (
           // Block on the phone so the stacked controls above fill the column;
-          // a right-aligned flex row again at lg.
-          <div className="pb-1 pt-1 lg:flex lg:justify-end">{viewControls}</div>
+          // a right-aligned flex row again at lg. Below lg the controls move
+          // into the calendar card, so this row renders only on the Jobs view
+          // (and at lg, where the header row is wide enough to hold them).
+          <div
+            className={
+              (showControlsAbove ? "block" : "hidden lg:block") +
+              " pb-1 pt-1 lg:flex lg:justify-end"
+            }
+          >
+            {viewControls}
+          </div>
         ) : (
-          <PageHeader
-            title="Jobs"
-            actions={viewControls}
-          />
+          <PageHeader title="Jobs" actions={showControlsAbove ? viewControls : undefined} />
         )}
 
         {booking && (
@@ -346,6 +363,8 @@ export function JobsBoard({
               connected={calendarConnected}
               view={jobsView}
               onRangeChange={onCalendarRangeChange}
+              // Phone only: at lg the controls stay in the page header row.
+              header={<div className="lg:hidden">{viewControls}</div>}
             />
           </div>
         ) : (

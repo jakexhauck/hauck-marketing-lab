@@ -11,6 +11,13 @@ import { ESTIMATE_LEADS } from "../lib/estimateForms";
 import { CHAT_LEADS } from "../lib/chatWidget";
 import { DEMO_LEADS as HUB_DEMO } from "../lib/leadsHub";
 import { demoAdsInsights } from "../lib/adsInsights";
+import {
+  demoAdsMedia,
+  demoCreativesFolder,
+  demoLeadTracker,
+  demoMetaData,
+} from "./handlers/adsTracker";
+import type { AdTrackerLevel, AdTrackerRange } from "../lib/api";
 import { demoOrganicDetail, demoOrganicLeads } from "./organic";
 import { demoRoutes } from "./handlers";
 import * as store from "./store";
@@ -79,6 +86,17 @@ export async function handleDemoRequest<T>(
   // matches a live account without touching a real pipeline.
   if (clean === "/api/ads/leads")
     return r({ leads: PAID_ADS_DEMO, total: PAID_ADS_DEMO.length });
+  // The remaining Paid Ads reads. All four were missing, so Lead Tracker (the
+  // page the app opens on), Meta Data and Creatives showed "Could not load this
+  // data" in the demo view and could not be reviewed at all.
+  if (clean === "/api/ads/tracker") {
+    const range = (queryParam(path, "range") ?? "all") as AdTrackerRange;
+    const level = (queryParam(path, "level") ?? "campaign") as AdTrackerLevel;
+    return r(demoLeadTracker(range, level));
+  }
+  if (clean === "/api/ads/meta-data") return r(demoMetaData());
+  if (clean === "/api/ads/creatives-folder") return r(demoCreativesFolder());
+  if (clean === "/api/ads/media") return r(demoAdsMedia());
   if (clean === "/api/forms/submissions") {
     const source = queryParam(path, "source");
     const submissions =

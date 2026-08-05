@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import Shell from "../components/Shell";
-import NavyHero from "../components/NavyHero";
 import DesktopPage from "../components/desktop/DesktopPage";
-import { HeroIconButton } from "../components/HeroUi";
+import { PageHeader } from "../components/PageHeader";
+import { PAGE_CONTAINER } from "../lib/layout";
 import { CLIENT_HOME } from "../lib/nav";
 
 // One reusable placeholder for every skeleton surface. The product has a home
@@ -22,19 +22,14 @@ export default function ComingSoon({
   return (
     <Shell>
       {/* Phone layout (below lg). */}
-      <div className="flex min-h-dvh flex-col lg:hidden">
-        <NavyHero>
-          <div className="flex items-center gap-2.5">
-            <HeroIconButton label="Back to home" onClick={() => navigate(CLIENT_HOME)}>
-              <ChevronLeft size={20} />
-            </HeroIconButton>
-            <div className="min-w-0">
-              <div className="font-display text-[17px] font-bold text-white">{title}</div>
-              <div className="truncate text-[12px] text-white/60">Coming soon</div>
-            </div>
-          </div>
-        </NavyHero>
-        <main className="flex flex-1 items-center justify-center px-6 pb-28 pt-6">
+      <div className={PAGE_CONTAINER + " lg:hidden"}>
+        <PageHeader
+          title={title}
+          count="Coming soon"
+          onBack={() => navigate(CLIENT_HOME)}
+          backLabel="Back to home"
+        />
+        <main className="flex flex-1 items-center justify-center">
           <ComingSoonCard title={title} blurb={blurb} />
         </main>
       </div>

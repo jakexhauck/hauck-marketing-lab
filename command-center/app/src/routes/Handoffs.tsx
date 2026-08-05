@@ -38,7 +38,11 @@ export function HandoffsBoard({
   return (
     <>
       {isTest && <TestBanner />}
-      <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-[22px] pb-6 pt-4 lg:px-6">
+      {/* px-5, not px-[22px]: this board sits directly under the page header
+          panel, which uses PAGE_CONTAINER's 20px gutter. At 22px the card edges
+          below the header missed the header's edges by 2px on every phone,
+          which reads as a wobble down the left side of the page. */}
+      <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-5 pb-6 pt-4 lg:px-6">
         {/* Scoreboard: the funnel at a glance, plus the accountability nudge.
             Shown even at zero so the page keeps its shape on a quiet day: an
             empty board should read as "nothing handed over yet", not as a page
@@ -46,7 +50,10 @@ export function HandoffsBoard({
             (loading / error), since flashing zeros that then jump to real
             figures is worse than showing nothing for a beat. */}
         {!query.isLoading && !query.isError && (
-          <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]">
+          // justify-center below lg: four stats do not fit one phone line, and
+          // left-aligned they wrapped with the last one stranded alone against
+          // the left edge. Centred, both lines read as one balanced strip.
+          <div className="mb-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[12.5px] lg:justify-start">
             {ignoredCount > 0 && (
               <span className="inline-flex items-center gap-1 font-bold text-rose-600 dark:text-rose-400">
                 <AlertCircle size={14} strokeWidth={2.5} />

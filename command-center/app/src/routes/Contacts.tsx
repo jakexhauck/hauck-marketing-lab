@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, Mail, Search } from "lucide-react";
+import { Phone, Mail } from "lucide-react";
 import Shell from "../components/Shell";
 import ContactsDesktop from "../components/contacts/ContactsDesktop";
-import NavyHero from "../components/NavyHero";
-import { HeroMark, HeroIconButton } from "../components/HeroUi";
+import { PageHeader } from "../components/PageHeader";
+import { PAGE_CONTAINER } from "../lib/layout";
 import TestBanner from "../components/TestBanner";
 import SearchBar from "../components/SearchBar";
 import Avatar from "../components/Avatar";
@@ -13,7 +13,6 @@ import PullToRefresh from "../components/PullToRefresh";
 import { useAuth } from "../context/AuthContext";
 import { useNow } from "../context/NowContext";
 import { useContactsQuery } from "../hooks/useApi";
-import { APP_BRAND } from "../lib/appBrand";
 import { formatPhone } from "../lib/phone";
 import { timeAgo } from "../lib/timeAgo";
 import type { ApiContact } from "../lib/api";
@@ -23,7 +22,6 @@ export default function Contacts() {
   const useReal = Boolean(session);
   const query = useContactsQuery(useReal);
   const [search, setSearch] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
   const isTest = mode === "test";
 
   const contacts: ApiContact[] = useMemo(
@@ -50,47 +48,38 @@ export default function Contacts() {
   return (
     <Shell>
       {/* Phone layout (below lg). The desktop client app renders
-          ContactsDesktop instead; both share the same query cache. */}
+          ContactsDesktop instead; both share the same query cache.
+
+          Structure copied from Conversations (the reference converted page):
+          full-bleed banner strip, then PAGE_CONTAINER holding the header panel
+          and the content. This page used to render the old navy hero, so
+          tapping Contacts visibly dropped you into a different-looking app. */}
       <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <PullToRefresh queryKeys={[["contacts"]]} />
       {isTest && <TestBanner />}
 
-      <NavyHero flushTop={isTest}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <HeroMark initials={APP_BRAND.initials} />
-            <div className="min-w-0">
-              <div className="truncate font-display text-[17px] font-bold text-white">
-                Contacts
-              </div>
-              <div className="truncate text-[12px] text-white/60">
-                {query.isLoading
-                  ? "Loading..."
-                  : `${contacts.length} ${contacts.length === 1 ? "contact" : "contacts"}`}
-              </div>
-            </div>
-          </div>
-          <HeroIconButton
-            label="Search contacts"
-            onClick={() => setShowSearch((v) => !v)}
-            pressed={showSearch}
-          >
-            <Search size={18} />
-          </HeroIconButton>
-        </div>
-      </NavyHero>
+      <div className={PAGE_CONTAINER}>
+        <PageHeader
+          title="Contacts"
+          count={
+            query.isLoading
+              ? "Loading..."
+              : `${contacts.length} ${contacts.length === 1 ? "contact" : "contacts"}`
+          }
+        />
 
-      {(showSearch || trimmed) && (
-        <div className="px-5 pt-4">
+        {/* Always shown rather than hidden behind a toggle: the magnifier in the
+            old hero was a second, undiscoverable way to reach a search box the
+            page has room for. */}
+        <div className="mb-3">
           <SearchBar
             value={search}
             onChange={setSearch}
             placeholder="Search contacts"
           />
         </div>
-      )}
 
-      <main className="mt-4 flex flex-1 flex-col px-5 pb-28">
+      <main className="flex flex-1 flex-col">
         {query.isError ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
             Failed to load contacts.{" "}
@@ -125,6 +114,7 @@ export default function Contacts() {
           </ul>
         )}
       </main>
+      </div>
       </div>
 
       {/* Desktop client app (lg+): the Atelier directory. */}

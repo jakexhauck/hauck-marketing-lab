@@ -14,7 +14,7 @@ describe("the phone app grid", () => {
     // five-tab bottom bar, so a nav row missing here is a page with no way in.
     // That is exactly what had happened: the grid pointed at /sales/leads and
     // /sales/jobs, which had become redirects rather than nav rows, so the whole
-    // "Sell & book" group rendered empty and four newer pages were never listed.
+    // Sales group rendered empty and four newer pages were never listed.
     const covered = new Set([...routesOf(groupAppTiles(everything)), ...ACCOUNT_ROUTES, "/apps"]);
     const missing = everything.map((i) => i.to).filter((to) => !covered.has(to));
     expect(missing).toEqual([]);
@@ -51,20 +51,27 @@ describe("the phone app grid", () => {
 
   it("drops a group whose every item is hidden, rather than showing a bare heading", () => {
     // A staff member without the inbox or contacts capability must not see an
-    // empty "Run the business" section.
+    // empty "Company" section.
     const onlyAds = everything.filter((i) => i.to.startsWith("/marketing/paid-ads"));
     const labels = groupAppTiles(onlyAds).map((g) => g.label);
-    expect(labels).toEqual(["Get customers"]);
+    expect(labels).toEqual(["Marketing"]);
   });
 
   it("reaches every surface the bottom bar dropped", () => {
-    // Inbox and Chat are not on the bar. The grid is what stops that being the
-    // same thing as removing them from the phone.
+    // Inbox is not on the bar. The grid is what stops that being the same thing
+    // as removing it from the phone. (Chat used to be asserted here too; it
+    // left the nav entirely on 2026-08-05, so there is nothing to cover.)
     const covered = new Set(routesOf(groupAppTiles(everything)));
     const bar = new Set(bottomNavItems(NAV).map((i) => i.to));
-    for (const route of ["/conversations", "/comms"]) {
+    for (const route of ["/conversations"]) {
       expect(bar.has(route)).toBe(false);
       expect(covered.has(route)).toBe(true);
     }
+  });
+
+  it("offers no tile the desktop sidebar does not have", () => {
+    // The phone grid is a SUBSET of the desktop app, never a superset. The
+    // agency chat broke that rule: hidden from the desktop rail, tiled here.
+    expect(routesOf(groupAppTiles(everything))).not.toContain("/comms");
   });
 });

@@ -1,7 +1,6 @@
 import {
   Megaphone,
   MessageSquare,
-  MessagesSquare,
   UserCog,
   Contact,
   LayoutGrid,
@@ -127,7 +126,11 @@ export const NAV: NavEntry[] = [
   //
   // Creatives sits last: it is the reference page of the group, opened when
   // somebody wants to look at or hand over an ad, not every morning.
-  { to: "/marketing/paid-ads/leads", label: "Lead Tracker", icon: ClipboardList, bottomNav: 1 },
+  // shortLabel "Tracker": "Lead Tracker" is 11 characters and ran to both edges
+  // of its 75px slot in the phone bar, touching its neighbours. The bar's other
+  // labels are one short word each ("Ads", "All", "Sales"), so the full name was
+  // the odd one out as well as the widest. Sidebar and grid keep the full name.
+  { to: "/marketing/paid-ads/leads", label: "Lead Tracker", shortLabel: "Tracker", icon: ClipboardList, bottomNav: 1 },
   { to: "/marketing/paid-ads", label: "Ads Dashboard", shortLabel: "Ads", icon: Megaphone, bottomNav: 2 },
   { to: "/marketing/paid-ads/meta", label: "Meta Data", icon: Database },
   { to: "/marketing/paid-ads/creatives", label: "Creatives", icon: FolderOpen },
@@ -147,7 +150,11 @@ export const NAV: NavEntry[] = [
   // Only Leads takes a bar slot. The phone bar holds five items with the raised
   // "All" FAB dead centre, so a sixth would push the FAB off centre; Schedule is
   // a desktop job anyway. See the comment on /apps below.
-  { to: "/sales", label: "Leads", shortLabel: "Sales", icon: Handshake, bottomNav: 4 },
+  // shortLabel matches the label: the tab read "Sales" but opened the Leads
+  // page, so the bar named a destination the app does not have. Both say Leads
+  // now. It sits beside "Tracker" (Lead Tracker) without ambiguity, because
+  // that one is the ads lead list and this one is the sales board.
+  { to: "/sales", label: "Leads", shortLabel: "Leads", icon: Handshake, bottomNav: 4 },
   { to: "/sales/schedule", label: "Schedule", icon: CalendarDays },
   // Only the services we actively sell get a row. Six channels are
   // back-burnered (hidden here, routes still registered in App.tsx): to
@@ -189,11 +196,12 @@ export const NAV: NavEntry[] = [
   // "All features" grid and global search both read the flat list and still
   // need it.
   { to: "/team", label: "Team", icon: UserCog, ownerOnly: true, sidebarHidden: true },
-  // The agency chat. Off the phone bottom bar as of 2026-07-31 (it was the
-  // far-right tab); sidebar-hidden on desktop as it always was. The /comms
-  // route stays registered so a bookmark still resolves, but no chrome points
-  // at it. To put the tab back, give this row a bottomNav slot.
-  { to: "/comms", label: "Chat", shortLabel: "Chat", icon: MessagesSquare, sidebarHidden: true },
+  // No Chat row: the agency chat left the nav entirely 2026-08-05. It had come
+  // off the phone bottom bar on 2026-07-31 and was sidebar-hidden on desktop,
+  // which left it reachable from the phone's "All features" grid and NOWHERE on
+  // desktop. That asymmetry is the bug: the phone is meant to be a subset of
+  // the desktop app, never a superset. The /comms route stays registered in
+  // App.tsx so an existing bookmark still resolves.
 ];
 
 // A single item's leaf pages: its children when it has them (the parent's own

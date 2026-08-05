@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, FlaskConical, Lock } from "lucide-react";
+import { FlaskConical, Lock } from "lucide-react";
 import Shell from "../components/Shell";
-import NavyHero from "../components/NavyHero";
-import { HeroIconButton } from "../components/HeroUi";
+import { PageHeader } from "../components/PageHeader";
+import { PAGE_CONTAINER } from "../lib/layout";
 import AutomationsDesktop from "../components/automations/AutomationsDesktop";
 import AutomationCard from "../components/automations/AutomationCard";
 import { FOLLOW_UPS, REACTIVATIONS } from "../lib/automations";
@@ -18,22 +18,19 @@ export default function Automations() {
   return (
     <Shell>
       {/* Phone layout (below lg). */}
-      <div className="flex min-h-dvh flex-col lg:hidden">
-        <NavyHero>
-          <div className="flex items-center gap-2.5">
-            <HeroIconButton label="Back to home" onClick={() => navigate(CLIENT_HOME)}>
-              <ChevronLeft size={20} />
-            </HeroIconButton>
-            <div className="min-w-0">
-              <div className="font-display text-[17px] font-bold text-white">Automations</div>
-              <div className="flex items-center gap-1 truncate text-[12px] text-white/60">
-                <Lock size={11} aria-hidden="true" /> Read-only · Managed by Hauck
-              </div>
-            </div>
-          </div>
-        </NavyHero>
+      <div className={PAGE_CONTAINER + " lg:hidden"}>
+        <PageHeader
+          title="Automations"
+          count={
+            <span className="inline-flex items-center gap-1">
+              <Lock size={11} aria-hidden="true" /> Read-only
+            </span>
+          }
+          onBack={() => navigate(CLIENT_HOME)}
+          backLabel="Back to home"
+        />
 
-        <main className="flex-1 space-y-6 px-4 pb-28 pt-4">
+        <main className="flex-1 space-y-6">
           <div className="flex items-center gap-2 rounded-2xl border border-warning/30 bg-warning-tint px-3.5 py-2.5 text-[12.5px] text-warning">
             <FlaskConical size={14} className="shrink-0" aria-hidden="true" />
             <span>Sample data. Live counts switch on once your account is wired in.</span>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   filterBySources,
@@ -28,10 +28,17 @@ export default function CalendarViews({
   onRangeChange,
   onSlotClick,
   weekHourPx,
+  header,
 }: {
   items: CalendarItem[];
   connected: Record<CalendarSource, boolean>;
   view: CalendarView;
+  // Rendered INSIDE this component's control card, above the date nav. The
+  // host's own controls (the Jobs/Month/Week/Agenda switcher and the Google
+  // Calendar link) belong in the same box as the date nav and the legend:
+  // as three separate floating blocks they read as three unrelated widgets
+  // stacked down the page, which is what the Schedule page looked like.
+  header?: ReactNode;
   // Reports the dates currently on screen whenever the anchor or view moves.
   // This component still never fetches: the host decides what, if anything, to
   // load for the visible range.
@@ -132,7 +139,14 @@ export default function CalendarViews({
           with the range label centered between edge arrows, the legend drops
           to its own row below, and Today is hidden (the arrows are enough on a
           phone, and dropping it keeps the header condensed). */}
-      <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3">
+      {/* Phone: one bordered control card holding the host's switcher + calendar
+          link, the date nav and the legend, with dividers between them. Desktop
+          keeps the bare inline row it had. */}
+      <div className="overflow-hidden rounded-[14px] border border-border bg-surface lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent">
+        {header && (
+          <div className="border-b border-divider p-2.5 lg:border-0 lg:p-0">{header}</div>
+        )}
+        <div className="flex flex-col gap-2 p-2.5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3 lg:p-0">
         <button
           type="button"
           onClick={goToday}
@@ -161,13 +175,14 @@ export default function CalendarViews({
             <ChevronRight size={16} />
           </button>
         </div>
-        <div className="lg:ml-auto">
-          <SourceLegend
-            active={active}
-            counts={counts}
-            connected={connected}
-            onToggle={toggle}
-          />
+          <div className="lg:ml-auto">
+            <SourceLegend
+              active={active}
+              counts={counts}
+              connected={connected}
+              onToggle={toggle}
+            />
+          </div>
         </div>
       </div>
 

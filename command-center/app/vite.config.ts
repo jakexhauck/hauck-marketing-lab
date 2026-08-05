@@ -61,6 +61,18 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest}"],
+        // 4 MiB, up from workbox's 2 MiB default. The main bundle had grown to
+        // 2,095,380 bytes, which is 1,772 bytes under the default cap: the next
+        // change of ANY size was going to fail the production build with
+        // "Assets exceeding the limit", and the message reads like the change
+        // did something wrong rather than like the app quietly reached a cliff.
+        //
+        // Raising it rather than excluding the bundle on purpose: this is a PWA
+        // whose whole offline story is precaching the app shell, and dropping
+        // the one file that IS the app would mean the installed app no longer
+        // opens offline. If the bundle keeps growing the real answer is route
+        // level code splitting, which is a build change, not a config bump.
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // Large brand source art is not offline-critical and blows past the
         // 2 MiB per-file precache cap; keep it out of the service worker.
         //

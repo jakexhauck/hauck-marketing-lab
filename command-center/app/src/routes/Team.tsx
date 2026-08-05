@@ -158,7 +158,9 @@ export default function Team() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-[22px] pb-28 pt-5">
+      {/* pb-6, not pb-28: Shell already clears the fixed bottom bar. px-5, not
+          px-[22px]: the app's phone gutter is 20px everywhere else. */}
+      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-5">
         <p className="text-[13px] leading-relaxed text-[var(--text-muted)]">
           Give your team their own logins. Each person signs in with their email
           and password and only sees what you allow.

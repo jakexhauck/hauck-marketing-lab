@@ -4,7 +4,15 @@ import type {
   AdTrackerRange,
   AdTrackerResponse,
 } from "../../../lib/api";
-import { LEVELS, RANGES, money0, money2, pct, roas } from "../../../routes/paid-ads/trackerShared";
+import {
+  LEVELS,
+  RANGES,
+  Segmented,
+  money0,
+  money2,
+  pct,
+  roas,
+} from "../../../routes/paid-ads/trackerShared";
 
 // The Paid Ads Dashboard sheet: the RESULTS band and the BREAKDOWN band.
 //
@@ -61,7 +69,18 @@ const BREAKDOWN_COLUMNS = [
 // wrapper below for what that looked like.
 function Band({ children }: { children: string }) {
   return (
-    <div className="shrink-0 border border-b-0 border-border bg-brand/10 px-3 py-2 text-[11.5px] font-bold uppercase tracking-[0.08em] text-brand">
+    <div
+      className={
+        // Phone: a plain section kicker, no fill, no border, no boxed band.
+        // The workbook banding is what makes the DESKTOP page recognisable as
+        // the sheet, but on a 390px screen a full-width tinted bar above a
+        // stack of cards is just a coloured stripe, and two of them made the
+        // page read as a form rather than a report.
+        "mb-2 mt-1 shrink-0 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-faint " +
+        // Desktop keeps the sheet exactly as it was.
+        "lg:mb-0 lg:mt-0 lg:border lg:border-b-0 lg:border-border lg:bg-brand/10 lg:px-3 lg:py-2 lg:text-[11.5px] lg:font-bold lg:tracking-[0.08em] lg:text-brand"
+      }
+    >
       {children}
     </div>
   );
@@ -136,6 +155,40 @@ function Stat({
   );
 }
 
+// The three figures that answer "did the ads make money": their own card, their
+// own scale, above the funnel counts. ROAS takes the full width as the verdict.
+function Headline({
+  label,
+  value,
+  accent = false,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  wide?: boolean;
+}) {
+  return (
+    <div
+      className={
+        "min-w-0 rounded-[12px] border px-3.5 py-3 " +
+        (wide ? "col-span-2 " : "") +
+        (accent ? "border-brand/30 bg-brand/5" : "border-border bg-surface")
+      }
+    >
+      <div className="truncate text-[11.5px] text-muted">{label}</div>
+      <div
+        className={
+          "truncate font-data text-[22px] font-semibold tracking-tight tnum " +
+          (accent ? "text-brand" : "text-text")
+        }
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
 // A Breakdown figure on a phone card. Denser than Stat: Breakdown is a list,
 // sometimes a long one, so its cards stay compact the way its table does.
 function BreakdownStat({
@@ -196,23 +249,33 @@ export default function DashboardSheet({
           client saw Leads and Pickups and had to drag for the rest, including
           ROAS, which is the number the page exists for. The grid keeps the
           sheet's ruled-cell look so it still reads as the workbook. */}
-      <div className="shrink-0 border border-b-0 border-border px-3 py-2.5 lg:hidden">
-        <Picker options={RANGES} value={range} onChange={onRange} label="Date range" />
+      {/* Phone: the app's own segmented range control rather than a native
+          <select>. The dropdown was the sheet's data-validation cell, but on a
+          phone it read as an unstyled form field in the middle of a report, and
+          the Lead Tracker one tab away already sets the range with exactly this
+          control. Same gesture on both pages now. */}
+      <div className="mb-3 shrink-0 overflow-x-auto lg:hidden" style={{ scrollbarWidth: "none" }}>
+        <Segmented options={RANGES} value={range} onChange={onRange} label="Date range" />
       </div>
-      <div className="grid shrink-0 grid-cols-2 gap-px border-y border-border bg-border lg:hidden">
+
+      {/* Phone: the money line first and big, then the funnel, then the rates.
+          Eleven equal cells in a hairline grid meant ROAS (the number the page
+          exists for) carried exactly the same weight as Pickup Rate, and the
+          reader had to hunt for it. */}
+      <div className="mb-4 grid shrink-0 grid-cols-2 gap-2 lg:hidden">
+        <Headline label="Revenue" value={money0(data.kpis.revenue)} />
+        <Headline label="Ad Spend" value={money0(data.kpis.spend)} />
+        <Headline label="ROAS" value={roas(data.kpis.roas)} accent wide />
+      </div>
+      <div className="mb-4 grid shrink-0 grid-cols-2 gap-px overflow-hidden rounded-[12px] border border-border bg-border lg:hidden">
         <Stat label="Leads" value={String(data.kpis.leads)} />
         <Stat label="Pickups" value={String(data.kpis.pickups)} />
-        <Stat label="Pickup Rate" value={pct(data.kpis.pickupRate)} />
         <Stat label="Bookings" value={String(data.kpis.bookings)} />
-        <Stat label="Booking Rate" value={pct(data.kpis.bookingRate)} />
         <Stat label="Sales" value={String(data.kpis.sales)} />
-        <Stat label="Sales % (of leads)" value={pct(data.kpis.salesPct)} />
-        <Stat label="Close Rate (of bookings)" value={pct(data.kpis.closeRate)} />
-        <Stat label="Revenue" value={money0(data.kpis.revenue)} />
-        <Stat label="Ad Spend" value={money0(data.kpis.spend)} />
-        {/* Full width, and last: eleven figures leave an odd one out, and ROAS
-            is the one worth giving the whole row to. */}
-        <Stat label="ROAS" value={roas(data.kpis.roas)} strong wide />
+        <Stat label="Pickup Rate" value={pct(data.kpis.pickupRate)} />
+        <Stat label="Booking Rate" value={pct(data.kpis.bookingRate)} />
+        <Stat label="Sales % of leads" value={pct(data.kpis.salesPct)} />
+        <Stat label="Close Rate of bookings" value={pct(data.kpis.closeRate)} />
       </div>
 
       <div className="hidden shrink-0 overflow-x-auto lg:block">
@@ -254,7 +317,23 @@ export default function DashboardSheet({
           it. Every explanatory paragraph that used to sit under here was cut on
           Jake's instruction, so this band is now the control and the scope,
           nothing else. */}
-      <div className="shrink-0 border border-b-0 border-border px-3 py-3">
+      {/* Phone: segmented, on its own line, no "View by:" prefix. The label was
+          a third of the row's width on a 390px screen to say what the three
+          buttons already say. */}
+      <div className="mb-3 shrink-0 lg:hidden">
+        <div className="overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          <Segmented options={LEVELS} value={level} onChange={onLevel} label="View by" />
+        </div>
+        {data.meta.liveCampaigns.length > 0 && (
+          <div className="mt-2 text-[12px] text-faint">
+            Live campaign
+            {data.meta.liveCampaigns.length === 1 ? "" : "s"}:{" "}
+            <span className="font-semibold text-text">{data.meta.liveCampaigns.join(", ")}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="hidden shrink-0 border border-b-0 border-border px-3 py-3 lg:block">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <span className="text-[12.5px] font-semibold text-text">View by:</span>
           <Picker options={LEVELS} value={level} onChange={onLevel} label="View by" />
@@ -280,9 +359,11 @@ export default function DashboardSheet({
             min-w-[980px] is the widest table on the page, and the row's NAME
             (the thing that tells you which ad you are reading) sat in the
             leftmost column with the figures dragged off to the right of it. */}
-        <div className="flex shrink-0 flex-col gap-2 border border-t-0 border-border p-3 lg:hidden">
+        {/* No enclosing bordered box on a phone: the cards already have borders,
+            so wrapping them in another one drew a frame around a frame. */}
+        <div className="flex shrink-0 flex-col gap-2 lg:hidden">
           {rows.map((r) => (
-            <div key={r.id} className="rounded-lg border border-border bg-surface px-3.5 py-3">
+            <div key={r.id} className="rounded-[12px] border border-border bg-surface px-3.5 py-3">
               <div className="flex items-start gap-2">
                 {r.live && (
                   <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-positive-tint px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-positive">
@@ -290,11 +371,13 @@ export default function DashboardSheet({
                     Live
                   </span>
                 )}
-                <span className="min-w-0 flex-1 text-[13.5px] font-semibold text-text">
+                <span className="min-w-0 flex-1 text-[14px] font-semibold text-text">
                   {r.name || "-"}
                 </span>
               </div>
-              <div className="mt-0.5 truncate text-[11px] text-faint tnum">{r.id}</div>
+              {/* The raw Meta ID is desktop-only. The sheet carried that column
+                  and the operator uses it; under an ad name on a client's phone
+                  it is a line of machine text with nothing to do. */}
 
               <dl className="mt-2.5 grid grid-cols-3 gap-x-3 gap-y-2 border-t border-border/60 pt-2.5 text-[12.5px]">
                 <BreakdownStat label="Spend" value={money0(r.spend)} />

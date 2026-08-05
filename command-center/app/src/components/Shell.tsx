@@ -33,12 +33,17 @@ export default function Shell({ children }: { children: ReactNode }) {
       {authed && <Sidebar />}
       <div
         className={cn(
-          // Below lg, pad ~64px (the fixed bottom tab bar's height) plus the
+          // Below lg, pad ~76px (the fixed bottom tab bar's height) plus the
           // bottom safe-area inset so no page hides content behind the bar; the
           // desktop layout has no bar, so it drops the pad entirely (lg:pb-0).
           // Kept as one responsive class because an inline paddingBottom would
           // override the utility.
-          "mx-auto flex min-h-dvh w-full max-w-md flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0",
+          //
+          // 4.75rem, up from 4rem: the bar grew when its labels went to 12px at
+          // full contrast. This number and BottomNav's height are a matched
+          // pair; changing the bar's padding without changing this hides the
+          // last few pixels of every page behind it.
+          "mx-auto flex min-h-dvh w-full max-w-md flex-col pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:pb-0",
           // Desktop: fill the locked frame height and become the single scroll
           // container (lg:overflow-y-auto). Every page remounts per route, so
           // this scroller starts at the top on navigation without ScrollToTop.

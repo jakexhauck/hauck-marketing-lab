@@ -51,8 +51,14 @@ describe("client nav structure", () => {
       "/conversations",
       "/contacts",
       "/team",
-      "/comms",
     ]);
+  });
+
+  it("does not link Chat: the phone must not offer what desktop cannot", () => {
+    // The agency chat was sidebar-hidden on desktop but still tiled on the
+    // phone's All-features grid, so the phone had a feature the desktop app
+    // did not. Route stays registered; no chrome points at it.
+    expect(flattenNav(NAV).map((i) => i.to)).not.toContain("/comms");
   });
 
   it("does not link Home: the row was retired 2026-08-01", () => {

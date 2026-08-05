@@ -32,16 +32,20 @@ export default function CreativesFolderCard({
   children?: ReactNode;
 }) {
   return (
-    <div className="shrink-0 rounded-lg border border-border bg-surface p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+    <div className="shrink-0 rounded-lg border border-border bg-surface p-4">
+      {/* The icon sits INLINE with the title on every width. It used to stack
+          above the text below sm, which on a phone put the folder glyph alone
+          on its own line with the heading beneath it, and left a band of empty
+          card either side of it. Only the button still drops to its own row. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
         <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand"
           aria-hidden
         >
-          <FolderOpen size={21} />
+          <FolderOpen size={20} />
         </span>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-0">
           <h2 className="text-[15px] font-semibold text-text">{title}</h2>
           <p className="mt-0.5 text-[13px] leading-snug text-muted">
             {url ? description : emptyText}
@@ -55,7 +59,10 @@ export default function CreativesFolderCard({
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-4 py-2.5 text-[13px] font-semibold text-text transition-colors hover:border-brand hover:text-brand"
+            // Full width on a phone (its own line under the text), inline on
+            // sm+. A 130px button squeezed beside a paragraph on a 390px screen
+            // is what forced the description into a four-line column.
+            className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-4 py-2.5 text-[13px] font-semibold text-text transition-colors hover:border-brand hover:text-brand sm:w-auto"
           >
             Open in Drive
             <ExternalLink size={15} aria-hidden />

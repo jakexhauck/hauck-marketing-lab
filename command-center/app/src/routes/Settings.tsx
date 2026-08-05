@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronLeft, ChevronRight, Compass, LogOut, Users } from "lucide-react";
+import { Check, ChevronRight, Compass, LogOut, Users } from "lucide-react";
 import Shell from "../components/Shell";
 import SettingsDesktop from "../components/settings/SettingsDesktop";
 import {
@@ -9,8 +9,8 @@ import {
   ChannelsControl,
   ChangePasswordControl,
 } from "../components/settings/SettingsControls";
-import NavyHero from "../components/NavyHero";
-import { HeroIconButton } from "../components/HeroUi";
+import { PageHeader } from "../components/PageHeader";
+import { PAGE_CONTAINER } from "../lib/layout";
 import { useAuth } from "../context/AuthContext";
 import { useTour } from "../context/TourContext";
 import { useClient } from "../context/ClientContext";
@@ -128,19 +128,14 @@ export default function Settings() {
       {/* Phone layout (below lg). The desktop client app renders
           SettingsDesktop instead; both share the same auth, client and
           notification-preference state. */}
-      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
-      <NavyHero>
-        <div className="flex items-center gap-2.5">
-          <HeroIconButton label="Back to home" onClick={() => navigate(CLIENT_HOME)}>
-            <ChevronLeft size={20} />
-          </HeroIconButton>
-          <div className="font-display text-[17px] font-bold text-white">
-            Settings
-          </div>
-        </div>
-      </NavyHero>
+      <div className={PAGE_CONTAINER + " lg:hidden"}>
+      <PageHeader
+        title="Settings"
+        onBack={() => navigate(CLIENT_HOME)}
+        backLabel="Back to home"
+      />
 
-      <div className="flex-1 overflow-y-auto px-[22px] pb-28 pt-5">
+      <div className="flex-1">
         {/* Account */}
         <span className="sec-kicker">Account</span>
         <div className="mt-2 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4">

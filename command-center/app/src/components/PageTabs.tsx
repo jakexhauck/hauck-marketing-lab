@@ -21,9 +21,14 @@ import type { PageTab } from "../lib/pageTabs";
 // width and the font loads late. Everything re-measures on route change and on
 // any resize of the row.
 
+// Both axes, because the track WRAPS on a phone (see TabLinks): a tab on the
+// second row shares its left/width with one on the first, so an indicator that
+// only knew x would park itself on the wrong line.
 interface Rect {
   left: number;
+  top: number;
   width: number;
+  height: number;
 }
 
 // The shared tab language, exported so in-place tab strips (the Inbox filters,
@@ -71,7 +76,12 @@ function measureActive(wrap: HTMLElement | null): Rect | null {
   if (!wrap) return null;
   const el = wrap.querySelector<HTMLElement>('[aria-current="page"]');
   if (!el) return null;
-  return { left: el.offsetLeft, width: el.offsetWidth };
+  return {
+    left: el.offsetLeft,
+    top: el.offsetTop,
+    width: el.offsetWidth,
+    height: el.offsetHeight,
+  };
 }
 
 export function TabLinks({ tabs }: { tabs: PageTab[] }) {
@@ -116,15 +126,24 @@ export function TabLinks({ tabs }: { tabs: PageTab[] }) {
   // leaving a small grey nub floating beside the title.
   if (tabs.length === 0) return null;
 
+  // Positioned on both axes now (translate x/y + explicit height) rather than
+  // stretched between top-[3px] and bottom-[3px], so it can land on any row.
   const indicator =
-    "pointer-events-none absolute left-0 top-[3px] bottom-[3px] rounded-[7px] transition-[transform,width,opacity] duration-[260ms] motion-reduce:transition-none";
+    "pointer-events-none absolute left-0 top-0 rounded-[7px] transition-[transform,width,height,opacity] duration-[260ms] motion-reduce:transition-none";
 
   return (
     <div
       ref={wrapRef}
       // The segmented track: a recessed surface-2 groove the tabs sit in, so
       // the group reads as ONE control rather than scattered links.
-      className="relative flex shrink-0 items-stretch gap-0.5 rounded-[10px] bg-[var(--surface-2)] p-[3px]"
+      //
+      // WRAPS below lg. A phone cannot fit five tabs on one line, and the old
+      // single-line track hid the overflow inside a scroller with no visible
+      // affordance: Outreach and Social showed one tab and a client had no way
+      // to know Schedule/Emails/Data/SMS existed. Wrapping shows every page at
+      // once, which is the whole point of the control. Desktop is unchanged
+      // (nowrap, one line, identical metrics).
+      className="relative flex flex-wrap items-stretch justify-center gap-0.5 rounded-[10px] bg-[var(--surface-2)] p-[3px] lg:shrink-0 lg:flex-nowrap lg:justify-start"
       onMouseLeave={() => setHover(null)}
     >
       {/* Hover tint, behind the raised pill. Fades out entirely when the cursor
@@ -133,8 +152,9 @@ export function TabLinks({ tabs }: { tabs: PageTab[] }) {
         aria-hidden="true"
         className={`${indicator} bg-[color-mix(in_srgb,var(--text)_6%,transparent)]`}
         style={{
-          transform: `translateX(${hover?.left ?? 0}px)`,
+          transform: `translate(${hover?.left ?? 0}px, ${hover?.top ?? 0}px)`,
           width: hover?.width ?? 0,
+          height: hover?.height ?? 0,
           opacity: hover ? 1 : 0,
           transitionTimingFunction: "var(--ease-out)",
         }}
@@ -147,8 +167,9 @@ export function TabLinks({ tabs }: { tabs: PageTab[] }) {
         aria-hidden="true"
         className={`${indicator} bg-[var(--surface)] shadow-[var(--shadow-sm)]`}
         style={{
-          transform: `translateX(${active?.left ?? 0}px)`,
+          transform: `translate(${active?.left ?? 0}px, ${active?.top ?? 0}px)`,
           width: active?.width ?? 0,
+          height: active?.height ?? 0,
           opacity: active ? 1 : 0,
           transitionTimingFunction: "var(--ease-out)",
           transitionDuration: ready ? undefined : "0ms",
@@ -163,7 +184,9 @@ export function TabLinks({ tabs }: { tabs: PageTab[] }) {
           onMouseEnter={(e) =>
             setHover({
               left: e.currentTarget.offsetLeft,
+              top: e.currentTarget.offsetTop,
               width: e.currentTarget.offsetWidth,
+              height: e.currentTarget.offsetHeight,
             })
           }
           className={({ isActive }) =>
@@ -193,7 +216,7 @@ export default function PageTabs({ tabs }: { tabs: PageTab[] }) {
       // shrink-0: PAGE_CONTAINER is a flex column with flex-1, so on tall pages
       // flex-shrink would otherwise squeeze this (it has overflow-x-auto) down
       // to nothing. Keep its natural height on every page.
-      className="mb-5 flex shrink-0 overflow-x-auto"
+      className="mb-5 flex shrink-0 justify-center overflow-x-auto lg:justify-start"
       style={{ scrollbarWidth: "none" }}
     >
       <TabLinks tabs={tabs} />

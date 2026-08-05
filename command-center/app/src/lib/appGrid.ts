@@ -24,7 +24,11 @@ export const ACCOUNT_ROUTES = ["/team"];
 // a back-burnered channel is harmless.
 const GROUPS: { label: string; routes: string[] }[] = [
   {
-    label: "Get customers",
+    // Product-area headings (Marketing / Sales / Company), matching how the
+    // desktop app is organised, rather than the old task-phrased ones ("Get
+    // customers", "Sell & book", "Run the business"). Jake's call 2026-08-05:
+    // the phone should name things the same way the desktop does.
+    label: "Marketing",
     routes: [
       "/marketing/paid-ads/leads",
       "/marketing/paid-ads",
@@ -41,12 +45,14 @@ const GROUPS: { label: string; routes: string[] }[] = [
     ],
   },
   {
-    label: "Sell & book",
+    label: "Sales",
     routes: ["/sales", "/sales/schedule"],
   },
   {
-    label: "Run the business",
-    routes: ["/conversations", "/comms", "/contacts"],
+    label: "Company",
+    // No /comms: the agency chat came out of the nav entirely (see nav.ts), so
+    // the phone grid no longer offers a feature the desktop app does not have.
+    routes: ["/conversations", "/contacts"],
   },
 ];
 

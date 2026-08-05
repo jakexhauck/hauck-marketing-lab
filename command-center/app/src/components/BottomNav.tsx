@@ -48,7 +48,9 @@ export default function BottomNav() {
       className="glass fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-white/50 dark:border-white/10 lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="flex items-stretch pt-1.5">
+      {/* pt-2: the bar is a touch taller than it was, so the labels are not
+          squeezed against the bar's top edge now that they are full-contrast. */}
+      <div className="flex items-stretch pt-2">
         {items.map((item) => {
           const isActive = isActiveRoute(item.to);
           const Icon = item.icon;
@@ -73,9 +75,13 @@ export default function BottomNav() {
                 }
               }}
               aria-current={isActive ? "page" : undefined}
-              className="flex flex-1 flex-col items-center gap-1 pb-2 pt-0.5"
+              className="flex min-w-0 flex-1 flex-col items-center gap-1 pb-2.5 pt-0.5"
+              // Inactive labels were --text-faint, which on the frosted bar read
+              // as disabled rather than as "the other four pages". Full --text
+              // contrast for the inactive ones, brand for the active one, so the
+              // bar reads as five real destinations with one of them lit.
               style={{
-                color: isActive ? "var(--brand-text)" : "var(--text-faint)",
+                color: isActive ? "var(--brand-text)" : "var(--text)",
               }}
             >
               {isRaised ? (
@@ -90,7 +96,7 @@ export default function BottomNav() {
                 </span>
               ) : (
                 <span
-                  className="flex h-8 w-12 items-center justify-center rounded-full transition-colors"
+                  className="flex h-9 w-[52px] items-center justify-center rounded-full transition-colors"
                   style={
                     isActive
                       ? { backgroundImage: "var(--grad-brand)", color: "#fff", boxShadow: "var(--shadow-brand)" }
@@ -98,7 +104,7 @@ export default function BottomNav() {
                   }
                 >
                   <span className="relative flex items-center justify-center">
-                    <Icon size={21} strokeWidth={isActive ? 2.4 : 2} />
+                    <Icon size={22} strokeWidth={isActive ? 2.4 : 2} />
                     {showBadge && (
                       <span
                         aria-label={`${unreadConversations} unread conversations`}
@@ -114,7 +120,12 @@ export default function BottomNav() {
                   </span>
                 </span>
               )}
-              <span className="text-[11px] font-semibold">
+              {/* One line, always. A label that wraps makes its tab taller than
+                  the other four and the whole bar jumps. */}
+              <span
+                className="max-w-full truncate px-0.5 text-[12px] leading-none"
+                style={{ fontWeight: isActive ? 700 : 600 }}
+              >
                 {item.shortLabel ?? item.label}
               </span>
             </button>

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   X,
-  Phone,
   CalendarClock,
   Briefcase,
   Check,
@@ -21,10 +20,6 @@ import {
   isIgnored,
 } from "../../lib/handoffModel";
 import { TONE_CHIP } from "./tone";
-
-function telHref(phone: string): string {
-  return `tel:${phone.replace(/[^\d+]/g, "")}`;
-}
 
 // A local datetime-local value ("YYYY-MM-DDTHH:mm") to an ISO instant.
 function toIso(local: string): string | null {
@@ -101,7 +96,11 @@ export default function HandoffOutcomeModal({
           </button>
         </div>
 
-        {/* Status + how long it's been sitting + call */}
+        {/* Status + how long it's been sitting. No Call button: removed
+            2026-08-05 on Jake's call. This sheet is for RECORDING what already
+            happened, and a green Call sitting above the outcome list read as
+            the primary action of a modal whose entire job is the list below
+            it. The lead's number is still one tap away on the lead itself. */}
         <div className="flex flex-wrap items-center gap-2 px-5 pb-3">
           <span className={"rounded-full px-2.5 py-1 text-[12px] font-semibold " + TONE_CHIP[meta.tone]}>
             {chipLabel}
@@ -116,13 +115,6 @@ export default function HandoffOutcomeModal({
               Handed off {shortDuration(minutesSince(handoff.handedAt, now))} ago
             </span>
           )}
-          <a
-            href={telHref(handoff.phone)}
-            className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-500 px-3.5 text-[13px] font-bold text-white hover:bg-emerald-600"
-          >
-            <Phone size={14} strokeWidth={2.5} />
-            Call
-          </a>
         </div>
 
         {/* Outcome choices */}
