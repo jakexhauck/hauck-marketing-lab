@@ -24,7 +24,8 @@
 //  - No claim about a client that Jake has not supplied. A made-up result on a
 //    page a buyer reads an hour before a sales call is the single most
 //    expensive kind of filler there is.
-//  - Light and quiet. One accent colour, and it appears about four times.
+//  - Dark and quiet. One accent colour, the logo green, used for the step
+//    numbers, the confirmation tick and the live dot and nothing else.
 //  - No dead vertical space. Three bands, tight padding, then the footer.
 //    Every screen a buyer scrolls past without reading something is a screen
 //    that says there is not much here.
@@ -140,17 +141,32 @@
 
 #hpc *, #hpc *::before, #hpc *::after { box-sizing:border-box !important; }
 
+/* DARK, on Jake's call. The page used to be light because the layout it was
+   modelled on is light. It is dark now because it is the last thing a buyer
+   looks at before a call with an agency whose own brand is deep forest.
+
+   TOKEN NAMES ARE UNCHANGED AND ONLY THE VALUES MOVED, which is the same
+   move the main site's repaint made. --white now names a raised panel rather
+   than the colour white. Renaming would have meant touching forty selectors
+   to repaint one page, and every one of those is a chance to miss something.
+
+   Two surfaces, alternating: --page for the confirmation band and the footer,
+   --white for Step 1 and the results wall, --wash equal to --page for Step 2.
+   The step between them is deliberately small. On a dark page a big jump
+   between bands reads as a seam. */
 #hpc {
-  --ink:#101317;
-  --slate:#5B6472;
-  --mute:#8A929E;
-  --line:rgba(16,19,23,.10);
-  --wash:#F3F4F6;
-  --page:#FAFAFB;
-  --white:#FFFFFF;
-  --accent:#3FA96C;
-  --accent-hi:#329058;
-  --shade:#DFE2E6;
+  --ink:#F2F6F3;
+  --slate:#A8B5AE;
+  --mute:#7C8C84;
+  --line:rgba(255,255,255,.10);
+  --wash:#0A1512;
+  --page:#0A1512;
+  --white:#101E19;
+  /* The logo green. It is 2.4:1 on the main site's cream and banned there as
+     type, but on this base it clears 6:1, so here it can be text. */
+  --accent:#4DBB83;
+  --accent-hi:#63CE97;
+  --shade:#1A2C26;
   --display:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;
   --body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
   --pad:clamp(20px,5vw,32px);
@@ -218,13 +234,24 @@
   color:var(--slate) !important; text-align:center !important;
   max-width:46ch !important; margin:12px auto 0 !important; padding:0 !important;
 }
+/* STEP 1 / STEP 2 are announcements, not captions. They used to be a .66rem
+   grey micro-label, which is the convention, and the convention was wrong for
+   a page whose whole instruction to the buyer is "do these two things".
+
+   Big, 700, and green. The hierarchy holds because the two lines differ in
+   COLOUR as well as size: the step number is the accent, the headline under
+   it is the near-white. Two near-white lines this size would have read as two
+   competing headlines. Tracking drops from .2em to .04em, because letter
+   spacing that wide is a device for making small type legible and it makes
+   large type look stretched. */
 #hpc .hp-step {
   display:block !important;
-  font-family:var(--display) !important; font-weight:600 !important;
-  font-size:.66rem !important; letter-spacing:.2em !important;
-  text-transform:uppercase !important; color:var(--mute) !important;
+  font-family:var(--display) !important; font-weight:700 !important;
+  font-size:clamp(1.5rem,4.2vw,2.15rem) !important;
+  line-height:1.1 !important; letter-spacing:.04em !important;
+  text-transform:uppercase !important; color:var(--accent) !important;
   text-align:center !important;
-  margin:0 0 14px !important; padding:0 !important;
+  margin:0 0 6px !important; padding:0 !important;
 }
 
 /* ---- confirmation head -------------------------------------------- */
@@ -238,7 +265,7 @@
   border-radius:999px !important;
   padding:7px 15px !important;
   margin:0 auto 14px !important;
-  box-shadow:0 1px 2px rgba(16,19,23,.04) !important;
+  box-shadow:none !important;
 }
 #hpc .hp-pill svg { flex:0 0 14px !important; color:var(--accent) !important; }
 
@@ -259,7 +286,10 @@
   cursor:default !important;
 }
 #hpc button.hp-media { cursor:pointer !important; -webkit-appearance:none !important; appearance:none !important; }
-#hpc button.hp-media:hover .hp-play { transform:scale(1.06) !important; background:var(--white) !important; }
+/* #fff, NOT var(--white). That token now names a dark raised panel, so
+   inheriting it here would turn the play button dark on hover and make it
+   vanish into the poster. */
+#hpc button.hp-media:hover .hp-play { transform:scale(1.06) !important; background:#FFFFFF !important; }
 
 #hpc .hp-shroud {
   position:absolute !important; inset:0 !important;
@@ -273,9 +303,12 @@
   width:54px !important; height:54px !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
   border-radius:50% !important;
-  background:rgba(255,255,255,.88) !important;
-  color:var(--ink) !important;
-  box-shadow:0 6px 20px -6px rgba(16,19,23,.4) !important;
+  background:rgba(255,255,255,.92) !important;
+  /* A LITERAL dark, not var(--ink). --ink is near-white on this page, so the
+     triangle would have been white-on-white and the button would have looked
+     empty. */
+  color:#0A1512 !important;
+  box-shadow:0 6px 20px -6px rgba(0,0,0,.6) !important;
   transition:transform .16s ease, background .16s ease !important;
   pointer-events:none !important;
 }
@@ -283,7 +316,7 @@
   position:absolute !important; left:0 !important; right:0 !important; bottom:12px !important;
   font-family:var(--body) !important; font-size:.72rem !important; font-weight:500 !important;
   letter-spacing:.04em !important; text-transform:uppercase !important;
-  color:rgba(16,19,23,.42) !important; text-align:center !important;
+  color:rgba(242,246,243,.45) !important; text-align:center !important;
   margin:0 !important; padding:0 !important;
   pointer-events:none !important;
 }
@@ -349,12 +382,17 @@
   margin:0 0 clamp(14px,2vw,20px) !important; padding:0 !important;
   list-style:none !important;
 }
+/* THE SCREENSHOTS STAY WHITE. They are Ads Manager exports and there is no
+   honest way to darken them: tinting a screenshot is editing evidence. So
+   they are framed instead, as bright documents laid on a dark desk, and the
+   border is a light hairline so the frame belongs to the page rather than
+   looking like the image failed to load its own edge. */
 #hpc .hp-wins img {
   display:block !important; width:100% !important; height:auto !important;
   border-radius:10px !important;
-  border:1px solid var(--line) !important;
-  background:var(--white) !important;
-  box-shadow:0 10px 30px -22px rgba(16,19,23,.5) !important;
+  border:1px solid rgba(255,255,255,.14) !important;
+  background:#FFFFFF !important;
+  box-shadow:0 14px 34px -20px rgba(0,0,0,.8) !important;
 }
 /* A table this wide cannot shrink to a phone and stay readable, so on small
    screens it holds close to its native size and scrolls sideways INSIDE its
@@ -390,7 +428,7 @@
   -webkit-appearance:none !important; appearance:none !important;
   transition:border-color .16s ease !important;
 }
-#hpc .hp-more:hover { border-color:rgba(16,19,23,.3) !important; }
+#hpc .hp-more:hover { border-color:rgba(255,255,255,.32) !important; }
 #hpc .hp-live {
   display:flex !important; align-items:center !important; justify-content:center !important;
   gap:7px !important;
@@ -691,6 +729,27 @@
     }
   }
 
+  // A DARK PAGE HAS TO CLAIM THE DOCUMENT, not just its own div.
+  //
+  // #hpc paints its own background, but it only covers the box it occupies.
+  // Everything outside that box is still GoHighLevel's white: the strip under
+  // the footer when the content is shorter than the viewport, the overscroll
+  // rubber band at the top of the page on iOS, and the scrollbar track, which
+  // Windows draws light unless color-scheme says otherwise.
+  //
+  // Each of those is a white flash on a page that is meant to be dark, so the
+  // background goes on <html> and <body> too. Safe here in a way it would not
+  // be in a shared component: this file only ever runs on its own GHL step,
+  // where our div IS the page.
+  function darkenDocument() {
+    var el = [document.documentElement, document.body];
+    for (var i = 0; i < el.length; i++) {
+      if (!el[i]) continue;
+      el[i].style.setProperty("background-color", "#0A1512", "important");
+      el[i].style.setProperty("color-scheme", "dark", "important");
+    }
+  }
+
   function mount(root) {
     if (!document.querySelector("style[data-hm-precall]")) {
       var style = document.createElement("style");
@@ -698,6 +757,7 @@
       style.textContent = STYLES;
       document.head.appendChild(style);
     }
+    darkenDocument();
     flattenWrappers(root);
     root.innerHTML = view();
     wire(root);
