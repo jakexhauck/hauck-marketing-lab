@@ -38,14 +38,43 @@
   // documented process supports: they look the home up, they quote a flat
   // price on the phone, and they do not upcharge at the door.
   //
-  // Deliberately NOT here: any promise about how fast somebody calls, or the
-  // five-day driveway guarantee. The guarantee is recorded as pending ops
-  // sign-off, and a thank-you page is a bad place to invent an SLA that the
-  // two people doing every job then have to keep.
+  // Deliberately NOT here: the five-day driveway guarantee, which is recorded
+  // as pending ops sign-off. A thank-you page is a bad place to invent a
+  // promise the two people doing every job then have to keep.
+  //
+  // The call-time promise IS here now, because the homeowner just chose it
+  // themselves on the booking step. That is the difference between an SLA we
+  // invented and an appointment they made.
   var NEXT = [
-    { n: "1", t: "We look up your home", d: "So the price you hear is based on your actual windows, not a guess." },
-    { n: "2", t: "We call you with a flat price", d: "One number, on the phone. No upcharges at the door." },
-    { n: "3", t: "We book you in", d: "You pick the day. Your $100 off is already on it." }
+    { n: "1", t: "We look up your home before we ring", d: "So the price you hear is worked out from your actual windows, not guessed on the call." },
+    // Fifteen minutes because that is what the calendar itself says on the
+    // step before ("15 min Phone Appointment").
+    { n: "2", t: "We call you at the time you picked", d: "About fifteen minutes. If you miss it we will try you again rather than give the slot away." },
+    { n: "3", t: "You get a flat price on that call", d: "One number for the whole job, with your $100 off already taken off it. No upcharges, and nobody comes to the house." }
+  ];
+
+  // Written by quote.js when GHL accepted the lead, and still here because
+  // sessionStorage survives the hop through the booking page: same origin,
+  // same tab. Used to say their own number back to them.
+  //
+  // Not cleared. sessionStorage already dies with the tab, which is the
+  // shared-computer case, and clearing it would make a refresh of this page
+  // quietly lose the number.
+  var HANDOFF_KEY = "ww_lead_v1";
+
+  // The appointment time, if GHL's post-booking redirect passes one.
+  //
+  // HONEST NOTE: the parameter name GHL appends has NOT been confirmed against
+  // a real booking on this calendar yet. So this checks the names GHL is known
+  // to have used, and then falls back to scanning every parameter for a value
+  // that parses as a date in a sane window. If it finds nothing, the copy
+  // below says "the time you picked", which is true whatever GHL sends.
+  //
+  // A wrong time on this page is far worse than no time, so anything outside
+  // yesterday-to-a-year-out is treated as not-a-time and ignored.
+  var TIME_PARAMS = [
+    "event_start_time", "start_time", "startTime", "appointment_time",
+    "selected_slot", "slot", "start", "date"
   ];
 
   // NOTE: this whole block is a JS template literal. A backtick anywhere in
@@ -159,8 +188,36 @@
 #wwt .wq-lede {
   font-family:var(--body) !important; font-size:1.02rem !important; font-weight:400 !important;
   line-height:1.6 !important; color:var(--slate) !important;
-  text-align:center !important; max-width:40ch !important;
+  text-align:center !important; max-width:42ch !important;
   margin:0 auto !important; padding:0 !important;
+}
+/* The time and the number are the two facts in that sentence worth finding
+   again in a hurry, so they carry weight and the darker ink. */
+#wwt .wq-lede b {
+  font-family:var(--body) !important; font-weight:700 !important;
+  color:var(--navy-deep) !important;
+}
+
+/* The booked time, restated on its own. Only rendered when GHL actually
+   passed a time through the redirect. */
+#wwt .wq-when {
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  flex-wrap:wrap !important; gap:10px !important;
+  font-family:var(--display) !important;
+  font-size:1.06rem !important; font-weight:700 !important;
+  letter-spacing:-.01em !important; color:var(--navy-deep) !important;
+  text-align:center !important;
+  background:var(--wash) !important;
+  border:1px solid rgba(24,62,99,.13) !important;
+  border-radius:12px !important;
+  padding:13px 16px !important;
+  margin:18px 0 0 !important;
+}
+#wwt .wq-when__l {
+  font-family:var(--display) !important;
+  font-size:.7rem !important; font-weight:800 !important;
+  letter-spacing:.14em !important; text-transform:uppercase !important;
+  color:var(--steel) !important;
 }
 
 /* what happens next */
@@ -232,12 +289,112 @@
       .replace(/"/g, "&quot;");
   }
 
+  function lead() {
+    try {
+      var raw = sessionStorage.getItem(HANDOFF_KEY);
+      if (!raw) return null;
+      var v = JSON.parse(raw);
+      return v && typeof v === "object" ? v : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // A value is only a time if it lands between yesterday and a year out. That
+  // rejects the things that otherwise parse as dates and are not: a contact
+  // id, a version number, a bare "2026".
+  function asAppointment(raw) {
+    if (!raw) return null;
+    var v = String(raw).trim();
+    if (!v || v.length < 8) return null;
+
+    // Epoch seconds or milliseconds arrive as bare digits.
+    var d;
+    if (/^\d{10}$/.test(v)) d = new Date(parseInt(v, 10) * 1000);
+    else if (/^\d{13}$/.test(v)) d = new Date(parseInt(v, 10));
+    else d = new Date(v);
+
+    if (isNaN(d.getTime())) return null;
+
+    var now = Date.now();
+    if (d.getTime() < now - 86400000) return null;
+    if (d.getTime() > now + 31536000000) return null;
+    return d;
+  }
+
+  function bookedAt() {
+    var q;
+    try { q = new URLSearchParams(window.location.search); } catch (e) { return null; }
+
+    var i, d;
+    for (i = 0; i < TIME_PARAMS.length; i++) {
+      d = asAppointment(q.get(TIME_PARAMS[i]));
+      if (d) return d;
+    }
+    // Nothing named. Take anything that looks like a real appointment.
+    var found = null;
+    q.forEach(function (v) {
+      if (!found) found = asAppointment(v);
+    });
+    return found;
+  }
+
+  // "Thursday 7 August at 2:30 PM EDT". The timezone is spelled out because
+  // this is rendered in the visitor's timezone, not Willis's, and a homeowner
+  // who books from a work laptop set to another zone must not be told the
+  // wrong hour with no way of telling.
+  function sayWhen(d) {
+    try {
+      var day = d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+      var time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+      return day + " at " + time;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function view() {
     var steps = NEXT.map(function (s) {
       return '<li><span class="wq-next__n">' + esc(s.n) + "</span><span>" +
         '<span class="wq-next__t">' + esc(s.t) + "</span>" +
         '<span class="wq-next__d">' + esc(s.d) + "</span></span></li>";
     }).join("");
+
+    // ------------------------------------------------------- the pre-frame
+    // Jake, 2026-08-05: say plainly that the appointment IS a phone call, that
+    // it is free, that it happens at the time they picked, and that it goes to
+    // the number they gave. Every one of those is a reason somebody does not
+    // answer an unknown number two days later, or expects a van in the drive.
+    var who = lead();
+    var d = bookedAt();
+    var stamp = d ? sayWhen(d) : null;
+    var tel = who && who.phone ? String(who.phone).trim() : "";
+
+    var heading = stamp ? "Your call is booked." : "You are booked in.";
+
+    // Four variants, so the sentence is grammatical whether or not the time
+    // and the number are known. The generic one is true no matter what GHL
+    // does or does not pass through, which is why it is the fallback rather
+    // than an error.
+    var lede;
+    if (stamp && tel) {
+      lede = "We will call you on <b>" + esc(stamp) + "</b> at <b>" + esc(tel) +
+        "</b> to give you your free estimate, entirely over the phone.";
+    } else if (stamp) {
+      lede = "We will call you on <b>" + esc(stamp) +
+        "</b>, on the number you gave us, to give you your free estimate entirely over the phone.";
+    } else if (tel) {
+      lede = "We will call you at the time you picked, at <b>" + esc(tel) +
+        "</b>, to give you your free estimate entirely over the phone.";
+    } else {
+      lede = "We will call you at the time you picked, on the number you gave us, to give you your free estimate entirely over the phone.";
+    }
+
+    // The time again, as its own line, because a homeowner scanning this page
+    // for one thing is scanning for when the phone rings.
+    var when = stamp
+      ? '<p class="wq-when"><span class="wq-when__l">Your call</span>' + esc(stamp) + "</p>"
+      : "";
 
     return '' +
       '<div class="wq-bg"></div>' +
@@ -250,8 +407,9 @@
         "</div>" +
         '<div class="wq-card">' +
           '<span class="wq-mark">' + DONE + "</span>" +
-          "<h1>You are in.</h1>" +
-          '<p class="wq-lede">We have your details and your $100 off is locked to them. Here is what happens next.</p>' +
+          "<h1>" + heading + "</h1>" +
+          '<p class="wq-lede">' + lede + "</p>" +
+          when +
           '<ul class="wq-next">' + steps + "</ul>" +
         "</div>" +
         '<ul class="wq-chips">' +

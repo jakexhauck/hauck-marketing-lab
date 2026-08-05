@@ -1,62 +1,88 @@
 # Willis Windows ads funnel: go-live plan
 
-**Status as of 2026-08-04:** both pages are built, deployed and verified live.
-Nothing is wired. No traffic can reach them yet.
+**Status as of 2026-08-05.** Three pages built, deployed and verified.
+The webhook is now wired. What is left is GHL: three steps pasted, one
+workflow built, one calendar redirect set.
 
-- `command-center/app/public/sites/willis/quote.js` (5-step funnel, `#wwq`)
-- `command-center/app/public/sites/willis/thanks.js` (thank-you, `#wwt`)
-- Stubs: `willis-windows-landing/quote.html`, `willis-windows-landing/thank-you-quote.html`
-- Commits `cd95ff42`, `93402cc0`
+## The flow
 
-The whole remaining job is GHL wiring plus one config line, then one real lead
-walked end to end. Everything below is ordered so nothing waits on anything
-that has not happened yet.
+```
+Facebook ad
+  -> /quote              quote.js    5-step survey, POSTs the lead to GHL
+  -> /book               booking.js  the calendar, prefilled
+  -> /thank-you-quote    thanks.js   confirmation, and the Meta pixel fires here
+```
 
----
+The lead reaches GHL at `/quote`, **before** the calendar. Somebody who opens
+the booking page, sees no time they like and closes the tab is still a lead
+Willis can ring. That ordering is deliberate and worth keeping.
 
-## Phase 1 — Jake, in GHL (about 20 minutes)
+"No" on step 1 (Metro Detroit) is an auto-disqualification: nothing is posted
+and no contact is created.
 
-Nothing else can start until this is done, because the funnel cannot post
-anywhere and I cannot test a lead that has nowhere to land.
+| File | GHL step | Mount |
+|---|---|---|
+| `command-center/app/public/sites/willis/quote.js` | the ad landing path, `/quote` | `#wwq` |
+| `command-center/app/public/sites/willis/booking.js` | `/book` | `#wwb` |
+| `command-center/app/public/sites/willis/thanks.js` | `/thank-you-quote` | `#wwt` |
 
-### 1.1 Build the two steps
-
-Both are Custom JS/HTML elements, set to full width, with GHL's own padding
-removed.
-
-| Step path | Paste |
-|---|---|
-| the ad landing path (see 1.2) | the two lines from `quote.html` |
-| **`thank-you-quote`** exactly | the two lines from `thank-you-quote.html` |
-
-**The thank-you path is not free choice.** `quote.js` redirects to
-`williswindows.com/thank-you-quote`. A different name sends every converting
-lead to a GHL soft 404, which answers 200 with an empty body, so it looks like
-a blank page rather than an error and nobody reports it. If you want a
-different path, tell me first: it is one line.
-
-### 1.2 Decide the landing path
-
-`/quote` is the obvious one and is currently unused. Confirm it and I will note
-it everywhere. The ads point here.
-
-### 1.3 Create a NEW inbound webhook
-
-A workflow with an Inbound Webhook trigger, on the Willis sub-account
-(`OznT3yyuwK3dqVXDsCaD`).
-
-**Do not reuse `.../webhook-trigger/7f254ff9-...`.** That one belongs to the
-old news-channel landing page. Sharing it makes ad leads and news-channel leads
-impossible to tell apart afterwards, and the whole point of this funnel is
-knowing which creative paid for a job.
-
-Send me the URL.
+Stubs to paste: `willis-windows-landing/quote.html`, `book.html`,
+`thank-you-quote.html`. GHL holds two lines each; everything real ships by
+deploy.
 
 ---
 
-## Phase 2 — The workflow behind the webhook (Jake builds, I specify)
+## Phase 1 — Jake, in GHL
 
-The funnel posts these fields, form-encoded. Confirmed against a real capture:
+### 1.1 Build the three steps
+
+Each is a Custom JS/HTML element, full width, with GHL's own padding removed.
+
+**The two later paths are not free choice.** `quote.js` redirects to
+`williswindows.com/book`, and the calendar must redirect to
+`williswindows.com/thank-you-quote`. A different name lands on a GHL soft 404,
+which answers 200 with an empty body, so it looks like a blank page rather than
+an error and nobody reports it. Different path wanted? It is one line.
+
+### 1.2 Set the calendar's after-booking redirect
+
+Calendar `Jlr88qZDp0Sth1H5Sjzf`, in its own settings:
+
+```
+https://williswindows.com/thank-you-quote
+```
+
+`booking.js` cannot do this. The booking happens inside a cross-origin iframe
+and the parent is not reliably told when it succeeds. Left empty, GHL shows its
+own confirmation inside the frame: the appointment is real, but nothing
+pre-frames the call and **the Meta pixel never fires**, so every booked job
+reads as zero conversions.
+
+### 1.3 The webhook
+
+Already wired into `quote.js`:
+
+```
+https://services.leadconnectorhq.com/hooks/OznT3yyuwK3dqVXDsCaD/webhook-trigger/a9c82b99-eca4-4260-9fce-084b4c359ae6
+```
+
+Its own trigger on the Willis sub-account, not the news-channel page's
+(`.../webhook-trigger/7f254ff9-...`), so ad leads and news-channel leads stay
+tellable apart.
+
+---
+
+## Phase 2 — The workflow behind the webhook
+
+### 2.0 Fire one lead FIRST, then map
+
+GHL's Inbound Webhook trigger shows nothing to map until it has seen a real
+payload. Walk one lead through `/quote` before opening the mapping dropdowns,
+or every field below will be missing and it looks broken.
+
+### 2.1 What the funnel posts
+
+Form-encoded. Confirmed against a real capture.
 
 ```
 first_name  last_name  full_name  name  phone  email
@@ -64,136 +90,155 @@ address  address1  city  state  postal_code
 metro_detroit  home_type  timeline
 offer  source  page_url  referrer
 utm_source  utm_medium  utm_campaign  utm_content  utm_term
-fbclid  gclid  ad_id  adset_id  campaign_id
+fbclid  gclid  ad_id  adset_id  campaign_id  ref
 ```
 
-The workflow must do four things.
+The last two rows only appear when the ad URL carried them.
 
-### 2.1 Create or update the contact
+### 2.2 Create or update the contact
 
-Map `first_name` / `last_name` / `phone` / `email`. They are already split on
-the last space, so "Mary Anne Willis" arrives as first "Mary Anne", last
-"Willis". Do not feed `full_name` into a single name field as well: that is the
-exact bug still open on the cold-call calendar work, where GHL re-splits a
-combined name and empties the real fields.
+In the workflow's Create/Update Contact action, the value for each field is
+`{{inboundWebhookRequest.<key>}}`:
 
-### 2.2 Tag the contact `facebook ads`
+| GHL contact field | Value |
+|---|---|
+| First Name | `{{inboundWebhookRequest.first_name}}` |
+| Last Name | `{{inboundWebhookRequest.last_name}}` |
+| Phone | `{{inboundWebhookRequest.phone}}` |
+| Email | `{{inboundWebhookRequest.email}}` |
+| Address | `{{inboundWebhookRequest.address1}}` |
+| City | `{{inboundWebhookRequest.city}}` |
+| State | `{{inboundWebhookRequest.state}}` |
+| Postal Code | `{{inboundWebhookRequest.postal_code}}` |
 
-**This is not cosmetic and it is easy to skip.** The Command Center's Paid Ads
-page computes New customers, Revenue from ads and ROAS by joining Job Completed
-opportunities to contacts carrying this tag (`functions/lib/adsRevenue.ts`,
-matched case-insensitively by contains on `facebook ad`). No tag means every
-lead this funnel produces is invisible to your own reporting, and ROAS reads
-zero while the ads are working.
+**Do not map `full_name` or `name` into a single name field.** They are posted
+for workflow actions that only take one string. Feed either into a combined
+name field and GHL re-splits it, which is the exact bug still open on the
+cold-call calendar work, where business names land in first/last and the real
+field ends up empty. The funnel has already split on the last space, so
+"Mary Anne Willis" arrives as first "Mary Anne", last "Willis".
 
-### 2.3 Put the answers somewhere a human will read them
+`address1` rather than `address`: the second is the same address as one
+readable line ("881 Oakwood Ave, Berkley, MI 48072"), for a notification
+template that wants one string.
 
-The address, `home_type` and `timeline` are what let Willis quote before they
-call.
+### 2.3 Tag the contact `facebook ads`
 
-**Map the address onto GHL's own contact address fields**, not a custom field:
-`address1` -> Address, `city` -> City, `state` -> State, `postal_code` ->
-Postal Code. That is why the step asks for three boxes instead of one line. Put
-that way the address shows on the contact card, is searchable, and works with
-anything in GHL that expects a real address. `state` is always `MI` and is not
-asked: step 1 already turned away everyone outside Metro Detroit.
+**Not cosmetic and easy to skip.** The Command Center's Paid Ads page computes
+New customers, Revenue from ads and ROAS by joining Job Completed opportunities
+to contacts carrying this tag (`functions/lib/adsRevenue.ts`, matched
+case-insensitively by contains on `facebook ad`). No tag means every lead this
+funnel produces is invisible to your own reporting, and ROAS reads zero while
+the ads are working.
 
-`address` also arrives, as one readable line ("1247 Maple St, Royal Oak, MI
-48067"), for a notification template that wants one string.
+### 2.4 Custom fields
 
-`home_type` and `timeline` need custom fields or a note on the contact. Either
-is fine, as long as they show up on the contact record rather than only in the
-workflow log.
+Create these on the contact, then map:
 
-### 2.4 Notify
+| Custom field | Value |
+|---|---|
+| Home Type | `{{inboundWebhookRequest.home_type}}` |
+| Timeline | `{{inboundWebhookRequest.timeline}}` |
+| Offer | `{{inboundWebhookRequest.offer}}` |
+| Lead Source Detail | `{{inboundWebhookRequest.source}}` |
+| Page URL | `{{inboundWebhookRequest.page_url}}` |
+| UTM Campaign | `{{inboundWebhookRequest.utm_campaign}}` |
+| UTM Content (creative) | `{{inboundWebhookRequest.utm_content}}` |
+| Ad ID | `{{inboundWebhookRequest.ad_id}}` |
+| fbclid | `{{inboundWebhookRequest.fbclid}}` |
 
-However you want the crew to hear about it: SMS, email, internal notification.
-Two people do every job, so a lead sitting unseen is the failure mode.
+`utm_content` and `ad_id` are what tell you which creative paid for a booked
+job. Skip them and you will know the ads worked without knowing which ad did.
 
-**Open question for tomorrow:** does this lead also create an opportunity, and
-in which pipeline and stage? Your keep-vs-move baseline says software owns
-stage movement and GHL owns comms, but Willis is wired into the Command Center,
-so this is a real decision rather than a default. I would put it in the Paid
-Ad's Pipeline at the first stage and let the app move it from there, which is
-what `adsRevenue.ts` already assumes. Confirm and I will note it.
+### 2.5 Notify
 
----
+However the crew should hear about it: SMS, email, internal notification. Two
+people do every job, so a lead sitting unseen is the failure mode.
 
-## Phase 3 — Me, once I have the webhook URL (about 10 minutes)
-
-1. Paste it into `CONFIG.webhookUrl` in `quote.js`. One line.
-2. Commit, push, watch the deploy.
-3. Verify on **file contents, not status code**. `app.hauckmarketing.com`
-   returns a 1447-byte SPA shell with status 200 for any path that does not
-   exist, and edge caches serve that stale shell for about a minute after the
-   real file lands. Check twice.
-4. Confirm `williswindows.com/thank-you-quote` is a real page and not a soft
-   404, by title rather than status.
-
----
-
-## Phase 4 — One real lead, end to end (both of us, 15 minutes)
-
-Not a click-through. An actual lead, on your actual phone, on cellular rather
-than wifi.
-
-1. Open the live ad URL on your phone.
-2. Answer all five steps with real-looking details.
-3. Confirm the redirect lands on the thank-you page, not a blank one.
-4. In GHL: the contact exists, is tagged `facebook ads`, has the address, home
-   type and timeline on it, and the notification fired.
-5. Separately, tap **No** on step 1 and confirm it stops dead and posts nothing.
-6. Delete the test contact.
-
-**Do not skip 4.** The Jersey booking page passed every test and could not book
-anybody on its first live day, and the Willis website's own estimate form
-silently lost every request it ever received.
+**Open question:** does this lead also create an opportunity, and in which
+pipeline and stage? The keep-vs-move baseline says software owns stage movement
+and GHL owns comms, but Willis is wired into the Command Center, so this is a
+real decision rather than a default. Paid Ad's Pipeline at the first stage is
+what `adsRevenue.ts` already assumes.
 
 ---
 
-## Phase 5 — Meta side (Jake)
+## Phase 3 — One real lead, end to end
 
-1. Put the conversion event on the **thank-you step**, not the funnel step.
-   That is the entire reason the thank-you is a separate URL: only a completed
-   lead can reach it.
-2. Point the ad set at the landing path from 1.2.
-3. Make sure the ad URLs carry `utm_content` set per creative. The funnel
-   already forwards it, along with `fbclid` and `ad_id`, but only if the ad
-   puts it on the URL in the first place. Without it you will know the ads
-   produced leads and not which creative did.
+Not a click-through. An actual lead, on an actual phone, on cellular.
+
+1. Open `/quote` on a phone. Answer all five steps.
+2. Confirm it lands on `/book` with the name, phone and email already filled.
+3. Book a real slot.
+4. Confirm it lands on `/thank-you-quote`, and that the page names the time.
+5. **Copy the full URL of that thank-you page and send it over.** See below.
+6. In GHL: the contact exists, is tagged `facebook ads`, carries the address,
+   home type and timeline, the appointment is on the calendar, and the
+   notification fired.
+7. Separately, tap **No** on step 1 and confirm it stops dead and posts nothing.
+8. Delete the test contact and cancel the test appointment.
+
+**Do not skip 6.** The Jersey booking page passed every test and could not book
+anybody on its first live day, and Willis's own website form silently lost
+every request it ever received.
+
+### Why step 5 matters
+
+`thanks.js` says the booked time back to the homeowner. The parameter GHL
+appends to the redirect has **not been confirmed against a real booking on this
+calendar**, so it currently checks the names GHL is known to have used and then
+falls back to scanning every parameter for a value that parses as a plausible
+appointment. If it finds nothing the page says "at the time you picked", which
+is true whatever GHL sends, so nothing is broken either way. One real thank-you
+URL locks the exact parameter.
 
 ---
 
-## Phase 6 — Watch it, do not walk away
+## Phase 4 — Meta side
 
-For the first day: check that leads are arriving and that the tag is on them.
-The failure modes worth watching for are all silent.
+1. Conversion event on the **thank-you step**, not the funnel step and not the
+   booking step. That is the entire reason the thank-you is a separate URL:
+   only a completed booking can reach it.
+2. Point the ad set at `/quote`.
+3. `utm_content` set per creative on the ad URLs. The funnel forwards it, along
+   with `fbclid` and `ad_id`, but only if the ad puts it there first.
 
-- A lead reaches the browser but not GHL. The funnel refuses to show a
-  thank-you if the POST fails, so a homeowner would see the error and the phone
-  number. If anyone calls saying the form broke, that is this.
+---
+
+## Phase 5 — Watch it
+
+For the first day, check leads are arriving and tagged. Every failure mode here
+is silent.
+
+- A lead reaches the browser but not GHL. The funnel refuses to move on if the
+  POST fails, so the homeowner sees the error and the phone number. Anyone
+  saying "the form broke" is this.
 - Leads arriving untagged, so the Paid Ads page shows zero revenue.
-- The thank-you page showing blank, meaning the step got renamed.
+- A blank page after the survey or after booking, meaning a step got renamed.
+- The calendar clipped. GHL's `form_embed.js` sizes the iframe and ad blockers
+  sometimes eat it. `booking.js` sets a 760px floor and listens for the height
+  itself as a backstop, so a blocked script should degrade to "a bit tall".
 
 ---
 
-## Not doing tomorrow, deliberately
+## Deliberately not doing
 
-- **The five-day driveway guarantee** is not on the thank-you page. Your notes
-  have it as pending ops sign-off. Confirm it with the crew and I will add it.
-- **A call-back time promise.** Same reason: two people do every job and a
-  thank-you page is a poor place to invent an SLA.
-- **Re-pointing the old news-channel funnel.** It has its own webhook, its own
-  thank-you page and its own retired design. Leave it alone.
+- **The five-day driveway guarantee** on the thank-you page. Pending ops
+  sign-off.
+- **Re-pointing the old news-channel funnel.** Its own webhook, its own
+  thank-you, its own retired design. Leave it alone.
 
 ---
 
-## Blockers, in one line each
+## Blockers
 
 | Blocked thing | Waiting on | Who |
 |---|---|---|
-| Any lead reaching GHL | the new inbound webhook URL | Jake |
-| Any traffic at all | both stubs pasted and published | Jake |
+| Any traffic at all | three stubs pasted and published | Jake |
+| Reaching the thank-you page | the calendar's after-booking redirect | Jake |
+| A lead becoming a contact | the workflow built off one fired payload | Jake |
+| ROAS reading anything but zero | the `facebook ads` tag | Jake |
 | Conversion tracking | pixel event on the thank-you step | Jake |
 | Creative-level attribution | `utm_content` on the ad URLs | Jake |
+| Naming the exact booked time | one real thank-you URL sent over | Jake |
 | Opportunity creation | the pipeline/stage decision | both |

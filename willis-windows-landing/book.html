@@ -1,0 +1,62 @@
+<!--
+  WILLIS WINDOWS — the booking step for the Facebook ads funnel
+  GHL step: /book
+
+  THIS IS THE WHOLE THING. Paste both lines below into the GoHighLevel step.
+
+  The real file:
+    command-center/app/public/sites/willis/booking.js
+
+  WHERE IT SITS
+    /quote  (5-step survey, posts the lead to GHL)
+      -> /book              THIS PAGE, the calendar
+      -> /thank-you-quote   the confirmation the Meta pixel counts
+
+    The lead reaches GHL BEFORE this page, on purpose. Somebody who opens the
+    calendar, sees no time they like and closes the tab is still a lead Willis
+    can ring, rather than nothing at all.
+
+  WHAT IT DRAWS
+    The funnel's own chrome (logo, headline, white card, trust chips) around
+    GHL's booking widget for calendar Jlr88qZDp0Sth1H5Sjzf. The times, the
+    timezone and the booking itself stay GHL's business.
+
+    The calendar prefills with the name, phone and email from the survey, so
+    nobody types them twice. That is handed over in sessionStorage rather than
+    the URL, so a real person's phone number never lands in browser history or
+    a referrer header. Somebody who pastes this URL cold gets the same page,
+    just without the prefill.
+
+  ==========================================================================
+  ONE THING YOU MUST SET IN GHL, OR THE FUNNEL STOPS HERE
+  ==========================================================================
+  In the calendar's own settings, set the AFTER-BOOKING REDIRECT to:
+
+      https://williswindows.com/thank-you-quote
+
+  This page cannot do it for you. The booking happens inside a cross-origin
+  iframe and the parent page is not reliably told when it succeeds.
+
+  Leave that setting empty and GHL shows its own small confirmation inside the
+  frame instead. The appointment is real and the lead is safe, but:
+    - the homeowner never sees the thank-you page, so nothing pre-frames the
+      call and they are more likely to not answer an unknown number, and
+    - the Meta pixel never fires, so every booked job reads as zero
+      conversions and the ad account optimises against you.
+
+  HOW TO USE IT IN GHL
+  1. The funnel > new step named  book  > Custom JS/HTML element.
+  2. Delete whatever is in there and paste both lines below.
+  3. Set the step to full width and remove GHL's own padding.
+  4. Set the calendar's after-booking redirect (see above).
+  5. Publish, then open it ON A PHONE. Nearly all of this traffic is mobile.
+
+  IF THE CALENDAR LOOKS CLIPPED: GHL's form_embed.js sizes the iframe, and ad
+  blockers sometimes eat it. booking.js sets a 760px floor and grows from
+  there, and listens for the height itself as a backstop, so a blocked script
+  should degrade to "a bit tall" rather than "no times visible". If it ever
+  does clip, that is the thing to look at first.
+-->
+
+<div id="wwb"></div>
+<script src="https://app.hauckmarketing.com/sites/willis/booking.js"></script>

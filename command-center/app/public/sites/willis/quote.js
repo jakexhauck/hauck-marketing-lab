@@ -10,7 +10,10 @@
 //     2. What best describes your home?     stories
 //     3. What is your timeline?             ASAP .. 3 months+
 //     4. Address: street, city, ZIP, with the reason we want it said out loud.
-//     5. Name, phone, email -> POST to GHL -> thank-you.
+//     5. Name, phone, email -> POST to GHL -> the booking page.
+//   The booking page (booking.js) and the thank-you (thanks.js) are their own
+//   GHL steps. The lead is POSTed here, BEFORE the calendar, so somebody who
+//   abandons the booking is still a lead Willis can ring.
 //   Tapping a choice advances on its own. There is no NEXT button to hunt for
 //   on a phone, which is where nearly all of this traffic lands.
 //
@@ -65,26 +68,37 @@
     // thank-you over a lead that went nowhere. Willis's own website form used
     // to do the opposite and every request was silently lost.
     //
-    // TO CONNECT: add an inbound webhook trigger to a GHL workflow, paste its
-    // URL here and deploy.
-    //
-    // DO NOT reuse the one on the old news-channel landing page
-    // (.../webhook-trigger/7f254ff9-...). Ad leads and news-channel leads
-    // arriving on the same trigger cannot be told apart afterwards.
-    webhookUrl: "",
+    // CONNECTED 2026-08-05. Its own trigger on the Willis sub-account
+    // (OznT3yyuwK3dqVXDsCaD), NOT the news-channel landing page's
+    // (.../webhook-trigger/7f254ff9-...), so ad leads and news-channel leads
+    // stay tellable apart.
+    webhookUrl: "https://services.leadconnectorhq.com/hooks/OznT3yyuwK3dqVXDsCaD/webhook-trigger/a9c82b99-eca4-4260-9fce-084b4c359ae6",
 
-    // Where they land after a successful submit: the funnel's own thank-you
-    // step, drawn by thanks.js. Its own path, not /thank-you-news-channel, so
-    // the Meta pixel fires a conversion on a URL only this funnel can reach.
+    // Where they land after a successful submit: the BOOKING step, drawn by
+    // booking.js, where they pick a time for the estimate call. That page then
+    // sends them on to /thank-you-quote once GHL has taken the booking.
+    //
+    // The lead is already in GHL by the time anyone reaches this URL. That is
+    // deliberate and it is the whole reason the POST happens first: somebody
+    // who abandons the calendar is still a lead Willis can ring, rather than
+    // nothing at all.
     //
     // THIS PATH MUST EXIST IN GHL. Name the step anything else and the redirect
     // lands on a GHL soft 404, which answers 200 with an empty body: the lead
-    // is safely in GHL by then, but the homeowner sees a blank page instead of
-    // a confirmation, and the pixel never fires.
+    // is safe, but the homeowner sees a blank page instead of a calendar.
     //
     // Emptying this string is a safe fallback, not a break: the funnel then
     // ends on its own thank-you card in place and nothing navigates.
-    thankYouUrl: "https://williswindows.com/thank-you-quote"
+    nextUrl: "https://williswindows.com/book",
+
+    // Handed to the booking page so it can prefill the calendar instead of
+    // asking for a name, phone and email the homeowner has just typed.
+    //
+    // sessionStorage, NOT the query string. Same origin, so it works, and a
+    // real person's phone number never lands in browser history, a referrer
+    // header or GHL's own page analytics. Empty on the booking page is a
+    // graceful outcome, not a break: they fill the calendar in themselves.
+    handoffKey: "ww_lead_v1"
   };
 
   var ROOT_ID = "wwq";
@@ -144,7 +158,9 @@
     {
       key: "contact",
       kind: "contact",
-      q: "Last step. Where do we send your price?"
+      // Not "last step" any more. A booking page follows, and a funnel that
+      // says it is finished and then produces another page reads as a bait.
+      q: "Almost done. Where should we call you?"
     }
   ];
 
@@ -723,7 +739,9 @@
           '<input class="wq-input" id="wwqEmail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@email.com" enterkeyhint="send">' +
         "</div>" +
         '<button type="submit" class="wq-btn">Get My $100 Off Quote</button>' +
-        '<p class="wq-fine">We call you with your price. No door knocks, no pressure.</p>' +
+        // Says the calendar is coming. A page they did not expect is the
+        // cheapest possible way to lose a lead that has already converted.
+        '<p class="wq-fine">Next you will pick a time for your call. No door knocks, no pressure.</p>' +
       "</form>" +
       backBtn() +
       "</div>";
@@ -859,17 +877,23 @@
       return params;
     }
 
-    function payload(name, phone, email) {
-      // Split on the last space so "Mary Anne Willis" keeps its first name
-      // whole. GHL matches and de-duplicates on first_name / last_name, and
-      // full_name goes too because some GHL actions take a single field.
+    // Split on the last space so "Mary Anne Willis" keeps its first name
+    // whole. GHL matches and de-duplicates on first_name / last_name, and
+    // full_name goes too because some GHL actions take a single field.
+    // Shared with the booking handoff so the calendar prefills with exactly
+    // the same split GHL received, and does not create a second contact.
+    function splitName(name) {
       var parts = String(name).trim().split(/\s+/);
-      var lastName = parts.length > 1 ? parts.pop() : "";
-      var firstName = parts.join(" ");
+      var last = parts.length > 1 ? parts.pop() : "";
+      return { first: parts.join(" "), last: last };
+    }
+
+    function payload(name, phone, email) {
+      var who = splitName(name);
 
       var body = {
-        first_name: firstName,
-        last_name: lastName,
+        first_name: who.first,
+        last_name: who.last,
         full_name: String(name).trim(),
         name: String(name).trim(),
         phone: phone,
@@ -896,9 +920,35 @@
         referrer: document.referrer || ""
       };
 
-      var who = attribution();
-      Object.keys(who).forEach(function (k) { body[k] = who[k]; });
+      var tracked = attribution();
+      Object.keys(tracked).forEach(function (k) { body[k] = tracked[k]; });
       return body;
+    }
+
+    // Handed to the booking page so the calendar can prefill itself. Written
+    // only after GHL has accepted the lead, so what the calendar shows always
+    // matches what the contact record holds.
+    //
+    // E.164 as well as the pretty version: GHL's booking widget wants a phone
+    // it can dial, and "(313) 405-0142" is not one. Every number here has
+    // already passed the ten-digit check on the step before.
+    function handoff(name, phone, email) {
+      var who = splitName(name);
+      var digits = String(phone).replace(/\D/g, "").slice(-10);
+      try {
+        sessionStorage.setItem(CONFIG.handoffKey, JSON.stringify({
+          first_name: who.first,
+          last_name: who.last,
+          full_name: String(name).trim(),
+          email: email,
+          phone: phone,
+          phone_e164: digits.length === 10 ? "+1" + digits : ""
+        }));
+      } catch (e) {
+        // Private mode, a storage quota, a browser that has switched it off.
+        // The booking page simply asks for the details itself, which is worse
+        // than prefilled and far better than a page that refuses to load.
+      }
     }
 
     // --------------------------------------------------------------- events
@@ -1047,8 +1097,9 @@
           keepalive: true
         }).then(function (res) {
           if (!res.ok) throw new Error("HTTP " + res.status);
-          if (CONFIG.thankYouUrl) {
-            window.location.href = CONFIG.thankYouUrl;
+          handoff(name, phone, email);
+          if (CONFIG.nextUrl) {
+            window.location.href = CONFIG.nextUrl;
             return;
           }
           end(doneView());
