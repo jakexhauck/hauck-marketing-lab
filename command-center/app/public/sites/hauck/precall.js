@@ -154,20 +154,20 @@
    the one thing on the page whose colour cannot be chosen.
 
    TOKEN NAMES ARE UNCHANGED AND ONLY THE VALUES MOVED, which is the same
-   move the main site's repaint made. --white now names a raised panel rather
-   than the colour white. Renaming would have meant touching forty selectors
-   to repaint one page, and every one of those is a chance to miss something.
+   move the main site's repaint made. --white now names a raised control
+   surface (the pill, the show-all button) rather than the colour white.
+   Renaming would have meant touching forty selectors to repaint one page, and
+   every one of those is a chance to miss something.
 
-   Two surfaces, alternating: --page for the confirmation band and the footer,
-   --white for Step 1 and the results wall, --wash equal to --page for Step 2.
-   The step between them is deliberately small. On a dark page a big jump
-   between bands reads as a seam. */
+   ONE SURFACE, NOT ALTERNATING BANDS, on Jake's call: --page everywhere, and
+   the sections are told apart by a white rule between them instead of by a
+   change of tone. The alternation is gone entirely rather than kept and
+   overridden, so there is no second surface left to drift. */
 #hpc {
   --ink:#F4F6F8;
   --slate:#AEB4BC;
   --mute:#7B828B;
   --line:rgba(255,255,255,.10);
-  --wash:#0D0E10;
   --page:#0D0E10;
   --white:#161719;
   /* --accent is near-white now, not a colour. It survives as a token because
@@ -202,8 +202,14 @@
    things to watch, and a buyer who has to scroll past an empty half-screen
    between two rows of videos reads that as "there is not much here". */
 #hpc .hp-band { width:100% !important; margin:0 !important; padding:clamp(34px,5vw,56px) var(--pad) !important; }
-#hpc .hp-band--wash { background:var(--wash) !important; }
-#hpc .hp-band--white { background:var(--white) !important; }
+
+/* THE DIVIDERS. Every section sits on the same dark, so the only thing
+   separating them is this rule. Full bleed edge to edge rather than inset to
+   the 1040px column: an inset rule reads as an underline belonging to the
+   block above it, a full-width one reads as a break between two things.
+   Applied with the adjacent-sibling combinator so the first band never gets a
+   line above it, which would draw a stripe across the very top of the page. */
+#hpc .hp-band + .hp-band { border-top:1px solid #FFFFFF !important; }
 /* The first band holds two lines of text and nothing else, so it gets the
    tightest padding on the page. A confirmation should be the first thing on
    the screen, not the thing under the first swipe. */
@@ -461,7 +467,8 @@
    print. The results wall is now the last thing they read before the footer,
    which is the right note to leave them on. */
 #hpc .hp-foot {
-  border-top:1px solid var(--line) !important;
+  /* Same white rule as between the bands. The footer is a section too. */
+  border-top:1px solid #FFFFFF !important;
   text-align:center !important;
   padding:22px var(--pad) !important; margin:0 !important;
   background:var(--page) !important;
@@ -598,7 +605,7 @@
           "<h1>You're Booked.</h1>" +
         "</div>" +
       "</div>" +
-      '<div class="hp-band hp-band--white" style="padding-top:clamp(22px,3.5vw,32px)!important">' +
+      '<div class="hp-band" style="padding-top:clamp(22px,3.5vw,32px)!important">' +
         '<div class="hp-in hp-in--tight">' +
           '<span class="hp-step">Step 1</span>' +
           "<h2>Watch This Short Video</h2>" +
@@ -621,7 +628,7 @@
         '<span class="hp-cap">' + esc(o.title) + "</span></li>";
     }
     var step2 = '' +
-      '<div class="hp-band hp-band--wash">' +
+      '<div class="hp-band">' +
         '<div class="hp-in">' +
           '<span class="hp-step">Step 2</span>' +
           "<h2>Get Your Questions Answered</h2>" +
@@ -655,11 +662,8 @@
     var moreBtn = total > CONFIG.winsVisible
       ? '<button type="button" class="hp-more" data-more="1">Show all ' + total + " wins</button>"
       : "";
-    // WHITE, not wash. With the testimonial band gone this now sits directly
-    // under Step 2, and two wash bands touching read as one very long section
-    // with a stray heading in the middle of it.
     var winsBlock = '' +
-      '<div class="hp-band hp-band--white">' +
+      '<div class="hp-band">' +
         '<div class="hp-in">' +
           // The copy names what the screenshots actually are. They are Ads
           // Manager exports, not client conversations, and a heading that
