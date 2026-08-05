@@ -36,6 +36,13 @@
   // CONFIG — the two empty strings below are the whole wiring job.
   // =========================================================================
   var CONFIG = {
+    // ERROR STATES ONLY (Jake, 2026-08-05). The funnel offers no phone number
+    // anywhere a homeowner can simply choose it: a call off a paid click is a
+    // conversion Meta cannot count, and it competes with the form that can be.
+    // It appears in exactly two places, both of which mean the form is broken
+    // and the alternative is losing the lead outright:
+    //   - the webhook is not configured
+    //   - the POST to GHL failed
     phone: "(313) 405-3227",
     phoneHref: "tel:+13134053227",
 
@@ -724,16 +731,13 @@
 
   // Out of area. No form, nothing posted, no contact created.
   //
-  // The phone number is here on purpose even though the rest of the page has
-  // none: the 30-mile line is a circle drawn on a map and somebody sitting just
-  // outside it is often still worth a truck. Better they call and hear a
-  // straight answer than be told nothing at all.
+  // No phone number (Jake, 2026-08-05). It used to invite anyone near the line
+  // to ring in, which meant paid clicks turning into calls Meta cannot count.
   function dqView() {
     return '<div class="wq-slot wq-end wq-end--dq">' +
       '<span class="wq-end__mark">' + ICONS.pin + "</span>" +
       "<h2>We are Metro Detroit only, for now.</h2>" +
       "<p>Willis Windows runs out of Metro Detroit and covers about 30 miles from there. We would rather say so now than take your details and never call.</p>" +
-      '<p>Close to the line? Call <a href="' + esc(CONFIG.phoneHref) + '">' + esc(CONFIG.phone) + "</a> and we will tell you straight.</p>" +
       "</div>";
   }
 
@@ -745,7 +749,6 @@
       '<span class="wq-end__mark">' + ICONS.done + "</span>" +
       "<h2>You are in.</h2>" +
       "<p>We have your details. Expect a call from Willis Windows with your price, and your $100 off is on it.</p>" +
-      '<p>Rather not wait? Call <a href="' + esc(CONFIG.phoneHref) + '">' + esc(CONFIG.phone) + "</a>.</p>" +
       "</div>";
   }
 

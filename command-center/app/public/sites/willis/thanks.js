@@ -23,9 +23,10 @@
 (function () {
   "use strict";
 
+  // No phone number here, on purpose (Jake, 2026-08-05). The page's whole job
+  // is to confirm the lead and let the pixel count it. A call button invites a
+  // conversion Meta cannot see, off a page that only converts once.
   var CONFIG = {
-    phone: "(313) 405-3227",
-    phoneHref: "tel:+13134053227",
     logoWebp: "https://app.hauckmarketing.com/sites/willis/logo.webp",
     logoPng: "https://app.hauckmarketing.com/sites/willis/logo.png",
     photo: "https://app.hauckmarketing.com/sites/willis/pole.webp"
@@ -194,24 +195,9 @@
   margin:0 !important; padding:0 !important;
 }
 
-#wwt .wq-btn {
-  display:flex !important; align-items:center !important; justify-content:center !important;
-  gap:9px !important; width:100% !important; max-width:100% !important;
-  font-family:var(--display) !important; font-size:1.05rem !important; font-weight:800 !important;
-  letter-spacing:-.01em !important; text-transform:none !important; line-height:1.25 !important;
-  color:#10202E !important; background:var(--gold) !important;
-  border:2px solid transparent !important; border-radius:11px !important;
-  padding:16px 20px !important; margin:24px 0 0 !important;
-  text-decoration:none !important; cursor:pointer !important;
-  box-shadow:0 12px 26px -14px rgba(255,199,44,.75) !important;
-  transition:background .16s ease, transform .16s ease !important;
-}
-#wwt .wq-btn:hover { background:var(--gold-hi) !important; transform:translateY(-2px) !important; color:#10202E !important; }
-#wwt .wq-fine {
-  font-family:var(--body) !important; font-size:.82rem !important; font-weight:400 !important;
-  color:var(--slate) !important; text-align:center !important;
-  margin:12px 0 0 !important; padding:0 !important;
-}
+/* No .wq-btn or .wq-fine here any more: the call button is gone and there is
+   nothing else on this page for a homeowner to click. --gold and --gold-hi are
+   kept in the tokens above so the two files stay one palette. */
 
 #wwt .wq-chips {
   display:flex !important; flex-wrap:wrap !important; justify-content:center !important;
@@ -234,15 +220,12 @@
 @keyframes wwtIn { from { opacity:0; transform:translateY(9px); } to { opacity:1; transform:none; } }
 @media (prefers-reduced-motion: reduce) {
   #wwt .wq-in { animation:none !important; }
-  #wwt .wq-btn:hover { transform:none !important; }
 }
 #wwt :focus-visible { outline:3px solid var(--sky) !important; outline-offset:3px !important; }
 `;
 
   var TICK = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8.5 6 12l7.5-8"/></svg>';
   var DONE = '<svg viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17l7 7L27 9"/></svg>';
-  var PHONE = '<svg viewBox="0 0 20 20" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 14.3v2.4a1.6 1.6 0 0 1-1.8 1.6 15.8 15.8 0 0 1-6.9-2.5 15.5 15.5 0 0 1-4.8-4.8A15.8 15.8 0 0 1 2 4.1 1.6 1.6 0 0 1 3.6 2.3H6a1.6 1.6 0 0 1 1.6 1.4c.1.8.3 1.5.6 2.2a1.6 1.6 0 0 1-.4 1.7l-1 1a12.7 12.7 0 0 0 4.8 4.8l1-1a1.6 1.6 0 0 1 1.7-.4c.7.3 1.4.5 2.2.6A1.6 1.6 0 0 1 18 14.3Z"/></svg>';
-
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -270,8 +253,6 @@
           "<h1>You are in.</h1>" +
           '<p class="wq-lede">We have your details and your $100 off is locked to them. Here is what happens next.</p>' +
           '<ul class="wq-next">' + steps + "</ul>" +
-          '<a class="wq-btn" href="' + esc(CONFIG.phoneHref) + '">' + PHONE + "Call " + esc(CONFIG.phone) + "</a>" +
-          '<p class="wq-fine">Rather not wait for the call? Ring us and we will price it now.</p>' +
         "</div>" +
         '<ul class="wq-chips">' +
           "<li>" + TICK + "Fully insured</li>" +
