@@ -85,15 +85,34 @@
       { name: "[Client name]", label: "[Trade, city]", url: "", poster: "" }
     ],
 
-    // The wins wall. Screenshots, in order. Either full URLs or files dropped
-    // next to this one, in which case the path is
-    // "https://app.hauckmarketing.com/sites/hauck/wins/01.png".
+    // The results wall. The same five screenshots the earlier pre-call page
+    // uses, served from the app rather than copied, so there is one set of
+    // files and they cannot drift apart.
     //
-    // Empty renders a quiet skeleton so the section still reads as a section.
-    wins: [],
+    // FULL URLS, not relative. This page is rendered on the GoHighLevel
+    // domain, so a relative path would resolve against GHL and 404.
+    //
+    // WIDE, SHORT IMAGES. These are Ads Manager tables, not phone
+    // screenshots, so they stack full width one per row rather than sitting
+    // in a masonry. A table squeezed into a third of the page is unreadable,
+    // and an unreadable proof screenshot is not proof.
+    //
+    // FLAGGED, ALREADY FLAGGED ONCE IN funnel/precall.js: results 1 and 2
+    // show a saved column preset named "Peak Presence | Ad Set View" in the
+    // toolbar, legible at full size. Peak Presence is the agency the earlier
+    // page was modelled on. If that is not our own ad account, delete those
+    // two entries: the heading above them says these numbers are ours.
+    wins: [
+      { src: "https://app.hauckmarketing.com/funnel/precall/result-1-campaigns-overview.png", alt: "Meta Ads Manager campaign results" },
+      { src: "https://app.hauckmarketing.com/funnel/precall/result-2-campaigns-december.png", alt: "Meta Ads Manager campaign results, December" },
+      { src: "https://app.hauckmarketing.com/funnel/precall/result-3-leads-cost.png", alt: "Leads and cost per lead" },
+      { src: "https://app.hauckmarketing.com/funnel/precall/result-4-leads-budget.png", alt: "Leads, budget and spend" },
+      { src: "https://app.hauckmarketing.com/funnel/precall/result-5-leads-reach.png", alt: "Leads, reach and impressions" }
+    ],
 
-    // Shown before the wall expands. The rest sit behind the button.
-    winsVisible: 9,
+    // How many show before the button appears. Five is the whole set, so no
+    // button. Raise the count above the list length to hide it.
+    winsVisible: 5,
 
     // The address the confirmation email comes from, said out loud so it does
     // not get filtered or missed.
@@ -362,21 +381,39 @@
   color:rgba(255,255,255,.74) !important; line-height:1.4 !important;
 }
 
-/* ---- wins wall ------------------------------------------------------ */
+/* ---- results wall ---------------------------------------------------
+   Stacked, one per row, NOT a masonry. The screenshots are Ads Manager
+   tables: wide, short, and full of small figures. Three columns would make
+   every number illegible, and a proof screenshot nobody can read proves
+   nothing. */
 #hpc .hp-wins {
-  columns:3 !important; column-gap:16px !important;
   list-style:none !important;
   margin:clamp(28px,5vw,44px) 0 0 !important; padding:0 !important;
 }
 #hpc .hp-wins li {
-  break-inside:avoid !important; page-break-inside:avoid !important;
-  margin:0 0 16px !important; padding:0 !important; list-style:none !important;
+  margin:0 0 clamp(14px,2vw,20px) !important; padding:0 !important;
+  list-style:none !important;
 }
 #hpc .hp-wins img {
   display:block !important; width:100% !important; height:auto !important;
   border-radius:10px !important;
   border:1px solid var(--line) !important;
   background:var(--white) !important;
+  box-shadow:0 10px 30px -22px rgba(16,19,23,.5) !important;
+}
+/* A table this wide cannot shrink to a phone and stay readable, so on small
+   screens it holds close to its native size and scrolls sideways INSIDE its
+   own row. The row scrolls; the page never does.
+   300px is chosen so the figures are legible rather than merely present.
+   Fitted to the width instead, these tables render at about six pixels a
+   row, which is a picture of a screenshot rather than evidence. */
+@media (max-width:640px) {
+  #hpc .hp-wins li {
+    overflow-x:auto !important;
+    -webkit-overflow-scrolling:touch !important;
+    border-radius:10px !important;
+  }
+  #hpc .hp-wins img { width:auto !important; max-width:none !important; height:300px !important; }
 }
 #hpc .hp-skel {
   display:block !important; width:100% !important;
@@ -640,13 +677,18 @@
     var total = CONFIG.wins.length;
     if (total) {
       for (i = 0; i < total; i++) {
+        // A plain string still works, so the list can be a bare array of URLs
+        // when nobody has bothered writing alt text.
+        var w = CONFIG.wins[i];
+        var wsrc = typeof w === "string" ? w : w.src;
+        var walt = typeof w === "string" ? "Campaign results screenshot" : (w.alt || "Campaign results screenshot");
         var hide = i >= CONFIG.winsVisible ? " hidden" : "";
-        wins += "<li" + hide + '><img src="' + esc(CONFIG.wins[i]) +
-          '" alt="Client win screenshot" loading="lazy"></li>';
+        wins += "<li" + hide + '><img src="' + esc(wsrc) +
+          '" alt="' + esc(walt) + '" loading="lazy"></li>';
       }
     } else {
-      // Nine skeletons at varied heights, so the shape of the section is
-      // legible before a single screenshot exists.
+      // Skeletons at varied heights, so the shape of the section is legible
+      // before a single screenshot exists.
       var hs = [148, 96, 176, 120, 200, 108, 132, 168, 92];
       for (i = 0; i < hs.length; i++) {
         wins += '<li><span class="hp-skel" style="height:' + hs[i] + 'px"></span></li>';
@@ -658,11 +700,15 @@
     var winsBlock = '' +
       '<div class="hp-band hp-band--wash">' +
         '<div class="hp-in">' +
-          "<h2>More Wins From Inside The Engine</h2>" +
-          '<p class="hp-sub">Real screenshots from client conversations, booked jobs and progress updates.</p>' +
+          // The copy names what the screenshots actually are. They are Ads
+          // Manager exports, not client conversations, and a heading that
+          // promises conversations over a picture of a spend table is the
+          // kind of small lie a buyer notices.
+          "<h2>Look Through The Results</h2>" +
+          '<p class="hp-sub">Real campaigns, real numbers, straight out of Ads Manager. Judge for yourself.</p>' +
           '<ul class="hp-wins">' + wins + "</ul>" +
           moreBtn +
-          '<p class="hp-live"><span class="hp-dot"></span>Updated as they come in</p>' +
+          '<p class="hp-live"><span class="hp-dot"></span>Pulled straight from the ad accounts</p>' +
         "</div>" +
       "</div>";
 
