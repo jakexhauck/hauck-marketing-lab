@@ -24,8 +24,8 @@
 //  - No claim about a client that Jake has not supplied. A made-up result on a
 //    page a buyer reads an hour before a sales call is the single most
 //    expensive kind of filler there is.
-//  - Dark and quiet. One accent colour, the logo green, used for the step
-//    numbers, the confirmation tick and the live dot and nothing else.
+//  - Dark, neutral and quiet. NO GREEN ANYWHERE, Jake's explicit call: the
+//    brand's forest green belongs on the website, not on this page.
 //  - No dead vertical space. Three bands, tight padding, then the footer.
 //    Every screen a buyer scrolls past without reading something is a screen
 //    that says there is not much here.
@@ -141,9 +141,17 @@
 
 #hpc *, #hpc *::before, #hpc *::after { box-sizing:border-box !important; }
 
-/* DARK, on Jake's call. The page used to be light because the layout it was
-   modelled on is light. It is dark now because it is the last thing a buyer
-   looks at before a call with an agency whose own brand is deep forest.
+/* DARK AND NEUTRAL, on Jake's call, twice.
+   The first pass took "dark" to mean the brand's deep forest and tinted every
+   surface green. Jake's correction was exact: "I don't want it green, I want
+   it dark." So there is now NO GREEN ON THIS PAGE AT ALL, not in the
+   surfaces, not in the step numbers, not in the tick or the live dot. If a
+   future session reaches for the brand green here, that is the thing being
+   asked not to happen.
+
+   The greys are very slightly cool rather than pure neutral. A pure #111 dark
+   goes muddy next to the blue-white of the Ads Manager screenshots, which are
+   the one thing on the page whose colour cannot be chosen.
 
    TOKEN NAMES ARE UNCHANGED AND ONLY THE VALUES MOVED, which is the same
    move the main site's repaint made. --white now names a raised panel rather
@@ -155,18 +163,19 @@
    The step between them is deliberately small. On a dark page a big jump
    between bands reads as a seam. */
 #hpc {
-  --ink:#F2F6F3;
-  --slate:#A8B5AE;
-  --mute:#7C8C84;
+  --ink:#F4F6F8;
+  --slate:#AEB4BC;
+  --mute:#7B828B;
   --line:rgba(255,255,255,.10);
-  --wash:#0A1512;
-  --page:#0A1512;
-  --white:#101E19;
-  /* The logo green. It is 2.4:1 on the main site's cream and banned there as
-     type, but on this base it clears 6:1, so here it can be text. */
-  --accent:#4DBB83;
-  --accent-hi:#63CE97;
-  --shade:#1A2C26;
+  --wash:#0D0E10;
+  --page:#0D0E10;
+  --white:#161719;
+  /* --accent is near-white now, not a colour. It survives as a token because
+     the tick, the live dot and the focus ring all read from it, and one of
+     those is an accessibility control. */
+  --accent:#E8EAEE;
+  --accent-hi:#FFFFFF;
+  --shade:#212429;
   --display:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;
   --body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
   --pad:clamp(20px,5vw,32px);
@@ -238,18 +247,23 @@
    grey micro-label, which is the convention, and the convention was wrong for
    a page whose whole instruction to the buyer is "do these two things".
 
-   Big, 700, and green. The hierarchy holds because the two lines differ in
-   COLOUR as well as size: the step number is the accent, the headline under
-   it is the near-white. Two near-white lines this size would have read as two
-   competing headlines. Tracking drops from .2em to .04em, because letter
-   spacing that wide is a device for making small type legible and it makes
-   large type look stretched. */
+   Big and 700, as asked. NOT the brand green: see the token block.
+
+   With the colour gone, the hierarchy has to come from brightness instead, so
+   the step sits at --slate and the headline under it at --ink. Both bright,
+   the headline brighter. Two lines of near-white at this size read as two
+   headlines arguing; a bright grey label over a white headline reads as a
+   label over a headline, which is what it is.
+
+   Tracking drops from .2em to .04em, because letter spacing that wide is a
+   device for making small type legible and it makes large type look
+   stretched. */
 #hpc .hp-step {
   display:block !important;
   font-family:var(--display) !important; font-weight:700 !important;
   font-size:clamp(1.5rem,4.2vw,2.15rem) !important;
   line-height:1.1 !important; letter-spacing:.04em !important;
-  text-transform:uppercase !important; color:var(--accent) !important;
+  text-transform:uppercase !important; color:var(--slate) !important;
   text-align:center !important;
   margin:0 0 6px !important; padding:0 !important;
 }
@@ -306,8 +320,8 @@
   background:rgba(255,255,255,.92) !important;
   /* A LITERAL dark, not var(--ink). --ink is near-white on this page, so the
      triangle would have been white-on-white and the button would have looked
-     empty. */
-  color:#0A1512 !important;
+     empty. Keep this in step with --page. */
+  color:#0D0E10 !important;
   box-shadow:0 6px 20px -6px rgba(0,0,0,.6) !important;
   transition:transform .16s ease, background .16s ease !important;
   pointer-events:none !important;
@@ -745,7 +759,7 @@
     var el = [document.documentElement, document.body];
     for (var i = 0; i < el.length; i++) {
       if (!el[i]) continue;
-      el[i].style.setProperty("background-color", "#0A1512", "important");
+      el[i].style.setProperty("background-color", "#0D0E10", "important");
       el[i].style.setProperty("color-scheme", "dark", "important");
     }
   }
