@@ -26,9 +26,18 @@ precacheAndRoute(self.__WB_MANIFEST);
 // link (a push notification opening /lead/<id>, or a hard refresh on /leads)
 // has nothing to serve the app shell and fails. NavigationRoute matches only
 // document navigations; API paths are denylisted so they keep their own routes.
+//
+// /sites/ and /funnel/ are denylisted for the same reason vite.config.ts keeps
+// them out of the precache: they are standalone pages that are not this app.
+// Without them here, opening one as a DOCUMENT (rather than pulling it in as a
+// cross-origin script tag, which is how GHL uses most of them) gets the app
+// shell instead, and the router then bounces you to /login. That is exactly
+// what happened to the pre-call Step 1 deck at /sites/hauck/precall-step1:
+// curl fetched the real file while every browser with the app installed got a
+// login screen, which reads like the page was never deployed.
 registerRoute(
   new NavigationRoute(createHandlerBoundToURL("index.html"), {
-    denylist: [/^\/api\//],
+    denylist: [/^\/api\//, /^\/sites\//, /^\/funnel\//],
   }),
 );
 
