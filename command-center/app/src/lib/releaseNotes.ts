@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-07-ad-builder",
+    date: "7 August 2026",
+    title: "Ads get written in the console, not in a notes app",
+    items: [
+      "Fulfillment > Paid Ads has a new Ad Builder tab. It is where a round of ads is written: the competitors worth stealing from, the angles, and the three primaries and three headlines that actually launch. Video batches also carry the hook and the script.",
+      "Work is filed per client and per round, so last month's copy is still findable next month, and a headline stays next to the competitor ad that provoked it.",
+      "Three of each, on purpose. There is no Add button for a fourth primary or a fourth headline: three is the discipline the page exists to hold. A blank slot is fine.",
+      "Master lists everything written for that client, static and video together, newest first. It is read only. Editing stays on Static or Video so one round of copy only ever has one place that writes it.",
+      "Every field saves itself when you leave it. Nothing to press, and no half-written batch lost to a closed tab.",
+      "This is agency-side only. No client can reach it, which is deliberate: it holds competitor research and copy that has not launched.",
+    ],
+  },
+  {
     id: "2026-08-04-appointments-reach-google-calendar",
     date: "4 August 2026",
     title: "Booked appointments reach the client's Google Calendar",

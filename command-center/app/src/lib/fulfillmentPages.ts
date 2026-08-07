@@ -42,14 +42,23 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
     id: "paid-ads",
     label: "Paid Ads",
     ready: true,
-    // All four are the client's own Paid Ads pages, rendered for the client in
-    // the picker, in the order the client's sidebar lists them. Creatives is the
-    // only one carrying an operator-only control: setting the Drive folder.
+    // The first four are the client's own Paid Ads pages, rendered for the
+    // client in the picker, in the order the client's sidebar lists them.
+    // Creatives carries one operator-only control: setting the Drive folder.
+    //
+    // Ad Builder is the odd one out and sits last on purpose. It is not a
+    // client page rendered for an operator, it is the operator's own workbench:
+    // where the competitors, angles, copy and headlines get written before
+    // anything is launched. The client has no route to it. It holds its own
+    // second level (Static / Video / Master) inside the panel rather than
+    // adding three more tabs to this row, because four client pages and three
+    // private drafting pages side by side would read as seven equal things.
     subTabs: [
       { id: "dashboard", label: "Dashboard", ready: true },
       { id: "leads", label: "Lead Tracker", ready: true },
       { id: "meta-data", label: "Meta Data", ready: true },
       { id: "creatives", label: "Creatives", ready: true },
+      { id: "ad-builder", label: "Ad Builder", ready: true },
     ],
   },
   // Management is the client's paperwork in one place: the commercial record

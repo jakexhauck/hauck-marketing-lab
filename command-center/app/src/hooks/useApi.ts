@@ -5,6 +5,9 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query";
 import type { HealthResponse as ConnectionHealthResponse } from "../lib/connectionHealth";
+// The ad builder's shape, straight from the module the endpoints validate with,
+// so the form cannot drift from what the server will accept.
+import type { AdBatch, AdBatchKind, AdBatchPatch } from "../../functions/lib/adBatches";
 import type {
   AgencySecretsResponse,
   ApplyResponse,
@@ -2829,6 +2832,80 @@ export function useSaveClientSecrets(tenantId: string) {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["admin", "secrets", "client", tenantId] });
       qc.invalidateQueries({ queryKey: ["admin", "connections", "health"] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Ad builder (0088). Paid Ads > Ad Builder in the Fulfillment cockpit: the
+// static and video batches for one client, and the read-only Master that is
+// both lists at once.
+//
+// Agency-only. Nothing in the client app calls these.
+
+// One client's batches. `kind` absent asks for both, which is Master.
+export function useAdBatchesQuery(tenantId: string, kind?: AdBatchKind) {
+  const qs = new URLSearchParams({ tenantId });
+  if (kind) qs.set("kind", kind);
+  return useQuery({
+    queryKey: ["admin", "ad-batches", tenantId, kind ?? "all"],
+    enabled: !!tenantId,
+    queryFn: () => api<{ batches: AdBatch[] }>(`/api/admin/ads/batches?${qs.toString()}`),
+  });
+}
+
+// New empty batch. Invalidates its own list AND the "all" key, because Master
+// reads the same rows under a different query key and would otherwise not show
+// a batch until the tab was left and come back to.
+export function useCreateAdBatch(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { kind: AdBatchKind }) =>
+      api<{ batch: AdBatch }>("/api/admin/ads/batches", {
+        method: "POST",
+        body: JSON.stringify({ tenantId, kind: input.kind }),
+      }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "ad-batches", tenantId] });
+    },
+  });
+}
+
+// Save one field of one batch. The form calls this on blur, so these land one
+// at a time and often; never retried, because a retry of a stale field value
+// would put back what was just typed over it.
+export function useUpdateAdBatch(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: { batchId: string; patch: AdBatchPatch }) =>
+      api<{ batch: AdBatch }>(`/api/admin/ads/batches/${encodeURIComponent(input.batchId)}`, {
+        method: "PATCH",
+        body: JSON.stringify(input.patch),
+      }),
+    // Not invalidated on success: the card the operator is typing into holds
+    // the authoritative draft, and refetching under a live cursor is how a
+    // half-typed headline gets replaced by the version from before the last
+    // keystroke. Master refetches on its own when it is opened.
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ["admin", "ad-batches", tenantId, "all"],
+        refetchType: "none",
+      });
+    },
+  });
+}
+
+export function useDeleteAdBatch(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: { batchId: string }) =>
+      api<{ ok: true }>(`/api/admin/ads/batches/${encodeURIComponent(input.batchId)}`, {
+        method: "DELETE",
+      }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "ad-batches", tenantId] });
     },
   });
 }

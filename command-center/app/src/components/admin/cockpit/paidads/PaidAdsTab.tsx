@@ -1,15 +1,21 @@
+import AdBuilderPanel from "./AdBuilderPanel";
 import AdsDashboardPanel from "./AdsDashboardPanel";
 import AdsLeadTrackerPanel from "./AdsLeadTrackerPanel";
 import AdsMetaDataPanel from "./AdsMetaDataPanel";
 import CreativesPanel from "./CreativesPanel";
 
 // Paid Ads service tab inside the Fulfillment cockpit
-// (/admin/fulfillment/paid-ads). Routes the four sub-tabs for the client in the
+// (/admin/fulfillment/paid-ads). Routes the sub-tabs for the client in the
 // picker.
 //
-// All four are the client's OWN Paid Ads pages, rendered for a named tenant:
-// Dashboard, Lead Tracker, Meta Data and Creatives all mount the same components
-// as /marketing/paid-ads. The operator and the client read one set of pages.
+// The first four are the client's OWN Paid Ads pages, rendered for a named
+// tenant: Dashboard, Lead Tracker, Meta Data and Creatives all mount the same
+// components as /marketing/paid-ads. The operator and the client read one set
+// of pages.
+//
+// Ad Builder is not one of those. It is agency-only, has no client route, and
+// is where the ads are written before any of the other four have anything to
+// report.
 //
 // This replaced Campaigns, Ad Library, Ad Tracking and Data & Leads. Ad Tracking
 // and Data & Leads were the same numbers as the client's Dashboard and Lead
@@ -35,6 +41,8 @@ export default function PaidAdsTab({
       return <AdsMetaDataPanel tenantId={tenantId} />;
     case "creatives":
       return <CreativesPanel tenantId={tenantId} />;
+    case "ad-builder":
+      return <AdBuilderPanel tenantId={tenantId} />;
     default:
       return <div className="pk-empty">We are still building this view.</div>;
   }
