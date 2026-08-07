@@ -36,12 +36,34 @@ It is deliberately not an eighth page in `site.js`. A funnel wants no nav and
 no footer, it should not pull 120KB of website to ask one question, and editing
 it must not be able to break the seven live pages.
 
-**Two things are unwired on purpose**, both one line in `review.js`:
+**Three things are unwired on purpose**, each one line in `review.js`:
 
 | Setting | While empty | To connect |
 |---|---|---|
 | `CONFIG.googleReviewUrl` | 4 and 5 stars end on a thank-you card instead of redirecting | Paste the Google Business Profile "write a review" link |
 | `CONFIG.webhookUrl` | The feedback form says plainly it could not send and shows the phone number | Paste a GHL inbound webhook URL |
+| `CONFIG.positiveWebhookUrl` | 4 and 5 star taps fall back to `webhookUrl`, so nothing is lost | Paste a **second** GHL inbound webhook URL, from its own workflow |
+
+### The two webhooks
+
+Both fire form-encoded, and both carry `sentiment` so a workflow can branch on
+one field rather than parsing a rating.
+
+| | 1 to 3 stars | 4 or 5 stars |
+|---|---|---|
+| Sent | On form submit | On the star tap, by `sendBeacon`, just before the Google redirect |
+| Goes to | `webhookUrl` | `positiveWebhookUrl` (falls back to `webhookUrl`) |
+| Waits for a reply | Yes. A failed send shows the phone number, never a thank-you | No. The visitor is already leaving for Google |
+| Payload | `rating`, `rating_label`, `sentiment=negative`, `feedback`, `first_name`, `last_name`, `full_name`, `phone`, `email`, `outcome=feedback`, `attributed`, `source` | `rating`, `rating_label`, `sentiment=positive`, `outcome`, `attributed`, `source`, plus `contact_id`/`email`/`phone` if the link carried them |
+
+`outcome` on the positive side is `sent_to_google`, or `google_not_configured`
+while `googleReviewUrl` is still empty. It means **the visitor was sent to
+Google**, not that a review was posted: Google never tells us whether they
+actually wrote one. Word the GHL notification that way or Seamus will sit
+refreshing his Google page waiting for a review nobody submitted.
+
+The 4/5 ping is anonymous unless the link carried GHL merge fields, so read
+`attributed` before trying to tag a contact off it.
 
 ## How one file draws seven pages
 
