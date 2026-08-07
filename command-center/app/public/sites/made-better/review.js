@@ -29,23 +29,26 @@
   "use strict";
 
   // =========================================================================
-  // CONFIG — the two empty strings below are the whole wiring job.
+  // CONFIG — three URLs are the whole wiring job: where good ratings go
+  // (Google), where bad ones go (the feedback webhook), and who to tell when a
+  // good one happens (the positive webhook).
   // =========================================================================
   var CONFIG = {
     phone: "(313) 506-9238",
     phoneHref: "tel:+13135069238",
     logo: "https://drive.google.com/thumbnail?id=1B6zy3IkzRzR4NK3KmoNosWk4N1FBV1jB&sz=w400",
 
-    // Where 4 and 5 star ratings go. Google My Business is still in
-    // verification, so this is empty and NOTHING REDIRECTS: the happy path
-    // ends on a thank-you card instead. A five-star tap that visibly does
-    // nothing reads as a broken page, which is a poor way to treat the only
-    // customers who wanted to praise you.
+    // Where 4 and 5 star ratings go: Made Better's own "write a review" link
+    // off the Google Business Profile. A 4 or 5 star tap now leaves this page
+    // immediately and lands on the Google review composer with the star rating
+    // already carried across.
     //
-    // TO CONNECT: paste the "write a review" link from the Google Business
-    // Profile here and deploy. The same tap then redirects instead. Nothing
-    // else changes.
-    googleReviewUrl: "",
+    // The /r/ short link is the one Google itself generates from the profile.
+    // Do not "tidy" it into a maps.google.com search URL: those open the
+    // listing, not the write-a-review box, and the customer has to hunt for
+    // the button. If this is ever emptied again the funnel does not break, it
+    // falls back to a thank-you card instead of a dead tap.
+    googleReviewUrl: "https://g.page/r/CcYVUO6ir3bDEAI/review",
 
     // Where 1 to 3 star feedback goes: a GHL inbound webhook.
     //
@@ -63,6 +66,26 @@
     // Made Better's own inbound webhook before the funnel goes in front of
     // anyone.
     webhookUrl: "https://services.leadconnectorhq.com/hooks/r0WfsA12qpBv7M185V3v/webhook-trigger/e991b773-025a-44f8-b447-fd17afe1f861",
+
+    // Where 4 and 5 star taps go: a SECOND GHL inbound webhook, so the good
+    // news lands in its own workflow and Seamus gets a notification the moment
+    // somebody is sent to Google.
+    //
+    // Two URLs rather than one, because the two events want opposite handling.
+    // A complaint is a task: call them back today. A five star tap is a nudge:
+    // tell Seamus, tag the contact, and stop. Sharing one webhook would mean
+    // every workflow off it starting with an if/else on a payload field, and
+    // one careless edit would route a complaint into the celebration branch.
+    //
+    // WHILE THIS IS EMPTY nothing breaks and nothing is lost: the positive ping
+    // falls back to webhookUrl above, exactly as it did before this existed.
+    // The payload carries sentiment=positive either way, so a single shared
+    // workflow can still branch on it. Filling this in simply stops it having
+    // to.
+    //
+    // TO CONNECT: add a second inbound webhook trigger to a GHL workflow (a new
+    // workflow, not the feedback one), paste its URL here and deploy.
+    positiveWebhookUrl: "",
 
     // 4 and above goes to Google. Everything below it opens the feedback panel.
     googleThreshold: 4
@@ -528,22 +551,39 @@
       paint(n);
 
       if (n >= CONFIG.googleThreshold) {
-        // The happy path. Log it if there is anywhere to log it to, then go.
-        ping({ rating: n, outcome: CONFIG.googleReviewUrl ? "sent_to_google" : "google_not_configured" });
+        // The happy path. Tell GHL before we go.
+        //
+        // This fires on the TAP, not on a posted Google review, and the two are
+        // not the same thing: the visitor still has to write and submit it on
+        // Google, and Google will not tell us whether they did. So the payload
+        // says "sent_to_google", never "reviewed", and the GHL notification
+        // should read the same way. Anything stronger has Seamus refreshing his
+        // Google page for a review that was never written.
+        //
+        // It is also anonymous unless the link carried merge fields, so
+        // withIdentity() adds attributed=yes/no and the workflow can decide
+        // whether there is a contact worth tagging.
+        ping({
+          rating: n,
+          rating_label: LABELS[n - 1],
+          sentiment: "positive",
+          outcome: CONFIG.googleReviewUrl ? "sent_to_google" : "google_not_configured"
+        }, CONFIG.positiveWebhookUrl);
 
         if (CONFIG.googleReviewUrl) {
           window.location.href = CONFIG.googleReviewUrl;
           return;
         }
 
-        // Google My Business is still in verification. Nothing to redirect to,
-        // so thank them properly rather than letting the tap do nothing.
-        // NOTE: no "we will send you the link". The funnel is anonymous, so
-        // there is no address to send it to and that would be a promise
-        // nobody could keep.
+        // Unreachable while googleReviewUrl is set, and deliberately kept: if
+        // the link is ever pulled (profile suspended, URL changed) the happy
+        // path degrades to a thank-you card rather than a tap that does
+        // nothing. NOTE: no "we will send you the link". The funnel is
+        // anonymous, so there is no address to send it to and that would be a
+        // promise nobody could keep.
         finish(
           "Thank you, that means a lot.",
-          'Our Google page is still being verified, so there is nowhere to post it publicly just yet. ' +
+          'Our Google review page is not reachable at the moment, so there is nowhere to post it publicly just yet. ' +
           'Taking the time to say so is genuinely appreciated.'
         );
         return;
@@ -619,14 +659,22 @@
       return payload;
     }
 
-    function ping(payload) {
-      if (!CONFIG.webhookUrl) return;
+    // `url` is optional and falls back to the feedback webhook, so a positive
+    // ping still reaches GHL on the day positiveWebhookUrl is still empty.
+    function ping(payload, url) {
+      var target = url || CONFIG.webhookUrl;
+      if (!target) return;
       payload.source = "Made Better LC review funnel";
       withIdentity(payload);
       try {
         var params = encode(payload);
-        if (navigator.sendBeacon && navigator.sendBeacon(CONFIG.webhookUrl, params)) return;
-        fetch(CONFIG.webhookUrl, {
+        // sendBeacon is the whole reason the happy path survives. The star tap
+        // is immediately followed by window.location.href, and an ordinary
+        // fetch is cancellable on navigation: the browser would tear it down
+        // mid-flight and Seamus would never hear about the five stars. A beacon
+        // is handed to the browser to deliver AFTER the page is gone.
+        if (navigator.sendBeacon && navigator.sendBeacon(target, params)) return;
+        fetch(target, {
           method: "POST",
           body: params,
           keepalive: true,
@@ -718,8 +766,13 @@
       // Keys named to match GHL's standard contact fields, so the workflow can
       // map them without hand-typing each one. full_name goes too because some
       // GHL actions take a single name rather than the pair.
+      // sentiment and rating_label mirror the positive ping above, so both
+      // events speak the same vocabulary and one shared workflow could tell
+      // them apart on a single field if it ever had to.
       var params = encode(withIdentity({
         rating: selected,
+        rating_label: LABELS[selected - 1] || "",
+        sentiment: "negative",
         feedback: body,
         first_name: fn,
         last_name: ln,
