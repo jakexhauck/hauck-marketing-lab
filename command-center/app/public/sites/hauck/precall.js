@@ -48,6 +48,12 @@
   // only set it for Vimeo, Loom or self-hosted files, otherwise those tiles
   // show a plain grey card until clicked (which is fine, just plainer).
   // =====================================================================
+
+  // Where the self-hosted media lives. ABSOLUTE, and it has to be: this file is
+  // served from app.hauckmarketing.com but the page renders on the GoHighLevel
+  // domain, so a relative path resolves against GHL and 404s.
+  var VID = "https://app.hauckmarketing.com/sites/hauck/";
+
   var CONFIG = {
 
     // The single video at the top. The one that sets up the call.
@@ -77,16 +83,50 @@
     // the old edit drifts further out of sync the longer it plays.
     heroCaptions: "https://app.hauckmarketing.com/sites/hauck/precall-step1.vtt",
 
-    // STEP 2. Short videos, one objection each. Seven slots.
-    // Rename these freely. The numbering on the tiles is automatic.
+    // STEP 2. The eight breakout videos, one objection each.
+    //
+    // Self-hosted for the same reason the hero is: no third-party branding and
+    // no "watch next" grid on the page a prospect sees right before a call.
+    //
+    // Each was cut from Jake's raw OBS take: trimmed to the first and last word
+    // (the takes ran ~2s long on the tail, and he starts talking at ~0.2s), then
+    // 1.2x, 30fps, H.264 CRF 24. Biggest is 6.3 MiB against Cloudflare Pages'
+    // 25 MiB per-file cap. Re-cut from the raw take in "Pre-Call Vids", never
+    // from these files.
+    //
+    // The posters are slide 1 of each deck rendered straight off
+    // /sites/hauck/precall-vN-*, not frame grabs, so Jake's webcam bubble is in
+    // none of them.
+    //
+    // `len` IS HAND-MAINTAINED and the page trusts it. It cannot be read from
+    // the file, because the whole design of this page is that no video loads
+    // until it is clicked, and duration only arrives with the metadata. Re-cut
+    // a video and this string goes stale silently. Update it in the same edit.
     objections: [
-      { title: "Why most contractors stay stuck", url: "", poster: "" },
-      { title: "What we actually do for you", url: "", poster: "" },
-      { title: "What happens on our call", url: "", poster: "" },
-      { title: "\"I have tried ads before and they did not work\"", url: "", poster: "" },
-      { title: "\"What if I cannot handle more work?\"", url: "", poster: "" },
-      { title: "What this costs, and what it is worth", url: "", poster: "" },
-      { title: "Who this is not for", url: "", poster: "" }
+      { title: "What To Expect When Working With Us",
+        url: VID + "precall-v1-what-to-expect.mp4",
+        poster: VID + "precall-v1-what-to-expect-poster.png", len: "1:44" },
+      { title: "Our 7 Day Lead Generation Timeline",
+        url: VID + "precall-v2-seven-day-timeline.mp4",
+        poster: VID + "precall-v2-seven-day-timeline-poster.png", len: "1:21" },
+      { title: "Why Our Leads Are Truly Exclusive",
+        url: VID + "precall-v3-truly-exclusive.mp4",
+        poster: VID + "precall-v3-truly-exclusive-poster.png", len: "1:37" },
+      { title: "How Ad Spend Works",
+        url: VID + "precall-v4-ad-spend.mp4",
+        poster: VID + "precall-v4-ad-spend-poster.png", len: "1:32" },
+      { title: "What Happens If This Doesn't Work",
+        url: VID + "precall-v5-if-it-doesnt-work.mp4",
+        poster: VID + "precall-v5-if-it-doesnt-work-poster.png", len: "1:53" },
+      { title: "Our Lead Guarantee & Service Agreement",
+        url: VID + "precall-v6-guarantee-agreement.mp4",
+        poster: VID + "precall-v6-guarantee-agreement-poster.png", len: "1:07" },
+      { title: "How We Guarantee Qualified Leads",
+        url: VID + "precall-v7-qualified-leads.mp4",
+        poster: VID + "precall-v7-qualified-leads-poster.png", len: "1:47" },
+      { title: "How You'll Track Every Lead & Job",
+        url: VID + "precall-v8-dashboard.mp4",
+        poster: VID + "precall-v8-dashboard-poster.png", len: "2:01" }
     ],
 
     // NOTE: there was a "Real People. Real Progress." block here, six landscape
@@ -375,6 +415,26 @@
   color:var(--mute) !important; text-align:center !important;
   margin:10px 0 0 !important; padding:0 !important;
 }
+/* The title sits ABOVE its tile, so it has to hold a fixed two-line box. One
+   title in the set wraps and the rest do not, and without a reserved second
+   line the tile under a one-line title rides up and the row stops being a row.
+   flex-end so a single-line title sits on the same baseline as the second line
+   of a wrapped one. */
+#hpc .hp-cap--top {
+  display:flex !important; align-items:flex-end !important; justify-content:center !important;
+  min-height:2.7em !important; line-height:1.35 !important;
+  font-family:var(--display) !important; font-size:.95rem !important; font-weight:600 !important;
+  color:var(--ink) !important; letter-spacing:-.01em !important;
+  margin:0 0 10px !important; padding:0 !important;
+}
+#hpc .hp-len {
+  display:block !important;
+  font-family:var(--body) !important; font-size:.74rem !important; font-weight:500 !important;
+  letter-spacing:.04em !important;
+  color:var(--mute) !important; text-align:center !important;
+  margin:8px 0 0 !important; padding:0 !important;
+  font-variant-numeric:tabular-nums !important;
+}
 
 /* ---- hero ---------------------------------------------------------- */
 #hpc .hp-hero-media { max-width:760px !important; margin:20px auto 0 !important; }
@@ -645,11 +705,20 @@
       "</div>";
 
     // 2. objections
+    //
+    // Title ABOVE the tile, running time BELOW it, on Jake's instruction. The
+    // title is the thing that decides whether they press play, so it reads
+    // first; the length is the thing that decides whether they press play NOW,
+    // so it sits under the tile where it answers "how long is this" without
+    // competing with the title.
     var objs = "";
     for (i = 0; i < CONFIG.objections.length; i++) {
       var o = CONFIG.objections[i];
-      objs += "<li>" + media(o, { label: o.title }) +
-        '<span class="hp-cap">' + esc(o.title) + "</span></li>";
+      objs += "<li>" +
+        '<span class="hp-cap hp-cap--top">' + esc(o.title) + "</span>" +
+        media(o, { label: o.title }) +
+        (o.len ? '<span class="hp-len">' + esc(o.len) + "</span>" : "") +
+        "</li>";
     }
     var step2 = '' +
       '<div class="hp-band">' +
