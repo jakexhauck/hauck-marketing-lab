@@ -69,6 +69,14 @@
     heroVideo: "https://app.hauckmarketing.com/sites/hauck/precall-step1.mp4",
     heroPoster: "https://app.hauckmarketing.com/sites/hauck/precall-step1-poster.png",
 
+    // WebVTT captions, on by default. Optional: leave it empty and the player
+    // simply has no subtitle track.
+    //
+    // Transcribed from the SHIPPED 1.25x cut, not the original, so the timings
+    // line up. Re-transcribe if the video is ever re-cut; a caption file from
+    // the old edit drifts further out of sync the longer it plays.
+    heroCaptions: "https://app.hauckmarketing.com/sites/hauck/precall-step1.vtt",
+
     // STEP 2. Short videos, one objection each. Seven slots.
     // Rename these freely. The numbering on the tiles is automatic.
     objections: [
@@ -598,6 +606,7 @@
     return '<button type="button" class="hp-media"' + bg +
       ' data-src="' + esc(embedUrl(item.url)) + '"' +
       ' data-file="' + (isFile(item.url) ? "1" : "0") + '"' +
+      (item.captions ? ' data-cc="' + esc(item.captions) + '"' : "") +
       ' aria-label="Play: ' + aria + '">' +
       (poster ? '<span class="hp-shroud"></span>' : "") +
       '<span class="hp-play">' + PLAY + "</span>" +
@@ -625,7 +634,7 @@
           '<span class="hp-step">Step 1</span>' +
           "<h2>Watch This Short Video</h2>" +
           '<div class="hp-hero-media">' +
-            media({ url: CONFIG.heroVideo, poster: CONFIG.heroPoster }, { label: "Welcome video" }) +
+            media({ url: CONFIG.heroVideo, poster: CONFIG.heroPoster, captions: CONFIG.heroCaptions }, { label: "Welcome video" }) +
           "</div>" +
           // Nothing at all when there is no video, rather than a blank line
           // holding the space open. An empty line under an empty tile is the
@@ -727,10 +736,30 @@
 
       if (file) {
         var v = document.createElement("video");
+        var cc = tile.getAttribute("data-cc");
+        // crossOrigin must be set BEFORE src, and only when there are captions
+        // to load. A <track> from another origin is refused without it, and
+        // setting it unconditionally would put a CORS check on the video file
+        // for no reason.
+        if (cc) v.crossOrigin = "anonymous";
         v.src = src;
         v.controls = true;
         v.autoplay = true;
         v.setAttribute("playsinline", "");
+        if (cc) {
+          var t = document.createElement("track");
+          t.kind = "captions";
+          t.srclang = "en";
+          t.label = "English";
+          t.src = cc;
+          t.default = true;
+          v.appendChild(t);
+          // Safari ignores the default attribute often enough that the only
+          // reliable switch is the TextTrack itself, once it exists.
+          v.addEventListener("loadedmetadata", function () {
+            if (v.textTracks && v.textTracks[0]) v.textTracks[0].mode = "showing";
+          });
+        }
         box.appendChild(v);
       } else {
         var f = document.createElement("iframe");

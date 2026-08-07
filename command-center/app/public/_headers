@@ -12,3 +12,16 @@
   Content-Security-Policy: frame-ancestors 'self'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+
+# /sites/ and /funnel/ hold pages and assets that render on OTHER origins:
+# GoHighLevel draws the pre-call and funnel pages, and pulls these files in
+# from here. A <track> caption file is CORS-checked even when the <video> it
+# hangs off is not, and the moment you set crossorigin on the video to make
+# the track load, the media file needs the header too. Without this the
+# captions fail silently: no error, no subtitles, just a player that looks
+# like it never had any.
+/sites/*
+  Access-Control-Allow-Origin: *
+
+/funnel/*
+  Access-Control-Allow-Origin: *
