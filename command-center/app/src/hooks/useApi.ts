@@ -7,7 +7,9 @@ import {
 import type { HealthResponse as ConnectionHealthResponse } from "../lib/connectionHealth";
 // The ad builder's shape, straight from the module the endpoints validate with,
 // so the form cannot drift from what the server will accept.
-import type { AdBatch, AdBatchKind, AdBatchPatch } from "../../functions/lib/adBatches";
+import type { AdWorkspace, AdWorkspacePatch } from "../../functions/lib/adWorkspace";
+// The lead form's shape, from the module the endpoints validate with (0090).
+import type { LeadForm, LeadFormPatch } from "../../functions/lib/adLeadForms";
 import type {
   AgencySecretsResponse,
   ApplyResponse,
@@ -2837,75 +2839,112 @@ export function useSaveClientSecrets(tenantId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Ad builder (0088). Paid Ads > Ad Builder in the Fulfillment cockpit: the
-// static and video batches for one client, and the read-only Master that is
-// both lists at once.
+// The ad builder's workspace (0091). One per client, three pages over it:
+// Copy & Angles, Ads, Lead Form.
 //
 // Agency-only. Nothing in the client app calls these.
 
-// One client's batches. `kind` absent asks for both, which is Master.
-export function useAdBatchesQuery(tenantId: string, kind?: AdBatchKind) {
-  const qs = new URLSearchParams({ tenantId });
-  if (kind) qs.set("kind", kind);
+export function useAdWorkspaceQuery(tenantId: string) {
   return useQuery({
-    queryKey: ["admin", "ad-batches", tenantId, kind ?? "all"],
+    queryKey: ["admin", "ad-workspace", tenantId],
     enabled: !!tenantId,
-    queryFn: () => api<{ batches: AdBatch[] }>(`/api/admin/ads/batches?${qs.toString()}`),
+    queryFn: () =>
+      api<{ workspace: AdWorkspace }>(
+        `/api/admin/ads/workspace?tenantId=${encodeURIComponent(tenantId)}`,
+      ),
   });
 }
 
-// New empty batch. Invalidates its own list AND the "all" key, because Master
-// reads the same rows under a different query key and would otherwise not show
-// a batch until the tab was left and come back to.
-export function useCreateAdBatch(tenantId: string) {
+// Saves one block when it is left, so these land one at a time and often. Never
+// retried: a retry of a stale block would put back what was just typed over it.
+//
+// Not invalidated on success. The page holds the authoritative draft and
+// refetching under a live cursor is how a half-typed headline loses its last
+// keystroke. The cache is written directly from the response instead, so the
+// other two pages see the change without a request.
+export function useUpdateAdWorkspace(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { kind: AdBatchKind }) =>
-      api<{ batch: AdBatch }>("/api/admin/ads/batches", {
-        method: "POST",
-        body: JSON.stringify({ tenantId, kind: input.kind }),
-      }),
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "ad-batches", tenantId] });
+    retry: false,
+    mutationFn: (patch: AdWorkspacePatch) =>
+      api<{ workspace: AdWorkspace }>(
+        `/api/admin/ads/workspace?tenantId=${encodeURIComponent(tenantId)}`,
+        { method: "PATCH", body: JSON.stringify(patch) },
+      ),
+    onSuccess: (data) => {
+      qc.setQueryData(["admin", "ad-workspace", tenantId], data);
     },
   });
 }
 
-// Save one field of one batch. The form calls this on blur, so these land one
-// at a time and often; never retried, because a retry of a stale field value
-// would put back what was just typed over it.
-export function useUpdateAdBatch(tenantId: string) {
+// ---------------------------------------------------------------------------
+// Lead form drafts (0090). Paid Ads > Ad Builder > Forms: a draft of a Meta
+// Instant Form, written here and pasted across.
+//
+// Agency-only. Nothing in the client app calls these, and nothing here reaches
+// Meta.
+
+export function useLeadFormsQuery(tenantId: string) {
+  return useQuery({
+    queryKey: ["admin", "ad-lead-forms", tenantId],
+    enabled: !!tenantId,
+    queryFn: () =>
+      api<{ forms: LeadForm[] }>(
+        `/api/admin/ads/forms?tenantId=${encodeURIComponent(tenantId)}`,
+      ),
+  });
+}
+
+export function useCreateLeadForm(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<{ form: LeadForm }>("/api/admin/ads/forms", {
+        method: "POST",
+        body: JSON.stringify({ tenantId }),
+      }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "ad-lead-forms", tenantId] });
+    },
+  });
+}
+
+// Saves a block when it is left, so these land one at a time and often. Never
+// retried: a retry of a stale value would put back what was just typed over it.
+//
+// Not invalidated on success, for the same reason the batch editor is not: the
+// card holds the authoritative draft and refetching under a live cursor is how
+// a half-typed question loses its last keystroke.
+export function useUpdateLeadForm(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
     retry: false,
-    mutationFn: (input: { batchId: string; patch: AdBatchPatch }) =>
-      api<{ batch: AdBatch }>(`/api/admin/ads/batches/${encodeURIComponent(input.batchId)}`, {
+    mutationFn: (input: { formId: string; patch: LeadFormPatch }) =>
+      api<{ form: LeadForm }>(`/api/admin/ads/forms/${encodeURIComponent(input.formId)}`, {
         method: "PATCH",
         body: JSON.stringify(input.patch),
       }),
-    // Not invalidated on success: the card the operator is typing into holds
-    // the authoritative draft, and refetching under a live cursor is how a
-    // half-typed headline gets replaced by the version from before the last
-    // keystroke. Master refetches on its own when it is opened.
     onSuccess: () => {
       qc.invalidateQueries({
-        queryKey: ["admin", "ad-batches", tenantId, "all"],
+        queryKey: ["admin", "ad-lead-forms", tenantId],
         refetchType: "none",
       });
     },
   });
 }
 
-export function useDeleteAdBatch(tenantId: string) {
+// Nothing points at a form any more (0091 retired the batch and its form_id),
+// so deleting one only has to refresh this list.
+export function useDeleteLeadForm(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
     retry: false,
-    mutationFn: (input: { batchId: string }) =>
-      api<{ ok: true }>(`/api/admin/ads/batches/${encodeURIComponent(input.batchId)}`, {
+    mutationFn: (input: { formId: string }) =>
+      api<{ ok: true }>(`/api/admin/ads/forms/${encodeURIComponent(input.formId)}`, {
         method: "DELETE",
       }),
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "ad-batches", tenantId] });
+      qc.invalidateQueries({ queryKey: ["admin", "ad-lead-forms", tenantId] });
     },
   });
 }

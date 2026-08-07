@@ -1,21 +1,30 @@
-// The ad builder's shape and its input cleaning (0088).
+// The ad builder's shape and its input cleaning (0091).
 //
-// Shared by the two endpoints that write ad_batches and imported for its types
-// by the browser, so the form and the server cannot disagree about what a batch
-// is or how long a headline may be.
+// This replaces adBatches.ts (0088/0089). The batch is gone: rounds, the
+// static/video split, the hook and the script, the name of a round, and Master
+// all went with it. What is left is ONE living workspace per client, drawn as
+// three pages:
+//
+//   Copy & Angles   competitors, angles, three primaries, three headlines
+//   Ads             a flat list of ads, each a free-text type and a creative
+//   Lead Form       drafts of Meta Instant Forms, in ad_lead_forms (0090)
+//
+// WHY the round went away: it was a guess at how the work is organised, and the
+// answer was that it is not. There is the copy that is current and the ads that
+// are running, and looking back at a superseded round is not a thing that
+// happens often enough to pay for picking one before every edit. A flat set is
+// always the current set, so nothing has to be selected before anything can be
+// written.
+//
+// The cost is real and was accepted knowingly: there is no history. Overwriting
+// last month's primary copy loses it. If that ever bites, the fix is a snapshot
+// table, not a return to rounds.
 //
 // Every field is plain text and is rendered as text. The cleaners here are the
 // whole trust boundary: they cap length and flatten control characters. There is
 // no HTML, no markdown and no sanitizer, because nothing downstream interprets
-// this as markup.
-
-export type AdBatchKind = "static" | "video";
-
-export const AD_BATCH_KINDS: AdBatchKind[] = ["static", "video"];
-
-export function isAdBatchKind(value: unknown): value is AdBatchKind {
-  return value === "static" || value === "video";
-}
+// this as markup. Imported by the browser too, so the form and the server cannot
+// disagree about what a workspace is or how long a headline may be.
 
 // A competitor ad worth stealing from: who ran it, where to look at it, and what
 // is actually working in it.
@@ -25,41 +34,54 @@ export interface AdCompetitor {
   notes: string;
 }
 
-export interface AdBatch {
-  id: string;
-  tenantId: string;
-  kind: AdBatchKind;
-  name: string;
-  competitors: AdCompetitor[];
-  angles: string[];
-  // Exactly three of each, always. See the migration for why this is not a list.
-  copy: [string, string, string];
-  headlines: [string, string, string];
-  // Empty on every static batch.
-  hook: string;
-  script: string;
-  createdAt: string;
-  updatedAt: string;
+// One ad. `type` is free text and carries what used to be the batch kind:
+// "video" is a type now, sitting beside "before and after" and "testimonial".
+//
+// There is no copy on an ad. The three primaries and three headlines live on
+// the workspace and are shared across every ad, because one set of text
+// rotated over several creatives is how the round is actually run.
+export interface AdItem {
+  type: string;
+  // A Google Drive file id from the client's creatives folder, or empty.
+  creativeId: string;
+  // The file's name when it was linked. Only read when Drive no longer lists
+  // the file, so a binned creative still reads as a name and not an id.
+  creativeName: string;
 }
 
-// How many copy and headline slots a batch has. Not configurable: three is the
-// discipline this page exists to enforce.
-export const AD_BATCH_SLOTS = 3;
+export interface AdWorkspace {
+  tenantId: string;
+  competitors: AdCompetitor[];
+  angles: string[];
+  ads: AdItem[];
+  // Exactly three of each, always. The discipline is the feature: three
+  // primaries and three headlines is what gets launched, and an array with an
+  // Add button quietly becomes nine of each by March. A blank one is allowed,
+  // a fourth one is not.
+  copy: [string, string, string];
+  headlines: [string, string, string];
+  updatedAt: string | null;
+}
+
+// How many copy and headline slots there are. Not configurable.
+export const AD_SLOTS = 3;
 
 // Caps. Generous enough that nobody meets them while writing normally, tight
 // enough that a paste of a whole webpage cannot land in the table.
 export const LIMITS = {
-  name: 120,
   competitorName: 120,
   competitorUrl: 500,
   competitorNotes: 1000,
   angle: 300,
   copy: 3000,
   headline: 200,
-  hook: 500,
-  script: 8000,
   competitors: 25,
   angles: 25,
+  // A client's live ad list. Sixty is far past any real one and exists only so
+  // a malformed body cannot write an unbounded list.
+  ads: 60,
+  adType: 120,
+  creativeName: 300,
 } as const;
 
 // Every C0 control character plus DEL. Newlines and tabs are in here on purpose:
@@ -69,8 +91,8 @@ const CONTROL_CHARS = /[\u0000-\u001F\u007F]/g;
 const CONTROL_CHARS_KEEP_NEWLINE = /[\u0000-\u0009\u000B-\u001F\u007F]/g;
 
 // Single-line text: control characters (including newlines) become spaces, runs
-// of whitespace collapse, then trim and cap. Used for everything a form draws
-// as an <input>.
+// of whitespace collapse, then trim and cap. Used for everything drawn as an
+// <input>. Shared with adLeadForms.ts.
 export function cleanLine(value: unknown, max: number): string {
   if (typeof value !== "string") return "";
   return value
@@ -81,8 +103,8 @@ export function cleanLine(value: unknown, max: number): string {
 }
 
 // Multi-line text: newlines survive, every other control character does not.
-// Used for the primary copy, the competitor notes and the video script, where
-// the line breaks are part of what was written.
+// Used for the primary copy and the competitor notes, where the line breaks are
+// part of what was written.
 export function cleanBlock(value: unknown, max: number): string {
   if (typeof value !== "string") return "";
   return value
@@ -97,9 +119,9 @@ export function cleanBlock(value: unknown, max: number): string {
     .slice(0, max);
 }
 
-// A competitor's link. Stored as typed unless it is plainly not a link, in
-// which case it is dropped rather than saved: a broken href in the UI opens a
-// tab on nothing and reads as the app losing the value.
+// A link. Stored as typed unless it is plainly not a link, in which case it is
+// dropped rather than saved: a broken href opens a tab on nothing and reads as
+// the app losing the value.
 export function cleanUrl(value: unknown): string {
   const raw = cleanLine(value, LIMITS.competitorUrl);
   if (!raw) return "";
@@ -128,8 +150,7 @@ export function cleanCompetitors(value: unknown): AdCompetitor[] {
       };
     })
     // A row with nothing in any of its three fields is a row the operator added
-    // and walked away from. Dropping it on save keeps the list from growing an
-    // empty tail every time the panel is opened.
+    // and walked away from.
     .filter((c) => c.name || c.url || c.notes);
 }
 
@@ -139,6 +160,35 @@ export function cleanAngles(value: unknown): string[] {
     .slice(0, LIMITS.angles)
     .map((a) => cleanLine(a, LIMITS.angle))
     .filter(Boolean);
+}
+
+// A Drive file id. Same shape driveDirect enforces, restated here rather than
+// imported: that module carries an OAuth client and a Supabase dependency, and
+// this one is imported by the browser.
+function isDriveFileId(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && /^[A-Za-z0-9_-]+$/.test(value);
+}
+
+export function cleanAds(value: unknown): AdItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, LIMITS.ads)
+    .map((raw) => {
+      const row = (raw ?? {}) as Record<string, unknown>;
+      // An id that is not a Drive id is dropped rather than stored. It would
+      // only ever resolve to a broken tile, and the ad itself is still worth
+      // keeping: the type is what the operator actually wrote.
+      const creativeId = isDriveFileId(row.creativeId) ? row.creativeId : "";
+      return {
+        type: cleanLine(row.type, LIMITS.adType),
+        creativeId,
+        // Never a name without an id. A label with nothing behind it is a tile
+        // that cannot be opened and cannot be re-linked.
+        creativeName: creativeId ? cleanLine(row.creativeName, LIMITS.creativeName) : "",
+      };
+    })
+    // A row with no type and no creative is an Add nobody filled in.
+    .filter((a) => a.type || a.creativeId);
 }
 
 // Coerce whatever arrived into exactly three slots, in order. A missing slot
@@ -155,70 +205,73 @@ export function cleanSlots(
 }
 
 // The database row, as selected.
-export interface AdBatchRow {
-  id: string;
+export interface AdWorkspaceRow {
   tenant_id: string;
-  kind: string;
-  name: string;
   competitors: unknown;
   angles: unknown;
+  ads: unknown;
   copy_1: string;
   copy_2: string;
   copy_3: string;
   headline_1: string;
   headline_2: string;
   headline_3: string;
-  hook: string;
-  script: string;
-  created_at: string;
   updated_at: string;
 }
 
-export const AD_BATCH_SELECT =
-  "id, tenant_id, kind, name, competitors, angles, copy_1, copy_2, copy_3, " +
-  "headline_1, headline_2, headline_3, hook, script, created_at, updated_at";
+export const AD_WORKSPACE_SELECT =
+  "tenant_id, competitors, angles, ads, copy_1, copy_2, copy_3, " +
+  "headline_1, headline_2, headline_3, updated_at";
 
 // Row to API shape. The jsonb columns are cleaned on the way OUT as well as in:
 // a row written before a cap changed still has to render, and rendering is not
 // the place to discover that it cannot.
-export function toAdBatch(row: AdBatchRow): AdBatch {
+export function toAdWorkspace(row: AdWorkspaceRow): AdWorkspace {
   return {
-    id: row.id,
     tenantId: row.tenant_id,
-    kind: isAdBatchKind(row.kind) ? row.kind : "static",
-    name: row.name,
     competitors: cleanCompetitors(row.competitors),
     angles: cleanAngles(row.angles),
+    ads: cleanAds(row.ads),
     copy: [row.copy_1, row.copy_2, row.copy_3],
     headlines: [row.headline_1, row.headline_2, row.headline_3],
-    hook: row.hook,
-    script: row.script,
-    createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-// What a PATCH may carry. Every field optional: the form saves one field at a
-// time as it is left, so a request that named all fourteen would be a request
-// that can overwrite a value the operator never touched.
-export interface AdBatchPatch {
-  name?: string;
+// A client who has never been written for has no row, and that is not an error.
+// The GET answers with this rather than a 404, so the three pages open ready to
+// type instead of showing a state the operator has to clear.
+export function emptyWorkspace(tenantId: string): AdWorkspace {
+  return {
+    tenantId,
+    competitors: [],
+    angles: [],
+    ads: [],
+    copy: ["", "", ""],
+    headlines: ["", "", ""],
+    updatedAt: null,
+  };
+}
+
+// What a PATCH may carry. Every field optional: each page saves one block at a
+// time as it is left, so a request naming all of them could overwrite a value
+// the operator never touched.
+export interface AdWorkspacePatch {
   competitors?: AdCompetitor[];
   angles?: string[];
+  ads?: AdItem[];
   copy?: string[];
   headlines?: string[];
-  hook?: string;
-  script?: string;
 }
 
 // Build the column update for a PATCH body. Returns only the columns the body
 // actually named, so an absent key is left alone rather than blanked.
-export function patchColumns(body: AdBatchPatch): Record<string, unknown> {
+export function patchColumns(body: AdWorkspacePatch): Record<string, unknown> {
   const update: Record<string, unknown> = {};
 
-  if (body.name !== undefined) update.name = cleanLine(body.name, LIMITS.name);
   if (body.competitors !== undefined) update.competitors = cleanCompetitors(body.competitors);
   if (body.angles !== undefined) update.angles = cleanAngles(body.angles);
+  if (body.ads !== undefined) update.ads = cleanAds(body.ads);
 
   if (body.copy !== undefined) {
     const [a, b, c] = cleanSlots(body.copy, LIMITS.copy, true);
@@ -233,12 +286,6 @@ export function patchColumns(body: AdBatchPatch): Record<string, unknown> {
     update.headline_2 = b;
     update.headline_3 = c;
   }
-
-  // Accepted on a static batch too. Refusing them would mean the endpoint has
-  // to know which kind a row is before it can validate, for two fields whose
-  // only cost when wrong is that nothing draws them.
-  if (body.hook !== undefined) update.hook = cleanLine(body.hook, LIMITS.hook);
-  if (body.script !== undefined) update.script = cleanBlock(body.script, LIMITS.script);
 
   return update;
 }

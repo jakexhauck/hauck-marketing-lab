@@ -1,17 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  cleanAds,
+  emptyWorkspace,
   cleanAngles,
   cleanBlock,
   cleanCompetitors,
   cleanLine,
   cleanSlots,
   cleanUrl,
-  isAdBatchKind,
   LIMITS,
   patchColumns,
-  toAdBatch,
-  type AdBatchRow,
-} from "./adBatches";
+  toAdWorkspace,
+  type AdWorkspaceRow,
+} from "./adWorkspace";
 
 describe("cleanLine", () => {
   it("flattens newlines and collapses whitespace", () => {
@@ -129,7 +130,7 @@ describe("cleanSlots", () => {
 
 describe("patchColumns", () => {
   it("writes only the keys the body named", () => {
-    expect(patchColumns({ name: "Storm" })).toEqual({ name: "Storm" });
+    expect(patchColumns({ angles: ["storm"] })).toEqual({ angles: ["storm"] });
   });
 
   it("spreads the three copy slots across three columns", () => {
@@ -152,56 +153,125 @@ describe("patchColumns", () => {
     expect(patchColumns({})).toEqual({});
   });
 
-  it("never writes kind, whatever the body claims", () => {
-    expect(patchColumns({ kind: "video" } as never)).toEqual({});
+  // The batch's own fields went with the batch (0091). A body still carrying
+  // one must write nothing rather than be quietly accepted.
+  it("ignores fields that belonged to the retired batch", () => {
+    expect(patchColumns({ name: "Storm", kind: "video", hook: "x" } as never)).toEqual({});
   });
 });
 
-describe("toAdBatch", () => {
-  const row: AdBatchRow = {
-    id: "b1",
+describe("toAdWorkspace", () => {
+  const row: AdWorkspaceRow = {
     tenant_id: "t1",
-    kind: "video",
-    name: "Testimonial",
     competitors: [{ name: "Rival", url: "rival.com", notes: "" }],
     angles: ["proof"],
+    ads: [{ type: "Before and after", creativeId: "1AbC", creativeName: "ba.jpg" }],
     copy_1: "one",
     copy_2: "",
     copy_3: "three",
     headline_1: "h1",
     headline_2: "",
     headline_3: "",
-    hook: "watch this",
-    script: "line one\nline two",
-    created_at: "2026-08-06T00:00:00Z",
     updated_at: "2026-08-06T00:00:00Z",
   };
 
   it("maps a row to the shape the browser reads", () => {
-    const batch = toAdBatch(row);
-    expect(batch.kind).toBe("video");
-    expect(batch.copy).toEqual(["one", "", "three"]);
-    expect(batch.headlines).toEqual(["h1", "", ""]);
-    expect(batch.competitors[0].url).toBe("https://rival.com");
-    expect(batch.script).toBe("line one\nline two");
-  });
-
-  it("renders rather than throws when the stored kind is nonsense", () => {
-    expect(toAdBatch({ ...row, kind: "carousel" }).kind).toBe("static");
+    const ws = toAdWorkspace(row);
+    expect(ws.tenantId).toBe("t1");
+    expect(ws.copy).toEqual(["one", "", "three"]);
+    expect(ws.headlines).toEqual(["h1", "", ""]);
+    expect(ws.competitors[0].url).toBe("https://rival.com");
+    expect(ws.ads[0].type).toBe("Before and after");
   });
 
   it("survives jsonb that is not the shape it should be", () => {
-    const batch = toAdBatch({ ...row, competitors: null, angles: "nope" });
-    expect(batch.competitors).toEqual([]);
-    expect(batch.angles).toEqual([]);
+    const ws = toAdWorkspace({ ...row, competitors: null, angles: "nope" });
+    expect(ws.competitors).toEqual([]);
+    expect(ws.angles).toEqual([]);
   });
 });
 
-describe("isAdBatchKind", () => {
-  it("accepts the two kinds and nothing else", () => {
-    expect(isAdBatchKind("static")).toBe(true);
-    expect(isAdBatchKind("video")).toBe(true);
-    expect(isAdBatchKind("carousel")).toBe(false);
-    expect(isAdBatchKind(null)).toBe(false);
+
+// ---------------------------------------------------------------------------
+// The flat ad list (0091). "video" is a type here, not a kind of anything.
+
+describe("cleanAds", () => {
+  it("keeps a type and its linked creative", () => {
+    expect(cleanAds([{ type: "Before and after", creativeId: "1AbC_-x", creativeName: "ba.jpg" }]))
+      .toEqual([{ type: "Before and after", creativeId: "1AbC_-x", creativeName: "ba.jpg" }]);
+  });
+
+  it("allows an ad with a type and no creative yet", () => {
+    expect(cleanAds([{ type: "Testimonial" }])).toEqual([
+      { type: "Testimonial", creativeId: "", creativeName: "" },
+    ]);
+  });
+
+  it("allows a creative with no type yet", () => {
+    const ads = cleanAds([{ creativeId: "1AbC", creativeName: "x.jpg" }]);
+    expect(ads).toHaveLength(1);
+    expect(ads[0].type).toBe("");
+  });
+
+  it("drops a row that is entirely empty, so an abandoned Add leaves nothing", () => {
+    expect(cleanAds([{ type: "  ", creativeId: "", creativeName: "" }])).toEqual([]);
+  });
+
+  it("refuses a creative id that is not a Drive file id, and keeps the ad", () => {
+    const ads = cleanAds([{ type: "Offer", creativeId: "../../etc/passwd", creativeName: "x" }]);
+    expect(ads).toEqual([{ type: "Offer", creativeId: "", creativeName: "" }]);
+  });
+
+  it("flattens newlines in a free-text type", () => {
+    expect(cleanAds([{ type: "before\nand after" }])[0].type).toBe("before and after");
+  });
+
+  it("caps the number of ads", () => {
+    const many = Array.from({ length: LIMITS.ads + 10 }, (_, i) => ({ type: `t${i}` }));
+    expect(cleanAds(many)).toHaveLength(LIMITS.ads);
+  });
+
+  it("caps a long type", () => {
+    expect(cleanAds([{ type: "x".repeat(500) }])[0].type).toHaveLength(LIMITS.adType);
+  });
+
+  it("survives junk", () => {
+    expect(cleanAds(null)).toEqual([]);
+    expect(cleanAds("nope")).toEqual([]);
+    expect(cleanAds([null, 7])).toEqual([]);
+  });
+
+  it("keeps the name only when the id survived, so no orphan label is stored", () => {
+    const ads = cleanAds([{ type: "Offer", creativeId: "", creativeName: "ghost.jpg" }]);
+    expect(ads[0].creativeName).toBe("");
+  });
+});
+
+describe("patchColumns for the ad list", () => {
+  it("writes the ads column when the body names it", () => {
+    const update = patchColumns({ ads: [{ type: "UGC", creativeId: "", creativeName: "" }] });
+    expect(update.ads).toEqual([{ type: "UGC", creativeId: "", creativeName: "" }]);
+  });
+
+  it("leaves ads alone when the body does not name it", () => {
+    expect(patchColumns({ angles: ["storm"] })).not.toHaveProperty("ads");
+  });
+
+  it("accepts an empty list, so the last ad can be removed", () => {
+    expect(patchColumns({ ads: [] })).toHaveProperty("ads", []);
+  });
+});
+
+describe("emptyWorkspace", () => {
+  it("is what a client nobody has written for reads as, not a 404", () => {
+    const ws = emptyWorkspace("t9");
+    expect(ws.tenantId).toBe("t9");
+    expect(ws.copy).toEqual(["", "", ""]);
+    expect(ws.headlines).toEqual(["", "", ""]);
+    expect(ws.ads).toEqual([]);
+    expect(ws.competitors).toEqual([]);
+    expect(ws.angles).toEqual([]);
+    // Distinguishable from a saved-then-emptied workspace, which has a date.
+    expect(ws.updatedAt).toBeNull();
   });
 });

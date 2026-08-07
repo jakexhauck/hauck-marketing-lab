@@ -26,6 +26,23 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    // Supersedes 2026-08-07-ad-builder, which shipped this morning and is left
+    // below rather than edited: changing an entry's words without changing its
+    // id means nobody who already read it ever sees the correction.
+    id: "2026-08-07-ad-builder-three-pages",
+    date: "7 August 2026",
+    title: "The Ad Builder is three pages, and the round is gone",
+    items: [
+      "Ad Builder is now Copy & Angles, Ads and Lead Form. There is no round to pick before you can write anything: what is on the page is this client's current set, always.",
+      "Ads is a plain list. Add one at the bottom, type what it is, link the creative it is made from. The type is free text, so 'video' sits beside 'before and after' and 'testimonial' and you are never waiting on us to add a format.",
+      "Because of that, the Static and Video split is gone. Video is a type of ad now, not a kind of batch.",
+      "Copy and headlines are unchanged: still three and three, still shared across every ad, because one set of text rotated over several creatives is how a round actually runs.",
+      "Lead Form is unchanged. Questions, answers, disqualifying answers, conditional logic and both screens, with a Copy form button that hands you the whole thing as text to paste into Meta.",
+      "What this costs, so nobody is surprised by it: there is no history. Overwriting last month's primary copy loses it. Rounds were what kept the old version, and they were removed on purpose because picking one before every edit was not worth a lookback that almost never happened.",
+      "Master is gone with the rounds. With one set per client there is nothing to read back: the pages are the record.",
+    ],
+  },
+  {
     id: "2026-08-07-ad-builder",
     date: "7 August 2026",
     title: "Ads get written in the console, not in a notes app",

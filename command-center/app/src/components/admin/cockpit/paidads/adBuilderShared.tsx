@@ -1,17 +1,16 @@
 import { cn } from "../../../../lib/cn";
-import type { AdBatch } from "../../../../../functions/lib/adBatches";
+import type { AdWorkspacePatch } from "../../../../../functions/lib/adWorkspace";
 
-// Small pieces shared by the ad builder's three views (Static, Video, Master).
-// Kept here rather than in trackerShared because none of it is about tracking:
-// that file is the client's numbers, this is the operator's drafting table.
+// Small pieces shared by the ad builder's three pages (Copy & Angles, Ads,
+// Lead Form). Kept here rather than in trackerShared because none of it is
+// about tracking: that file is the client's numbers, this is the operator's
+// drafting table.
 
-// A batch is created before it is named, so every list needs one answer to
-// "what do I call the row that has no title yet".
-export function batchTitle(batch: AdBatch): string {
-  return batch.name.trim() || "Untitled round";
-}
+// How a page hands one block back to be written. The panel owns the request;
+// a page only ever says which block changed.
+export type SaveBlock = (patch: AdWorkspacePatch) => void;
 
-export function batchDate(iso: string): string {
+export function shortDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
