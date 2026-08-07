@@ -51,8 +51,23 @@
   var CONFIG = {
 
     // The single video at the top. The one that sets up the call.
-    heroVideo: "",
-    heroPoster: "",
+    //
+    // FULL URLS, not relative, for the same reason the wins images below are:
+    // this page renders on the GoHighLevel domain, so a relative path resolves
+    // against GHL and 404s.
+    //
+    // Self-hosted rather than YouTube or Loom, so no third-party branding or
+    // "watch next" grid lands on a page a prospect sees right before a call.
+    // The source recording was 68.8 MB, which Cloudflare Pages rejects outright
+    // (25 MiB per-file cap); this is the same recording at 1.25x, 30fps,
+    // H.264 CRF 23, 16.85 MiB. Re-encode from the original if it ever changes,
+    // never from this file.
+    //
+    // The poster is slide 1 of the deck rendered straight off
+    // /sites/hauck/precall-step1, not a frame grab, so Jake's webcam bubble is
+    // not in it.
+    heroVideo: "https://app.hauckmarketing.com/sites/hauck/precall-step1.mp4",
+    heroPoster: "https://app.hauckmarketing.com/sites/hauck/precall-step1-poster.png",
 
     // STEP 2. Short videos, one objection each. Seven slots.
     // Rename these freely. The numbering on the tiles is automatic.
