@@ -1,0 +1,24 @@
+-- 0092: drop ad_batches. The round is gone and nothing reads this any more.
+--
+-- 0091 replaced it with ad_workspace: one living row per client instead of a
+-- list of named rounds. This is the contract half of that expand-and-contract.
+--
+-- WHY IT IS A SEPARATE FILE, and why it was not folded into 0091: migrations run
+-- BEFORE the deploy that changes the code. Dropping the table in 0091 would have
+-- taken the live Ad Builder down for the length of a build, because the code
+-- selecting ad_batches was still the code in production. 0091 therefore only
+-- added, and this runs once the deploy that stopped reading it is out.
+--
+-- NOTHING IS BEING THROWN AWAY. The table held exactly one row at the time of
+-- the change, "Original Campaign", with every field empty: no competitors, no
+-- angles, no ads, no copy, no headlines, no hook, no script. It was checked
+-- before 0091 was written. There is no data migration because there was no data.
+--
+-- form_id goes with it. It was the batch's pointer at a lead form, added in
+-- 0090, and with no batch there is nothing to point. ad_lead_forms itself is
+-- untouched: it is per client, it is the Lead Form page, and it keeps its rows.
+--
+-- Run AFTER 0091 AND after the deploy that ships the three-page builder.
+-- Idempotent.
+
+drop table if exists public.ad_batches;
