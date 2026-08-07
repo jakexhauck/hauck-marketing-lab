@@ -77,27 +77,39 @@ describe("cleanUrl", () => {
   });
 });
 
+// A competitor is JUST A LINK now. Name and notes were cut on 2026-08-07.
 describe("cleanCompetitors", () => {
-  it("keeps name, link and notes", () => {
+  it("keeps a bare link and gives it a scheme", () => {
+    expect(cleanCompetitors(["facebook.com/ads/library/?id=1"])).toEqual([
+      "https://facebook.com/ads/library/?id=1",
+    ]);
+  });
+
+  it("keeps a link that already has one", () => {
+    expect(cleanCompetitors(["https://champion.com/x"])).toEqual(["https://champion.com/x"]);
+  });
+
+  it("drops a blank, so an Add nobody filled in does not persist", () => {
+    expect(cleanCompetitors(["", "   ", "champion.com"])).toEqual(["https://champion.com"]);
+  });
+
+  it("drops something that is not a link at all", () => {
+    expect(cleanCompetitors(["not a url"])).toEqual([]);
+  });
+
+  // Rows written before the field was cut still have to render.
+  it("reads the OLD {name,url,notes} shape and keeps only the url", () => {
     expect(
-      cleanCompetitors([{ name: " Champion ", url: "champion.com", notes: "Discount led." }]),
-    ).toEqual([{ name: "Champion", url: "https://champion.com", notes: "Discount led." }]);
+      cleanCompetitors([{ name: "Champion", url: "champion.com", notes: "Discount led." }]),
+    ).toEqual(["https://champion.com"]);
   });
 
-  it("drops a row that is empty in all three fields", () => {
-    expect(cleanCompetitors([{ name: "", url: "", notes: "" }])).toEqual([]);
-  });
-
-  it("keeps a row that has only notes", () => {
-    expect(cleanCompetitors([{ name: "", url: "", notes: "saw it on IG" }])).toHaveLength(1);
+  it("drops an old row that never had a url", () => {
+    expect(cleanCompetitors([{ name: "Champion", url: "", notes: "saw it on IG" }])).toEqual([]);
   });
 
   it("caps the list", () => {
-    const many = Array.from({ length: LIMITS.competitors + 10 }, (_, i) => ({
-      name: `c${i}`,
-      url: "",
-      notes: "",
-    }));
+    const many = Array.from({ length: LIMITS.competitors + 10 }, (_, i) => `site${i}.com`);
     expect(cleanCompetitors(many)).toHaveLength(LIMITS.competitors);
   });
 
@@ -163,7 +175,7 @@ describe("patchColumns", () => {
 describe("toAdWorkspace", () => {
   const row: AdWorkspaceRow = {
     tenant_id: "t1",
-    competitors: [{ name: "Rival", url: "rival.com", notes: "" }],
+    competitors: ["rival.com"],
     angles: ["proof"],
     ads: [{ type: "Before and after", creativeId: "1AbC", creativeName: "ba.jpg" }],
     copy_1: "one",
@@ -180,7 +192,7 @@ describe("toAdWorkspace", () => {
     expect(ws.tenantId).toBe("t1");
     expect(ws.copy).toEqual(["one", "", "three"]);
     expect(ws.headlines).toEqual(["h1", "", ""]);
-    expect(ws.competitors[0].url).toBe("https://rival.com");
+    expect(ws.competitors).toEqual(["https://rival.com"]);
     expect(ws.ads[0].type).toBe("Before and after");
   });
 
@@ -273,5 +285,42 @@ describe("emptyWorkspace", () => {
     expect(ws.angles).toEqual([]);
     // Distinguishable from a saved-then-emptied workspace, which has a date.
     expect(ws.updatedAt).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The bug this all came from: pressing Add, clicking away without typing, and
+// watching the row you just made disappear. The server is RIGHT to drop a blank
+// row on the way in; the fix is that the page must not fold that answer back
+// over what is on screen. These lock the server half of that contract.
+
+describe("a blank row never reaches the table", () => {
+  it("competitors: a blank is dropped, the filled ones keep their order", () => {
+    expect(patchColumns({ competitors: ["a.com", "", "b.com"] }).competitors).toEqual([
+      "https://a.com",
+      "https://b.com",
+    ]);
+  });
+
+  it("angles: a blank is dropped", () => {
+    expect(patchColumns({ angles: ["storm", "  ", "energy"] }).angles).toEqual([
+      "storm",
+      "energy",
+    ]);
+  });
+
+  it("ads: a row with no type and no creative is dropped", () => {
+    const ads = [
+      { type: "video", creativeId: "", creativeName: "" },
+      { type: "", creativeId: "", creativeName: "" },
+    ];
+    expect(patchColumns({ ads }).ads).toEqual([
+      { type: "video", creativeId: "", creativeName: "" },
+    ]);
+  });
+
+  it("ads: a row with only a creative and no type yet is KEPT", () => {
+    const ads = [{ type: "", creativeId: "1AbC", creativeName: "x.jpg" }];
+    expect(patchColumns({ ads }).ads).toHaveLength(1);
   });
 });

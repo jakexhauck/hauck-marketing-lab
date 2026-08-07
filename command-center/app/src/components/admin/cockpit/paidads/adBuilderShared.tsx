@@ -8,7 +8,16 @@ import type { AdWorkspacePatch } from "../../../../../functions/lib/adWorkspace"
 
 // How a page hands one block back to be written. The panel owns the request;
 // a page only ever says which block changed.
-export type SaveBlock = (patch: AdWorkspacePatch) => void;
+//
+// `fold` decides whether the server's cleaned answer is written back over the
+// draft. It defaults to true, which is what makes a pasted "facebook.com/x"
+// come back as "https://facebook.com/x" in the box.
+//
+// Pass fold:false for a LIST the operator is still adding rows to. The server
+// drops empty rows on the way in, so folding its answer back would delete the
+// blank row that was just added with Add, in front of the person typing into
+// it. That was a real bug on the first version of the competitors list.
+export type SaveBlock = (patch: AdWorkspacePatch, opts?: { fold?: boolean }) => void;
 
 export function shortDate(iso: string): string {
   const d = new Date(iso);

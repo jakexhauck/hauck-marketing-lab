@@ -26,13 +26,17 @@
 // this as markup. Imported by the browser too, so the form and the server cannot
 // disagree about what a workspace is or how long a headline may be.
 
-// A competitor ad worth stealing from: who ran it, where to look at it, and what
-// is actually working in it.
-export interface AdCompetitor {
-  name: string;
-  url: string;
-  notes: string;
-}
+// A competitor ad is JUST A LINK, and that is the whole feature.
+//
+// It used to be a name, a url and a notes box. Jake's words on 2026-08-07:
+// "all I want is the Facebook ads link that's literally all I want, I don't
+// even know what's working for them, I don't even know the name". Asking for a
+// name and an analysis at the moment of pasting a link is asking for homework
+// nobody has done yet, and two of the three boxes were left empty every time.
+//
+// It also caused a real bug. A row needed SOMETHING in it to survive the save,
+// so pasting a link was fine but pressing Add and clicking away deleted the row
+// you had just made, in front of you. One field cannot half-exist.
 
 // One ad. `type` is free text and carries what used to be the batch kind:
 // "video" is a type now, sitting beside "before and after" and "testimonial".
@@ -51,7 +55,8 @@ export interface AdItem {
 
 export interface AdWorkspace {
   tenantId: string;
-  competitors: AdCompetitor[];
+  // Links to competitor ads, usually the Facebook Ad Library. Nothing else.
+  competitors: string[];
   angles: string[];
   ads: AdItem[];
   // Exactly three of each, always. The discipline is the feature: three
@@ -69,9 +74,7 @@ export const AD_SLOTS = 3;
 // Caps. Generous enough that nobody meets them while writing normally, tight
 // enough that a paste of a whole webpage cannot land in the table.
 export const LIMITS = {
-  competitorName: 120,
   competitorUrl: 500,
-  competitorNotes: 1000,
   angle: 300,
   copy: 3000,
   headline: 200,
@@ -137,21 +140,22 @@ export function cleanUrl(value: unknown): string {
   }
 }
 
-export function cleanCompetitors(value: unknown): AdCompetitor[] {
+// Accepts the current shape (a bare url string) AND the old one ({name, url,
+// notes}), because rows written before the field was cut still have to render.
+// The old row keeps only its url; the name and the notes are dropped, which is
+// the point of the change.
+export function cleanCompetitors(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value
     .slice(0, LIMITS.competitors)
     .map((raw) => {
+      if (typeof raw === "string") return cleanUrl(raw);
       const row = (raw ?? {}) as Record<string, unknown>;
-      return {
-        name: cleanLine(row.name, LIMITS.competitorName),
-        url: cleanUrl(row.url),
-        notes: cleanBlock(row.notes, LIMITS.competitorNotes),
-      };
+      return cleanUrl(row.url);
     })
-    // A row with nothing in any of its three fields is a row the operator added
-    // and walked away from.
-    .filter((c) => c.name || c.url || c.notes);
+    // A blank stays blank on screen while it is being typed into; it is only
+    // dropped here, on the way to the table.
+    .filter(Boolean);
 }
 
 export function cleanAngles(value: unknown): string[] {
@@ -257,7 +261,7 @@ export function emptyWorkspace(tenantId: string): AdWorkspace {
 // time as it is left, so a request naming all of them could overwrite a value
 // the operator never touched.
 export interface AdWorkspacePatch {
-  competitors?: AdCompetitor[];
+  competitors?: string[];
   angles?: string[];
   ads?: AdItem[];
   copy?: string[];

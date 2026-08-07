@@ -46,9 +46,14 @@ export default function AdsListPanel({
   const files = folder.data?.files ?? [];
   const byId = new Map(files.map((f) => [f.id, f]));
 
+  // The server drops an ad with no type AND no creative, so a row added with
+  // Add and not yet filled in would be deleted the moment the box was left.
+  // Compare what would be SENT, and do not fold the answer back over the row
+  // being typed into.
   const commit = (next: AdItem[]) => {
-    if (JSON.stringify(next) === JSON.stringify(saved.ads)) return;
-    save({ ads: next });
+    const value = next.filter((a) => a.type.trim() || a.creativeId);
+    if (JSON.stringify(value) === JSON.stringify(saved.ads)) return;
+    save({ ads: value }, { fold: false });
   };
 
   const setAds = (next: AdItem[]) => setDraft((d) => ({ ...d, ads: next }));

@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-07-competitor-ads-are-just-links",
+    date: "7 August 2026",
+    title: "A competitor ad is just a link, and adding one no longer eats the row",
+    items: [
+      "Competitors on Copy & Angles asked for a name, a link and a notes box. It is one box now: the link. You are pasting an ad you have just found, not filing a report on it, and the other two were left empty every time.",
+      "That also fixes a real bug. A row needed something typed in it to survive being saved, so pressing Add and then clicking away deleted the row you had just made, in front of you. Adding a row now leaves it alone until you either fill it in or remove it.",
+      "The same fault was waiting on Angles and on Ads. Both are fixed the same way, so an empty row you have just added stays put on all three.",
+      "A pasted link is tidied when you leave the box: 'facebook.com/ads/library/...' becomes a real link you can click straight back out to.",
+    ],
+  },
+  {
     // Supersedes 2026-08-07-ad-builder, which shipped this morning and is left
     // below rather than edited: changing an entry's words without changing its
     // id means nobody who already read it ever sees the correction.

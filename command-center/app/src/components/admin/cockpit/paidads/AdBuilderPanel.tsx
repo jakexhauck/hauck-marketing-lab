@@ -68,10 +68,16 @@ export default function AdBuilderPanel({ tenantId }: { tenantId: string }) {
     saved.current = server;
   }, [server, draft]);
 
-  const save = (patch: AdWorkspacePatch) => {
+  const save = (patch: AdWorkspacePatch, opts?: { fold?: boolean }) => {
     update.mutate(patch, {
       onSuccess: ({ workspace }) => {
+        // saved.current always moves: it is the record of what the table holds,
+        // and the "did this change" test is asked against it whether or not the
+        // draft was folded.
         saved.current = workspace;
+        // fold:false leaves the draft exactly as typed. Used by lists that can
+        // hold a blank row the server would drop. See SaveBlock.
+        if (opts?.fold === false) return;
         // Fold the server's cleaned version back in: a pasted "facebook.com/x"
         // comes back as "https://facebook.com/x" and the box should show what
         // was actually kept. ONLY the keys that were sent are touched, so a

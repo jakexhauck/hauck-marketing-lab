@@ -1,9 +1,5 @@
 import { ExternalLink, Plus, X } from "lucide-react";
-import {
-  LIMITS,
-  type AdCompetitor,
-  type AdWorkspace,
-} from "../../../../../functions/lib/adWorkspace";
+import { LIMITS, cleanUrl, type AdWorkspace } from "../../../../../functions/lib/adWorkspace";
 import { BlockInput, LineInput, SectionLabel, SlotNumber } from "./adBuilderShared";
 import type { SaveBlock } from "./adBuilderShared";
 
@@ -22,8 +18,6 @@ import type { SaveBlock } from "./adBuilderShared";
 // row that disappears from the screen but not from the table is the one edit
 // nobody thinks to check.
 
-const EMPTY_COMPETITOR: AdCompetitor = { name: "", url: "", notes: "" };
-
 export default function AdCopyPanel({
   draft,
   saved,
@@ -36,16 +30,25 @@ export default function AdCopyPanel({
   setDraft: (fn: (d: AdWorkspace) => AdWorkspace) => void;
   save: SaveBlock;
 }) {
-  const saveCompetitors = (next?: AdCompetitor[]) => {
-    const value = next ?? draft.competitors;
+  // Compare what would be SENT, not what is on screen: the screen may hold a
+  // blank row that was just added, and the table never will. Without this the
+  // list would re-save on every blur forever.
+  const saveCompetitors = (next?: string[]) => {
+    const onScreen = next ?? draft.competitors;
+    const value = onScreen.map((u) => cleanUrl(u)).filter(Boolean);
     if (JSON.stringify(value) === JSON.stringify(saved.competitors)) return;
-    save({ competitors: value });
+    // fold:false, or the blank row being typed into gets deleted underneath.
+    save({ competitors: value }, { fold: false });
   };
 
+  // Same shape as saveCompetitors, and for the same reason: a blank angle row
+  // exists on screen and never in the table, so compare what would be sent and
+  // do not let the answer fold back over the row being typed into.
   const saveAngles = (next?: string[]) => {
-    const value = next ?? draft.angles;
+    const onScreen = next ?? draft.angles;
+    const value = onScreen.map((a) => a.trim()).filter(Boolean);
     if (JSON.stringify(value) === JSON.stringify(saved.angles)) return;
-    save({ angles: value });
+    save({ angles: value }, { fold: false });
   };
 
   const saveCopy = () => {
@@ -58,15 +61,20 @@ export default function AdCopyPanel({
     save({ headlines: draft.headlines });
   };
 
-  const setCompetitor = (i: number, field: keyof AdCompetitor, value: string) => {
-    setDraft((d) => ({
-      ...d,
-      competitors: d.competitors.map((c, j) => (j === i ? { ...c, [field]: value } : c)),
-    }));
+  const setCompetitor = (i: number, value: string) =>
+    setDraft((d) => ({ ...d, competitors: d.competitors.map((c, j) => (j === i ? value : c)) }));
+
+  // Normalise in place when the box is left, so what is on screen is exactly
+  // what the table holds: a pasted "facebook.com/ads/library/..." becomes a
+  // real link rather than silently becoming one only after a reload.
+  const blurCompetitor = (i: number) => {
+    const tidy = cleanUrl(draft.competitors[i]);
+    const next = draft.competitors.map((c, j) => (j === i ? (tidy || c) : c));
+    setDraft((d) => ({ ...d, competitors: next }));
+    saveCompetitors(next);
   };
 
-  const addCompetitor = () =>
-    setDraft((d) => ({ ...d, competitors: [...d.competitors, { ...EMPTY_COMPETITOR }] }));
+  const addCompetitor = () => setDraft((d) => ({ ...d, competitors: [...d.competitors, ""] }));
 
   const removeCompetitor = (i: number) => {
     const next = draft.competitors.filter((_, j) => j !== i);
@@ -96,67 +104,44 @@ export default function AdCopyPanel({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <SectionLabel>Competitors</SectionLabel>
-        <div className="flex flex-col gap-2.5">
-          {draft.competitors.map((c, i) => (
-            <div key={i} className="rounded-[var(--radius)] border border-border bg-surface-2 p-3">
-              <div className="flex items-start gap-2">
-                <div className="grid flex-1 gap-2 sm:grid-cols-2">
-                  <LineInput
-                    value={c.name}
-                    onChange={(v) => setCompetitor(i, "name", v)}
-                    onBlur={() => saveCompetitors()}
-                    placeholder="Renewal by Andersen"
-                    maxLength={LIMITS.competitorName}
-                    ariaLabel={`Competitor ${i + 1} name`}
-                  />
-                  <div className="flex items-center gap-1.5">
-                    <LineInput
-                      value={c.url}
-                      onChange={(v) => setCompetitor(i, "url", v)}
-                      onBlur={() => saveCompetitors()}
-                      placeholder="Link to their ad"
-                      maxLength={LIMITS.competitorUrl}
-                      ariaLabel={`Competitor ${i + 1} ad link`}
-                    />
-                    {/* Only once the link is saved and therefore real. */}
-                    {saved.competitors[i]?.url ? (
-                      <a
-                        href={saved.competitors[i].url}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        aria-label={`Open competitor ${i + 1} ad`}
-                        className="shrink-0 text-faint transition-colors hover:text-brand"
-                      >
-                        <ExternalLink size={15} />
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeCompetitor(i)}
-                  aria-label={`Remove competitor ${i + 1}`}
-                  className="mt-2 shrink-0 text-faint transition-colors hover:text-danger"
+        <SectionLabel>Competitor ads</SectionLabel>
+        <div className="flex flex-col gap-2">
+          {draft.competitors.map((url, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <LineInput
+                value={url}
+                onChange={(v) => setCompetitor(i, v)}
+                onBlur={() => blurCompetitor(i)}
+                placeholder="facebook.com/ads/library/?id=..."
+                maxLength={LIMITS.competitorUrl}
+                ariaLabel={`Competitor ad link ${i + 1}`}
+              />
+              {/* Only once it is a real link, so the icon never opens nothing. */}
+              {cleanUrl(url) ? (
+                <a
+                  href={cleanUrl(url)}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  aria-label={`Open competitor ad ${i + 1}`}
+                  className="shrink-0 text-faint transition-colors hover:text-brand"
                 >
-                  <X size={15} />
-                </button>
-              </div>
-              <div className="mt-2">
-                <BlockInput
-                  value={c.notes}
-                  onChange={(v) => setCompetitor(i, "notes", v)}
-                  onBlur={() => saveCompetitors()}
-                  placeholder="What is working in it, and what you would do differently."
-                  maxLength={LIMITS.competitorNotes}
-                  ariaLabel={`Competitor ${i + 1} notes`}
-                  rows={2}
-                />
-              </div>
+                  <ExternalLink size={15} />
+                </a>
+              ) : (
+                <span className="w-[15px] shrink-0" aria-hidden />
+              )}
+              <button
+                type="button"
+                onClick={() => removeCompetitor(i)}
+                aria-label={`Remove competitor ad ${i + 1}`}
+                className="shrink-0 text-faint transition-colors hover:text-danger"
+              >
+                <X size={15} />
+              </button>
             </div>
           ))}
           {draft.competitors.length < LIMITS.competitors && (
-            <AddRow label="Add competitor" onClick={addCompetitor} />
+            <AddRow label="Add competitor ad" onClick={addCompetitor} />
           )}
         </div>
       </div>
