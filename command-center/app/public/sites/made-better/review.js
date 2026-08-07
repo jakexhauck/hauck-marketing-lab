@@ -83,9 +83,11 @@
     // workflow can still branch on it. Filling this in simply stops it having
     // to.
     //
-    // TO CONNECT: add a second inbound webhook trigger to a GHL workflow (a new
-    // workflow, not the feedback one), paste its URL here and deploy.
-    positiveWebhookUrl: "",
+    // NOTE THE SUB-ACCOUNT: r0WfsA12qpBv7M185V3v is the TEST account, the same
+    // one webhookUrl above still points at. Both need swapping for Made
+    // Better's own before this is in front of customers, or the notification
+    // fires somewhere Seamus never looks.
+    positiveWebhookUrl: "https://services.leadconnectorhq.com/hooks/r0WfsA12qpBv7M185V3v/webhook-trigger/58269c65-3e35-4b6e-b10d-65346bbc62be",
 
     // 4 and above goes to Google. Everything below it opens the feedback panel.
     googleThreshold: 4
