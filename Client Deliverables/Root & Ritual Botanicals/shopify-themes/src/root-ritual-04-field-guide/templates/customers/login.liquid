@@ -1,0 +1,54 @@
+<section class="phead">
+  <div class="wrap">
+    <p class="crumbs"><a href="{{ routes.root_url }}">Home</a> / Login</p>
+    <h1>Login</h1>
+  </div>
+</section>
+
+<div class="sect">
+  <div class="wrap prose account" data-rise>
+    {% form 'customer_login' %}
+      {%- if form.errors -%}
+        <ul class="form__errors">
+          {%- for field in form.errors -%}
+            <li>{{ form.errors.messages[field] }}</li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+      <div class="field">
+        <label for="CustomerEmail">Email</label>
+        <input type="email" id="CustomerEmail" name="customer[email]" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="CustomerPassword">Password</label>
+        <input type="password" id="CustomerPassword" name="customer[password]" autocomplete="current-password" required>
+      </div>
+      <button class="btn" type="submit">Sign In</button>
+      <p class="account__alt">
+        <a href="#recover" onclick="document.getElementById('RecoverForm').hidden=false;return false;">Forgot your password?</a>
+        &middot;
+        <a href="{{ routes.account_register_url }}">Create an account</a>
+      </p>
+    {% endform %}
+
+    <div id="RecoverForm" hidden>
+      {% form 'recover_customer_password' %}
+      {%- if form.errors -%}
+        <ul class="form__errors">
+          {%- for field in form.errors -%}
+            <li>{{ form.errors.messages[field] }}</li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+        {%- if form.posted_successfully? -%}
+          <p class="form__ok">We have sent you an email with a link to reset your password.</p>
+        {%- endif -%}
+        <div class="field">
+          <label for="RecoverEmail">Email</label>
+          <input type="email" id="RecoverEmail" name="email" autocomplete="email" required>
+        </div>
+        <button class="btn" type="submit">Send Reset Link</button>
+      {% endform %}
+    </div>
+  </div>
+</div>

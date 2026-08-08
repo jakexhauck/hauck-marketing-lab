@@ -1,0 +1,38 @@
+<section class="phead">
+  <div class="wrap">
+    <p class="crumbs"><a href="{{ routes.root_url }}">Home</a> / Create Account</p>
+    <h1>Create Account</h1>
+  </div>
+</section>
+
+<div class="sect">
+  <div class="wrap prose account" data-rise>
+    {% form 'create_customer' %}
+      {%- if form.errors -%}
+        <ul class="form__errors">
+          {%- for field in form.errors -%}
+            <li>{{ form.errors.messages[field] }}</li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+      <div class="field">
+        <label for="RegisterFirst">First name</label>
+        <input type="text" id="RegisterFirst" name="customer[first_name]" autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label for="RegisterLast">Last name</label>
+        <input type="text" id="RegisterLast" name="customer[last_name]" autocomplete="family-name">
+      </div>
+      <div class="field">
+        <label for="RegisterEmail">Email</label>
+        <input type="email" id="RegisterEmail" name="customer[email]" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="RegisterPassword">Password</label>
+        <input type="password" id="RegisterPassword" name="customer[password]" autocomplete="new-password" required>
+      </div>
+      <button class="btn" type="submit">Create Account</button>
+      <p class="account__alt"><a href="{{ routes.account_login_url }}">Already have an account?</a></p>
+    {% endform %}
+  </div>
+</div>

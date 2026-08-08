@@ -1,0 +1,30 @@
+<section class="phead">
+  <div class="wrap">
+    <p class="crumbs"><a href="{{ routes.root_url }}">Home</a> / Activate Account</p>
+    <h1>Activate Account</h1>
+  </div>
+</section>
+
+<div class="sect">
+  <div class="wrap prose account" data-rise>
+    {% form 'activate_customer_password' %}
+      {%- if form.errors -%}
+        <ul class="form__errors">
+          {%- for field in form.errors -%}
+            <li>{{ form.errors.messages[field] }}</li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+      <div class="field">
+        <label for="ActivatePassword">Password</label>
+        <input type="password" id="ActivatePassword" name="customer[password]" autocomplete="new-password" required>
+      </div>
+      <div class="field">
+        <label for="ActivateConfirm">Confirm password</label>
+        <input type="password" id="ActivateConfirm" name="customer[password_confirmation]" autocomplete="new-password" required>
+      </div>
+      <button class="btn" type="submit">Activate Account</button>
+      <button class="btn btn--ghost" type="submit" name="decline">Decline Invitation</button>
+    {% endform %}
+  </div>
+</div>

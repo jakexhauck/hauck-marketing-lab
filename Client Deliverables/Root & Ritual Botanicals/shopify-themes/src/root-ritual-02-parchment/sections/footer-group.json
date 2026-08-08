@@ -1,0 +1,38 @@
+{
+  "type": "footer",
+  "name": "Footer",
+  "sections": {
+    "footer": {
+      "type": "footer",
+      "blocks": {
+        "shop": {
+          "type": "menu",
+          "settings": {
+            "heading": "Shop"
+          }
+        },
+        "connect": {
+          "type": "menu",
+          "settings": {
+            "heading": "Connect"
+          }
+        },
+        "social": {
+          "type": "social",
+          "settings": {
+            "heading": "Follow Along"
+          }
+        }
+      },
+      "block_order": [
+        "shop",
+        "connect",
+        "social"
+      ],
+      "settings": {}
+    }
+  },
+  "order": [
+    "footer"
+  ]
+}

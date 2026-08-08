@@ -1,0 +1,80 @@
+{
+  "sections": {
+    "main": {
+      "type": "faq",
+      "blocks": {
+        "q1": {
+          "type": "qa",
+          "settings": {
+            "q": "How long does shipping take?",
+            "a": "<p>Orders leave the workshop within one to two business days. Shipping is free on orders over $50.</p>"
+          }
+        },
+        "q2": {
+          "type": "qa",
+          "settings": {
+            "q": "How should I store the tea?",
+            "a": "<p>Somewhere cool, dry and out of direct light. The kraft pouch reseals; keep it closed and the blend holds for about twelve months.</p>"
+          }
+        },
+        "q3": {
+          "type": "qa",
+          "settings": {
+            "q": "Is the tea caffeinated?",
+            "a": "<p>Morning Ritual is. Evening Ritual is caffeine free, which is rather the point of it.</p>"
+          }
+        },
+        "q4": {
+          "type": "qa",
+          "settings": {
+            "q": "Can I return an order?",
+            "a": "<p>Write to us within thirty days and we will make it right.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "q1",
+        "q2",
+        "q3",
+        "q4"
+      ],
+      "settings": {}
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "blocks": {
+        "p1": {
+          "type": "perk",
+          "settings": {
+            "icon": "leaf",
+            "text": "Exclusive Offers"
+          }
+        },
+        "p2": {
+          "type": "perk",
+          "settings": {
+            "icon": "cup",
+            "text": "New Product Drops"
+          }
+        },
+        "p3": {
+          "type": "perk",
+          "settings": {
+            "icon": "gift",
+            "text": "Rituals & Recipes"
+          }
+        }
+      },
+      "block_order": [
+        "p1",
+        "p2",
+        "p3"
+      ],
+      "settings": {}
+    }
+  },
+  "order": [
+    "main",
+    "newsletter"
+  ]
+}

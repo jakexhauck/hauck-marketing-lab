@@ -1,0 +1,130 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "blocks": {
+        "r1": {
+          "type": "reassure",
+          "settings": {
+            "icon": "truck",
+            "text": "Ships in 1-2 days"
+          }
+        },
+        "r2": {
+          "type": "reassure",
+          "settings": {
+            "icon": "leaf",
+            "text": "Whole herbs"
+          }
+        },
+        "r3": {
+          "type": "reassure",
+          "settings": {
+            "icon": "mortar",
+            "text": "Small batch"
+          }
+        },
+        "a1": {
+          "type": "accordion",
+          "settings": {
+            "heading": "Ingredients",
+            "body": "<p>List the ingredients here.</p>"
+          }
+        },
+        "a2": {
+          "type": "accordion",
+          "settings": {
+            "heading": "Brewing Guide",
+            "body": "<p><strong>Hot.</strong> One bag in an 8-10oz mug. Steep 3-4 minutes in boiling water.<br><strong>Iced.</strong> Two bags in 1.5 cups of water, sweeten, then pour over a quarter jar of ice.</p>"
+          }
+        },
+        "a3": {
+          "type": "accordion",
+          "settings": {
+            "heading": "Shipping & Returns",
+            "body": "<p>Orders ship within 1-2 business days. Free shipping over $50.</p>"
+          }
+        },
+        "t1": {
+          "type": "spec",
+          "settings": {
+            "label": "Origin",
+            "text": "North Georgia"
+          }
+        },
+        "t2": {
+          "type": "spec",
+          "settings": {
+            "label": "Format",
+            "text": "20 pyramid bags"
+          }
+        },
+        "t3": {
+          "type": "spec",
+          "settings": {
+            "label": "Steep",
+            "text": "3 to 4 minutes"
+          }
+        }
+      },
+      "block_order": [
+        "r1",
+        "r2",
+        "r3",
+        "t1",
+        "t2",
+        "t3",
+        "a1",
+        "a2",
+        "a3"
+      ],
+      "settings": {}
+    },
+    "icons": {
+      "type": "icon-strip",
+      "blocks": {
+        "b1": {
+          "type": "item",
+          "settings": {
+            "icon": "leaf",
+            "text": "Natural\nIngredients"
+          }
+        },
+        "b2": {
+          "type": "item",
+          "settings": {
+            "icon": "mountain",
+            "text": "Mountain\nInspired"
+          }
+        },
+        "b3": {
+          "type": "item",
+          "settings": {
+            "icon": "mortar",
+            "text": "Small Batch\nMade"
+          }
+        },
+        "b4": {
+          "type": "item",
+          "settings": {
+            "icon": "heart",
+            "text": "Rituals for\nMind. Body. Soul."
+          }
+        }
+      },
+      "block_order": [
+        "b1",
+        "b2",
+        "b3",
+        "b4"
+      ],
+      "settings": {
+        "bg_cream": true
+      }
+    }
+  },
+  "order": [
+    "main",
+    "icons"
+  ]
+}

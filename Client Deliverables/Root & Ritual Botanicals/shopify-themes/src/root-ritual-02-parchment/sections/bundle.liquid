@@ -1,0 +1,106 @@
+{%- liquid
+  assign bundle = section.settings.product
+  assign components = section.blocks | where: 'type', 'component'
+
+  assign separately = 0
+  for block in components
+    if block.settings.product != blank
+      assign separately = separately | plus: block.settings.product.price
+    endif
+  endfor
+
+  assign has_price = false
+  if bundle != blank
+    assign has_price = true
+    assign bundle_price = bundle.price
+  endif
+
+  assign saving = 0
+  if has_price and separately > bundle_price
+    assign saving = separately | minus: bundle_price
+    assign saving_pct = saving | times: 100.0 | divided_by: separately | round
+  endif
+-%}
+<section class="sect sect--tight">
+  <div class="wrap">
+    <div class="bundle" data-rise>
+      <div class="bundle__stack">
+        {%- if components.size > 0 -%}
+          {%- for block in components limit: 2 -%}
+            <div class="ph" {{ block.shopify_attributes }}>
+              {%- if block.settings.product != blank and block.settings.product.featured_image -%}
+                <img src="{{ block.settings.product.featured_image | image_url: width: 900 }}" alt="{{ block.settings.product.title | escape }}" loading="lazy" width="900" height="900">
+              {%- else -%}
+                <img src="{{ block.settings.fallback | asset_url }}" alt="{{ block.settings.product.title | default: 'Ritual blend' | escape }}" loading="lazy" width="1254" height="1254">
+              {%- endif -%}
+            </div>
+          {%- endfor -%}
+        {%- else -%}
+          <div class="ph"><img src="{{ 'morning.png' | asset_url }}" alt="Morning Ritual" loading="lazy" width="1254" height="1254"></div>
+          <div class="ph"><img src="{{ 'evening.png' | asset_url }}" alt="Evening Ritual" loading="lazy" width="1254" height="1254"></div>
+        {%- endif -%}
+      </div>
+      <div>
+        {%- if saving > 0 -%}
+          <p class="eyebrow">Save {{ saving_pct }}%</p>
+        {%- endif -%}
+        <h3>{{ section.settings.heading }}</h3>
+        {{ section.settings.body }}
+        <div class="feat__foot" style="margin-top:1.8rem">
+          {%- if has_price -%}
+            <span class="price">
+              {{ bundle_price | money }}
+              {%- if saving > 0 -%}<small>{{ separately | money }} bought separately</small>{%- endif -%}
+            </span>
+          {%- endif -%}
+          {%- if bundle != blank -%}
+            {% form 'product', bundle %}
+              <input type="hidden" name="id" value="{{ bundle.selected_or_first_available_variant.id }}">
+              <button class="btn btn--orange" type="submit"{% unless bundle.available %} disabled{% endunless %}>
+                {% if bundle.available %}{{ section.settings.cta }}{% else %}Sold out{% endif %}
+              </button>
+            {% endform %}
+          {%- else -%}
+            <a class="btn btn--orange" href="{{ routes.all_products_collection_url }}">{{ section.settings.cta }}</a>
+          {%- endif -%}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Bundle offer",
+  "settings": [
+    { "type": "product", "id": "product", "label": "Bundle product", "info": "The price and the add-to-cart button both come from this product. Leave empty and no price is shown." },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "The Full Ritual Set" },
+    { "type": "richtext", "id": "body", "label": "Body", "default": "<p>Both blends together, the way they are meant to be used. One to open the day, one to close it.</p>" },
+    { "type": "text", "id": "cta", "label": "Button label", "default": "Add Set to Cart" }
+  ],
+  "blocks": [
+    {
+      "type": "component", "name": "Included product", "limit": 2,
+      "settings": [
+        { "type": "product", "id": "product", "label": "Product", "info": "Used for the photo and for the 'bought separately' total." },
+        {
+          "type": "select", "id": "fallback", "label": "Fallback photo", "default": "morning.png",
+          "options": [
+            { "value": "morning.png", "label": "Morning Ritual" },
+            { "value": "evening.png", "label": "Evening Ritual" }
+          ]
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Bundle offer",
+      "blocks": [
+        { "type": "component", "settings": { "fallback": "morning.png" } },
+        { "type": "component", "settings": { "fallback": "evening.png" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

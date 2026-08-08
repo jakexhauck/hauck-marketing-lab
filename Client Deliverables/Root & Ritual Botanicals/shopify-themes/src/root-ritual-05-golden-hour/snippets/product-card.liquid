@@ -1,0 +1,50 @@
+{%- comment -%}
+  Product card. Falls back to demo content when no product is connected,
+  so the theme looks right the moment it is uploaded.
+  Frame treatment for this direction: bare.
+{%- endcomment -%}
+{%- liquid
+  assign card_url = fallback_url | default: '#'
+  assign card_title = fallback_title
+  assign card_price = fallback_price
+  assign card_image = ''
+  if product != blank and product != empty
+    assign card_url = product.url
+    assign card_title = product.title
+    assign card_price = product.price | money
+    if product.featured_image
+      assign card_image = product.featured_image | image_url: width: 900
+    endif
+  endif
+  if card_image == blank and fallback_image != blank
+    assign card_image = fallback_image | image_url: width: 900
+  endif
+  if card_image == blank
+    assign card_image = fallback_asset | asset_url
+  endif
+-%}
+<a class="pcard pcard--bare" href="{{ card_url }}">
+  <div class="pcard__media">
+    <img src="{{ card_image }}" alt="{{ card_title | escape }}" loading="lazy" width="900" height="900">
+    {%- if badge != blank -%}<span class="feat__badge">{{ badge }}</span>{%- endif -%}
+    {%- if card_title != blank -%}
+      <span class="pcard__overlay"><span>{{ card_title }}</span></span>
+    {%- endif -%}
+  </div>
+  <div class="pcard__body">
+    {%- if eyebrow != blank -%}<p class="eyebrow" style="color:var(--orange)">{{ eyebrow }}</p>{%- endif -%}
+    <h3>{{ card_title }}</h3>
+    {%- if tagline != blank -%}<p class="feat__tag">{{ tagline }}</p>{%- endif -%}
+    {%- if blurb != blank -%}<p style="font-size:.9rem;opacity:.78">{{ blurb }}</p>{%- endif -%}
+    {%- if meta_a != blank or meta_b != blank -%}
+      <div class="feat__meta" style="margin:1rem 0 0">
+        {%- if meta_a != blank -%}<span>{% render 'icon', name: 'cup', size: 14 %} {{ meta_a }}</span>{%- endif -%}
+        {%- if meta_b != blank -%}<span>{% render 'icon', name: 'mortar', size: 14 %} {{ meta_b }}</span>{%- endif -%}
+      </div>
+    {%- endif -%}
+    <div class="pcard__foot">
+      {%- if card_price != blank -%}<span class="price">{{ card_price }}</span>{%- else -%}<span></span>{%- endif -%}
+      <span class="pcard__more">View</span>
+    </div>
+  </div>
+</a>

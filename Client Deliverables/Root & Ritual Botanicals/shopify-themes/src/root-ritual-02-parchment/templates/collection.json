@@ -1,0 +1,77 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-collection",
+      "settings": {}
+    },
+    "bundle": {
+      "type": "bundle",
+      "blocks": {
+        "c1": {
+          "type": "component",
+          "settings": {
+            "fallback": "morning.png"
+          }
+        },
+        "c2": {
+          "type": "component",
+          "settings": {
+            "fallback": "evening.png"
+          }
+        }
+      },
+      "block_order": [
+        "c1",
+        "c2"
+      ],
+      "settings": {}
+    },
+    "icons": {
+      "type": "icon-strip",
+      "blocks": {
+        "b1": {
+          "type": "item",
+          "settings": {
+            "icon": "leaf",
+            "text": "Natural\nIngredients"
+          }
+        },
+        "b2": {
+          "type": "item",
+          "settings": {
+            "icon": "mountain",
+            "text": "Mountain\nInspired"
+          }
+        },
+        "b3": {
+          "type": "item",
+          "settings": {
+            "icon": "mortar",
+            "text": "Small Batch\nMade"
+          }
+        },
+        "b4": {
+          "type": "item",
+          "settings": {
+            "icon": "heart",
+            "text": "Rituals for\nMind. Body. Soul."
+          }
+        }
+      },
+      "block_order": [
+        "b1",
+        "b2",
+        "b3",
+        "b4"
+      ],
+      "settings": {
+        "bg_cream": true
+      }
+    }
+  },
+  "order": [
+    "main",
+    "bundle",
+    "icons"
+  ]
+}

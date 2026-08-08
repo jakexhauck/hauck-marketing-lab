@@ -1,0 +1,5 @@
+{%- comment -%}
+  Renders an icon placeholder. icons.js swaps it for inline SVG.
+  Usage: {% render 'icon', name: 'leaf', size: 20 %}
+{%- endcomment -%}
+<i data-icon="{{ name }}"{% if size %} data-size="{{ size }}"{% endif %}></i>

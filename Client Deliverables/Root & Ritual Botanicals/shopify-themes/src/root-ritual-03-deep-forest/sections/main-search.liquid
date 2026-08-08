@@ -1,0 +1,21 @@
+<section class="phead"><div class="wrap"><h1>Search</h1></div></section>
+<div class="sect">
+  <div class="wrap prose">
+    <form action="{{ routes.search_url }}" method="get" class="news__form">
+      <input type="search" name="q" value="{{ search.terms | escape }}" placeholder="Search" aria-label="Search">
+      <button class="btn" type="submit">Search</button>
+    </form>
+    {%- if search.performed -%}
+      <p style="margin-top:2rem">{{ search.results_count }} results.</p>
+      <div class="shop2">
+        {%- for item in search.results -%}
+          {%- if item.object_type == 'product' -%}{% render 'product-card', product: item %}{%- endif -%}
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{ "name": "Search" }
+{% endschema %}

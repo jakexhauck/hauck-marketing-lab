@@ -1,0 +1,75 @@
+<footer class="ftr ftr--standard">
+  <div class="wrap">
+    <div class="ftr__grid">
+      <div>
+        <div class="ftr__mark">{% render 'icon', name: 'mountain', size: 44 %}</div>
+        <p class="ftr__creed">{{ section.settings.creed }}</p>
+      </div>
+
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+          {%- when 'menu' -%}
+            <div {{ block.shopify_attributes }}>
+              <h4>{{ block.settings.heading }}</h4>
+              <ul>
+                {%- for link in block.settings.menu.links -%}
+                  <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+                {%- endfor -%}
+              </ul>
+            </div>
+          {%- when 'social' -%}
+            <div {{ block.shopify_attributes }}>
+              <h4>{{ block.settings.heading }}</h4>
+              <div class="social">
+                {%- if block.settings.instagram != blank -%}<a href="{{ block.settings.instagram }}" aria-label="Instagram">{% render 'icon', name: 'instagram', size: 20 %}</a>{%- endif -%}
+                {%- if block.settings.facebook != blank -%}<a href="{{ block.settings.facebook }}" aria-label="Facebook">{% render 'icon', name: 'facebook', size: 20 %}</a>{%- endif -%}
+                {%- if block.settings.youtube != blank -%}<a href="{{ block.settings.youtube }}" aria-label="YouTube">{% render 'icon', name: 'youtube', size: 20 %}</a>{%- endif -%}
+                {%- if block.settings.tiktok != blank -%}<a href="{{ block.settings.tiktok }}" aria-label="TikTok">{% render 'icon', name: 'tiktok', size: 20 %}</a>{%- endif -%}
+              </div>
+            </div>
+        {%- endcase -%}
+      {%- endfor -%}
+    </div>
+
+    <div class="ftr__base">
+      <span>&copy; {{ 'now' | date: '%Y' }} {{ shop.name }}{% if section.settings.show_powered %} &middot; Powered by Shopify{% endif %}</span>
+      <div class="pays">
+        {%- for type in shop.enabled_payment_types -%}
+          <span>{{ type | replace: '_', ' ' | capitalize }}</span>
+        {%- else -%}
+          <span>Apple Pay</span><span>G Pay</span><span>PayPal</span><span>Shop</span><span>Visa</span>
+        {%- endfor -%}
+      </div>
+    </div>
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "Footer",
+  "settings": [
+    { "type": "textarea", "id": "creed", "label": "Creed", "default": "Rooted in nature.\nGuided by tradition.\nMade for your ritual." },
+    { "type": "checkbox", "id": "show_powered", "label": "Show 'Powered by Shopify'", "default": true }
+  ],
+  "blocks": [
+    {
+      "type": "menu", "name": "Menu column", "limit": 3,
+      "settings": [
+        { "type": "text", "id": "heading", "label": "Heading", "default": "Shop" },
+        { "type": "link_list", "id": "menu", "label": "Menu", "default": "footer" }
+      ]
+    },
+    {
+      "type": "social", "name": "Social", "limit": 1,
+      "settings": [
+        { "type": "text", "id": "heading", "label": "Heading", "default": "Follow Along" },
+        { "type": "url", "id": "instagram", "label": "Instagram" },
+        { "type": "url", "id": "facebook", "label": "Facebook" },
+        { "type": "url", "id": "youtube", "label": "YouTube" },
+        { "type": "url", "id": "tiktok", "label": "TikTok" }
+      ]
+    }
+  ],
+  "enabled_on": { "groups": ["footer"] }
+}
+{% endschema %}

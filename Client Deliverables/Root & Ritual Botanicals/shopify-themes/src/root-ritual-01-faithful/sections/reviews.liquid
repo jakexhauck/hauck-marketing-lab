@@ -1,0 +1,41 @@
+<section class="sect">
+  <div class="wrap">
+    <div class="lede" data-rise style="margin-bottom:clamp(2.5rem,5vw,3.5rem)">
+      <h2>{{ section.settings.heading }}</h2>
+      <div class="rule-mark">{% render 'icon', name: 'heart', size: 16 %}</div>
+    </div>
+    <div class="revs">
+      {%- for block in section.blocks -%}
+        <figure class="rev" data-rise="{{ forloop.index0 | times: 100 }}" {{ block.shopify_attributes }}>
+          <div class="stars">
+            {%- for i in (1..block.settings.stars) -%}{% render 'icon', name: 'star', size: 13 %}{%- endfor -%}
+          </div>
+          <blockquote>&ldquo;{{ block.settings.quote }}&rdquo;</blockquote>
+          <cite>{{ block.settings.author }}</cite>
+        </figure>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Reviews",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "What the ritual does." }
+  ],
+  "blocks": [
+    {
+      "type": "review", "name": "Review", "limit": 6,
+      "settings": [
+        { "type": "range", "id": "stars", "label": "Stars", "min": 1, "max": 5, "step": 1, "default": 5 },
+        { "type": "textarea", "id": "quote", "label": "Quote", "default": "Replace this with a real customer review." },
+        { "type": "text", "id": "author", "label": "Attribution", "default": "Customer name" }
+      ]
+    }
+  ],
+  "presets": [
+    { "name": "Reviews", "blocks": [{ "type": "review" }, { "type": "review" }, { "type": "review" }] }
+  ]
+}
+{% endschema %}

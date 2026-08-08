@@ -1,0 +1,44 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-page",
+      "settings": {}
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "blocks": {
+        "p1": {
+          "type": "perk",
+          "settings": {
+            "icon": "leaf",
+            "text": "Exclusive Offers"
+          }
+        },
+        "p2": {
+          "type": "perk",
+          "settings": {
+            "icon": "cup",
+            "text": "New Product Drops"
+          }
+        },
+        "p3": {
+          "type": "perk",
+          "settings": {
+            "icon": "gift",
+            "text": "Rituals & Recipes"
+          }
+        }
+      },
+      "block_order": [
+        "p1",
+        "p2",
+        "p3"
+      ],
+      "settings": {}
+    }
+  },
+  "order": [
+    "main",
+    "newsletter"
+  ]
+}

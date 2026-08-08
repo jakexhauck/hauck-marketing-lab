@@ -1,0 +1,15 @@
+<section class="phead"><div class="wrap"><h1>Collections</h1></div></section>
+<div class="sect"><div class="wrap"><div class="shop2">
+  {%- for collection in collections -%}
+    <a class="pcard" href="{{ collection.url }}">
+      <div class="pcard__media">
+        <img src="{% if collection.image %}{{ collection.image | image_url: width: 900 }}{% else %}{{ 'morning.png' | asset_url }}{% endif %}" alt="{{ collection.title | escape }}" loading="lazy" width="900" height="900">
+      </div>
+      <div class="pcard__body"><h3>{{ collection.title }}</h3></div>
+    </a>
+  {%- endfor -%}
+</div></div></div>
+
+{% schema %}
+{ "name": "Collections list" }
+{% endschema %}

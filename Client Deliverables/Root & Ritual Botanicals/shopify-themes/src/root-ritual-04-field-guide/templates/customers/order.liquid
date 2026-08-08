@@ -1,0 +1,39 @@
+<section class="phead">
+  <div class="wrap">
+    <p class="crumbs"><a href="{{ routes.root_url }}">Home</a> / Order {{ order.name }}</p>
+    <h1>Order {{ order.name }}</h1>
+  </div>
+</section>
+
+<div class="sect">
+  <div class="wrap prose account" data-rise>
+    <p class="account__alt">Placed {{ order.created_at | date: '%d %B %Y' }}</p>
+
+    <table class="account__table">
+      <thead><tr><th>Item</th><th>Qty</th><th>Total</th></tr></thead>
+      <tbody>
+        {%- for line in order.line_items -%}
+          <tr>
+            <td>{{ line.title }}</td>
+            <td>{{ line.quantity }}</td>
+            <td>{{ line.final_line_price | money }}</td>
+          </tr>
+        {%- endfor -%}
+      </tbody>
+      <tfoot>
+        <tr><th>Subtotal</th><td></td><td>{{ order.subtotal_price | money }}</td></tr>
+        {%- for shipping in order.shipping_methods -%}
+          <tr><th>Shipping</th><td>{{ shipping.title }}</td><td>{{ shipping.price | money }}</td></tr>
+        {%- endfor -%}
+        {%- for tax in order.tax_lines -%}
+          <tr><th>Tax</th><td>{{ tax.title }}</td><td>{{ tax.price | money }}</td></tr>
+        {%- endfor -%}
+        <tr><th>Total</th><td></td><td>{{ order.total_price | money }}</td></tr>
+      </tfoot>
+    </table>
+
+    <h2>Shipping address</h2>
+    <p>{{ order.shipping_address | format_address }}</p>
+    <p class="account__alt"><a href="{{ routes.account_url }}">Back to account</a></p>
+  </div>
+</div>

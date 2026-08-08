@@ -1,0 +1,43 @@
+<section class="phead">
+  <div class="wrap">
+    <p class="crumbs"><a href="{{ routes.root_url }}">Home</a> / {{ collection.title | default: 'Shop' }}</p>
+    <h1>{{ collection.title | default: 'The Collection' }}</h1>
+    {%- if collection.description != blank -%}
+      <p>{{ collection.description | strip_html }}</p>
+    {%- else -%}
+      <p>{{ section.settings.blurb }}</p>
+    {%- endif -%}
+  </div>
+</section>
+
+<div class="sect">
+  <div class="wrap">
+    <div class="shop2">
+      {%- if collection.products.size > 0 -%}
+        {%- for product in collection.products -%}
+          {% render 'product-card', product: product %}
+        {%- endfor -%}
+      {%- else -%}
+        {% render 'product-card',
+            fallback_title: 'Morning Ritual',             fallback_asset: 'morning.png', eyebrow: 'Blend No. 01',
+            tagline: 'Awaken. Ground. Begin.', badge: 'Best Seller',
+            blurb: 'Green tea, peppermint, ginger root and prunella vulgaris. A clean lift with no crash.',
+            meta_a: '20 Bags', meta_b: 'Caffeinated' %}
+        {% render 'product-card',
+            fallback_title: 'Evening Ritual',             fallback_asset: 'evening.png', eyebrow: 'Blend No. 02',
+            tagline: 'Calm. Unwind. Restore.', badge: 'Caffeine Free',
+            blurb: 'Chamomile, lavender, lemon balm and prunella vulgaris. The hour before bed, made deliberate.',
+            meta_a: '20 Bags', meta_b: 'Caffeine Free' %}
+      {%- endif -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Collection",
+  "settings": [
+    { "type": "textarea", "id": "blurb", "label": "Fallback description", "default": "Two blends. One for the beginning of the day, one for the end of it. Both blended by hand in the North Georgia mountains." }
+  ]
+}
+{% endschema %}

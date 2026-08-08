@@ -1,0 +1,42 @@
+<section class="phead">
+  <div class="wrap">
+    <p class="crumbs"><a href="{{ routes.root_url }}">Home</a> / Account</p>
+    <h1>Account</h1>
+  </div>
+</section>
+
+<div class="sect">
+  <div class="wrap prose account" data-rise>
+    <p class="account__hello">{{ customer.name | default: customer.email }}</p>
+    <p class="account__alt">
+      <a href="{{ routes.account_addresses_url }}">Addresses</a> &middot;
+      {{ 'Log out' | customer_logout_link }}
+    </p>
+
+    <h2>Order history</h2>
+    {%- paginate customer.orders by 20 -%}
+      {%- if customer.orders.size > 0 -%}
+        <table class="account__table">
+          <thead>
+            <tr><th>Order</th><th>Date</th><th>Payment</th><th>Fulfillment</th><th>Total</th></tr>
+          </thead>
+          <tbody>
+            {%- for order in customer.orders -%}
+              <tr>
+                <td><a href="{{ order.customer_url }}">{{ order.name }}</a></td>
+                <td>{{ order.created_at | date: '%d %B %Y' }}</td>
+                <td>{{ order.financial_status_label }}</td>
+                <td>{{ order.fulfillment_status_label }}</td>
+                <td>{{ order.total_net_amount | money }}</td>
+              </tr>
+            {%- endfor -%}
+          </tbody>
+        </table>
+        {{ paginate | default_pagination }}
+      {%- else -%}
+        <p>You have not placed any orders yet.</p>
+        <p><a class="btn" href="{{ routes.all_products_collection_url }}">Shop the Collection</a></p>
+      {%- endif -%}
+    {%- endpaginate -%}
+  </div>
+</div>

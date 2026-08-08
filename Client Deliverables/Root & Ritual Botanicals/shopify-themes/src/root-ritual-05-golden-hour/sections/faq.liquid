@@ -1,0 +1,38 @@
+<section class="phead">
+  <div class="wrap">
+    <p class="crumbs"><a href="{{ routes.root_url }}">Home</a> / {{ page.title | default: 'FAQ' }}</p>
+    <h1>{{ page.title | default: 'Questions' }}</h1>
+  </div>
+</section>
+
+<div class="sect">
+  <div class="wrap prose" data-rise>
+    {%- if page.content != blank -%}<div class="rte">{{ page.content }}</div>{%- endif -%}
+    <div class="acc">
+      {%- for block in section.blocks -%}
+        <div class="acc__item{% if forloop.first %} is-open{% endif %}" data-acc {{ block.shopify_attributes }}>
+          <button type="button" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
+            {{ block.settings.q }} {% render 'icon', name: 'plus', size: 14 %}
+          </button>
+          <div class="acc__panel"><div>{{ block.settings.a }}</div></div>
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "FAQ",
+  "blocks": [
+    {
+      "type": "qa", "name": "Question", "limit": 20,
+      "settings": [
+        { "type": "text", "id": "q", "label": "Question", "default": "How long does shipping take?" },
+        { "type": "richtext", "id": "a", "label": "Answer", "default": "<p>Orders leave the workshop within one to two business days.</p>" }
+      ]
+    }
+  ],
+  "presets": [{ "name": "FAQ", "blocks": [{ "type": "qa" }, { "type": "qa" }, { "type": "qa" }] }]
+}
+{% endschema %}

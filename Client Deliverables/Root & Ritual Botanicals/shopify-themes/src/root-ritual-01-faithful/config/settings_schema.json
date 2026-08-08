@@ -1,0 +1,28 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Root & Ritual - Faithful",
+    "theme_version": "1.0.0",
+    "theme_author": "Hauck Marketing",
+    "theme_documentation_url": "https://hauckmarketing.com",
+    "theme_support_url": "https://hauckmarketing.com"
+  },
+  {
+    "name": "Brand",
+    "settings": [
+      {
+        "type": "image_picker",
+        "id": "favicon",
+        "label": "Favicon"
+      },
+      {
+        "type": "header",
+        "content": "Palette"
+      },
+      {
+        "type": "paragraph",
+        "content": "This direction ships with the locked Root & Ritual palette: Mountain Green #203126, Parchment Cream #F3EBDD, Orange Accent #C86A22, Weathered Brown #6A4A32. Edit assets/theme.css to change them."
+      }
+    ]
+  }
+]

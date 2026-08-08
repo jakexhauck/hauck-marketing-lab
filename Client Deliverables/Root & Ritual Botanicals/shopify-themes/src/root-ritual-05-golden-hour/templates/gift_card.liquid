@@ -1,0 +1,24 @@
+<div class="sect">
+  <div class="wrap prose giftcard" data-rise>
+    <p class="eyebrow">{{ shop.name }}</p>
+    <h1>Gift Card</h1>
+    <p class="giftcard__value">{{ gift_card.balance | money }}</p>
+    {%- if gift_card.balance != gift_card.initial_value -%}
+      <p class="account__alt">Originally {{ gift_card.initial_value | money }}</p>
+    {%- endif -%}
+
+    <div class="giftcard__code"><span>{{ gift_card.code | format_code }}</span></div>
+
+    {%- if gift_card.qr_identifier -%}
+      <img class="giftcard__qr" src="{{ gift_card | image_url: width: 200 }}" alt="Gift card QR code" width="200" height="200">
+    {%- endif -%}
+
+    {%- if gift_card.expired -%}
+      <p class="form__errors">This gift card expired on {{ gift_card.expires_on | date: '%d %B %Y' }}.</p>
+    {%- elsif gift_card.expires_on -%}
+      <p class="account__alt">Expires {{ gift_card.expires_on | date: '%d %B %Y' }}</p>
+    {%- endif -%}
+
+    <p><a class="btn" href="{{ shop.url }}">Shop the Collection</a></p>
+  </div>
+</div>

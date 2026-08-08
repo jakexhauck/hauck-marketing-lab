@@ -1,0 +1,996 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Made Better LC: Ads Design Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   MADE BETTER LC: ADS DESIGN KIT
+   A reference page, not a template file. Nothing here is an ad. Everything
+   here is a rule that an ad has to pass.
+
+   The palette, the faces and the radius are lifted directly from the website
+   source at command-center/app/public/sites/made-better/site.js so the ads and
+   the site cannot drift. If a token changes there, change it here too.
+
+   Every contrast figure on this page was computed, not estimated. The numbers
+   are WCAG relative-luminance ratios against the stated background.
+   ========================================================================== */
+
+:root{
+  /* --- brand, straight from the site --- */
+  --ink:#0E1311;          /* basalt. near-black green. the dark surface */
+  --ink-2:#17201C;        /* raised panel on basalt */
+  --ink-3:#26332E;        /* hairline on basalt */
+  --brass:#C8974B;        /* the accent. FILL colour first, text second */
+  --brass-2:#B5843A;      /* pressed / deeper brass */
+  --brass-soft:#E8D9BC;   /* brass-family text on a dark surface */
+  --moss:#4E6B54;         /* secondary accent */
+  --light-brass:#876633;      /* brass on light, safe at any size */
+  --light-brass-lg:#AB8140;   /* brass on light, large text only */
+  --paper:#FFFFFF;
+  --wash:#F7F6F2;
+  --wash-2:#EFEDE6;
+  --line:#E6E3DA;
+  --stone:#E9E5DC;
+  --head:#0E1311;
+  --body:#5B655F;
+  --muted:#646C67;
+  --radius:10px;
+  --radius-lg:16px;
+
+  /* --- page-only, for this document's own chrome --- */
+  --ok:#2E7D53;
+  --warn:#8A6A1F;
+  --bad:#A33B33;
+  --shadow:0 1px 2px rgba(14,19,17,.04), 0 14px 34px -20px rgba(14,19,17,.30);
+}
+
+*{ box-sizing:border-box; }
+html{ scroll-behavior:smooth; scroll-padding-top:96px; }
+body{
+  margin:0; background:var(--wash); color:var(--body);
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{
+  font-family:'Plus Jakarta Sans','Inter',system-ui,sans-serif;
+  color:var(--head); margin:0; font-weight:800; letter-spacing:-.02em; line-height:1.12;
+}
+h1{ font-size:clamp(38px,5.4vw,62px); }
+h2{ font-size:clamp(27px,3.4vw,40px); }
+h3{ font-size:20px; font-weight:700; letter-spacing:-.015em; line-height:1.3; }
+h4{ font-size:14px; font-weight:700; letter-spacing:-.01em; }
+p{ margin:0 0 16px; }
+p:last-child{ margin-bottom:0; }
+a{ color:var(--light-brass); }
+code,.mono{
+  font-family:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+  font-size:.86em; letter-spacing:-.01em;
+}
+
+.wrap{ width:100%; max-width:1120px; margin:0 auto; padding:0 28px; }
+.sec{ padding:84px 0; }
+.sec + .sec{ border-top:1px solid var(--line); }
+.sec-head{ max-width:760px; margin-bottom:44px; }
+.sec-head p{ margin-top:18px; font-size:17.5px; color:var(--muted); max-width:64ch; }
+
+.eyebrow{
+  font-family:'Plus Jakarta Sans','Inter',sans-serif;
+  font-size:12px; font-weight:700; letter-spacing:.17em; text-transform:uppercase;
+  color:var(--light-brass); margin:0 0 14px;
+}
+.num{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:26px; height:26px; border-radius:7px; background:var(--ink); color:var(--brass);
+  font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500;
+  margin-right:12px; vertical-align:3px;
+}
+
+/* ===== top bar ===== */
+.bar{
+  position:sticky; top:0; z-index:50; background:rgba(14,19,17,.94);
+  backdrop-filter:saturate(140%) blur(12px); border-bottom:1px solid var(--ink-3);
+}
+.bar-in{ display:flex; align-items:center; gap:26px; height:60px; }
+.bar-brand{
+  font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:15px;
+  letter-spacing:-.02em; color:#fff; white-space:nowrap;
+}
+.bar-brand i{ font-style:normal; color:var(--brass); }
+.bar nav{ display:flex; gap:22px; margin-left:auto; flex-wrap:wrap; }
+.bar nav a{
+  font-size:12.5px; font-weight:600; color:#A8B2AC; text-decoration:none;
+  letter-spacing:.02em; white-space:nowrap;
+}
+.bar nav a:hover{ color:var(--brass); }
+
+/* ===== cover ===== */
+.cover{ background:var(--ink); color:var(--stone); padding:96px 0 88px; }
+.cover h1{ color:#fff; max-width:16ch; }
+.cover h1 em{ font-style:normal; color:var(--brass); }
+.cover .eyebrow{ color:var(--brass); }
+.cover .lede{ margin-top:24px; font-size:18.5px; color:#C9D1CB; max-width:60ch; }
+.cover-meta{
+  margin-top:44px; padding-top:26px; border-top:1px solid var(--ink-3);
+  display:flex; flex-wrap:wrap; gap:38px;
+}
+.cover-meta div{ font-size:13px; color:#8E9A93; }
+.cover-meta strong{ display:block; color:#fff; font-size:14.5px; font-weight:600; margin-bottom:3px; }
+
+/* ===== generic surfaces ===== */
+.card{
+  background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-lg);
+  padding:26px; box-shadow:var(--shadow);
+}
+.grid{ display:grid; gap:20px; }
+.g2{ grid-template-columns:repeat(2,1fr); }
+.g3{ grid-template-columns:repeat(3,1fr); }
+.g4{ grid-template-columns:repeat(4,1fr); }
+
+/* ===== swatches ===== */
+.sw{ border:1px solid var(--line); border-radius:var(--radius-lg); overflow:hidden; background:var(--paper); }
+.sw-chip{ height:104px; display:flex; align-items:flex-end; padding:12px 14px; }
+.sw-chip span{
+  font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:500;
+  padding:3px 7px; border-radius:5px; background:rgba(255,255,255,.9); color:#0E1311;
+}
+.sw-chip.on-light span{ background:rgba(14,19,17,.86); color:#fff; }
+.sw-body{ padding:14px 16px 18px; }
+.sw-body h4{ margin-bottom:5px; }
+.sw-body p{ font-size:13.5px; line-height:1.5; color:var(--muted); margin:0; }
+
+/* ===== contrast matrix ===== */
+.matrix{ width:100%; border-collapse:separate; border-spacing:0; font-size:13.5px; }
+.matrix th, .matrix td{ padding:11px 12px; text-align:left; border-bottom:1px solid var(--line); }
+.matrix thead th{
+  font-family:'Plus Jakarta Sans',sans-serif; font-size:11.5px; font-weight:700;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--muted);
+  border-bottom:1px solid var(--ink-3); white-space:nowrap;
+}
+.matrix tbody tr:last-child td{ border-bottom:none; }
+.matrix .ratio{ font-family:'JetBrains Mono',monospace; font-weight:500; color:var(--head); }
+.dot{
+  display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:8px; vertical-align:1px;
+}
+.tag{
+  display:inline-block; font-size:11px; font-weight:700; letter-spacing:.05em;
+  padding:3px 9px; border-radius:100px; text-transform:uppercase; white-space:nowrap;
+}
+.tag.ok{ background:rgba(46,125,83,.11); color:var(--ok); }
+.tag.warn{ background:rgba(138,106,31,.13); color:var(--warn); }
+.tag.bad{ background:rgba(163,59,51,.10); color:var(--bad); }
+.tag.ok .dot{ background:var(--ok); } .tag.warn .dot{ background:var(--warn); } .tag.bad .dot{ background:var(--bad); }
+.samp{
+  display:inline-block; padding:4px 12px; border-radius:6px;
+  font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; font-size:15px; letter-spacing:-.01em;
+}
+
+/* ===== type specimens ===== */
+.spec{ border:1px solid var(--line); border-radius:var(--radius-lg); background:var(--paper); overflow:hidden; }
+.spec + .spec{ margin-top:16px; }
+.spec-label{
+  display:flex; flex-wrap:wrap; gap:10px 22px; align-items:baseline;
+  padding:12px 22px; background:var(--wash-2); border-bottom:1px solid var(--line);
+}
+.spec-label b{
+  font-family:'Plus Jakarta Sans',sans-serif; font-size:11.5px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--head);
+}
+.spec-label span{ font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--muted); }
+.spec-body{ padding:26px 22px 30px; }
+.spec-body .demo{ color:var(--head); margin:0; }
+
+/* ===== canvas diagrams ===== */
+.canvases{ display:flex; gap:30px; align-items:flex-start; flex-wrap:wrap; }
+/* Each figure is the same width and its canvas sits on a shared-height shelf,
+   so the three canvases bottom-align AND the three captions top-align. Without
+   the shelf the captions staircase down the row and the whole thing reads as a
+   mistake rather than a comparison. */
+.canvas-fig{ flex:0 0 auto; width:230px; }
+.canvas-stage{ height:340px; display:flex; align-items:flex-end; }
+.canvas{
+  position:relative; background:var(--ink); border-radius:var(--radius);
+  overflow:hidden; box-shadow:var(--shadow);
+}
+.c11{ width:230px; height:230px; }
+.c45{ width:230px; height:287.5px; }
+.c916{ width:186px; height:330.6px; }
+.zone{ position:absolute; left:0; right:0; }
+.zone.unsafe{
+  background:repeating-linear-gradient(135deg, rgba(163,59,51,.30) 0 6px, rgba(163,59,51,.10) 6px 12px);
+  border-color:rgba(163,59,51,.55);
+}
+.zone.crop{
+  background:rgba(200,151,75,.14); border-top:1px dashed rgba(200,151,75,.75); border-bottom:1px dashed rgba(200,151,75,.75);
+}
+.zone-lbl{
+  position:absolute; left:8px; font-family:'JetBrains Mono',monospace; font-size:9.5px;
+  color:#fff; background:rgba(14,19,17,.92); padding:2px 5px; border-radius:4px; white-space:nowrap;
+}
+.safe-live{
+  position:absolute; left:8%; right:8%; border:1px dashed rgba(232,217,188,.7); border-radius:4px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--brass-soft); text-align:center;
+}
+.canvas-cap{ margin-top:14px; }
+.canvas-cap b{
+  display:block; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px;
+  font-weight:700; color:var(--head); letter-spacing:-.01em;
+}
+.canvas-cap span{ font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--muted); }
+.canvas-cap em{ display:block; font-style:normal; font-size:12.5px; color:var(--muted); margin-top:5px; line-height:1.45; }
+
+/* ===== scrim demos ===== */
+.photo{
+  position:relative; height:210px; border-radius:var(--radius); overflow:hidden;
+  /* A stand-in for a real photo, deliberately BRIGHT where the text sits. A
+     sunlit lawn is the normal case for this client and it is the case that
+     breaks unscrimmed white text. A dark stock-looking gradient here would
+     make the "no scrim" example look survivable, which is the opposite of
+     what this section is for. */
+  background:
+    radial-gradient(130px 95px at 76% 20%, rgba(255,252,236,.92), transparent 72%),
+    radial-gradient(210px 140px at 14% 86%, #C4D89A, transparent 74%),
+    radial-gradient(170px 120px at 64% 92%, #B7CE8C, transparent 72%),
+    radial-gradient(250px 170px at 92% 74%, #A8C47F, transparent 76%),
+    linear-gradient(178deg, #9CBBD1 0%, #8FB48A 30%, #A7C782 58%, #BCD494 100%);
+}
+.photo .scrim{ position:absolute; inset:0; }
+.photo .txt{
+  position:absolute; left:20px; right:20px; bottom:18px;
+  font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:23px;
+  letter-spacing:-.02em; line-height:1.15; color:#fff;
+}
+.demo-note{
+  display:flex; gap:9px; align-items:flex-start; margin-top:12px;
+  font-size:13px; line-height:1.5; color:var(--muted);
+}
+
+/* ===== do / don't ===== */
+.dd{ border-radius:var(--radius-lg); overflow:hidden; border:1px solid var(--line); background:var(--paper); }
+.dd-stage{ height:170px; display:flex; align-items:center; justify-content:center; padding:20px; }
+.dd-foot{ padding:13px 16px; border-top:1px solid var(--line); display:flex; gap:10px; align-items:flex-start; }
+.dd-foot p{ margin:0; font-size:13px; line-height:1.5; color:var(--muted); }
+.mark{
+  flex:none; width:19px; height:19px; border-radius:50%; display:flex; align-items:center;
+  justify-content:center; font-size:12px; font-weight:700; color:#fff; margin-top:1px;
+}
+.mark.y{ background:var(--ok); } .mark.n{ background:var(--bad); }
+
+.wordmark{
+  font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; letter-spacing:-.02em;
+  font-size:30px; color:var(--head); white-space:nowrap;
+}
+.wordmark i{ font-style:normal; color:var(--light-brass); }
+.wordmark.on-dark{ color:#fff; } .wordmark.on-dark i{ color:var(--brass); }
+
+.logo-box{ display:flex; align-items:center; gap:14px; }
+.logo-box img{ height:58px; width:auto; display:block; }
+.logo-fallback{ display:none; }
+.logo-box.failed img{ display:none; }
+.logo-box.failed .logo-fallback{ display:block; }
+
+/* Clear-space diagram.
+   The dashed rectangle is the OUTER boundary, the thing nothing may cross, and
+   the visible gap between it and the mark is the clear space itself. Drawing
+   the dashes tight around the mark instead reads as "clear space starts out
+   there somewhere", which is the opposite instruction. */
+.clear-demo{
+  position:relative; padding:26px; background:var(--wash-2);
+  border-radius:var(--radius); display:inline-block;
+}
+.clear-demo::before{
+  content:""; position:absolute; inset:0; border-radius:var(--radius);
+  border:1px dashed rgba(200,151,75,.95); pointer-events:none;
+}
+.clear-demo .markbox{ outline:1px solid rgba(14,19,17,.16); }
+.clear-hint{
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--warn);
+  margin:0 0 10px;
+}
+
+/* ===== rules list ===== */
+.rules{ list-style:none; margin:0; padding:0; }
+.rules li{
+  position:relative; padding:14px 0 14px 32px; border-bottom:1px solid var(--line);
+  font-size:15px; line-height:1.6;
+}
+.rules li:last-child{ border-bottom:none; }
+.rules li::before{
+  content:""; position:absolute; left:6px; top:22px; width:7px; height:7px;
+  border-radius:50%; background:var(--brass);
+}
+.rules li b{ color:var(--head); font-weight:600; }
+.rules.hard li::before{ background:var(--bad); }
+
+/* ===== callout ===== */
+.callout{
+  background:var(--ink); color:var(--stone); border-radius:var(--radius-lg);
+  padding:28px 30px; border-left:4px solid var(--brass);
+}
+.callout h3{ color:#fff; margin-bottom:10px; }
+.callout p{ color:#C9D1CB; font-size:15px; }
+.callout code{ color:var(--brass-soft); }
+
+/* ===== preflight ===== */
+.check{ list-style:none; margin:0; padding:0; counter-reset:c; }
+.check li{
+  counter-increment:c; position:relative; padding:16px 0 16px 46px;
+  border-bottom:1px solid var(--line); font-size:15.5px; line-height:1.55; color:var(--head);
+}
+.check li:last-child{ border-bottom:none; }
+.check li::before{
+  content:counter(c,decimal-leading-zero); position:absolute; left:0; top:16px;
+  font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--light-brass); font-weight:500;
+}
+.check li span{ display:block; font-size:13.5px; color:var(--muted); margin-top:3px; }
+
+footer{ background:var(--ink); color:#8E9A93; padding:40px 0; font-size:13px; }
+footer b{ color:#fff; }
+
+@media (max-width:900px){
+  .g4{ grid-template-columns:repeat(2,1fr); }
+  .g3{ grid-template-columns:1fr; }
+  .matrix{ font-size:12.5px; }
+  .matrix th, .matrix td{ padding:9px 8px; }
+}
+@media (max-width:640px){
+  .sec{ padding:56px 0; }
+  .g2,.g4{ grid-template-columns:1fr; }
+  .bar nav{ display:none; }
+  .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  /* Stacked, the shelf that aligns the three canvases in a row becomes 340px
+     of empty space above each one. */
+  .canvas-stage{ height:auto; }
+  .canvas-fig{ width:100%; }
+}
+.table-scroll{ overflow-x:auto; }
+
+/* ==========================================================================
+   PRINT / PDF
+   This page is a client deliverable, so it has to survive being exported and
+   emailed as a PDF. Three things break by default and are fixed here:
+   backgrounds drop out (the whole kit is colour, so that is fatal), the
+   sticky bar prints on top of the cover, and cards get sliced across a page
+   boundary. Each section also starts on a fresh page so the PDF reads as
+   chapters rather than one long scroll cut at arbitrary points.
+   ========================================================================== */
+@media print{
+  /* Without this Chrome drops every background and the colour kit prints
+     as white boxes with coloured text: the exact opposite of the point. */
+  *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+
+  @page{ size:A4; margin:12mm 0; }
+
+  body{ background:var(--paper); font-size:14px; }
+  .bar{ display:none; }
+
+  .wrap{ max-width:none; padding:0 14mm; }
+  .sec{ padding:0 0 10mm; break-before:page; }
+  .sec + .sec{ border-top:none; }
+  .sec-head{ margin-bottom:24px; }
+  .card{ padding:22px; }
+
+  /* A cover page that stops two thirds down looks like a rendering fault
+     rather than a cover. Fill the sheet. */
+  .cover{
+    padding:0 0 24mm; min-height:calc(297mm - 24mm);
+    display:flex; flex-direction:column; justify-content:center;
+  }
+
+  /* A4 is narrower than this layout's 1120px, so the three canvases wrap and
+     the 9:16 one lands alone on the next page. That figure only means anything
+     as a side-by-side, so shrink the set until all three fit one row. */
+  .canvases{ flex-wrap:nowrap; gap:22px; break-inside:avoid; }
+  .canvas-fig{ width:200px; }
+  .canvas-stage{ height:296px; }
+  .c11{ width:200px; height:200px; }
+  .c45{ width:200px; height:250px; }
+  .c916{ width:162px; height:288px; }
+
+  /* Nothing that reads as one object may be split across a page. */
+  .card,.sw,.spec,.dd,.callout,.canvas-fig,.photo,.demo-note,.rules li,.check li,figure{
+    break-inside:avoid;
+  }
+  .matrix tr{ break-inside:avoid; }
+  .matrix thead{ display:table-header-group; }  /* repeat the header on page 2 of the table */
+  h2,h3,h4{ break-after:avoid; }
+  .table-scroll{ overflow:visible; }
+
+  footer{ break-before:avoid; padding:20px 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="wrap bar-in">
+    <div class="bar-brand">MADE BETTER<i>.</i> &nbsp;ADS KIT</div>
+    <nav>
+      <a href="#colour">Colour</a>
+      <a href="#type">Type</a>
+      <a href="#text">Text on ads</a>
+      <a href="#logo">Logo</a>
+      <a href="#preflight">Pre-flight</a>
+    </nav>
+  </div>
+</div>
+
+<header class="cover">
+  <div class="wrap">
+    <p class="eyebrow">Made Better LC · Meta advertising</p>
+    <h1>The rules an ad has to <em>pass</em>.</h1>
+    <p class="lede">
+      This is a reference, not a template. There are no ad layouts in here on purpose.
+      Design the ad however the offer needs it, then check it against this page before it goes live.
+    </p>
+    <div class="cover-meta">
+      <div><strong>Where these run</strong>Facebook and Instagram feed, Stories, Reels</div>
+      <div><strong>Source of truth</strong>The website's own design system</div>
+      <div><strong>Covers</strong>Colour, type, text treatment, logo</div>
+    </div>
+  </div>
+</header>
+
+<!-- ====================================================================== -->
+<section class="sec" id="colour">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><span class="num">01</span>Colour</p>
+      <h2>Basalt, brass, moss, warm stone.</h2>
+      <p>
+        Four colours and their working variants. The whole palette comes off the website, so an ad and
+        the landing page it points at look like the same company. Brass is the one that gets people into
+        trouble, so read the second half of this section before you set any brass text.
+      </p>
+    </div>
+
+    <div class="grid g4" style="margin-bottom:44px">
+      <div class="sw">
+        <div class="sw-chip" style="background:#0E1311"><span>#0E1311</span></div>
+        <div class="sw-body"><h4>Basalt</h4><p>The dark surface. Near-black with green in it, never pure black. Backgrounds, scrims, text on light.</p></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#C8974B"><span>#C8974B</span></div>
+        <div class="sw-body"><h4>Brass</h4><p>The accent. A fill first and a text colour second. Buttons, rules, dots, and text on dark only.</p></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#4E6B54"><span>#4E6B54</span></div>
+        <div class="sw-body"><h4>Moss</h4><p>Secondary accent. Use it when brass would be a third gold thing in the frame. Sparingly.</p></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip on-light" style="background:#F7F6F2"><span>#F7F6F2</span></div>
+        <div class="sw-body"><h4>Warm wash</h4><p>The light surface. Never plain white for a full background: it goes blue next to the greens.</p></div>
+      </div>
+    </div>
+
+    <h3 style="margin-bottom:18px">Working variants</h3>
+    <div class="grid g4" style="margin-bottom:52px">
+      <div class="sw">
+        <div class="sw-chip" style="background:#17201C"><span>#17201C</span></div>
+        <div class="sw-body"><h4>Basalt raised</h4><p>A panel sitting on basalt. Cards, quote blocks, price chips.</p></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#876633"><span>#876633</span></div>
+        <div class="sw-body"><h4>Brass on light</h4><p>The only brass allowed as text on a light background at any size.</p></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#AB8140"><span>#AB8140</span></div>
+        <div class="sw-body"><h4>Brass display</h4><p>Brass on light for large text only. See the matrix.</p></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip on-light" style="background:#E8D9BC"><span>#E8D9BC</span></div>
+        <div class="sw-body"><h4>Brass soft</h4><p>Brass-family text on basalt when full brass is too loud.</p></div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-bottom:40px">
+      <h3>The brass trap</h3>
+      <p>
+        Brass <code>#C8974B</code> on white measures <b>2.63:1</b>. That is well under the 4.5:1 a person needs
+        to read a caption, and under the 3:1 that even a big headline needs. It looks fine on a desktop monitor
+        in a bright room and disappears on a phone outdoors, which is exactly where these ads get seen.
+      </p>
+      <p style="margin-bottom:0">
+        So: <b>brass is a fill.</b> Put brass behind basalt text, not the other way round. If you genuinely need
+        brass-coloured words on a light background, use <code>#876633</code>, or <code>#AB8140</code> at display size only.
+      </p>
+    </div>
+
+    <h3 style="margin-bottom:6px">Contrast matrix</h3>
+    <p style="margin-bottom:20px; color:var(--muted); font-size:14.5px">
+      Measured ratios. "Any size" clears 4.5:1. "Large only" clears 3:1, meaning 24px and up, or bold at 19px and up,
+      which on a 1080px ad canvas is roughly anything above 40px. Anything marked Fail does not go on an ad.
+    </p>
+
+    <div class="card table-scroll" style="padding:6px 22px">
+      <table class="matrix">
+        <thead>
+          <tr><th>Text</th><th>On</th><th>Sample</th><th>Ratio</th><th>Verdict</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Basalt <code>#0E1311</code></td><td>Warm wash</td>
+            <td><span class="samp" style="background:#F7F6F2;color:#0E1311">Free estimate</span></td>
+            <td class="ratio">17.34</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+          </tr>
+          <tr>
+            <td>White <code>#FFFFFF</code></td><td>Basalt</td>
+            <td><span class="samp" style="background:#0E1311;color:#FFFFFF">Free estimate</span></td>
+            <td class="ratio">18.75</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+          </tr>
+          <tr>
+            <td>Brass <code>#C8974B</code></td><td>Basalt</td>
+            <td><span class="samp" style="background:#0E1311;color:#C8974B">Free estimate</span></td>
+            <td class="ratio">7.13</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+          </tr>
+          <tr>
+            <td>Basalt <code>#0E1311</code></td><td>Brass</td>
+            <td><span class="samp" style="background:#C8974B;color:#0E1311">Free estimate</span></td>
+            <td class="ratio">7.13</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+          </tr>
+          <tr>
+            <td>Brass soft <code>#E8D9BC</code></td><td>Basalt</td>
+            <td><span class="samp" style="background:#0E1311;color:#E8D9BC">Free estimate</span></td>
+            <td class="ratio">13.47</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+          </tr>
+          <tr>
+            <td>Brass on light <code>#876633</code></td><td>Warm wash</td>
+            <td><span class="samp" style="background:#F7F6F2;color:#876633">Free estimate</span></td>
+            <td class="ratio">4.88</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+          </tr>
+          <tr>
+            <td>Moss <code>#4E6B54</code></td><td>Warm wash</td>
+            <td><span class="samp" style="background:#F7F6F2;color:#4E6B54">Free estimate</span></td>
+            <td class="ratio">5.46</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+          </tr>
+          <tr>
+            <td>White <code>#FFFFFF</code></td><td>Moss</td>
+            <td><span class="samp" style="background:#4E6B54;color:#FFFFFF">Free estimate</span></td>
+            <td class="ratio">5.91</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+          </tr>
+          <tr>
+            <td>Brass display <code>#AB8140</code></td><td>Warm wash</td>
+            <td><span class="samp" style="background:#F7F6F2;color:#AB8140">Free estimate</span></td>
+            <td class="ratio">3.27</td><td><span class="tag warn"><i class="dot"></i>Large only</span></td>
+          </tr>
+          <tr>
+            <td>Moss <code>#4E6B54</code></td><td>Basalt</td>
+            <td><span class="samp" style="background:#0E1311;color:#4E6B54">Free estimate</span></td>
+            <td class="ratio">3.17</td><td><span class="tag warn"><i class="dot"></i>Large only</span></td>
+          </tr>
+          <tr>
+            <td>Brass <code>#C8974B</code></td><td>Warm wash</td>
+            <td><span class="samp" style="background:#F7F6F2;color:#C8974B">Free estimate</span></td>
+            <td class="ratio">2.43</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+          </tr>
+          <tr>
+            <td>Brass <code>#C8974B</code></td><td>White</td>
+            <td><span class="samp" style="background:#FFFFFF;color:#C8974B;border:1px solid var(--line)">Free estimate</span></td>
+            <td class="ratio">2.63</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+          </tr>
+          <tr>
+            <td>White <code>#FFFFFF</code></td><td>Brass</td>
+            <td><span class="samp" style="background:#C8974B;color:#FFFFFF">Free estimate</span></td>
+            <td class="ratio">2.63</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+          </tr>
+          <tr>
+            <td>Brass <code>#C8974B</code></td><td>Moss</td>
+            <td><span class="samp" style="background:#4E6B54;color:#C8974B">Free estimate</span></td>
+            <td class="ratio">2.25</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin:44px 0 14px">How the colours split the work</h3>
+    <ul class="rules">
+      <li><b>Basalt carries the ad.</b> Dark ads outperform light ones in a feed because the feed itself is white or near-black, and a mid-tone photo with a basalt block reads as a designed thing rather than a post.</li>
+      <li><b>Brass is the one bright thing.</b> One brass element per ad. A brass button and a brass headline and a brass border is three, and none of them get looked at.</li>
+      <li><b>Moss is a substitute, not an addition.</b> Reach for it when the photo is already full of gold light and brass would vanish into it.</li>
+      <li><b>Warm wash, never pure white.</b> A pure white panel next to these greens reads blue and cheap. <code>#F7F6F2</code> or <code>#EFEDE6</code>.</li>
+      <li><b>No colour that is not on this page.</b> Not a red urgency banner, not a yellow star, not a blue "verified" tick. If an ad needs a fifth colour, it needs a different idea.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ====================================================================== -->
+<section class="sec" id="type">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><span class="num">02</span>Type</p>
+      <h2>Two faces. Tight tracking. Nothing else.</h2>
+      <p>
+        Plus Jakarta Sans at 800 for anything big, Inter for everything small. The negative tracking on the
+        headlines is what stops a large sans from reading as a phone's default font, so do not skip it.
+      </p>
+    </div>
+
+    <div class="grid g2" style="margin-bottom:44px">
+      <div class="card">
+        <p class="eyebrow" style="margin-bottom:8px">Display face</p>
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:42px;letter-spacing:-.02em;line-height:1.05;color:var(--head)">Plus Jakarta Sans</div>
+        <p style="margin-top:14px;font-size:14px;color:var(--muted)">
+          Weight 800 for headlines and the eyebrow. Weight 700 for a subhead or a button label.
+          Tracking <code>-0.02em</code>. Line height <code>1.08</code> to <code>1.15</code> on an ad, tighter than the website, because ad headlines are short.
+        </p>
+      </div>
+      <div class="card">
+        <p class="eyebrow" style="margin-bottom:8px">Text face</p>
+        <div style="font-family:'Inter',sans-serif;font-weight:600;font-size:42px;letter-spacing:-.02em;line-height:1.05;color:var(--head)">Inter</div>
+        <p style="margin-top:14px;font-size:14px;color:var(--muted)">
+          Weight 400 to 600 for the support line, the price, the fineprint. Never 800: that is the display face's job,
+          and two heavy sans faces in one frame look like a mistake.
+        </p>
+      </div>
+    </div>
+
+    <h3 style="margin-bottom:6px">The scale, as a share of canvas width</h3>
+    <p style="margin-bottom:22px;color:var(--muted);font-size:14.5px">
+      Every Meta size we run is <b>1080px wide</b>, so pegging type to the width gives one scale that works on
+      the square, the portrait and the story without redoing the maths. The px column is the value at 1080.
+    </p>
+
+    <div class="spec">
+      <div class="spec-label"><b>Eyebrow</b><span>2.2% of width · 24px @1080 · Jakarta 700 · +0.17em · uppercase</span></div>
+      <div class="spec-body">
+        <p class="demo" style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:24px;letter-spacing:.17em;text-transform:uppercase;color:var(--light-brass)">Lawn care · Michigan</p>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="spec-label"><b>Headline</b><span>7.5% of width · 81px @1080 · Jakarta 800 · −0.02em · LH 1.08</span></div>
+      <div class="spec-body">
+        <p class="demo" style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:clamp(38px,7vw,81px);letter-spacing:-.02em;line-height:1.08">Your yard,<br>done right.</p>
+        <p style="margin-top:16px;font-size:13.5px;color:var(--muted)">Range: 6.5% to 9% of width. Go to 9% only for a three or four word headline.</p>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="spec-label"><b>Subhead</b><span>3.7% of width · 40px @1080 · Jakarta 700 · −0.015em · LH 1.25</span></div>
+      <div class="spec-body">
+        <p class="demo" style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:clamp(26px,3.6vw,40px);letter-spacing:-.015em;line-height:1.25">Free estimate, no pressure</p>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="spec-label"><b>Support line</b><span>2.8% of width · 30px @1080 · Inter 500 · LH 1.45</span></div>
+      <div class="spec-body">
+        <p class="demo" style="font-family:'Inter',sans-serif;font-weight:500;font-size:clamp(20px,2.7vw,30px);line-height:1.45;color:var(--body)">Owner on site. Itemised pricing. Same week.</p>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="spec-label"><b>Button label</b><span>3.0% of width · 32px @1080 · Jakarta 700 · 10px radius</span></div>
+      <div class="spec-body">
+        <span style="display:inline-block;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:24px;background:var(--brass);color:#14100A;padding:14px 28px;border-radius:10px">Get a free estimate</span>
+        <p style="margin-top:16px;font-size:13.5px;color:var(--muted)">Basalt on brass, never white on brass. Corner radius 10px, matching the site's buttons.</p>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="spec-label"><b>Fineprint</b><span>1.9% of width · 21px @1080 · Inter 400 · the floor</span></div>
+      <div class="spec-body">
+        <p class="demo" style="font-family:'Inter',sans-serif;font-weight:400;font-size:21px;color:var(--muted)">Offer good through the end of the month.</p>
+        <p style="margin-top:14px;font-size:13.5px;color:var(--muted)"><b style="color:var(--head)">Nothing goes below 1.9% of width.</b> At 1080 that is 21px, which is about 6px on a phone. Below it, nobody reads it and it just makes the ad look busy.</p>
+      </div>
+    </div>
+
+    <h3 style="margin:44px 0 14px">Type rules</h3>
+    <ul class="rules">
+      <li><b>Two sizes per ad, three at the very most.</b> A headline, a support line, a button. Every extra size costs you a beat of attention.</li>
+      <li><b>Never stretch, condense, or outline the type.</b> If it does not fit, cut a word.</li>
+      <li><b>No drop shadows on text.</b> Contrast comes from the surface behind it. See the next section.</li>
+      <li><b>Sentence case for headlines.</b> ALL CAPS is reserved for the eyebrow, where the letter-spacing is doing the work.</li>
+      <li><b>No italics.</b> The brand does not have an italic voice, and the display face's italic reads as a different family.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ====================================================================== -->
+<section class="sec" id="text">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><span class="num">03</span>Text on ads</p>
+      <h2>Where the words go, and how few of them.</h2>
+      <p>
+        An ad gets somewhere between half a second and a second and a half. Everything in this section is
+        about making the one idea survive that.
+      </p>
+    </div>
+
+    <h3 style="margin-bottom:8px">The three canvases and their dead zones</h3>
+    <p style="margin-bottom:30px;color:var(--muted);font-size:14.5px">
+      Hatched red is covered by the platform's own interface. Nothing readable goes there. The dashed box is
+      where the message lives.
+    </p>
+
+    <div class="canvases" style="margin-bottom:44px">
+
+      <figure class="canvas-fig" style="margin:0">
+        <div class="canvas-stage">
+          <div class="canvas c11">
+            <div class="safe-live" style="top:8%;bottom:8%">safe</div>
+          </div>
+        </div>
+        <figcaption class="canvas-cap">
+          <b>Square</b><span>1080 × 1080 · 1:1</span>
+          <em>Feed. No platform furniture over the image. Keep an 8% margin so nothing touches an edge.</em>
+        </figcaption>
+      </figure>
+
+      <figure class="canvas-fig" style="margin:0">
+        <div class="canvas-stage">
+          <div class="canvas c45">
+            <div class="zone crop" style="top:11.1%;height:77.8%"></div>
+            <div class="zone-lbl" style="top:11.1%;margin-top:7px">centre 1:1 crop</div>
+            <div class="safe-live" style="top:19%;bottom:19%">safe</div>
+          </div>
+        </div>
+        <figcaption class="canvas-cap">
+          <b>Portrait</b><span>1080 × 1350 · 4:5</span>
+          <em>The best feed size: it takes the most screen. But the profile grid crops it to the centre square, so the headline and logo stay inside the brass band.</em>
+        </figcaption>
+      </figure>
+
+      <figure class="canvas-fig" style="margin:0">
+        <div class="canvas-stage">
+          <div class="canvas c916">
+            <div class="zone unsafe" style="top:0;height:13%"></div>
+            <div class="zone-lbl" style="top:3.5%">top 250px</div>
+            <div class="zone unsafe" style="bottom:0;height:33.3%"></div>
+            <div class="zone-lbl" style="bottom:15%">bottom 640px</div>
+            <div class="safe-live" style="top:16%;bottom:36%">safe</div>
+          </div>
+        </div>
+        <figcaption class="canvas-cap">
+          <b>Story / Reel</b><span>1080 × 1920 · 9:16</span>
+          <em>The bottom third is eaten by the caption, the audio ticker and the CTA. Design to the Reels number and the ad is safe in Stories too.</em>
+        </figcaption>
+      </figure>
+
+    </div>
+
+    <div class="callout" style="margin-bottom:48px">
+      <h3>The safe zones are not a suggestion</h3>
+      <p style="margin-bottom:0">
+        On a Reel, Meta reserves roughly the <b>top 250px</b> and the <b>bottom 640px</b> of a 1080 × 1920 frame for its own
+        interface. A headline placed low in the frame is not "at the bottom of the ad", it is behind the caption and
+        the profile name. Stories are less greedy, about 250px top and 340px bottom, so a creative built to the Reels
+        safe zone runs in both without a second export.
+      </p>
+    </div>
+
+    <h3 style="margin-bottom:8px">How much text</h3>
+    <div class="grid g4" style="margin-bottom:16px">
+      <div class="card" style="padding:22px">
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:38px;letter-spacing:-.02em;color:var(--head);line-height:1">7</div>
+        <h4 style="margin:8px 0 5px">Words, headline max</h4>
+        <p style="font-size:13px;color:var(--muted);margin:0">Over two lines at the most. Around 22 characters per line.</p>
+      </div>
+      <div class="card" style="padding:22px">
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:38px;letter-spacing:-.02em;color:var(--head);line-height:1">12</div>
+        <h4 style="margin:8px 0 5px">Words, support line max</h4>
+        <p style="font-size:13px;color:var(--muted);margin:0">One line. If it wraps to three, it is a paragraph and it will not be read.</p>
+      </div>
+      <div class="card" style="padding:22px">
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:38px;letter-spacing:-.02em;color:var(--head);line-height:1">25</div>
+        <h4 style="margin:8px 0 5px">Words on the whole canvas</h4>
+        <p style="font-size:13px;color:var(--muted);margin:0">Everything visible added together, button and fineprint included.</p>
+      </div>
+      <div class="card" style="padding:22px">
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:38px;letter-spacing:-.02em;color:var(--head);line-height:1">1</div>
+        <h4 style="margin:8px 0 5px">Idea per ad</h4>
+        <p style="font-size:13px;color:var(--muted);margin:0">One offer, one proof point, one action. Two offers is zero offers.</p>
+      </div>
+    </div>
+    <p style="margin-bottom:48px;font-size:14px;color:var(--muted)">
+      The long version of the pitch belongs in the primary text field above the image, where there is room for it
+      and where nobody has to read it to understand the picture.
+    </p>
+
+    <h3 style="margin-bottom:8px">Placing the text block</h3>
+    <ul class="rules" style="margin-bottom:48px">
+      <li><b>Pick a third and commit to it.</b> Top third or bottom third. Text floating in the middle of a photo has nothing holding it and reads as a stock template.</li>
+      <li><b>On 9:16, the upper-middle.</b> It is the only region both Stories and Reels leave alone.</li>
+      <li><b>Left-align everything.</b> Centred type on a photo is the single most reliable tell of an amateur ad. The only exception is a single word.</li>
+      <li><b>Text and photo subject do not overlap.</b> If the words sit over the lawn, they are competing with the thing you are selling.</li>
+      <li><b>The button goes last in reading order.</b> Bottom of the text block, not the top, not floating off on its own.</li>
+    </ul>
+
+    <h3 style="margin-bottom:8px">Text over a photo: the scrim rule</h3>
+    <p style="margin-bottom:24px;color:var(--muted);font-size:14.5px;max-width:64ch">
+      White text needs the pixels underneath it at or below roughly <b>18% luminance</b> to stay readable. A photo of a
+      sunlit lawn is nowhere near that. So the photo gets darkened where the text sits, every time, with no exceptions
+      and no shadows used as a substitute.
+    </p>
+
+    <div class="grid g3" style="margin-bottom:20px">
+
+      <div>
+        <div class="photo">
+          <div class="txt">Spring cleanup,<br>booked this week</div>
+        </div>
+        <div class="demo-note"><span class="mark n">✕</span><p><b style="color:var(--head)">No scrim.</b> Legible on a monitor, gone on a phone in daylight. This is what most local ads look like.</p></div>
+      </div>
+
+      <div>
+        <div class="photo">
+          <div class="scrim" style="background:linear-gradient(to top, rgba(14,19,17,.90) 0%, rgba(14,19,17,.72) 28%, rgba(14,19,17,0) 62%)"></div>
+          <div class="txt">Spring cleanup,<br>booked this week</div>
+        </div>
+        <div class="demo-note"><span class="mark y">✓</span><p><b style="color:var(--head)">Gradient scrim.</b> Basalt at 90% fading to nothing by 62% up the frame. The default: it keeps most of the photo.</p></div>
+      </div>
+
+      <div>
+        <div class="photo">
+          <div class="scrim" style="background:rgba(14,19,17,.62)"></div>
+          <div class="txt">Spring cleanup,<br>booked this week</div>
+        </div>
+        <div class="demo-note"><span class="mark y">✓</span><p><b style="color:var(--head)">Flat scrim.</b> Basalt at 62% across the whole image. For when text sits high, or the photo is busy everywhere.</p></div>
+      </div>
+
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <h4 style="margin-bottom:12px">Scrim recipes</h4>
+      <ul class="rules" style="margin:0">
+        <li><b>Gradient:</b> basalt <code>#0E1311</code> at 90% opacity at the text edge, falling to 0% by 60% across the frame. Text sits in the 90% end.</li>
+        <li><b>Flat:</b> basalt at 55% minimum, 62% if the photo has bright sky or concrete in it.</li>
+        <li><b>Solid block:</b> a basalt panel with the text inside it, photo untouched. The cleanest option and the one that survives any photo.</li>
+      </ul>
+    </div>
+
+    <ul class="rules hard">
+      <li><b>Brass text never goes over a photo.</b> Not with a scrim, not with a shadow. Brass over a photo is 2 point something to one against the bright bits, whatever you do to it. Brass on an ad means a solid basalt or brass surface.</li>
+      <li><b>A drop shadow is not a scrim.</b> It fakes contrast at the letter's edge and fails on the letter's interior. Every phone screenshot of a shadowed headline looks muddy.</li>
+      <li><b>No blur behind text.</b> It looks like the photo is out of focus, which for a landscaping company is the wrong signal entirely.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ====================================================================== -->
+<section class="sec" id="logo">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><span class="num">04</span>Logo and marks</p>
+      <h2>Small, quiet, and in the same corner every time.</h2>
+      <p>
+        The logo is not the ad. It is the signature. Its job is to be there when someone who already
+        saw the last ad scrolls past this one.
+      </p>
+    </div>
+
+    <div class="grid g2" style="margin-bottom:44px">
+      <div class="card">
+        <h4 style="margin-bottom:14px">The mark</h4>
+        <div class="logo-box" id="logoBox">
+          <img src="https://drive.google.com/thumbnail?id=1B6zy3IkzRzR4NK3KmoNosWk4N1FBV1jB&amp;sz=w400" alt="Made Better LC logo" onerror="document.getElementById('logoBox').classList.add('failed')">
+          <div class="logo-fallback wordmark">MADE BETTER<i>.</i></div>
+        </div>
+        <p style="margin-top:16px;font-size:13.5px;color:var(--muted)">
+          Served from the same Google Drive file the website uses. If it does not render above, the file is
+          not publicly readable and needs a proper asset dropped into this folder.
+        </p>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:14px">The wordmark</h4>
+        <div class="wordmark">MADE BETTER<i>.</i></div>
+        <p style="margin-top:16px;font-size:13.5px;color:var(--muted)">
+          Plus Jakarta Sans 800, tracking <code>-0.02em</code>, all caps, with the full stop in brass.
+          The full stop is the whole idea: it is the "better" being a finished thing. Never drop it,
+          never colour it the same as the words.
+        </p>
+      </div>
+    </div>
+
+    <h3 style="margin-bottom:8px">Sizing and clear space</h3>
+    <div class="grid g2" style="margin-bottom:44px">
+      <div class="card">
+        <h4 style="margin-bottom:14px">Clear space</h4>
+        <p class="clear-hint">dashed line = nothing crosses it</p>
+        <div class="clear-demo">
+          <div class="wordmark markbox" style="font-size:24px">MADE BETTER<i>.</i></div>
+        </div>
+        <p style="margin-top:18px;font-size:13.5px;color:var(--muted)">
+          The gap between the mark and the dashed line is the clear space. Measure it as
+          half the mark's own height, so it scales with the logo. Nothing crosses the
+          dashed line: no headline, no photo subject, no canvas edge.
+        </p>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:16px">Minimum size on a 1080 canvas</h4>
+        <ul class="rules" style="margin:0">
+          <li><b>Logo mark: 90px tall.</b> Roughly 8% of the canvas width. Below that the detail turns to mush at feed scale.</li>
+          <li><b>Wordmark: 28px tall.</b> The fallback when the frame is too tight for the mark.</li>
+          <li><b>Maximum: 140px.</b> A logo bigger than the headline is a business-card, not an ad.</li>
+          <li><b>One placement per campaign.</b> Bottom-left or top-left, chosen once, kept across every ad in the set.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 style="margin-bottom:20px">Backgrounds</h3>
+    <div class="grid g4" style="margin-bottom:22px">
+
+      <div class="dd">
+        <div class="dd-stage" style="background:var(--wash)"><div class="wordmark" style="font-size:22px">MADE BETTER<i>.</i></div></div>
+        <div class="dd-foot"><span class="mark y">✓</span><p>On warm wash. Brass full stop uses <code>#876633</code> on light.</p></div>
+      </div>
+
+      <div class="dd">
+        <div class="dd-stage" style="background:var(--ink)"><div class="wordmark on-dark" style="font-size:22px">MADE BETTER<i>.</i></div></div>
+        <div class="dd-foot"><span class="mark y">✓</span><p>On basalt. Full brass <code>#C8974B</code> for the stop. The strongest of the four.</p></div>
+      </div>
+
+      <div class="dd">
+        <div class="dd-stage" style="background:#5D7A55;position:relative">
+          <div style="position:absolute;background:var(--ink);border-radius:10px;padding:9px 16px"><div class="wordmark on-dark" style="font-size:20px">MADE BETTER<i>.</i></div></div>
+        </div>
+        <div class="dd-foot"><span class="mark y">✓</span><p>Over a photo, but only inside a solid basalt chip. Never straight onto the image.</p></div>
+      </div>
+
+      <div class="dd">
+        <div class="dd-stage" style="background:var(--brass)"><div class="wordmark" style="font-size:22px;color:#0E1311">MADE BETTER<i style="color:#4E6B54">.</i></div></div>
+        <div class="dd-foot"><span class="mark n">✕</span><p>Never on brass. The stop has nothing to contrast against, so the idea dies.</p></div>
+      </div>
+
+    </div>
+
+    <ul class="rules hard">
+      <li><b>Never recolour the mark</b> to match a photo, a season, or a holiday.</li>
+      <li><b>Never add a stroke, glow, bevel or shadow</b> to make it show up. If it needs help showing up, it needs a chip behind it.</li>
+      <li><b>Never rotate or place it at an angle.</b></li>
+      <li><b>Never put the logo and the wordmark in the same corner.</b> Pick one per ad.</li>
+      <li><b>Never let the logo be the largest element.</b> The offer is.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ====================================================================== -->
+<section class="sec" id="preflight">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><span class="num">05</span>Pre-flight</p>
+      <h2>Run this before anything goes live.</h2>
+      <p>Nine checks. If one fails, the ad does not ship, it gets fixed.</p>
+    </div>
+
+    <div class="card">
+      <ol class="check">
+        <li>Every colour on the canvas is on this page.
+          <span>Four brand colours and their listed variants. Nothing borrowed from a stock template.</span></li>
+        <li>No brass text on a light background, and no brass text over a photo.
+          <span>If brass words are on light, they are <code>#876633</code>, or <code>#AB8140</code> above 40px.</span></li>
+        <li>All text sits inside the safe zone for its canvas.
+          <span>9:16 in particular: nothing readable in the top 250px or the bottom 640px.</span></li>
+        <li>On 4:5, the headline and logo are inside the centre square.
+          <span>The profile grid crops to 1:1 and will cut anything at the top or bottom edge.</span></li>
+        <li>Text over a photo has a real scrim, not a drop shadow.
+          <span>Basalt at 55% flat, or a 90% to 0% gradient.</span></li>
+        <li>Under 25 words on the whole canvas, one idea, one action.
+          <span>Headline at seven words or fewer, over two lines at most.</span></li>
+        <li>Nothing smaller than 21px at 1080 wide.
+          <span>Fineprint included. If it will not fit above the floor, delete it.</span></li>
+        <li>The logo has its clear space and is not the biggest thing in the frame.
+          <span>90px minimum, 140px maximum, same corner as the rest of the set.</span></li>
+        <li>Viewed at thumbnail size on an actual phone, the offer still reads.
+          <span>Shrink it to 25% on screen. If the headline goes, the ad goes.</span></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p style="margin:0"><b>Made Better LC · Ads design kit.</b> Colour, type and radius are taken from the website's own design system at <code style="color:#A8B2AC">command-center/app/public/sites/made-better/site.js</code>. If the site's tokens change, change this page in the same pass.</p>
+    <p style="margin:10px 0 0">Contrast ratios on this page were computed against the stated backgrounds, not estimated.</p>
+  </div>
+</footer>
+
+</body>
+</html>

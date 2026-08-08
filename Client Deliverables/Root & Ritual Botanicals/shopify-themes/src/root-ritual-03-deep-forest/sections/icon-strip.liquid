@@ -1,0 +1,51 @@
+<section class="sect sect--tight{% if section.settings.bg_cream %} sect--cream{% endif %}">
+  <div class="wrap">
+    <div class="trust" data-rise>
+      {%- for block in section.blocks -%}
+        <div {{ block.shopify_attributes }}>
+          {% render 'icon', name: block.settings.icon, size: 30 %}
+          <p>{{ block.settings.text | newline_to_br }}</p>
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Icon strip",
+  "settings": [
+    { "type": "checkbox", "id": "bg_cream", "label": "Alternate background", "default": false }
+  ],
+  "blocks": [
+    {
+      "type": "item", "name": "Item", "limit": 4,
+      "settings": [
+        {
+          "type": "select", "id": "icon", "label": "Icon", "default": "leaf",
+          "options": [
+            { "value": "leaf", "label": "Leaf" },
+            { "value": "mountain", "label": "Mountain" },
+            { "value": "mortar", "label": "Mortar & pestle" },
+            { "value": "heart", "label": "Heart" },
+            { "value": "cup", "label": "Cup" },
+            { "value": "truck", "label": "Truck" }
+          ]
+        },
+        { "type": "textarea", "id": "text", "label": "Text", "default": "Natural\nIngredients" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Icon strip",
+      "blocks": [
+        { "type": "item", "settings": { "icon": "leaf", "text": "Natural\nIngredients" } },
+        { "type": "item", "settings": { "icon": "mountain", "text": "Mountain\nInspired" } },
+        { "type": "item", "settings": { "icon": "mortar", "text": "Small Batch\nMade" } },
+        { "type": "item", "settings": { "icon": "heart", "text": "Rituals for\nMind. Body. Soul." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,26 @@
+<section class="phead"><div class="wrap"><h1>Your Cart</h1></div></section>
+<div class="sect">
+  <div class="wrap prose">
+    {%- if cart.item_count > 0 -%}
+      {% form 'cart', cart %}
+        {%- for item in cart.items -%}
+          <div class="pcard__foot" style="border-top:0;border-bottom:1px solid rgba(128,128,128,.25)">
+            <span>{{ item.quantity }} &times; <a href="{{ item.url }}">{{ item.product.title }}</a></span>
+            <span class="price">{{ item.final_line_price | money }}</span>
+          </div>
+        {%- endfor -%}
+        <div class="feat__foot" style="margin-top:2rem">
+          <span class="price">Subtotal {{ cart.total_price | money }}</span>
+          <button class="btn" type="submit" name="checkout">Checkout</button>
+        </div>
+      {% endform %}
+    {%- else -%}
+      <p>Your cart is empty.</p>
+      <p><a class="btn" href="{{ routes.all_products_collection_url }}">Shop the Collection</a></p>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{ "name": "Cart" }
+{% endschema %}

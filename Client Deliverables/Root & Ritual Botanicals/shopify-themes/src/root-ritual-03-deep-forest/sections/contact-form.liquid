@@ -1,0 +1,57 @@
+<section class="phead">
+  <div class="wrap">
+    <p class="crumbs"><a href="{{ routes.root_url }}">Home</a> / {{ page.title | default: 'Contact' }}</p>
+    <h1>{{ page.title | default: 'Contact' }}</h1>
+    {%- if section.settings.blurb != blank -%}<p>{{ section.settings.blurb }}</p>{%- endif -%}
+  </div>
+</section>
+
+<div class="sect">
+  <div class="wrap prose" data-rise>
+    {%- if page.content != blank -%}<div class="rte">{{ page.content }}</div>{%- endif -%}
+
+    {% form 'contact' %}
+      {%- if form.posted_successfully? -%}
+        <p class="form__ok">{{ section.settings.success }}</p>
+      {%- endif -%}
+
+      {%- if form.errors -%}
+        <ul class="form__errors">
+          {%- for field in form.errors -%}
+            <li>{{ form.errors.messages[field] }}</li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+
+      <div class="field">
+        <label for="ContactName">Name</label>
+        <input type="text" id="ContactName" name="contact[name]" value="{{ form.name }}" autocomplete="name" required>
+      </div>
+      <div class="field">
+        <label for="ContactEmail">Email</label>
+        <input type="email" id="ContactEmail" name="contact[email]" value="{{ form.email }}" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="ContactPhone">Phone</label>
+        <input type="tel" id="ContactPhone" name="contact[phone]" value="{{ form.phone }}" autocomplete="tel">
+      </div>
+      <div class="field">
+        <label for="ContactBody">Message</label>
+        <textarea id="ContactBody" name="contact[body]" rows="7" required>{{ form.body }}</textarea>
+      </div>
+      <button class="btn" type="submit">{{ section.settings.button }}</button>
+    {% endform %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Contact form",
+  "settings": [
+    { "type": "textarea", "id": "blurb", "label": "Intro", "default": "Questions about a blend, an order, or a wholesale enquiry. We read every one." },
+    { "type": "text", "id": "button", "label": "Button label", "default": "Send Message" },
+    { "type": "text", "id": "success", "label": "Success message", "default": "Thank you. We will be in touch shortly." }
+  ],
+  "presets": [{ "name": "Contact form" }]
+}
+{% endschema %}

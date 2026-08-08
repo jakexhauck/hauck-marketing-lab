@@ -1,0 +1,190 @@
+<div class="sect">
+  <div class="wrap">
+    <p class="crumbs">
+      <a href="{{ routes.root_url }}">Home</a> /
+      <a href="{{ routes.all_products_collection_url }}">Shop</a> / {{ product.title }}
+    </p>
+
+    <div class="pdp pdp--ruled" data-gallery>
+      <div class="gal">
+        <div class="gal__main ph" data-gallery-main>
+          {%- if product.featured_image -%}
+            <img src="{{ product.featured_image | image_url: width: 1400 }}" alt="{{ product.title | escape }}" width="1400" height="1400">
+          {%- else -%}
+            <img src="{{ 'morning.png' | asset_url }}" alt="{{ product.title | escape }}" width="1254" height="1254">
+          {%- endif -%}
+        </div>
+        <div class="gal__thumbs">
+          {%- if product.images.size > 0 -%}
+            {%- for image in product.images limit: 4 -%}
+              <button data-gallery-thumb data-pos="50% 50%"{% if forloop.first %} class="is-sel"{% endif %} type="button">
+                <img src="{{ image | image_url: width: 300 }}" alt="{{ image.alt | escape }}" loading="lazy" width="300" height="300">
+              </button>
+            {%- endfor -%}
+          {%- else -%}
+            <button data-gallery-thumb data-pos="50% 46%" class="is-sel" type="button"><img src="{{ 'morning.png' | asset_url }}" alt="Front" loading="lazy" width="300" height="300"></button>
+            <button data-gallery-thumb data-pos="50% 8%" type="button"><img src="{{ 'morning.png' | asset_url }}" alt="Setting" loading="lazy" width="300" height="300"></button>
+            <button data-gallery-thumb data-pos="50% 92%" type="button"><img src="{{ 'morning.png' | asset_url }}" alt="Detail" loading="lazy" width="300" height="300"></button>
+            <button data-gallery-thumb data-pos="50% 46%" type="button"><img src="{{ 'evening.png' | asset_url }}" alt="Pairs with" loading="lazy" width="300" height="300"></button>
+          {%- endif -%}
+        </div>
+      </div>
+
+      <div class="pinfo">
+        {%- if section.settings.eyebrow != blank -%}
+          <p class="eyebrow" style="color:var(--orange);margin-bottom:.9rem">{{ section.settings.eyebrow }}</p>
+        {%- endif -%}
+        <h1>{{ product.title }}</h1>
+        {%- if product.metafields.custom.tagline -%}
+          <p class="feat__tag">{{ product.metafields.custom.tagline }}</p>
+        {%- endif -%}
+
+        <p class="pinfo__price" data-price>{{ product.price | money }}</p>
+
+        <div class="rte">{{ product.description }}</div>
+
+        {% form 'product', product %}
+        {%- if product.has_only_default_variant -%}
+          <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+        {%- else -%}
+          <div class="opts" data-picker>
+            {%- for option in product.options_with_values -%}
+              <div class="opt" data-opt-index="{{ forloop.index0 }}">
+                <h4>{{ option.name }}</h4>
+                <div class="chips" role="group" aria-label="{{ option.name | escape }}">
+                  {%- for value in option.values -%}
+                    <button type="button"
+                            data-chip
+                            data-opt="{{ forloop.parentloop.index0 }}"
+                            data-value="{{ value | escape }}"
+                            aria-pressed="{% if option.selected_value == value %}true{% else %}false{% endif %}">{{ value }}</button>
+                  {%- endfor -%}
+                </div>
+              </div>
+            {%- endfor -%}
+          </div>
+
+          <div class="opts opts--fallback">
+            <div>
+              <h4>Options</h4>
+              <select name="id" class="variant-select" data-picker-select aria-label="Choose an option">
+                {%- for variant in product.variants -%}
+                  <option value="{{ variant.id }}"
+                          data-options="{{ variant.options | join: '~~' | escape }}"
+                          {% if variant == product.selected_or_first_available_variant %}selected{% endif %}
+                          {% unless variant.available %}disabled{% endunless %}>
+                    {{ variant.title }} &middot; {{ variant.price | money }}{% unless variant.available %} (sold out){% endunless %}
+                  </option>
+                {%- endfor -%}
+              </select>
+            </div>
+          </div>
+
+          {%- capture variant_json -%}
+            [
+              {%- for variant in product.variants -%}
+                {
+                  "id": {{ variant.id }},
+                  "options": {{ variant.options | json }},
+                  "available": {{ variant.available | json }},
+                  "price": {{ variant.price | json }},
+                  "price_formatted": {{ variant.price | money | json }},
+                  "compare_at": {{ variant.compare_at_price | json }},
+                  "image": {%- if variant.featured_image -%}{{ variant.featured_image | image_url: width: 1400 | json }}{%- else -%}null{%- endif -%}
+                }{%- unless forloop.last -%},{%- endunless -%}
+              {%- endfor -%}
+            ]
+          {%- endcapture -%}
+          <script type="application/json" data-variant-data>{{ variant_json }}</script>
+        {%- endif -%}
+
+          <div class="buyrow">
+            <div class="stepper" data-qty>
+              <button type="button" data-qty-step="-1" aria-label="Decrease">{% render 'icon', name: 'minus', size: 15 %}</button>
+              <span data-qty-val>1</span>
+              <button type="button" data-qty-step="1" aria-label="Increase">{% render 'icon', name: 'plus', size: 15 %}</button>
+            </div>
+            <input type="hidden" name="quantity" value="1" data-qty-input>
+            <button class="btn" type="submit" data-add{% unless product.available %} disabled{% endunless %}>
+              <span data-add-label>{% if product.available %}Add to Cart{% else %}Sold out{% endif %}</span>
+              {%- if product.available -%}<span data-add-price>&middot; {{ product.selected_or_first_available_variant.price | money }}</span>{%- endif -%}
+            </button>
+          </div>
+        {% endform %}
+
+        {%- assign spec_rows = section.blocks | where: 'type', 'spec' -%}
+        {%- if spec_rows.size > 0 -%}
+          <dl class="pinfo__table">
+            {%- for block in spec_rows -%}
+              <div {{ block.shopify_attributes }}>
+                <dt>{{ block.settings.label }}</dt>
+                <dd>{{ block.settings.text }}</dd>
+              </div>
+            {%- endfor -%}
+          </dl>
+        {%- endif -%}
+
+        <div class="reassure">
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'reassure' -%}
+              <span {{ block.shopify_attributes }}>{% render 'icon', name: block.settings.icon, size: 15 %} {{ block.settings.text }}</span>
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+
+        <div class="acc">
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'accordion' -%}
+              <div class="acc__item{% if forloop.first %} is-open{% endif %}" data-acc {{ block.shopify_attributes }}>
+                <button type="button" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
+                  {{ block.settings.heading }} {% render 'icon', name: 'plus', size: 14 %}
+                </button>
+                <div class="acc__panel"><div>{{ block.settings.body }}</div></div>
+              </div>
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Product",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Blend No. 01" }
+  ],
+  "blocks": [
+    {
+      "type": "reassure", "name": "Reassurance line", "limit": 4,
+      "settings": [
+        {
+          "type": "select", "id": "icon", "label": "Icon", "default": "truck",
+          "options": [
+            { "value": "truck", "label": "Truck" },
+            { "value": "leaf", "label": "Leaf" },
+            { "value": "mortar", "label": "Mortar & pestle" },
+            { "value": "heart", "label": "Heart" }
+          ]
+        },
+        { "type": "text", "id": "text", "label": "Text", "default": "Ships in 1-2 days" }
+      ]
+    },
+    {
+      "type": "accordion", "name": "Accordion", "limit": 5,
+      "settings": [
+        { "type": "text", "id": "heading", "label": "Heading", "default": "Ingredients" },
+        { "type": "richtext", "id": "body", "label": "Body", "default": "<p>List the ingredients here.</p>" }
+      ]
+    },
+    {
+      "type": "spec", "name": "Spec row", "limit": 6,
+      "settings": [
+        { "type": "text", "id": "label", "label": "Label", "default": "Steep time" },
+        { "type": "text", "id": "text", "label": "Value", "default": "3 to 4 minutes" }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,212 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "settings": {}
+    },
+    "intro": {
+      "type": "rich-text",
+      "settings": {}
+    },
+    "feature_a": {
+      "type": "product-feature",
+      "blocks": {
+        "s1": {
+          "type": "spec",
+          "settings": {
+            "icon": "leaf",
+            "text": "Green Tea & Peppermint"
+          }
+        },
+        "s2": {
+          "type": "spec",
+          "settings": {
+            "icon": "cup",
+            "text": "20 Pyramid Bags"
+          }
+        },
+        "s3": {
+          "type": "spec",
+          "settings": {
+            "icon": "mortar",
+            "text": "3 to 4 minutes"
+          }
+        }
+      },
+      "block_order": [
+        "s1",
+        "s2",
+        "s3"
+      ],
+      "settings": {
+        "fallback": "morning.png",
+        "flip": false,
+        "eyebrow": "Blend No. 01",
+        "badge": "Best Seller",
+        "heading": "Morning Ritual",
+        "tagline": "Awaken. Ground. Begin."
+      }
+    },
+    "feature_b": {
+      "type": "product-feature",
+      "blocks": {
+        "s1": {
+          "type": "spec",
+          "settings": {
+            "icon": "leaf",
+            "text": "Chamomile & Lavender"
+          }
+        },
+        "s2": {
+          "type": "spec",
+          "settings": {
+            "icon": "cup",
+            "text": "20 Pyramid Bags"
+          }
+        },
+        "s3": {
+          "type": "spec",
+          "settings": {
+            "icon": "mortar",
+            "text": "3 to 5 minutes"
+          }
+        }
+      },
+      "block_order": [
+        "s1",
+        "s2",
+        "s3"
+      ],
+      "settings": {
+        "fallback": "evening.png",
+        "flip": true,
+        "eyebrow": "Blend No. 02",
+        "badge": "Caffeine Free",
+        "heading": "Evening Ritual",
+        "tagline": "Calm. Unwind. Restore.",
+        "body": "Chamomile and lavender for the shoulders. Lemon balm for the mind that will not stop running. Brewed the hour before bed, every night, until the body learns what the cup means."
+      }
+    },
+    "icons": {
+      "type": "icon-strip",
+      "blocks": {
+        "b1": {
+          "type": "item",
+          "settings": {
+            "icon": "leaf",
+            "text": "Natural\nIngredients"
+          }
+        },
+        "b2": {
+          "type": "item",
+          "settings": {
+            "icon": "mountain",
+            "text": "Mountain\nInspired"
+          }
+        },
+        "b3": {
+          "type": "item",
+          "settings": {
+            "icon": "mortar",
+            "text": "Small Batch\nMade"
+          }
+        },
+        "b4": {
+          "type": "item",
+          "settings": {
+            "icon": "heart",
+            "text": "Rituals for\nMind. Body. Soul."
+          }
+        }
+      },
+      "block_order": [
+        "b1",
+        "b2",
+        "b3",
+        "b4"
+      ],
+      "settings": {}
+    },
+    "story": {
+      "type": "story",
+      "settings": {}
+    },
+    "reviews": {
+      "type": "reviews",
+      "blocks": {
+        "r1": {
+          "type": "review",
+          "settings": {
+            "stars": 5,
+            "quote": "PLACEHOLDER - replace with a real customer review before launch.",
+            "author": "Customer name"
+          }
+        },
+        "r2": {
+          "type": "review",
+          "settings": {
+            "stars": 5,
+            "quote": "PLACEHOLDER - replace with a real customer review before launch.",
+            "author": "Customer name"
+          }
+        },
+        "r3": {
+          "type": "review",
+          "settings": {
+            "stars": 5,
+            "quote": "PLACEHOLDER - replace with a real customer review before launch.",
+            "author": "Customer name"
+          }
+        }
+      },
+      "block_order": [
+        "r1",
+        "r2",
+        "r3"
+      ],
+      "settings": {}
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "blocks": {
+        "p1": {
+          "type": "perk",
+          "settings": {
+            "icon": "leaf",
+            "text": "Exclusive Offers"
+          }
+        },
+        "p2": {
+          "type": "perk",
+          "settings": {
+            "icon": "cup",
+            "text": "New Product Drops"
+          }
+        },
+        "p3": {
+          "type": "perk",
+          "settings": {
+            "icon": "gift",
+            "text": "Rituals & Recipes"
+          }
+        }
+      },
+      "block_order": [
+        "p1",
+        "p2",
+        "p3"
+      ],
+      "settings": {}
+    }
+  },
+  "order": [
+    "hero",
+    "feature_a",
+    "feature_b",
+    "intro",
+    "story",
+    "icons",
+    "reviews",
+    "newsletter"
+  ]
+}

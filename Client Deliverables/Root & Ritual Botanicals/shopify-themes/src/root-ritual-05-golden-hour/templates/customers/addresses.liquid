@@ -1,0 +1,71 @@
+<section class="phead">
+  <div class="wrap">
+    <p class="crumbs"><a href="{{ routes.root_url }}">Home</a> / Addresses</p>
+    <h1>Addresses</h1>
+  </div>
+</section>
+
+<div class="sect">
+  <div class="wrap prose account" data-rise>
+    {%- paginate customer.addresses by 10 -%}
+      {% form 'customer_address', customer.new_address %}
+      {%- if form.errors -%}
+        <ul class="form__errors">
+          {%- for field in form.errors -%}
+            <li>{{ form.errors.messages[field] }}</li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+        <h2>Add a new address</h2>
+        <div class="field">
+          <label for="AddressFirst">First name</label>
+          <input type="text" id="AddressFirst" name="address[first_name]" autocomplete="given-name">
+        </div>
+        <div class="field">
+          <label for="AddressLast">Last name</label>
+          <input type="text" id="AddressLast" name="address[last_name]" autocomplete="family-name">
+        </div>
+        <div class="field">
+          <label for="AddressStreet">Address</label>
+          <input type="text" id="AddressStreet" name="address[address1]" autocomplete="address-line1">
+        </div>
+        <div class="field">
+          <label for="AddressCity">City</label>
+          <input type="text" id="AddressCity" name="address[city]" autocomplete="address-level2">
+        </div>
+        <div class="field">
+          <label for="AddressZip">Postal code</label>
+          <input type="text" id="AddressZip" name="address[zip]" autocomplete="postal-code">
+        </div>
+        <div class="field">
+          <label for="AddressCountry">Country</label>
+          <select id="AddressCountry" name="address[country]" data-default="{{ form.country }}">{{ country_option_tags }}</select>
+        </div>
+        <button class="btn" type="submit">Add Address</button>
+      {% endform %}
+
+      {%- if customer.addresses.size > 0 -%}
+        <h2>Saved addresses</h2>
+        {%- for address in customer.addresses -%}
+          <div class="account__addr">
+            <p>{{ address | format_address }}</p>
+            <p class="account__alt">
+              <a href="{{ routes.account_addresses_url }}/{{ address.id }}">Edit</a>
+              {%- comment -%}
+                Deleting posts a form with an overridden method. The old
+                customer_address_delete_link filter no longer exists.
+              {%- endcomment -%}
+              <form method="post" action="{{ routes.account_addresses_url }}/{{ address.id }}" class="account__del">
+                <input type="hidden" name="_method" value="delete">
+                <button type="submit">Delete</button>
+              </form>
+            </p>
+          </div>
+        {%- endfor -%}
+        {{ paginate | default_pagination }}
+      {%- endif -%}
+    {%- endpaginate -%}
+
+    <p class="account__alt"><a href="{{ routes.account_url }}">Back to account</a></p>
+  </div>
+</div>

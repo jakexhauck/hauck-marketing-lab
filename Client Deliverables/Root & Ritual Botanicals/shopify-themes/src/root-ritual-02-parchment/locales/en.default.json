@@ -1,0 +1,25 @@
+{
+  "general": {
+    "404": {
+      "title": "Page not found"
+    },
+    "search": {
+      "title": "Search",
+      "placeholder": "Search"
+    }
+  },
+  "products": {
+    "product": {
+      "add_to_cart": "Add to Cart",
+      "sold_out": "Sold out"
+    }
+  },
+  "cart": {
+    "general": {
+      "title": "Your Cart",
+      "empty": "Your cart is empty",
+      "checkout": "Checkout",
+      "subtotal": "Subtotal"
+    }
+  }
+}
