@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { cn } from "../../../../lib/cn";
 import type { AdWorkspacePatch } from "../../../../../functions/lib/adWorkspace";
 
@@ -70,6 +71,9 @@ export function LineInput({
   );
 }
 
+// Grows to fit what is in it. A primary is a paragraph, and a paragraph read
+// four lines at a time through a scrollbar is not read at all, so the box takes
+// the height the text needs and `rows` becomes a floor rather than a ceiling.
 export function BlockInput({
   value,
   onChange,
@@ -87,8 +91,31 @@ export function BlockInput({
   ariaLabel: string;
   rows?: number;
 }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  // The rows-based height, measured once before we ever set one, so an empty
+  // slot still looks like somewhere to write rather than a single line.
+  const floor = useRef(0);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      if (!floor.current) floor.current = el.offsetHeight;
+      el.style.height = "auto";
+      // scrollHeight is the content box; add the border back or every box ends
+      // up two pixels short and scrolls at the last line.
+      const border = el.offsetHeight - el.clientHeight;
+      el.style.height = `${Math.max(el.scrollHeight + border, floor.current)}px`;
+    };
+    fit();
+    // Narrowing the window rewraps the text, which changes the height it needs.
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [value]);
+
   return (
     <textarea
+      ref={ref}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
@@ -96,7 +123,7 @@ export function BlockInput({
       maxLength={maxLength}
       aria-label={ariaLabel}
       rows={rows}
-      className={cn(FIELD_BASE, "resize-y leading-snug")}
+      className={cn(FIELD_BASE, "resize-none overflow-hidden leading-snug")}
     />
   );
 }
