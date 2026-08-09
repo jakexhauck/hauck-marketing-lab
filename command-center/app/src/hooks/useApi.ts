@@ -2671,6 +2671,75 @@ export function useUnlinkGoogleCalendar() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Connecting the client's own Facebook page / Instagram account into their GHL
+// sub-account (0094). Three legs, one per hook, plus the gate's own question.
+//
+// The gate query is NOT persisted-cache friendly by accident: it is read on
+// every mount and decides whether the client may use the app at all, so it must
+// never answer from a snapshot written before they connected.
+
+export type ConnectPlatform = "facebook" | "instagram";
+
+export interface SocialGate {
+  blocked: boolean;
+  facebook: boolean;
+  instagram: boolean;
+  reason: string;
+}
+
+export function useSocialGate() {
+  return useQuery({
+    queryKey: ["connections", "social", "gate"],
+    // Zero, so a fresh answer is fetched every time the shell mounts. A stale
+    // "blocked" would lock out a client who just connected; a stale "open"
+    // would let one past who has not.
+    staleTime: 0,
+    queryFn: () => api<SocialGate>("/api/connections/social/gate"),
+  });
+}
+
+export function useStartSocialConnect() {
+  return useMutation({
+    mutationFn: (platform: ConnectPlatform) =>
+      api<{ url: string }>("/api/connections/social/start", {
+        method: "POST",
+        body: JSON.stringify({ platform }),
+      }),
+  });
+}
+
+export interface ConnectablePage {
+  id: string;
+  name: string;
+  avatar: string | null;
+}
+
+export function useSocialPages() {
+  return useMutation({
+    mutationFn: (vars: { platform: ConnectPlatform; accountId: string }) =>
+      api<{ pages: ConnectablePage[] }>(
+        `/api/connections/social/pages?platform=${encodeURIComponent(vars.platform)}` +
+          `&accountId=${encodeURIComponent(vars.accountId)}`,
+      ),
+  });
+}
+
+export function useAttachSocialPage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { platform: ConnectPlatform; accountId: string; pageId: string }) =>
+      api<{ page: ConnectablePage }>("/api/connections/social/attach", {
+        method: "POST",
+        body: JSON.stringify(vars),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["connections", "social", "gate"] });
+      qc.invalidateQueries({ queryKey: ["social", "accounts"] });
+    },
+  });
+}
+
 // Busy intervals for the dates currently on screen. The browser's own zone is
 // sent so Google returns wall-clock times matching what the viewer sees;
 // without it every block lands hours off.

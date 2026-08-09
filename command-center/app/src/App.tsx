@@ -84,6 +84,8 @@ import AdminTeam from "./routes/admin/AdminTeam";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import SetupHoldingScreen from "./components/client/SetupHoldingScreen";
+import SocialConnectGate from "./components/client/SocialConnectGate";
+import { useSocialGate } from "./hooks/useApi";
 import OfflineBanner from "./components/OfflineBanner";
 import PreviewBanner from "./components/PreviewBanner";
 import { isPreviewFrame } from "./lib/previewFrame";
@@ -118,6 +120,23 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
       </Shell>
     );
   }
+  return <SocialGateGuard>{children}</SocialGateGuard>;
+}
+
+// The blocking social-connect gate (0094). Split out so ProtectedRoute keeps its
+// no-hooks shape: every branch above is a plain early return, and adding a query
+// there would run it for admins and setup-state clients too.
+//
+// An early return rather than an overlay, so there is genuinely no app behind it
+// to reach. While the answer is unknown it renders nothing: flashing the app for
+// one frame and then yanking it away is worse than a beat of blank.
+function SocialGateGuard({ children }: { children: ReactNode }) {
+  const gate = useSocialGate();
+  if (gate.isLoading) return null;
+  // A failed gate check must not lock anybody out. The server already fails open
+  // on its own errors; this covers the request never arriving at all.
+  if (gate.isError || !gate.data) return <>{children}</>;
+  if (gate.data.blocked) return <SocialConnectGate gate={gate.data} />;
   return <>{children}</>;
 }
 

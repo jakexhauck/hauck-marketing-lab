@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-09-social-connect-gate",
+    date: "9 August 2026",
+    title: "Clients connect their own Facebook and Instagram, and cannot skip it",
+    items: [
+      "A client signing in now meets a connect screen before anything else, and stays on it until their Facebook page and Instagram account are linked to their sub-account. No app behind it, so there is nothing to click past.",
+      "They do it themselves: a button opens Facebook, they approve, then they pick which page to connect. We never ask for their password and never touch it for them.",
+      "Facebook's approval screen names LeadConnector, the partner we post through, so the connect screen warns them about that first. Otherwise the first client who reads it emails asking who that is.",
+      "Instagram has to be a Business account linked to the Facebook page. If Facebook offers nothing back, the screen says exactly that rather than failing quietly.",
+      "New on a client's record: Social connect gate. Waive it for anyone who genuinely cannot pass, a business with no page yet, somebody who is not an admin of their own page, a personal Instagram, or Meta having a bad morning. It is the only way through, and it is per client.",
+    ],
+  },
+  {
     id: "2026-08-07-competitor-ads-are-just-links",
     date: "7 August 2026",
     title: "A competitor ad is just a link, and adding one no longer eats the row",

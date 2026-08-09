@@ -54,6 +54,7 @@ export interface DetailClient {
   createdAt: string;
   healthStatus: HealthStatus;
   healthNote: string | null;
+  socialGateWaived: boolean;
 }
 
 interface StaffPerm {
@@ -175,6 +176,7 @@ export default function ClientConfigPanel({
       <ReviewsCard client={client} onSaved={refreshAfterSave} />
       <WebsiteCard client={client} onSaved={refreshAfterSave} />
       <AnalyticsCard client={client} onSaved={refreshAfterSave} />
+      <SocialGateCard client={client} onSaved={refreshAfterSave} />
       <OwnerCard tenantId={tenantId} ownerPasswordSet={client.ownerPasswordSet} onSaved={refreshAfterSave} />
       <EntitlementsCard tenantId={tenantId} enabled={data.entitlements} onSaved={refreshAfterSave} />
       <div id="cockpit-team">
@@ -465,6 +467,42 @@ function WebsiteCard({ client, onSaved }: { client: DetailClient; onSaved: () =>
         {err && <p className="mt-3 text-sm text-danger">{err}</p>}
         <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
       </form>
+    </Card>
+  );
+}
+
+// The one lever that unsticks a client the social connect gate has locked out
+// (0094). The gate is deliberately hard: a client sees a blocking screen on
+// sign-in and cannot reach anything until their Facebook page AND Instagram
+// account are connected.
+//
+// This does not soften it for anybody else. It exists because the gate has
+// failure modes the client cannot fix from inside it, and without this the only
+// way to unstick one is a deploy.
+function SocialGateCard({ client, onSaved }: { client: DetailClient; onSaved: () => Promise<void> }) {
+  const { saving, saved, err, run } = useSaver(onSaved);
+  const waived = client.socialGateWaived;
+  return (
+    <Card title="Social connect gate">
+      <p className="mb-4 text-[13px] text-muted">
+        {waived
+          ? "Waived. This client can use the app without connecting Facebook and Instagram."
+          : "Enforced. This client cannot open the app until their Facebook page and Instagram account are connected."}{" "}
+        Waive it only when they cannot pass for a reason outside their control: no page yet, not an
+        admin of the page, a personal rather than Business Instagram, or a Meta outage.
+      </p>
+      <button
+        type="button"
+        disabled={saving}
+        onClick={() =>
+          void run(`/api/admin/clients/${client.id}`, { socialGateWaived: !waived })
+        }
+        className="rounded-[10px] border border-border bg-surface px-3 py-1.5 text-[13px] font-medium text-text hover:bg-surface-2 disabled:opacity-60"
+      >
+        {saving ? "Saving..." : waived ? "Enforce the gate" : "Waive the gate"}
+      </button>
+      {saved && <span className="ml-3 text-[12.5px] text-positive">Saved</span>}
+      {err && <span className="ml-3 text-[12.5px] text-danger">{err}</span>}
     </Card>
   );
 }

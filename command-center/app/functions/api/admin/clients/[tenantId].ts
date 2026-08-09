@@ -128,6 +128,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       createdAt: tenant.created_at,
       healthStatus: tenant.health_status ?? "healthy",
       healthNote: tenant.health_note ?? null,
+      socialGateWaived: Boolean(tenant.social_gate_waived),
     },
     entitlements: enabled,
     staff: staff.map((s) => ({
@@ -174,6 +175,11 @@ interface PatchBody {
   // string clears it (Website page shows not-connected).
   websiteUrl?: string;
   subdomain?: string;
+  // Lets this client past the blocking social-connect gate (0094). The gate is
+  // deliberately hard, so this is the only way to unstick somebody who cannot
+  // pass it for a reason they cannot fix: no Facebook page, not a page admin, a
+  // personal rather than Business Instagram, or a Meta outage.
+  socialGateWaived?: boolean;
   // New owner login password for this client. Hashed; never read back.
   ownerPassword?: string;
   // Manual per-account health flag surfaced in the Service Delivery roster.
@@ -254,6 +260,9 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   // health_note is nullable and clearable: an empty string wipes the note.
   if (typeof body.healthNote === "string") {
     update.health_note = body.healthNote.trim() || null;
+  }
+  if (typeof body.socialGateWaived === "boolean") {
+    update.social_gate_waived = body.socialGateWaived;
   }
   if (str(body.ownerPassword)) {
     const pw = str(body.ownerPassword)!;
