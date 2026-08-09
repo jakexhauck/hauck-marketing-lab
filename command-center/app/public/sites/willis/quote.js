@@ -74,6 +74,19 @@
     // stay tellable apart.
     webhookUrl: "https://services.leadconnectorhq.com/hooks/OznT3yyuwK3dqVXDsCaD/webhook-trigger/DnQegzTCnElUUfG9Sqr1",
 
+    // Where the funnel reports its OWN conversion to Meta, server-side.
+    //
+    // GHL's "Meta Conversion API" workflow action cannot do this and never
+    // could: it wants an Instant Form `lead_id`, which a landing page never
+    // has, and the contact GHL creates from an inbound webhook carries no click
+    // data at all (sessionSource "CRM Workflows", medium "Manual"). The whole
+    // reasoning is written up in functions/lib/metaCapi.ts.
+    //
+    // The server hashes the contact details and adds the homeowner's real IP,
+    // neither of which the browser can do for itself.
+    capiUrl: "https://app.hauckmarketing.com/api/capi/lead",
+    capiFunnel: "willis",
+
     // Where they land after a successful submit: the BOOKING step, drawn by
     // booking.js, where they pick a time for the estimate call. That page then
     // sends them on to /thank-you-quote once GHL has taken the booking.
@@ -1040,6 +1053,45 @@
       }
     }
 
+    // Tell Meta the conversion happened. Fire and forget, on purpose: a
+    // homeowner must never wait on an ad platform, nor be shown its answer.
+    //
+    // sendBeacon and NOT fetch. The page redirects to the booking step in the
+    // same tick, and a plain fetch is cancelled mid-flight by that navigation.
+    // The Made Better review funnel lost its positive pings to exactly this,
+    // so do not "simplify" it back.
+    //
+    // Only the identifiers go over the wire raw. The server hashes them before
+    // Meta sees anything, and adds the real client IP, which this page cannot
+    // know about itself.
+    function reportConversion(name, phone, email) {
+      if (!CONFIG.capiUrl || !navigator.sendBeacon) return;
+      try {
+        var who = splitName(name);
+        var tracked = attribution();
+        var b = new URLSearchParams();
+        b.append("funnel", CONFIG.capiFunnel);
+        b.append("event_id", currentEventId());
+        b.append("event_time", String(Math.floor(Date.now() / 1000)));
+        b.append("event_source_url", window.location.href);
+        b.append("fbc", fbcValue(tracked.fbclid || ""));
+        b.append("fbp", fbpValue());
+        b.append("email", email);
+        b.append("phone", phone);
+        b.append("first_name", who.first);
+        b.append("last_name", who.last);
+        b.append("city", answers.city || "");
+        // Same constant the GHL payload sends, and for the same reason: step 1
+        // already turned away everyone outside Metro Detroit.
+        b.append("state", "MI");
+        b.append("zip", answers.zip || "");
+        navigator.sendBeacon(CONFIG.capiUrl, b);
+      } catch (e) {
+        // The lead is already safe in GHL by the time this runs. Losing the
+        // report costs attribution, never the job.
+      }
+    }
+
     // --------------------------------------------------------------- events
     function bind() {
       var step = STEPS[at];
@@ -1187,6 +1239,10 @@
         }).then(function (res) {
           if (!res.ok) throw new Error("HTTP " + res.status);
           handoff(name, phone, email);
+          // Only once GHL has actually taken the lead. A conversion reported
+          // for a lead that never landed is worse than a missing one: it
+          // teaches Meta to buy more of the traffic that fails.
+          reportConversion(name, phone, email);
           if (CONFIG.nextUrl) {
             window.location.href = CONFIG.nextUrl;
             return;

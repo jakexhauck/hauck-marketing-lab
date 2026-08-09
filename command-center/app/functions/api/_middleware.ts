@@ -67,6 +67,11 @@ const PUBLIC_PATHS = new Set([
   // unknown keys dropped, answers size-capped, creates rate limited, and
   // nothing it writes becomes a tenant until an admin approves it.
   "/api/intake",
+  // A funnel reporting its own conversion to Meta. Called by sendBeacon from a
+  // landing page on the CLIENT's domain, so it can carry no session of ours.
+  // Guarded by a funnel allowlist and a per-funnel Origin check instead, and it
+  // can only ever write a Lead. See lib/metaCapi.ts.
+  "/api/capi/lead",
 ]);
 
 // Public paths with a dynamic segment, matched by prefix. Kept separate from the
