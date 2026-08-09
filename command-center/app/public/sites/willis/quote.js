@@ -803,6 +803,75 @@
       return out;
     }
 
+    // ------------------------------------------------------- meta identity
+    // What Meta's Conversions API actually matches a person on, and the reason
+    // the CAPI step was failing.
+    //
+    // IT IS NOT A LEAD ID. `lead_id` exists only for Meta Instant Forms, so a
+    // hosted landing page never has one and never will. A website Lead event is
+    // matched on `fbc`, `fbp`, the hashed contact details, and the browser's own
+    // IP and user agent.
+    //
+    // WHY THIS HAS TO RIDE IN THE PAYLOAD: GHL stamps a contact created by an
+    // inbound webhook as sessionSource "CRM Workflows" / medium "Manual" and
+    // captures no click data at all, because the webhook fires before GHL's own
+    // tracking script has ever seen the person. The full Meta set does land on
+    // the contact later, from the GHL-hosted booking step, but it lands in
+    // `lastAttributionSource` and the contact was already "Manual" by then.
+    //
+    // Both ids are BUILT here rather than read off the Meta Pixel, because no
+    // pixel runs on this page. Meta documents both formats and accepts a
+    // self-built pair, which is what makes a pixel-free landing page reportable.
+    var FBP_KEY = "wwq_fbp";
+
+    function cookie(name) {
+      try {
+        var m = document.cookie.match(new RegExp("(^|;\\s*)" + name + "=([^;]*)"));
+        return m ? decodeURIComponent(m[2]) : "";
+      } catch (e) { return ""; }
+    }
+
+    // fb.1.<created-ms>.<fbclid>. A real _fbc cookie wins whenever one exists,
+    // so we can never disagree with the browser about the same click.
+    function fbcValue(fbclid) {
+      var real = cookie("_fbc");
+      if (real) return real;
+      if (!fbclid) return "";
+      return "fb.1." + Date.now() + "." + fbclid;
+    }
+
+    // fb.1.<created-ms>.<random>. Persisted on purpose: Meta reads this as the
+    // BROWSER's id, so minting a fresh one every visit tells Meta the same
+    // person is a new device each time, which is worse than sending nothing.
+    function fbpValue() {
+      var real = cookie("_fbp");
+      if (real) return real;
+      try {
+        var kept = localStorage.getItem(FBP_KEY);
+        if (kept) return kept;
+      } catch (e) {}
+      var made = "fb.1." + Date.now() + "." + Math.floor(Math.random() * 1e10);
+      try { localStorage.setItem(FBP_KEY, made); } catch (e) {}
+      return made;
+    }
+
+    // One id per submission, held so the payload and the booking handoff carry
+    // the SAME value. If a browser-side pixel Lead event is ever added it must
+    // reuse this exact id, or Meta counts one lead twice: once from the browser
+    // and once from the server.
+    var eventId = "";
+    function currentEventId() {
+      if (eventId) return eventId;
+      try {
+        if (window.crypto && window.crypto.randomUUID) {
+          eventId = window.crypto.randomUUID();
+          return eventId;
+        }
+      } catch (e) {}
+      eventId = "wwq-" + Date.now() + "-" + Math.floor(Math.random() * 1e10);
+      return eventId;
+    }
+
     // ---------------------------------------------------------------- paint
     function showProgress(on) {
       if (prog) prog.style.setProperty("display", on ? "block" : "none", "important");
@@ -922,6 +991,22 @@
 
       var tracked = attribution();
       Object.keys(tracked).forEach(function (k) { body[k] = tracked[k]; });
+
+      // Written AFTER the tracked set, so a stray query parameter sharing one of
+      // these names cannot shadow the value we computed. See the meta identity
+      // block above for why a landing page sends these and not a lead id.
+      body.fbc = fbcValue(tracked.fbclid || "");
+      body.fbp = fbpValue();
+      body.event_id = currentEventId();
+      body.event_name = "Lead";
+      // Seconds, not milliseconds. Meta rejects the event outright otherwise.
+      body.event_time = Math.floor(Date.now() / 1000);
+      body.event_source_url = window.location.href;
+      body.action_source = "website";
+      // Meta will not accept a server event without both of these, and the
+      // server that forwards it cannot see the homeowner's real browser.
+      body.client_user_agent = navigator.userAgent || "";
+
       return body;
     }
 
@@ -942,7 +1027,11 @@
           full_name: String(name).trim(),
           email: email,
           phone: phone,
-          phone_e164: digits.length === 10 ? "+1" + digits : ""
+          phone_e164: digits.length === 10 ? "+1" + digits : "",
+          // Carried so a later step can deduplicate against the server event
+          // this same submission already sent. booking.js reads named keys
+          // only, so an extra one costs it nothing.
+          event_id: currentEventId()
         }));
       } catch (e) {
         // Private mode, a storage quota, a browser that has switched it off.
