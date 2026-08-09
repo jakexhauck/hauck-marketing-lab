@@ -1,6 +1,6 @@
 # Automation Tags — Jonas Rorwick Automations
 
-**Account:** TEST ACCOUNT (Allen Park, MI) · location `r0WfsA12qpBv7M185V3v`
+**Account:** location `r0WfsA12qpBv7M185V3v`. Was the shared TEST ACCOUNT (Allen Park, MI) when this was pulled; **it is Made Better Landscaping Co's own sub-account as of 2026-08-09.**
 **Folder:** Jonas Rorwick Automations · `d9e74c3b-7da8-49b1-9bf0-f2cd033de58f`
 **Pulled:** 2026-07-19 via GHL internal API (Firebase token), workflow step definitions read from storage
 **Status:** all 11 workflows are in Draft

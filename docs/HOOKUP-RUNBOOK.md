@@ -5,7 +5,7 @@ The do-it version of `INTEGRATIONS-AND-HOOKUP.md`. Every step lists: **Goal**, *
 Key IDs you will reuse:
 - Supabase project ref: `aroapsjifblscheshmst`
 - Willis (live) GHL location: `OznT3yyuwK3dqVXDsCaD`
-- Test GHL location: `r0WfsA12qpBv7M185V3v`
+- ~~Test GHL location~~: `r0WfsA12qpBv7M185V3v` is **Made Better Landscaping Co's** sub-account as of 2026-08-09. There is no test location any more.
 - Paid Ad's Pipeline: `uz0fFxCgiwdXbg4Zmwkc`
 - Sales Pipeline (jobs): `6o9Gx6e0TXRFJdln5d01`
 - Webhook URL (all events): `https://app.hauckmarketing.com/api/webhook?token=<WEBHOOK_SECRET>`

@@ -52,9 +52,9 @@
     // the thank-you page having posted nothing, so an estimate request looked
     // received and was silently lost. A form that plainly does nothing is worse
     // than nothing; a form that fakes success is worse than both.
-    // NOTE 2026-08-04: r0WfsA12qpBv7M185V3v is the TEST sub-account, not Made
-    // Better's own. Estimates land in the test account until this is swapped
-    // for a hook created inside Made Better LC's sub-account.
+    // THE SUB-ACCOUNT IS CORRECT (2026-08-09). r0WfsA12qpBv7M185V3v was the
+    // shared test account when this was wired on 2026-08-04, and it is Made
+    // Better LC's own sub-account now, so estimates land where they should.
     webhookUrl: "https://services.leadconnectorhq.com/hooks/r0WfsA12qpBv7M185V3v/webhook-trigger/UL0zE37ObXAfKZGoM2Wh"
   };
 

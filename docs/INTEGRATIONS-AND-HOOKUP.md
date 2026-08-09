@@ -69,8 +69,8 @@ Set these in **Cloudflare → Pages → hauck-command-center → Settings → Va
 | `WEBHOOK_SECRET` | ✅ | 32-char random string. Same value you paste into GHL webhook URLs. |
 | `GHL_LOCATION_ID` | ✅ | Willis sub-account ID (`OznT3yyuwK3dqVXDsCaD`). GHL → Settings → Business Profile. |
 | `GHL_TOKEN` | ✅ | Willis Private Integration Token (`pit-...`). GHL → Settings → Private Integrations. |
-| `TEST_GHL_LOCATION_ID` | ✅ | Test sub-account ID (`r0WfsA12qpBv7M185V3v`). |
-| `TEST_GHL_TOKEN` | ✅ | Test sub-account PIT. |
+| `TEST_GHL_LOCATION_ID` | ⚠️ | Was the test sub-account (`r0WfsA12qpBv7M185V3v`). **That location became Made Better Landscaping Co's own sub-account on 2026-08-09**, so this env var now points at a live client. Only the `TEST_APP_PASSWORD` login reads it. |
+| `TEST_GHL_TOKEN` | ⚠️ | Same location, same caveat. |
 | `GHL_COMPANY_ID` | ⚠️ | Agency company ID, only for auto-provisioning staff. GHL company settings. |
 | `VAPID_PUBLIC_KEY` | ✅ | Web-push public key. Generate: `npx web-push generate-vapid-keys`. |
 | `VAPID_PRIVATE_KEY` | ✅ | Web-push private key (same command). |
@@ -320,7 +320,7 @@ Vercel, deploys from main. No secrets.
 Local secrets in `gohighlevel-cli/.env` (gitignored; template `.env.example`). Run via `ghl.ps1` with `PYTHONUTF8=1`.
 
 - [ ] `GHL_API_KEY` — Willis PIT (`pit-...`), sub-scoped. GHL → Private Integrations.
-- [ ] `GHL_LOCATION_ID` — `OznT3yyuwK3dqVXDsCaD` (Willis) or `r0WfsA12qpBv7M185V3v` (test).
+- [ ] `GHL_LOCATION_ID` — `OznT3yyuwK3dqVXDsCaD` (Willis). `r0WfsA12qpBv7M185V3v` is Made Better Landscaping Co's, not a test account, since 2026-08-09.
 - [ ] `GHL_FIREBASE_TOKEN` — agency-wide internal-API refresh token (needed for workflow create/update; the public API is read-only). Get via the DevTools IndexedDB snippet in `gohighlevel-cli/README.md`.
 
 ## 3.7 Media buying (`media-buying/`)

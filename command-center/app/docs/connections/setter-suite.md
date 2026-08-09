@@ -5,6 +5,9 @@ Audited two accounts with the `ghl` CLI (pipelines, tags) and the internal API
 
 - **Willis Windows** (`OznT3yyuwK3dqVXDsCaD`), 50 workflows. This is production.
 - **Test template** (`r0WfsA12qpBv7M185V3v`), 29 workflows. Cloned per client.
+  **2026-08-09: this location is no longer a test account.** It is Made Better
+  Landscaping Co's own sub-account now, so it holds a real client's data and is
+  not safe to experiment in. The audit below still describes it as it was.
 
 Note: GHL does not expose workflow folder NAMES over the API, only a `parentId`
 per workflow, so every Willis workflow was exported and grouped by folder rather

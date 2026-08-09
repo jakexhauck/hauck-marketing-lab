@@ -87,6 +87,6 @@ Optional sanity check for any webhook workflow: open the workflow, use **Test Wo
 ## Recipe F: Find a value you need
 
 - **Your WEBHOOK_SECRET / SESSION_SECRET**: shown only at creation time (Notes). After that: Cloudflare keeps them hidden; if lost, generate new ones and redo the steps that used them.
-- **The test location id**: Cloudflare > hauck-dashboard > Settings > Variables and Secrets > `TEST_GHL_LOCATION_ID` (plaintext, visible). As of June 2026 it is `r0WfsA12qpBv7M185V3v`.
+- **The test location id**: Cloudflare > hauck-dashboard > Settings > Variables and Secrets > `TEST_GHL_LOCATION_ID` (plaintext, visible). As of June 2026 it is `r0WfsA12qpBv7M185V3v`. **2026-08-09: that location became Made Better Landscaping Co's real sub-account, so the "test" env vars now point at a live client. Do not use it as a scratch account.**
 - **Your GHL user id**: ask Claude ("what is my GHL user id in the test account"); Claude reads it via the GHL CLI.
 - **Anything else**: ask Claude before guessing.

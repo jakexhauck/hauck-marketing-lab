@@ -10,7 +10,7 @@ source: "docs/build-plans/GHL Workflow Restructure/PLAN.md"
 
 # GHL Workflow Restructure Plan — Sales
 
-**Account:** Hauck Marketing test sub-account (`r0WfsA12qpBv7M185V3v`)
+**Account:** `r0WfsA12qpBv7M185V3v`. Was the Hauck Marketing test sub-account when this plan was written; **it is Made Better Landscaping Co's own sub-account as of 2026-08-09**, so anything here is being done inside a live client.
 **Date:** 2026-05-29
 **Scope:** Sales workflows only. Review Management, Attribution, and Reporting were intentionally skipped.
 **Status of account today:** Every workflow is in **draft**, 0 enrolled. This is a build/staging ground, so we can restructure freely without disrupting live contacts.

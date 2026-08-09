@@ -19,6 +19,18 @@ Append-only facts about the client. Newest at the bottom.
   awkwardly with "straight out of school". Confirm the founding year with Jake
   and adjust one side or the other.
 
+## Systems
+
+- **GHL sub-account: `r0WfsA12qpBv7M185V3v`** (confirmed by Jake, 2026-08-09).
+  This was the shared Hauck Marketing **test account** until that date, which is
+  why older code comments, runbooks and plans still call it one. It is Made
+  Better's own sub-account now and holds real customer data, so **it is not a
+  scratch account and nothing should be test-driven inside it**.
+
+  Their app tenant (`made-better-landscaping-co`) points at it, and the live
+  website + review funnels have posted there since 2026-08-04. The Cloudflare
+  `TEST_GHL_LOCATION_ID` / `TEST_GHL_TOKEN` env vars still name this location.
+
 ## Positioning
 
 - The site leans on "a young crew that has to earn it" as a deliberate angle:

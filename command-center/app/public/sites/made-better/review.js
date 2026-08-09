@@ -60,11 +60,10 @@
     // TO CONNECT: add an inbound webhook trigger to a GHL workflow, paste its
     // URL here and deploy.
     //
-    // NOTE THE SUB-ACCOUNT: r0WfsA12qpBv7M185V3v is the TEST account, not Made
-    // Better's. Fine while nothing is published, but a real customer's
-    // complaint sent here lands somewhere Seamus does not look. Swap this for
-    // Made Better's own inbound webhook before the funnel goes in front of
-    // anyone.
+    // THE SUB-ACCOUNT IS CORRECT (2026-08-09). r0WfsA12qpBv7M185V3v used to be
+    // the shared test account and this comment used to say so. It is Made
+    // Better LC's own sub-account now, so this hook lands exactly where Seamus
+    // looks. Do not "fix" it.
     webhookUrl: "https://services.leadconnectorhq.com/hooks/r0WfsA12qpBv7M185V3v/webhook-trigger/e991b773-025a-44f8-b447-fd17afe1f861",
 
     // Where 4 and 5 star taps go: a SECOND GHL inbound webhook, so the good
@@ -83,10 +82,9 @@
     // workflow can still branch on it. Filling this in simply stops it having
     // to.
     //
-    // NOTE THE SUB-ACCOUNT: r0WfsA12qpBv7M185V3v is the TEST account, the same
-    // one webhookUrl above still points at. Both need swapping for Made
-    // Better's own before this is in front of customers, or the notification
-    // fires somewhere Seamus never looks.
+    // THE SUB-ACCOUNT IS CORRECT (2026-08-09), same as webhookUrl above.
+    // r0WfsA12qpBv7M185V3v is Made Better LC's own sub-account now; it was the
+    // shared test account when this was first wired.
     positiveWebhookUrl: "https://services.leadconnectorhq.com/hooks/r0WfsA12qpBv7M185V3v/webhook-trigger/58269c65-3e35-4b6e-b10d-65346bbc62be",
 
     // 4 and above goes to Google. Everything below it opens the feedback panel.
