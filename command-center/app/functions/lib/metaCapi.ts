@@ -188,6 +188,12 @@ export interface LeadEventResult {
   eventsReceived?: number;
   fbtraceId?: string;
   error?: string;
+  // Meta's own words for the failure. `error` alone is almost always the
+  // useless "Invalid parameter": every distinct problem, from a stale
+  // timestamp to a malformed hash, arrives under that one string. The subcode
+  // and the user message are what actually name the fault, so they are kept.
+  errorSubcode?: number;
+  errorDetail?: string;
 }
 
 export async function sendLeadEvent(
@@ -227,15 +233,25 @@ export async function sendLeadEvent(
   const payload = (await res.json().catch(() => ({}))) as {
     events_received?: number;
     fbtrace_id?: string;
-    error?: { message?: string };
+    error?: {
+      message?: string;
+      error_subcode?: number;
+      error_user_title?: string;
+      error_user_msg?: string;
+      fbtrace_id?: string;
+    };
   };
 
   if (!res.ok) {
+    const err = payload.error ?? {};
+    const detail = [err.error_user_title, err.error_user_msg].filter(Boolean).join(": ");
     return {
       ok: false,
       status: res.status,
-      fbtraceId: payload.fbtrace_id,
-      error: payload.error?.message ?? `HTTP ${res.status}`,
+      fbtraceId: payload.fbtrace_id ?? err.fbtrace_id,
+      error: err.message ?? `HTTP ${res.status}`,
+      errorSubcode: err.error_subcode,
+      errorDetail: detail || undefined,
     };
   }
 

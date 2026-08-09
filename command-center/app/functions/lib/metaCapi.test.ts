@@ -174,6 +174,30 @@ describe("sendLeadEvent", () => {
     expect(out.error).toBe("Invalid parameter");
   });
 
+  it("keeps the subcode and Meta's own wording, which is the only useful part", async () => {
+    // The real refusal seen while verifying this: every distinct fault arrives
+    // as "Invalid parameter", so the subcode and user message are the fault.
+    capture(
+      {
+        error: {
+          message: "Invalid parameter",
+          error_subcode: 2804003,
+          error_user_title: "Event Timestamp Too Old",
+          error_user_msg: "The timestamp for this event is too far in the past.",
+          fbtrace_id: "tr-3",
+        },
+      },
+      false,
+      400,
+    );
+    const out = await sendLeadEvent("tok", FUNNEL_CAPI.willis, input);
+    expect(out.errorSubcode).toBe(2804003);
+    expect(out.errorDetail).toBe(
+      "Event Timestamp Too Old: The timestamp for this event is too far in the past.",
+    );
+    expect(out.fbtraceId).toBe("tr-3");
+  });
+
   it("survives the network being gone", async () => {
     vi.stubGlobal("fetch", async () => {
       throw new Error("connect ECONNREFUSED");
