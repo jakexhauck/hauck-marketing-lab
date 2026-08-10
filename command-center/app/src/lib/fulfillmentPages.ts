@@ -63,7 +63,7 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
   },
   // GHL is the operator's workbench for everything that gets pasted INTO the
   // client's GoHighLevel account. It sits beside Paid Ads rather than inside
-  // it because the follow-ups it builds are worked whether or not ads are the
+  // it because the assets it builds are worked whether or not ads are the
   // source of the lead.
   //
   // One sub-tab today, and it still gets a sub-tab rather than a bare page:
@@ -73,7 +73,7 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
     id: "ghl",
     label: "GHL",
     ready: true,
-    subTabs: [{ id: "follow-ups", label: "Follow Up Creation", ready: true }],
+    subTabs: [{ id: "conversion-assets", label: "Conversion Assets", ready: true }],
   },
   // Management is the client's paperwork in one place: the commercial record
   // (was Billing) above the setup that makes their app theirs (was Config).

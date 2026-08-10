@@ -11,7 +11,7 @@ import type { AdWorkspace, AdWorkspacePatch } from "../../functions/lib/adWorksp
 // The lead form's shape, from the module the endpoints validate with (0090).
 import type { LeadForm, LeadFormPatch } from "../../functions/lib/adLeadForms";
 // The follow-up page's shape, from the module the endpoints validate with (0093).
-import type { FollowupPage, FollowupPagePatch } from "../../functions/lib/followupPages";
+import type { ConversionAsset, ConversionAssetPatch } from "../../functions/lib/conversionAssets";
 import type {
   AgencySecretsResponse,
   ApplyResponse,
@@ -3021,31 +3021,34 @@ export function useDeleteLeadForm(tenantId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// SMS follow-up asset pages (0093). Fulfillment > GHL > Follow Up Creation.
+// Conversion assets (0093, 0096). Fulfillment > GHL > Conversion Assets.
 //
-// A page here is a published artefact at a real URL, not the current state of
+// An asset here is a published artefact at a real URL, not the current state of
 // some work, so unlike the ad workspace these are created, listed and deleted
-// rather than upserted. Two live at once for new-lead follow ups.
+// rather than upserted. Three exist at once per client, one per slot.
+//
+// The route and the `pages` key are historical: these were follow-up pages
+// before the SMS went universal.
 //
 // Agency-only. Nothing in the client app calls these.
 
-export function useFollowupPagesQuery(tenantId: string) {
+export function useConversionAssetsQuery(tenantId: string) {
   return useQuery({
     queryKey: ["admin", "followup-pages", tenantId],
     enabled: !!tenantId,
     queryFn: () =>
-      api<{ pages: FollowupPage[] }>(
+      api<{ pages: ConversionAsset[] }>(
         `/api/admin/followups?tenantId=${encodeURIComponent(tenantId)}`,
       ),
   });
 }
 
-export function useCreateFollowupPage(tenantId: string) {
+export function useCreateConversionAsset(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
     retry: false,
-    mutationFn: (patch: FollowupPagePatch) =>
-      api<{ page: FollowupPage }>(
+    mutationFn: (patch: ConversionAssetPatch) =>
+      api<{ page: ConversionAsset }>(
         `/api/admin/followups?tenantId=${encodeURIComponent(tenantId)}`,
         { method: "POST", body: JSON.stringify(patch) },
       ),
@@ -3060,20 +3063,20 @@ export function useCreateFollowupPage(tenantId: string) {
 // over it.
 //
 // Not invalidated on success. The wizard holds the authoritative draft and
-// refetching under a live cursor is how a half-typed message loses its last
-// keystroke. The list cache is patched in place instead, so the sequence beside
-// the wizard updates without a request.
-export function useUpdateFollowupPage(tenantId: string) {
+// refetching under a live cursor is how a half-typed note loses its last
+// keystroke. The list cache is patched in place instead, so the slots behind
+// the wizard update without a request.
+export function useUpdateConversionAsset(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
     retry: false,
-    mutationFn: (input: { id: string; patch: FollowupPagePatch }) =>
-      api<{ page: FollowupPage }>(
+    mutationFn: (input: { id: string; patch: ConversionAssetPatch }) =>
+      api<{ page: ConversionAsset }>(
         `/api/admin/followups?tenantId=${encodeURIComponent(tenantId)}&id=${encodeURIComponent(input.id)}`,
         { method: "PATCH", body: JSON.stringify(input.patch) },
       ),
     onSuccess: (data) => {
-      qc.setQueryData<{ pages: FollowupPage[] }>(
+      qc.setQueryData<{ pages: ConversionAsset[] }>(
         ["admin", "followup-pages", tenantId],
         (prev) =>
           prev
@@ -3084,7 +3087,7 @@ export function useUpdateFollowupPage(tenantId: string) {
   });
 }
 
-export function useDeleteFollowupPage(tenantId: string) {
+export function useDeleteConversionAsset(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
     retry: false,
@@ -3099,13 +3102,14 @@ export function useDeleteFollowupPage(tenantId: string) {
   });
 }
 
-// Upload one file for a follow-up page (logo, design kit, or a photo slot).
+// Upload one file for a conversion asset: the logo, the design kit, the owner's
+// photo, or one half of a before/after pair.
 //
 // Deliberately NOT routed through api(): that helper stamps a JSON
 // content-type on any request with a body, and a multipart upload must let the
 // browser set its own content-type so the boundary is included. Sending
 // FormData with application/json produces a body the server cannot parse.
-export async function uploadFollowupAsset(input: {
+export async function uploadAssetPhoto(input: {
   tenantId: string;
   slot: string;
   file: File;

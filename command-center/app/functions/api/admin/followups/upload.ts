@@ -1,13 +1,13 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { ASSET_SLOTS, type AssetSlot } from "../../../lib/followupPages";
+import { UPLOAD_FOLDERS, type UploadFolder } from "../../../lib/conversionAssets";
 
 // POST /api/admin/followups/upload  (multipart/form-data: tenantId, slot, file)
 //   -> { url }
 //
-// Files for a follow-up page: the logo, a design kit, and the photos each
-// media treatment asks for. Bytes go to the public `followup-assets` bucket
-// (0095) and the caller gets a plain URL back.
+// Files for a conversion asset: the logo, a design kit, the owner's photo and
+// the before/after photos of each job. Bytes go to the public `followup-assets`
+// bucket (0095) and the caller gets a plain URL back.
 //
 // PUBLIC, deliberately. The built page is served on the CLIENT'S domain by
 // GoHighLevel and opened by strangers off a text message. A signed URL expires,
@@ -64,13 +64,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   if (!tenantId) return Response.json({ error: "tenantId is required" }, { status: 400 });
 
   const rawSlot = String(form.get("slot") ?? "").trim();
-  // "kit" and "logo" are not asset slots but they land in the same bucket, so
-  // the path stays readable when somebody opens it in the Supabase console.
-  const folder: string = ASSET_SLOTS.includes(rawSlot as AssetSlot)
-    ? rawSlot
-    : rawSlot === "kit" || rawSlot === "logo"
-      ? rawSlot
-      : "extra";
+  // An allowlist, not a passthrough: this string becomes a path segment.
+  const folder: string = UPLOAD_FOLDERS.includes(rawSlot as UploadFolder) ? rawSlot : "extra";
 
   const entry = form.get("file") as unknown;
   if (entry === null || typeof entry === "string") {

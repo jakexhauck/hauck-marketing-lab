@@ -1,27 +1,28 @@
 import type { Env, ApiData } from "../../lib/env";
 import { getServiceClient } from "../../lib/supabase";
 import {
-  FOLLOWUP_PAGE_SELECT,
-  cleanFollowupType,
-  cleanStep,
+  CONVERSION_ASSET_SELECT,
   patchColumns,
-  toFollowupPage,
-  type FollowupPagePatch,
-  type FollowupPageRow,
-  type FollowupType,
-} from "../../lib/followupPages";
+  toConversionAsset,
+  type ConversionAssetPatch,
+  type ConversionAssetRow,
+} from "../../lib/conversionAssets";
 
-// SMS follow-up asset pages (0093).
+// Conversion assets (0093, 0095, 0096).
 //
 //   GET    /api/admin/followups?tenantId=...          -> { pages }
 //   POST   /api/admin/followups?tenantId=...          -> { page }
 //   PATCH  /api/admin/followups?tenantId=...&id=...   -> { page }
 //   DELETE /api/admin/followups?tenantId=...&id=...   -> { ok: true }
 //
-// Unlike the ad workspace (0091) there IS a POST here, because a page is a
+// The path and the `pages` key are historical: these were follow-up pages
+// before the SMS went universal. Renaming a live route buys nothing a comment
+// does not, and the shape on the wire is the same either way.
+//
+// Unlike the ad workspace (0091) there IS a POST here, because an asset is a
 // published artefact at a real URL rather than the current state of some work.
-// Two exist at once for new-lead follow ups and neither is a version of the
-// other, so one cannot be upserted over the top of its sibling.
+// A client has three at once, none of them a version of the other, so one
+// cannot be upserted over the top of its siblings.
 //
 // Every write carries tenantId AND is filtered by it, so an id belonging to
 // another client cannot be reached by guessing it. That matters more here than
@@ -51,19 +52,18 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   const { data, error } = await client
     .from("followup_pages")
-    .select(FOLLOWUP_PAGE_SELECT)
+    .select(CONVERSION_ASSET_SELECT)
     .eq("tenant_id", p.tenantId)
-    // The sequence order, which is the order they are sent in. Newest last:
-    // this list reads as a sequence, not as a feed.
-    .order("followup_type", { ascending: true })
-    .order("step", { ascending: true })
+    // Oldest first. The SEND order is not sortable in SQL (it is the order of
+    // ASSET_KINDS, not alphabetical), so the screen places each row into its
+    // slot and this ordering only has to be stable.
     .order("created_at", { ascending: true });
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  // No rows is the normal state for a client nobody has written for yet, not a
-  // 404: the wizard opens ready to start one.
-  const pages = ((data ?? []) as unknown as FollowupPageRow[]).map(toFollowupPage);
+  // No rows is the normal state for a client nobody has built for yet, not a
+  // 404: the screen shows three empty slots.
+  const pages = ((data ?? []) as unknown as ConversionAssetRow[]).map(toConversionAsset);
   return Response.json({ pages });
 };
 
@@ -74,31 +74,23 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const p = params(ctx.request, false);
   if (p.error) return p.error;
 
-  let body: FollowupPagePatch = {};
+  let body: ConversionAssetPatch = {};
   try {
-    body = (await ctx.request.json()) as FollowupPagePatch;
+    body = (await ctx.request.json()) as ConversionAssetPatch;
   } catch {
     return Response.json({ error: "invalid body" }, { status: 400 });
   }
 
-  const type = cleanFollowupType(body.followupType);
-  const insert = {
-    tenant_id: p.tenantId,
-    ...patchColumns(body, type),
-    // Always present on a create, so a row can never exist without a sequence
-    // or a step even if the body named neither.
-    followup_type: type,
-    step: cleanStep(body.step, type),
-  };
+  const insert = { tenant_id: p.tenantId, ...patchColumns(body) };
 
   const { data, error } = await client
     .from("followup_pages")
     .insert(insert)
-    .select(FOLLOWUP_PAGE_SELECT)
+    .select(CONVERSION_ASSET_SELECT)
     .single();
 
-  if (error || !data) return Response.json({ error: slugConflict(error) }, { status: 500 });
-  return Response.json({ page: toFollowupPage(data as unknown as FollowupPageRow) });
+  if (error || !data) return Response.json({ error: conflict(error) }, { status: 500 });
+  return Response.json({ page: toConversionAsset(data as unknown as ConversionAssetRow) });
 };
 
 export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -108,33 +100,14 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   const p = params(ctx.request, true);
   if (p.error) return p.error;
 
-  let body: FollowupPagePatch = {};
+  let body: ConversionAssetPatch = {};
   try {
-    body = (await ctx.request.json()) as FollowupPagePatch;
+    body = (await ctx.request.json()) as ConversionAssetPatch;
   } catch {
     return Response.json({ error: "invalid body" }, { status: 400 });
   }
 
-  // step is clamped against the follow-up type, and one request can change
-  // both, so the type AFTER this patch has to be resolved before the columns
-  // are built. When the body does not name a type, the stored one is read
-  // rather than assumed: defaulting to new-leads would silently cap an
-  // estimate-assets page at step 2.
-  let type: FollowupType;
-  if (body.followupType !== undefined) {
-    type = cleanFollowupType(body.followupType);
-  } else {
-    const { data: current } = await client
-      .from("followup_pages")
-      .select("followup_type")
-      .eq("id", p.id)
-      .eq("tenant_id", p.tenantId)
-      .maybeSingle();
-    if (!current) return Response.json({ error: "not found" }, { status: 404 });
-    type = cleanFollowupType((current as { followup_type: string }).followup_type);
-  }
-
-  const update = patchColumns(body, type);
+  const update = patchColumns(body);
   if (Object.keys(update).length === 0) {
     return Response.json({ error: "nothing to update" }, { status: 400 });
   }
@@ -145,14 +118,14 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     .update(update)
     .eq("id", p.id)
     // Scoped to the tenant as well as the id, so a stale id from another
-    // client updates nothing instead of updating someone else's page.
+    // client updates nothing instead of updating someone else's asset.
     .eq("tenant_id", p.tenantId)
-    .select(FOLLOWUP_PAGE_SELECT)
+    .select(CONVERSION_ASSET_SELECT)
     .maybeSingle();
 
-  if (error) return Response.json({ error: slugConflict(error) }, { status: 500 });
+  if (error) return Response.json({ error: conflict(error) }, { status: 500 });
   if (!data) return Response.json({ error: "not found" }, { status: 404 });
-  return Response.json({ page: toFollowupPage(data as unknown as FollowupPageRow) });
+  return Response.json({ page: toConversionAsset(data as unknown as ConversionAssetRow) });
 };
 
 export const onRequestDelete: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -172,11 +145,19 @@ export const onRequestDelete: PagesFunction<Env, string, ApiData> = async (ctx) 
   return Response.json({ ok: true });
 };
 
-// The one database error an operator can actually cause, said in their words.
-// 23505 on this table is always the (tenant_id, slug) index, and "duplicate key
-// value violates unique constraint" tells somebody who picked a URL twice
-// nothing about what to do next.
-function slugConflict(error: { code?: string; message?: string } | null): string {
-  if (error?.code === "23505") return "That slug is already used by another page for this client.";
-  return error?.message ?? "could not save the page";
+// The database errors an operator can actually cause, said in their words.
+// 23505 on this table is one of two unique indexes, and "duplicate key value
+// violates unique constraint" tells somebody who opened the same slot in two
+// tabs nothing about what to do next.
+//
+// The index NAME is what separates them. Both are per-tenant, and the kind one
+// is the likelier of the two now that slugs are fixed rather than typed.
+function conflict(error: { code?: string; message?: string } | null): string {
+  if (error?.code === "23505") {
+    if (error.message?.includes("tenant_kind")) {
+      return "This client already has that conversion asset. Open the existing one instead.";
+    }
+    return "That path is already used by another asset for this client.";
+  }
+  return error?.message ?? "could not save the asset";
 }

@@ -6,10 +6,6 @@ import { VitePWA } from "vite-plugin-pwa";
 // the home-screen label can never drift from the in-app identity.
 import { APP_BRAND } from "./src/lib/appBrand";
 import { version as pkgVersion } from "./package.json";
-// Dev-only SMS copy generation via the local `claude` CLI. It lives here
-// rather than in functions/ because Cloudflare's runtime cannot spawn a
-// process; see the file's own header.
-import { followupCopyPlugin } from "./vite-plugins/followupCopy";
 
 export default defineConfig({
   // Expose the build version to the app (Settings shows it for support).
@@ -19,7 +15,6 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    followupCopyPlugin(),
     VitePWA({
       strategies: "injectManifest",
       srcDir: "src",

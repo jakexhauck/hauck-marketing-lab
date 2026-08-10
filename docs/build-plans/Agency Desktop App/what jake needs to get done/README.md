@@ -415,3 +415,33 @@ something only you can issue.
 - [ ] **Optional: add Workers KV Storage:Edit to the Cloudflare token.** Not
       needed. Her prices currently live in her own calendar, which works and is
       proven. It would only let that move to a more conventional store.
+
+## Conversion Assets (Fulfillment > GHL), shipped 10 August 2026
+
+The screen that plans the three pages every client gets. Nothing here is a
+bug, it is the work that only you can do.
+
+- [ ] **Write the three universal texts, once, in GoHighLevel.** The app no
+      longer holds any of them, which is the whole point of the change. They
+      go to: Recent Work at `/recent-work` (new lead, text 1), Owner Story at
+      `/meet-the-owner` (new lead, text 2), Unique Mechanism at `/our-process`
+      (inside the estimate reminders).
+
+- [ ] **The Owner Story text must promise the gift by name.** The page is
+      built to hand over 10% off and refuses to be marked finished without an
+      offer. If the text does not mention it, the page is answering a question
+      nobody asked.
+
+- [ ] **Build one asset end to end.** Fill a client in, copy the prompt off
+      the last step, paste it into Claude, and see whether what comes back is
+      a page you would put a lead on. That is the only real test of the prompt
+      and I cannot run it for you.
+
+- [ ] **Create the three GoHighLevel pages and paste the stubs.** One page per
+      fixed path per client, and the Link step gives you the two lines. A wrong
+      path answers 200 with an empty body, so a mistake looks like a blank page
+      rather than an error.
+
+- [ ] **Bin or finish the Made Better draft.** There is one row left over from
+      the old wizard. It migrated into their Recent Work slot and is otherwise
+      empty.

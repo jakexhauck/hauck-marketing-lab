@@ -124,7 +124,6 @@ export default function FulfillmentPage() {
           tenantId={tenantId}
           clientName={selected?.name ?? ""}
           clientSlug={selected?.slug ?? ""}
-          clientNiche={selected?.niche ?? ""}
           activeSub={activeSub}
           isLoading={isLoading}
           isError={isError}
@@ -142,7 +141,6 @@ function PageBody({
   tenantId,
   clientName,
   clientSlug,
-  clientNiche,
   activeSub,
   isLoading,
   isError,
@@ -151,7 +149,6 @@ function PageBody({
   tenantId: string | null;
   clientName: string;
   clientSlug: string;
-  clientNiche: string;
   activeSub: string | null;
   isLoading: boolean;
   isError: boolean;
@@ -185,8 +182,7 @@ function PageBody({
           tenantId={tenantId}
           clientName={clientName}
           clientSlug={clientSlug}
-          clientNiche={clientNiche}
-          activeSub={activeSub ?? "follow-ups"}
+          activeSub={activeSub ?? "conversion-assets"}
         />
       );
     case "management":
