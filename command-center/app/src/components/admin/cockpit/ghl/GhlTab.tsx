@@ -1,3 +1,4 @@
+import ConnectionPanel from "./ConnectionPanel";
 import ConversionAssetPanel from "./ConversionAssetPanel";
 import { placeholderCopy, subTabsFor } from "../../../../lib/fulfillmentPages";
 
@@ -22,6 +23,14 @@ export default function GhlTab({
     case "conversion-assets":
       return (
         <ConversionAssetPanel
+          tenantId={tenantId}
+          clientName={clientName}
+          clientSlug={clientSlug}
+        />
+      );
+    case "connection":
+      return (
+        <ConnectionPanel
           tenantId={tenantId}
           clientName={clientName}
           clientSlug={clientSlug}

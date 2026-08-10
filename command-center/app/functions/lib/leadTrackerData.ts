@@ -25,6 +25,7 @@ import {
   type TrackerOpportunity,
   type TrackerSpendRow,
 } from "./adTrackerMetrics";
+import type { ClientLeadStatus } from "./leadStatus";
 
 export interface TrackerData {
   leads: TrackerLead[];
@@ -129,7 +130,33 @@ export async function loadTrackerData(
     }
   });
 
-  const leads = assembleLeads(opportunities, stageNames, attributionByContact, jobValueByContact);
+  // Per-tenant stage overrides, set on Fulfillment > GHL > Connection. Only the
+  // stages an operator has explicitly corrected are in here; everything else
+  // keeps deriving its status from the stage NAME, which is what makes a new
+  // client work without a remap. A failed read is not fatal: falling back to
+  // name matching is the behaviour that predates this table.
+  const statusOverrides = new Map<string, ClientLeadStatus>();
+  const { data: overrideRows, error: overrideErr } = await client
+    .from("ghl_stage_map")
+    .select("stage_id, lead_status")
+    .eq("tenant_id", tenantId);
+  if (overrideErr) {
+    console.warn("[tracker] stage overrides unavailable:", overrideErr.message);
+  } else {
+    for (const row of overrideRows ?? []) {
+      const stageId = String((row as Record<string, unknown>).stage_id ?? "");
+      const status = String((row as Record<string, unknown>).lead_status ?? "");
+      if (stageId && status) statusOverrides.set(stageId, status as ClientLeadStatus);
+    }
+  }
+
+  const leads = assembleLeads(
+    opportunities,
+    stageNames,
+    attributionByContact,
+    jobValueByContact,
+    statusOverrides,
+  );
   const spendRows = toSpendRows((spendRes.data ?? []) as Record<string, unknown>[]);
 
   const adMeta = new Map<string, TrackerSpendRow>();

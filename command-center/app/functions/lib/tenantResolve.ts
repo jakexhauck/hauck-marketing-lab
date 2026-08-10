@@ -38,6 +38,10 @@ export interface TenantRow {
   value_label: string;
   ghl_location_id: string;
   ghl_token: string;
+  // Which webhook source this client's reporting is cut over to (0100):
+  // 'workflow' (the hand-built webhook actions) or 'app' (the Marketplace app).
+  // Optional so a pre-0100 database still types. See functions/lib/ghlEventHealth.ts.
+  ghl_event_source?: string;
   meta_ad_account_id: string | null;
   google_place_id: string | null;
   ga4_property_id: string | null;

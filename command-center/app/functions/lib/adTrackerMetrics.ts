@@ -514,6 +514,11 @@ export function assembleLeads(
   stageNames: Map<string, string>,
   attributionByContact: Map<string, { adId: string } | null>,
   jobValueByContact: Map<string, number>,
+  // Per-tenant overrides from ghl_stage_map, keyed by STAGE ID. Name matching
+  // in leadStatus.ts stays the default and handles every client that names
+  // stages the usual way; this is for the ones that do not. Empty or absent
+  // means the behaviour is exactly what it was before the map existed.
+  statusOverrides?: ReadonlyMap<string, ClientLeadStatus>,
 ): TrackerLead[] {
   const byContact = new Map<string, TrackerLead>();
 
@@ -524,7 +529,8 @@ export function assembleLeads(
 
     const stageName = stageNames.get(opp.pipelineStageId) ?? "";
     const level = deriveLevel(stageName);
-    const status = statusForStage(stageName);
+    const status =
+      statusOverrides?.get(opp.pipelineStageId) ?? statusForStage(stageName);
     const existing = byContact.get(contactId);
 
     if (existing) {

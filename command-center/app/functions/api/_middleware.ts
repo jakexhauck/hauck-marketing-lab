@@ -72,6 +72,15 @@ const PUBLIC_PATHS = new Set([
   // Guarded by a funnel allowlist and a per-funnel Origin check instead, and it
   // can only ever write a Lead. See lib/metaCapi.ts.
   "/api/capi/lead",
+  // The GoHighLevel Marketplace app's two inbound endpoints. Neither can carry
+  // a session of ours: the first is a redirect target GHL sends the installing
+  // admin's browser to, the second is called by GHL's servers.
+  //
+  // Named /api/crm/* rather than /api/ghl/*: a white-label marketplace listing
+  // rejects any URL containing a HighLevel reference, and "ghl" in the path is
+  // one. Each has its own guard, see the files themselves.
+  "/api/crm/oauth/callback",
+  "/api/crm/app-webhook",
 ]);
 
 // Public paths with a dynamic segment, matched by prefix. Kept separate from the

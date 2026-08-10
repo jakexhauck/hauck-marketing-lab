@@ -11,6 +11,15 @@ import {
   type GhlContext,
   type GhlOpportunity,
 } from "../lib/ghl";
+import {
+  APP_COVERED_TYPES,
+  shouldPush,
+  toActivity,
+  type GhlWebhookEvent,
+} from "../lib/ghlEvents";
+import { bumpEventSeen, eventSourceForTenant } from "../lib/ghlEventHealth";
+import { insertActivityOnce } from "../lib/activityLog";
+import { mirrorFromWebhook } from "../lib/appointmentMirror";
 
 // Auth model: GHL cannot produce a signature we can verify here (marketplace
 // webhooks sign with an RSA key under x-wh-signature; workflow webhook actions
@@ -24,142 +33,6 @@ import {
 // Workflow webhook actions must also include locationId in their custom
 // payload (plus type/contactId/opportunityId) or the event is ignored: tenant
 // routing is by event.locationId, never by a hardcoded tenant.
-
-interface GhlWebhookEvent {
-  type?: string;
-  locationId?: string;
-  id?: string;
-  contactId?: string;
-  opportunityId?: string;
-  // GHL user id the opportunity is assigned to. Drives "assigned rep only"
-  // push routing; absent on events with no assignee (e.g. inbound messages).
-  assignedTo?: string;
-  [k: string]: unknown;
-}
-
-// Normalized activity, illustrative shape from the plan. It is mapped onto the
-// real activity_log columns (action, lead_id, payload) at insert time below.
-type ActivityKind =
-  | "lead_created"
-  | "stage_changed"
-  | "status_changed"
-  | "message_in"
-  | "message_out"
-  | "appointment_create"
-  | "appointment_update"
-  | "appointment_delete"
-  | "invoice_create"
-  | "invoice_sent"
-  | "invoice_paid"
-  | "call_inbound";
-
-interface Activity {
-  tenant_id: string;
-  kind: ActivityKind;
-  contact_id: string | null;
-  opportunity_id: string | null;
-  // GHL user the lead is assigned to, when the event carries one. Used to route
-  // "assigned rep only" pushes; null leaves the fan-out to fall back to everyone.
-  assigned_user_id: string | null;
-  summary: string;
-  raw: unknown;
-}
-
-function mk(
-  kind: ActivityKind,
-  summary: string,
-  tenantId: string,
-  e: GhlWebhookEvent,
-): Activity {
-  return {
-    tenant_id: tenantId,
-    kind,
-    contact_id: e.contactId ?? null,
-    opportunity_id: e.opportunityId ?? null,
-    assigned_user_id:
-      typeof e.assignedTo === "string" && e.assignedTo ? e.assignedTo : null,
-    summary,
-    raw: e,
-  };
-}
-
-export function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | null {
-  switch (e.type) {
-    case "OpportunityCreate":
-      return mk("lead_created", "New lead", tenantId, e);
-    case "OpportunityStageUpdate":
-      return mk("stage_changed", "Stage changed", tenantId, e);
-    case "OpportunityStatusUpdate": {
-      // Derive a readable summary when the payload carries the new status.
-      const status = typeof e.status === "string" ? e.status.toLowerCase() : "";
-      const summary =
-        status === "won"
-          ? "Lead won"
-          : status === "lost"
-            ? "Lead lost"
-            : "Lead status changed";
-      return mk("status_changed", summary, tenantId, e);
-    }
-    case "LeadStatusUpdate": {
-      // The type Jake's own GHL workflows post, one per status in the 12-status
-      // model, carrying `status` (and `stage` for the No Answer Day N cadence,
-      // which all collapse to one status). We do NOT store the status: the
-      // tracker derives it from the live stage on read, so a webhook that
-      // arrives late or out of order can never contradict GHL. This event exists
-      // to make the app refresh instantly and to leave a readable feed row.
-      const status = typeof e.status === "string" ? e.status.trim() : "";
-      // A win should wake the phone, exactly like the marketplace status event.
-      if (/^won\b/i.test(status)) return mk("status_changed", "Lead won", tenantId, e);
-      return mk("stage_changed", status || "Stage changed", tenantId, e);
-    }
-    case "AppointmentCreate":
-      return mk("appointment_create", "Appointment booked", tenantId, e);
-    case "AppointmentUpdate":
-      return mk("appointment_update", "Appointment updated", tenantId, e);
-    case "AppointmentDelete":
-      return mk("appointment_delete", "Appointment cancelled", tenantId, e);
-    case "InvoiceCreate":
-      return mk("invoice_create", "Invoice created", tenantId, e);
-    case "InvoiceSent":
-      return mk("invoice_sent", "Invoice sent", tenantId, e);
-    case "InvoicePaid":
-      return mk("invoice_paid", "Invoice paid", tenantId, e);
-    case "InboundMessage":
-      // A lead replied. This is the "mark thread fresh" path: it writes a
-      // message_in activity row and (via shouldPush) fires a push, which is what
-      // wakes the client's inbox/leads views to refetch. A fuller in-app live
-      // refresh (updating an open tab without a push) would need a Supabase
-      // Realtime subscription on activity_log, which does not exist yet.
-      return mk("message_in", "Inbound message", tenantId, e);
-    case "OutboundMessage":
-      return mk("message_out", "Outbound message", tenantId, e);
-    case "InboundCall":
-      // A call is hitting the business's GHL number right now. This is the
-      // "pop the Call Console" path: it writes a call_inbound activity row
-      // and (via shouldPush) fires a push so the client's phone wakes up.
-      return mk(
-        "call_inbound",
-        typeof e.phone === "string" && e.phone
-          ? `Incoming call ${e.phone}`
-          : "Incoming call",
-        tenantId,
-        e,
-      );
-    default:
-      return null; // ignore everything else
-  }
-}
-
-// Kinds that wake the client's phone. Wins and new appointments matter as
-// much as new leads; routine updates and outbound traffic do not.
-export function shouldPush(activity: Activity): boolean {
-  if (activity.kind === "message_in" || activity.kind === "lead_created") {
-    return true;
-  }
-  if (activity.kind === "appointment_create") return true;
-  if (activity.kind === "call_inbound") return true;
-  return activity.kind === "status_changed" && activity.summary === "Lead won";
-}
 
 // Map a GHL location id to the Supabase tenant slug it belongs to. Only the
 // two locations this deploy is configured for are routable; events from any
@@ -193,42 +66,6 @@ async function tenantIdForLocation(
 
   const slug = slugForLocation(env, locationId);
   return slug ? await resolveTenantId(client, slug) : null;
-}
-
-// Insert one activity_log row, idempotently when a GHL event id is present.
-// Returns true only when a NEW row was created, so the caller pushes exactly
-// once even if GHL retries. Dedup relies on the unique (tenant_id, ghl_event_id)
-// index from migration 0012; if that column/index is not present yet the upsert
-// errors and we fall back to a plain insert (the prior behaviour), so the
-// webhook never breaks on an un-migrated database.
-async function insertActivityOnce(
-  client: SupabaseClient,
-  row: Record<string, unknown>,
-  eventId: string | null,
-): Promise<boolean> {
-  if (eventId) {
-    const { data, error } = await client
-      .from("activity_log")
-      .upsert(
-        { ...row, ghl_event_id: eventId },
-        { onConflict: "tenant_id,ghl_event_id", ignoreDuplicates: true },
-      )
-      .select("id");
-    if (!error) {
-      // ignoreDuplicates => an already-seen event returns no rows.
-      return Array.isArray(data) && data.length > 0;
-    }
-    console.warn(
-      "[webhook] idempotent insert unavailable, falling back to plain insert:",
-      error.message,
-    );
-  }
-  const { error } = await client.from("activity_log").insert(row);
-  if (error) {
-    console.error("[webhook] activity insert failed", error.message);
-    return false;
-  }
-  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -530,6 +367,37 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       console.warn("[webhook] unroutable locationId", event.locationId);
       return new Response("ignored", { status: 200 });
     }
+
+    // Record what GHL sent BEFORE deciding what to do with it, so the health
+    // board on the Connection page shows a dropped duplicate as well as a
+    // processed event. Off the response path: a stale board never delays an ack.
+    ctx.waitUntil(bumpEventSeen(client, tenantId, event.type ?? "unknown", "workflow"));
+
+    // Cutover guard. Once a tenant is switched to the Marketplace app, GHL's
+    // native event AND Jake's hand-built workflow both fire for the same
+    // real-world change, carrying different event ids that the
+    // (tenant_id, ghl_event_id) index from 0012 cannot dedupe. That is two
+    // activity rows and two pushes: the client's phone buzzing twice for one
+    // lead. Dropping here rather than in the app endpoint keeps the newer,
+    // signed, richer payload as the one that wins.
+    //
+    // LeadStatusUpdate is deliberately not in APP_COVERED_TYPES: no native GHL
+    // event emits Jake's 12-status cadence, so it flows through this endpoint
+    // whichever source a tenant is on.
+    const eventSource = await eventSourceForTenant(client, tenantId);
+    if (eventSource === "app" && APP_COVERED_TYPES.has(event.type ?? "")) {
+      console.log("[webhook] dropped as duplicate, tenant is on app:", event.type);
+      return new Response("ok", { status: 200 });
+    }
+
+    // Put the booking in the owner's own Google Calendar. Runs on this endpoint
+    // too, not just the app one, so a client still on the workflow source gets
+    // the same behaviour as one already cut over.
+    ctx.waitUntil(
+      mirrorFromWebhook(ctx.env, client, tenantId, event).catch((err) =>
+        console.error("[webhook] calendar mirror failed", err),
+      ),
+    );
 
     // Appointment confirmation side effect. A confirmation may arrive as an
     // event type the activity mapper ignores, so run this BEFORE the

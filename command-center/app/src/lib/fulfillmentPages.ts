@@ -66,14 +66,17 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
   // it because the assets it builds are worked whether or not ads are the
   // source of the lead.
   //
-  // One sub-tab today, and it still gets a sub-tab rather than a bare page:
-  // the second one (the funnel stubs) is already known, and a page that grows
-  // a tab row later moves everything on it the day it does.
+  // Two sub-tabs. Conversion Assets builds things a client's leads will read;
+  // Connection is the wiring underneath, where the Marketplace app's install,
+  // the event health board and the cutover switch live.
   {
     id: "ghl",
     label: "GHL",
     ready: true,
-    subTabs: [{ id: "conversion-assets", label: "Conversion Assets", ready: true }],
+    subTabs: [
+      { id: "conversion-assets", label: "Conversion Assets", ready: true },
+      { id: "connection", label: "Connection", ready: true },
+    ],
   },
   // Management is the client's paperwork in one place: the commercial record
   // (was Billing) above the setup that makes their app theirs (was Config).

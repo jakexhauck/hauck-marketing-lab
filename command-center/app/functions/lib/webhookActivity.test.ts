@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toActivity, shouldPush } from "../api/webhook";
+import { toActivity, shouldPush } from "./ghlEvents";
 
 describe("InboundCall webhook mapping", () => {
   it("maps InboundCall to a call_inbound activity", () => {
