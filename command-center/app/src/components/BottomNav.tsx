@@ -3,6 +3,7 @@ import { NAV, bottomNavItems, filterNav } from "../lib/nav";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "../hooks/useApi";
 import { useNavDataGates } from "../hooks/useNavDataGates";
+import { isInboxConversation } from "../lib/api";
 import { haptic } from "../lib/haptics";
 
 export default function BottomNav() {
@@ -37,10 +38,12 @@ export default function BottomNav() {
   // (and the badge) come back on their own.
   const hasInboxTab = items.some((item) => item.to === "/conversations");
   const conversations = useConversationsQuery(Boolean(session) && hasInboxTab);
-  const unreadConversations = (conversations.data?.conversations ?? []).reduce(
-    (n, c) => n + (c.unreadCount > 0 ? c.unreadCount : 0),
-    0,
-  );
+  // Counts the Inbox, not the payload: the same feed also carries the client's
+  // review-request chats for Reviews > Chats, and a badge on the Inbox tab that
+  // included those would send them to a page where the unread is not.
+  const unreadConversations = (conversations.data?.conversations ?? [])
+    .filter(isInboxConversation)
+    .reduce((n, c) => n + (c.unreadCount > 0 ? c.unreadCount : 0), 0);
 
   return (
     <nav

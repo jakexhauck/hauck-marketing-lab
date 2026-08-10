@@ -26,6 +26,20 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-10-client-inbox-handoff-gate",
+    date: "10 August 2026",
+    title: "A client's Inbox holds their work, not ours",
+    items: [
+      "The client Inbox now shows one thing: the chats for estimates we book and leads we hand off. A lead we are still working does not appear in it.",
+      "Everything upstream is gone from their view. The raw opt-ins, the seven-day no-answer chase and anything binned stay on our side, where they were always meant to be.",
+      "A lead arrives in their Inbox at the moment it reaches the Sales pipeline, and stays for good after that, whether it goes on to win or lose.",
+      "This is a real gate, not a tidier list: a thread we have not handed over cannot be opened or replied to from the client app even with its link.",
+      "Reviews, Chats is untouched. A past customer we have asked for a review is the client's own customer, so those threads still show.",
+      "A client whose pipelines we cannot read keeps seeing everything, exactly as before. Nobody's Inbox goes blank because a setting is missing.",
+      "If a client does not call their hand-off pipeline Sales, set the pipeline on their client record and the Inbox follows it.",
+    ],
+  },
+  {
     id: "2026-08-10-ghl-follow-up-creation",
     date: "10 August 2026",
     title: "Follow-up pages get built from a screen instead of a chat window",

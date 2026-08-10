@@ -31,6 +31,14 @@ export default function Conversations() {
     () => conversationsForTab(all, DEFAULT_INBOX_TAB, search),
     [all, search],
   );
+  // The empty state keys off the Inbox, not the payload. The feed also carries
+  // the review-request chats Reviews > Chats reads, so a client with nothing but
+  // those would otherwise be handed a list frame with a "nothing in this tab"
+  // row inside it instead of the real "no conversations" state.
+  const inboxCount = useMemo(
+    () => conversationsForTab(all, DEFAULT_INBOX_TAB, "").length,
+    [all],
+  );
 
   return (
     <Shell>
@@ -56,7 +64,7 @@ export default function Conversations() {
             </div>
           ) : query.isLoading ? (
             <ConversationsSkeleton />
-          ) : all.length === 0 ? (
+          ) : inboxCount === 0 ? (
             <EmptyState
               title="No conversations"
               message="New leads and replies will show up here."

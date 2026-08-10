@@ -8,7 +8,7 @@
 // control. Nothing renders it. If per-stage filtering ever comes back, add the
 // entries here and a strip built on TAB_TRACK / TabButton from PageTabs.
 import { sortForQueue } from "./stageGroups";
-import type { ApiConversation } from "./api";
+import { isInboxConversation, type ApiConversation } from "./api";
 
 export interface InboxTab {
   key: string;
@@ -16,8 +16,12 @@ export interface InboxTab {
   match: (c: ApiConversation) => boolean;
 }
 
+// "Inbox" no longer means "everything in the payload". The feed also carries the
+// client's review-request chats, because Reviews > Chats reads the same query,
+// and those belong on that page rather than in here. The server flags which is
+// which; absent flag means Inbox, so nothing disappears on a stale payload.
 export const INBOX_TABS: InboxTab[] = [
-  { key: "all", label: "Inbox", match: () => true },
+  { key: "all", label: "Inbox", match: isInboxConversation },
 ];
 
 export const DEFAULT_INBOX_TAB = INBOX_TABS[0].key;

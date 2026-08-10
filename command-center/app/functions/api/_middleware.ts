@@ -263,6 +263,9 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         // the source='NOTIFICATION' signal as the only guard, which still hides
         // GHL's auto-created sinks.
         internal_recipients: tenant?.internal_recipients ?? undefined,
+        // Per-client hand-off pipeline override (0097). Undefined is the norm:
+        // the pipeline resolves by name for a client who calls theirs "Sales".
+        client_inbox_pipeline_id: tenant?.client_inbox_pipeline_id ?? undefined,
         slug: tenant?.slug ?? liveTenantSlug(ctx.env),
         mode: "live",
       };

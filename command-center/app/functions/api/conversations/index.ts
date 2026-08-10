@@ -4,6 +4,8 @@ import {
   fetchAllContacts,
   fetchAllOpportunities,
   ghlJson,
+  type GhlContext,
+  type GhlOpportunity,
 } from "../../lib/ghl";
 import {
   buildOpportunityIndex,
@@ -12,6 +14,11 @@ import {
 import { classifyOrigin, normalizeChannel } from "../../lib/origin";
 import type { OriginKey, ChannelKey } from "../../lib/origin";
 import { makeInternalConversationFilter } from "../../lib/internalRecipients";
+import {
+  resolveClientInboxScope,
+  buildVisibleContactIds,
+  type ClientInboxScope,
+} from "../../lib/handoffScope";
 
 export interface ConversationPipeline {
   pipelineId: string;
@@ -45,6 +52,12 @@ export interface ApiConversation {
   // time, so a page that needs one specific pipeline reads this. Empty when the
   // contact has no opportunity at all.
   pipelines: ConversationPipeline[];
+  // Does this conversation belong in the client's INBOX, as opposed to merely
+  // being in the payload? True for a lead in the hand-off pipeline. False for a
+  // review request, which rides along only because Reviews > Chats reads this
+  // same feed. Always true when the gate is off, so an ungated client's Inbox
+  // is exactly what it was before.
+  inbox: boolean;
 }
 
 interface PipelinesResponse {
@@ -61,6 +74,39 @@ function isSystemActivity(t?: string | number): boolean {
   return upper.includes("ACTIVITY") || upper.includes("OPPORTUNITY");
 }
 
+// The opportunities the visibility gate should be built from, or null to leave
+// the gate off and return the feed unchanged.
+//
+// The normal path reuses the location-wide list the endpoint already fetched, so
+// gating costs no extra GHL calls. fetchAllOpportunities is page-capped though,
+// and a gate built from a truncated list would hide real handed-off threads
+// rather than fail loudly, so a capped fetch re-reads just the one or two
+// pipelines that matter: far fewer rows, and only in that case. If even that
+// fails, the gate goes off rather than hiding anything.
+async function opportunitiesForGate(
+  gctx: GhlContext,
+  scope: ClientInboxScope | null,
+  opps: GhlOpportunity[],
+  truncated: boolean,
+): Promise<GhlOpportunity[] | null> {
+  if (!scope) return null;
+  if (!truncated) return opps;
+
+  const pipelineIds = [scope.handoffPipelineId, scope.reviewsPipelineId].filter(
+    (id): id is string => Boolean(id),
+  );
+  try {
+    const pages = await Promise.all(
+      pipelineIds.map((pipelineId) =>
+        fetchAllOpportunities(gctx, { pipelineId, maxPages: 30 }),
+      ),
+    );
+    return pages.flat();
+  } catch {
+    return null;
+  }
+}
+
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const t = ctx.data.tenant;
   const gctx = { token: t.ghl_token, locationId: t.ghl_location_id };
@@ -69,10 +115,19 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // stage) + pipelines (stage id -> name), fetched in parallel. The opportunity
   // and pipeline fetches degrade to empty on failure so the inbox still loads
   // (everything then buckets under "New / Unsorted").
+  // Tracked separately from the empty array, because "the opportunities fetch
+  // failed" and "this client has no opportunities" look identical downstream and
+  // must not: the first has to leave the Inbox gate off, the second is a real
+  // empty result. See the visibility gate below.
+  let oppsFailed = false;
+  const oppsTruncated = { value: false };
   const [all, contacts, opps, pipelinesData] = await Promise.all([
     fetchAllConversations(gctx),
     fetchAllContacts(gctx),
-    fetchAllOpportunities(gctx).catch(() => []),
+    fetchAllOpportunities(gctx, { truncated: oppsTruncated }).catch(() => {
+      oppsFailed = true;
+      return [];
+    }),
     ghlJson<PipelinesResponse>(
       gctx,
       `/opportunities/pipelines?locationId=${encodeURIComponent(t.ghl_location_id)}`,
@@ -96,9 +151,44 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     t.internal_recipients,
   );
 
+  // The client sees the chats for estimates we book and leads we hand off, and
+  // nothing else: a conversation reaches the Inbox only if its contact holds an
+  // opportunity in the hand-off pipeline, or in the Google Reviews pipeline that
+  // Reviews > Chats reads through this same feed. The setter's own work -- raw
+  // opt-ins, the no-answer chase, Trash -- never leaves the Worker.
+  //
+  // A failed opportunities fetch leaves the gate off deliberately: gating on a
+  // list we could not read would blank an Inbox that is actually fine.
+  const scope = oppsFailed
+    ? null
+    : resolveClientInboxScope(
+        pipelinesData.pipelines ?? [],
+        t.client_inbox_pipeline_id,
+      );
+  const gateOpps = await opportunitiesForGate(
+    gctx,
+    scope,
+    opps,
+    oppsTruncated.value,
+  );
+  // Two sets, because the feed and the Inbox are not the same list. `visible`
+  // is what may leave the Worker at all (hand-off + Google Reviews). `inbox` is
+  // the narrower hand-off-only set that decides the `inbox` flag below, so a
+  // review request never lands in the Inbox just because Reviews > Chats needs
+  // it in the payload. Both null => gate off, and every conversation is both.
+  const visibleContacts =
+    scope && gateOpps ? buildVisibleContactIds(scope, gateOpps) : null;
+  const inboxContacts =
+    scope && gateOpps
+      ? buildVisibleContactIds({ ...scope, reviewsPipelineId: null }, gateOpps)
+      : null;
+
   const items = all
     .filter((c) => Boolean(c.contactId))
     .filter((c) => !isInternalConversation(c))
+    .filter(
+      (c) => !visibleContacts || visibleContacts.has(c.contactId as string),
+    )
     .map((c) => {
       const contact = byContact.get(c.contactId as string);
       const name = c.fullName || c.contactName || c.email || c.phone || "Unknown";
@@ -150,6 +240,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         pipelineName: stage?.pipelineName,
         stageName: stage?.stageName,
         pipelines,
+        inbox: !inboxContacts || inboxContacts.has(c.contactId as string),
       } satisfies ApiConversation;
     });
 

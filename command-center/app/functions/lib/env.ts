@@ -201,6 +201,13 @@ export interface TenantContext {
   // Undefined => only the source='NOTIFICATION' signal applies, which still
   // catches the sinks GHL auto-creates. See functions/lib/internalRecipients.ts.
   internal_recipients?: string;
+  // The GHL pipeline whose opportunities make a conversation visible in this
+  // client's Inbox, from the tenant row (0097). Undefined => the pipeline is
+  // resolved by name, and if that fails the Inbox is ungated and shows every
+  // conversation, as it did before the gate. No env fallback: one client's
+  // pipeline id is meaningless in another's sub-account. See
+  // functions/lib/handoffScope.ts.
+  client_inbox_pipeline_id?: string;
   // Supabase tenants.slug for this session, resolved from the session mode in
   // _middleware.ts. All Supabase-backed routes must scope by this, never by a
   // hardcoded slug, or test and live data bleed into each other.

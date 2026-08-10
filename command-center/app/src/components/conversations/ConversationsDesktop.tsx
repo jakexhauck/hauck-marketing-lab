@@ -30,6 +30,12 @@ export default function ConversationsDesktop() {
     () => conversationsForTab(all, DEFAULT_INBOX_TAB, search),
     [all, search],
   );
+  // Keyed off the Inbox rather than the payload, which also carries the
+  // review-request chats Reviews > Chats reads. See the phone route.
+  const inboxCount = useMemo(
+    () => conversationsForTab(all, DEFAULT_INBOX_TAB, "").length,
+    [all],
+  );
 
   // Keep a valid selection for the active tab: default to the top row, and if
   // the current pick is not in this tab's queue (tab switch, search), reselect.
@@ -95,7 +101,7 @@ export default function ConversationsDesktop() {
                 aria-hidden
               />
             </div>
-          ) : all.length === 0 ? (
+          ) : inboxCount === 0 ? (
             <EmptyState
               title="No conversations"
               message="New leads and replies will show up here."

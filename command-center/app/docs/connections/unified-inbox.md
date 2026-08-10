@@ -4,6 +4,14 @@ What the Unified Inbox needs to go from demo-complete to fully functional. Statu
 
 Route: `/conversations` (sidebar label "Inbox"). Desktop renders a three-pane layout: a Channel + Source filter rail (left), the conversation list with a source badge per row (middle), and an inline detail pane with an origin-context strip, message thread, and composer (right). The phone keeps its single-column list and gains the same source badge.
 
+## Who the client is allowed to see (the hand-off gate)
+- ✅ **The rule** (2026-08-10): a conversation reaches the client only if its contact holds an opportunity in the **hand-off pipeline**. Any stage in it counts, Won and Lost included. The setter's own work — raw opt-ins, the no-answer chase, Trash — never leaves the Worker.
+- ✅ **Pipeline resolution** — `functions/lib/handoffScope.ts`, by NAME per tenant (exact `sales` → contains `sales` → known Willis id), overridable per client via `tenants.client_inbox_pipeline_id` (0097). An override matching nothing falls through to the name ladder, so a typo cannot silently open the gate.
+- ✅ **Enforced on three endpoints**, not just the list: `/api/conversations` filters the feed, and `messages` (404) / `send` + `sms` (403) refuse a contact outside scope. Filtering the list alone would leave every thread in the location one hand-typed URL away.
+- ⚠️ **Google Reviews rides along in the payload.** Reviews > Chats reads this same feed, so the allowlist is hand-off ∪ Google Reviews. The per-conversation `inbox` boolean separates them: false for a review request, so it stays out of the Inbox. Read it client-side through `isInboxConversation()` — absent means true, so a stale cached payload cannot empty an Inbox.
+- ✅ **Gate-off is deliberate.** No resolvable hand-off pipeline, or an opportunities fetch that failed, leaves the feed exactly as it was. A config gap must never blank an Inbox.
+- ⚠️ **Cost:** free on the list (the endpoint already fetches opportunities + pipelines). The thread guards cost one pipelines call plus one `contact_id`-scoped opportunity search per open.
+
 ## Data source — GoHighLevel
 - ✅ **Conversations feed** (`/conversations/search`, paginated via `fetchAllConversations`) — powers the list, previews, unread counts, and the `channel` (from `lastMessageType`).
 - ⚠️ **Contact roster join** (`/contacts`, paginated via `fetchAllContacts`) — powers the **Source** rail and origin strip. The endpoint now fetches all contacts in parallel and joins `source` + `tags` + `dateAdded` per conversation. Partial because origin is then derived by a heuristic (see below), not read from a clean attribution field.

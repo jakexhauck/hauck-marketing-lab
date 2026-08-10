@@ -37,6 +37,25 @@ describe("conversationsForTab", () => {
       conversationsForTab(items, DEFAULT_INBOX_TAB, "").map((c) => c.id).sort(),
     ).toEqual(["a", "b", "c"]);
   });
+  // The feed carries the client's review-request chats too, because Reviews >
+  // Chats reads the same query. They belong on that page, not in here.
+  it("drops a conversation the server flagged as not Inbox", () => {
+    const items = [
+      conv({ id: "handed-off", inbox: true }),
+      conv({ id: "review-request", inbox: false }),
+    ];
+    expect(
+      conversationsForTab(items, DEFAULT_INBOX_TAB, "").map((c) => c.id),
+    ).toEqual(["handed-off"]);
+  });
+  // Demo data and any payload cached by a bundle older than the flag carry no
+  // `inbox` field. Those must stay visible: an absent flag is not a "no".
+  it("keeps a conversation with no inbox flag at all", () => {
+    const items = [conv({ id: "legacy" })];
+    expect(
+      conversationsForTab(items, DEFAULT_INBOX_TAB, "").map((c) => c.id),
+    ).toEqual(["legacy"]);
+  });
   it("applies the search filter on name and preview", () => {
     const items = [
       conv({ id: "a", name: "Alice", preview: "roof" }),

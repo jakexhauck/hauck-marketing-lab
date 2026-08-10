@@ -276,6 +276,18 @@ export interface ApiConversation {
   // Optional: absent from payloads cached by a bundle that predates it, so always
   // read it through `convPipelines()` rather than touching it directly.
   pipelines?: ConversationPipeline[];
+  // Does this belong in the Inbox, as opposed to merely being in the payload?
+  // The server sets it false for a review request, which is only here because
+  // Reviews > Chats reads this same feed. Optional, and absent means TRUE: demo
+  // data and any payload cached by a bundle that predates the field must not
+  // vanish from the Inbox. Always read it through `isInboxConversation()`.
+  inbox?: boolean;
+}
+
+// The one safe way to ask whether a conversation belongs in the Inbox. Absent
+// means yes, so this can never empty an Inbox on a stale payload.
+export function isInboxConversation(c: ApiConversation): boolean {
+  return c.inbox !== false;
 }
 
 export interface ConversationPipeline {

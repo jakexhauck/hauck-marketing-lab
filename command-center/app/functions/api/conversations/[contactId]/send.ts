@@ -5,6 +5,7 @@ import {
   isInternalContact,
   type SendInput,
 } from "../../../lib/messaging";
+import { isClientVisibleContact } from "../../../lib/handoffScope";
 
 // Channel-aware send: { channel, body, subject? }. Supersedes the SMS-only
 // sms.ts (kept for rollback). Maps channel -> GHL type via the shared helper.
@@ -21,6 +22,14 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (
 
   // A sink is not repliable even if a stale client still holds its contact id.
   if (await isInternalContact(gctx, contactId, t.internal_recipients)) {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  // Nor is a lead the setter is still working repliable by the client: our
+  // outreach sequence and theirs must not land on the same lead at once.
+  if (
+    !(await isClientVisibleContact(gctx, t.client_inbox_pipeline_id, contactId))
+  ) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 

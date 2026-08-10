@@ -1,6 +1,8 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { readJsonBody } from "../../../lib/body";
 import { ghlJson } from "../../../lib/ghl";
+import { isInternalContact } from "../../../lib/messaging";
+import { isClientVisibleContact } from "../../../lib/handoffScope";
 
 interface SendBody {
   body: string;
@@ -26,8 +28,23 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (
     return Response.json({ error: "empty_message" }, { status: 400 });
   }
 
+  // This route is the SMS-only predecessor of send.ts, kept for rollback and no
+  // longer called by the app. It still reaches GHL though, so it carries the
+  // same two guards send.ts does rather than standing as the way around them:
+  // no replying to a notification sink, and no replying to a lead the setter is
+  // still working.
+  const gctx = { token: t.ghl_token, locationId: t.ghl_location_id };
+  if (await isInternalContact(gctx, contactId, t.internal_recipients)) {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+  if (
+    !(await isClientVisibleContact(gctx, t.client_inbox_pipeline_id, contactId))
+  ) {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+
   const sent = await ghlJson<SendResponse>(
-    { token: t.ghl_token, locationId: t.ghl_location_id },
+    gctx,
     `/conversations/messages`,
     {
       method: "POST",
