@@ -10,6 +10,8 @@ import type { HealthResponse as ConnectionHealthResponse } from "../lib/connecti
 import type { AdWorkspace, AdWorkspacePatch } from "../../functions/lib/adWorkspace";
 // The lead form's shape, from the module the endpoints validate with (0090).
 import type { LeadForm, LeadFormPatch } from "../../functions/lib/adLeadForms";
+// The follow-up page's shape, from the module the endpoints validate with (0093).
+import type { FollowupPage, FollowupPagePatch } from "../../functions/lib/followupPages";
 import type {
   AgencySecretsResponse,
   ApplyResponse,
@@ -3016,4 +3018,109 @@ export function useDeleteLeadForm(tenantId: string) {
       qc.invalidateQueries({ queryKey: ["admin", "ad-lead-forms", tenantId] });
     },
   });
+}
+
+// ---------------------------------------------------------------------------
+// SMS follow-up asset pages (0093). Fulfillment > GHL > Follow Up Creation.
+//
+// A page here is a published artefact at a real URL, not the current state of
+// some work, so unlike the ad workspace these are created, listed and deleted
+// rather than upserted. Two live at once for new-lead follow ups.
+//
+// Agency-only. Nothing in the client app calls these.
+
+export function useFollowupPagesQuery(tenantId: string) {
+  return useQuery({
+    queryKey: ["admin", "followup-pages", tenantId],
+    enabled: !!tenantId,
+    queryFn: () =>
+      api<{ pages: FollowupPage[] }>(
+        `/api/admin/followups?tenantId=${encodeURIComponent(tenantId)}`,
+      ),
+  });
+}
+
+export function useCreateFollowupPage(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (patch: FollowupPagePatch) =>
+      api<{ page: FollowupPage }>(
+        `/api/admin/followups?tenantId=${encodeURIComponent(tenantId)}`,
+        { method: "POST", body: JSON.stringify(patch) },
+      ),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "followup-pages", tenantId] });
+    },
+  });
+}
+
+// Saves one wizard step as it is left, so these land one at a time and often.
+// Never retried: a retry of a stale step would put back what was just typed
+// over it.
+//
+// Not invalidated on success. The wizard holds the authoritative draft and
+// refetching under a live cursor is how a half-typed message loses its last
+// keystroke. The list cache is patched in place instead, so the sequence beside
+// the wizard updates without a request.
+export function useUpdateFollowupPage(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: { id: string; patch: FollowupPagePatch }) =>
+      api<{ page: FollowupPage }>(
+        `/api/admin/followups?tenantId=${encodeURIComponent(tenantId)}&id=${encodeURIComponent(input.id)}`,
+        { method: "PATCH", body: JSON.stringify(input.patch) },
+      ),
+    onSuccess: (data) => {
+      qc.setQueryData<{ pages: FollowupPage[] }>(
+        ["admin", "followup-pages", tenantId],
+        (prev) =>
+          prev
+            ? { pages: prev.pages.map((p) => (p.id === data.page.id ? data.page : p)) }
+            : prev,
+      );
+    },
+  });
+}
+
+export function useDeleteFollowupPage(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: { id: string }) =>
+      api<{ ok: true }>(
+        `/api/admin/followups?tenantId=${encodeURIComponent(tenantId)}&id=${encodeURIComponent(input.id)}`,
+        { method: "DELETE" },
+      ),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "followup-pages", tenantId] });
+    },
+  });
+}
+
+// Upload one file for a follow-up page (logo, design kit, or a photo slot).
+//
+// Deliberately NOT routed through api(): that helper stamps a JSON
+// content-type on any request with a body, and a multipart upload must let the
+// browser set its own content-type so the boundary is included. Sending
+// FormData with application/json produces a body the server cannot parse.
+export async function uploadFollowupAsset(input: {
+  tenantId: string;
+  slot: string;
+  file: File;
+}): Promise<string> {
+  const form = new FormData();
+  form.set("tenantId", input.tenantId);
+  form.set("slot", input.slot);
+  form.set("file", input.file);
+
+  const res = await fetch("/api/admin/followups/upload", {
+    method: "POST",
+    body: form,
+    credentials: "include",
+  });
+  const body = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
+  if (!res.ok || !body?.url) throw new Error(body?.error ?? "Upload failed.");
+  return body.url;
 }

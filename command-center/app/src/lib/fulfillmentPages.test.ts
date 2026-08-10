@@ -18,6 +18,7 @@ describe("fulfillmentPages config", () => {
     expect(FULFILLMENT_PAGES.map((p) => p.id)).toEqual([
       "software",
       "paid-ads",
+      "ghl",
       "management",
     ]);
   });
@@ -59,6 +60,7 @@ describe("FULFILLMENT_NAV", () => {
       "Onboarding",
       "Software",
       "Paid Ads",
+      "GHL",
       "Setter Suite",
       "Management",
     ]);

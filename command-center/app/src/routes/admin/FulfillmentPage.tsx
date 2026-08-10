@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-
 import { Eye, HeartHandshake } from "lucide-react";
 import ClientPicker from "../../components/admin/ClientPicker";
 import PickPrompt from "../../components/admin/PickPrompt";
+import GhlTab from "../../components/admin/cockpit/ghl/GhlTab";
 import ManagementTab from "../../components/admin/cockpit/ManagementTab";
 import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
 import SoftwareTab from "../../components/admin/cockpit/software/SoftwareTab";
@@ -121,6 +122,9 @@ export default function FulfillmentPage() {
         <PageBody
           page={page}
           tenantId={tenantId}
+          clientName={selected?.name ?? ""}
+          clientSlug={selected?.slug ?? ""}
+          clientNiche={selected?.niche ?? ""}
           activeSub={activeSub}
           isLoading={isLoading}
           isError={isError}
@@ -136,12 +140,18 @@ export default function FulfillmentPage() {
 function PageBody({
   page,
   tenantId,
+  clientName,
+  clientSlug,
+  clientNiche,
   activeSub,
   isLoading,
   isError,
 }: {
   page: FulfillmentPageDef;
   tenantId: string | null;
+  clientName: string;
+  clientSlug: string;
+  clientNiche: string;
   activeSub: string | null;
   isLoading: boolean;
   isError: boolean;
@@ -169,6 +179,16 @@ function PageBody({
       return <SoftwareTab tenantId={tenantId} />;
     case "paid-ads":
       return <PaidAdsTab tenantId={tenantId} activeSub={activeSub ?? "campaigns"} />;
+    case "ghl":
+      return (
+        <GhlTab
+          tenantId={tenantId}
+          clientName={clientName}
+          clientSlug={clientSlug}
+          clientNiche={clientNiche}
+          activeSub={activeSub ?? "follow-ups"}
+        />
+      );
     case "management":
       return <ManagementTab tenantId={tenantId} />;
     default:

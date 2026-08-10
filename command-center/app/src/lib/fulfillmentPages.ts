@@ -17,7 +17,7 @@
 // open, and the other three were shells for work we are not delivering. A rail
 // row for something that does not exist is a row that lies.
 
-export type FulfillmentPageId = "software" | "paid-ads" | "management";
+export type FulfillmentPageId = "software" | "paid-ads" | "ghl" | "management";
 
 export interface SubTabDef {
   id: string;
@@ -61,6 +61,20 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
       { id: "ad-builder", label: "Ad Builder", ready: true },
     ],
   },
+  // GHL is the operator's workbench for everything that gets pasted INTO the
+  // client's GoHighLevel account. It sits beside Paid Ads rather than inside
+  // it because the follow-ups it builds are worked whether or not ads are the
+  // source of the lead.
+  //
+  // One sub-tab today, and it still gets a sub-tab rather than a bare page:
+  // the second one (the funnel stubs) is already known, and a page that grows
+  // a tab row later moves everything on it the day it does.
+  {
+    id: "ghl",
+    label: "GHL",
+    ready: true,
+    subTabs: [{ id: "follow-ups", label: "Follow Up Creation", ready: true }],
+  },
   // Management is the client's paperwork in one place: the commercial record
   // (was Billing) above the setup that makes their app theirs (was Config).
   // They were split because they were tabs and tabs are cheap; as pages, two
@@ -86,6 +100,7 @@ export const FULFILLMENT_NAV: FulfillmentNavRow[] = [
   { to: "/admin/onboarding", label: "Onboarding" },
   { to: "/admin/fulfillment/software", label: "Software" },
   { to: "/admin/fulfillment/paid-ads", label: "Paid Ads" },
+  { to: "/admin/fulfillment/ghl", label: "GHL" },
   { to: "/admin/setter", label: "Setter Suite" },
   { to: "/admin/fulfillment/management", label: "Management" },
 ];

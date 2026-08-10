@@ -26,6 +26,24 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-10-ghl-follow-up-creation",
+    date: "10 August 2026",
+    title: "Follow-up pages get built from a screen instead of a chat window",
+    items: [
+      "New page under Fulfillment: GHL. Its first section is Follow Up Creation, where the asset pages our SMS follow-ups link to get planned.",
+      "It asks in a fixed order: the client, which follow-up, then the message. Nothing about design, assets or booking is asked until the message is signed off, because the message is what decides what the page has to be.",
+      "The message box opens with a starting pattern for whichever angle you pick, lifted off the two Willis follow-ups that are live. Change the angle after you have written something and your writing stays put.",
+      "Or press Generate 3 and Claude writes three, in the owner's voice, differing by angle rather than by wording. Read them, press Use this on the one you want, then edit it. There is a box beside the button for steering a run (\"mention the $100 off\").",
+      "Generating runs on your own machine and your own Claude account, so there is no new key and no new bill. It therefore only works while you are running the app locally: on the live site the same button hands you the brief to paste into Claude instead.",
+      "Character and segment counts sit above the message box, so a follow-up does not quietly cost three sends.",
+      "Design asks only what it still needs to know. Upload a design kit and it stops asking about colours, because the kit is the answer. Pull from a website and it asks whether to use that site's colours or ones you pick. The plain default still asks.",
+      "The logo, the design kit and every photo are uploaded from your machine. No hunting for a link to paste, and a thumbnail appears so you can see the right file went into the right place.",
+      "The assets step tells you what the page needs rather than leaving you to guess: one photo, or two, or at least three. Choose a before and after slider and it asks for the before photo and the after photo by name, in that order, so a pair can never end up the wrong way round.",
+      "New leads get two asset sends and the screen holds you to it. The second one inherits the client, the look, the colours, the logo, the appointment and the calendar, so only the message and the pictures are asked again.",
+      "Finish one and you get the build brief and the two-line stub for the GHL page, both with a copy button.",
+    ],
+  },
+  {
     id: "2026-08-09-social-connect-gate",
     date: "9 August 2026",
     title: "Clients connect their own Facebook and Instagram, and cannot skip it",
