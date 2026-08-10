@@ -181,6 +181,123 @@ export async function getBusyEvents(
   }
 }
 
+// --- Busy time for the GHL sync ---------------------------------------------
+
+// A Google event as the sync needs to see it: with its ID, so a block written
+// into GHL can be found again and removed when the meeting is cancelled, and
+// with the mirror marker, so we can tell our own writes apart from real
+// commitments.
+export interface SyncableBusyEvent extends BusyEvent {
+  id: string;
+  // True when this event is one WE put in their calendar by mirroring a GHL
+  // appointment. See mirrorAppointment below.
+  isMirror: boolean;
+}
+
+// Exported for tests. Same shape-drift tolerance as parseBusyEvents, which this
+// deliberately does not reuse: that one drops the id and the extendedProperties,
+// and both are load-bearing here.
+export function parseSyncableBusy(raw: unknown): SyncableBusyEvent[] {
+  const root = raw as { response_data?: unknown; items?: unknown } | null;
+  const wrapper = (root?.response_data ?? root) as { items?: unknown } | null;
+  const items = wrapper?.items;
+  if (!Array.isArray(items)) return [];
+
+  const out: SyncableBusyEvent[] = [];
+  for (const item of items) {
+    const ev = item as {
+      id?: string;
+      status?: string;
+      transparency?: string;
+      summary?: string;
+      start?: { dateTime?: string };
+      end?: { dateTime?: string };
+      extendedProperties?: { private?: Record<string, unknown> };
+    } | null;
+    if (!ev || ev.status === "cancelled" || ev.transparency === "transparent") continue;
+    const start = ev.start?.dateTime;
+    const end = ev.end?.dateTime;
+    // All-day events carry `date`, not `dateTime`. Blocking a whole day out of
+    // a booking calendar on the strength of "Dave's birthday" would cost the
+    // client a day of estimates.
+    if (typeof start !== "string" || typeof end !== "string") continue;
+    if (typeof ev.id !== "string" || !ev.id) continue;
+    out.push({
+      id: ev.id,
+      start,
+      end,
+      title: typeof ev.summary === "string" ? ev.summary.trim() : "",
+      isMirror: Boolean(ev.extendedProperties?.private?.[APPT_KEY]),
+    });
+  }
+  return out;
+}
+
+// Every timed commitment in the window, for the sync to mirror into GHL.
+//
+// Never throws, like every other read here: a Composio hiccup must degrade to
+// "no busy time known" and leave the previous run's blocks alone, rather than
+// stripping a client's availability protection because one request failed.
+export async function listSyncableBusy(
+  env: Env,
+  tenantUserId: string,
+  opts: { timeMin: string; timeMax: string },
+): Promise<SyncableBusyEvent[] | null> {
+  const conn = await getConnection(env, tenantUserId);
+  if (!conn.connected) return null;
+  try {
+    const raw = await executeTool(env, "GOOGLECALENDAR_EVENTS_LIST", tenantUserId, {
+      calendarId: "primary",
+      timeMin: opts.timeMin,
+      timeMax: opts.timeMax,
+      singleEvents: true,
+      orderBy: "startTime",
+      maxResults: 250,
+    });
+    return parseSyncableBusy(raw);
+  } catch {
+    // null, not []: an empty array means "they are free", which would delete
+    // every block we hold. null means "we do not know", and the caller leaves
+    // the existing blocks in place.
+    return null;
+  }
+}
+
+// Remove a mirrored appointment from the client's calendar. The counterpart to
+// mirrorAppointment, for the cancellation that nothing handled until now: a
+// cancelled GHL appointment used to sit in the owner's diary forever.
+export async function unmirrorAppointment(
+  env: Env,
+  tenantUserId: string,
+  appointmentId: string,
+): Promise<{ removed: boolean }> {
+  const conn = await getConnection(env, tenantUserId);
+  if (!conn.connected || !conn.accountId) return { removed: false };
+  try {
+    const found = await executeTool<{ items?: { id?: string }[] }>(
+      env,
+      "GOOGLECALENDAR_EVENTS_LIST",
+      tenantUserId,
+      {
+        calendarId: "primary",
+        privateExtendedProperty: `${APPT_KEY}=${appointmentId}`,
+        maxResults: 1,
+      },
+    );
+    const id = found?.items?.[0]?.id ?? "";
+    if (!id) return { removed: false };
+    await proxyCall(env, {
+      connectedAccountId: conn.accountId,
+      endpoint: `/calendars/primary/events/${encodeURIComponent(id)}`,
+      method: "DELETE",
+    });
+    return { removed: true };
+  } catch (err) {
+    console.error("unmirrorAppointment failed:", err instanceof Error ? err.message : err);
+    return { removed: false };
+  }
+}
+
 // --- Mirroring app bookings into the client's calendar ----------------------
 
 // Our marker on a mirrored event, so a reschedule moves the original rather

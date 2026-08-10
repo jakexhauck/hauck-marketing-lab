@@ -14,6 +14,7 @@ import { getActiveAdmin } from "../lib/adminAuth";
 import { canAdminAccess } from "../lib/adminRoles";
 import { HEALTH_CRON_HEADER, isHealthCronRequest } from "../lib/healthCron";
 import { ADS_CRON_HEADER, isAdsCronRequest } from "../lib/adsCron";
+import { CALENDAR_CRON_HEADER, isCalendarCronRequest } from "../lib/calendarCron";
 import { funnelOrigin } from "../lib/funnelUrl";
 
 const allowedOrigins = new Set([
@@ -136,6 +137,21 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       url.pathname,
       ctx.request.headers.get(ADS_CRON_HEADER),
       ctx.env.ADS_CRON_SECRET,
+    )
+  ) {
+    return await runNext(ctx, origin, url);
+  }
+
+  // The scheduled Google Calendar sync, and only that. Third sibling of the two
+  // gates above, same rules: one exact path, its own secret, no ctx.data.admin,
+  // and a miss falls through to 401. See lib/calendarCron.ts for what the
+  // handler behind it is allowed to write.
+  if (
+    isCalendarCronRequest(
+      ctx.request.method,
+      url.pathname,
+      ctx.request.headers.get(CALENDAR_CRON_HEADER),
+      ctx.env.CALENDAR_CRON_SECRET,
     )
   ) {
     return await runNext(ctx, origin, url);

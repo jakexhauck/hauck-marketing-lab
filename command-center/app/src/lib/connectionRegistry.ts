@@ -143,6 +143,27 @@ export const CONNECTIONS: ConnectionDef[] = [
         note: "The TEST ACCOUNT sub-account, used by test-mode sessions.",
       },
       { name: "TEST_GHL_LOCATION_ID", home: "cloudflare", inDoppler: true, optional: true },
+      {
+        name: "GHL_APP_CLIENT_ID",
+        home: "cloudflare",
+        inDoppler: true,
+        optional: true,
+        note: "The private Marketplace app, installed once by the agency across every sub-account. Not a Private Integration Token: this is what feeds /api/crm/app-webhook.",
+      },
+      {
+        name: "GHL_APP_CLIENT_SECRET",
+        home: "cloudflare",
+        inDoppler: true,
+        optional: true,
+        note: "Shown once when the key pair is generated. A lost secret means generating a new pair, not recovering this one.",
+      },
+      {
+        name: "GHL_APP_ID",
+        home: "cloudflare",
+        inDoppler: true,
+        optional: true,
+        note: "Only used to build the install link on Fulfillment > GHL > Connection.",
+      },
     ],
     surfaces: [
       { label: "Inbox", to: "/conversations", audience: "client" },
@@ -400,6 +421,28 @@ export const CONNECTIONS: ConnectionDef[] = [
     ],
     remediation:
       "Set the same value in this app's Cloudflare env and the Worker's own secret (`wrangler secret put ADS_CRON_SECRET` in workers/ads-cron), or every run comes back 401 and spend silently stops updating. The admin Ad Tracker panel shows how many days behind the snapshot is, and its Refresh button pulls it manually in the meantime.",
+  },
+  {
+    id: "calendar-sync",
+    label: "Google Calendar sync",
+    vendor: "Composio",
+    scope: "client",
+    purpose:
+      "Pushes each client's real Google commitments into the Home Estimate calendar their customers book into, every fifteen minutes. Without it a client keeps being offered slots they are not free for, and the first anybody knows is a customer arriving to an empty driveway.",
+    credentials: [
+      {
+        name: "CALENDAR_CRON_SECRET",
+        home: "cloudflare",
+        inDoppler: true,
+        note: "Shared with the scheduler Worker, for the same reason as ADS_CRON_SECRET: Pages projects cannot carry a cron trigger. At least 32 chars or the gate refuses it. Its own value, never shared with the other two cron secrets.",
+      },
+    ],
+    surfaces: [
+      { label: "Connect gate > Google Calendar", audience: "client" },
+      { label: "Jobs", to: "/jobs", audience: "client" },
+    ],
+    remediation:
+      "Set the same value in this app's Cloudflare env and the Worker's own secret, or every run comes back 401 and blocked slots silently stop updating. Nothing breaks visibly: the calendar simply stops learning that the owner is busy.",
   },
   {
     id: "resend",

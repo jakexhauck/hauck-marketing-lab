@@ -5,6 +5,7 @@ import {
   useAttachSocialPage,
   useSocialPages,
   useStartSocialConnect,
+  useStartGoogleCalendarConnect,
   type ConnectablePage,
   type ConnectPlatform,
   type SocialGate,
@@ -27,10 +28,21 @@ import {
 // Numbered rather than brand-marked: this icon set carries no Facebook or
 // Instagram glyph, and a stand-in symbol beside a platform name reads as a
 // broken image rather than as decoration.
-const STEPS: { platform: ConnectPlatform; label: string }[] = [
+//
+// A third step joined the two Meta ones: linking the owner's Google Calendar,
+// which is what keeps their real commitments out of the slots customers can
+// book. It is NOT a ConnectPlatform: Meta's flow is a pop-up carrying an
+// accountId back by postMessage, Google's is a full-page redirect through
+// Composio, and pretending they are the same shape is how one of them would
+// quietly stop working.
+type StepId = ConnectPlatform | "calendar";
+
+const META_STEPS: { platform: ConnectPlatform; label: string }[] = [
   { platform: "facebook", label: "Facebook page" },
   { platform: "instagram", label: "Instagram account" },
 ];
+
+const CALENDAR_LABEL = "Google Calendar";
 
 // GHL's finish page hands the new connection back by postMessage and nothing
 // else: there is no endpoint that lists an oauth record before it is attached,
@@ -67,12 +79,24 @@ export default function SocialConnectGate({ gate }: { gate: SocialGate }) {
   const loadPages = useSocialPages();
   const attach = useAttachSocialPage();
 
-  const done: Record<ConnectPlatform, boolean> = {
+  const startCalendar = useStartGoogleCalendarConnect();
+
+  // The calendar step only exists for clients it is required of. Every client
+  // that predates it was grandfathered by migration 0101, so they never see a
+  // third card appear one morning demanding something new of them.
+  const steps: { id: StepId; label: string }[] = [
+    ...META_STEPS.map((s) => ({ id: s.platform as StepId, label: s.label })),
+    ...(gate.calendarRequired ? [{ id: "calendar" as StepId, label: CALENDAR_LABEL }] : []),
+  ];
+
+  const done: Record<StepId, boolean> = {
     facebook: gate.facebook,
     instagram: gate.instagram,
+    calendar: gate.calendar,
   };
   // The step being worked on: the first one not yet done.
-  const current = STEPS.find((s) => !done[s.platform])?.platform ?? "facebook";
+  const current: StepId = steps.find((s) => !done[s.id])?.id ?? "facebook";
+  const onCalendar = current === "calendar";
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [problem, setProblem] = useState<string>("");
@@ -97,7 +121,7 @@ export default function SocialConnectGate({ gate }: { gate: SocialGate }) {
       accountId.current = id;
       setPhase("choosing");
       loadPages.mutate(
-        { platform: current, accountId: id },
+        { platform: current as ConnectPlatform, accountId: id },
         {
           onSuccess: ({ pages: found }) => {
             if (found.length === 0) {
@@ -132,7 +156,26 @@ export default function SocialConnectGate({ gate }: { gate: SocialGate }) {
     return () => window.clearInterval(timer);
   }, [phase, fail]);
 
+  // Google's flow is a full-page redirect, not a pop-up: Composio's consent
+  // round trip returns to /jobs, not to an opener window, so there is nothing
+  // for a postMessage to come back to.
+  const connectCalendar = async () => {
+    setProblem("");
+    try {
+      const res = await startCalendar.mutateAsync();
+      if (res?.redirectUrl) {
+        window.location.href = res.redirectUrl;
+        return;
+      }
+      fail("We could not reach Google. Try again.");
+    } catch {
+      fail("We could not reach Google. Try again.");
+    }
+  };
+
   const connect = async () => {
+    if (onCalendar) return connectCalendar();
+
     setProblem("");
     setPages([]);
     accountId.current = "";
@@ -149,7 +192,7 @@ export default function SocialConnectGate({ gate }: { gate: SocialGate }) {
     setPhase("opening");
 
     try {
-      const { url } = await start.mutateAsync(current);
+      const { url } = await start.mutateAsync(current as ConnectPlatform);
       win.location.href = url;
       setPhase("waiting");
     } catch {
@@ -161,7 +204,7 @@ export default function SocialConnectGate({ gate }: { gate: SocialGate }) {
   const choose = (pageId: string) => {
     setPhase("attaching");
     attach.mutate(
-      { platform: current, accountId: accountId.current, pageId },
+      { platform: current as ConnectPlatform, accountId: accountId.current, pageId },
       {
         // No success branch: attaching invalidates the gate query, the gate
         // re-answers, and this component either advances to Instagram or stops
@@ -171,8 +214,12 @@ export default function SocialConnectGate({ gate }: { gate: SocialGate }) {
     );
   };
 
-  const busy = phase === "opening" || phase === "waiting" || phase === "attaching";
-  const label = current === "facebook" ? "Facebook page" : "Instagram account";
+  const busy =
+    phase === "opening" ||
+    phase === "waiting" ||
+    phase === "attaching" ||
+    startCalendar.isPending;
+  const label = steps.find((s) => s.id === current)?.label ?? "Facebook page";
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-bg px-5 py-12">
@@ -183,17 +230,18 @@ export default function SocialConnectGate({ gate }: { gate: SocialGate }) {
             Connect your {label}.
           </h1>
           <p className="mt-3 text-[14px] leading-relaxed text-muted">
-            We post and reply on your behalf, so your app needs access to both accounts before
-            you can use it.
+            {onCalendar
+              ? "So the times you are already busy never get offered to a customer, and every booking lands in your calendar."
+              : "We post and reply on your behalf, so your app needs access to both accounts before you can use it."}
           </p>
 
           <ol className="mt-7 flex flex-col gap-3">
-            {STEPS.map(({ platform, label: stepLabel }, i) => {
-              const complete = done[platform];
-              const active = platform === current;
+            {steps.map(({ id, label: stepLabel }, i) => {
+              const complete = done[id];
+              const active = id === current;
               return (
                 <li
-                  key={platform}
+                  key={id}
                   className={`flex items-center gap-3 rounded-[var(--radius)] border px-3.5 py-3 ${
                     active ? "border-brand bg-brand/5" : "border-border"
                   }`}
@@ -224,7 +272,7 @@ export default function SocialConnectGate({ gate }: { gate: SocialGate }) {
           {/* The consent screen is Facebook's and it names our scheduling
               partner, not us. Saying so first costs one line and saves the
               email asking who LeadConnector is. */}
-          {phase === "idle" && (
+          {phase === "idle" && !onCalendar && (
             <p className="mt-5 text-[13px] leading-relaxed text-faint">
               Facebook will ask you to approve <strong className="text-muted">LeadConnector</strong>
               , the scheduling partner we post through. That is expected.
@@ -265,10 +313,12 @@ export default function SocialConnectGate({ gate }: { gate: SocialGate }) {
               disabled={busy}
               className="mt-6 w-full rounded-[var(--radius)] bg-brand px-4 py-3 font-display text-[14px] font-semibold text-brand-fg transition-opacity hover:opacity-90 disabled:opacity-60"
             >
-              {phase === "opening" && "Opening Facebook..."}
-              {phase === "waiting" && "Waiting for Facebook..."}
-              {phase === "attaching" && "Connecting..."}
-              {(phase === "idle" || phase === "failed") && `Connect ${label}`}
+              {!onCalendar && phase === "opening" && "Opening Facebook..."}
+              {!onCalendar && phase === "waiting" && "Waiting for Facebook..."}
+              {!onCalendar && phase === "attaching" && "Connecting..."}
+              {onCalendar && startCalendar.isPending && "Opening Google..."}
+              {(onCalendar ? !startCalendar.isPending : phase === "idle" || phase === "failed") &&
+                `Connect ${label}`}
             </button>
           )}
 

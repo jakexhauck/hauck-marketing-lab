@@ -9,6 +9,17 @@ export interface Env {
   // staff (POST /users/ needs it). Absent => staff accounts are created without
   // a linked GHL user. See functions/lib/staff.ts.
   GHL_COMPANY_ID?: string;
+  // Shared secret for the scheduled Google Calendar sync, called by the cron
+  // worker. Unset means the route is closed, never open. See lib/calendarCron.ts.
+  CALENDAR_CRON_SECRET?: string;
+  // The GoHighLevel Marketplace app (private, sub-account target, installed in
+  // bulk by the agency). Distinct from every GHL_* above, which are Private
+  // Integration Tokens. See functions/lib/ghlApp.ts.
+  GHL_APP_CLIENT_ID?: string;
+  GHL_APP_CLIENT_SECRET?: string;
+  // The marketplace app's own id. Used only to build the install URL the
+  // Connection page shows.
+  GHL_APP_ID?: string;
   // Supabase tenant slug for the live session mode (defaults to willis-windows).
   TENANT_SLUG?: string;
   TEST_APP_PASSWORD?: string;

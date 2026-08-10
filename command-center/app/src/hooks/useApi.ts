@@ -2687,6 +2687,12 @@ export interface SocialGate {
   blocked: boolean;
   facebook: boolean;
   instagram: boolean;
+  // Whether their Google Calendar is linked, and whether it is required of them
+  // at all. Clients that existed before the calendar step shipped are
+  // grandfathered (migration 0101), so calendarRequired is false for them and
+  // the third card is not shown.
+  calendar: boolean;
+  calendarRequired: boolean;
   reason: string;
 }
 
@@ -3127,4 +3133,78 @@ export async function uploadAssetPhoto(input: {
   const body = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
   if (!res.ok || !body?.url) throw new Error(body?.error ?? "Upload failed.");
   return body.url;
+}
+
+// --- Fulfillment > GHL > Connection ----------------------------------------
+// The Marketplace app's install state, event health board, stage overrides and
+// cutover switch for one client. See
+// functions/api/admin/clients/[tenantId]/crm-connection.ts.
+
+export interface CrmEventSeen {
+  last_seen_at: string;
+  total: number;
+}
+
+export interface CrmEventRow {
+  group: string;
+  type: string;
+  appCovered: boolean;
+  app: CrmEventSeen | null;
+  workflow: CrmEventSeen | null;
+}
+
+export interface CrmStage {
+  id: string;
+  name: string;
+  derived: string;
+  override: string | null;
+}
+
+export interface CrmConnection {
+  locationId: string;
+  source: "workflow" | "app";
+  install: {
+    configured: boolean;
+    agencyInstalled: boolean;
+    companyId: string | null;
+    installedAt: string | null;
+    revokedAt: string | null;
+    scopes: string | null;
+    url: string | null;
+  };
+  events: CrmEventRow[];
+  extras: { event_type: string; source: string; last_seen_at: string; total: number }[];
+  stages: {
+    pipelines: { id: string; name: string; stages: CrmStage[] }[];
+    error: string | null;
+    via: "app" | "token" | null;
+  };
+  statuses: { summary: string; lastSeenAt: string }[];
+  statusModel: string[];
+}
+
+export function useCrmConnectionQuery(tenantId: string) {
+  return useQuery({
+    queryKey: ["admin", "crm-connection", tenantId],
+    enabled: !!tenantId,
+    queryFn: () =>
+      api<CrmConnection>(
+        `/api/admin/clients/${encodeURIComponent(tenantId)}/crm-connection`,
+      ),
+  });
+}
+
+export function useCrmConnectionAction(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (body: Record<string, unknown>) =>
+      api<Record<string, unknown>>(
+        `/api/admin/clients/${encodeURIComponent(tenantId)}/crm-connection`,
+        { method: "POST", body: JSON.stringify(body) },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "crm-connection", tenantId] });
+    },
+  });
 }

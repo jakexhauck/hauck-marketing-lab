@@ -26,6 +26,30 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-10-calendar-sync",
+    date: "10 August 2026",
+    title: "A client's own calendar now protects their booking times",
+    items: [
+      "New clients are asked to link their Google Calendar when they first sign in, alongside their Facebook page and Instagram account. Existing clients are not: nobody is locked out of an app they were already using.",
+      "Once linked, the times they are already busy stop being offered on the Home Estimate calendar. A dentist appointment in their own diary now blocks that slot without anyone typing anything.",
+      "A meeting that moves moves its block. A meeting that is cancelled gives the slot straight back.",
+      "Every appointment now lands in their calendar, not just the ones booked inside this app. Bookings taken on a booking page or added by us appear too, and a cancelled one is removed, which nothing did before.",
+      "Runs every fifteen minutes on its own.",
+    ],
+  },
+  {
+    id: "2026-08-10-crm-connection",
+    date: "10 August 2026",
+    title: "A client's reporting wiring is now a screen",
+    items: [
+      "Fulfillment, GHL, Connection is a new tab beside Conversion Assets: whether the reporting app is installed for a client, and what it has actually sent.",
+      "The event board lists all nineteen events, each with when it last arrived and how many have. A client whose reporting quietly died now shows as a row of grey dots instead of as a question nobody asked.",
+      "Stages lists every live pipeline stage, the status it currently reads as, and a dropdown to correct the ones that read wrong. Leaving a stage on 'by name' keeps today's behaviour.",
+      "Provision writes the webhook address and the required tag into a client's account, so building an automation is picking a value from a dropdown rather than pasting an address and a secret by hand.",
+      "Source switches a client between the old hand-built automations and the new app. It stays locked until the app has been seen to deliver for that client, because turning it on early would leave them reporting nothing.",
+    ],
+  },
+  {
     id: "2026-08-10-lead-form-builder",
     date: "10 August 2026",
     title: "Lead forms are built here, not in Ads Manager",

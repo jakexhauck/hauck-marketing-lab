@@ -8,6 +8,7 @@ import {
   parseBusyEvents,
   composioUserId,
   mirrorAppointment,
+  parseSyncableBusy,
 } from "./googleCalendar";
 
 // Mock the transport wholesale rather than spying: the domain layer imports
@@ -373,5 +374,69 @@ describe("parseBusyEvents", () => {
     expect(parseBusyEvents(null)).toEqual([]);
     expect(parseBusyEvents({})).toEqual([]);
     expect(parseBusyEvents({ items: "nope" })).toEqual([]);
+  });
+});
+
+describe("parseSyncableBusy", () => {
+  it("keeps the event id, which the sync needs to remove a block later", () => {
+    expect(
+      parseSyncableBusy({
+        items: [
+          {
+            id: "g1",
+            summary: "Dentist",
+            start: { dateTime: "2026-08-11T09:00:00Z" },
+            end: { dateTime: "2026-08-11T10:00:00Z" },
+          },
+        ],
+      }),
+    ).toEqual([
+      { id: "g1", title: "Dentist", start: "2026-08-11T09:00:00Z", end: "2026-08-11T10:00:00Z", isMirror: false },
+    ]);
+  });
+
+  it("flags an event we mirrored, so it is never blocked against itself", () => {
+    const [ev] = parseSyncableBusy({
+      items: [
+        {
+          id: "g2",
+          start: { dateTime: "2026-08-11T09:00:00Z" },
+          end: { dateTime: "2026-08-11T10:00:00Z" },
+          extendedProperties: { private: { hmlAppointmentId: "appt_1" } },
+        },
+      ],
+    });
+    expect(ev.isMirror).toBe(true);
+  });
+
+  it("drops all-day, cancelled, free-marked and id-less events", () => {
+    // An all-day "Dave's birthday" would block a whole day of estimates.
+    expect(
+      parseSyncableBusy({
+        items: [
+          { id: "a", start: { date: "2026-08-11" }, end: { date: "2026-08-12" } },
+          { id: "b", status: "cancelled", start: { dateTime: "x" }, end: { dateTime: "y" } },
+          { id: "c", transparency: "transparent", start: { dateTime: "x" }, end: { dateTime: "y" } },
+          { start: { dateTime: "2026-08-11T09:00:00Z" }, end: { dateTime: "2026-08-11T10:00:00Z" } },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  it("unwraps Composio's response_data envelope", () => {
+    expect(
+      parseSyncableBusy({
+        response_data: {
+          items: [
+            { id: "g3", start: { dateTime: "2026-08-11T09:00:00Z" }, end: { dateTime: "2026-08-11T10:00:00Z" } },
+          ],
+        },
+      }),
+    ).toHaveLength(1);
+  });
+
+  it("returns an empty array for an unreadable payload rather than throwing", () => {
+    expect(parseSyncableBusy(null)).toEqual([]);
+    expect(parseSyncableBusy({ items: "nope" })).toEqual([]);
   });
 });

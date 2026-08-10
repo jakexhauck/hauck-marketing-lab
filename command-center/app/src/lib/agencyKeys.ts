@@ -123,6 +123,34 @@ export const AGENCY_KEYS: AgencyKeyDef[] = [
     entry: "paste",
     help: "Only needed to provision a new GoHighLevel user when adding staff.",
   },
+  {
+    name: "GHL_APP_CLIENT_ID",
+    group: "leads",
+    entry: "paste",
+    help: "The private Marketplace app the agency installs across every sub-account, so reporting arrives without a workflow being built by hand.",
+  },
+  {
+    name: "GHL_APP_CLIENT_SECRET",
+    group: "leads",
+    entry: "paste",
+    help: "Generated alongside the client id and shown once.",
+    warning: "Lost secrets cannot be read back. Recovering one means generating a new key pair and reinstalling the app.",
+  },
+  {
+    name: "GHL_APP_ID",
+    group: "leads",
+    entry: "paste",
+    help: "Only used to build the install link on the Connection screen.",
+  },
+
+  {
+    name: "CALENDAR_CRON_SECRET",
+    group: "crons",
+    entry: "generate",
+    generator: "hex32",
+    help: "Lets the scheduler push a client's busy time into the calendar their customers book into, every fifteen minutes.",
+    warning: "Must differ from the other cron secrets. One value shared between them means one leak opens all three.",
+  },
 
   // --- Cold calling ---------------------------------------------------------
   {
