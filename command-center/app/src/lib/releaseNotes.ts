@@ -55,6 +55,7 @@ export const RELEASES: Release[] = [
       "The page addresses are fixed: /recent-work, /meet-the-owner and /our-process, the same for every client, because one universal text can only carry one address. The Link step hands you the two lines to paste into GoHighLevel.",
       "Fill the design in once. The second and third asset for the same client open with the colours, the logo, the appointment type and the calendar already carried over.",
       "The live preview beside the form draws the right page for the asset you picked: the proof grid with its reviews and trust chips, the owner with the gift above the button, or the named method as numbered steps.",
+      "The three texts themselves now live in the app as fixed reference. You cannot edit them here, because they live in GoHighLevel, but the Content step shows you the exact message this page is answering, and the prompt quotes it so the first screen of the page pays off what the text promised.",
       "The last step hands you a finished prompt, not a summary. Copy it, paste it into Claude, and the page comes back. It carries the file path, the mount id, the design, the content, the calendar embed and every build rule, so it works pasted into a fresh Claude with nothing else open.",
       "The whole panel now fills the screen instead of sitting as a short card in a tall page, and the form and the preview each scroll on their own.",
     ],

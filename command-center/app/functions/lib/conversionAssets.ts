@@ -66,6 +66,30 @@ export const ASSET_KIND_SENT: Record<AssetKind, string> = {
   "unique-mechanism": "Estimate reminder",
 };
 
+// The universal text that sends the lead here, word for word.
+//
+// These are CONSTANTS, not fields. The messages are written once and live in
+// GHL, identical for every client, which is the entire reason this app stopped
+// collecting copy. They are here so the PAGE can be built to pay off exactly
+// what the message promised: a page whose first screen answers a different
+// question than the text asked is a bounced click.
+//
+// Change one here only when it has already been changed in GHL.
+export const ASSET_KIND_SMS: Record<AssetKind, string> = {
+  "recent-work":
+    "Hey {{contact.first_name}}, a lot of companies talk about how great their " +
+    "work is but never actually show customers REAL work lol. So here's some of " +
+    "our recent work we've gotten done:",
+  "owner-story":
+    "Yo {{contact.first_name}}, I saw you came to us through facebook and just " +
+    "wanted to send you over my personal story and how I started the business. " +
+    "P.S there's also a small gift for you on the page:",
+  "unique-mechanism":
+    "also, since your booked in now. I wanted to send over a page that goes over " +
+    "how our process actually works and how we ensure a 100% satisfaction rate " +
+    "on ALL of our jobs:",
+};
+
 // What the page is FOR, in one line. This is the sentence the built page has to
 // pay off, and it is the closest thing to a brief that exists before the
 // operator has typed anything.

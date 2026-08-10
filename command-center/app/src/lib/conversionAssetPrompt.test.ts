@@ -18,8 +18,30 @@ const PAIR = { before: "https://x/b.jpg", after: "https://x/a.jpg", caption: "Fr
 const PERSON = { ownerPhotoUrl: "https://x/o.jpg", storyNotes: "started in 2011" };
 
 describe("buildPrompt", () => {
-  it("never mentions an SMS, because the app no longer holds one", () => {
-    expect(prompt("recent-work", { jobs: [PAIR] }).toLowerCase()).not.toContain("sms");
+  // The page is the second half of a conversation and this is the first half.
+  // It is a constant, not a field: the messages are universal.
+  it("quotes the universal text the page has to pay off", () => {
+    expect(prompt("recent-work", { jobs: [PAIR] })).toContain("never actually show customers");
+    expect(prompt("owner-story", PERSON)).toContain("small gift for you on the page");
+    expect(prompt("unique-mechanism")).toContain("100% satisfaction rate");
+  });
+
+  it("tells the builder the first screen must pay that text off", () => {
+    expect(prompt("recent-work", { jobs: [PAIR] })).toContain("MUST PAY OFF THAT MESSAGE");
+  });
+
+  it("gives each kind its own text and no other kind's", () => {
+    expect(prompt("recent-work", { jobs: [PAIR] })).not.toContain("small gift");
+    expect(prompt("owner-story", PERSON)).not.toContain("100% satisfaction");
+  });
+
+  // The message already claims the satisfaction rate, so the page cannot be
+  // silent about it, but it must not grow a second guarantee beside it.
+  it("carves the promised claim out of the no-claims rule, and only that one", () => {
+    const out = prompt("unique-mechanism");
+    expect(out).toContain("INVENT NO CLAIM ANYBODY COULD CHECK");
+    expect(out).toContain("The ONE exception is the promise the text already made");
+    expect(out).toContain("Do not add a second guarantee");
   });
 
   // It gets pasted into a Claude with no repo open, so the file path and the
@@ -97,7 +119,7 @@ describe("buildPrompt", () => {
   it("forbids checkable claims on the mechanism page, in the prompt itself", () => {
     const out = prompt("unique-mechanism");
     expect(out).toContain("POSITIONING, NOT A RECORD OF FACT");
-    expect(out).toContain("NO statistics");
+    expect(out).toContain("no certifications");
   });
 
   it("tells the builder to invent a method name when none was given", () => {

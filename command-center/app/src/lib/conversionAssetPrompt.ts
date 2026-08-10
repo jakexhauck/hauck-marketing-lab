@@ -18,6 +18,7 @@ import {
   ASSET_KIND_JOB,
   ASSET_KIND_LABELS,
   ASSET_KIND_SENT,
+  ASSET_KIND_SMS,
   COLOR_SOURCE_LABELS,
   DESIGN_SOURCE_LABELS,
   JOB_CAP,
@@ -67,6 +68,21 @@ export function buildPrompt(
   say("Sent", kind ? ASSET_KIND_SENT[kind] : "");
   say("Job of the page", kind ? ASSET_KIND_JOB[kind] : "");
   lines.push("");
+  if (kind) {
+    // The most useful thing in the whole prompt. The page is the second half of
+    // a conversation, and this is the first half.
+    lines.push("This is the text message that sent them here, word for word:");
+    lines.push("");
+    lines.push(`    ${ASSET_KIND_SMS[kind]}`);
+    lines.push("");
+    lines.push(
+      "THE FIRST SCREEN OF THE PAGE MUST PAY OFF THAT MESSAGE. Same subject, " +
+        "same promise, same register. It carries on where the text stopped, so it " +
+        "must not restate it, and it must not answer a different question than " +
+        "the one the text asked.",
+    );
+    lines.push("");
+  }
   lines.push(
     "The lead arrives from a text message. They already know who this company " +
       "is. This is not a cold landing page and it must not open by introducing " +
@@ -282,10 +298,21 @@ function contentLines(asset: ConversionAsset): string[] {
       );
       out.push("");
       out.push(
-        "Nothing on it may be a claim anybody could check: NO statistics, NO " +
-          "percentages, NO certifications, NO awards, NO named guarantee, NO " +
-          "'voted best'. Frame, sequence and language are what make it land, and " +
-          "none of those can be wrong. Assume there are no photos to use.",
+        "INVENT NO CLAIM ANYBODY COULD CHECK: no statistics, no percentages, no " +
+          "certifications, no awards, no 'voted best'. Frame, sequence and " +
+          "language are what make it land, and none of those can be wrong. " +
+          "Assume there are no photos to use.",
+      );
+      out.push("");
+      // The text already made this claim, so the page cannot pretend it did
+      // not. Silence here reads as the promise being dropped between the
+      // message and the page.
+      out.push(
+        "The ONE exception is the promise the text already made: the message " +
+          "says they ensure a 100% satisfaction rate on all their jobs. The page " +
+          "has to speak to that, by showing what in the process makes it true. " +
+          "Do not add a second guarantee, a warranty or a refund policy beside " +
+          "it, and do not put a number on anything else.",
       );
       return out;
 

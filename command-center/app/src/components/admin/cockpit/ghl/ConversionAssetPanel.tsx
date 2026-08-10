@@ -19,6 +19,7 @@ import {
   ASSET_KIND_LABELS,
   ASSET_KIND_PATHS,
   ASSET_KIND_SENT,
+  ASSET_KIND_SMS,
   COLOR_SOURCES,
   COLOR_SOURCE_LABELS,
   DEFAULT_COUPON_OFFER,
@@ -772,19 +773,37 @@ function ContentStep({
   patch: (fields: Partial<ConversionAsset>) => void;
   tenantId: string;
 }) {
-  if (draft.kind === "owner-story") {
-    return <OwnerStoryFields draft={draft} patch={patch} tenantId={tenantId} />;
-  }
-
-  if (draft.kind === "unique-mechanism") {
-    return <MechanismFields draft={draft} patch={patch} />;
-  }
-
   return (
     <div className="flex flex-col gap-5">
-      <JobsField draft={draft} patch={patch} tenantId={tenantId} />
-      <ReviewsField draft={draft} patch={patch} />
-      <TrustField draft={draft} patch={patch} />
+      <SentText kind={draft.kind} />
+
+      {draft.kind === "owner-story" ? (
+        <OwnerStoryFields draft={draft} patch={patch} tenantId={tenantId} />
+      ) : draft.kind === "unique-mechanism" ? (
+        <MechanismFields draft={draft} patch={patch} />
+      ) : (
+        <>
+          <JobsField draft={draft} patch={patch} tenantId={tenantId} />
+          <ReviewsField draft={draft} patch={patch} />
+          <TrustField draft={draft} patch={patch} />
+        </>
+      )}
+    </div>
+  );
+}
+
+// The message this page is the second half of. Read-only, and the only place
+// in the app any follow-up copy appears at all: it is a constant living in GHL,
+// shown here because what goes on the page is decided by what the text already
+// promised.
+function SentText({ kind }: { kind: ConversionAsset["kind"] }) {
+  if (!kind) return null;
+  return (
+    <div className="rounded-lg border border-border bg-surface-2 p-3.5">
+      <SectionLabel>The text that sends them here</SectionLabel>
+      <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-muted">
+        {ASSET_KIND_SMS[kind]}
+      </p>
     </div>
   );
 }
