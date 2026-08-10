@@ -136,6 +136,33 @@ export function ReadBlock({ value, empty }: { value: string; empty: string }) {
   return <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-text">{value}</p>;
 }
 
+// An on/off pill. Used wherever a setting is a plain yes or no and the label is
+// the thing being turned on ("Optional", "Allow more than one"), which is why it
+// is a pill that lights up rather than a checkbox with a caption beside it.
+export function Toggle({
+  on,
+  onClick,
+  label,
+}: {
+  on: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      className={cn(
+        "shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors",
+        on ? "bg-brand text-brand-fg" : "bg-surface text-faint hover:text-muted",
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
 // The numbered "1 / 2 / 3" marker beside a copy or headline slot. The number is
 // the point: these are the three that get launched, in this order.
 export function SlotNumber({ n }: { n: number }) {

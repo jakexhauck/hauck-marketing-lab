@@ -175,7 +175,13 @@ function PageBody({
     case "software":
       return <SoftwareTab tenantId={tenantId} />;
     case "paid-ads":
-      return <PaidAdsTab tenantId={tenantId} activeSub={activeSub ?? "campaigns"} />;
+      return (
+        <PaidAdsTab
+          tenantId={tenantId}
+          clientName={clientName}
+          activeSub={activeSub ?? "campaigns"}
+        />
+      );
     case "ghl":
       return (
         <GhlTab

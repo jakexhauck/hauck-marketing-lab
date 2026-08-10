@@ -35,7 +35,13 @@ const VIEWS: { id: View; label: string }[] = [
 ];
 
 
-export default function AdBuilderPanel({ tenantId }: { tenantId: string }) {
+export default function AdBuilderPanel({
+  tenantId,
+  clientName,
+}: {
+  tenantId: string;
+  clientName: string;
+}) {
   const [view, setView] = useState<View>("copy");
 
   // Not gated on the view: it is one small request per client and both of the
@@ -106,7 +112,7 @@ export default function AdBuilderPanel({ tenantId }: { tenantId: string }) {
       <Segmented options={VIEWS} value={view} onChange={setView} label="Ad builder page" />
 
       {view === "form" ? (
-        <LeadFormsPanel tenantId={tenantId} />
+        <LeadFormsPanel tenantId={tenantId} clientName={clientName} />
       ) : query.isError ? (
         <ErrorNote message={(query.error as Error | null)?.message} />
       ) : !draft || !saved.current ? (

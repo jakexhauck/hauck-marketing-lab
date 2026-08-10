@@ -26,6 +26,22 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-10-lead-form-builder",
+    date: "10 August 2026",
+    title: "Lead forms are built here, not in Ads Manager",
+    items: [
+      "Paid Ads, Ad Builder, Lead Form is now Meta's own instant form builder: form type, intro, questions, privacy and completion, in Meta's order, with a working preview of the form beside it.",
+      "The preview is fillable. Tap an answer and the follow-up appears exactly where Facebook would put it, so a branch that never fires is caught here instead of after the money is spent.",
+      "Conditional questions are built the way Facebook builds them: press Follow-up on the answer that should reveal it, and the question sits nested under that answer.",
+      "Moving a question takes its follow-ups with it, and renaming an answer carries its rules across. Neither can quietly un-branch a form any more.",
+      "Every question now carries the field name the lead arrives under, shown before it matters rather than found as a column of blanks a week later.",
+      "Appointment requests and store locators are available, alongside prefill, short answer and multiple choice.",
+      "Privacy gained a link label, a disclaimer title and real consent checkboxes. Completion gained Meta's five button kinds, and only shows the URL or the phone number the chosen button actually uses.",
+      "Settings holds the form language, sharing and tracking parameters.",
+      "Copy form now prints the whole thing, follow-ups nested under their answers and field names in a column, so building the real form in Ads Manager is a walk down the page.",
+    ],
+  },
+  {
     id: "2026-08-10-client-inbox-handoff-gate",
     date: "10 August 2026",
     title: "A client's Inbox holds their work, not ours",

@@ -27,9 +27,14 @@ import CreativesPanel from "./CreativesPanel";
 
 export default function PaidAdsTab({
   tenantId,
+  clientName,
   activeSub,
 }: {
   tenantId: string;
+  // Only the Ad Builder wants it, for the lead form preview: an instant form is
+  // drawn under the advertiser's name and a preview without one is a preview of
+  // somebody else's form.
+  clientName: string;
   activeSub: string;
 }) {
   switch (activeSub) {
@@ -42,7 +47,7 @@ export default function PaidAdsTab({
     case "creatives":
       return <CreativesPanel tenantId={tenantId} />;
     case "ad-builder":
-      return <AdBuilderPanel tenantId={tenantId} />;
+      return <AdBuilderPanel tenantId={tenantId} clientName={clientName} />;
     default:
       return <div className="pk-empty">We are still building this view.</div>;
   }
