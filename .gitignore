@@ -91,3 +91,7 @@ scripts/.gh_token
 # Subagent build scaffolding: briefs, per-task reports and review packages.
 # Working notes for one build, not project history.
 .superpowers/
+
+# Shopify theme zips are packaged from the tracked src/ trees next to them.
+# Build output, so it rebuilds on any machine rather than travelling in git.
+**/shopify-themes/zips/
