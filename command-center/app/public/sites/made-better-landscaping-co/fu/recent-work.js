@@ -47,8 +47,10 @@
   var ROOT_ID = "madebefu";
 
   var CONFIG = {
-    logo:
-      "https://aroapsjifblscheshmst.supabase.co/storage/v1/object/public/followup-assets/5aa6666d-6d76-49f1-a3e1-06b0dcdedaed/logo/81fcba12-9bb6-4571-b150-98992018f1e1.jpg",
+    // The website's logo, not the uploaded copy: one mark across the site, the
+    // review card and both follow-up pages. It is a transparent PNG, so it sits
+    // on this page's white header and its dark footer without a box round it.
+    logo: "https://app.hauckmarketing.com/sites/made-better/logo.png",
 
     // Order matters and is not ours to change: first url is BEFORE, second is
     // AFTER. Swapping them turns the page into an advert for the competition.
@@ -212,10 +214,13 @@ body { margin:0 !important; padding:0 !important; }
   display:flex !important; align-items:center !important; gap:12px !important;
   height:72px !important;
 }
+/* Square and contained, not a round avatar. The logo is a diamond with MADE and
+   BETTER along its top two edges, so a circular crop with object-fit:cover eats
+   exactly the corners the words sit in. */
 #madebefu .mbfu-mark {
-  width:44px !important; height:44px !important; flex:none !important;
-  border-radius:50% !important; object-fit:cover !important;
-  border:1px solid var(--line) !important;
+  width:52px !important; height:52px !important; flex:none !important;
+  border-radius:0 !important; object-fit:contain !important;
+  border:0 !important;
 }
 #madebefu .mbfu-name {
   font-family:var(--display) !important;
@@ -534,7 +539,7 @@ body { margin:0 !important; padding:0 !important; }
     return (
       '<div class="mbfu-top">' +
         '<div class="mbfu-wrap mbfu-top-in">' +
-          '<img class="mbfu-mark" src="' + esc(CONFIG.logo) + '" width="44" height="44" alt="Made Better Landscaping Co">' +
+          '<img class="mbfu-mark" src="' + esc(CONFIG.logo) + '" width="52" height="52" alt="Made Better Landscaping Co">' +
           '<span class="mbfu-name">Made Better Landscaping Co</span>' +
         "</div>" +
       "</div>" +
@@ -588,7 +593,7 @@ body { margin:0 !important; padding:0 !important; }
 
       '<div class="mbfu-foot">' +
         '<div class="mbfu-wrap mbfu-foot-in">' +
-          '<img class="mbfu-mark" src="' + esc(CONFIG.logo) + '" width="44" height="44" alt="">' +
+          '<img class="mbfu-mark" src="' + esc(CONFIG.logo) + '" width="52" height="52" alt="">' +
           "<p>Made Better Landscaping Co. Metro Detroit.</p>" +
         "</div>" +
       "</div>"

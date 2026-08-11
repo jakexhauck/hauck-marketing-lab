@@ -36,7 +36,11 @@
   var CONFIG = {
     phone: "(313) 506-9238",
     phoneHref: "tel:+13135069238",
-    logo: "https://drive.google.com/thumbnail?id=1B6zy3IkzRzR4NK3KmoNosWk4N1FBV1jB&sz=w400",
+    // The same served logo the website uses, so the review card and the site a
+    // customer just came from carry one mark. Absolute because this script has
+    // no origin of its own to resolve against, and served from the repo because
+    // a Drive thumbnail dies the day a sharing permission changes.
+    logo: "https://app.hauckmarketing.com/sites/made-better/logo.png",
 
     // Where 4 and 5 star ratings go: Made Better's own "write a review" link
     // off the Google Business Profile. A 4 or 5 star tap now leaves this page

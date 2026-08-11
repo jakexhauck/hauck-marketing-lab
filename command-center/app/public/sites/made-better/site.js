@@ -41,7 +41,12 @@
     phone: "(313) 506-9238",
     phoneHref: "tel:+13135069238",
     email: "madebetterlc@gmail.com",
-    logo: "https://drive.google.com/thumbnail?id=1B6zy3IkzRzR4NK3KmoNosWk4N1FBV1jB&sz=w400",
+    // Served from this repo, not from Drive: a Drive thumbnail can be revoked
+    // by a sharing-permission change nobody remembers making, and it arrives as
+    // a JPEG on a white square. This is the full logo with the studio black
+    // lifted off it, so it sits on the white header and on the dark bands
+    // alike.
+    logo: origin + "/sites/made-better/logo.png",
 
     // The GHL inbound webhook the estimate form posts to. Workflow > Trigger >
     // "Inbound Webhook", then copy the URL it hands back. It looks like:
@@ -314,8 +319,11 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .hdr-in{ display:flex; align-items:center; justify-content:space-between; gap:32px; height:92px; transition:height .25s; }
 #mb .hdr.is-stuck .hdr-in{ height:78px; }
 #mb .brand{ display:flex; align-items:center; gap:12px; flex:none; }
-#mb .brand-logo{ height:54px; width:auto; transition:height .25s; }
-#mb .hdr.is-stuck .brand-logo{ height:44px; }
+/* Taller than a bare mark would need to be. The logo carries the words MADE
+   BETTER set at 45 degrees inside the diamond, and under about 60px those words
+   turn into two grey smudges. */
+#mb .brand-logo{ height:62px; width:auto; transition:height .25s; }
+#mb .hdr.is-stuck .brand-logo{ height:50px; }
 /* The mark alone does not say who this is. The name sits beside it, set in the
    display face so the header opens the same way the footer closes. */
 #mb .brand-name {
@@ -675,11 +683,10 @@ body{ margin:0 !important; padding:0 !important; }
   border-top:1px solid var(--line);
 }
 #mb .ft-in{ display:grid; grid-template-columns:1.6fr 1fr 1fr; gap:48px; }
-#mb .brand-txt {
-  font-family:'Plus Jakarta Sans','Inter',sans-serif;
-  font-size:19px; font-weight:800; color:var(--head); letter-spacing:-.02em;
-}
-#mb .brand-txt span{ color:var(--gold-text); }
+/* The footer closes on the logo itself rather than the name set in type. It has
+   room here that the header does not, so this is the one place on the site the
+   full lockup is read at the size it was drawn for. */
+#mb .ft-logo{ display:block; height:96px; width:auto; }
 #mb .ft-blurb{ margin-top:14px; font-size:14.5px; color:var(--muted); line-height:1.65; max-width:400px; }
 #mb .ft h4{ color:var(--head); font-size:12.5px; letter-spacing:.16em; text-transform:uppercase; margin-bottom:16px; }
 #mb .ft-links{ display:flex; flex-direction:column; gap:7px; }
@@ -885,8 +892,8 @@ body{ margin:0 !important; padding:0 !important; }
   #mb .burger{ display:grid; place-items:center; }
   #mb .hdr-phone, #mb .hdr-cta .btn{ display:none; }
   #mb-bar{ display:flex; }
-  #mb .brand-logo{ height:44px; }
-  #mb .hdr.is-stuck .brand-logo{ height:38px; }
+  #mb .brand-logo{ height:50px; }
+  #mb .hdr.is-stuck .brand-logo{ height:44px; }
   #mb .brand-name{ font-size:17px; }
   #mb .trust-in{ padding:26px 24px; }
   #mb .hdr-in{ height:76px; }
@@ -971,7 +978,7 @@ body{ margin:0 !important; padding:0 !important; }
       '    <div class="wrap">',
       '      <div class="ft-in">',
       "        <div>",
-      '          <span class="brand-txt">MADE BETTER<span>.</span></span>',
+      '          <img class="ft-logo" src="' + CONFIG.logo + '" alt="Made Better LC">',
       '          <p class="ft-blurb">Hardscaping, landscaping, and exterior works across Metro Detroit. A young, local crew serving Metro Detroit. Owner-operated by Seamus Geohagen, licensed and insured, with honest pricing on every job.</p>',
       "        </div>",
       "        <div>",
