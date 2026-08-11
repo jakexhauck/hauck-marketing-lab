@@ -115,15 +115,15 @@
    MADE BETTER LC — review funnel
 
    The palette, type and button language are the website's, so a customer who
-   just left madebetterlc.com does not feel handed off to a survey tool: basalt
-   green, brass, warm stone, Plus Jakarta Sans over Inter.
+   just left madebetterlc.com does not feel handed off to a survey tool: bark,
+   gold and warm wash off the logo mark, Plus Jakarta Sans over Inter.
 
    Colour rules carried over from site.js, both of which were real contrast
    bugs there:
-     - Brass #C8974B is a FILL colour, not a text colour. It reads 2.63:1 on
-       white. Text uses --brass-text, which clears 4.5:1.
+     - Gold #C38D33 is a FILL colour, not a text colour. It reads 2.93:1 on
+       white. Text uses --gold-text, which clears 4.5:1.
      - A filled star is a shape, so it needs 3:1 rather than 4.5:1. The fill
-       alone does not reach it, so every star carries a --brass-text stroke
+       alone does not reach it, so every star carries a --gold-text stroke
        and the boundary clears comfortably on white.
    ========================================================================= */
 
@@ -145,17 +145,17 @@
 #mbr *, #mbr *::before, #mbr *::after{ box-sizing:border-box; }
 
 #mbr{
-  --ink:#0E1311;          /* basalt: headings */
-  --brass:#C8974B;        /* the accent, as a FILL */
-  --brass-text:#876633;   /* the same brass, at text contrast */
-  --brass-2:#B5843A;      /* pressed / hover */
-  --moss:#4E6B54;
+  --bark:#160E07;          /* the logo brown taken to a surface: headings */
+  --gold:#C38D33;        /* the accent, as a FILL */
+  --gold-text:#856022;   /* the same gold, at text contrast */
+  --gold-2:#A87729;      /* pressed / hover */
+  --leaf-deep:#2E6F11;
   --paper:#FFFFFF;
-  --wash:#F7F6F2;
-  --line:#E6E3DA;
-  --body:#3D4642;
-  --muted:#5C665F;        /* 4.5:1 on white and on --wash */
-  --star-empty:#8C857A;   /* 3.4:1 on white: an empty star is still a shape */
+  --wash:#F7F4EE;
+  --line:#E6DFD1;
+  --body:#453B2E;
+  --muted:#5F5548;        /* 4.5:1 on white and on --wash */
+  --star-empty:#8C8175;   /* 3.4:1 on white: an empty star is still a shape */
   --radius:14px;
 
   margin:0; background:var(--wash); color:var(--body);
@@ -200,15 +200,15 @@
 #mbr p{ margin:0 !important; }
 #mbr h1, #mbr h2{ text-transform:none !important; }
 #mbr img{ display:block; max-width:100%; }
-#mbr a{ color:var(--brass-text); text-decoration:underline; text-underline-offset:2px; }
+#mbr a{ color:var(--gold-text); text-decoration:underline; text-underline-offset:2px; }
 
 #mbr h1, #mbr h2{
   font-family:'Plus Jakarta Sans','Inter',system-ui,sans-serif;
-  color:var(--ink); margin:0; font-weight:800; letter-spacing:-.02em; line-height:1.14;
+  color:var(--bark); margin:0; font-weight:800; letter-spacing:-.02em; line-height:1.14;
 }
 
 /* ===== STAGE =====
-   A soft brass bloom behind the card, so a single centred card on a flat wash
+   A soft gold bloom behind the card, so a single centred card on a flat wash
    does not read as an unstyled form. */
 #mbr .stage{
   min-height:100vh; display:flex; flex-direction:column;
@@ -218,15 +218,15 @@
 #mbr .stage::before{
   content:''; position:absolute; inset:0; z-index:-1; pointer-events:none;
   background:
-    radial-gradient(760px 420px at 50% -6%, rgba(200,151,75,.16), transparent 68%),
-    radial-gradient(620px 420px at 50% 108%, rgba(78,107,84,.10), transparent 70%);
+    radial-gradient(760px 420px at 50% -6%, rgba(195,141,51,.16), transparent 68%),
+    radial-gradient(620px 420px at 50% 108%, rgba(46,111,17,.10), transparent 70%);
 }
 
 #mbr .card{
   width:100%; max-width:560px; background:var(--paper);
   border:1px solid var(--line); border-radius:var(--radius);
   padding:44px 44px 30px; text-align:center;
-  box-shadow:0 30px 60px -34px rgba(14,19,17,.34), 0 2px 6px -2px rgba(14,19,17,.06);
+  box-shadow:0 30px 60px -34px rgba(22,14,7,.34), 0 2px 6px -2px rgba(22,14,7,.06);
 }
 
 #mbr .logo{ height:68px; width:auto; margin:0 auto 26px; }
@@ -258,15 +258,15 @@
   stroke-linejoin:round;
   transition:fill .16s ease, stroke .16s ease;
 }
-#mbr .star.on path{ fill:var(--brass); stroke:var(--brass-text); }
+#mbr .star.on path{ fill:var(--gold); stroke:var(--gold-text); }
 #mbr .star:hover{ transform:translateY(-2px) scale(1.06); }
-#mbr .star:focus-visible{ outline:2px solid var(--brass-text); outline-offset:1px; }
+#mbr .star:focus-visible{ outline:2px solid var(--gold-text); outline-offset:1px; }
 #mbr .stars.is-locked .star{ cursor:default; }
 
 #mbr .hint{
   min-height:22px; margin-top:12px !important;
   font-size:13px; font-weight:600; letter-spacing:.10em; text-transform:uppercase;
-  color:var(--brass-text);
+  color:var(--gold-text);
 }
 
 /* ===== PANELS ===== */
@@ -293,7 +293,7 @@
 }
 
 #mbr input{
-  width:100%; background:var(--wash); color:var(--ink);
+  width:100%; background:var(--wash); color:var(--bark);
   border:1px solid var(--line); border-radius:10px;
   padding:12px 14px; font-size:16px; line-height:1.3;
   font-family:inherit !important; margin:0 !important;
@@ -303,8 +303,8 @@
   transition:border-color .15s ease, box-shadow .15s ease;
 }
 #mbr input:focus{
-  outline:none; border-color:var(--brass);
-  box-shadow:0 0 0 3px rgba(200,151,75,.20);
+  outline:none; border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(195,141,51,.20);
 }
 /* 16px on the inputs above is deliberate: iOS Safari zooms the whole page in
    when a focused field is smaller than that, and on a centred card that zoom
@@ -317,19 +317,19 @@
 
 #mbr textarea{
   width:100%; min-height:112px; resize:vertical;
-  background:var(--wash); color:var(--ink);
+  background:var(--wash); color:var(--bark);
   border:1px solid var(--line); border-radius:10px;
   padding:14px 15px; font-size:16px; line-height:1.55;
   transition:border-color .15s ease, box-shadow .15s ease;
 }
 /* Placeholder text is still text: it has to clear 4.5:1 like everything else.
-   The obvious lighter grey (#7A837C) reads 3.62:1 on the --wash field and
+   The obvious lighter grey (#847A6D) reads 3.62:1 on the --wash field and
    fails. --muted clears it at 5.5:1 and is still plainly lighter than what
    the visitor types (17.3:1), which is the only distinction it owes them. */
 #mbr textarea::placeholder{ color:var(--muted); opacity:1; }
 #mbr textarea:focus{
-  outline:none; border-color:var(--brass);
-  box-shadow:0 0 0 3px rgba(200,151,75,.20);
+  outline:none; border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(195,141,51,.20);
 }
 
 #mbr .btn{
@@ -337,13 +337,13 @@
   width:100%; margin:18px 0 0 !important; padding:15px 26px;
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
   font-size:16px; font-weight:700; letter-spacing:-.01em;
-  background:var(--brass); color:#14100A;
-  border:1px solid var(--brass); border-radius:10px; cursor:pointer;
+  background:var(--gold); color:#160E07;
+  border:1px solid var(--gold); border-radius:10px; cursor:pointer;
   transition:background .16s ease, box-shadow .16s ease, transform .16s ease;
-  box-shadow:0 14px 26px -16px rgba(200,151,75,.9);
+  box-shadow:0 14px 26px -16px rgba(195,141,51,.9);
 }
-#mbr .btn:hover:not(:disabled){ background:var(--brass-2); border-color:var(--brass-2); transform:translateY(-1px); }
-#mbr .btn:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+#mbr .btn:hover:not(:disabled){ background:var(--gold-2); border-color:var(--gold-2); transform:translateY(-1px); }
+#mbr .btn:focus-visible{ outline:2px solid var(--bark); outline-offset:2px; }
 #mbr .btn:disabled{ opacity:.62; cursor:default; box-shadow:none; }
 
 #mbr .err{
@@ -357,11 +357,11 @@
 #mbr .tick{
   width:62px; height:62px; margin:0 auto 22px;
   display:flex; align-items:center; justify-content:center;
-  border-radius:50%; background:rgba(200,151,75,.14);
-  border:1px solid rgba(200,151,75,.44);
+  border-radius:50%; background:rgba(195,141,51,.14);
+  border:1px solid rgba(195,141,51,.44);
 }
 #mbr .tick svg{ width:28px; height:28px; }
-#mbr .tick path{ fill:none; stroke:var(--brass-text); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+#mbr .tick path{ fill:none; stroke:var(--gold-text); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
 
 /* There is no footer line. The phone number used to sit under the card on
    every view; Jake removed it so the page asks one thing and offers no exit.

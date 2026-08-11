@@ -75,52 +75,62 @@
    the moments that need weight, 1180px container, 112px section rhythm, and a
    10px-radius button with a coloured glow under it.
 
-   The palette is Made Better's own: basalt green, brass, moss, warm stone. The
-   two are agencymates in the same metro, so the format is shared and the
-   colour is not.
+   The palette is Made Better's own and it is sampled from their logo mark, not
+   chosen alongside it: the brown brick #6B4526, the gold brick #C38D33, the
+   light leaf #8EBE41 and the dark leaf #2E6F11. Bark is that brown taken down
+   to a surface. The two clients are agencymates in the same metro, so the
+   format is shared and the colour is not.
+
+   The ads design kit at "Client Deliverables/Made Better LC/ads-design-kit.html"
+   mirrors these tokens so an ad and the page it points at match. Change one,
+   change the other in the same pass.
    ========================================================================= */
 
 /* The sticky mobile bar and the scroll progress bar are appended to <body>,
    which puts them outside #mb, so custom properties declared only on #mb never
-   reached them: var(--brass) resolved to nothing and the bar's "Free estimate"
-   button rendered as #14100A text on no background over a near-black bar, at
+   reached them: var(--gold) resolved to nothing and the bar's "Free estimate"
+   button rendered as #160E07 text on no background over a near-black bar, at
    about 1.05:1. Invisible, and it is the primary call to action on a phone.
    The handful of values both scopes need live here once, namespaced so a
    builder theme cannot collide with them. */
 :root{
-  --mb-brass:#C8974B;
-  --mb-ink-3:#26332E;
+  --mb-gold:#C38D33;
+  --mb-bark-3:#3A2814;
   --mb-radius:10px;
 }
 
 #mb {
-  /* ===== BRAND COLOURS: swap these to match the logo ===== */
-  --ink:#0E1311;        /* basalt, near-black green: dark bands, headings */
-  --ink-2:#17201C;      /* raised panel on a dark band */
-  --ink-3:var(--mb-ink-3); /* hairline on a dark band */
-  --brass:var(--mb-brass); /* the accent: CTA fills, rules, dots, brass on dark */
-  --brass-2:#B5843A;    /* pressed / hover */
-  --brass-soft:#E8D9BC; /* brass text on a dark band */
-  --moss:#4E6B54;       /* secondary accent */
+  /* ===== BRAND COLOURS: every one of these is in the logo ===== */
+  --bark:#160E07;        /* the logo brown taken to a surface: dark bands, headings */
+  --bark-2:#241809;      /* raised panel on a dark band */
+  --bark-3:var(--mb-bark-3); /* hairline on a dark band */
+  --gold:var(--mb-gold); /* the gold brick: CTA fills, rules, dots, gold on dark */
+  --gold-2:#A87729;    /* pressed / hover */
+  --gold-soft:#EAD6AC; /* gold text on a dark band */
+  --leaf-deep:#2E6F11; /* the dark logo leaf: secondary accent, safe as text on light */
 
-  /* Brass at #C8974B is a fill colour, not a text colour. On white it reads
-     2.63:1, so every eyebrow, label and numeral set in it failed AA and the
-     small ones were genuinely hard to read. Text keeps the brass hue and
-     takes the contrast: --brass-text clears 4.5:1 on all four light bands,
-     --brass-display clears the 3:1 large-text threshold so the 40px numerals
-     stay bright. Dark bands override both back to --brass, where it already
-     reads 7.13:1. */
-  --light-brass:#876633;    /* brass on light, body-size */
-  --light-brass-lg:#AB8140; /* brass on light, 24px+ or bold 19px+ */
+  /* Gold at #C38D33 is a fill colour, not a text colour. On white it reads
+     2.93:1, so every eyebrow, label and numeral set in it fails AA and the
+     small ones are genuinely hard to read. Text keeps the gold hue and
+     takes the contrast: --gold-text clears 4.5:1 on all four light bands,
+     --gold-display clears the 3:1 large-text threshold so the 40px numerals
+     stay bright. Dark bands override both back to --gold, where it already
+     reads 6.53:1.
 
-  --brass-text:var(--light-brass);
-  --brass-display:var(--light-brass-lg);
+     The light logo leaf #8EBE41 has the same problem twice over (1.99:1 on
+     --wash) and so is not a token here at all: on this site green text is
+     --leaf-deep, which reads 5.63:1. */
+  --light-gold:#856022;    /* gold on light, body-size */
+  --light-gold-lg:#A67A2B; /* gold on light, 24px+ or bold 19px+ */
+
+  --gold-text:var(--light-gold);
+  --gold-display:var(--light-gold-lg);
 
   --paper:#FFFFFF;      /* the default band */
-  --wash:#F7F6F2;       /* the alternating warm band */
-  --wash-2:#EFEDE6;     /* the deepest light band */
-  --line:#E6E3DA;       /* hairline on a light band */
-  --stone:#E9E5DC;      /* primary text on a dark band */
+  --wash:#F7F4EE;       /* the alternating warm band */
+  --wash-2:#EFEAE0;     /* the deepest light band */
+  --line:#E6DFD1;       /* hairline on a light band */
+  --stone:#E9E1D3;      /* primary text on a dark band */
 
   /* ===== TEXT ON A LIGHT BAND =====
      Declared once here and referenced by name everywhere else, including by
@@ -134,10 +144,10 @@
      enough to fail AA on every band it appears on (3.81:1 on white, 3.25:1 on
      --wash-2). --faint was worse at 2.63:1 and is used at 12.5px. Both are now
      the lightest value that still clears 4.5:1 on the deepest light band. */
-  --light-head:#0E1311;
-  --light-body:#5B655F;
-  --light-muted:#646C67;
-  --light-faint:#6B726E;
+  --light-head:#160E07;
+  --light-body:#5F5548;
+  --light-muted:#6B6153;
+  --light-faint:#6F6558;
 
   --head:var(--light-head);    /* headings on light */
   --body:var(--light-body);    /* body copy on light */
@@ -146,8 +156,8 @@
 
   --radius:var(--mb-radius); /* buttons, inputs */
   --radius-lg:16px;     /* cards, media */
-  --shadow:0 1px 2px rgba(14,19,17,.04), 0 14px 34px -20px rgba(14,19,17,.30);
-  --shadow-lift:0 2px 6px rgba(14,19,17,.06), 0 26px 56px -28px rgba(14,19,17,.38);
+  --shadow:0 1px 2px rgba(22,14,7,.04), 0 14px 34px -20px rgba(22,14,7,.30);
+  --shadow-lift:0 2px 6px rgba(22,14,7,.06), 0 26px 56px -28px rgba(22,14,7,.38);
 }
 
 /* ===== GHL FULL-BLEED OVERRIDES ===== */
@@ -215,7 +225,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .eyebrow {
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
   font-size:12.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
-  color:var(--brass-text); margin-bottom:16px;
+  color:var(--gold-text); margin-bottom:16px;
 }
 
 /* ===== LAYOUT ===== */
@@ -248,15 +258,15 @@ body{ margin:0 !important; padding:0 !important; }
    cards on a white page, which is the one place on the site where the content
    is the whole point and the surface was doing nothing to say so. */
 #mb .band-dark {
-  background:var(--ink); color:var(--stone);
-  --head:#FFFFFF; --muted:#A8B2AC; --body:#C9D1CB;
-  --brass-text:var(--brass); --brass-display:var(--brass);
+  background:var(--bark); color:var(--stone);
+  --head:#FFFFFF; --muted:#B0A493; --body:#D5CCBE;
+  --gold-text:var(--gold); --gold-display:var(--gold);
 }
-#mb .band-dark .stat{ background:var(--ink-2); border-color:var(--ink-3); box-shadow:none; }
+#mb .band-dark .stat{ background:var(--bark-2); border-color:var(--bark-3); box-shadow:none; }
 
 /* ===== BUTTONS =====
    10px radius, 700 weight, generous padding, and a coloured glow beneath the
-   primary. Dark ink on brass rather than white: brass and white is about 2:1
+   primary. Dark ink on gold rather than white: gold and white is about 2.9:1
    and unreadable at button size. */
 #mb .btn {
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
@@ -267,21 +277,21 @@ body{ margin:0 !important; padding:0 !important; }
   white-space:nowrap;
 }
 #mb .btn-primary {
-  background:var(--brass); color:#14100A; border-color:var(--brass);
-  box-shadow:0 12px 26px -14px rgba(200,151,75,.9);
+  background:var(--gold); color:#160E07; border-color:var(--gold);
+  box-shadow:0 12px 26px -14px rgba(195,141,51,.9);
 }
-#mb .btn-primary:hover{ background:var(--brass-2); border-color:var(--brass-2); box-shadow:0 16px 30px -14px rgba(200,151,75,.95); }
+#mb .btn-primary:hover{ background:var(--gold-2); border-color:var(--gold-2); box-shadow:0 16px 30px -14px rgba(195,141,51,.95); }
 #mb .btn-ghost{ background:transparent; color:var(--head); border-color:var(--line); }
-#mb .btn-ghost:hover{ border-color:var(--brass); color:var(--brass-text); }
+#mb .btn-ghost:hover{ border-color:var(--gold); color:var(--gold-text); }
 #mb .btn:disabled{ opacity:.55; cursor:default; box-shadow:none; }
 #mb a.btn{ text-decoration:none; }
 
 /* on a dark band the ghost button flips */
 #mb .on-dark .btn-ghost, #mb .hero .btn-ghost, #mb .close .btn-ghost {
-  color:var(--stone); border-color:rgba(233,229,220,.28);
+  color:var(--stone); border-color:rgba(233,225,211,.28);
 }
 #mb .on-dark .btn-ghost:hover, #mb .hero .btn-ghost:hover, #mb .close .btn-ghost:hover {
-  border-color:var(--brass); color:var(--brass-soft);
+  border-color:var(--gold); color:var(--gold-soft);
 }
 
 /* ===== CHIP =====
@@ -290,7 +300,7 @@ body{ margin:0 !important; padding:0 !important; }
   display:inline-flex; align-items:center; gap:7px;
   padding:8px 14px; border-radius:999px;
   font-size:13.5px; font-weight:600; letter-spacing:-.005em;
-  background:rgba(200,151,75,.10); border:1px solid rgba(200,151,75,.42); color:var(--brass-soft);
+  background:rgba(195,141,51,.10); border:1px solid rgba(195,141,51,.42); color:var(--gold-soft);
 }
 
 /* ===== HEADER ===== */
@@ -300,7 +310,7 @@ body{ margin:0 !important; padding:0 !important; }
   border-bottom:1px solid var(--line);
   transition:height .25s, box-shadow .25s, background .25s;
 }
-#mb .hdr.is-stuck{ box-shadow:0 10px 30px -22px rgba(14,19,17,.5); background:rgba(255,255,255,.94); }
+#mb .hdr.is-stuck{ box-shadow:0 10px 30px -22px rgba(22,14,7,.5); background:rgba(255,255,255,.94); }
 #mb .hdr-in{ display:flex; align-items:center; justify-content:space-between; gap:32px; height:92px; transition:height .25s; }
 #mb .hdr.is-stuck .hdr-in{ height:78px; }
 #mb .brand{ display:flex; align-items:center; gap:12px; flex:none; }
@@ -313,7 +323,7 @@ body{ margin:0 !important; padding:0 !important; }
   font-size:19px; font-weight:800; letter-spacing:-.02em; color:var(--head);
   white-space:nowrap; transition:font-size .25s;
 }
-#mb .brand-name i{ font-style:normal; color:var(--brass-text); }
+#mb .brand-name i{ font-style:normal; color:var(--gold-text); }
 #mb .hdr.is-stuck .brand-name{ font-size:17.5px; }
 
 #mb .nav{ display:flex; align-items:center; gap:34px; }
@@ -321,11 +331,11 @@ body{ margin:0 !important; padding:0 !important; }
   font-size:15px; font-weight:600; color:var(--head); letter-spacing:-.01em;
   transition:color .15s; position:relative; padding:6px 0;
 }
-#mb .nav a:hover{ color:var(--brass-text); }
+#mb .nav a:hover{ color:var(--gold-text); }
 #mb .nav a.is-active{ color:var(--head); }
 #mb .nav a.is-active::after {
   content:""; position:absolute; left:0; right:0; bottom:-2px; height:2px;
-  background:var(--brass); border-radius:2px;
+  background:var(--gold); border-radius:2px;
 }
 
 #mb .hdr-cta{ display:flex; align-items:center; gap:14px; flex:none; }
@@ -333,7 +343,7 @@ body{ margin:0 !important; padding:0 !important; }
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
   font-size:15px; font-weight:700; color:var(--head); letter-spacing:-.01em;
 }
-#mb .hdr-phone:hover{ color:var(--brass-text); }
+#mb .hdr-phone:hover{ color:var(--gold-text); }
 #mb .hdr-cta .btn{ padding:11px 20px; font-size:14.5px; }
 #mb .burger {
   display:none; background:transparent; border:1px solid var(--line); border-radius:var(--radius);
@@ -341,13 +351,13 @@ body{ margin:0 !important; padding:0 !important; }
 }
 
 /* ===== HERO =====
-   A photograph under a basalt wash, white type over it. Willis's hero shape,
+   A photograph under a bark wash, white type over it. Willis's hero shape,
    with the estimate form Willis does not have. */
 #mb .hero {
-  position:relative; background:var(--ink); color:var(--stone);
+  position:relative; background:var(--bark); color:var(--stone);
   padding:72px 0 88px; overflow:hidden;
-  --muted:#A8B2AC; --head:#FFFFFF; --body:#C9D1CB;
-  --brass-text:var(--brass); --brass-display:var(--brass);
+  --muted:#B0A493; --head:#FFFFFF; --body:#D5CCBE;
+  --gold-text:var(--gold); --gold-display:var(--gold);
 }
 #mb .hero-bg{ position:absolute; inset:0; overflow:hidden; }
 /* The photograph has to survive the wash. Heavy on the left where the headline
@@ -356,7 +366,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .hero-bg img{ width:100%; height:100%; object-fit:cover; opacity:.62; }
 #mb .hero-bg::after {
   content:""; position:absolute; inset:0;
-  background:linear-gradient(100deg, var(--ink) 4%, rgba(14,19,17,.88) 38%, rgba(14,19,17,.55) 72%, rgba(14,19,17,.42) 100%);
+  background:linear-gradient(100deg, var(--bark) 4%, rgba(22,14,7,.88) 38%, rgba(22,14,7,.55) 72%, rgba(22,14,7,.42) 100%);
 }
 /* Top-aligned, not centred. Centring measured the copy against the form card,
    which is the taller of the two, so the headline was pushed 88px further down
@@ -364,12 +374,12 @@ body{ margin:0 !important; padding:0 !important; }
    gap under the nav bar. Both columns now start at the same line. */
 #mb .hero-in{ position:relative; display:grid; grid-template-columns:1.05fr .95fr; gap:64px; align-items:start; }
 #mb .hero h1{ color:#FFFFFF; }
-#mb .hero h1 em{ font-style:normal; color:var(--brass); }
+#mb .hero h1 em{ font-style:normal; color:var(--gold); }
 /* The hero sub-paragraph is gone: the four points below now carry the pitch on
    their own, so a sentence saying the same thing sat directly above them. */
 #mb .hero-pts{ list-style:none; margin:28px 0 0; padding:0; display:flex; flex-direction:column; gap:13px; }
-#mb .hero-pts li{ display:flex; align-items:flex-start; gap:11px; font-size:15.5px; color:#D6DDD8; line-height:1.5; }
-#mb .hero-pts svg{ width:19px; height:19px; flex:none; margin-top:2px; stroke:var(--brass); }
+#mb .hero-pts li{ display:flex; align-items:flex-start; gap:11px; font-size:15.5px; color:#DCD3C5; line-height:1.5; }
+#mb .hero-pts svg{ width:19px; height:19px; flex:none; margin-top:2px; stroke:var(--gold); }
 
 #mb .hero-actions{ display:flex; flex-wrap:wrap; gap:12px; margin-top:34px; }
 
@@ -383,7 +393,7 @@ body{ margin:0 !important; padding:0 !important; }
      text colours back for everything inside it. */
   --head:var(--light-head); --body:var(--light-body);
   --muted:var(--light-muted); --faint:var(--light-faint);
-  --brass-text:var(--light-brass); --brass-display:var(--light-brass-lg);
+  --gold-text:var(--light-gold); --gold-display:var(--light-gold-lg);
 }
 #mb .form-card h3{ font-size:23px; color:var(--head); }
 #mb .form-note{ margin-top:9px; font-size:14.5px; color:var(--muted); line-height:1.55; }
@@ -400,9 +410,9 @@ body{ margin:0 !important; padding:0 !important; }
   transition:border-color .15s, box-shadow .15s;
 }
 #mb .field textarea{ resize:vertical; min-height:92px; }
-#mb .field input::placeholder, #mb .field textarea::placeholder{ color:#AEB6B1; }
+#mb .field input::placeholder, #mb .field textarea::placeholder{ color:#B6ABA0; }
 #mb .field input:focus, #mb .field select:focus, #mb .field textarea:focus {
-  outline:none; border-color:var(--brass); box-shadow:0 0 0 3px rgba(200,151,75,.18);
+  outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(195,141,51,.18);
 }
 #mb .field.has-error input, #mb .field.has-error select, #mb .field.has-error textarea{ border-color:#C2492F; }
 
@@ -442,18 +452,18 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .trust-item{
   display:flex; align-items:center; gap:14px;
   background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-lg);
-  padding:22px 20px; box-shadow:0 1px 2px rgba(14,19,17,.04);
+  padding:22px 20px; box-shadow:0 1px 2px rgba(22,14,7,.04);
   transition:border-color .2s, box-shadow .2s, transform .2s cubic-bezier(.16,1,.3,1);
 }
 #mb .trust-item:hover{
-  border-color:rgba(200,151,75,.5); transform:translateY(-2px);
-  box-shadow:0 2px 4px rgba(14,19,17,.05), 0 18px 34px -22px rgba(14,19,17,.35);
+  border-color:rgba(195,141,51,.5); transform:translateY(-2px);
+  box-shadow:0 2px 4px rgba(22,14,7,.05), 0 18px 34px -22px rgba(22,14,7,.35);
 }
 #mb .trust-ico{
   flex:none; width:42px; height:42px; border-radius:12px; display:grid; place-items:center;
-  background:rgba(200,151,75,.12); border:1px solid rgba(200,151,75,.34);
+  background:rgba(195,141,51,.12); border:1px solid rgba(195,141,51,.34);
 }
-#mb .trust-ico svg{ width:21px; height:21px; stroke:var(--brass); fill:none; }
+#mb .trust-ico svg{ width:21px; height:21px; stroke:var(--gold); fill:none; }
 #mb .trust-item strong {
   display:block; font-family:'Plus Jakarta Sans','Inter',sans-serif;
   font-size:15.5px; font-weight:700; color:var(--head); letter-spacing:-.015em; margin-bottom:4px;
@@ -471,7 +481,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .ba {
   position:relative; width:100%; aspect-ratio:16/10; overflow:hidden;
   border-radius:var(--radius-lg); border:1px solid var(--line);
-  cursor:ew-resize; background:#0B0F0D; box-shadow:var(--shadow);
+  cursor:ew-resize; background:#100A05; box-shadow:var(--shadow);
   touch-action:pan-y;
   user-select:none; -webkit-user-select:none; -ms-user-select:none;
   -webkit-touch-callout:none;
@@ -489,26 +499,26 @@ body{ margin:0 !important; padding:0 !important; }
 }
 #mb .ba-knob {
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-  width:46px; height:46px; border-radius:50%; background:#fff; color:var(--ink);
+  width:46px; height:46px; border-radius:50%; background:#fff; color:var(--bark);
   display:grid; place-items:center; font-size:17px; box-shadow:0 6px 20px rgba(0,0,0,.35);
 }
 #mb .ba-tag {
   position:absolute; bottom:16px; padding:7px 13px; border-radius:999px;
   font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
-  background:rgba(14,19,17,.62); color:#fff; backdrop-filter:blur(6px); pointer-events:none;
+  background:rgba(22,14,7,.62); color:#fff; backdrop-filter:blur(6px); pointer-events:none;
 }
 #mb .ba-tag.l{ left:16px; }
 #mb .ba-tag.r{ right:16px; }
 #mb .ba-cap{ display:flex; justify-content:space-between; gap:20px; margin-top:16px; font-size:14.5px; color:var(--muted); }
-#mb .ba-cap p:last-child{ color:var(--brass-text); font-weight:600; white-space:nowrap; }
+#mb .ba-cap p:last-child{ color:var(--gold-text); font-weight:600; white-space:nowrap; }
 
 #mb .ba-thumbs{ display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
 #mb .ba-thumbs button {
   padding:9px 18px; min-height:44px; border-radius:999px; border:1px solid var(--line); background:var(--paper);
   font-size:14px; font-weight:600; color:var(--body); cursor:pointer; transition:all .15s;
 }
-#mb .ba-thumbs button:hover{ border-color:var(--brass); color:var(--head); }
-#mb .ba-thumbs button[aria-pressed="true"]{ background:var(--ink); border-color:var(--ink); color:#fff; }
+#mb .ba-thumbs button:hover{ border-color:var(--gold); color:var(--head); }
+#mb .ba-thumbs button[aria-pressed="true"]{ background:var(--bark); border-color:var(--bark); color:#fff; }
 
 #mb .split-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
 #mb .split-grid figure{ margin:0; border-radius:var(--radius-lg); overflow:hidden; border:1px solid var(--line); background:var(--wash); }
@@ -530,11 +540,11 @@ body{ margin:0 !important; padding:0 !important; }
   padding:34px 30px 32px; box-shadow:var(--shadow);
   transition:transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s, border-color .25s;
 }
-#mb .svc-card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-lift); border-color:rgba(200,151,75,.45); }
+#mb .svc-card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-lift); border-color:rgba(195,141,51,.45); }
 #mb .svc-num {
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
   font-size:11.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
-  color:var(--brass-text); margin-bottom:14px;
+  color:var(--gold-text); margin-bottom:14px;
 }
 #mb .svc-card h3{ margin-bottom:12px; }
 #mb .svc-card p{ font-size:15.5px; color:var(--muted); line-height:1.6; max-width:62ch; }
@@ -542,7 +552,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .svc-list li{ position:relative; padding-left:20px; font-size:15px; color:var(--body); }
 #mb .svc-list li::before {
   content:""; position:absolute; left:2px; top:9px;
-  width:6px; height:6px; border-radius:50%; background:var(--brass);
+  width:6px; height:6px; border-radius:50%; background:var(--gold);
 }
 
 /* ===== GALLERY ===== */
@@ -569,13 +579,13 @@ body{ margin:0 !important; padding:0 !important; }
    exists. */
 
 /* ===== CITY MARQUEE ===== */
-#mb .marq{ overflow:hidden; background:var(--ink); padding:16px 0; border-top:1px solid var(--ink-3); border-bottom:1px solid var(--ink-3); }
+#mb .marq{ overflow:hidden; background:var(--bark); padding:16px 0; border-top:1px solid var(--bark-3); border-bottom:1px solid var(--bark-3); }
 #mb .marq-track{ display:flex; gap:0; white-space:nowrap; animation:mbMarq 46s linear infinite; width:max-content; }
 #mb .marq-track span {
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
-  font-size:14px; font-weight:600; color:#7E8B84; letter-spacing:.02em; padding:0 0 0 24px;
+  font-size:14px; font-weight:600; color:#8A8074; letter-spacing:.02em; padding:0 0 0 24px;
 }
-#mb .marq-track span::after{ content:"\\2022"; color:var(--brass); margin-left:24px; }
+#mb .marq-track span::after{ content:"\\2022"; color:var(--gold); margin-left:24px; }
 @keyframes mbMarq{ from{ transform:translateX(0) } to{ transform:translateX(-50%) } }
 
 /* ===== SERVICE AREA ===== */
@@ -588,7 +598,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .county {
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
   font-size:12.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
-  color:var(--brass-text); margin:34px 0 14px;
+  color:var(--gold-text); margin:34px 0 14px;
 }
 #mb .county:first-child{ margin-top:0; }
 /* Willis's city pills */
@@ -601,24 +611,24 @@ body{ margin:0 !important; padding:0 !important; }
 
 /* ===== CLOSING CTA ===== */
 #mb .close {
-  background:var(--ink); color:var(--stone); padding:88px 0;
-  --head:#FFFFFF; --muted:#A8B2AC; --body:#C9D1CB;
-  --brass-text:var(--brass); --brass-display:var(--brass);
+  background:var(--bark); color:var(--stone); padding:88px 0;
+  --head:#FFFFFF; --muted:#B0A493; --body:#D5CCBE;
+  --gold-text:var(--gold); --gold-display:var(--gold);
 }
 #mb .close-in{ display:grid; grid-template-columns:1.2fr .8fr; gap:56px; align-items:center; }
 #mb .close h2{ color:var(--head); }
 /* Scoped to the copy column, not the whole band. As ".close p" it also matched
    every paragraph inside the white form card sitting in the other column, and
    beat ".form-note" on specificity: the card's helper text and fineprint were
-   painted #C9D1CB, a dark-band colour, onto white. 1.56:1, near enough to
+   painted #D5CCBE, a dark-band colour, onto white. 1.56:1, near enough to
    invisible, and blown up to 18px besides. */
 #mb .close-in > div:not(.form-card) p{ margin-top:16px; font-size:18px; color:var(--body); max-width:520px; }
 #mb .close-phone {
   display:inline-block; margin-top:26px;
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
-  font-size:34px; font-weight:800; letter-spacing:-.025em; color:var(--brass);
+  font-size:34px; font-weight:800; letter-spacing:-.025em; color:var(--gold);
 }
-#mb .close-phone:hover{ color:var(--brass-soft); }
+#mb .close-phone:hover{ color:var(--gold-soft); }
 
 /* ===== FAQ =====
    Willis has one and Made Better did not. Native <details> so it works with no
@@ -636,11 +646,11 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .faq summary::-webkit-details-marker{ display:none; }
 #mb .faq summary::after {
   content:""; position:absolute; right:6px; top:50%; width:12px; height:12px;
-  margin-top:-8px; border-right:2.2px solid var(--brass); border-bottom:2.2px solid var(--brass);
+  margin-top:-8px; border-right:2.2px solid var(--gold); border-bottom:2.2px solid var(--gold);
   transform:rotate(45deg); transition:transform .25s;
 }
 #mb .faq details[open] summary::after{ transform:rotate(-135deg); margin-top:-3px; }
-#mb .faq summary:hover{ color:var(--brass-text); }
+#mb .faq summary:hover{ color:var(--gold-text); }
 #mb .faq .faq-a{ padding:0 44px 26px 0; font-size:16px; color:var(--muted); line-height:1.65; max-width:62ch; }
 
 /* ===== STAT BLOCK ===== */
@@ -651,7 +661,7 @@ body{ margin:0 !important; padding:0 !important; }
 }
 #mb .stat b {
   display:block; font-family:'Plus Jakarta Sans','Inter',sans-serif;
-  font-size:42px; font-weight:800; color:var(--brass-display); letter-spacing:-.03em;
+  font-size:42px; font-weight:800; color:var(--gold-display); letter-spacing:-.03em;
   line-height:1; margin-bottom:8px; font-variant-numeric:tabular-nums; min-height:42px;
 }
 #mb .stat span{ font-size:14.5px; color:var(--muted); }
@@ -669,30 +679,30 @@ body{ margin:0 !important; padding:0 !important; }
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
   font-size:19px; font-weight:800; color:var(--head); letter-spacing:-.02em;
 }
-#mb .brand-txt span{ color:var(--brass-text); }
+#mb .brand-txt span{ color:var(--gold-text); }
 #mb .ft-blurb{ margin-top:14px; font-size:14.5px; color:var(--muted); line-height:1.65; max-width:400px; }
 #mb .ft h4{ color:var(--head); font-size:12.5px; letter-spacing:.16em; text-transform:uppercase; margin-bottom:16px; }
 #mb .ft-links{ display:flex; flex-direction:column; gap:7px; }
 #mb .ft-links a{ font-size:14.5px; color:var(--muted); transition:color .15s; padding:5px 0; }
-#mb .ft-links a:hover{ color:var(--brass-text); }
+#mb .ft-links a:hover{ color:var(--gold-text); }
 #mb .ft-bot {
   display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap;
   margin-top:44px; padding-top:24px; border-top:1px solid var(--line);
   font-size:13px; color:var(--muted);
 }
 #mb .ft-bot a{ color:var(--muted); display:inline-block; padding:5px 0; }
-#mb .ft-bot a:hover{ color:var(--brass-text); }
+#mb .ft-bot a:hover{ color:var(--gold-text); }
 
 /* ===== INTERIOR PAGE HEAD ===== */
 #mb .phead {
-  position:relative; background:var(--ink); color:var(--stone); overflow:hidden;
-  --head:#FFFFFF; --brass-text:var(--brass); --brass-display:var(--brass);
+  position:relative; background:var(--bark); color:var(--stone); overflow:hidden;
+  --head:#FFFFFF; --gold-text:var(--gold); --gold-display:var(--gold);
 }
 #mb .phead-bg{ position:absolute; inset:0; overflow:hidden; }
 #mb .phead-bg img{ width:100%; height:100%; object-fit:cover; opacity:.26; }
 #mb .phead-bg::after {
   content:""; position:absolute; inset:0;
-  background:linear-gradient(104deg, var(--ink) 8%, rgba(14,19,17,.82) 100%);
+  background:linear-gradient(104deg, var(--bark) 8%, rgba(22,14,7,.82) 100%);
 }
 /* The measure belongs on the text, not on the container. This element carries
    "wrap" too, and a 780px max-width on a "margin:0 auto" wrap centred the whole
@@ -705,7 +715,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .phead-in h1{ max-width:780px; }
 #mb .phead-in p{ max-width:680px; }
 #mb .phead h1{ color:#fff; margin-bottom:18px; }
-#mb .phead p{ font-size:19px; color:#C9D1CB; }
+#mb .phead p{ font-size:19px; color:#D5CCBE; }
 
 /* ===== PROSE (legal pages) ===== */
 #mb .prose{ max-width:1180px; }
@@ -716,7 +726,7 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .prose p{ color:var(--muted); margin-bottom:16px; font-size:16px; max-width:62ch; }
 #mb .prose ul{ color:var(--muted); margin:0 0 18px; padding-left:20px; font-size:16px; max-width:62ch; }
 #mb .prose li{ margin-bottom:8px; }
-#mb .prose a{ color:var(--brass-text); text-decoration:underline; text-underline-offset:2px; }
+#mb .prose a{ color:var(--gold-text); text-decoration:underline; text-underline-offset:2px; }
 #mb .prose strong{ color:var(--head); }
 #mb .updated{ font-size:13px; color:var(--faint); padding:14px 0 0; border-top:1px solid var(--line); margin-top:10px; }
 
@@ -763,14 +773,14 @@ body{ margin:0 !important; padding:0 !important; }
   font-size:25px; font-weight:800; letter-spacing:-.025em; color:var(--head);
   overflow-wrap:anywhere; line-height:1.25; display:block;
 }
-#mb .cblock a:hover{ color:var(--brass-text); }
+#mb .cblock a:hover{ color:var(--gold-text); }
 #mb .cblock small{ display:block; font-family:'Inter',sans-serif; font-size:14.5px; font-weight:400; color:var(--muted); margin-top:6px; letter-spacing:0; }
 
 /* ===== THANK YOU ===== */
 #mb .ty{ max-width:660px; margin:0 auto; text-align:center; padding:88px 0 80px; }
 #mb .ty-mark {
-  width:76px; height:76px; border-radius:50%; background:rgba(200,151,75,.12);
-  border:1px solid rgba(200,151,75,.5); color:var(--brass-display);
+  width:76px; height:76px; border-radius:50%; background:rgba(195,141,51,.12);
+  border:1px solid rgba(195,141,51,.5); color:var(--gold-display);
   display:flex; align-items:center; justify-content:center; margin:0 auto 30px; font-size:31px;
 }
 #mb .ty h1{ margin-bottom:16px; }
@@ -789,12 +799,12 @@ body{ margin:0 !important; padding:0 !important; }
 #mb .ty-next li:last-child{ margin-bottom:0; }
 
 /* ===== SCROLL PROGRESS + STICKY MOBILE BAR ===== */
-#mb-progress{ position:fixed; top:0; left:0; height:3px; width:0; background:var(--mb-brass); z-index:90; }
+#mb-progress{ position:fixed; top:0; left:0; height:3px; width:0; background:var(--mb-gold); z-index:90; }
 #mb-bar {
   position:fixed; left:0; right:0; bottom:0; z-index:80; display:none; gap:10px; padding:11px 14px;
-  background:rgba(14,19,17,.95); backdrop-filter:blur(10px);
+  background:rgba(22,14,7,.95); backdrop-filter:blur(10px);
   transform:translateY(110%); transition:transform .3s cubic-bezier(.16,1,.3,1);
-  border-top:1px solid var(--mb-ink-3);
+  border-top:1px solid var(--mb-bark-3);
 }
 #mb-bar.up{ transform:translateY(0); }
 #mb-bar a {
@@ -802,7 +812,7 @@ body{ margin:0 !important; padding:0 !important; }
   font-family:'Plus Jakarta Sans','Inter',sans-serif; font-size:14.5px; font-weight:700;
 }
 #mb-bar .b-call{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,.28); }
-#mb-bar .b-est{ background:var(--mb-brass); color:#14100A; }
+#mb-bar .b-est{ background:var(--mb-gold); color:#160E07; }
 
 /* ===== MOTION ===== */
 #mb .reveal, #mb .reveal-l, #mb .reveal-r, #mb .gal figure, #mb .split-grid figure {
@@ -866,7 +876,7 @@ body{ margin:0 !important; padding:0 !important; }
     display:none; position:absolute; top:100%; left:0; right:0;
     flex-direction:column; align-items:flex-start; gap:0; padding:12px 24px 20px;
     background:var(--paper); border-bottom:1px solid var(--line);
-    box-shadow:0 20px 40px -26px rgba(14,19,17,.5); scrollbar-width:thin;
+    box-shadow:0 20px 40px -26px rgba(22,14,7,.5); scrollbar-width:thin;
   }
   #mb .nav.open{ display:flex; }
   #mb .nav a{ width:100%; padding:13px 0; border-bottom:1px solid var(--line); font-size:16px; }
@@ -920,7 +930,7 @@ body{ margin:0 !important; padding:0 !important; }
 
     var nav = links.map(function (l) {
       // The current page is marked rather than linked away from. A class, not
-      // an inline colour: the header is light now and the mark is a brass rule
+      // an inline colour: the header is light now and the mark is a gold rule
       // under the word, which an inline colour cannot express.
       var active = l[0] === "/" + page;
       return '<a href="' + l[0] + '"' + (active ? ' class="is-active"' : "") + ">" + l[1] + "</a>";
@@ -1111,7 +1121,7 @@ body{ margin:0 !important; padding:0 !important; }
 
       <div class="ba-cap">
         <p id="mbBACap">Moss and weeds stripped out of every joint, then re-sanded and locked back down.</p>
-        <p style="color:var(--brass-text)">Drag the handle</p>
+        <p style="color:var(--gold-text)">Drag the handle</p>
       </div>
 
       <div class="ba-thumbs" id="mbBAThumbs">

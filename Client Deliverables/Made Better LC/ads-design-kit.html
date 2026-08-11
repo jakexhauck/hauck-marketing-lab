@@ -17,29 +17,36 @@
    source at command-center/app/public/sites/made-better/site.js so the ads and
    the site cannot drift. If a token changes there, change it here too.
 
+   Every colour below is sampled from the logo mark itself: the brown brick
+   #6B4526, the gold brick #C38D33, the light leaf #8EBE41 and the dark leaf
+   #2E6F11. Bark is that brown taken down to a surface. Nothing here was
+   invented alongside the mark.
+
    Every contrast figure on this page was computed, not estimated. The numbers
    are WCAG relative-luminance ratios against the stated background.
    ========================================================================== */
 
 :root{
-  /* --- brand, straight from the site --- */
-  --ink:#0E1311;          /* basalt. near-black green. the dark surface */
-  --ink-2:#17201C;        /* raised panel on basalt */
-  --ink-3:#26332E;        /* hairline on basalt */
-  --brass:#C8974B;        /* the accent. FILL colour first, text second */
-  --brass-2:#B5843A;      /* pressed / deeper brass */
-  --brass-soft:#E8D9BC;   /* brass-family text on a dark surface */
-  --moss:#4E6B54;         /* secondary accent */
-  --light-brass:#876633;      /* brass on light, safe at any size */
-  --light-brass-lg:#AB8140;   /* brass on light, large text only */
+  /* --- brand, straight from the logo, mirrored on the site --- */
+  --bark:#160E07;          /* the logo brown taken down to a surface. carries the ad */
+  --bark-2:#241809;        /* raised panel on bark */
+  --bark-3:#3A2814;        /* hairline on bark */
+  --brick:#6B4526;         /* the logo brown itself. a surface and a fill */
+  --gold:#C38D33;          /* the logo gold. FILL colour first, text second */
+  --gold-2:#A87729;        /* pressed / deeper gold */
+  --gold-soft:#EAD6AC;     /* gold-family text on a dark surface */
+  --leaf:#8EBE41;          /* the light logo leaf. a fill, and text on bark only */
+  --leaf-deep:#2E6F11;     /* the dark logo leaf. the green that may be text on light */
+  --light-gold:#856022;      /* gold on light, safe at any size */
+  --light-gold-lg:#A67A2B;   /* gold on light, large text only */
   --paper:#FFFFFF;
-  --wash:#F7F6F2;
-  --wash-2:#EFEDE6;
-  --line:#E6E3DA;
-  --stone:#E9E5DC;
-  --head:#0E1311;
-  --body:#5B655F;
-  --muted:#646C67;
+  --wash:#F7F4EE;
+  --wash-2:#EFEAE0;
+  --line:#E6DFD1;
+  --stone:#E9E1D3;
+  --head:#160E07;
+  --body:#5F5548;
+  --muted:#6B6153;
   --radius:10px;
   --radius-lg:16px;
 
@@ -47,7 +54,7 @@
   --ok:#2E7D53;
   --warn:#8A6A1F;
   --bad:#A33B33;
-  --shadow:0 1px 2px rgba(14,19,17,.04), 0 14px 34px -20px rgba(14,19,17,.30);
+  --shadow:0 1px 2px rgba(22,14,7,.04), 0 14px 34px -20px rgba(22,14,7,.30);
 }
 
 *{ box-sizing:border-box; }
@@ -67,7 +74,7 @@ h3{ font-size:20px; font-weight:700; letter-spacing:-.015em; line-height:1.3; }
 h4{ font-size:14px; font-weight:700; letter-spacing:-.01em; }
 p{ margin:0 0 16px; }
 p:last-child{ margin-bottom:0; }
-a{ color:var(--light-brass); }
+a{ color:var(--light-gold); }
 code,.mono{
   font-family:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
   font-size:.86em; letter-spacing:-.01em;
@@ -82,44 +89,44 @@ code,.mono{
 .eyebrow{
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
   font-size:12px; font-weight:700; letter-spacing:.17em; text-transform:uppercase;
-  color:var(--light-brass); margin:0 0 14px;
+  color:var(--light-gold); margin:0 0 14px;
 }
 .num{
   display:inline-flex; align-items:center; justify-content:center;
-  width:26px; height:26px; border-radius:7px; background:var(--ink); color:var(--brass);
+  width:26px; height:26px; border-radius:7px; background:var(--bark); color:var(--gold);
   font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500;
   margin-right:12px; vertical-align:3px;
 }
 
 /* ===== top bar ===== */
 .bar{
-  position:sticky; top:0; z-index:50; background:rgba(14,19,17,.94);
-  backdrop-filter:saturate(140%) blur(12px); border-bottom:1px solid var(--ink-3);
+  position:sticky; top:0; z-index:50; background:rgba(22,14,7,.94);
+  backdrop-filter:saturate(140%) blur(12px); border-bottom:1px solid var(--bark-3);
 }
 .bar-in{ display:flex; align-items:center; gap:26px; height:60px; }
 .bar-brand{
   font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:15px;
   letter-spacing:-.02em; color:#fff; white-space:nowrap;
 }
-.bar-brand i{ font-style:normal; color:var(--brass); }
+.bar-brand i{ font-style:normal; color:var(--gold); }
 .bar nav{ display:flex; gap:22px; margin-left:auto; flex-wrap:wrap; }
 .bar nav a{
-  font-size:12.5px; font-weight:600; color:#A8B2AC; text-decoration:none;
+  font-size:12.5px; font-weight:600; color:#B0A493; text-decoration:none;
   letter-spacing:.02em; white-space:nowrap;
 }
-.bar nav a:hover{ color:var(--brass); }
+.bar nav a:hover{ color:var(--gold); }
 
 /* ===== cover ===== */
-.cover{ background:var(--ink); color:var(--stone); padding:96px 0 88px; }
+.cover{ background:var(--bark); color:var(--stone); padding:96px 0 88px; }
 .cover h1{ color:#fff; max-width:16ch; }
-.cover h1 em{ font-style:normal; color:var(--brass); }
-.cover .eyebrow{ color:var(--brass); }
-.cover .lede{ margin-top:24px; font-size:18.5px; color:#C9D1CB; max-width:60ch; }
+.cover h1 em{ font-style:normal; color:var(--gold); }
+.cover .eyebrow{ color:var(--gold); }
+.cover .lede{ margin-top:24px; font-size:18.5px; color:#D5CCBE; max-width:60ch; }
 .cover-meta{
-  margin-top:44px; padding-top:26px; border-top:1px solid var(--ink-3);
+  margin-top:44px; padding-top:26px; border-top:1px solid var(--bark-3);
   display:flex; flex-wrap:wrap; gap:38px;
 }
-.cover-meta div{ font-size:13px; color:#8E9A93; }
+.cover-meta div{ font-size:13px; color:#9C9083; }
 .cover-meta strong{ display:block; color:#fff; font-size:14.5px; font-weight:600; margin-bottom:3px; }
 
 /* ===== generic surfaces ===== */
@@ -131,15 +138,18 @@ code,.mono{
 .g2{ grid-template-columns:repeat(2,1fr); }
 .g3{ grid-template-columns:repeat(3,1fr); }
 .g4{ grid-template-columns:repeat(4,1fr); }
+/* Five, because the palette is five colours off the mark and splitting them
+   4 + 1 would read as "and one afterthought". */
+.g5{ grid-template-columns:repeat(5,1fr); gap:16px; }
 
 /* ===== swatches ===== */
 .sw{ border:1px solid var(--line); border-radius:var(--radius-lg); overflow:hidden; background:var(--paper); }
 .sw-chip{ height:104px; display:flex; align-items:flex-end; padding:12px 14px; }
 .sw-chip span{
   font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:500;
-  padding:3px 7px; border-radius:5px; background:rgba(255,255,255,.9); color:#0E1311;
+  padding:3px 7px; border-radius:5px; background:rgba(255,255,255,.9); color:#160E07;
 }
-.sw-chip.on-light span{ background:rgba(14,19,17,.86); color:#fff; }
+.sw-chip.on-light span{ background:rgba(22,14,7,.86); color:#fff; }
 .sw-body{ padding:14px 16px 18px; }
 .sw-body h4{ margin-bottom:5px; }
 .sw-body p{ font-size:13.5px; line-height:1.5; color:var(--muted); margin:0; }
@@ -150,7 +160,7 @@ code,.mono{
 .matrix thead th{
   font-family:'Plus Jakarta Sans',sans-serif; font-size:11.5px; font-weight:700;
   letter-spacing:.09em; text-transform:uppercase; color:var(--muted);
-  border-bottom:1px solid var(--ink-3); white-space:nowrap;
+  border-bottom:1px solid var(--bark-3); white-space:nowrap;
 }
 .matrix tbody tr:last-child td{ border-bottom:none; }
 .matrix .ratio{ font-family:'JetBrains Mono',monospace; font-weight:500; color:var(--head); }
@@ -194,7 +204,7 @@ code,.mono{
 .canvas-fig{ flex:0 0 auto; width:230px; }
 .canvas-stage{ height:340px; display:flex; align-items:flex-end; }
 .canvas{
-  position:relative; background:var(--ink); border-radius:var(--radius);
+  position:relative; background:var(--bark); border-radius:var(--radius);
   overflow:hidden; box-shadow:var(--shadow);
 }
 .c11{ width:230px; height:230px; }
@@ -206,16 +216,16 @@ code,.mono{
   border-color:rgba(163,59,51,.55);
 }
 .zone.crop{
-  background:rgba(200,151,75,.14); border-top:1px dashed rgba(200,151,75,.75); border-bottom:1px dashed rgba(200,151,75,.75);
+  background:rgba(195,141,51,.14); border-top:1px dashed rgba(195,141,51,.75); border-bottom:1px dashed rgba(195,141,51,.75);
 }
 .zone-lbl{
   position:absolute; left:8px; font-family:'JetBrains Mono',monospace; font-size:9.5px;
-  color:#fff; background:rgba(14,19,17,.92); padding:2px 5px; border-radius:4px; white-space:nowrap;
+  color:#fff; background:rgba(22,14,7,.92); padding:2px 5px; border-radius:4px; white-space:nowrap;
 }
 .safe-live{
-  position:absolute; left:8%; right:8%; border:1px dashed rgba(232,217,188,.7); border-radius:4px;
+  position:absolute; left:8%; right:8%; border:1px dashed rgba(234,214,172,.7); border-radius:4px;
   display:flex; align-items:center; justify-content:center;
-  font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--brass-soft); text-align:center;
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--gold-soft); text-align:center;
 }
 .canvas-cap{ margin-top:14px; }
 .canvas-cap b{
@@ -266,8 +276,8 @@ code,.mono{
   font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; letter-spacing:-.02em;
   font-size:30px; color:var(--head); white-space:nowrap;
 }
-.wordmark i{ font-style:normal; color:var(--light-brass); }
-.wordmark.on-dark{ color:#fff; } .wordmark.on-dark i{ color:var(--brass); }
+.wordmark i{ font-style:normal; color:var(--light-gold); }
+.wordmark.on-dark{ color:#fff; } .wordmark.on-dark i{ color:var(--gold); }
 
 .logo-box{ display:flex; align-items:center; gap:14px; }
 .logo-box img{ height:58px; width:auto; display:block; }
@@ -286,9 +296,9 @@ code,.mono{
 }
 .clear-demo::before{
   content:""; position:absolute; inset:0; border-radius:var(--radius);
-  border:1px dashed rgba(200,151,75,.95); pointer-events:none;
+  border:1px dashed rgba(195,141,51,.95); pointer-events:none;
 }
-.clear-demo .markbox{ outline:1px solid rgba(14,19,17,.16); }
+.clear-demo .markbox{ outline:1px solid rgba(22,14,7,.16); }
 .clear-hint{
   font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--warn);
   margin:0 0 10px;
@@ -303,19 +313,19 @@ code,.mono{
 .rules li:last-child{ border-bottom:none; }
 .rules li::before{
   content:""; position:absolute; left:6px; top:22px; width:7px; height:7px;
-  border-radius:50%; background:var(--brass);
+  border-radius:50%; background:var(--gold);
 }
 .rules li b{ color:var(--head); font-weight:600; }
 .rules.hard li::before{ background:var(--bad); }
 
 /* ===== callout ===== */
 .callout{
-  background:var(--ink); color:var(--stone); border-radius:var(--radius-lg);
-  padding:28px 30px; border-left:4px solid var(--brass);
+  background:var(--bark); color:var(--stone); border-radius:var(--radius-lg);
+  padding:28px 30px; border-left:4px solid var(--gold);
 }
 .callout h3{ color:#fff; margin-bottom:10px; }
-.callout p{ color:#C9D1CB; font-size:15px; }
-.callout code{ color:var(--brass-soft); }
+.callout p{ color:#D5CCBE; font-size:15px; }
+.callout code{ color:var(--gold-soft); }
 
 /* ===== preflight ===== */
 .check{ list-style:none; margin:0; padding:0; counter-reset:c; }
@@ -326,22 +336,22 @@ code,.mono{
 .check li:last-child{ border-bottom:none; }
 .check li::before{
   content:counter(c,decimal-leading-zero); position:absolute; left:0; top:16px;
-  font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--light-brass); font-weight:500;
+  font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--light-gold); font-weight:500;
 }
 .check li span{ display:block; font-size:13.5px; color:var(--muted); margin-top:3px; }
 
-footer{ background:var(--ink); color:#8E9A93; padding:40px 0; font-size:13px; }
+footer{ background:var(--bark); color:#9C9083; padding:40px 0; font-size:13px; }
 footer b{ color:#fff; }
 
 @media (max-width:900px){
-  .g4{ grid-template-columns:repeat(2,1fr); }
+  .g4,.g5{ grid-template-columns:repeat(2,1fr); }
   .g3{ grid-template-columns:1fr; }
   .matrix{ font-size:12.5px; }
   .matrix th, .matrix td{ padding:9px 8px; }
 }
 @media (max-width:640px){
   .sec{ padding:56px 0; }
-  .g2,.g4{ grid-template-columns:1fr; }
+  .g2,.g4,.g5{ grid-template-columns:1fr; }
   .bar nav{ display:none; }
   .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
   /* Stacked, the shelf that aligns the three canvases in a row becomes 340px
@@ -442,63 +452,81 @@ footer b{ color:#fff; }
   <div class="wrap">
     <div class="sec-head">
       <p class="eyebrow"><span class="num">01</span>Colour</p>
-      <h2>Basalt, brass, moss, warm stone.</h2>
+      <h2>Bark, brick, gold, leaf.</h2>
       <p>
-        Four colours and their working variants. The whole palette comes off the website, so an ad and
-        the landing page it points at look like the same company. Brass is the one that gets people into
-        trouble, so read the second half of this section before you set any brass text.
+        Every colour here is sampled from the logo mark and nothing else: the two brick colours and the two
+        leaf greens. The same palette runs on the website, so an ad and the landing page it points at look
+        like the same company. Gold is the one that gets people into trouble, so read the second half of this
+        section before you set any gold text.
       </p>
     </div>
 
-    <div class="grid g4" style="margin-bottom:44px">
+    <div class="grid g5" style="margin-bottom:44px">
       <div class="sw">
-        <div class="sw-chip" style="background:#0E1311"><span>#0E1311</span></div>
-        <div class="sw-body"><h4>Basalt</h4><p>The dark surface. Near-black with green in it, never pure black. Backgrounds, scrims, text on light.</p></div>
+        <div class="sw-chip" style="background:#160E07"><span>#160E07</span></div>
+        <div class="sw-body"><h4>Bark</h4><p>The dark surface. The logo brown taken almost to black, never pure black. Backgrounds, scrims, text on light.</p></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#C8974B"><span>#C8974B</span></div>
-        <div class="sw-body"><h4>Brass</h4><p>The accent. A fill first and a text colour second. Buttons, rules, dots, and text on dark only.</p></div>
+        <div class="sw-chip" style="background:#6B4526"><span>#6B4526</span></div>
+        <div class="sw-body"><h4>Brick</h4><p>The logo brown itself. A second surface when a whole ad in bark is too heavy, and a fill behind white text.</p></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#4E6B54"><span>#4E6B54</span></div>
-        <div class="sw-body"><h4>Moss</h4><p>Secondary accent. Use it when brass would be a third gold thing in the frame. Sparingly.</p></div>
+        <div class="sw-chip" style="background:#C38D33"><span>#C38D33</span></div>
+        <div class="sw-body"><h4>Gold</h4><p>The gold brick. The accent. A fill first and a text colour second. Buttons, rules, dots, and text on dark only.</p></div>
       </div>
       <div class="sw">
-        <div class="sw-chip on-light" style="background:#F7F6F2"><span>#F7F6F2</span></div>
+        <div class="sw-chip" style="background:#8EBE41"><span>#8EBE41</span></div>
+        <div class="sw-body"><h4>Leaf</h4><p>The light leaf. A fill, and text on bark only. It is far too pale to be text on a light surface.</p></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip on-light" style="background:#F7F4EE"><span>#F7F4EE</span></div>
         <div class="sw-body"><h4>Warm wash</h4><p>The light surface. Never plain white for a full background: it goes blue next to the greens.</p></div>
       </div>
     </div>
 
     <h3 style="margin-bottom:18px">Working variants</h3>
-    <div class="grid g4" style="margin-bottom:52px">
+    <div class="grid g5" style="margin-bottom:52px">
       <div class="sw">
-        <div class="sw-chip" style="background:#17201C"><span>#17201C</span></div>
-        <div class="sw-body"><h4>Basalt raised</h4><p>A panel sitting on basalt. Cards, quote blocks, price chips.</p></div>
+        <div class="sw-chip" style="background:#241809"><span>#241809</span></div>
+        <div class="sw-body"><h4>Bark raised</h4><p>A panel sitting on bark. Cards, quote blocks, price chips.</p></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#876633"><span>#876633</span></div>
-        <div class="sw-body"><h4>Brass on light</h4><p>The only brass allowed as text on a light background at any size.</p></div>
+        <div class="sw-chip" style="background:#2E6F11"><span>#2E6F11</span></div>
+        <div class="sw-body"><h4>Leaf deep</h4><p>The dark leaf. The only green that may be text on a light surface.</p></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#AB8140"><span>#AB8140</span></div>
-        <div class="sw-body"><h4>Brass display</h4><p>Brass on light for large text only. See the matrix.</p></div>
+        <div class="sw-chip" style="background:#856022"><span>#856022</span></div>
+        <div class="sw-body"><h4>Gold on light</h4><p>The only gold allowed as text on a light background at any size.</p></div>
       </div>
       <div class="sw">
-        <div class="sw-chip on-light" style="background:#E8D9BC"><span>#E8D9BC</span></div>
-        <div class="sw-body"><h4>Brass soft</h4><p>Brass-family text on basalt when full brass is too loud.</p></div>
+        <div class="sw-chip" style="background:#A67A2B"><span>#A67A2B</span></div>
+        <div class="sw-body"><h4>Gold display</h4><p>Gold on light for large text only. See the matrix.</p></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip on-light" style="background:#EAD6AC"><span>#EAD6AC</span></div>
+        <div class="sw-body"><h4>Gold soft</h4><p>Gold-family text on bark when full gold is too loud.</p></div>
       </div>
     </div>
 
     <div class="callout" style="margin-bottom:40px">
-      <h3>The brass trap</h3>
+      <h3>The gold trap</h3>
       <p>
-        Brass <code>#C8974B</code> on white measures <b>2.63:1</b>. That is well under the 4.5:1 a person needs
+        Gold <code>#C38D33</code> on white measures <b>2.93:1</b>. That is well under the 4.5:1 a person needs
         to read a caption, and under the 3:1 that even a big headline needs. It looks fine on a desktop monitor
         in a bright room and disappears on a phone outdoors, which is exactly where these ads get seen.
       </p>
       <p style="margin-bottom:0">
-        So: <b>brass is a fill.</b> Put brass behind basalt text, not the other way round. If you genuinely need
-        brass-coloured words on a light background, use <code>#876633</code>, or <code>#AB8140</code> at display size only.
+        So: <b>gold is a fill.</b> Put gold behind bark text, not the other way round. If you genuinely need
+        gold-coloured words on a light background, use <code>#856022</code>, or <code>#A67A2B</code> at display size only.
+      </p>
+    </div>
+
+    <div class="callout" style="margin-bottom:40px;border-left-color:var(--leaf)">
+      <h3>And the same trap in green</h3>
+      <p style="margin-bottom:0">
+        The light leaf <code>#8EBE41</code> on warm wash is <b>1.99:1</b>, worse than gold. It is a fill and
+        nothing else on a light surface. When you want green words on light, they are leaf deep
+        <code>#2E6F11</code>. On bark, the light leaf is fine at any size.
       </p>
     </div>
 
@@ -515,74 +543,104 @@ footer b{ color:#fff; }
         </thead>
         <tbody>
           <tr>
-            <td>Basalt <code>#0E1311</code></td><td>Warm wash</td>
-            <td><span class="samp" style="background:#F7F6F2;color:#0E1311">Free estimate</span></td>
-            <td class="ratio">17.34</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+            <td>White <code>#FFFFFF</code></td><td>Bark</td>
+            <td><span class="samp" style="background:#160E07;color:#FFFFFF">Free estimate</span></td>
+            <td class="ratio">19.09</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
           </tr>
           <tr>
-            <td>White <code>#FFFFFF</code></td><td>Basalt</td>
-            <td><span class="samp" style="background:#0E1311;color:#FFFFFF">Free estimate</span></td>
-            <td class="ratio">18.75</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+            <td>Bark <code>#160E07</code></td><td>Warm wash</td>
+            <td><span class="samp" style="background:#F7F4EE;color:#160E07">Free estimate</span></td>
+            <td class="ratio">17.39</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
           </tr>
           <tr>
-            <td>Brass <code>#C8974B</code></td><td>Basalt</td>
-            <td><span class="samp" style="background:#0E1311;color:#C8974B">Free estimate</span></td>
-            <td class="ratio">7.13</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+            <td>Gold soft <code>#EAD6AC</code></td><td>Bark</td>
+            <td><span class="samp" style="background:#160E07;color:#EAD6AC">Free estimate</span></td>
+            <td class="ratio">13.38</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
           </tr>
           <tr>
-            <td>Basalt <code>#0E1311</code></td><td>Brass</td>
-            <td><span class="samp" style="background:#C8974B;color:#0E1311">Free estimate</span></td>
-            <td class="ratio">7.13</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+            <td>Leaf <code>#8EBE41</code></td><td>Bark</td>
+            <td><span class="samp" style="background:#160E07;color:#8EBE41">Free estimate</span></td>
+            <td class="ratio">8.72</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
           </tr>
           <tr>
-            <td>Brass soft <code>#E8D9BC</code></td><td>Basalt</td>
-            <td><span class="samp" style="background:#0E1311;color:#E8D9BC">Free estimate</span></td>
-            <td class="ratio">13.47</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+            <td>Bark <code>#160E07</code></td><td>Leaf</td>
+            <td><span class="samp" style="background:#8EBE41;color:#160E07">Free estimate</span></td>
+            <td class="ratio">8.72</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
           </tr>
           <tr>
-            <td>Brass on light <code>#876633</code></td><td>Warm wash</td>
-            <td><span class="samp" style="background:#F7F6F2;color:#876633">Free estimate</span></td>
-            <td class="ratio">4.88</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+            <td>White <code>#FFFFFF</code></td><td>Brick</td>
+            <td><span class="samp" style="background:#6B4526;color:#FFFFFF">Free estimate</span></td>
+            <td class="ratio">8.39</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
           </tr>
           <tr>
-            <td>Moss <code>#4E6B54</code></td><td>Warm wash</td>
-            <td><span class="samp" style="background:#F7F6F2;color:#4E6B54">Free estimate</span></td>
-            <td class="ratio">5.46</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+            <td>Brick <code>#6B4526</code></td><td>Warm wash</td>
+            <td><span class="samp" style="background:#F7F4EE;color:#6B4526">Free estimate</span></td>
+            <td class="ratio">7.64</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
           </tr>
           <tr>
-            <td>White <code>#FFFFFF</code></td><td>Moss</td>
-            <td><span class="samp" style="background:#4E6B54;color:#FFFFFF">Free estimate</span></td>
-            <td class="ratio">5.91</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
+            <td>Gold <code>#C38D33</code></td><td>Bark</td>
+            <td><span class="samp" style="background:#160E07;color:#C38D33">Free estimate</span></td>
+            <td class="ratio">6.53</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
           </tr>
           <tr>
-            <td>Brass display <code>#AB8140</code></td><td>Warm wash</td>
-            <td><span class="samp" style="background:#F7F6F2;color:#AB8140">Free estimate</span></td>
-            <td class="ratio">3.27</td><td><span class="tag warn"><i class="dot"></i>Large only</span></td>
+            <td>Bark <code>#160E07</code></td><td>Gold</td>
+            <td><span class="samp" style="background:#C38D33;color:#160E07">Free estimate</span></td>
+            <td class="ratio">6.53</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
           </tr>
           <tr>
-            <td>Moss <code>#4E6B54</code></td><td>Basalt</td>
-            <td><span class="samp" style="background:#0E1311;color:#4E6B54">Free estimate</span></td>
-            <td class="ratio">3.17</td><td><span class="tag warn"><i class="dot"></i>Large only</span></td>
+            <td>White <code>#FFFFFF</code></td><td>Leaf deep</td>
+            <td><span class="samp" style="background:#2E6F11;color:#FFFFFF">Free estimate</span></td>
+            <td class="ratio">6.18</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
           </tr>
           <tr>
-            <td>Brass <code>#C8974B</code></td><td>Warm wash</td>
-            <td><span class="samp" style="background:#F7F6F2;color:#C8974B">Free estimate</span></td>
-            <td class="ratio">2.43</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+            <td>Leaf deep <code>#2E6F11</code></td><td>Warm wash</td>
+            <td><span class="samp" style="background:#F7F4EE;color:#2E6F11">Free estimate</span></td>
+            <td class="ratio">5.63</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
           </tr>
           <tr>
-            <td>Brass <code>#C8974B</code></td><td>White</td>
-            <td><span class="samp" style="background:#FFFFFF;color:#C8974B;border:1px solid var(--line)">Free estimate</span></td>
-            <td class="ratio">2.63</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+            <td>Gold on light <code>#856022</code></td><td>Warm wash</td>
+            <td><span class="samp" style="background:#F7F4EE;color:#856022">Free estimate</span></td>
+            <td class="ratio">5.18</td><td><span class="tag ok"><i class="dot"></i>Any size</span></td>
           </tr>
           <tr>
-            <td>White <code>#FFFFFF</code></td><td>Brass</td>
-            <td><span class="samp" style="background:#C8974B;color:#FFFFFF">Free estimate</span></td>
-            <td class="ratio">2.63</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+            <td>Gold display <code>#A67A2B</code></td><td>Warm wash</td>
+            <td><span class="samp" style="background:#F7F4EE;color:#A67A2B">Free estimate</span></td>
+            <td class="ratio">3.52</td><td><span class="tag warn"><i class="dot"></i>Large only</span></td>
           </tr>
           <tr>
-            <td>Brass <code>#C8974B</code></td><td>Moss</td>
-            <td><span class="samp" style="background:#4E6B54;color:#C8974B">Free estimate</span></td>
-            <td class="ratio">2.25</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+            <td>Leaf deep <code>#2E6F11</code></td><td>Bark</td>
+            <td><span class="samp" style="background:#160E07;color:#2E6F11">Free estimate</span></td>
+            <td class="ratio">3.09</td><td><span class="tag warn"><i class="dot"></i>Large only</span></td>
+          </tr>
+          <tr>
+            <td>Gold <code>#C38D33</code></td><td>White</td>
+            <td><span class="samp" style="background:#FFFFFF;color:#C38D33;border:1px solid var(--line)">Free estimate</span></td>
+            <td class="ratio">2.93</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+          </tr>
+          <tr>
+            <td>White <code>#FFFFFF</code></td><td>Gold</td>
+            <td><span class="samp" style="background:#C38D33;color:#FFFFFF">Free estimate</span></td>
+            <td class="ratio">2.93</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+          </tr>
+          <tr>
+            <td>Gold <code>#C38D33</code></td><td>Brick</td>
+            <td><span class="samp" style="background:#6B4526;color:#C38D33">Free estimate</span></td>
+            <td class="ratio">2.87</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+          </tr>
+          <tr>
+            <td>Gold <code>#C38D33</code></td><td>Warm wash</td>
+            <td><span class="samp" style="background:#F7F4EE;color:#C38D33">Free estimate</span></td>
+            <td class="ratio">2.66</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+          </tr>
+          <tr>
+            <td>Leaf <code>#8EBE41</code></td><td>Warm wash</td>
+            <td><span class="samp" style="background:#F7F4EE;color:#8EBE41">Free estimate</span></td>
+            <td class="ratio">1.99</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
+          </tr>
+          <tr>
+            <td>Gold <code>#C38D33</code></td><td>Leaf</td>
+            <td><span class="samp" style="background:#8EBE41;color:#C38D33">Free estimate</span></td>
+            <td class="ratio">1.34</td><td><span class="tag bad"><i class="dot"></i>Fail</span></td>
           </tr>
         </tbody>
       </table>
@@ -590,11 +648,12 @@ footer b{ color:#fff; }
 
     <h3 style="margin:44px 0 14px">How the colours split the work</h3>
     <ul class="rules">
-      <li><b>Basalt carries the ad.</b> Dark ads outperform light ones in a feed because the feed itself is white or near-black, and a mid-tone photo with a basalt block reads as a designed thing rather than a post.</li>
-      <li><b>Brass is the one bright thing.</b> One brass element per ad. A brass button and a brass headline and a brass border is three, and none of them get looked at.</li>
-      <li><b>Moss is a substitute, not an addition.</b> Reach for it when the photo is already full of gold light and brass would vanish into it.</li>
-      <li><b>Warm wash, never pure white.</b> A pure white panel next to these greens reads blue and cheap. <code>#F7F6F2</code> or <code>#EFEDE6</code>.</li>
-      <li><b>No colour that is not on this page.</b> Not a red urgency banner, not a yellow star, not a blue "verified" tick. If an ad needs a fifth colour, it needs a different idea.</li>
+      <li><b>Bark carries the ad.</b> Dark ads outperform light ones in a feed because the feed itself is white or near-black, and a mid-tone photo with a bark block reads as a designed thing rather than a post.</li>
+      <li><b>Gold is the one bright thing.</b> One gold element per ad. A gold button and a gold headline and a gold border is three, and none of them get looked at.</li>
+      <li><b>Leaf is a substitute, not an addition.</b> Reach for it when the photo is already full of gold light and the gold would vanish into it. On a light surface that means leaf deep <code>#2E6F11</code>, never the light leaf.</li>
+      <li><b>Brick is the middle setting.</b> When a full bark ad is too heavy for the photo, the same block in brick <code>#6B4526</code> still holds white text at 8.4:1. It is the logo's own brown, so it never reads as a fifth colour.</li>
+      <li><b>Warm wash, never pure white.</b> A pure white panel next to these greens reads blue and cheap. <code>#F7F4EE</code> or <code>#EFEAE0</code>.</li>
+      <li><b>No colour that is not on this page.</b> Not a red urgency banner, not a yellow star, not a blue "verified" tick. Every colour above is in the logo. If an ad needs one that is not, it needs a different idea.</li>
     </ul>
   </div>
 </section>
@@ -639,7 +698,7 @@ footer b{ color:#fff; }
     <div class="spec">
       <div class="spec-label"><b>Eyebrow</b><span>2.2% of width · 24px @1080 · Jakarta 700 · +0.17em · uppercase</span></div>
       <div class="spec-body">
-        <p class="demo" style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:24px;letter-spacing:.17em;text-transform:uppercase;color:var(--light-brass)">Lawn care · Michigan</p>
+        <p class="demo" style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:24px;letter-spacing:.17em;text-transform:uppercase;color:var(--light-gold)">Lawn care · Michigan</p>
       </div>
     </div>
 
@@ -668,8 +727,8 @@ footer b{ color:#fff; }
     <div class="spec">
       <div class="spec-label"><b>Button label</b><span>3.0% of width · 32px @1080 · Jakarta 700 · 10px radius</span></div>
       <div class="spec-body">
-        <span style="display:inline-block;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:24px;background:var(--brass);color:#14100A;padding:14px 28px;border-radius:10px">Get a free estimate</span>
-        <p style="margin-top:16px;font-size:13.5px;color:var(--muted)">Basalt on brass, never white on brass. Corner radius 10px, matching the site's buttons.</p>
+        <span style="display:inline-block;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:24px;background:var(--gold);color:#160E07;padding:14px 28px;border-radius:10px">Get a free estimate</span>
+        <p style="margin-top:16px;font-size:13.5px;color:var(--muted)">Bark on gold, never white on gold. Corner radius 10px, matching the site's buttons.</p>
       </div>
     </div>
 
@@ -734,7 +793,7 @@ footer b{ color:#fff; }
         </div>
         <figcaption class="canvas-cap">
           <b>Portrait</b><span>1080 × 1350 · 4:5</span>
-          <em>The best feed size: it takes the most screen. But the profile grid crops it to the centre square, so the headline and logo stay inside the brass band.</em>
+          <em>The best feed size: it takes the most screen. But the profile grid crops it to the centre square, so the headline and logo stay inside the gold band.</em>
         </figcaption>
       </figure>
 
@@ -821,18 +880,18 @@ footer b{ color:#fff; }
 
       <div>
         <div class="photo">
-          <div class="scrim" style="background:linear-gradient(to top, rgba(14,19,17,.90) 0%, rgba(14,19,17,.72) 28%, rgba(14,19,17,0) 62%)"></div>
+          <div class="scrim" style="background:linear-gradient(to top, rgba(22,14,7,.90) 0%, rgba(22,14,7,.72) 28%, rgba(22,14,7,0) 62%)"></div>
           <div class="txt">Spring cleanup,<br>booked this week</div>
         </div>
-        <div class="demo-note"><span class="mark y">✓</span><p><b style="color:var(--head)">Gradient scrim.</b> Basalt at 90% fading to nothing by 62% up the frame. The default: it keeps most of the photo.</p></div>
+        <div class="demo-note"><span class="mark y">✓</span><p><b style="color:var(--head)">Gradient scrim.</b> Bark at 90% fading to nothing by 62% up the frame. The default: it keeps most of the photo.</p></div>
       </div>
 
       <div>
         <div class="photo">
-          <div class="scrim" style="background:rgba(14,19,17,.62)"></div>
+          <div class="scrim" style="background:rgba(22,14,7,.62)"></div>
           <div class="txt">Spring cleanup,<br>booked this week</div>
         </div>
-        <div class="demo-note"><span class="mark y">✓</span><p><b style="color:var(--head)">Flat scrim.</b> Basalt at 62% across the whole image. For when text sits high, or the photo is busy everywhere.</p></div>
+        <div class="demo-note"><span class="mark y">✓</span><p><b style="color:var(--head)">Flat scrim.</b> Bark at 62% across the whole image. For when text sits high, or the photo is busy everywhere.</p></div>
       </div>
 
     </div>
@@ -840,14 +899,14 @@ footer b{ color:#fff; }
     <div class="card" style="margin-bottom:20px">
       <h4 style="margin-bottom:12px">Scrim recipes</h4>
       <ul class="rules" style="margin:0">
-        <li><b>Gradient:</b> basalt <code>#0E1311</code> at 90% opacity at the text edge, falling to 0% by 60% across the frame. Text sits in the 90% end.</li>
-        <li><b>Flat:</b> basalt at 55% minimum, 62% if the photo has bright sky or concrete in it.</li>
-        <li><b>Solid block:</b> a basalt panel with the text inside it, photo untouched. The cleanest option and the one that survives any photo.</li>
+        <li><b>Gradient:</b> bark <code>#160E07</code> at 90% opacity at the text edge, falling to 0% by 60% across the frame. Text sits in the 90% end.</li>
+        <li><b>Flat:</b> bark at 55% minimum, 62% if the photo has bright sky or concrete in it.</li>
+        <li><b>Solid block:</b> a bark panel with the text inside it, photo untouched. The cleanest option and the one that survives any photo.</li>
       </ul>
     </div>
 
     <ul class="rules hard">
-      <li><b>Brass text never goes over a photo.</b> Not with a scrim, not with a shadow. Brass over a photo is 2 point something to one against the bright bits, whatever you do to it. Brass on an ad means a solid basalt or brass surface.</li>
+      <li><b>Gold text never goes over a photo.</b> Not with a scrim, not with a shadow. Gold over a photo is 2 point something to one against the bright bits, whatever you do to it. Gold on an ad means a solid bark or gold surface. The light leaf behaves the same way and is worse.</li>
       <li><b>A drop shadow is not a scrim.</b> It fakes contrast at the letter's edge and fails on the letter's interior. Every phone screenshot of a shadowed headline looks muddy.</li>
       <li><b>No blur behind text.</b> It looks like the photo is out of focus, which for a landscaping company is the wrong signal entirely.</li>
     </ul>
@@ -882,7 +941,7 @@ footer b{ color:#fff; }
         <h4 style="margin-bottom:14px">The wordmark</h4>
         <div class="wordmark">MADE BETTER<i>.</i></div>
         <p style="margin-top:16px;font-size:13.5px;color:var(--muted)">
-          Plus Jakarta Sans 800, tracking <code>-0.02em</code>, all caps, with the full stop in brass.
+          Plus Jakarta Sans 800, tracking <code>-0.02em</code>, all caps, with the full stop in gold.
           The full stop is the whole idea: it is the "better" being a finished thing. Never drop it,
           never colour it the same as the words.
         </p>
@@ -919,24 +978,27 @@ footer b{ color:#fff; }
 
       <div class="dd">
         <div class="dd-stage" style="background:var(--wash)"><div class="wordmark" style="font-size:22px">MADE BETTER<i>.</i></div></div>
-        <div class="dd-foot"><span class="mark y">✓</span><p>On warm wash. Brass full stop uses <code>#876633</code> on light.</p></div>
+        <div class="dd-foot"><span class="mark y">✓</span><p>On warm wash. The gold full stop uses <code>#856022</code> on light.</p></div>
       </div>
 
       <div class="dd">
-        <div class="dd-stage" style="background:var(--ink)"><div class="wordmark on-dark" style="font-size:22px">MADE BETTER<i>.</i></div></div>
-        <div class="dd-foot"><span class="mark y">✓</span><p>On basalt. Full brass <code>#C8974B</code> for the stop. The strongest of the four.</p></div>
+        <div class="dd-stage" style="background:var(--bark)"><div class="wordmark on-dark" style="font-size:22px">MADE BETTER<i>.</i></div></div>
+        <div class="dd-foot"><span class="mark y">✓</span><p>On bark. Full gold <code>#C38D33</code> for the stop. The strongest of the four.</p></div>
       </div>
 
       <div class="dd">
-        <div class="dd-stage" style="background:#5D7A55;position:relative">
-          <div style="position:absolute;background:var(--ink);border-radius:10px;padding:9px 16px"><div class="wordmark on-dark" style="font-size:20px">MADE BETTER<i>.</i></div></div>
+        <!-- A stand-in for a lawn photo, deliberately NOT a palette colour: if
+             this square were leaf, the card would read as "logo on green" and
+             the rule it is demonstrating is "logo on a photo". -->
+        <div class="dd-stage" style="background:#6E8742;position:relative">
+          <div style="position:absolute;background:var(--bark);border-radius:10px;padding:9px 16px"><div class="wordmark on-dark" style="font-size:20px">MADE BETTER<i>.</i></div></div>
         </div>
-        <div class="dd-foot"><span class="mark y">✓</span><p>Over a photo, but only inside a solid basalt chip. Never straight onto the image.</p></div>
+        <div class="dd-foot"><span class="mark y">✓</span><p>Over a photo, but only inside a solid bark chip. Never straight onto the image.</p></div>
       </div>
 
       <div class="dd">
-        <div class="dd-stage" style="background:var(--brass)"><div class="wordmark" style="font-size:22px;color:#0E1311">MADE BETTER<i style="color:#4E6B54">.</i></div></div>
-        <div class="dd-foot"><span class="mark n">✕</span><p>Never on brass. The stop has nothing to contrast against, so the idea dies.</p></div>
+        <div class="dd-stage" style="background:var(--gold)"><div class="wordmark" style="font-size:22px;color:#160E07">MADE BETTER<i style="color:#2E6F11">.</i></div></div>
+        <div class="dd-foot"><span class="mark n">✕</span><p>Never on gold. The stop has nothing to contrast against, so the idea dies.</p></div>
       </div>
 
     </div>
@@ -963,15 +1025,15 @@ footer b{ color:#fff; }
     <div class="card">
       <ol class="check">
         <li>Every colour on the canvas is on this page.
-          <span>Four brand colours and their listed variants. Nothing borrowed from a stock template.</span></li>
-        <li>No brass text on a light background, and no brass text over a photo.
-          <span>If brass words are on light, they are <code>#876633</code>, or <code>#AB8140</code> above 40px.</span></li>
+          <span>Five colours off the logo mark and their listed variants. Nothing borrowed from a stock template.</span></li>
+        <li>No gold or light-leaf text on a light background, and neither over a photo.
+          <span>If gold words are on light, they are <code>#856022</code>, or <code>#A67A2B</code> above 40px. Green words on light are <code>#2E6F11</code>.</span></li>
         <li>All text sits inside the safe zone for its canvas.
           <span>9:16 in particular: nothing readable in the top 250px or the bottom 640px.</span></li>
         <li>On 4:5, the headline and logo are inside the centre square.
           <span>The profile grid crops to 1:1 and will cut anything at the top or bottom edge.</span></li>
         <li>Text over a photo has a real scrim, not a drop shadow.
-          <span>Basalt at 55% flat, or a 90% to 0% gradient.</span></li>
+          <span>Bark at 55% flat, or a 90% to 0% gradient.</span></li>
         <li>Under 25 words on the whole canvas, one idea, one action.
           <span>Headline at seven words or fewer, over two lines at most.</span></li>
         <li>Nothing smaller than 21px at 1080 wide.
@@ -987,7 +1049,7 @@ footer b{ color:#fff; }
 
 <footer>
   <div class="wrap">
-    <p style="margin:0"><b>Made Better LC · Ads design kit.</b> Colour, type and radius are taken from the website's own design system at <code style="color:#A8B2AC">command-center/app/public/sites/made-better/site.js</code>. If the site's tokens change, change this page in the same pass.</p>
+    <p style="margin:0"><b>Made Better LC · Ads design kit.</b> Colour, type and radius are taken from the website's own design system at <code style="color:#B0A493">command-center/app/public/sites/made-better/site.js</code>. If the site's tokens change, change this page in the same pass.</p>
     <p style="margin:10px 0 0">Contrast ratios on this page were computed against the stated backgrounds, not estimated.</p>
   </div>
 </footer>
