@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-11-conversion-asset-fields-saved",
+    date: "11 August 2026",
+    title: "Conversion Assets now keeps everything you type into it",
+    items: [
+      "The steering notes on a Unique Mechanism asset are saved. Until now they were typed, the save reported success, and the text was thrown away between the screen and the database, so the prompt the screen handed over said 'none given' and the page got built from the trade alone.",
+      "The method name on that same asset is saved, for the same reason.",
+      "The gift on an Owner Story asset is saved: the offer, the code and the terms. All three were being dropped the same way, which meant the page could not hand over the thing its text message had already promised.",
+      "If you filled any of those in before today, open the asset and type them again. What was typed then was never stored, so there is nothing to recover.",
+    ],
+  },
+  {
     id: "2026-08-10-calendar-sync",
     date: "10 August 2026",
     title: "A client's own calendar now protects their booking times",

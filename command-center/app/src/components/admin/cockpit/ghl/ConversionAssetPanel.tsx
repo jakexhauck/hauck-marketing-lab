@@ -38,11 +38,14 @@ import {
   stepsFor,
   type AssetKind,
   type ConversionAsset,
-  type ConversionAssetPatch,
   type Job,
   type Review,
   type WizardStepId,
 } from "../../../../../functions/lib/conversionAssets";
+// Built from a compile-checked key list rather than by hand here. The hand
+// written version silently dropped the mechanism and coupon fields for as long
+// as it existed. See the note at the top of that file.
+import { asPatch } from "../../../../lib/conversionAssetPatch";
 import { buildPrompt, missingFields } from "../../../../lib/conversionAssetPrompt";
 
 // Fulfillment > GHL > Conversion Assets.
@@ -94,29 +97,6 @@ export default function ConversionAssetPanel({
   const patch = (fields: Partial<ConversionAsset>) => {
     setDraft((prev) => (prev ? { ...prev, ...fields } : prev));
   };
-
-  // Everything the row carries, sent whole. One operator drives one wizard, so
-  // there is no second writer to race, and sending the full set means a step
-  // that quietly changed something upstream cannot be left behind.
-  const asPatch = (asset: ConversionAsset): ConversionAssetPatch => ({
-    kind: asset.kind,
-    slug: asset.slug,
-    designSource: asset.designSource,
-    designRef: asset.designRef,
-    colorSource: asset.colorSource,
-    colors: asset.colors,
-    designKitUrl: asset.designKitUrl,
-    logoUrl: asset.logoUrl,
-    ownerName: asset.ownerName,
-    ownerPhotoUrl: asset.ownerPhotoUrl,
-    storyNotes: asset.storyNotes,
-    jobs: asset.jobs,
-    reviews: asset.reviews,
-    trust: asset.trust,
-    appointmentType: asset.appointmentType,
-    calendarEmbed: asset.calendarEmbed,
-    status: asset.status,
-  });
 
   // Write the draft. Creates on first save, updates after. The server's cleaned
   // answer is folded back over the draft, which is what makes a pasted
