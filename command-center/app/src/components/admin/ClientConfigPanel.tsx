@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Check, UserPlus, DownloadCloud, Pencil, X, Eye } from "lucide-react";
 import { Button } from "../ui/Button";
+import AdAccountPicker from "./AdAccountPicker";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { CLIENT_HOME } from "../../lib/nav";
@@ -357,38 +358,25 @@ function GhlCard({ client, onSaved }: { client: DetailClient; onSaved: () => Pro
 // Per-client Meta ad account. The agency system-user token is shared across all
 // clients (a global env var); only the account id is per-client, which is what
 // keeps one client's Paid Ads from ever showing another's numbers.
+//
+// Linking is a pick, not a paste: the picker lists the accounts that same token
+// can see, with their recent spend, and one click saves it and pulls the ads in.
+// See AdAccountPicker.
 function AdsCard({ client, onSaved }: { client: DetailClient; onSaved: () => Promise<void> }) {
-  const [account, setAccount] = useState(client.metaAdAccountId ?? "");
-  const { saving, saved, err, run } = useSaver(onSaved);
   const connected = Boolean((client.metaAdAccountId ?? "").trim());
-  const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    // Always send the field so an emptied box clears it (back to not-connected).
-    void run(`/api/admin/clients/${client.id}`, { metaAdAccountId: account.trim() });
-  };
   return (
     <Card title="Paid Ads (Meta)">
       <p className="mb-4 text-[13px] text-muted">
         {connected
           ? "Connected. This client's Paid Ads read only this ad account."
-          : "Not connected. Add this client's Meta ad account id so their Paid Ads show their own numbers."}{" "}
+          : "Not connected. Pick this client's ad account below and their Paid Ads fill with their own numbers."}{" "}
         The agency access token is shared across all clients; only the account is per-client.
       </p>
-      <form onSubmit={onSubmit}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label>
-            <span className={labelCls}>Meta ad account id</span>
-            <input
-              className={inputCls}
-              value={account}
-              onChange={(e) => setAccount(e.target.value)}
-              placeholder="act_1234567890 or 1234567890"
-            />
-          </label>
-        </div>
-        {err && <p className="mt-3 text-sm text-danger">{err}</p>}
-        <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
-      </form>
+      <AdAccountPicker
+        tenantId={client.id}
+        currentAccountId={client.metaAdAccountId}
+        onLinked={onSaved}
+      />
     </Card>
   );
 }

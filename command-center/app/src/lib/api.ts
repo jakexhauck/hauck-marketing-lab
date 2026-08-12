@@ -410,6 +410,9 @@ export interface AdminClient {
   brandInitials: string;
   appName: string;
   ghlLocationId: string;
+  // The client's Meta ad account, or null when their ads are not wired yet.
+  // The Fulfillment Paid Ads page gates its sub-tabs on this.
+  metaAdAccountId: string | null;
   monthlySpend: number;
   memberCount: number;
   createdAt: string;
@@ -635,6 +638,11 @@ export interface AdTrackerKpis {
   closeRate: number | null;
   roas: number | null;
 }
+
+// The id of the aggregate breakdown row carrying spend that the live-campaign
+// scope excluded, so the column reconciles with the Ad Spend figure in Results.
+// Must match OTHER_ID in functions/lib/adTrackerMetrics.ts, which produces it.
+export const AD_TRACKER_OTHER_ID = "__other__";
 
 export interface AdTrackerBreakdownRow {
   id: string;

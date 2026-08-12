@@ -2,6 +2,7 @@ import { useState } from "react";
 import CreativesFolderCard from "../../../ads/CreativesFolderCard";
 import CreativesGrid from "../../../ads/CreativesGrid";
 import CreativesWizard from "./CreativesWizard";
+import SetupWizard from "./SetupWizard";
 import { ErrorNote, Spinner } from "../../../../routes/paid-ads/trackerShared";
 import { useAdminCreativesFolderQuery, useSetCreativesFolder } from "../../../../hooks/useApi";
 
@@ -14,6 +15,14 @@ import { useAdminCreativesFolderQuery, useSetCreativesFolder } from "../../../..
 //
 // This is the ONLY place the folder can be set. The client's own page reads the
 // same mapping and cannot write it.
+
+// The connect step is only ever shown once, ever, for the whole agency: the
+// wizard itself skips it when the grant already exists. It is still named here
+// so the operator who does hit it can see it is one of two, not the whole job.
+const CREATIVES_STEPS = [
+  { id: "drive", label: "Google Drive" },
+  { id: "folder", label: "This client's folder" },
+];
 
 export default function CreativesPanel({ tenantId }: { tenantId: string }) {
   const query = useAdminCreativesFolderQuery(tenantId);
@@ -40,6 +49,29 @@ export default function CreativesPanel({ tenantId }: { tenantId: string }) {
 
   // Shown while there is no folder, or when the operator asks to change one.
   const pickerOpen = !url || changing;
+
+  // Before a folder is chosen there is nothing to look at, so the wizard is the
+  // whole page rather than a card above an empty grid. Same shape as the ad
+  // account wizard next door: a setup step that shares the screen with the
+  // thing it is blocking reads as optional, and gets skipped.
+  if (!url) {
+    return (
+      <SetupWizard
+        title="Point Creatives at a Drive folder"
+        intro="This client's ad creatives live in Google Drive. Choose the folder and every file in it shows here, and on the client's own Creatives page."
+        steps={CREATIVES_STEPS}
+        currentIndex={query.data?.connected === false ? 0 : 1}
+      >
+        <CreativesWizard
+          tenantId={tenantId}
+          saving={save.isPending}
+          onChoose={choose}
+          onPaste={paste}
+          error={saveError}
+        />
+      </SetupWizard>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

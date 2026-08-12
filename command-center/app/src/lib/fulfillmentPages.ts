@@ -161,6 +161,36 @@ export function resolveSubTab(
   return subs[0].id;
 }
 
+// The setup step a client lands on while their ads are not wired.
+export const ADS_SETUP_SUB = "setup";
+
+// Paid Ads before the ad account is linked.
+//
+// Dashboard, Lead Tracker and Meta Data all read Meta through the client's own
+// ad account. Without one they are three pages of zeroes that look like a quiet
+// month rather than an unfinished setup, so they are not offered at all until
+// the account exists. What survives is the work that does not need Meta: the Ad
+// Builder (where the ads get written in the first place) and Creatives (whose
+// files live in Drive). Ahead of both sits the wizard that links the account,
+// which is where the page opens.
+export function paidAdsSubTabs(subs: SubTabDef[], adsLinked: boolean): SubTabDef[] {
+  if (adsLinked) return subs;
+  const kept = subs.filter((s) => s.id === "creatives" || s.id === "ad-builder");
+  return [{ id: ADS_SETUP_SUB, label: "Connect ads", ready: true }, ...kept];
+}
+
+// Keep a ?sub= inside whatever is actually on offer. A link to the Dashboard of
+// a client whose ads are not wired lands on the wizard rather than on a page
+// that is not in the row above it.
+export function resolveGatedSubTab(
+  subs: SubTabDef[],
+  param: string | null | undefined,
+): string | null {
+  if (subs.length === 0) return null;
+  if (param && subs.some((s) => s.id === param)) return param;
+  return subs[0].id;
+}
+
 // Build a link to a page. Every link into Fulfillment goes through here (the
 // sidebar, the redirects, the picker), so the client and sub-tab params can
 // never be spelled two different ways.

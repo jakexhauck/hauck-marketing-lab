@@ -12,6 +12,8 @@ import type { AdWorkspace, AdWorkspacePatch } from "../../functions/lib/adWorksp
 import type { LeadForm, LeadFormPatch } from "../../functions/lib/adLeadForms";
 // The follow-up page's shape, from the module the endpoints validate with (0093).
 import type { ConversionAsset, ConversionAssetPatch } from "../../functions/lib/conversionAssets";
+// The ad-account picker's shape, from the module the endpoint builds it with.
+import type { AdAccountsResponse } from "../../functions/lib/metaAdAccounts";
 import type {
   AgencySecretsResponse,
   ApplyResponse,
@@ -1704,6 +1706,23 @@ export function useAdminWebsiteRequestsQuery(tenantId: string, enabled = true) {
     queryFn: () =>
       api<{ requests: AdminWebsiteRequest[]; unavailable?: boolean }>(
         `/api/admin/clients/${tenantId}/website/requests`,
+      ),
+  });
+}
+
+// Every Meta ad account the agency token can see, for the "link the ads
+// manager" picker (GET /api/admin/meta/ad-accounts). The list is agency-wide;
+// tenantId only tells the server which entry this client already holds. Not
+// cached long: an account granted in Business Manager thirty seconds ago should
+// appear on the next open, which is exactly when someone looks for it.
+export function useAdminMetaAdAccountsQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "meta", "ad-accounts", tenantId],
+    enabled: enabled && !!tenantId,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<AdAccountsResponse>(
+        `/api/admin/meta/ad-accounts?tenantId=${encodeURIComponent(tenantId)}`,
       ),
   });
 }

@@ -11,6 +11,9 @@ import {
   resolveSubTab,
   fulfillmentPath,
   placeholderCopy,
+  paidAdsSubTabs,
+  resolveGatedSubTab,
+  ADS_SETUP_SUB,
 } from "./fulfillmentPages";
 
 describe("fulfillmentPages config", () => {
@@ -160,6 +163,48 @@ describe("fulfillmentPath", () => {
     expect(fulfillmentPath("management", "a b&c")).toBe(
       "/admin/fulfillment/management?client=a+b%26c",
     );
+  });
+});
+
+describe("paidAdsSubTabs", () => {
+  const subs = subTabsFor("paid-ads");
+
+  it("offers every page once the ad account is linked", () => {
+    expect(paidAdsSubTabs(subs, true)).toEqual(subs);
+  });
+
+  // The three Meta-backed pages are the whole point of the gate: without an ad
+  // account they can only draw zeroes, which reads as a quiet month.
+  it("hides the Meta pages and opens on the wizard when it is not", () => {
+    expect(paidAdsSubTabs(subs, false).map((s) => s.id)).toEqual([
+      ADS_SETUP_SUB,
+      "creatives",
+      "ad-builder",
+    ]);
+  });
+
+  it("puts the wizard first, so that is where the page lands", () => {
+    expect(paidAdsSubTabs(subs, false)[0].id).toBe(ADS_SETUP_SUB);
+    expect(paidAdsSubTabs(subs, false)[0].label).toBe("Connect ads");
+  });
+});
+
+describe("resolveGatedSubTab", () => {
+  const open = subTabsFor("paid-ads");
+  const gated = paidAdsSubTabs(open, false);
+
+  it("keeps a sub-tab that is on offer", () => {
+    expect(resolveGatedSubTab(gated, "ad-builder")).toBe("ad-builder");
+  });
+
+  // An old link, or the tab you were on when you switched to an unwired client.
+  it("falls back to the wizard for a page the gate removed", () => {
+    expect(resolveGatedSubTab(gated, "dashboard")).toBe(ADS_SETUP_SUB);
+    expect(resolveGatedSubTab(gated, null)).toBe(ADS_SETUP_SUB);
+  });
+
+  it("answers null for a page with no sub-tabs at all", () => {
+    expect(resolveGatedSubTab([], "anything")).toBeNull();
   });
 });
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, KeyRound, RefreshCw } from "lucide-react";
 import { Button } from "../../ui/Button";
+import AdAccountPicker from "../AdAccountPicker";
 import {
   useAdminOnboardingReadinessQuery,
   useClientSecrets,
@@ -26,7 +27,11 @@ import { CLIENT_SECRET_FIELDS } from "../../../lib/clientSecrets";
 // GA4 and the Google place id are deliberately not offered. Jake does not do
 // analytics or reviews work, so a form asking for them would be three fields of
 // permanent emptiness suggesting something is unfinished.
-const WIRING_COLUMNS = ["ghl_location_id", "ghl_token", "meta_ad_account_id"];
+//
+// The Meta ad account is not in this list either, but for the opposite reason:
+// it is the one credential nobody should have to look up. It gets the picker
+// below instead of a text box.
+const WIRING_COLUMNS = ["ghl_location_id", "ghl_token"];
 
 const FIELDS = CLIENT_SECRET_FIELDS.filter((f) => WIRING_COLUMNS.includes(f.column));
 
@@ -140,6 +145,24 @@ export default function WiringCard({ tenantId }: { tenantId: string }) {
                 {(save.error as Error)?.message ?? "That did not save."}
               </span>
             )}
+          </div>
+
+          {/* The ads manager. A pick, not a paste: the agency token already
+              knows which accounts exist, so linking a new client is choosing
+              their name off a list, and the ads are pulled in on the spot. */}
+          <div className="border-t border-border pt-4 lg:col-span-2">
+            <p className="label-cap block">Meta ad account</p>
+            <p className="mt-1 mb-3 text-[12px] leading-snug text-faint">
+              Pick this client's ad account. Their Paid Ads section reads only this one.
+            </p>
+            <AdAccountPicker
+              tenantId={tenantId}
+              currentAccountId={views.get("meta_ad_account_id")?.display ?? null}
+              onLinked={async () => {
+                await secrets.refetch();
+                await readiness.refetch();
+              }}
+            />
           </div>
 
           {/* What GoHighLevel says right now. The whole point of saving here is

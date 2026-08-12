@@ -12,10 +12,13 @@ import { useSelectedClient } from "../../hooks/useSelectedClient";
 import AdminPage from "../../components/admin/AdminPage";
 import { CLIENT_HOME } from "../../lib/nav";
 import {
+  ADS_SETUP_SUB,
   DEFAULT_FULFILLMENT_PAGE,
   fulfillmentPath,
   getFulfillmentPage,
+  paidAdsSubTabs,
   placeholderCopy,
+  resolveGatedSubTab,
   resolveSubTab,
   subTabsFor,
   type FulfillmentPageDef,
@@ -47,8 +50,19 @@ export default function FulfillmentPage() {
   const [previewErr, setPreviewErr] = useState<string | null>(null);
 
   const page = getFulfillmentPage(pageParam);
-  const subs = subTabsFor(pageParam);
-  const activeSub = resolveSubTab(pageParam, searchParams.get("sub"));
+
+  // Paid Ads hides its three Meta-backed pages until the client's ad account is
+  // linked, and opens on the wizard that links it. Every other page is ungated,
+  // so the two lines below are a no-op for them.
+  const adAccountId = selected?.metaAdAccountId ?? null;
+  const subs =
+    pageParam === "paid-ads"
+      ? paidAdsSubTabs(subTabsFor(pageParam), Boolean((adAccountId ?? "").trim()))
+      : subTabsFor(pageParam);
+  const activeSub =
+    pageParam === "paid-ads"
+      ? resolveGatedSubTab(subs, searchParams.get("sub"))
+      : resolveSubTab(pageParam, searchParams.get("sub"));
 
   const setSub = (sub: string) => {
     setSearchParams(
@@ -125,6 +139,8 @@ export default function FulfillmentPage() {
           clientName={selected?.name ?? ""}
           clientSlug={selected?.slug ?? ""}
           activeSub={activeSub}
+          adAccountId={adAccountId}
+          onSelectSub={setSub}
           isLoading={isLoading}
           isError={isError}
         />
@@ -142,6 +158,8 @@ function PageBody({
   clientName,
   clientSlug,
   activeSub,
+  adAccountId,
+  onSelectSub,
   isLoading,
   isError,
 }: {
@@ -150,6 +168,8 @@ function PageBody({
   clientName: string;
   clientSlug: string;
   activeSub: string | null;
+  adAccountId: string | null;
+  onSelectSub: (sub: string) => void;
   isLoading: boolean;
   isError: boolean;
 }) {
@@ -179,7 +199,9 @@ function PageBody({
         <PaidAdsTab
           tenantId={tenantId}
           clientName={clientName}
-          activeSub={activeSub ?? "campaigns"}
+          activeSub={activeSub ?? ADS_SETUP_SUB}
+          adAccountId={adAccountId}
+          onSelectSub={onSelectSub}
         />
       );
     case "ghl":

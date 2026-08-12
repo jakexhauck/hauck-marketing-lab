@@ -2,7 +2,9 @@ import AdBuilderPanel from "./AdBuilderPanel";
 import AdsDashboardPanel from "./AdsDashboardPanel";
 import AdsLeadTrackerPanel from "./AdsLeadTrackerPanel";
 import AdsMetaDataPanel from "./AdsMetaDataPanel";
+import AdsSetupWizard from "./AdsSetupWizard";
 import CreativesPanel from "./CreativesPanel";
+import { ADS_SETUP_SUB } from "../../../../lib/fulfillmentPages";
 
 // Paid Ads service tab inside the Fulfillment cockpit
 // (/admin/fulfillment/paid-ads). Routes the sub-tabs for the client in the
@@ -29,6 +31,8 @@ export default function PaidAdsTab({
   tenantId,
   clientName,
   activeSub,
+  adAccountId,
+  onSelectSub,
 }: {
   tenantId: string;
   // Only the Ad Builder wants it, for the lead form preview: an instant form is
@@ -36,8 +40,36 @@ export default function PaidAdsTab({
   // somebody else's form.
   clientName: string;
   activeSub: string;
+  // The client's Meta ad account, or null while their ads are unwired. The tab
+  // row above is gated on the same value.
+  adAccountId: string | null;
+  onSelectSub: (sub: string) => void;
 }) {
+  // Belt and braces with the gate in FulfillmentPage: even reached directly,
+  // a Meta-backed page for an unlinked client renders the wizard rather than a
+  // month of zeroes.
+  const linked = Boolean((adAccountId ?? "").trim());
+  if (!linked && activeSub !== "creatives" && activeSub !== "ad-builder") {
+    return (
+      <AdsSetupWizard
+        tenantId={tenantId}
+        clientName={clientName}
+        currentAccountId={adAccountId}
+        onFinished={onSelectSub}
+      />
+    );
+  }
+
   switch (activeSub) {
+    case ADS_SETUP_SUB:
+      return (
+        <AdsSetupWizard
+          tenantId={tenantId}
+          clientName={clientName}
+          currentAccountId={adAccountId}
+          onFinished={onSelectSub}
+        />
+      );
     case "dashboard":
       return <AdsDashboardPanel tenantId={tenantId} />;
     case "leads":
