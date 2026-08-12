@@ -82,6 +82,11 @@ const PUBLIC_PATHS = new Set([
   // one. Each has its own guard, see the files themselves.
   "/api/crm/oauth/callback",
   "/api/crm/app-webhook",
+  // The feed behind a client's Google Sheet lead tracker, read by the Apps
+  // Script bound to that sheet. Google's servers make the call, so it can carry
+  // no session of ours. Guarded by its own shared secret (SHEETS_SYNC_TOKEN),
+  // read-only, and it names its tenant explicitly. See api/sheets/leads.ts.
+  "/api/sheets/leads",
 ]);
 
 // Public paths with a dynamic segment, matched by prefix. Kept separate from the

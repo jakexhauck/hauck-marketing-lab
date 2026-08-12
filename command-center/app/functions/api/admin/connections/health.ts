@@ -152,6 +152,8 @@ const NO_PROBE: Record<string, string> = {
   resend: "The send-only key cannot read its own status without sending",
   "app-auth": "Nothing external to call. Presence is the whole check.",
   "ghl-webhook": "Inbound only. GHL calls us, so we cannot test it from here.",
+  "sheets-lead-sync":
+    "Inbound only. Google's servers call us on the sheet's own timer, so presence of the secret is the whole check.",
 };
 
 // The watchdog cannot usefully probe itself in the request that it is running:

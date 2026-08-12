@@ -111,6 +111,14 @@ export const AGENCY_KEYS: AgencyKeyDef[] = [
     warning: "Both sides must change together. A rotated secret makes GHL's calls fail silently, so the app just looks stale.",
   },
   {
+    name: "SHEETS_SYNC_TOKEN",
+    group: "leads",
+    entry: "generate",
+    generator: "hex32",
+    help: "Read by the Apps Script inside each client's Google Sheet lead tracker, as its API_TOKEN script property.",
+    warning: "Rotating this stops every client sheet at once, and Apps Script only emails the sheet's owner when it fails. Update each sheet's script property in the same sitting.",
+  },
+  {
     name: "GHL_TOKEN",
     group: "leads",
     entry: "paste",

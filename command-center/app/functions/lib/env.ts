@@ -47,6 +47,10 @@ export interface Env {
   // Browser-safe publishable key, returned by /api/chat/config for the Realtime socket.
   SUPABASE_ANON_KEY?: string;
   WEBHOOK_SECRET?: string;
+  // Shared secret for the client Google Sheet lead trackers. Held in the Apps
+  // Script bound to each sheet; buys read-only access to one tenant's leads via
+  // /api/sheets/leads. Unset means that route is closed, never open.
+  SHEETS_SYNC_TOKEN?: string;
   // Resend API key (send-only restricted key) for internal-notification emails
   // relayed from GHL workflows via /api/internal-notify. NOTIFY_FROM sets the
   // locked From address (caller cannot override it); defaults to the agency

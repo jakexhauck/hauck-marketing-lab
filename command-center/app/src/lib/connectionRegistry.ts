@@ -581,6 +581,27 @@ export const CONNECTIONS: ConnectionDef[] = [
     remediation:
       "A rotated secret makes GHL's calls fail silently on their side, so the app just looks stale. Update the workflow's header in GHL in the same sitting.",
   },
+  {
+    id: "sheets-lead-sync",
+    label: "Client lead tracker sheets",
+    vendor: "Google Apps Script",
+    scope: "agency",
+    purpose:
+      "Feeds each client's own Google Sheet lead tracker. The Apps Script bound to that sheet polls /api/sheets/leads every ten minutes; it is where the owner marks outcomes, so a dead feed looks to them like the ads stopped working.",
+    credentials: [
+      {
+        name: "SHEETS_SYNC_TOKEN",
+        home: "cloudflare",
+        inDoppler: true,
+        note: "Held in each sheet's Apps Script properties as API_TOKEN. Rotating it stops every client sheet at once, so change both sides in the same sitting. Read-only: it buys one tenant's leads and can write nothing.",
+      },
+    ],
+    surfaces: [
+      { label: "Client lead tracker sheet", audience: "client" },
+    ],
+    remediation:
+      "Unset, the route answers 503 and every sheet stops updating silently, since Apps Script failures only email the sheet's owner. Set the same value in Doppler and in Script Properties > API_TOKEN on each client sheet. See sheets/README.md.",
+  },
 ];
 
 /** Credentials this integration genuinely cannot run without. */
