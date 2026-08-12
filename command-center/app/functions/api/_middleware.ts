@@ -302,6 +302,8 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         // Per-client Inbox widening (0103). Undefined for every client who has
         // not asked for one, which is the pre-existing behaviour.
         inbox_visible_tag: tenant?.inbox_visible_tag ?? undefined,
+        // Per-client Inbox widening by ad attribution (0104).
+        inbox_show_ad_leads: tenant?.inbox_show_ad_leads === true,
         slug: tenant?.slug ?? liveTenantSlug(ctx.env),
         mode: "live",
       };

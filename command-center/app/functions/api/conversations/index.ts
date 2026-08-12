@@ -17,6 +17,7 @@ import { makeInternalConversationFilter } from "../../lib/internalRecipients";
 import {
   resolveClientInboxScope,
   buildVisibleContactIds,
+  adLeadContactIds,
   tagVisibleContactIds,
   widenWithTag,
   type ClientInboxScope,
@@ -187,15 +188,23 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     contacts as { id?: string | null; tags?: string[] | null }[],
     t.inbox_visible_tag,
   );
+  // And by ad attribution (0104): the leads their ads actually produced. This
+  // is the rule that carries the weight; the tag above catches whatever else a
+  // client wants let through.
+  const adContacts = t.inbox_show_ad_leads
+    ? adLeadContactIds(contacts as { id?: string | null }[])
+    : new Set<string>();
   const visibleContacts = widenWithTag(
     scope && gateOpps ? buildVisibleContactIds(scope, gateOpps) : null,
     taggedContacts,
+    adContacts,
   );
   const inboxContacts = widenWithTag(
     scope && gateOpps
       ? buildVisibleContactIds({ ...scope, reviewsPipelineId: null }, gateOpps)
       : null,
     taggedContacts,
+    adContacts,
   );
 
   const items = all

@@ -28,6 +28,7 @@
 // — turns a config gap into an Inbox that reads as broken, which is how the
 // social-connect gate locked Willis out the day it deployed.
 import { fetchContact, ghlJson, type GhlContext } from "./ghl";
+import { firstTouchAttribution, type GhlAttribution } from "./adAttribution";
 
 export interface PipelineLike {
   id: string;
@@ -159,6 +160,9 @@ export function contactIsInScope(
 export interface TaggedContactLike {
   id?: string | null;
   tags?: string[] | null;
+  // GHL's own touch history. Present on the bulk contacts list, and the only
+  // reliable answer to "did this person come from an ad".
+  attributions?: GhlAttribution[] | null;
 }
 
 export function contactCarriesTag(
@@ -184,16 +188,43 @@ export function tagVisibleContactIds(
   return ids;
 }
 
+// ---------------------------------------------------------------------------
+// The ad-lead widening (tenants.inbox_show_ad_leads, 0104).
+//
+// A contact who arrived through a paid click. This is the STRONG signal, and
+// the tag above was the weak one: measured on Willis 2026-08-12, 5 of 199
+// contacts carried the 'facebook ads' tag, because the GHL workflow that
+// applies it was never finished, while GHL's own attributions[] array carries
+// the Meta ad id on every contact who actually clicked an ad. Nobody has to
+// remember to apply it and no workflow has to exist for it to work.
+//
+// Same reading as the Paid Ads tracker (firstTouchAttribution), so a lead the
+// client sees in their Inbox and the same lead on their tracker can never
+// disagree about where it came from.
+
+export function contactCameFromAd(contact: TaggedContactLike): boolean {
+  return firstTouchAttribution(contact.attributions ?? null) !== null;
+}
+
+export function adLeadContactIds(contacts: TaggedContactLike[]): Set<string> {
+  const ids = new Set<string>();
+  for (const c of contacts ?? []) {
+    if (c?.id && contactCameFromAd(c)) ids.add(c.id);
+  }
+  return ids;
+}
+
 // Union of the two rules, or null when the gate is off entirely (null means
 // "show everything", and widening everything is still everything).
 export function widenWithTag(
   gated: Set<string> | null,
-  tagged: Set<string>,
+  ...extra: Set<string>[]
 ): Set<string> | null {
   if (!gated) return null;
-  if (tagged.size === 0) return gated;
+  const total = extra.reduce((n, s) => n + s.size, 0);
+  if (total === 0) return gated;
   const out = new Set(gated);
-  for (const id of tagged) out.add(id);
+  for (const set of extra) for (const id of set) out.add(id);
   return out;
 }
 
@@ -246,6 +277,8 @@ export async function isClientVisibleContact(
   // tenants.inbox_visible_tag (0103). Checked only when the pipeline rule says
   // no, so the common case still costs the same two calls it always did.
   visibleTag?: string | null,
+  // tenants.inbox_show_ad_leads (0104).
+  showAdLeads?: boolean,
 ): Promise<boolean> {
   try {
     const [pipelines, opportunities] = await Promise.all([
@@ -259,9 +292,11 @@ export async function isClientVisibleContact(
     // The list endpoint widened by tag, so the thread behind a widened row has
     // to open. Without this a client would see a conversation in their Inbox
     // and get a 403 when they tapped it.
-    if ((visibleTag ?? "").trim()) {
+    if ((visibleTag ?? "").trim() || showAdLeads) {
       const contact = await fetchContact(ctx, contactId);
-      if (contact && contactCarriesTag(contact, visibleTag)) return true;
+      if (!contact) return false;
+      if (contactCarriesTag(contact, visibleTag)) return true;
+      if (showAdLeads && contactCameFromAd(contact)) return true;
     }
     return false;
   } catch {

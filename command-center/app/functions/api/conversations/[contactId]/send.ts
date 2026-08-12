@@ -28,7 +28,7 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (
   // Nor is a lead the setter is still working repliable by the client: our
   // outreach sequence and theirs must not land on the same lead at once.
   if (
-    !(await isClientVisibleContact(gctx, t.client_inbox_pipeline_id, contactId, t.inbox_visible_tag))
+    !(await isClientVisibleContact(gctx, t.client_inbox_pipeline_id, contactId, t.inbox_visible_tag, t.inbox_show_ad_leads))
   ) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }

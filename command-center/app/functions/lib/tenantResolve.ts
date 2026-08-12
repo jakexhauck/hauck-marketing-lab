@@ -64,6 +64,9 @@ export interface TenantRow {
   // A contact carrying this tag is visible in the client Inbox whatever
   // pipeline they are in (0103). NULL leaves the hand-off gate as it was.
   inbox_visible_tag?: string | null;
+  // true: contacts carrying a paid-ad attribution are visible in the client
+  // Inbox (0104), whatever pipeline they are in and with no tag needed.
+  inbox_show_ad_leads?: boolean;
   // 'setup' while the client is being stood up, 'live' once Go Live is pressed
   // (0069). Read by the middleware's onboarding gate. Every tenant that existed
   // before that migration is 'live', so this is only ever 'setup' for a client
@@ -72,7 +75,7 @@ export interface TenantRow {
 }
 
 const TENANT_COLS =
-  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, ghl_token, meta_ad_account_id, google_place_id, ga4_property_id, owner_password_hash, monthly_spend, website_pages, internal_recipients, client_inbox_pipeline_id, manual_lead_status, inbox_visible_tag, onboarding_status";
+  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, ghl_token, meta_ad_account_id, google_place_id, ga4_property_id, owner_password_hash, monthly_spend, website_pages, internal_recipients, client_inbox_pipeline_id, manual_lead_status, inbox_visible_tag, inbox_show_ad_leads, onboarding_status";
 
 // Normalize an admin-entered subdomain label: lowercase, hyphen-separated, the
 // charset valid in a DNS label. Shared by the admin create/update endpoints.

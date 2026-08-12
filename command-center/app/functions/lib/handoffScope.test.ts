@@ -7,6 +7,9 @@ import {
   WILLIS_REVIEWS_PIPELINE_ID,
   tagVisibleContactIds,
   widenWithTag,
+  adLeadContactIds,
+  contactCameFromAd,
+  contactCarriesTag,
 } from "./handoffScope";
 
 // The live Willis pipeline list, pulled from `ghl opportunities pipelines`
@@ -192,5 +195,46 @@ describe("the tag widening", () => {
   // gate an Inbox that was deliberately left open.
   it("leaves an ungated inbox ungated", () => {
     expect(widenWithTag(null, new Set(["a"]))).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The ad-lead widening (0104). The strong signal: GHL's own attributions[].
+
+describe("the ad-lead widening", () => {
+  const withAd = {
+    id: "ad1",
+    attributions: [{ isFirst: true, utmAdId: "120251336167710415", utmCampaign: "Willis" }],
+  };
+  const organic = { id: "org1", attributions: [{ isFirst: true, utmSource: "google" }] };
+
+  it("admits a contact who arrived through a paid click", () => {
+    expect(contactCameFromAd(withAd)).toBe(true);
+    expect([...adLeadContactIds([withAd, organic])]).toEqual(["ad1"]);
+  });
+
+  // The whole reason this exists: the tag was on 5 of 199 Willis contacts
+  // because the workflow that applies it was never built. An untagged ad lead
+  // still has to reach the Inbox.
+  it("does not need the tag", () => {
+    expect(contactCarriesTag(withAd, "facebook ads")).toBe(false);
+    expect(contactCameFromAd(withAd)).toBe(true);
+  });
+
+  it("leaves an organic contact out", () => {
+    expect(contactCameFromAd(organic)).toBe(false);
+    expect(contactCameFromAd({ id: "x" })).toBe(false);
+    expect(contactCameFromAd({ id: "y", attributions: [] })).toBe(false);
+  });
+
+  it("unions with the tag rule rather than replacing it", () => {
+    const gated = new Set(["handed"]);
+    const tagged = new Set(["tagged"]);
+    const ads = new Set(["ad1"]);
+    expect([...(widenWithTag(gated, tagged, ads) as Set<string>)].sort()).toEqual([
+      "ad1",
+      "handed",
+      "tagged",
+    ]);
   });
 });

@@ -231,6 +231,9 @@ export interface TenantContext {
   // Contacts carrying this tag are always visible in the Inbox, on top of the
   // hand-off pipeline rule (0103). Undefined leaves the gate exactly as it was.
   inbox_visible_tag?: string;
+  // Contacts whose GHL attributions carry a paid-ad id are always visible in
+  // the Inbox (0104). The strong signal where the tag was the weak one.
+  inbox_show_ad_leads?: boolean;
   // Supabase tenants.slug for this session, resolved from the session mode in
   // _middleware.ts. All Supabase-backed routes must scope by this, never by a
   // hardcoded slug, or test and live data bleed into each other.
