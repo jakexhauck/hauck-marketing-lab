@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ExternalLink } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, ExternalLink } from "lucide-react";
 import SetupWizard from "./SetupWizard";
 import AdAccountPicker from "../../AdAccountPicker";
 import { Button } from "../../../ui/Button";
@@ -118,6 +118,98 @@ export default function AdsSetupWizard({
         </div>
       )}
     </SetupWizard>
+  );
+}
+
+// Where the token comes from, folded away under the field it fills.
+//
+// Closed by default and closed again on the next visit: these directions are
+// read once and then never again, so they must not sit permanently between the
+// box and the button. Open, they are the actual clicks in Meta's own words,
+// because "generate a system user token" is only obvious to someone who has
+// already done it.
+const TOKEN_STEPS: { text: string; detail?: string }[] = [
+  {
+    text: "Open Meta Business settings",
+    detail: "business.facebook.com/settings, with the business that owns the ad accounts selected.",
+  },
+  {
+    text: "In the left sidebar, click Users, then System users",
+    detail: "Not People. A system user is the account that keeps working when nobody is logged in.",
+  },
+  {
+    text: "Click your system user, or Add one and give it the Admin role",
+    detail: "One system user covers every client you will ever run ads for.",
+  },
+  {
+    text: "Press Generate new token and choose your app",
+    detail: "If there is no app in the list, create one in developers.facebook.com first.",
+  },
+  {
+    text: "Tick ads_read, ads_management, read_insights and business_management",
+    detail: "The first three read the numbers. The last one lets the picker list your accounts.",
+  },
+  {
+    text: "Copy the token and paste it in the box above",
+    detail: "Meta shows it exactly once. If you lose it, generate another one.",
+  },
+  {
+    text: "Assign the client's ad account to that same system user",
+    detail:
+      "Business settings, Ad accounts, pick the account, Assign partner or people, choose the system user. An account it cannot see will not appear in step 2.",
+  },
+];
+
+function Directions() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-4 overflow-hidden rounded-[var(--radius)] border border-border">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 bg-surface-2 px-3.5 py-2.5 text-left text-[13px] font-semibold text-text transition-colors hover:bg-surface-3"
+      >
+        <ChevronRight
+          size={15}
+          aria-hidden
+          className={`shrink-0 text-muted transition-transform duration-150 ${open ? "rotate-90" : ""}`}
+        />
+        Where do I get this token?
+      </button>
+
+      {open && (
+        <div className="border-t border-border bg-surface px-3.5 py-3.5">
+          <ol className="grid gap-3">
+            {TOKEN_STEPS.map((step, i) => (
+              <li key={i} className="flex gap-2.5">
+                <span
+                  className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-surface-3 text-[11px] font-semibold text-muted"
+                  aria-hidden
+                >
+                  {i + 1}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-medium leading-snug text-text">{step.text}</p>
+                  {step.detail && (
+                    <p className="mt-0.5 text-[12px] leading-snug text-muted">{step.detail}</p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+          <a
+            href="https://business.facebook.com/settings/system-users"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-flex items-center gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3.5 py-2 text-[12.5px] font-semibold text-text transition-colors hover:border-brand hover:text-brand"
+          >
+            <ExternalLink size={13} aria-hidden />
+            Open Business settings
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -313,15 +405,7 @@ function TokenConnect({
         </p>
       )}
 
-      <a
-        href="https://business.facebook.com/settings/system-users"
-        target="_blank"
-        rel="noreferrer"
-        className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted hover:text-text"
-      >
-        <ExternalLink size={13} aria-hidden />
-        Where to get it: Business settings, Users, System users, Generate new token
-      </a>
+      <Directions />
 
       {error && !busy && <p className="mt-2 text-[12.5px] text-muted">Meta said: {error}</p>}
     </div>
