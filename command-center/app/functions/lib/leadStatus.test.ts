@@ -3,6 +3,10 @@ import {
   CLIENT_STATUS_ORDER,
   furthestStatus,
   statusForStage,
+  isManualLeadStatus,
+  manualStatusOrDefault,
+  MANUAL_STATUS_LABEL,
+  MANUAL_STATUS_ORDER,
   type ClientLeadStatus,
 } from "./leadStatus";
 
@@ -128,5 +132,59 @@ describe("CLIENT_STATUS_ORDER", () => {
     );
     expect(produced.size).toBe(12);
     for (const s of produced) expect(CLIENT_STATUS_ORDER).toContain(s);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The manual model (tenants.manual_lead_status). Willis type their own.
+
+describe("the manual status model", () => {
+  it("accepts only the eight labels", () => {
+    for (const s of MANUAL_STATUS_ORDER) expect(isManualLeadStatus(s)).toBe(true);
+    expect(MANUAL_STATUS_ORDER).toHaveLength(8);
+    expect(isManualLeadStatus("handed_off")).toBe(false);
+    expect(isManualLeadStatus("phone_appt_confirmed")).toBe(false);
+    expect(isManualLeadStatus("")).toBe(false);
+    expect(isManualLeadStatus(null)).toBe(false);
+  });
+
+  it("gives every label a human name", () => {
+    for (const s of MANUAL_STATUS_ORDER) {
+      expect(MANUAL_STATUS_LABEL[s]?.length ?? 0).toBeGreaterThan(2);
+    }
+  });
+
+  // The load-bearing one. No row in lead_status is the normal state for a lead
+  // nobody has touched, which is why switching a tenant over needs no backfill.
+  it("reads an untouched lead as New rather than blank", () => {
+    expect(manualStatusOrDefault(undefined)).toBe("new");
+    expect(manualStatusOrDefault(null)).toBe("new");
+    expect(manualStatusOrDefault("")).toBe("new");
+    expect(manualStatusOrDefault("won")).toBe("won");
+  });
+
+  // A value written by an older deploy, or by hand in the database, must not
+  // reach the client as an unknown status.
+  it("falls back rather than passing a stranger through", () => {
+    expect(manualStatusOrDefault("handed_off")).toBe("new");
+    expect(manualStatusOrDefault("nonsense")).toBe("new");
+  });
+
+  // The database check constraint in 0102 lists these eight by hand. If this
+  // fails, that migration needs a matching change or writes will start being
+  // rejected at the database with a constraint error nobody expects.
+  it("matches the labels the 0102 check constraint allows", () => {
+    expect([...MANUAL_STATUS_ORDER].sort()).toEqual(
+      [
+        "appointment_booked",
+        "contacted",
+        "follow_up",
+        "lost",
+        "new",
+        "no_answer",
+        "quoted",
+        "won",
+      ].sort(),
+    );
   });
 });

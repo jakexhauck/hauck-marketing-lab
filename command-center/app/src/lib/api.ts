@@ -662,6 +662,8 @@ export interface AdTrackerBreakdownRow {
 export interface AdTrackerResponse {
   range: AdTrackerRange;
   level: AdTrackerLevel;
+  // Absent on an older deploy, which means the derived twelve, as it always was.
+  statusMode?: TrackerStatusMode;
   kpis: AdTrackerKpis;
   breakdown: AdTrackerBreakdownRow[];
   // Leads in range with no ad id. The breakdown is the attributed subset, so
@@ -690,7 +692,7 @@ export interface AdTrackerResponse {
 //
 // Keep this union in step with ClientLeadStatus on the server. It is duplicated
 // rather than imported because functions/ and src/ are separate tsconfigs.
-export type LeadTrackerStatus =
+export type AutoLeadStatus =
   | "new"
   | "contacted"
   | "phone_follow_up"
@@ -703,6 +705,36 @@ export type LeadTrackerStatus =
   | "job_booked"
   | "won"
   | "lost";
+
+// The eight a client TYPES, on a business that works its own leads
+// (tenants.manual_lead_status, 0102). Keep in step with MANUAL_STATUS_ORDER in
+// functions/lib/leadStatus.ts.
+export type ManualLeadStatus =
+  | "new"
+  | "contacted"
+  | "no_answer"
+  | "follow_up"
+  | "appointment_booked"
+  | "quoted"
+  | "won"
+  | "lost";
+
+export const MANUAL_LEAD_STATUSES: ManualLeadStatus[] = [
+  "new",
+  "contacted",
+  "no_answer",
+  "follow_up",
+  "appointment_booked",
+  "quoted",
+  "won",
+  "lost",
+];
+
+export type LeadTrackerStatus = AutoLeadStatus | ManualLeadStatus;
+
+// Which of the two the rows are speaking, decided per tenant by the server.
+// "manual" also means the status cell is editable.
+export type TrackerStatusMode = "auto" | "manual";
 
 // The one date that matters for a lead, given its status: the GHL appointment
 // for the booked statuses, the next open task's due date for the ones we are
@@ -723,7 +755,9 @@ export interface LeadTrackerLead {
   createdAt: string;
   status: LeadTrackerStatus;
   when: LeadTrackerWhen | null;
-  value: number;
+  // Dollars. Null on a manual tenant means nobody has typed a job value yet,
+  // which is not the same as a job worth nothing.
+  value: number | null;
   campaignName: string | null;
   adsetName: string | null;
   adName: string | null;

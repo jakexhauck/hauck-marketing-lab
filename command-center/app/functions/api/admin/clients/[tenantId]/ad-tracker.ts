@@ -42,6 +42,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       internalRecipients: tenant.internal_recipients,
       range: params.range,
       level: params.level,
+      // The admin cockpit reads the same tenant's rows, so it must read them
+      // the same way. Left off, this view would show a client's leads all
+      // sitting on New while their own page shows what they actually typed.
+      manualStatus: tenant.manual_lead_status === true,
     });
     return Response.json(body);
   } catch (err) {

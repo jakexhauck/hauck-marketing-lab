@@ -296,6 +296,12 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         // Per-client hand-off pipeline override (0097). Undefined is the norm:
         // the pipeline resolves by name for a client who calls theirs "Sales".
         client_inbox_pipeline_id: tenant?.client_inbox_pipeline_id ?? undefined,
+        // Does this client type their own lead status (0102)? Defaults to false,
+        // which is the derived behaviour every client had before this existed.
+        manual_lead_status: tenant?.manual_lead_status === true,
+        // Per-client Inbox widening (0103). Undefined for every client who has
+        // not asked for one, which is the pre-existing behaviour.
+        inbox_visible_tag: tenant?.inbox_visible_tag ?? undefined,
         slug: tenant?.slug ?? liveTenantSlug(ctx.env),
         mode: "live",
       };

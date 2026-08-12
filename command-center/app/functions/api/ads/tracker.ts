@@ -33,6 +33,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       internalRecipients: t.internal_recipients ?? null,
       range: params.range,
       level: params.level,
+      manualStatus: t.manual_lead_status === true,
     });
     return Response.json(body);
   } catch (err) {

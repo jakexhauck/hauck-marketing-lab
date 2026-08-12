@@ -160,7 +160,7 @@ function breakdownFor(level: AdTrackerLevel, leads: LeadTrackerLead[]): AdTracke
     const spend = rows.length * CPL;
     const bookings = rows.filter((row) => BOOKED_STATUSES.includes(row.status)).length;
     const sales = rows.filter((row) => row.status === "won").length;
-    const revenue = rows.reduce((s, row) => s + row.value, 0);
+    const revenue = rows.reduce((s, row) => s + (row.value ?? 0), 0);
     return {
       id: `${level}-${i}`,
       name,

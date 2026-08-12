@@ -223,6 +223,14 @@ export interface TenantContext {
   // pipeline id is meaningless in another's sub-account. See
   // functions/lib/handoffScope.ts.
   client_inbox_pipeline_id?: string;
+  // true: this client types their own lead status, read from lead_status (0102),
+  // and the Paid Ads ladder counts from what they typed. false/undefined: the
+  // status is derived from the live GHL stage, as for every client whose leads
+  // we work ourselves. See functions/lib/leadStatus.ts.
+  manual_lead_status?: boolean;
+  // Contacts carrying this tag are always visible in the Inbox, on top of the
+  // hand-off pipeline rule (0103). Undefined leaves the gate exactly as it was.
+  inbox_visible_tag?: string;
   // Supabase tenants.slug for this session, resolved from the session mode in
   // _middleware.ts. All Supabase-backed routes must scope by this, never by a
   // hardcoded slug, or test and live data bleed into each other.

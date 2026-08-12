@@ -74,6 +74,7 @@ import {
   type CreativesFolderResponse,
   type LeadCitiesResponse,
   type LeadTrackerResponse,
+  type ManualLeadStatus,
   type MetaDataResponse,
   type ApiReviewsResponse,
   type PillarConstraint,
@@ -1480,6 +1481,59 @@ export function useAdsTrackerQuery(
     placeholderData: (prev) => prev,
     queryFn: () =>
       api<LeadTrackerResponse>(`/api/ads/tracker?range=${range}&level=${level}`),
+  });
+}
+
+// Marking a lead on the tracker: the status, the value of a job that closed, or
+// both. Only reaches a tenant that types its own (0102); anywhere else the
+// endpoint refuses and the cell is not rendered as editable in the first place.
+//
+// Optimistic, and deliberately so. This is a dropdown in a dense table that an
+// owner works down at speed, and a row that snaps back to its old value for a
+// second while a request lands reads as the app fighting them. On failure the
+// cache is rolled back to exactly what the server last said.
+export function useMarkLead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { contactId: string; status?: ManualLeadStatus; jobValue?: string | null }) =>
+      api<{ contactId: string }>(`/api/ads/leads/${encodeURIComponent(input.contactId)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: input.status, jobValue: input.jobValue }),
+      }),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["ads-tracker"] });
+      const snapshots = qc.getQueriesData<LeadTrackerResponse>({ queryKey: ["ads-tracker"] });
+      for (const [key, prev] of snapshots) {
+        if (!prev) continue;
+        qc.setQueryData<LeadTrackerResponse>(key, {
+          ...prev,
+          leads: prev.leads.map((l) =>
+            l.contactId === input.contactId
+              ? {
+                  ...l,
+                  status: input.status ?? l.status,
+                  value:
+                    input.jobValue === undefined
+                      ? l.value
+                      : input.jobValue === null || input.jobValue === ""
+                        ? null
+                        : Number(String(input.jobValue).replace(/[$,\s]/g, "")),
+                }
+              : l,
+          ),
+        });
+      }
+      return { snapshots };
+    },
+    onError: (_err, _input, context) => {
+      for (const [key, prev] of context?.snapshots ?? []) qc.setQueryData(key, prev);
+    },
+    // The KPI row and the breakdown are computed from these same leads, so a
+    // status or a job value that moves the table moves the numbers above it.
+    // Refetch once the write has landed rather than trying to recompute them here.
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["ads-tracker"] });
+    },
   });
 }
 

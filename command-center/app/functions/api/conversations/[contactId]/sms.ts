@@ -38,7 +38,7 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
   if (
-    !(await isClientVisibleContact(gctx, t.client_inbox_pipeline_id, contactId))
+    !(await isClientVisibleContact(gctx, t.client_inbox_pipeline_id, contactId, t.inbox_visible_tag))
   ) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }

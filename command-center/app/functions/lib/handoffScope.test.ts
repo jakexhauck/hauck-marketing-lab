@@ -5,6 +5,8 @@ import {
   contactIsInScope,
   WILLIS_HANDOFF_PIPELINE_ID,
   WILLIS_REVIEWS_PIPELINE_ID,
+  tagVisibleContactIds,
+  widenWithTag,
 } from "./handoffScope";
 
 // The live Willis pipeline list, pulled from `ghl opportunities pipelines`
@@ -153,5 +155,42 @@ describe("contactIsInScope", () => {
   // A contact with no opportunity at all has never been handed off.
   it("is false for a contact with no opportunities", () => {
     expect(contactIsInScope(scope, [])).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The tag widening (0103). Willis ring their own leads, so nothing is ever
+// handed off and the pipeline rule alone leaves their Inbox empty.
+
+describe("the tag widening", () => {
+  const tagged = [
+    { id: "a", tags: ["facebook ads", "hot"] },
+    { id: "b", tags: ["Facebook Ad"] },
+    { id: "c", tags: ["referral"] },
+    { id: "d", tags: [] },
+    { id: "e" },
+  ];
+
+  it("matches the tag however it is capitalised or extended", () => {
+    expect([...tagVisibleContactIds(tagged, "facebook ads")]).toEqual(["a"]);
+    expect([...tagVisibleContactIds(tagged, "facebook ad")].sort()).toEqual(["a", "b"]);
+  });
+
+  it("does nothing at all for a client who has not configured one", () => {
+    expect(tagVisibleContactIds(tagged, null).size).toBe(0);
+    expect(tagVisibleContactIds(tagged, "  ").size).toBe(0);
+  });
+
+  it("only ever widens, never narrows", () => {
+    const gated = new Set(["z"]);
+    expect([...(widenWithTag(gated, new Set(["a"])) as Set<string>)].sort()).toEqual(["a", "z"]);
+    expect(widenWithTag(gated, new Set())).toBe(gated);
+  });
+
+  // Null means the gate is off and everything shows. Widening everything is
+  // still everything, and turning it into a finite set here would ACCIDENTALLY
+  // gate an Inbox that was deliberately left open.
+  it("leaves an ungated inbox ungated", () => {
+    expect(widenWithTag(null, new Set(["a"]))).toBeNull();
   });
 });

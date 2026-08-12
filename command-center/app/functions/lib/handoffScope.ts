@@ -27,7 +27,7 @@
 // keeps seeing exactly what they see today. The alternative — hiding everything
 // — turns a config gap into an Inbox that reads as broken, which is how the
 // social-connect gate locked Willis out the day it deployed.
-import { ghlJson, type GhlContext } from "./ghl";
+import { fetchContact, ghlJson, type GhlContext } from "./ghl";
 
 export interface PipelineLike {
   id: string;
@@ -143,6 +143,60 @@ export function contactIsInScope(
   return (opportunities ?? []).some((o) => inScope(scope, o.pipelineId));
 }
 
+// ---------------------------------------------------------------------------
+// The tag widening (tenants.inbox_visible_tag, 0103).
+//
+// The rule above assumes WE work the leads and hand over the ones worth the
+// client's time. For a client who rings their own, nothing is ever handed off,
+// so the Inbox they are meant to reply from stays empty while their leads text
+// them. This lets those contacts in by tag instead, with no opportunity needed.
+//
+// Additive, never subtractive: it can only widen what the hand-off rule already
+// admits. Matched case-insensitively and by contains, so 'facebook ads',
+// 'Facebook Ad' and 'facebook ads - july' all resolve, the same looseness
+// adsRevenue.ts uses on the same tag for the same reason.
+
+export interface TaggedContactLike {
+  id?: string | null;
+  tags?: string[] | null;
+}
+
+export function contactCarriesTag(
+  contact: TaggedContactLike,
+  tag: string | null | undefined,
+): boolean {
+  const needle = (tag ?? "").trim().toLowerCase();
+  if (!needle) return false;
+  return (contact.tags ?? []).some((t) => String(t ?? "").toLowerCase().includes(needle));
+}
+
+// Every contact carrying the tag. Empty set when the tenant has not configured
+// one, which leaves the gate exactly as it was.
+export function tagVisibleContactIds(
+  contacts: TaggedContactLike[],
+  tag: string | null | undefined,
+): Set<string> {
+  const ids = new Set<string>();
+  if (!(tag ?? "").trim()) return ids;
+  for (const c of contacts ?? []) {
+    if (c?.id && contactCarriesTag(c, tag)) ids.add(c.id);
+  }
+  return ids;
+}
+
+// Union of the two rules, or null when the gate is off entirely (null means
+// "show everything", and widening everything is still everything).
+export function widenWithTag(
+  gated: Set<string> | null,
+  tagged: Set<string>,
+): Set<string> | null {
+  if (!gated) return null;
+  if (tagged.size === 0) return gated;
+  const out = new Set(gated);
+  for (const id of tagged) out.add(id);
+  return out;
+}
+
 export async function fetchPipelines(ctx: GhlContext): Promise<PipelineLike[]> {
   const data = await ghlJson<PipelinesResponse>(
     ctx,
@@ -189,6 +243,9 @@ export async function isClientVisibleContact(
   ctx: GhlContext,
   overridePipelineId: string | null | undefined,
   contactId: string,
+  // tenants.inbox_visible_tag (0103). Checked only when the pipeline rule says
+  // no, so the common case still costs the same two calls it always did.
+  visibleTag?: string | null,
 ): Promise<boolean> {
   try {
     const [pipelines, opportunities] = await Promise.all([
@@ -197,7 +254,16 @@ export async function isClientVisibleContact(
     ]);
     const scope = resolveClientInboxScope(pipelines, overridePipelineId);
     if (!scope) return true;
-    return contactIsInScope(scope, opportunities);
+    if (contactIsInScope(scope, opportunities)) return true;
+
+    // The list endpoint widened by tag, so the thread behind a widened row has
+    // to open. Without this a client would see a conversation in their Inbox
+    // and get a 403 when they tapped it.
+    if ((visibleTag ?? "").trim()) {
+      const contact = await fetchContact(ctx, contactId);
+      if (contact && contactCarriesTag(contact, visibleTag)) return true;
+    }
+    return false;
   } catch {
     return true;
   }

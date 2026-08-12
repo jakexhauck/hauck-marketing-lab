@@ -4,8 +4,9 @@ import PageBar from "../../components/PageBar";
 import LeadTrackerTable from "../../components/ads/tracker/LeadTrackerTable";
 import { PAID_ADS_CONTAINER } from "./shared";
 import { useAuth } from "../../context/AuthContext";
-import { useAdsTrackerQuery } from "../../hooks/useApi";
+import { useAdsTrackerQuery, useMarkLead } from "../../hooks/useApi";
 import type { AdTrackerRange, LeadTrackerLead } from "../../lib/api";
+import type { LeadMarking } from "../../components/ads/tracker/LeadTrackerTable";
 import {
   ErrorNote,
   LeadSearch,
@@ -40,6 +41,18 @@ export default function AdsLeadTracker() {
   const visible = useMemo(() => filterLeads(leads, search), [leads, search]);
   const data = query.data;
 
+  // Businesses that work their own leads mark them here; for everyone else the
+  // status follows the pipeline and the table stays read-only. The server
+  // decides which, per tenant, and says so on the payload.
+  const mark = useMarkLead();
+  const marking: LeadMarking | undefined =
+    data?.statusMode === "manual" && !usingSample
+      ? {
+          onStatus: (contactId, status) => mark.mutate({ contactId, status }),
+          onJobValue: (contactId, jobValue) => mark.mutate({ contactId, jobValue }),
+        }
+      : undefined;
+
   return (
     <Shell>
       <div className={PAID_ADS_CONTAINER}>
@@ -59,6 +72,7 @@ export default function AdsLeadTracker() {
         ) : (
           <LeadTrackerTable
             leads={visible}
+            marking={marking}
             sampleNotice={usingSample}
             emptyLabel={
               search.trim() ? "No leads match your search." : "No leads in this range yet."

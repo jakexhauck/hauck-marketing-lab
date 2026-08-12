@@ -142,6 +142,69 @@ export function statusForStage(stageName: string): ClientLeadStatus {
   return "new";
 }
 
+// ---------------------------------------------------------------------------
+// The MANUAL model: the status a client types, on a tenant with
+// tenants.manual_lead_status set. See docs/build-plans/willis-manual-lead-status.md.
+//
+// Eight labels, not the twelve above, and deliberately not a subset of them.
+// Six of the twelve describe the AGENCY's dialling cadence (Phone Follow Up,
+// Phone Appt Booked, Phone Appt Confirmed, Handed Off, Long Term Nurture) and
+// mean nothing to an owner working their own list: they would be asked to
+// classify their own phone call using our internal vocabulary.
+//
+// The two models coexist on purpose. Every client whose leads we work keeps the
+// derived twelve, which is more precise precisely because nobody types it.
+
+export type ManualLeadStatus =
+  | "new"
+  | "contacted"
+  | "no_answer"
+  | "follow_up"
+  | "appointment_booked"
+  | "quoted"
+  | "won"
+  | "lost";
+
+// Working order, roughly earliest to latest. This is the order of the dropdown,
+// so it is the order the owner reads under time pressure: the two they reach
+// for most on a fresh lead sit at the top.
+export const MANUAL_STATUS_ORDER: ManualLeadStatus[] = [
+  "new",
+  "contacted",
+  "no_answer",
+  "follow_up",
+  "appointment_booked",
+  "quoted",
+  "won",
+  "lost",
+];
+
+export const MANUAL_STATUS_LABEL: Record<ManualLeadStatus, string> = {
+  new: "New Lead",
+  contacted: "Contacted",
+  no_answer: "No Answer",
+  follow_up: "Follow Up",
+  appointment_booked: "Appointment Booked",
+  quoted: "Quoted",
+  won: "Won",
+  lost: "Lost",
+};
+
+const MANUAL_SET = new Set<string>(MANUAL_STATUS_ORDER);
+
+export function isManualLeadStatus(value: unknown): value is ManualLeadStatus {
+  return typeof value === "string" && MANUAL_SET.has(value);
+}
+
+// A lead nobody has touched. The absence of a stored row is the normal state,
+// not a missing value, which is what makes the switch safe to flip with no
+// backfill: every existing contact reads New until somebody says otherwise.
+export const MANUAL_STATUS_DEFAULT: ManualLeadStatus = "new";
+
+export function manualStatusOrDefault(stored: unknown): ManualLeadStatus {
+  return isManualLeadStatus(stored) ? stored : MANUAL_STATUS_DEFAULT;
+}
+
 // One contact can hold opportunities in several pipelines at once (the Sales
 // card that won them outlives the Lead Form card that found them). The furthest
 // along one is the truth.

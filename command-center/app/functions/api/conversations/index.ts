@@ -17,6 +17,8 @@ import { makeInternalConversationFilter } from "../../lib/internalRecipients";
 import {
   resolveClientInboxScope,
   buildVisibleContactIds,
+  tagVisibleContactIds,
+  widenWithTag,
   type ClientInboxScope,
 } from "../../lib/handoffScope";
 
@@ -176,12 +178,25 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // the narrower hand-off-only set that decides the `inbox` flag below, so a
   // review request never lands in the Inbox just because Reviews > Chats needs
   // it in the payload. Both null => gate off, and every conversation is both.
-  const visibleContacts =
-    scope && gateOpps ? buildVisibleContactIds(scope, gateOpps) : null;
-  const inboxContacts =
+  //
+  // Then widened by tag (0103): a client who works their own leads hands
+  // nothing off, so the pipeline rule alone would leave their Inbox empty while
+  // their leads are texting them. Widens both sets, because a lead they are
+  // meant to be replying to belongs in the Inbox, not merely in the payload.
+  const taggedContacts = tagVisibleContactIds(
+    contacts as { id?: string | null; tags?: string[] | null }[],
+    t.inbox_visible_tag,
+  );
+  const visibleContacts = widenWithTag(
+    scope && gateOpps ? buildVisibleContactIds(scope, gateOpps) : null,
+    taggedContacts,
+  );
+  const inboxContacts = widenWithTag(
     scope && gateOpps
       ? buildVisibleContactIds({ ...scope, reviewsPipelineId: null }, gateOpps)
-      : null;
+      : null,
+    taggedContacts,
+  );
 
   const items = all
     .filter((c) => Boolean(c.contactId))

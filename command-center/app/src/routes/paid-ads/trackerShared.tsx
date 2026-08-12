@@ -40,6 +40,14 @@ export const STATUS_META: Record<LeadTrackerStatus, { label: string; chip: strin
   job_booked: { label: "Job Booked", chip: "bg-brand/20 text-brand" },
   won: { label: "Won", chip: "bg-positive-tint text-positive" },
   lost: { label: "Lost", chip: "bg-danger-tint text-danger" },
+
+  // The manual eight (0102). Four of them (new, contacted, follow_up, won,
+  // lost) are spelled the same as the derived ones above and share their
+  // colour, which is the point: a client who has seen one tracker reads the
+  // other without relearning it.
+  no_answer: { label: "No Answer", chip: "bg-surface-2 text-muted" },
+  appointment_booked: { label: "Appointment Booked", chip: "bg-brand/20 text-brand" },
+  quoted: { label: "Quoted", chip: "bg-info-tint text-info" },
 };
 
 export function pct(value: number | null): string {

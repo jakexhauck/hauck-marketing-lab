@@ -32,7 +32,11 @@ export interface CapabilityDef {
 
 export const CAPABILITIES: CapabilityDef[] = [
   { key: "overview", label: "Overview", hasEdit: false },
-  { key: "paid_ads", label: "Paid Ads", hasEdit: false },
+  // hasEdit since 0102: on a client who types their own lead status, the Paid
+  // Ads tracker is a surface staff can WRITE to (the status, and the value of a
+  // closed job), so "can see the numbers" and "can mark my leads" became two
+  // different grants.
+  { key: "paid_ads", label: "Paid Ads", hasEdit: true },
   { key: "pipeline", label: "Pipeline", hasEdit: true },
   { key: "inbox", label: "Inbox", hasEdit: true },
   { key: "contacts", label: "Contacts", hasEdit: true },
@@ -76,6 +80,10 @@ const RULES: PermRule[] = [
   { pattern: /^\/api\/leads\/[^/]+\/?$/, methods: ["GET"], any: [need("pipeline", "view")] },
   { pattern: /^\/api\/leads\/?$/, methods: ["POST"], any: [need("pipeline", "edit")] },
   { pattern: /^\/api\/leads\/?$/, methods: ["GET"], any: [need("pipeline", "view")] },
+
+  // Paid Ads. Only the tracker write is gated: every ads read stays open to any
+  // authenticated caller, as it was before this rule existed.
+  { pattern: /^\/api\/ads\/leads\/[^/]+\/?$/, methods: ["PATCH"], any: [need("paid_ads", "edit")] },
 
   // Shared lookups used by multiple surfaces
   { pattern: /^\/api\/pipelines\/?$/, any: [need("overview", "view"), need("pipeline", "view")] },

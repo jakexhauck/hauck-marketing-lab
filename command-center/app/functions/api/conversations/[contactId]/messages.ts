@@ -28,7 +28,7 @@ export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (
   // the location one hand-typed URL away. Same 404 as above, for the same
   // reason: a thread they were never handed must not read as an empty one.
   if (
-    !(await isClientVisibleContact(gctx, t.client_inbox_pipeline_id, contactId))
+    !(await isClientVisibleContact(gctx, t.client_inbox_pipeline_id, contactId, t.inbox_visible_tag))
   ) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
