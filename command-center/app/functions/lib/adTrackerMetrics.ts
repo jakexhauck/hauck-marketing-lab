@@ -245,6 +245,11 @@ export interface TrackerKpis {
   roas: number | null;
 }
 
+// The id of the aggregate row that carries spend the live-campaign scope
+// excluded. Not a Meta id, and deliberately not one shape a Meta id could take,
+// so the UI can spot the row and suppress the "ID" column for it.
+export const OTHER_ID = "__other__";
+
 export interface BreakdownRow {
   id: string;
   name: string;
@@ -442,11 +447,32 @@ export function breakdown(
     }
   }
 
+  // Everything the live-campaign scope excludes, folded into one row rather
+  // than dropped. Dropping it made the page contradict itself: Willis Windows
+  // read "Ad Spend $743.27" in Results and $134.28 across every breakdown row
+  // beneath it, with nothing on screen to explain the missing $609 spent on a
+  // campaign that has since been switched off. One aggregate row reconciles the
+  // two without bringing back the museum of dead creatives the scope exists to
+  // hide. Created lazily: no out-of-scope spend, no row.
+  const otherName =
+    level === "campaign" ? "Other campaigns" : level === "adset" ? "Other ad sets" : "Other ads";
+  const other = (): BreakdownRow => {
+    let row = rows.get(OTHER_ID);
+    if (!row) {
+      row = blank(OTHER_ID, otherName);
+      rows.set(OTHER_ID, row);
+    }
+    return row;
+  };
+
   for (const row of spendRows.filter((r) => inRange(r.date, start))) {
     const { id, name } = groupOf(row, level);
     if (!id) continue;
     adToGroup.set(row.adId, id);
-    if (inScope && !inScope.has(id)) continue;
+    if (inScope && !inScope.has(id)) {
+      other().spend += row.spend;
+      continue;
+    }
 
     const existing = rows.get(id);
     if (existing) {
@@ -469,8 +495,13 @@ export function breakdown(
   for (const lead of leads) {
     if (!lead.adId || !inRange(lead.createdAt, start)) continue;
     const groupId = adToGroup.get(lead.adId);
+    // An ad we have never seen spend for at all: it cannot be placed in the
+    // hierarchy, so it stays out of the breakdown and the caller reports it as
+    // unattributed instead.
     if (!groupId) continue;
-    const row = rows.get(groupId);
+    // A lead belonging to a group the scope excluded rides along with that
+    // group's spend, so cost per lead on the "Other" row means something.
+    const row = rows.get(groupId) ?? (inScope && !inScope.has(groupId) ? other() : undefined);
     if (!row) continue;
 
     row.leads += 1;
@@ -488,8 +519,11 @@ export function breakdown(
   }
 
   // Live first, then by spend. What is running today is the thing worth looking
-  // at; among the rest, the biggest spender is.
+  // at; among the rest, the biggest spender is. The reconciling "Other" row is
+  // pinned last whatever it spent: it exists so the column adds up, and a dead
+  // campaign that outspent the live one must not be the first thing read.
   return [...rows.values()].sort((a, b) => {
+    if ((a.id === OTHER_ID) !== (b.id === OTHER_ID)) return a.id === OTHER_ID ? 1 : -1;
     if (a.live !== b.live) return a.live ? -1 : 1;
     return b.spend - a.spend;
   });

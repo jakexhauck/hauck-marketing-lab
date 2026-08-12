@@ -11,6 +11,7 @@ import {
   ratio,
   trackerPipelineRole,
   liveCampaignIds,
+  OTHER_ID,
   type BreakdownEntity,
   type BreakdownLevel,
   type TrackerLead,
@@ -598,11 +599,42 @@ function adSpend(adId: string, spend: number): TrackerSpendRow {
 describe("breakdown scoped to the live campaign", () => {
   const spend = [adSpend("a1", 80), adSpend("a2", 20), adSpend("a9", 500)];
 
-  it("drops rows outside the live campaign", () => {
+  it("names no ad outside the live campaign, but keeps its spend in one row", () => {
     const rows = breakdown([], spend, "ad", null, ENTITIES);
-    expect(rows.map((r) => r.id).sort()).toEqual(["a1", "a2", "a3"]);
-    // The paused campaign's ad spent the most, and is still gone.
+    expect(rows.map((r) => r.id).sort()).toEqual(["__other__", "a1", "a2", "a3"]);
+    // The paused campaign's ad is still not named or listed...
     expect(rows.find((r) => r.id === "a9")).toBeUndefined();
+    // ...but the $500 it burned is not swept off the page either. Dropping it
+    // outright is what made Results and the breakdown disagree by $609 on
+    // Willis Windows with nothing on screen to say why.
+    expect(rows.find((r) => r.id === OTHER_ID)).toMatchObject({
+      spend: 500,
+      name: "Other ads",
+      live: false,
+    });
+  });
+
+  it("adds up to the same spend the Results block reports", () => {
+    // The property that matters: the two blocks sit on one screen, so the
+    // column has to reconcile with the total above it for every level.
+    for (const level of ["campaign", "adset", "ad"] as BreakdownLevel[]) {
+      const rows = breakdown([], spend, level, null, ENTITIES);
+      const summed = rows.reduce((n, r) => n + r.spend, 0);
+      expect(summed).toBe(rollup([], spend).spend);
+    }
+  });
+
+  it("pins the reconciling row last even when it outspent everything", () => {
+    const rows = breakdown([], spend, "ad", null, ENTITIES);
+    // a9's campaign spent 500 against the live campaign's 100. The row exists
+    // so the column adds up, not to be the first thing the client reads.
+    expect(rows[rows.length - 1].id).toBe(OTHER_ID);
+    expect(rows[0].id).toBe("a1");
+  });
+
+  it("creates no reconciling row when the scope excluded nothing", () => {
+    const rows = breakdown([], [adSpend("a1", 80), adSpend("a2", 20)], "ad", null, ENTITIES);
+    expect(rows.find((r) => r.id === OTHER_ID)).toBeUndefined();
   });
 
   it("lists an ad that has never run, at zero", () => {
@@ -623,8 +655,18 @@ describe("breakdown scoped to the live campaign", () => {
 
   it("scopes the campaign level to the live campaign itself", () => {
     const rows = breakdown([], spend, "campaign", null, ENTITIES);
-    expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ id: "live1", live: true });
+    // The paused campaign is not named; its spend rides in the reconciling row.
+    expect(rows.find((r) => r.id === "old1")).toBeUndefined();
+    // Every spend row in this fixture carries campaignId "camp1", which is
+    // neither entity, so at campaign level the live row is a seeded zero and
+    // all 600 reconciles through the aggregate. The point being pinned is that
+    // none of it goes missing, whichever campaign the spend belongs to.
+    expect(rows.find((r) => r.id === OTHER_ID)).toMatchObject({
+      spend: 600,
+      name: "Other campaigns",
+    });
+    expect(rows.reduce((n, r) => n + r.spend, 0)).toBe(rollup([], spend).spend);
   });
 
   it("shows everything when no campaign is live", () => {
@@ -641,7 +683,7 @@ describe("breakdown scoped to the live campaign", () => {
     expect(rows.map((r) => r.id).sort()).toEqual(["a1", "a2", "a9"]);
   });
 
-  it("counts leads only for the ads it kept", () => {
+  it("sends an excluded ad's leads to the reconciling row, not nowhere", () => {
     const rows = breakdown(
       [...leads(3, "a1", "booking"), ...leads(5, "a9", "booking")],
       spend,
@@ -651,6 +693,13 @@ describe("breakdown scoped to the live campaign", () => {
     );
     expect(rows.find((r) => r.id === "a1")!.leads).toBe(3);
     expect(rows.find((r) => r.id === "a9")).toBeUndefined();
+    // The leads travel with the spend that bought them, so the row's cost per
+    // lead is a real figure rather than 500 divided by nothing.
+    const other = rows.find((r) => r.id === OTHER_ID)!;
+    expect(other).toMatchObject({ leads: 5, bookings: 5, spend: 500 });
+    expect(other.costPerLead).toBe(100);
+    // And the lead column reconciles with Results the way spend does.
+    expect(rows.reduce((n, r) => n + r.leads, 0)).toBe(8);
   });
 });
 

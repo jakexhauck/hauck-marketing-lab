@@ -1,8 +1,9 @@
-import type {
-  AdTrackerBreakdownRow,
-  AdTrackerLevel,
-  AdTrackerRange,
-  AdTrackerResponse,
+import {
+  AD_TRACKER_OTHER_ID,
+  type AdTrackerBreakdownRow,
+  type AdTrackerLevel,
+  type AdTrackerRange,
+  type AdTrackerResponse,
 } from "../../../lib/api";
 import {
   LEVELS,
@@ -424,7 +425,12 @@ export default function DashboardSheet({
                       <span className="truncate">{r.name || "-"}</span>
                     </span>
                   </td>
-                  <td className={`${TD} text-faint`}>{r.id}</td>
+                  {/* The reconciling row is not a Meta entity, so it has no id
+                      to print. A machine id under "Other campaigns" would read
+                      as a real campaign the client could go and look up. */}
+                  <td className={`${TD} text-faint`}>
+                    {r.id === AD_TRACKER_OTHER_ID ? "-" : r.id}
+                  </td>
                   <td className={TD}>{money0(r.spend)}</td>
                   <td className={TD}>{r.leads}</td>
                   <td className={TD}>{r.bookings}</td>
@@ -439,6 +445,18 @@ export default function DashboardSheet({
           </table>
         </div>
         </>
+      )}
+
+      {/* Leads in range carrying no ad. The breakdown is the attributed subset,
+          so without this the client reads a Leads figure in Results and a
+          smaller one below it with nothing to explain the difference. The admin
+          cockpit has always said this; the client's own sheet did not. */}
+      {data.unattributed > 0 && (
+        <p className="mt-3 shrink-0 text-[12px] text-faint">
+          {data.unattributed} lead{data.unattributed === 1 ? "" : "s"} in this range did not come
+          from an ad, so {data.unattributed === 1 ? "it is" : "they are"} counted in Results but not
+          in the breakdown.
+        </p>
       )}
     </>
   );

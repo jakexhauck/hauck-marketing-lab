@@ -76,19 +76,25 @@ export async function buildTrackerResponse(input: TrackerResponseInput) {
 
   const data = await loadTrackerData(gctx, client, tenantId, internalRecipients);
 
-  const kpis = rollup(data.leads, data.spendRows, start);
-  const rows = breakdown(data.leads, data.spendRows, level, start, data.entities);
+  // Drop staff contacts ONCE, before anything counts them. This filter used to
+  // sit only on the lead rows below, so Willis Windows showed "Leads 35" in
+  // Results above a table listing 34: a client who counts the rows got a
+  // different answer from the tile telling them how many they had. The KPI row,
+  // the breakdown and the table all have to be computed from the same leads.
+  const leads = data.leads.filter((l) => !data.isInternal({ contactId: l.contactId }));
+
+  const kpis = rollup(leads, data.spendRows, start);
+  const rows = breakdown(leads, data.spendRows, level, start, data.entities);
 
   // Leads inside the window that carry no ad id. Surfaced so the KPI row and
   // the breakdown never look like they disagree: the breakdown is always the
   // attributed subset.
-  const unattributed = data.leads.filter(
+  const unattributed = leads.filter(
     (l) => !l.adId && (!start || l.createdAt.slice(0, 10) >= start),
   ).length;
 
-  const baseRows = data.leads
+  const baseRows = leads
     .filter((l) => !start || l.createdAt.slice(0, 10) >= start)
-    .filter((l) => !data.isInternal({ contactId: l.contactId }))
     .map((l) => {
       const c = data.contactById.get(l.contactId);
       const att = data.attributionByContact.get(l.contactId) ?? null;
