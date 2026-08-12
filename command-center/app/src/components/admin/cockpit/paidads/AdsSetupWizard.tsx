@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, KeyRound, Loader2 } from "lucide-react";
 import SetupWizard from "./SetupWizard";
 import AdAccountPicker from "../../AdAccountPicker";
 import { Button } from "../../../ui/Button";
@@ -100,9 +100,63 @@ export default function AdsSetupWizard({
               </span>
             </div>
           )}
+
+          {/* The token step, still reachable once it is done. A working token
+              hides step one entirely, which is right until the day the token is
+              the problem: permissions change and a System User token dies where
+              it stands, and the symptom is an account list that has quietly
+              gone short. Replacing it should not mean leaving Paid Ads for the
+              Settings page. */}
+          <TokenFooter onConnected={() => void accounts.refetch()} />
         </>
       )}
     </SetupWizard>
+  );
+}
+
+// The saved token, and the way to swap it, under the picker rather than in
+// front of it: the common visit is picking an account, not rotating a
+// credential.
+function TokenFooter({ onConnected }: { onConnected: () => void }) {
+  const secrets = useAgencySecrets();
+  const [open, setOpen] = useState(false);
+
+  const row = secrets.data?.rows.find((r) => r.name === "META_SYSTEM_USER_TOKEN");
+  const masked = row?.masked ?? null;
+
+  return (
+    <div className="mt-5 border-t border-border pt-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="inline-flex items-center gap-1.5 text-[12.5px] text-muted">
+          <KeyRound size={13} aria-hidden />
+          Agency Meta token
+          {masked && <span className="font-mono text-faint">{masked}</span>}
+        </span>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="text-[12.5px] font-medium text-muted underline decoration-dotted underline-offset-4 hover:text-text"
+        >
+          {open ? "Cancel" : "Paste a new one"}
+        </button>
+        {row?.drift === true && (
+          <span className="text-[12px] text-warning">
+            Doppler and the running app disagree. Pressing Connect settles it.
+          </span>
+        )}
+      </div>
+      {open && (
+        <div className="mt-3">
+          <TokenStep
+            error={null}
+            onConnected={() => {
+              setOpen(false);
+              onConnected();
+            }}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
