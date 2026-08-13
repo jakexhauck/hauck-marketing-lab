@@ -2,7 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("./supabase", () => ({ getServiceClient: () => (supabaseUp ? fakeClient() : null) }));
 vi.mock("@block65/webcrypto-web-push", () => ({
-  buildPushPayload: () => Promise.resolve({ method: "POST", headers: {}, body: "" }),
+  buildPushPayload: (msg: { data: string }) => {
+    sentPayloads.push(JSON.parse(msg.data));
+    return Promise.resolve({ method: "POST", headers: {}, body: "" });
+  },
+}));
+vi.mock("./ghl", () => ({
+  ghlJson: () => {
+    if (ghlThrows) return Promise.reject(new Error("ghl down"));
+    return Promise.resolve({ conversations });
+  },
 }));
 
 import { sendPushForActivity, type PushActivity } from "./push";
@@ -14,6 +23,9 @@ let tenantRow: Record<string, unknown> | null = null;
 let pushedTo: string[] = [];
 let deletedSubIds: number[] = [];
 let pushStatus = 201;
+let sentPayloads: { title: string; body: string; url: string }[] = [];
+let conversations: Record<string, unknown>[] = [];
+let ghlThrows = false;
 
 const env = {
   VAPID_PUBLIC_KEY: "pub",
@@ -75,10 +87,18 @@ function sub(id: number, ghlUserId: string | null = null) {
 beforeEach(() => {
   supabaseUp = true;
   subscriptions = [sub(1)];
-  tenantRow = { notify_audience: "everyone", notify_push_enabled: true };
+  tenantRow = {
+    notify_audience: "everyone",
+    notify_push_enabled: true,
+    ghl_token: "tok",
+    ghl_location_id: "loc1",
+  };
   pushedTo = [];
   deletedSubIds = [];
   pushStatus = 201;
+  sentPayloads = [];
+  conversations = [];
+  ghlThrows = false;
   globalThis.fetch = vi.fn((url: unknown) => {
     pushedTo.push(String(url));
     return Promise.resolve({ status: pushStatus } as Response);
@@ -145,5 +165,91 @@ describe("sendPushForActivity", () => {
     supabaseUp = false;
     await sendPushForActivity(env, "t1", activity);
     expect(pushedTo).toEqual([]);
+  });
+});
+
+// The InboundMessage webhook carries only type, contactId and locationId, so
+// the sender and their words are looked up. Without this the owner reads
+// "New message" and has to open the app to learn whether it mattered.
+describe("inbound message notifications", () => {
+  const message = {
+    kind: "message_in",
+    summary: "Inbound message",
+    opportunity_id: null,
+    contact_id: "c1",
+    assigned_user_id: null,
+  } as PushActivity;
+
+  it("says who wrote and what they said", async () => {
+    conversations = [
+      {
+        contactId: "c1",
+        fullName: "Donna Hoffmann",
+        lastMessageBody: "Can you come Tuesday?",
+        lastMessageDirection: "inbound",
+      },
+    ];
+    await sendPushForActivity(env, "t1", message);
+    expect(sentPayloads[0].title).toBe("New message");
+    expect(sentPayloads[0].body).toBe("Donna Hoffmann: Can you come Tuesday?");
+  });
+
+  // An instant auto-reply overtakes the lead's text on the thread. Quoting our
+  // own automation back at the owner is worse than saying nothing.
+  it("gives the name only when an auto-reply has overtaken the thread", async () => {
+    conversations = [
+      {
+        contactId: "c1",
+        fullName: "Donna Hoffmann",
+        lastMessageBody: "It's the team at Willis Windows!",
+        lastMessageDirection: "outbound",
+      },
+    ];
+    await sendPushForActivity(env, "t1", message);
+    expect(sentPayloads[0].body).toBe("Donna Hoffmann");
+  });
+
+  it("falls back to the bare summary when GHL is unreachable", async () => {
+    ghlThrows = true;
+    await sendPushForActivity(env, "t1", message);
+    expect(pushedTo).toHaveLength(1);
+    expect(sentPayloads[0].body).toBe("Inbound message");
+  });
+
+  it("still notifies when the contact has no conversation", async () => {
+    conversations = [];
+    await sendPushForActivity(env, "t1", message);
+    expect(sentPayloads[0].body).toBe("Inbound message");
+  });
+
+  it("picks the conversation belonging to this contact", async () => {
+    conversations = [
+      { contactId: "other", fullName: "Someone Else", lastMessageBody: "nope", lastMessageDirection: "inbound" },
+      { contactId: "c1", fullName: "Donna Hoffmann", lastMessageBody: "yes", lastMessageDirection: "inbound" },
+    ];
+    await sendPushForActivity(env, "t1", message);
+    expect(sentPayloads[0].body).toBe("Donna Hoffmann: yes");
+  });
+
+  it("truncates a long message rather than filling the lock screen", async () => {
+    conversations = [
+      { contactId: "c1", lastMessageBody: "x".repeat(300), lastMessageDirection: "inbound" },
+    ];
+    await sendPushForActivity(env, "t1", message);
+    expect(sentPayloads[0].body).toHaveLength(140);
+    expect(sentPayloads[0].body.endsWith("...")).toBe(true);
+  });
+
+  it("does not spend a GHL call on a new lead", async () => {
+    conversations = [
+      { contactId: "c1", fullName: "Donna", lastMessageBody: "hi", lastMessageDirection: "inbound" },
+    ];
+    await sendPushForActivity(env, "t1", activity);
+    expect(sentPayloads[0].body).toBe("Jane Doe wants a quote");
+  });
+
+  it("deep-links to the conversation when there is no opportunity", async () => {
+    await sendPushForActivity(env, "t1", message);
+    expect(sentPayloads[0].url).toBe("/conversations/c1");
   });
 });

@@ -68,6 +68,61 @@ function mk(
   };
 }
 
+// A lock-screen-worthy line for an inbound message. A bare "Inbound message"
+// told the owner nothing: they had to open the app to find out whether it was
+// worth stopping for. Prefer the actual text, fall back to the sender's name,
+// and only then to a bare label.
+//
+// Both parts are best effort. GHL puts them under different keys on the
+// workflow payloads Jake hand-builds and on the Marketplace app payloads, and
+// neither guarantees a name, so every shape we have seen is checked and
+// whatever is missing simply drops out of the line.
+const MESSAGE_PREVIEW_MAX = 140;
+
+function str(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function nested(e: GhlWebhookEvent, key: string): Record<string, unknown> {
+  const value = e[key];
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function senderName(e: GhlWebhookEvent): string {
+  const contact = nested(e, "contact");
+  const full =
+    str(e.full_name) ||
+    str(e.fullName) ||
+    str(contact.name) ||
+    str(contact.fullName);
+  if (full) return full;
+  const first = str(e.first_name) || str(e.firstName) || str(contact.firstName);
+  const last = str(e.last_name) || str(e.lastName) || str(contact.lastName);
+  return [first, last].filter(Boolean).join(" ");
+}
+
+function messageText(e: GhlWebhookEvent): string {
+  const message = nested(e, "message");
+  const raw =
+    str(e.body) || str(e.message) || str(message.body) || str(e.messageBody);
+  // Collapse whitespace: a notification renders on one line, so a multi-line
+  // reply or a pasted address would otherwise arrive as a run-on jumble.
+  const text = raw.replace(/\s+/g, " ").trim();
+  // The ellipsis counts toward the cap, so the line never exceeds it.
+  return text.length > MESSAGE_PREVIEW_MAX
+    ? `${text.slice(0, MESSAGE_PREVIEW_MAX - 3).trimEnd()}...`
+    : text;
+}
+
+export function inboundMessageSummary(e: GhlWebhookEvent): string {
+  const name = senderName(e);
+  const text = messageText(e);
+  if (name && text) return `${name}: ${text}`;
+  return text || name || "Inbound message";
+}
+
 export function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | null {
   switch (e.type) {
     case "OpportunityCreate":
@@ -115,7 +170,7 @@ export function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | nul
       // wakes the client's inbox/leads views to refetch. A fuller in-app live
       // refresh (updating an open tab without a push) would need a Supabase
       // Realtime subscription on activity_log, which does not exist yet.
-      return mk("message_in", "Inbound message", tenantId, e);
+      return mk("message_in", inboundMessageSummary(e), tenantId, e);
     case "OutboundMessage":
       return mk("message_out", "Outbound message", tenantId, e);
     case "InboundCall":
@@ -135,15 +190,18 @@ export function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | nul
   }
 }
 
-// Kinds that wake the client's phone. Wins and new appointments matter as
-// much as new leads; routine updates and outbound traffic do not.
+// Kinds that wake the client's phone: work that has just arrived and needs a
+// human. Everything else stays in the feed without buzzing.
+//
+// Inbound calls and wins are deliberately NOT here. The phone is already
+// ringing for a call, so a push is a second alert for one event, and a win is
+// something the owner did rather than something waiting on them.
 export function shouldPush(activity: Activity): boolean {
-  if (activity.kind === "message_in" || activity.kind === "lead_created") {
-    return true;
-  }
-  if (activity.kind === "appointment_create") return true;
-  if (activity.kind === "call_inbound") return true;
-  return activity.kind === "status_changed" && activity.summary === "Lead won";
+  return (
+    activity.kind === "message_in" ||
+    activity.kind === "lead_created" ||
+    activity.kind === "appointment_create"
+  );
 }
 
 // ---------------------------------------------------------------------------
