@@ -19,19 +19,22 @@ export default function SetupWizard({
   title,
   intro,
   steps,
-  currentIndex,
+  currentIndex = 0,
   children,
 }: {
   title: string;
-  intro: string;
-  steps: WizardStepDef[];
+  /** Only when the title alone leaves the operator stuck. Default is none. */
+  intro?: string;
+  /** Omit to drop the step rail: the controls below already say where you are. */
+  steps?: WizardStepDef[];
   /** Zero-based. Steps before it read as done, after it as still to come. */
-  currentIndex: number;
+  currentIndex?: number;
   children: ReactNode;
 }) {
   return (
     <div className="mx-auto w-full max-w-3xl">
       <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)] sm:p-6">
+        {steps && steps.length > 0 && (
         <ol className="mb-5 flex flex-wrap items-center gap-x-2 gap-y-2">
           {steps.map((step, i) => {
             const done = i < currentIndex;
@@ -62,9 +65,12 @@ export default function SetupWizard({
             );
           })}
         </ol>
+        )}
 
         <h2 className="font-display text-[17px] font-semibold text-text">{title}</h2>
-        <p className="mt-1 max-w-prose text-[13px] leading-snug text-muted">{intro}</p>
+        {intro && (
+          <p className="mt-1 max-w-prose text-[13px] leading-snug text-muted">{intro}</p>
+        )}
 
         <div className="mt-5">{children}</div>
       </div>

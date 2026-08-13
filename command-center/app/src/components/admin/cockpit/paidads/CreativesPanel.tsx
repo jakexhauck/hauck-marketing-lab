@@ -58,7 +58,6 @@ export default function CreativesPanel({ tenantId }: { tenantId: string }) {
     return (
       <SetupWizard
         title="Point Creatives at a Drive folder"
-        intro="This client's ad creatives live in Google Drive. Choose the folder and every file in it shows here, and on the client's own Creatives page."
         steps={CREATIVES_STEPS}
         currentIndex={query.data?.connected === false ? 0 : 1}
       >

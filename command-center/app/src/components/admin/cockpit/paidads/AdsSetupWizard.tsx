@@ -22,12 +22,6 @@ import { useAdminMetaAdAccountsQuery, useSaveMetaToken } from "../../../../hooks
 //      is the normal case; a list only appears when there is genuinely a choice
 //      to make.
 
-const STEPS = [
-  { id: "token", label: "Token" },
-  { id: "account", label: "Account" },
-  { id: "done", label: "Ads flowing" },
-];
-
 export default function AdsSetupWizard({
   tenantId,
   clientName,
@@ -102,13 +96,6 @@ export default function AdsSetupWizard({
           ? `${clientName || "This client"} is connected`
           : `Connect ${clientName || "this client"}'s ads`
       }
-      intro={
-        linked
-          ? "Their Dashboard, Lead Tracker and Meta Data are reading live numbers now."
-          : "Paste the Meta token and press Connect. That is the whole job."
-      }
-      steps={STEPS}
-      currentIndex={!tokenOk ? 0 : linked ? 2 : 1}
     >
       <TokenConnect onConnected={() => void accounts.refetch()} />
 
