@@ -30,6 +30,18 @@ export interface AgencySecretsResponse {
   unclaimed: string[];
 }
 
+/**
+ * What GET /api/admin/meta/token answers: the agency Meta System User token as
+ * the app sees it. Never the value, only whether one exists, where it lives and
+ * enough tail to tell two apart.
+ */
+export interface MetaTokenState {
+  configured: boolean;
+  /** "env" when bound at deploy (and so not editable in the app), else "database". */
+  source: "env" | "database" | null;
+  masked: string | null;
+}
+
 export interface ClientSecretsResponse {
   tenantId: string;
   name: string;

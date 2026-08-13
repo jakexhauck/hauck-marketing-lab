@@ -4,6 +4,7 @@ import { logAdminAction } from "../../../lib/adminAuth";
 import { resolveAdAccount } from "../../../lib/metaGraph";
 import { buildAdDayUpserts, fetchAdDays } from "../../../lib/metaAdDays";
 import { buildEntityUpserts, fetchAdEntities } from "../../../lib/metaAdEntities";
+import { resolveMetaToken } from "../../../lib/metaToken";
 
 // Refresh the per-ad, per-day Meta spend snapshot that backs the Ad Tracker.
 // Replaces the Make scenario "AC: (Local Ads School) Client Meta Data Feed".
@@ -123,7 +124,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
 
-  const token = ctx.env.META_SYSTEM_USER_TOKEN;
+  const token = await resolveMetaToken(ctx.env);
   if (!token) return Response.json({ error: "meta not configured" }, { status: 503 });
 
   const url = new URL(ctx.request.url);

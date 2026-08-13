@@ -8,6 +8,7 @@ import {
   type AdsContext,
   type AdsInsightsResponse,
 } from "../../../../../lib/adsCore";
+import { resolveMetaToken } from "../../../../../lib/metaToken";
 
 // Admin-tenant mirror of GET /api/ads/insights for the Fulfillment cockpit
 // (Paid Ads > Campaigns/Data). The client endpoint resolves the tenant from the
@@ -27,7 +28,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const tenant = await loadTenantById(client, tenantId);
   if (!tenant) return Response.json({ error: "client not found" }, { status: 404 });
 
-  const token = ctx.env.META_SYSTEM_USER_TOKEN;
+  const token = await resolveMetaToken(ctx.env);
   // No env-account fallback on the admin surface. The client endpoints use
   // META_AD_ACCOUNT_ID as a single-tenant fallback, but the admin cockpit is
   // multi-tenant: falling back here would render the fallback account's real

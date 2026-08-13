@@ -6,6 +6,7 @@ import {
   type AdAccountsResponse,
   type LinkedTenant,
 } from "../../../lib/metaAdAccounts";
+import { resolveMetaToken } from "../../../lib/metaToken";
 
 // GET /api/admin/meta/ad-accounts?tenantId=...  (admin-only, gated upstream in
 // _middleware.ts; owners bypass the role allowlist, so no adminRoles rule is
@@ -24,7 +25,7 @@ const empty = (over: Partial<AdAccountsResponse>): Response =>
   Response.json({ configured: false, accounts: [], ...over } satisfies AdAccountsResponse);
 
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
-  const token = ctx.env.META_SYSTEM_USER_TOKEN;
+  const token = await resolveMetaToken(ctx.env);
   if (!token) {
     return empty({ error: "No agency Meta token is configured." });
   }

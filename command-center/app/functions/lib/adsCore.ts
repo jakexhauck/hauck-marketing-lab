@@ -2,6 +2,7 @@ import type { Env } from "./env";
 import type { GhlContext } from "./ghl";
 import { adRevenueThisMonth } from "./adsRevenue";
 import { graphGet } from "./metaGraph";
+import { resolveMetaToken } from "./metaToken";
 
 // Real Meta (Facebook/Instagram) Ads insights shaping, shared by the client
 // Paid Ads endpoint (functions/api/ads/insights.ts) and, in a later phase, the
@@ -301,7 +302,9 @@ export async function buildAdsInsights(
   env: Env,
   ctx: AdsContext,
 ): Promise<AdsInsightsResponse> {
-  const token = env.META_SYSTEM_USER_TOKEN as string;
+  // env first, then the agency_meta row (0106): a token pasted into the Paid
+  // Ads wizard is live on save, with no deploy.
+  const token = (await resolveMetaToken(env)) ?? "";
   const account = ctx.metaAccount;
 
   // Cache the whole payload per account+location+month. The month key rolls the

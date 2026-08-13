@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ChevronRight, ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, ExternalLink, Loader2 } from "lucide-react";
 import SetupWizard from "./SetupWizard";
 import { Button } from "../../../ui/Button";
 import { api } from "../../../../lib/api";
 import type { AdAccountOption } from "../../../../../functions/lib/metaAdAccounts";
 import {
   useAdminMetaAdAccountsQuery,
-  useAgencySecrets,
-  useApplyAgencySecrets,
-  useDeployStatus,
-  useSaveAgencySecret,
+  useMetaTokenQuery,
+  useSaveMetaToken,
 } from "../../../../hooks/useApi";
 
 // Paid Ads > Connect ads. Where the page opens for a client whose ad account is
@@ -129,7 +127,6 @@ export default function AdsSetupWizard({
           free={free}
           error={linkError}
           onPick={(id) => void attach(id)}
-          onRefresh={() => void accounts.refetch()}
           onFinished={onFinished}
         />
       )}
@@ -151,7 +148,6 @@ function AccountState({
   free,
   error,
   onPick,
-  onRefresh,
   onFinished,
 }: {
   clientName: string;
@@ -161,7 +157,6 @@ function AccountState({
   free: AdAccountOption[];
   error: string | null;
   onPick: (accountId: string) => void;
-  onRefresh: () => void;
   onFinished: (sub: string) => void;
 }) {
   if (linked) {
@@ -201,29 +196,11 @@ function AccountState({
     return <p className="mt-4 text-[12.5px] text-danger">{error}</p>;
   }
 
-  // Nothing to attach. Always an access problem in Meta, never something that
-  // can be fixed by clicking harder here, so it says what to go and do.
-  if (free.length === 0) {
-    return (
-      <div className="mt-4 rounded-[var(--radius)] border border-border bg-surface-2 px-3.5 py-3">
-        <p className="text-[13px] leading-snug text-text">
-          The token works, but it cannot see an ad account for {clientName || "this client"} yet.
-        </p>
-        <p className="mt-1 text-[12.5px] leading-snug text-muted">
-          In Business settings, open Ad accounts, pick theirs, then Assign partner or people and
-          choose the same system user. It appears here straight after.
-        </p>
-        <button
-          type="button"
-          onClick={onRefresh}
-          className="mt-2.5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-muted hover:text-text"
-        >
-          <RefreshCw size={12} aria-hidden />
-          Check again
-        </button>
-      </div>
-    );
-  }
+  // Nothing to attach. Says nothing: the token is in and the tick above is
+  // already the answer to what was asked. What is missing is a grant inside
+  // Meta, and a paragraph of Business Manager directions under a green tick
+  // reads as a failure when nothing has failed.
+  if (free.length === 0) return null;
 
   // The only case worth a question: several unclaimed accounts, and only a human
   // knows which one is this client's.
@@ -346,26 +323,28 @@ function Directions() {
   );
 }
 
-// Saving the token is not one move, which is why there is a bar rather than a
-// spinner. Doppler holds the value, Cloudflare binds environment variables at
-// DEPLOY time, and only the finished deployment makes the token real. The bar
-// is those three moves; the tick is the app actually answering with it.
-type Phase = "idle" | "saving" | "applying" | "deploying" | "done";
+// Two moves, both quick: prove the token against Meta, then store it. The bar
+// is there because a press with no visible answer feels broken, not because
+// this is slow.
+//
+// It used to be four moves through Doppler and a full redeploy, which could not
+// work at all: Cloudflare binds environment variables at deploy time, and this
+// deployment carries neither a Doppler write token nor a deploy token, so the
+// box could only ever apologise. The token now lands in the database (0106) and
+// is live on the next request.
+type Phase = "idle" | "checking" | "saving" | "done";
 
 const PROGRESS: Record<Phase, number> = {
   idle: 0,
-  saving: 20,
-  applying: 45,
-  // Where it sits for most of the wait. Honest: the deploy is the long part.
-  deploying: 80,
+  checking: 45,
+  saving: 80,
   done: 100,
 };
 
 const PHASE_TEXT: Record<Phase, string> = {
   idle: "",
-  saving: "Saving the token...",
-  applying: "Binding it into the app...",
-  deploying: "Restarting the app. This is the slow part, a minute or two.",
+  checking: "Checking it with Meta...",
+  saving: "Saving it...",
   done: "Connected.",
 };
 
@@ -379,59 +358,38 @@ function TokenConnect({
   error: string | null;
   onConnected: () => void;
 }) {
-  const secrets = useAgencySecrets();
-  const saveSecret = useSaveAgencySecret();
-  const apply = useApplyAgencySecrets();
+  const state = useMetaTokenQuery();
+  const saveToken = useSaveMetaToken();
 
   const [token, setToken] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [failure, setFailure] = useState<string | null>(null);
   // A working token collapses the field, because the common visit is not a
-  // credential rotation. It reopens on a click, unlike before, when it did not
-  // exist at all.
+  // credential rotation. It reopens on a click.
   const [replacing, setReplacing] = useState(false);
 
-  // Only while a deployment is in flight. Polling a finished one forever is a
-  // request every six seconds for nothing.
-  const deploy = useDeployStatus(phase === "deploying");
-  const state = deploy.data?.deployment?.state ?? null;
-
-  useEffect(() => {
-    if (phase !== "deploying") return;
-    if (state === "live") {
-      setPhase("done");
-      setReplacing(false);
-      // The new deployment carries the token, so ask Meta again. That answer is
-      // what turns the tick on, not this component's own optimism.
-      onConnected();
-    } else if (state === "failed") {
-      setPhase("idle");
-      setFailure("The restart failed. The token is saved; press Connect to try again.");
-    }
-  }, [phase, state, onConnected]);
-
-  const canEdit = secrets.data?.canEdit ?? false;
-  const masked = secrets.data?.rows.find((r) => r.name === "META_SYSTEM_USER_TOKEN")?.masked ?? null;
-  const busy = phase === "saving" || phase === "applying" || phase === "deploying";
+  const masked = state.data?.masked ?? null;
+  // A token bound at deploy is not this box's to replace: it would be saved and
+  // then ignored, since the env var wins. Say so rather than pretend.
+  const fromEnv = state.data?.source === "env";
+  const busy = phase === "checking" || phase === "saving";
 
   const connect = async () => {
     const value = token.trim();
     if (!value) return;
     setFailure(null);
+    setPhase("checking");
     try {
+      // The endpoint proves it against Meta before storing, so a bad token
+      // never becomes a saved token.
+      await saveToken.mutateAsync(value);
       setPhase("saving");
-      await saveSecret.mutateAsync({ name: "META_SYSTEM_USER_TOKEN", value });
       setToken("");
-      setPhase("applying");
-      const res = await apply.mutateAsync();
-      if (!res.deployment) {
-        setPhase("idle");
-        setFailure(
-          "Saved, but this console has no deploy token, so it cannot restart the app. The token goes live on the next deploy.",
-        );
-        return;
-      }
-      setPhase("deploying");
+      setPhase("done");
+      setReplacing(false);
+      // Ask Meta again through the app itself. That answer is what turns the
+      // tick on, not this component's own optimism.
+      onConnected();
     } catch (err) {
       setPhase("idle");
       setFailure(err instanceof Error ? err.message : "That did not save.");
@@ -464,10 +422,10 @@ function TokenConnect({
     <div>
       <h3 className="text-[14px] font-semibold text-text">1. Paste your Meta token</h3>
       <p className="mt-1 max-w-prose text-[12.5px] leading-snug text-muted">
-        One token covers every client. It is saved, wired in and made live in one press.
+        One token covers every client. Checked against Meta and live the moment it saves.
       </p>
 
-      {canEdit ? (
+      {!fromEnv ? (
         <>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <input
@@ -533,8 +491,8 @@ function TokenConnect({
         </>
       ) : (
         <p className="mt-3 rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2.5 text-[13px] text-text">
-          This console cannot save secrets (no Doppler write token), so the token has to go in by
-          hand.
+          This token is set in the deploy environment, which wins over anything pasted here. Change
+          it there, or clear it, and this box takes over.
         </p>
       )}
 

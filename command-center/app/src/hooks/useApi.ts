@@ -19,6 +19,7 @@ import type {
   ApplyResponse,
   ClientSecretsResponse,
   DeployStatusResponse,
+  MetaTokenState,
   GenerateResponse,
 } from "../lib/secretsApi";
 import type { CreateClientPayload } from "../lib/clientOnboarding";
@@ -1707,6 +1708,34 @@ export function useAdminWebsiteRequestsQuery(tenantId: string, enabled = true) {
       api<{ requests: AdminWebsiteRequest[]; unavailable?: boolean }>(
         `/api/admin/clients/${tenantId}/website/requests`,
       ),
+  });
+}
+
+// The agency Meta token: whether one is set, where it lives, and its tail
+// (GET /api/admin/meta/token). The value itself never leaves the server.
+export function useMetaTokenQuery() {
+  return useQuery({
+    queryKey: ["admin", "meta", "token"],
+    staleTime: 0,
+    queryFn: () => api<MetaTokenState>("/api/admin/meta/token"),
+  });
+}
+
+// Save a pasted token. The endpoint proves it against Meta first and refuses a
+// dead one, so a resolved mutation means it genuinely works. Live immediately:
+// it is stored in the database, not bound at deploy.
+export function useSaveMetaToken() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (token: string) =>
+      api<{ ok: true; accounts: number; masked: string | null }>("/api/admin/meta/token", {
+        method: "POST",
+        body: JSON.stringify({ token }),
+      }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "meta"] });
+      qc.invalidateQueries({ queryKey: ["admin", "connections", "health"] });
+    },
   });
 }
 

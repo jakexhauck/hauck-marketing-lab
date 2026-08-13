@@ -1,5 +1,6 @@
 import type { Env, ApiData } from "../../lib/env";
 import { FUNNEL_CAPI, originAllowedForFunnel, sendLeadEvent } from "../../lib/metaCapi";
+import { resolveMetaToken } from "../../lib/metaToken";
 
 // POST /api/capi/lead  -> reports one funnel conversion to Meta.
 //
@@ -39,7 +40,7 @@ async function readBody(request: Request): Promise<Record<string, string>> {
 }
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
-  const token = ctx.env.META_SYSTEM_USER_TOKEN;
+  const token = await resolveMetaToken(ctx.env);
   if (!token) return Response.json({ error: "meta not configured" }, { status: 503 });
 
   const body = await readBody(ctx.request);
