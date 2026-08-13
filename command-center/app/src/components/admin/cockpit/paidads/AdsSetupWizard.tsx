@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ChevronRight, ExternalLink } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import SetupWizard from "./SetupWizard";
-import AdAccountPicker from "../../AdAccountPicker";
 import { Button } from "../../../ui/Button";
+import { api } from "../../../../lib/api";
+import type { AdAccountOption } from "../../../../../functions/lib/metaAdAccounts";
 import {
   useAdminMetaAdAccountsQuery,
   useAgencySecrets,
@@ -22,15 +23,14 @@ import {
 //      watch the bar, get a tick.
 //   2. Which ad account belongs to THIS client. The token can see several, and
 //      picking the wrong one is the only mistake here with a victim: it would
-//      show one client another's spend under their own name. So it is a pick,
-//      never a guess, even when the token can see exactly one.
-//
-// Step one was previously hidden whenever the token already worked, which is
-// how it came to look like the step did not exist.
+//      show one client another's spend under their own name. Connect attaches
+//      it by itself when the token can see exactly one unclaimed account, which
+//      is the normal case; a list only appears when there is genuinely a choice
+//      to make.
 
 const STEPS = [
-  { id: "token", label: "Meta connected" },
-  { id: "account", label: "This client's account" },
+  { id: "token", label: "Token" },
+  { id: "account", label: "Account" },
   { id: "done", label: "Ads flowing" },
 ];
 
@@ -49,18 +49,55 @@ export default function AdsSetupWizard({
 }) {
   const accounts = useAdminMetaAdAccountsQuery(tenantId);
   const queryClient = useQueryClient();
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   // The token is proven, not assumed: "configured" comes back from the endpoint
   // that just tried to use it.
   const tokenOk = accounts.data?.configured === true;
   const linked = Boolean((currentAccountId ?? "").trim());
-  const currentIndex = !tokenOk ? 0 : linked ? 2 : 1;
 
-  // The roster is what the tab gate reads, so it has to hear about this before
-  // the hidden tabs can come back.
-  const refreshGate = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["admin", "clients"] });
-  };
+  // The accounts this client could be put on: everything the token can see that
+  // no OTHER client already holds.
+  const free = (accounts.data?.accounts ?? []).filter((a) => !a.linkedTenantName);
+
+  // Attaching the account is not a question worth asking when there is only one
+  // answer. One free account is the normal case (a client has one ad account),
+  // so Connect finishes the job rather than handing back a list of one.
+  const attach = useCallback(
+    async (accountId: string) => {
+      setLinking(true);
+      setLinkError(null);
+      try {
+        await api(`/api/admin/clients/${tenantId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ metaAdAccountId: accountId }),
+        });
+        // Pull the ads in now rather than at the nightly sync, so the pages this
+        // unlocks have something in them.
+        await api(`/api/admin/ads/sync?tenantId=${encodeURIComponent(tenantId)}&days=30`, {
+          method: "POST",
+        }).catch(() => undefined);
+        await queryClient.invalidateQueries({ queryKey: ["admin", "clients"] });
+        await accounts.refetch();
+      } catch (err) {
+        setLinkError(err instanceof Error ? err.message : "Could not attach that ad account.");
+      } finally {
+        setLinking(false);
+      }
+    },
+    [tenantId, queryClient, accounts],
+  );
+
+  // Fires once, silently, in the only case where there is nothing to decide.
+  const autoAccount = tokenOk && !linked && free.length === 1 ? free[0].id : null;
+  useEffect(() => {
+    if (!autoAccount || linking) return;
+    void attach(autoAccount);
+    // attach/linking deliberately excluded: this must fire on the account
+    // becoming unambiguous, not on every render while it is being attached.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAccount]);
 
   return (
     <SetupWizard
@@ -72,10 +109,10 @@ export default function AdsSetupWizard({
       intro={
         linked
           ? "Their Dashboard, Lead Tracker and Meta Data are reading live numbers now."
-          : "Two things: the agency Meta token, then which ad account is theirs. Both are below."
+          : "Paste the Meta token and press Connect. That is the whole job."
       }
       steps={STEPS}
-      currentIndex={currentIndex}
+      currentIndex={!tokenOk ? 0 : linked ? 2 : 1}
     >
       <TokenConnect
         connected={tokenOk}
@@ -83,41 +120,137 @@ export default function AdsSetupWizard({
         onConnected={() => void accounts.refetch()}
       />
 
-      {/* The second half stays out of the way until the first one is done:
-          an account list drawn without a working token is an empty box that
-          looks like an answer. */}
       {tokenOk && (
-        <div className="mt-6 border-t border-border pt-5">
-          <h3 className="text-[14px] font-semibold text-text">
-            2. Which ad account is {clientName || "this client"}&apos;s?
-          </h3>
-          <p className="mt-1 max-w-prose text-[12.5px] leading-snug text-muted">
-            This is what makes their pages show their own numbers and nobody else&apos;s. Click Link
-            on their account.
-          </p>
-          <div className="mt-3">
-            <AdAccountPicker
-              tenantId={tenantId}
-              currentAccountId={currentAccountId}
-              onLinked={refreshGate}
-            />
-          </div>
-
-          {linked && (
-            <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
-              <Button variant="primary" onClick={() => onFinished("dashboard")}>
-                Open the Dashboard
-                <ArrowRight size={14} aria-hidden />
-              </Button>
-              <span className="inline-flex items-center gap-1.5 text-[12.5px] text-positive">
-                <Check size={13} aria-hidden />
-                Every Paid Ads page is unlocked.
-              </span>
-            </div>
-          )}
-        </div>
+        <AccountState
+          clientName={clientName}
+          linked={linked}
+          linking={linking}
+          loading={accounts.isFetching && !accounts.data}
+          free={free}
+          error={linkError}
+          onPick={(id) => void attach(id)}
+          onRefresh={() => void accounts.refetch()}
+          onFinished={onFinished}
+        />
       )}
     </SetupWizard>
+  );
+}
+
+// What happened to the ad account, in as few words as the situation allows.
+//
+// There is no picker here on purpose. An ad account has to be attached to the
+// client or their pages read somebody else's numbers, but that is only a
+// QUESTION when the token can see more than one unclaimed account. Normally it
+// sees one, Connect attaches it, and this is a green line rather than a chore.
+function AccountState({
+  clientName,
+  linked,
+  linking,
+  loading,
+  free,
+  error,
+  onPick,
+  onRefresh,
+  onFinished,
+}: {
+  clientName: string;
+  linked: boolean;
+  linking: boolean;
+  loading: boolean;
+  free: AdAccountOption[];
+  error: string | null;
+  onPick: (accountId: string) => void;
+  onRefresh: () => void;
+  onFinished: (sub: string) => void;
+}) {
+  if (linked) {
+    return (
+      <div className="mt-4">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius)] border border-positive/40 bg-positive-tint px-3.5 py-3">
+          <span className="inline-flex items-center gap-2 text-[13.5px] font-semibold text-text">
+            <span
+              className="grid h-5 w-5 place-items-center rounded-full bg-positive text-white"
+              aria-hidden
+            >
+              <Check size={13} />
+            </span>
+            2. Their ads are flowing
+          </span>
+        </div>
+        <div className="mt-4">
+          <Button variant="primary" onClick={() => onFinished("dashboard")}>
+            Open the Dashboard
+            <ArrowRight size={14} aria-hidden />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (linking || loading) {
+    return (
+      <p className="mt-4 flex items-center gap-2 text-[12.5px] text-muted">
+        <Loader2 size={13} className="animate-spin" aria-hidden />
+        {linking ? "Attaching their ad account and pulling the ads in..." : "Reading Meta..."}
+      </p>
+    );
+  }
+
+  if (error) {
+    return <p className="mt-4 text-[12.5px] text-danger">{error}</p>;
+  }
+
+  // Nothing to attach. Always an access problem in Meta, never something that
+  // can be fixed by clicking harder here, so it says what to go and do.
+  if (free.length === 0) {
+    return (
+      <div className="mt-4 rounded-[var(--radius)] border border-border bg-surface-2 px-3.5 py-3">
+        <p className="text-[13px] leading-snug text-text">
+          The token works, but it cannot see an ad account for {clientName || "this client"} yet.
+        </p>
+        <p className="mt-1 text-[12.5px] leading-snug text-muted">
+          In Business settings, open Ad accounts, pick theirs, then Assign partner or people and
+          choose the same system user. It appears here straight after.
+        </p>
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="mt-2.5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-muted hover:text-text"
+        >
+          <RefreshCw size={12} aria-hidden />
+          Check again
+        </button>
+      </div>
+    );
+  }
+
+  // The only case worth a question: several unclaimed accounts, and only a human
+  // knows which one is this client's.
+  return (
+    <div className="mt-4">
+      <h3 className="text-[13.5px] font-semibold text-text">
+        Which of these is {clientName || "this client"}&apos;s?
+      </h3>
+      <ul className="mt-2 grid gap-2">
+        {free.map((a) => (
+          <li
+            key={a.id}
+            className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius)] border border-border bg-surface px-3 py-2.5"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13.5px] font-medium text-text">{a.name}</p>
+              <p className="mt-0.5 text-[12px] text-muted">
+                {a.spend30d > 0 ? `${Math.round(a.spend30d)} ${a.currency} last 30 days` : "No spend in 30 days"}
+              </p>
+            </div>
+            <Button variant="primary" size="sm" onClick={() => onPick(a.id)}>
+              That one
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
