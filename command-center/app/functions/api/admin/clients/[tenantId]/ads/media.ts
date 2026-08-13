@@ -2,6 +2,7 @@ import type { Env, ApiData } from "../../../../../lib/env";
 import { getServiceClient } from "../../../../../lib/supabase";
 import { loadTenantById } from "../../../../../lib/tenantResolve";
 import { buildAdsMedia } from "../../../../../lib/adsMedia";
+import { resolveMetaToken } from "../../../../../lib/metaToken";
 
 // Admin-tenant mirror of GET /api/ads/media for the Fulfillment cockpit
 // (Paid Ads > Ad Library). Same shared System-User token, same per-tenant
@@ -24,7 +25,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // single-tenant META_AD_ACCOUNT_ID fallback account's media under the wrong
   // client. See the sibling insights.ts for the full rationale.
   const result = await buildAdsMedia(
-    ctx.env.META_SYSTEM_USER_TOKEN,
+    (await resolveMetaToken(ctx.env)) ?? undefined,
     tenant.meta_ad_account_id,
     undefined,
   );

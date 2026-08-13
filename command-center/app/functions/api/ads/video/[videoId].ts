@@ -1,5 +1,6 @@
 import { type Env, type ApiData } from "../../../lib/env";
 import { graphGet } from "../../../lib/metaGraph";
+import { resolveMetaToken } from "../../../lib/metaToken";
 
 // Read-only: resolve a single ad video's playable mp4 source + public permalink
 // so the client's Your Ads lightbox can play the real video. The System-User
@@ -16,7 +17,7 @@ export interface AdVideoResponse {
 const EMPTY: AdVideoResponse = { source: "", permalink: "" };
 
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
-  const token = ctx.env.META_SYSTEM_USER_TOKEN;
+  const token = await resolveMetaToken(ctx.env);
   const videoId = String(ctx.params.videoId ?? "");
   if (!token || !videoId) return Response.json(EMPTY satisfies AdVideoResponse);
 

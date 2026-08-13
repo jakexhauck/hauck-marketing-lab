@@ -1,5 +1,6 @@
 import { type Env, type ApiData } from "../../lib/env";
 import { buildAdsMedia, type AdsMediaResponse } from "../../lib/adsMedia";
+import { resolveMetaToken } from "../../lib/metaToken";
 
 // Re-exported so existing importers (this file's own type usage) can keep
 // reading AdsMediaResponse from "./media"; the real shaping now lives in
@@ -16,7 +17,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // consulted: it names a real client's account, so inheriting it showed one
   // client another client's spend and creatives under their own name.
   const result = await buildAdsMedia(
-    ctx.env.META_SYSTEM_USER_TOKEN,
+    (await resolveMetaToken(ctx.env)) ?? undefined,
     ctx.data.tenant?.meta_ad_account_id,
     undefined,
   );

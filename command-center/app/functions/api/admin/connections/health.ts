@@ -14,6 +14,7 @@ import type {
   ClientConnectionHealth,
   HealthResponse,
 } from "../../../../src/lib/connectionHealth";
+import { resolveMetaToken } from "../../../lib/metaToken";
 
 // GET /api/admin/connections/health  (admin-only, gated in _middleware.ts)
 //
@@ -65,7 +66,7 @@ async function probeSupabase(env: Env): Promise<Probe> {
 }
 
 async function probeMeta(env: Env): Promise<Probe> {
-  const token = env.META_SYSTEM_USER_TOKEN;
+  const token = await resolveMetaToken(env);
   if (!token) return { state: "skipped", detail: "No token set" };
   const res = await fetch(
     `https://graph.facebook.com/v21.0/me?fields=id&access_token=${encodeURIComponent(token)}`,

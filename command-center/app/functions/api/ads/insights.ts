@@ -7,6 +7,7 @@ import {
   type AdsContext,
   type AdsInsightsResponse,
 } from "../../lib/adsCore";
+import { resolveMetaToken } from "../../lib/metaToken";
 
 // Re-exported so existing importers (this file's own test) can keep reading
 // resolveAdAccount/derivePhase from "./insights"; the real implementations now
@@ -27,7 +28,7 @@ export type { AdsInsightsResponse };
 // their not-connected state; buildAdsInsights degrades any Meta-call failure
 // to an honest zeroed payload with an error string, never a fabricated number.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
-  const token = ctx.env.META_SYSTEM_USER_TOKEN;
+  const token = await resolveMetaToken(ctx.env);
   // This client's own ad account, or none. The env META_AD_ACCOUNT_ID is not
   // consulted: it names a real client's account, so inheriting it showed one
   // client another client's spend and creatives under their own name.
