@@ -37,7 +37,11 @@ export default defineConfig({
         // Matches the logo's dark-green icon tile so the install splash blends
         // seamlessly with the app icon (no seam behind the mark).
         background_color: "#0b1b17",
-        theme_color: "#0b1b17",
+        // The status bar strip, not the splash: iOS and Android paint it with
+        // this until the app boots and ThemeContext takes over. The dark green
+        // above is right for the splash and wrong here, where it read as a band
+        // of another app's color above a light page for the first frame.
+        theme_color: "#f6f7fb",
         icons: [
           {
             src: "/icon-192.png",

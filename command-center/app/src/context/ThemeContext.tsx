@@ -47,7 +47,11 @@ function applyTheme(resolved: ResolvedTheme): void {
   document.documentElement.setAttribute("data-theme", resolved);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    meta.setAttribute("content", resolved === "dark" ? "#0b1220" : "#f8fafc");
+    // Must be the real --bg tokens. Installed on a phone the status bar is an
+    // opaque strip painted with this value and butted straight against the top
+    // of the page, so a near-miss (this was #0b1220 / #f8fafc, from an earlier
+    // palette) shows up as a visible seam above the first row.
+    meta.setAttribute("content", resolved === "dark" ? "#0c0d14" : "#f6f7fb");
   }
 }
 

@@ -6,9 +6,24 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b1b17" />
+    <!-- Light-theme fallback only. ThemeContext rewrites this on every theme
+         change, and it is what iOS paints the reserved status bar strip with. -->
+    <meta name="theme-color" content="#f6f7fb" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- The standard spelling of the line above; iOS still reads the apple- one. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- Installed to the home screen there is no Safari toolbar sitting over the
+         status bar, so this value alone decides whether the page starts under
+         the clock. "black-translucent" said yes, and only the six NavyHero
+         screens padded for it: every other page (they all use PAGE_CONTAINER's
+         flat pt-5) had its first row hidden behind the clock, and translucent
+         forces the status text white, which is invisible on the light Console
+         background. "default" makes iOS reserve the strip and pick its own text
+         color, which also zeroes safe-area-inset-top in standalone so every
+         existing calc(env(safe-area-inset-top) + N) falls back to plain N.
+         viewport-fit=cover stays: it still earns the landscape side insets and
+         the bottom home-indicator inset the tab bar pads for. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Hauck" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
