@@ -384,12 +384,9 @@ body { margin:0 !important; padding:0 !important; }
 }
 #madebefu .mbfu-sign {
   display:flex !important; align-items:center !important; gap:12px !important;
+  border-left:3px solid var(--line) !important;
+  padding:2px 0 2px 17px !important;
   margin:30px 0 0 !important;
-}
-#madebefu .mbfu-sign-mark {
-  width:44px !important; height:44px !important; flex:none !important;
-  object-fit:cover !important; object-position:50% 25% !important;
-  border-radius:999px !important;
 }
 #madebefu .mbfu-sign p { margin:0 !important; }
 #madebefu .mbfu-sign .mbfu-sign-name {
@@ -518,6 +515,10 @@ body { margin:0 !important; padding:0 !important; }
      does not eat the whole viewport before a word is read. */
   #madebefu .mbfu-hero-media { order:-1 !important; width:100% !important; }
   #madebefu .mbfu-portrait { aspect-ratio:4 / 3; }
+  /* The plate under the photograph says his name, and stacked it lands directly
+     above an eyebrow that says his name. Two lines of the same thing between the
+     face and the gift, so the plate goes. */
+  #madebefu .mbfu-plate { display:none !important; }
   #madebefu .mbfu-hero h1 { max-width:100% !important; }
   #madebefu .mbfu-cards { grid-template-columns:minmax(0,1fr) !important; }
   #madebefu .mbfu-sec { padding:60px 0 !important; }
@@ -690,11 +691,13 @@ body { margin:0 !important; padding:0 !important; }
             "<p>I know what you are thinking. He is 18. Let me answer that instead of hoping you do not notice.</p>" +
           "</div>" +
           '<div class="mbfu-body">' +
-            "<p>I do not have a big name to coast on, so I earn every job. I am on site for all of them, and if something is not right, you are talking to the person who built it, not a call centre.</p>" +
-            "<p>Almost all of our work comes from neighbours pointing us at other neighbours. That only keeps happening if I get it right the first time, so that is what I turn up to do.</p>" +
+            "<p>I do not have a big name to coast on, so I earn every job. I am on site for all of them, and if something is not right, you are talking to the person who built it, not a call center.</p>" +
+            "<p>Almost all of our work comes from neighbors pointing us at other neighbors. That only keeps happening if I get it right the first time, so that is what I turn up to do.</p>" +
           "</div>" +
+          // Name only, no thumbnail. The same photograph at 44px is a person
+          // shaped speck on a mower, and his face is already the size of a hand
+          // at the top of the page.
           '<div class="mbfu-sign">' +
-            '<img class="mbfu-sign-mark" src="' + esc(CONFIG.owner.photo) + '" width="44" height="44" alt="" decoding="async">' +
             "<div>" +
               '<p class="mbfu-sign-name">' + esc(CONFIG.owner.name) + "</p>" +
               '<p class="mbfu-sign-role">' + esc(CONFIG.owner.role) + "</p>" +
