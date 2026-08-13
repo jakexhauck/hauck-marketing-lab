@@ -3,6 +3,7 @@ import {
   type PushSubscription,
 } from "@block65/webcrypto-web-push";
 import { getServiceClient } from "./supabase";
+import { ghlJson } from "./ghl";
 import type { Env } from "./env";
 
 // Shape we read back from the activity_log insert in the webhook. opportunity_id
@@ -30,6 +31,62 @@ interface SubRow {
 
 // Owner-configured audience for this tenant's pushes (tenants.notify_audience).
 type NotifyAudience = "everyone" | "assigned";
+
+// What GHL's conversation search gives us about a contact's thread.
+interface ConversationRow {
+  contactId?: string;
+  fullName?: string;
+  contactName?: string;
+  lastMessageBody?: string;
+  lastMessageDirection?: string;
+}
+
+const MESSAGE_PREVIEW_MAX = 140;
+
+/**
+ * Say who wrote and what they said, for an inbound message.
+ *
+ * GHL's InboundMessage webhook carries only type, contactId and locationId:
+ * no name, no text. "New message" alone forces the owner to open the app to
+ * learn whether it was worth stopping for, so we spend one GHL call to fill it
+ * in. Returns null when there is nothing better than the caller's fallback.
+ *
+ * The catch: lastMessageBody is the NEWEST message on the thread, which is not
+ * always the one that woke us. An instant auto-reply overtakes the lead's text
+ * within the same second, and quoting our own automation back at the owner is
+ * worse than saying nothing. So the text is used only while GHL still reports
+ * the thread as inbound; otherwise the name goes out on its own.
+ */
+async function describeInboundMessage(
+  ctx: { token: string; locationId: string },
+  contactId: string,
+): Promise<string | null> {
+  try {
+    const data = await ghlJson<{ conversations?: ConversationRow[] }>(
+      ctx,
+      `/conversations/search?locationId=${encodeURIComponent(ctx.locationId)}&contactId=${encodeURIComponent(contactId)}`,
+    );
+    const convs = data.conversations ?? [];
+    const conv =
+      convs.find((c) => c.contactId === contactId) ?? convs[0] ?? null;
+    if (!conv) return null;
+
+    const name = (conv.fullName ?? conv.contactName ?? "").trim();
+    const inbound = conv.lastMessageDirection === "inbound";
+    const body = inbound ? (conv.lastMessageBody ?? "").trim() : "";
+    const text = body.replace(/\s+/g, " ").trim();
+    const preview =
+      text.length > MESSAGE_PREVIEW_MAX
+        ? `${text.slice(0, MESSAGE_PREVIEW_MAX - 3).trimEnd()}...`
+        : text;
+
+    if (name && preview) return `${name}: ${preview}`;
+    return preview || name || null;
+  } catch {
+    // A slow or unhappy GHL must never cost the owner the notification itself.
+    return null;
+  }
+}
 
 // Pick the subscriptions that should receive this activity given the tenant's
 // audience rule. "assigned" targets only the device(s) whose chosen GHL
@@ -73,12 +130,16 @@ export async function sendPushForActivity(
 
   const { data: tenantRow } = await client
     .from("tenants")
-    .select("notify_audience, notify_push_enabled")
+    .select(
+      "notify_audience, notify_push_enabled, ghl_token, ghl_location_id",
+    )
     .eq("id", tenantId)
     .maybeSingle();
   const prefs = tenantRow as {
     notify_audience?: string;
     notify_push_enabled?: boolean | null;
+    ghl_token?: string | null;
+    ghl_location_id?: string | null;
   } | null;
 
   // The owner's master push switch (0021). Only an explicit false silences the
@@ -94,15 +155,29 @@ export async function sendPushForActivity(
   const rows = selectRecipients(allRows, audience, activity.assigned_user_id);
   if (rows.length === 0) return;
 
+  // One title per kind shouldPush lets through. The body carries the detail:
+  // for a message that is the sender and their text, so the owner can judge
+  // from the lock screen whether to stop what they are doing.
   const titles: Record<string, string> = {
     lead_created: "New lead",
     message_in: "New message",
-    status_changed: "Lead won",
     appointment_create: "Appointment booked",
   };
+  // Fill in the sender and their words when the webhook did not carry them.
+  // Only worth a call for a message: a new lead and a booked appointment both
+  // already say everything the owner needs.
+  let body = activity.summary;
+  if (activity.kind === "message_in" && activity.contact_id && prefs?.ghl_token) {
+    const described = await describeInboundMessage(
+      { token: prefs.ghl_token, locationId: prefs.ghl_location_id ?? "" },
+      activity.contact_id,
+    );
+    if (described) body = described;
+  }
+
   const payloadData = JSON.stringify({
     title: titles[activity.kind] ?? activity.summary,
-    body: activity.summary,
+    body,
     url: activity.opportunity_id
       ? `/lead/${activity.opportunity_id}`
       : activity.contact_id
