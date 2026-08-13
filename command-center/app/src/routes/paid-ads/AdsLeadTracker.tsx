@@ -8,6 +8,7 @@ import { useAdsTrackerQuery, useMarkLead } from "../../hooks/useApi";
 import type { AdTrackerRange, LeadTrackerLead } from "../../lib/api";
 import type { LeadMarking } from "../../components/ads/tracker/LeadTrackerTable";
 import {
+  DEFAULT_RANGE,
   ErrorNote,
   LeadSearch,
   RANGES,
@@ -24,7 +25,7 @@ import { SAMPLE_LEADS } from "./sampleLeads";
 
 export default function AdsLeadTracker() {
   const { session } = useAuth();
-  const [range, setRange] = useState<AdTrackerRange>("all");
+  const [range, setRange] = useState<AdTrackerRange>(DEFAULT_RANGE);
   const [search, setSearch] = useState("");
   // Level is irrelevant to the lead list; keep it at the cheap default.
   const query = useAdsTrackerQuery(range, "ad", Boolean(session));

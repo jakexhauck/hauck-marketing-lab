@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import LeadTrackerTable from "../../../ads/tracker/LeadTrackerTable";
 import {
+  DEFAULT_RANGE,
   ErrorNote,
   LeadSearch,
   RANGES,
@@ -21,7 +22,7 @@ import type { AdTrackerRange, LeadTrackerLead } from "../../../../lib/api";
 // client's heading is how a real decision gets made on invented numbers.
 
 export default function AdsLeadTrackerPanel({ tenantId }: { tenantId: string }) {
-  const [range, setRange] = useState<AdTrackerRange>("all");
+  const [range, setRange] = useState<AdTrackerRange>(DEFAULT_RANGE);
   const [search, setSearch] = useState("");
 
   // Level is irrelevant to the lead list; keep it at the cheap default so this

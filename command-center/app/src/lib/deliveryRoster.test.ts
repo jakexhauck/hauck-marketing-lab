@@ -12,6 +12,7 @@ function mk(overrides: Partial<AdminClient>): AdminClient {
     brandInitials: "WE",
     appName: "Willis",
     ghlLocationId: "loc",
+    ghlConnected: true,
     metaAdAccountId: null,
     monthlySpend: 4200,
     memberCount: 3,

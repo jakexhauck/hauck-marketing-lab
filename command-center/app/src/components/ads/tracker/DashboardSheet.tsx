@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import {
   AD_TRACKER_OTHER_ID,
+  type AdTrackerKpis,
   type AdTrackerBreakdownRow,
   type AdTrackerLevel,
   type AdTrackerRange,
@@ -38,6 +39,10 @@ import {
 
 const RESULT_COLUMNS = [
   "Leads",
+  // Leads is Meta's own figure and matches Ads Manager. This is how many of
+  // them reached the CRM, and the gap between the two is the point: Willis
+  // Windows, last 30 days, Meta 51 and CRM 6.
+  "Leads in CRM",
   "Pickups",
   "Pickup Rate",
   "Bookings",
@@ -132,6 +137,79 @@ const RESULT_TH =
   "border border-border bg-surface-2 px-4 py-3.5 text-[12.5px] font-semibold text-muted";
 const RESULT_TD = "border border-border px-4 py-6 text-[16px] text-text tnum";
 
+// Leads Meta reported and billed for that never reached the CRM. Zero when the
+// CRM has at least as many as Meta counted, which is the healthy case.
+export function missingLeads(kpis: AdTrackerKpis): number {
+  return Math.max(0, kpis.leads - kpis.crmLeads);
+}
+
+// The CRM lead count, marked when it has fallen behind Meta's.
+//
+// Reads as a plain figure when the two agree. When they do not, the shortfall
+// is named rather than left for the client to subtract: Willis's page showed 6
+// against Meta's 51 for weeks and looked merely wrong, when what it was
+// actually reporting was 45 paid-for leads nobody had called.
+function LeadsInCrm({ kpis }: { kpis: AdTrackerKpis }) {
+  const missing = missingLeads(kpis);
+  if (missing === 0) return <>{kpis.crmLeads}</>;
+  return (
+    <span className="inline-flex flex-col items-center leading-tight">
+      <span className="font-semibold text-danger">{kpis.crmLeads}</span>
+      <span className="text-[11px] font-medium text-danger">{missing} missing</span>
+    </span>
+  );
+}
+
+// "Jul 14 to Aug 12", the exact days the figures cover.
+function windowLabel(start: string | null, end: string | null): string {
+  if (!start && !end) return "All time";
+  const fmt = (d: string) => {
+    const [y, m, day] = d.split("-").map(Number);
+    return new Date(Date.UTC(y, m - 1, day)).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+  };
+  if (start && end && start === end) return fmt(start);
+  return `${start ? fmt(start) : "start"} to ${end ? fmt(end) : "today"}`;
+}
+
+// The days this page is actually reporting on, and how fresh Meta's half of it
+// is.
+//
+// Both were computed and returned long before anything rendered them. A sync
+// that stopped a month ago looked identical to a healthy one while every cost
+// per lead and ROAS on the page drifted upward, and a client comparing this
+// screen against Ads Manager had no way to tell whether they were even looking
+// at the same days. `lastSpendDate` is flagged once it falls more than two days
+// behind the window, since the nightly job should never be further back than
+// yesterday.
+function WindowNote({ meta }: { meta: AdTrackerResponse["meta"] }) {
+  const last = meta.lastSpendDate;
+  const stale =
+    !!last && !!meta.windowEnd && last < windowLabelShift(meta.windowEnd, -2);
+
+  return (
+    <div className="mt-2 space-y-0.5 text-left text-[11px] font-normal leading-tight text-faint">
+      <div>{windowLabel(meta.windowStart, meta.windowEnd)}</div>
+      {meta.neverSynced ? (
+        <div className="text-danger">Meta has never been pulled in</div>
+      ) : last ? (
+        <div className={stale ? "font-semibold text-danger" : undefined}>
+          Meta data through {windowLabel(last, last)}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Calendar shift on a YYYY-MM-DD, for the staleness threshold.
+function windowLabelShift(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
 // One figure on a phone card, with its label above it. The sheet's tables carry
 // their labels in a header row; a card has no header row, so each figure has to
 // name itself.
@@ -140,11 +218,13 @@ function Stat({
   value,
   strong = false,
   wide = false,
+  negative = false,
 }: {
   label: string;
   value: string;
   strong?: boolean;
   wide?: boolean;
+  negative?: boolean;
 }) {
   return (
     // bg-surface over the grid's bg-border, so the 1px gap between cells IS the
@@ -154,7 +234,12 @@ function Stat({
       <div className="truncate text-[11px] text-muted" title={label}>
         {label}
       </div>
-      <div className={`truncate text-[16px] text-text tnum ${strong ? "font-semibold" : ""}`}>
+      <div
+        className={
+          `truncate text-[16px] tnum ${strong ? "font-semibold " : ""}` +
+          (negative ? "font-semibold text-danger" : "text-text")
+        }
+      >
         {value}
       </div>
     </div>
@@ -266,6 +351,9 @@ export default function DashboardSheet({
       <div className="mb-3 shrink-0 overflow-x-auto lg:hidden" style={{ scrollbarWidth: "none" }}>
         <Segmented options={RANGES} value={range} onChange={onRange} label="Date range" />
       </div>
+      <div className="mb-3 shrink-0 lg:hidden">
+        <WindowNote meta={data.meta} />
+      </div>
 
       {/* Phone: the money line first and big, then the funnel, then the rates.
           Eleven equal cells in a hairline grid meant ROAS (the number the page
@@ -278,6 +366,7 @@ export default function DashboardSheet({
       </div>
       <div className="mb-4 grid shrink-0 grid-cols-2 gap-px overflow-hidden rounded-[12px] border border-border bg-border lg:hidden">
         <Stat label="Leads" value={String(data.kpis.leads)} />
+        <Stat label="Leads in CRM" value={String(data.kpis.crmLeads)} negative={missingLeads(data.kpis) > 0} />
         <Stat label="Pickups" value={String(data.kpis.pickups)} />
         <Stat label="Bookings" value={String(data.kpis.bookings)} />
         <Stat label="Sales" value={String(data.kpis.sales)} />
@@ -303,8 +392,12 @@ export default function DashboardSheet({
             <tr>
               <td className="border border-border px-4 py-6">
                 <Picker options={RANGES} value={range} onChange={onRange} label="Date range" />
+                <WindowNote meta={data.meta} />
               </td>
               <td className={RESULT_TD}>{data.kpis.leads}</td>
+              <td className={RESULT_TD}>
+                <LeadsInCrm kpis={data.kpis} />
+              </td>
               <td className={RESULT_TD}>{data.kpis.pickups}</td>
               <td className={RESULT_TD}>{pct(data.kpis.pickupRate)}</td>
               <td className={RESULT_TD}>{data.kpis.bookings}</td>

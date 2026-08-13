@@ -1,6 +1,6 @@
 import { useState } from "react";
 import DashboardSheet from "../../../ads/tracker/DashboardSheet";
-import { ErrorNote, Spinner } from "../../../../routes/paid-ads/trackerShared";
+import { DEFAULT_RANGE, ErrorNote, Spinner } from "../../../../routes/paid-ads/trackerShared";
 import { useAdminAdTrackerQuery, useAdsSyncMutation } from "../../../../hooks/useApi";
 import type { AdTrackerLevel, AdTrackerRange } from "../../../../lib/api";
 
@@ -37,7 +37,7 @@ function spendAge(lastSpendDate: string | null): { text: string; stale: boolean 
 }
 
 export default function AdsDashboardPanel({ tenantId }: { tenantId: string }) {
-  const [range, setRange] = useState<AdTrackerRange>("all");
+  const [range, setRange] = useState<AdTrackerRange>(DEFAULT_RANGE);
   const [level, setLevel] = useState<AdTrackerLevel>("ad");
 
   const query = useAdminAdTrackerQuery(tenantId, range, level);

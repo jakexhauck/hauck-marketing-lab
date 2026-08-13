@@ -2,7 +2,7 @@ import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
 import { resolveAdAccount } from "../../../lib/metaGraph";
-import { buildAdDayUpserts, fetchAdDays } from "../../../lib/metaAdDays";
+import { buildAdDayUpserts, fetchAccountTimezone, fetchAdDays } from "../../../lib/metaAdDays";
 import { buildEntityUpserts, fetchAdEntities } from "../../../lib/metaAdEntities";
 import { resolveMetaToken } from "../../../lib/metaToken";
 
@@ -31,6 +31,7 @@ interface TenantRow {
   id: string;
   name?: string | null;
   meta_ad_account_id?: string | null;
+  meta_timezone?: string | null;
 }
 
 interface SyncResult {
@@ -93,10 +94,24 @@ async function syncTenant(
   const account = resolveAdAccount(tenant.meta_ad_account_id ?? undefined, envAccount);
   if (!account) return { tenantId: tenant.id, name, skipped: "no ad account" };
 
+  // The account's reporting timezone, FIRST, because the insights window below
+  // is a calendar range in that zone and asking for the wrong days is not a
+  // recoverable error, just a quietly short answer. Falls back to whatever was
+  // cached on the tenant, then to UTC.
+  const fetchedZone = await fetchAccountTimezone(token, account);
+  const zone = fetchedZone ?? tenant.meta_timezone ?? "UTC";
+  if (fetchedZone && fetchedZone !== (tenant.meta_timezone ?? null)) {
+    const { error: zoneError } = await client!
+      .from("tenants")
+      .update({ meta_timezone: fetchedZone })
+      .eq("id", tenant.id);
+    if (zoneError) console.warn(`[ads/sync] ${name}: timezone write failed`, zoneError.message);
+  }
+
   let rows;
   let entities = 0;
   try {
-    rows = await fetchAdDays(token, account, days);
+    rows = await fetchAdDays(token, account, days, zone);
     // Structure and status, for the client breakdown's live-campaign scope.
     // Same try block: if Meta will not talk to us, neither half is trustworthy.
     entities = await syncEntities(client!, tenant.id, token, account);
@@ -131,7 +146,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const onlyTenant = url.searchParams.get("tenantId");
   const days = Number(url.searchParams.get("days")) || DEFAULT_DAYS;
 
-  let query = client.from("tenants").select("id, name, meta_ad_account_id");
+  let query = client.from("tenants").select("id, name, meta_ad_account_id, meta_timezone");
   if (onlyTenant) query = query.eq("id", onlyTenant);
 
   const { data, error } = await query;

@@ -90,7 +90,7 @@ export async function handleDemoRequest<T>(
   // page the app opens on), Meta Data and Creatives showed "Could not load this
   // data" in the demo view and could not be reviewed at all.
   if (clean === "/api/ads/tracker") {
-    const range = (queryParam(path, "range") ?? "all") as AdTrackerRange;
+    const range = (queryParam(path, "range") ?? "last_30d") as AdTrackerRange;
     const level = (queryParam(path, "level") ?? "campaign") as AdTrackerLevel;
     return r(demoLeadTracker(range, level));
   }

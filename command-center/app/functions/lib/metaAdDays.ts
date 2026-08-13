@@ -10,12 +10,20 @@
 //      fact and the original never looked back.
 //   4. cpm is not requested. The sheet recomputed it anyway; so do we.
 
-import { graphGetAll } from "./metaGraph";
+import { graphGetAll, graphGet } from "./metaGraph";
+import { actionsValue, UNIFIED_ATTRIBUTION } from "./metaActions";
+import { dateStringInZone } from "./tz";
 import type { TrackerSpendRow } from "./adTrackerMetrics";
 
-// The 10 fields we ask Meta for. Same set the Make scenario used, minus cpm.
+// The 11 fields we ask Meta for. Same set the Make scenario used, minus cpm,
+// plus `actions`.
+//
 // adset_id is the reason this table is worth having: GHL has no ad set id, so
 // this snapshot is what resolves ad -> ad set -> campaign.
+//
+// `actions` was added 2026-08-13 and is the whole point of the rebuild. Without
+// it the snapshot carried spend and no conversions, so the dashboard's Leads
+// figure had to be invented from the CRM, and Willis read 6 against Meta's 51.
 export const INSIGHT_FIELDS = [
   "ad_id",
   "ad_name",
@@ -27,6 +35,7 @@ export const INSIGHT_FIELDS = [
   "impressions",
   "reach",
   "inline_link_clicks",
+  "actions",
 ].join(",");
 
 export const AD_DAY_COLUMNS = [
@@ -42,6 +51,7 @@ export const AD_DAY_COLUMNS = [
   "impressions",
   "reach",
   "link_clicks",
+  "leads",
 ].join(", ");
 
 export interface MetaInsightRow {
@@ -57,6 +67,9 @@ export interface MetaInsightRow {
   impressions?: string;
   reach?: string;
   inline_link_clicks?: string;
+  // Meta's conversion array. Counted through metaActions.actionsValue so the
+  // roll-up is never summed with its own components.
+  actions?: { action_type?: string; value?: string }[];
 }
 
 export interface AdDayUpsert {
@@ -72,6 +85,7 @@ export interface AdDayUpsert {
   impressions: number;
   reach: number;
   link_clicks: number;
+  leads: number;
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -123,6 +137,10 @@ export function buildAdDayUpserts(
       impressions,
       reach,
       link_clicks: linkClicks,
+      // Not `metric()`: the conversion count is not a bare field but a whole
+      // array that has to be deduplicated first, and an ad with no conversions
+      // legitimately has no `actions` key at all.
+      leads: Math.round(actionsValue(row as unknown as Record<string, unknown>, "actions")),
     });
   }
 
@@ -150,26 +168,72 @@ export function toSpendRows(rows: Record<string, unknown>[]): TrackerSpendRow[] 
     impressions: n(row.impressions),
     reach: n(row.reach),
     linkClicks: n(row.link_clicks),
+    leads: n(row.leads),
   }));
 }
 
-// Pull a trailing window of per-day, per-ad insights.
+// The ad account's reporting timezone, e.g. "EST" for Willis or
+// "America/Detroit" for Made Better.
+//
+// Meta buckets every day in this zone. Cutting a date range in UTC instead put
+// every impression after 7pm Central on the wrong side of the boundary, which
+// is why the dashboard's window and Ads Manager's window never covered the same
+// hours. Best-effort: a failure returns null and the caller keeps whatever zone
+// it already had rather than failing a sync over a timezone lookup.
+export async function fetchAccountTimezone(
+  token: string,
+  adAccount: string,
+): Promise<string | null> {
+  const account = adAccount.startsWith("act_") ? adAccount : `act_${adAccount}`;
+  try {
+    const resp = await graphGet(token, `/${account}`, { fields: "timezone_name" });
+    const zone = typeof resp.timezone_name === "string" ? resp.timezone_name.trim() : "";
+    return zone || null;
+  } catch {
+    return null;
+  }
+}
+
+// Pull a trailing window of per-day, per-ad insights, ENDING TODAY.
 //
 // time_increment=1 is what makes Meta break the range into days instead of
 // returning one aggregate row. The Make scenario used all_days with a
 // single-day preset, which happened to give one row per ad but could not
 // backfill.
+//
+// An explicit time_range, not a date_preset, and that distinction is the whole
+// comment. Every `last_Nd` preset ENDS YESTERDAY (measured, 2026-08-13:
+// last_7d returned 2026-08-06..2026-08-12 against a live account on the 13th).
+// So a sync built on the preset never fetched today's row at all, and the two
+// ranges that include today were permanently short:
+//
+//   this_month   ours $253.77   Meta $262.36
+//
+// Leads matched on that same check, purely because nobody had converted yet
+// that morning. By the afternoon it would have been wrong in both columns.
+//
+// `since` and `until` are calendar dates in the AD ACCOUNT's zone, because that
+// is the zone Meta buckets days in.
 export async function fetchAdDays(
   token: string,
   adAccount: string,
   days = 7,
+  zone = "UTC",
 ): Promise<MetaInsightRow[]> {
   const account = adAccount.startsWith("act_") ? adAccount : `act_${adAccount}`;
+  const until = dateStringInZone(zone, Date.now());
+  const [y, m, d] = until.split("-").map(Number);
+  const since = new Date(Date.UTC(y, m - 1, d - days)).toISOString().slice(0, 10);
+
   const rows = await graphGetAll(token, `/${account}/insights`, {
     level: "ad",
     fields: INSIGHT_FIELDS,
-    date_preset: days <= 7 ? "last_7d" : days <= 30 ? "last_30d" : "last_90d",
+    time_range: JSON.stringify({ since, until }),
     time_increment: "1",
+    // The account's own attribution setting rather than the API default of
+    // 7-day click / 1-day view. No effect on Willis (measured), correct for an
+    // account set to anything else.
+    ...UNIFIED_ATTRIBUTION,
     limit: "500",
   });
   return rows as MetaInsightRow[];

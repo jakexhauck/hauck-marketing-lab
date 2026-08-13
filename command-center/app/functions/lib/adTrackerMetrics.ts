@@ -14,6 +14,7 @@ import {
   statusForStage,
   type ClientLeadStatus,
 } from "./leadStatus";
+import { dateStringInZone } from "./tz";
 
 // A lead's furthest-along position. The ladder is cumulative: every sale is a
 // booking, every booking is a pickup. That single ordering is what makes both
@@ -213,7 +214,13 @@ export interface TrackerLead {
   adId: string | null;
 }
 
-// One ad's spend for one day, as stored in meta_ad_days.
+// One ad's spend AND leads for one day, as stored in meta_ad_days.
+//
+// `leads` arrived 2026-08-13 and changed what this type is for. It used to be
+// the spend half of the tracker, with leads counted separately out of the CRM.
+// It is now the whole Meta side: both numbers come off the same row, for the
+// same ad, on the same day, in the same timezone, which is the only way the
+// dashboard can agree with Ads Manager.
 export interface TrackerSpendRow {
   date: string;
   adId: string;
@@ -226,13 +233,43 @@ export interface TrackerSpendRow {
   impressions: number;
   reach: number;
   linkClicks: number;
+  // Meta's own deduplicated lead count for this ad on this day.
+  leads: number;
 }
 
-export type TrackerRange = "all" | "7" | "30" | "90";
+// Ads Manager's own date presets, not ours.
+//
+// Was "all" | "7" | "30" | "90", which looked like Meta's ranges and was not
+// one of them. Meta's "Last 7 days" ENDS YESTERDAY; ours ran to today and
+// started a day earlier, so the dashboard and Ads Manager were comparing seven
+// different days and disagreeing for a reason no one could see on the screen.
+//
+// Every boundary below was measured against the live Willis account on
+// 2026-08-13 rather than taken from the docs. See rangeWindow().
+export type TrackerRange =
+  | "today"
+  | "yesterday"
+  | "last_7d"
+  | "last_14d"
+  | "last_30d"
+  | "this_month"
+  | "last_month"
+  | "maximum";
+
 export type BreakdownLevel = "campaign" | "adset" | "ad";
 
 export interface TrackerKpis {
+  // Meta's own deduplicated lead count for the window. This is the number that
+  // must equal Ads Manager, and every rate below divides by it.
   leads: number;
+  // How many of those leads actually reached a GHL pipeline.
+  //
+  // Kept as its own figure rather than quietly replacing `leads`, because the
+  // gap between the two is the most valuable thing on the page. Willis, last 30
+  // days: Meta 51, CRM 6. Forty-five leads paid for and never worked. Before
+  // this field existed the page showed the 6 alone and looked merely wrong; it
+  // was actually reporting a delivery failure nobody could see.
+  crmLeads: number;
   pickups: number;
   bookings: number;
   sales: number;
@@ -285,22 +322,87 @@ export function ratio(numerator: number, denominator: number): number | null {
   return numerator / denominator;
 }
 
-// The sheet's date filter is `>= TODAY() - N`, so the boundary day is included.
-// All Time returns null, meaning "do not filter".
-export function rangeStart(range: TrackerRange, now: Date): string | null {
-  if (range === "all") return null;
-  const days = Number(range);
-  const d = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - days),
-  );
-  return d.toISOString().slice(0, 10);
+// The window a range covers: inclusive on both ends, null meaning unbounded.
+export interface TrackerWindow {
+  start: string | null;
+  end: string | null;
+}
+
+export const ALL_TIME: TrackerWindow = { start: null, end: null };
+
+// Calendar arithmetic on a YYYY-MM-DD string. Deliberately not "add 86400000ms
+// to an instant": that is an hour out twice a year, and the whole point of this
+// rewrite is that day boundaries stop being approximately right.
+function shiftDate(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+// The window a preset covers, cut in the AD ACCOUNT's timezone.
+//
+// Meta buckets every day in the account's reporting zone (Willis runs on EST,
+// fixed UTC-5). The old implementation used Date.UTC, so for a US account every
+// impression after 7pm local landed on the next day in our numbers and the
+// previous one in Meta's.
+//
+// Boundaries verified against act_27110669075184924 on 2026-08-13, one call per
+// preset with time_increment=1, reading the real first and last date_start:
+//
+//   today       2026-08-13 .. 2026-08-13
+//   yesterday   2026-08-12 .. 2026-08-12
+//   last_7d     2026-08-06 .. 2026-08-12   <- ends YESTERDAY, not today
+//   last_14d    2026-07-30 .. 2026-08-12
+//   last_30d    2026-07-15 .. 2026-08-12   (window opens 07-14; no delivery that day)
+//   this_month  2026-08-01 .. 2026-08-13   <- this one DOES include today
+//   last_month  2026-07-01 .. 2026-07-31
+//
+// That last_7d/this_month inconsistency is Meta's, not a mistake here. Do not
+// "tidy" it: the moment this function is self-consistent it stops agreeing with
+// Ads Manager, which is the only thing it is for.
+export function rangeWindow(
+  range: TrackerRange,
+  now: Date,
+  zone: string,
+): TrackerWindow {
+  const today = dateStringInZone(zone, now.getTime());
+
+  switch (range) {
+    case "today":
+      return { start: today, end: today };
+    case "yesterday": {
+      const y = shiftDate(today, -1);
+      return { start: y, end: y };
+    }
+    case "last_7d":
+      return { start: shiftDate(today, -7), end: shiftDate(today, -1) };
+    case "last_14d":
+      return { start: shiftDate(today, -14), end: shiftDate(today, -1) };
+    case "last_30d":
+      return { start: shiftDate(today, -30), end: shiftDate(today, -1) };
+    case "this_month":
+      return { start: `${today.slice(0, 7)}-01`, end: today };
+    case "last_month": {
+      const firstOfThis = `${today.slice(0, 7)}-01`;
+      const lastOfPrev = shiftDate(firstOfThis, -1);
+      return { start: `${lastOfPrev.slice(0, 7)}-01`, end: lastOfPrev };
+    }
+    case "maximum":
+      return ALL_TIME;
+  }
 }
 
 // Dates are ISO (YYYY-MM-DD) or ISO timestamps, so a string compare on the
-// first ten characters is a correct date compare and cannot drift by timezone.
-function inRange(value: string, start: string | null): boolean {
-  if (!start) return true;
-  return String(value).slice(0, 10) >= start;
+// first ten characters is a correct date compare.
+//
+// The value being compared must ALREADY be a calendar date in the account's
+// zone. meta_ad_days rows are, because Meta bucketed them. GHL createdAt
+// timestamps are not, which is why callers that filter leads convert first.
+export function inWindow(value: string, window: TrackerWindow | null): boolean {
+  if (!window) return true;
+  const day = String(value).slice(0, 10);
+  if (window.start && day < window.start) return false;
+  if (window.end && day > window.end) return false;
+  return true;
 }
 
 // The most recent day present in the spend snapshot, or null if it is empty.
@@ -319,18 +421,39 @@ export function lastSpendDate(spendRows: TrackerSpendRow[]): string | null {
   return latest;
 }
 
+// A GHL createdAt timestamp as a calendar date in the ad account's zone, so a
+// CRM lead and the Meta row that paid for it land in the same day's bucket.
+function leadDay(createdAt: string, zone: string): string {
+  const ms = Date.parse(createdAt);
+  if (!Number.isFinite(ms)) return String(createdAt).slice(0, 10);
+  return dateStringInZone(zone, ms);
+}
+
+// The Results row.
+//
+// Leads comes from Meta and nowhere else, as of 2026-08-13. It used to be
+// `leads.length`: a count of GHL contacts sitting in lead-ish pipelines, with
+// no filter on ad id at all, so an organic caller counted as a paid lead and an
+// Instant Form lead that never reached the CRM did not count at all. Willis read
+// 6 against Meta's 51 for the same thirty days.
+//
+// Pickups, Bookings, Sales and Revenue still come from the CRM, because Meta
+// cannot know them until we report them back to it. They divide by Meta's lead
+// count deliberately: "you paid for 51 and booked 3" is the true statement, and
+// dividing by the CRM's 6 would flatter every rate on the page by 8x.
 export function rollup(
   leads: TrackerLead[],
   spendRows: TrackerSpendRow[],
-  start: string | null = null,
+  window: TrackerWindow | null = ALL_TIME,
+  zone = "UTC",
 ): TrackerKpis {
-  const inWindow = leads.filter((l) => inRange(l.createdAt, start));
+  const windowLeads = leads.filter((l) => inWindow(leadDay(l.createdAt, zone), window));
 
   let pickups = 0;
   let bookings = 0;
   let sales = 0;
   let revenue = 0;
-  for (const l of inWindow) {
+  for (const l of windowLeads) {
     if (isPickup(l.level)) pickups += 1;
     if (isBooking(l.level)) bookings += 1;
     if (isSale(l.level)) {
@@ -339,22 +462,26 @@ export function rollup(
     }
   }
 
-  const spend = spendRows
-    .filter((r) => inRange(r.date, start))
-    .reduce((sum, r) => sum + r.spend, 0);
+  let spend = 0;
+  let metaLeads = 0;
+  for (const r of spendRows) {
+    if (!inWindow(r.date, window)) continue;
+    spend += r.spend;
+    metaLeads += r.leads;
+  }
 
-  const leadCount = inWindow.length;
   return {
-    leads: leadCount,
+    leads: metaLeads,
+    crmLeads: windowLeads.length,
     pickups,
     bookings,
     sales,
     revenue,
     spend,
     // Every rate is over Leads except Close Rate, which is step-over-step.
-    pickupRate: ratio(pickups, leadCount),
-    bookingRate: ratio(bookings, leadCount),
-    salesPct: ratio(sales, leadCount),
+    pickupRate: ratio(pickups, metaLeads),
+    bookingRate: ratio(bookings, metaLeads),
+    salesPct: ratio(sales, metaLeads),
     closeRate: ratio(sales, bookings),
     roas: ratio(revenue, spend),
   };
@@ -387,13 +514,15 @@ export function liveCampaignIds(entities: BreakdownEntity[]): Set<string> | null
 
 // Pivot spend and leads to one row per campaign / ad set / ad.
 //
-// The spend rows own the hierarchy: GHL gives us an ad id and nothing else, so
-// ad -> ad set -> campaign is resolved through the Meta snapshot. Two
-// consequences, both intended:
+// The Meta snapshot owns both the hierarchy and the lead count. GHL gives us an
+// ad id and nothing else, so ad -> ad set -> campaign is resolved through the
+// snapshot. Two consequences, both intended:
 //   - an ad with spend but no leads still gets a row (wasted spend stays visible)
-//   - a lead whose ad id we have never seen spend for is dropped from the
-//     breakdown; it is still counted by rollup(), and the caller surfaces the
-//     difference as an unattributed count so the two never look inconsistent.
+//   - the leads in these rows now SUM to the Results row above, because both
+//     come from the same meta_ad_days rows. Before 2026-08-13 Results counted
+//     CRM contacts and the breakdown counted only the attributed subset, so the
+//     two columns never added up and the caller had to publish an
+//     `unattributed` figure to explain the difference away.
 //
 // `entities` (Meta's live structure, from lib/metaAdEntities.ts) changes two
 // things when supplied and a campaign is live, per Jake's rule of 2026-07-30:
@@ -410,8 +539,9 @@ export function breakdown(
   leads: TrackerLead[],
   spendRows: TrackerSpendRow[],
   level: BreakdownLevel,
-  start: string | null = null,
+  window: TrackerWindow | null = ALL_TIME,
   entities: BreakdownEntity[] = [],
+  zone = "UTC",
 ): BreakdownRow[] {
   const rows = new Map<string, BreakdownRow>();
   const adToGroup = new Map<string, string>();
@@ -465,20 +595,26 @@ export function breakdown(
     return row;
   };
 
-  for (const row of spendRows.filter((r) => inRange(r.date, start))) {
+  // Spend AND leads, from the same Meta row. They used to come from different
+  // places (spend here, leads from the CRM loop below), which is exactly how the
+  // breakdown came to disagree with the Results row above it.
+  for (const row of spendRows.filter((r) => inWindow(r.date, window))) {
     const { id, name } = groupOf(row, level);
     if (!id) continue;
     adToGroup.set(row.adId, id);
     if (inScope && !inScope.has(id)) {
-      other().spend += row.spend;
+      const o = other();
+      o.spend += row.spend;
+      o.leads += row.leads;
       continue;
     }
 
     const existing = rows.get(id);
     if (existing) {
       existing.spend += row.spend;
+      existing.leads += row.leads;
     } else {
-      rows.set(id, { ...blank(id, name), spend: row.spend });
+      rows.set(id, { ...blank(id, name), spend: row.spend, leads: row.leads });
     }
   }
 
@@ -492,19 +628,19 @@ export function breakdown(
     }
   }
 
+  // Bookings, sales and revenue only. The lead count came off the Meta rows
+  // above; counting CRM contacts here as well would double it.
   for (const lead of leads) {
-    if (!lead.adId || !inRange(lead.createdAt, start)) continue;
+    if (!lead.adId || !inWindow(leadDay(lead.createdAt, zone), window)) continue;
     const groupId = adToGroup.get(lead.adId);
     // An ad we have never seen spend for at all: it cannot be placed in the
-    // hierarchy, so it stays out of the breakdown and the caller reports it as
-    // unattributed instead.
+    // hierarchy, so its booking stays out of the breakdown.
     if (!groupId) continue;
     // A lead belonging to a group the scope excluded rides along with that
-    // group's spend, so cost per lead on the "Other" row means something.
+    // group's spend, so cost per booking on the "Other" row means something.
     const row = rows.get(groupId) ?? (inScope && !inScope.has(groupId) ? other() : undefined);
     if (!row) continue;
 
-    row.leads += 1;
     if (isBooking(lead.level)) row.bookings += 1;
     if (isSale(lead.level)) {
       row.sales += 1;

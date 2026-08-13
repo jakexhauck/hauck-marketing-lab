@@ -84,7 +84,7 @@ export async function loadTrackerData(
     client
       .from("meta_ad_days")
       .select(
-        "date, ad_id, ad_name, adset_id, adset_name, campaign_id, campaign_name, spend, impressions, reach, link_clicks",
+        "date, ad_id, ad_name, adset_id, adset_name, campaign_id, campaign_name, spend, impressions, reach, link_clicks, leads",
       )
       .eq("tenant_id", tenantId),
     client

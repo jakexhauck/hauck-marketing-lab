@@ -23,6 +23,13 @@ function insight(over: Partial<MetaInsightRow> = {}): MetaInsightRow {
     impressions: "1063",
     reach: "891",
     inline_link_clicks: "19",
+    // Meta reports the roll-up alongside its components. 4 is the answer; 4 + 4
+    // = 8 is what a naive sum returns. See lib/metaActions.ts.
+    actions: [
+      { action_type: "lead", value: "4" },
+      { action_type: "offsite_conversion.fb_pixel_lead", value: "4" },
+      { action_type: "video_view", value: "512" },
+    ],
     ...over,
   };
 }
@@ -43,7 +50,31 @@ describe("buildAdDayUpserts", () => {
       impressions: 1063,
       reach: 891,
       link_clicks: 19,
+      leads: 4,
     });
+  });
+
+  it("counts a conversion once, never the roll-up plus its components", () => {
+    // The 26-vs-52 bug, at the row level. Storing the doubled figure would put
+    // it in the database, where it would outlive the fix.
+    const [row] = buildAdDayUpserts([insight()], TENANT);
+    expect(row.leads).toBe(4);
+  });
+
+  it("records no leads for an ad Meta reported no conversions on", () => {
+    // An ad with no conversions has no `actions` key at all, which must read as
+    // zero rather than dropping the row: the spend on it still has to show up.
+    const [row] = buildAdDayUpserts([insight({ actions: undefined })], TENANT);
+    expect(row.leads).toBe(0);
+    expect(row.spend).toBe(11.02);
+  });
+
+  it("ignores engagement actions that are not conversions", () => {
+    const [row] = buildAdDayUpserts(
+      [insight({ actions: [{ action_type: "video_view", value: "900" }] })],
+      TENANT,
+    );
+    expect(row.leads).toBe(0);
   });
 
   it("takes the date from Meta's date_start, never the clock", () => {
@@ -130,6 +161,7 @@ describe("toSpendRows", () => {
         impressions: 1063,
         reach: 891,
         link_clicks: 19,
+        leads: 4,
       },
     ]);
     expect(rows[0]).toEqual({
@@ -144,6 +176,7 @@ describe("toSpendRows", () => {
       impressions: 1063,
       reach: 891,
       linkClicks: 19,
+      leads: 4,
     });
   });
 
@@ -153,5 +186,10 @@ describe("toSpendRows", () => {
     ]);
     expect(rows[0].adName).toBe("");
     expect(rows[0].spend).toBe(0);
+  });
+
+  it("reads a pre-0108 row, written before the leads column existed, as zero", () => {
+    const rows = toSpendRows([{ date: "2026-03-21", ad_id: "a1", spend: "5.00" }]);
+    expect(rows[0].leads).toBe(0);
   });
 });

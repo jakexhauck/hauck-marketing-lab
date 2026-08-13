@@ -1,0 +1,244 @@
+<!doctype html><html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Onboarding 3: The Queue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<style>
+/* Direction 3: stop being client-centric. One queue of the next real actions
+   across every client, ordered by what is blocking a launch. You never pick a
+   client; you work the list top down and the list empties. */
+.wrap{max-width:880px;margin:0 auto;width:100%}
+.hero{margin-bottom:20px}
+.hero h1{font-family:var(--font-display);font-size:30px;font-weight:700;letter-spacing:-.035em;margin:0 0 6px;line-height:1.15}
+.hero h1 em{font-style:normal;color:var(--brand-text)}
+.hero p{margin:0;font-size:13.5px;color:var(--text-muted)}
+
+.tally{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:22px}
+.tally div{background:var(--surface);padding:12px 14px}
+.tally b{display:block;font-family:var(--font-display);font-size:22px;font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.tally span{font-size:11px;color:var(--text-muted)}
+.tally .hot b{color:var(--danger)}
+
+.qhead{display:flex;align-items:center;gap:10px;margin:26px 2px 10px}
+.qhead h2{font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-.01em;margin:0}
+.qhead .n{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-faint)}
+.qhead .rule{flex:1;height:1px;background:var(--divider)}
+.qhead p{margin:0;font-size:11.5px;color:var(--text-faint)}
+
+.q{display:flex;flex-direction:column;gap:6px}
+.item{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:11px 13px;transition:.18s var(--ease)}
+.item:hover{border-color:var(--border-strong);box-shadow:var(--shadow-md)}
+.item .box{width:19px;height:19px;border-radius:6px;border:1.5px solid var(--border-strong);display:grid;place-items:center;cursor:pointer;color:#fff;font-size:11px;transition:.18s;flex-shrink:0}
+.item .box:hover{border-color:var(--positive)}
+.item .who{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--text-muted);white-space:nowrap}
+.item .who .av{width:22px;height:22px;border-radius:7px;font-size:9px}
+.body b{display:block;font-size:13.5px;font-weight:600;letter-spacing:-.01em;line-height:1.35}
+.body span{font-size:11.5px;color:var(--text-faint)}
+.item .side{display:flex;align-items:center;gap:7px}
+
+.item.blocking{border-left:3px solid var(--danger)}
+.item.watch{background:transparent;border-style:dashed;box-shadow:none}
+.item.watch .body b{font-weight:500;color:var(--text-muted)}
+.item.did{opacity:.5}
+.item.did .body b{text-decoration:line-through;text-decoration-color:var(--border-strong)}
+
+.launch{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--positive);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:13px 15px;display:flex;align-items:center;gap:13px}
+.launch .body b{font-size:14px}
+@media (max-width:760px){
+  .tally{grid-template-columns:repeat(2,1fr)}
+  .item{grid-template-columns:auto 1fr;row-gap:8px}
+  .item .who{grid-column:2}
+  .item .side{grid-column:1/-1;justify-content:flex-end}
+}
+</style></head><body>
+<div class="app">
+<aside class="sidebar glass">
+  <div class="brandrow"><span class="brandmark">HM</span><b class="font-display" style="font-size:14px">Lab Console</b></div>
+  <div class="nav-group"><div class="label-cap">Agency</div>
+    <a class="nav-row"><span class="dot"></span>Overview</a>
+    <a class="nav-row"><span class="dot"></span>Acquisition</a>
+    <a class="nav-row"><span class="dot"></span>Sales</a>
+  </div>
+  <div class="nav-group"><div class="label-cap">Fulfillment</div>
+    <a class="nav-row active"><span class="dot"></span>Onboarding</a>
+    <a class="nav-row"><span class="dot"></span>Software</a>
+    <a class="nav-row"><span class="dot"></span>Paid Ads</a>
+    <a class="nav-row"><span class="dot"></span>GHL</a>
+    <a class="nav-row"><span class="dot"></span>Setter Suite</a>
+    <a class="nav-row"><span class="dot"></span>Management</a>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar glass">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="chip brand">Mockup 3</span>
+      <span style="font-size:13px;font-weight:600">The Queue</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="seg"><button aria-selected="true">The queue</button><button aria-selected="false">By client</button></div>
+      <button class="btn sm" data-theme-toggle>Dark</button>
+      <button class="btn primary sm">Add a client</button>
+    </div>
+  </header>
+
+  <div class="page"><div class="wrap">
+
+    <div class="hero">
+      <h1>Eleven things stand between you<br>and <em>three launches</em>.</h1>
+      <p>Tuesday 12 August. Ordered by what is holding a launch up, not by who signed first.</p>
+    </div>
+
+    <div class="tally">
+      <div class="hot"><b>4</b><span>Overdue</span></div>
+      <div><b>11</b><span>Yours to do</span></div>
+      <div><b>3</b><span>Waiting on a client</span></div>
+      <div><b>2</b><span>Ready to launch</span></div>
+    </div>
+
+    <div class="qhead"><h2>Ready to go live</h2><span class="n">2</span><span class="rule"></span></div>
+    <div class="q">
+      <div class="launch">
+        <span class="av e">BP</span>
+        <span class="body"><b>Bright Path Dental</b><span>55 of 55 steps · QA 30/30 · token, values and calendars all live</span></span>
+        <span style="flex:1"></span>
+        <button class="btn primary">Go live</button>
+      </div>
+      <div class="launch">
+        <span class="av b">RS</span>
+        <span class="body"><b>Ridgeline Solar</b><span>55 of 55 steps · QA 30/30 · published, Meta review passed 2 hours ago</span></span>
+        <span style="flex:1"></span>
+        <button class="btn primary">Go live</button>
+      </div>
+    </div>
+
+    <div class="qhead"><h2>Overdue</h2><span class="n">4</span><span class="rule"></span><p>Past the day the SOP allows</p></div>
+    <div class="q">
+      <div class="item blocking">
+        <span class="box"></span>
+        <span class="who"><span class="av b">HH</span>Halstead HVAC</span>
+        <span class="body"><b>Send the welcome email with the agreement and the form</b><span>Kickoff · required · signed 2 days ago, nothing sent yet</span></span>
+        <span class="side"><button class="btn sm">Open the template</button></span>
+      </div>
+      <div class="item blocking">
+        <span class="box"></span>
+        <span class="who"><span class="av b">HH</span>Halstead HVAC</span>
+        <span class="body"><b>Book the onboarding call</b><span>Kickoff · required · their calendar has Thursday free</span></span>
+        <span class="side"><button class="btn sm">Book it</button></span>
+      </div>
+      <div class="item blocking">
+        <span class="box"></span>
+        <span class="who"><span class="av a">WW</span>Willis Windows</span>
+        <span class="body"><b>Sending email domain verified</b><span>GoHighLevel · required · 6 days in this phase</span></span>
+        <span class="side"><button class="btn sm">Open in GHL</button></span>
+      </div>
+      <div class="item blocking">
+        <span class="box"></span>
+        <span class="who"><span class="av a">WW</span>Willis Windows</span>
+        <span class="body"><b>Meta Conversions API connected</b><span>GoHighLevel · required</span></span>
+        <span class="side"><button class="btn sm">Open in GHL</button></span>
+      </div>
+    </div>
+
+    <div class="qhead"><h2>Next up</h2><span class="n">7</span><span class="rule"></span></div>
+    <div class="q">
+      <div class="item">
+        <span class="box"></span>
+        <span class="who"><span class="av c">MR</span>Marek Roofing</span>
+        <span class="body"><b>Onboarding call at 2:00pm</b><span>Sixteen steps in one sitting · their account, ads manager, HighLevel, subdomain</span></span>
+        <span class="side"><button class="btn sm">Run the call</button></span>
+      </div>
+      <div class="item">
+        <span class="box"></span>
+        <span class="who"><span class="av e">CV</span>Corso Concrete</span>
+        <span class="body"><b>Book a test appointment and watch it flip</b><span>GoHighLevel · last step before Meta ads</span></span>
+        <span class="side"><button class="btn sm">Open the calendar</button></span>
+      </div>
+      <div class="item">
+        <span class="box"></span>
+        <span class="who"><span class="av a">WW</span>Willis Windows</span>
+        <span class="body"><b>Pre-launch QA</b><span>Meta ads · thirty checks · none run yet</span></span>
+        <span class="side"><span class="chip">0 / 30</span><button class="btn sm">Run the QA</button></span>
+      </div>
+      <div class="item">
+        <span class="box"></span>
+        <span class="who"><span class="av c">MR</span>Marek Roofing</span>
+        <span class="body"><b>Point their subdomain at sites.ludicrous.cloud</b><span>Onboarding call · required</span></span>
+        <span class="side"><button class="btn sm">Copy the record</button></span>
+      </div>
+      <div class="item">
+        <span class="box"></span>
+        <span class="who"><span class="av f">TR</span>Torres Remodeling</span>
+        <span class="body"><b>Their form is finished. Make them a client.</b><span>Came in 10 Aug · 24 of 24 answers · Boise, ID</span></span>
+        <span class="side"><button class="btn sm">Read it</button><button class="btn primary sm">Make them a client</button></span>
+      </div>
+      <div class="item">
+        <span class="box"></span>
+        <span class="who"><span class="av e">CV</span>Corso Concrete</span>
+        <span class="body"><b>Run the competitor and audience research</b><span>Meta ads, day 2</span></span>
+        <span class="side"><button class="btn sm">Open the doc</button></span>
+      </div>
+      <div class="item">
+        <span class="box"></span>
+        <span class="who"><span class="av d">CL</span>Cedar &amp; Co</span>
+        <span class="body"><b>Upload the creatives, Advantage Creative off</b><span>Meta ads, day 5 · unblocks the moment they approve</span></span>
+        <span class="side"><button class="btn sm">Open Ads Manager</button></span>
+      </div>
+    </div>
+
+    <div class="qhead"><h2>Waiting on a client</h2><span class="n">3</span><span class="rule"></span><p>Not your work. Nudge and move on.</p></div>
+    <div class="q">
+      <div class="item">
+        <span class="box"></span>
+        <span class="who"><span class="av d">CL</span>Cedar &amp; Co</span>
+        <span class="body"><b>Approve the top three to five creatives, in writing</b><span>Asked 4 days ago · holding up the launch</span></span>
+        <span class="side"><button class="btn sm">Nudge them</button></span>
+      </div>
+      <div class="item">
+        <span class="box"></span>
+        <span class="who"><span class="av a">WW</span>Willis Windows</span>
+        <span class="body"><b>They connect their Google Calendar from their end</b><span>Asked 6 days ago</span></span>
+        <span class="side"><button class="btn sm">Nudge them</button></span>
+      </div>
+      <div class="item">
+        <span class="box"></span>
+        <span class="who"><span class="av c">GP</span>Gable Painting</span>
+        <span class="body"><b>Finish the onboarding form</b><span>Stopped at contact details, 9 of 24 answers</span></span>
+        <span class="side"><button class="btn sm">Resend the link</button></span>
+      </div>
+    </div>
+
+    <div class="qhead"><h2>The system is watching these</h2><span class="n">4</span><span class="rule"></span><p>Tick themselves when the check passes</p></div>
+    <div class="q">
+      <div class="item watch">
+        <span class="box"></span>
+        <span class="who"><span class="av a">WW</span>Willis Windows</span>
+        <span class="body"><b>Phone number provisioned, A2P approved</b><span>Checked 4 minutes ago · still pending with the carrier</span></span>
+        <span class="side"><span class="chip warn">pending</span></span>
+      </div>
+      <div class="item watch">
+        <span class="box"></span>
+        <span class="who"><span class="av e">CV</span>Corso Concrete</span>
+        <span class="body"><b>Custom values written to GHL</b><span>Checked 4 minutes ago · 11 of 14 present</span></span>
+        <span class="side"><button class="btn sm">Provision the rest</button></span>
+      </div>
+      <div class="item watch did">
+        <span class="box" style="background-image:linear-gradient(135deg,#15803d,#22c55e);border-color:transparent">✓</span>
+        <span class="who"><span class="av c">MR</span>Marek Roofing</span>
+        <span class="body"><b>API token valid and connected</b><span>Passed 4 minutes ago</span></span>
+        <span class="side"><span class="chip ok">live</span></span>
+      </div>
+      <div class="item watch did">
+        <span class="box" style="background-image:linear-gradient(135deg,#15803d,#22c55e);border-color:transparent">✓</span>
+        <span class="who"><span class="av c">MR</span>Marek Roofing</span>
+        <span class="body"><b>Calendars exist in the sub-account</b><span>Passed 4 minutes ago · 3 calendars</span></span>
+        <span class="side"><span class="chip ok">live</span></span>
+      </div>
+    </div>
+
+  </div></div>
+</div>
+</div>
+<script src="kit.js"></script>
+</body></html>

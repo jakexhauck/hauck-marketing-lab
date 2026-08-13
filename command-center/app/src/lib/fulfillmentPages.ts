@@ -66,15 +66,17 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
   // it because the assets it builds are worked whether or not ads are the
   // source of the lead.
   //
-  // Two sub-tabs. Conversion Assets builds things a client's leads will read;
-  // Connection is the wiring underneath, where the Marketplace app's install,
-  // the event health board and the cutover switch live.
+  // Three sub-tabs. Conversion Assets builds things a client's leads will read;
+  // Calendars decides which of their booking calendars their own diary
+  // protects; Connection is the wiring underneath, where the Marketplace app's
+  // install, the event health board and the cutover switch live.
   {
     id: "ghl",
     label: "GHL",
     ready: true,
     subTabs: [
       { id: "conversion-assets", label: "Conversion Assets", ready: true },
+      { id: "calendars", label: "Calendars", ready: true },
       { id: "connection", label: "Connection", ready: true },
     ],
   },
@@ -177,6 +179,23 @@ export function paidAdsSubTabs(subs: SubTabDef[], adsLinked: boolean): SubTabDef
   if (adsLinked) return subs;
   const kept = subs.filter((s) => s.id === "creatives" || s.id === "ad-builder");
   return [{ id: ADS_SETUP_SUB, label: "Connect ads", ready: true }, ...kept];
+}
+
+// The setup step a client lands on while their GoHighLevel sub-account is not
+// wired.
+export const GHL_SETUP_SUB = "connect";
+
+// GHL before the sub-account is wired.
+//
+// Same rule as Paid Ads. Calendars reads the client's own GHL calendars and
+// Connection reports on events arriving from their sub-account: without
+// credentials both are empty screens that look like a quiet account rather than
+// an unfinished setup. Conversion Assets survives, because what it builds is
+// written here and pasted in later, so it needs nothing from GHL at all.
+export function ghlSubTabs(subs: SubTabDef[], ghlConnected: boolean): SubTabDef[] {
+  if (ghlConnected) return subs;
+  const kept = subs.filter((s) => s.id === "conversion-assets");
+  return [{ id: GHL_SETUP_SUB, label: "Connect GHL", ready: true }, ...kept];
 }
 
 // Keep a ?sub= inside whatever is actually on offer. A link to the Dashboard of

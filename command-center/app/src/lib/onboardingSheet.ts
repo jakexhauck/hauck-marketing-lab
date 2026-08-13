@@ -56,6 +56,9 @@ export function displayAnswer(
   return value;
 }
 
+/** The step key of the group the login details belong to (see INTAKE_STEPS). */
+const LOGIN_GROUP = "login";
+
 /**
  * Every section of a client's sheet, in reading order.
  *
@@ -65,22 +68,41 @@ export function displayAnswer(
  *
  * Pass an empty wiring list for a form that has not become a client yet: they
  * get the same sheet, minus a Wiring section there is nothing to put in.
+ *
+ * `password` is the one value that is not an intake answer: the funnel hashes
+ * it on arrival and strips it from the saved answers, so it arrives separately
+ * and is put back where the client would expect to find it.
  */
 export function sheetSections(
   answers: IntakeAnswers,
   wiring: ClientSecretView[],
+  password?: string | null,
 ): SheetSection[] {
   const sections: SheetSection[] = intakeGroups()
-    .map((group) => ({
-      key: group.key,
-      label: group.label,
-      fields: group.fields.map((field: IntakeField) => ({
+    .map((group) => {
+      const fields: SheetField[] = group.fields.map((field: IntakeField) => ({
         key: field.key,
         label: field.label,
         value: displayAnswer(field, answers[field.key]),
         placeholder: "Not answered",
-      })),
-    }))
+      }));
+
+      if (group.key === LOGIN_GROUP) {
+        fields.push({
+          key: "password",
+          label: "Password",
+          value: password?.trim() ? password : null,
+          // Not "Not answered": they did choose one, we just cannot show it.
+          // Only forms taken after migration 0081 kept the plaintext.
+          placeholder: "Not saved, reset it instead",
+          mono: true,
+        });
+      }
+
+      return { key: group.key, label: group.label, fields };
+    })
+    // The login section survives on its own: a client whose only answered row
+    // is their password still needs it shown.
     .filter((section) => section.fields.some((f) => f.value !== null));
 
   const byColumn = new Map(wiring.map((f) => [f.column, f]));

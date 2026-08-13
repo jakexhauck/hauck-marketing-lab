@@ -10,7 +10,7 @@ import {
 } from "../lib/brandTheme";
 
 type Phase = "idle" | "submitting" | "error";
-type LoginMode = "live" | "test" | "admin";
+type LoginMode = "live" | "admin";
 
 const BRAND_HEADLINE = "Your Business Command Center";
 const BRAND_TAGLINE = "Your clients, your pipeline, one command center.";
@@ -34,10 +34,9 @@ export default function Login() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [mode, setMode] = useState<LoginMode>("live");
-  const { signInWithPassword, signInAsStaff, signInAsAdmin } = useAuth();
+  const { signInAsStaff, signInAsAdmin } = useAuth();
   const navigate = useNavigate();
 
-  const isTest = mode === "test";
   const isAdmin = mode === "admin";
 
   const switchMode = (next: LoginMode) => {
@@ -51,18 +50,12 @@ export default function Login() {
     e.preventDefault();
     const trimmedPw = password.trim();
     const trimmedEmail = email.trim();
-    // The "test" mode string is legacy plumbing: this door now opens Made Better
-    // Landscaping Co's real sub-account. It is a shared-password login (no
-    // per-person account), so it takes only the password. Live and admin are
-    // account-based and require an email too.
-    if (!trimmedPw || (!isTest && !trimmedEmail)) return;
+    if (!trimmedPw || !trimmedEmail) return;
     setPhase("submitting");
     setErrorMsg(null);
-    const res = isTest
-      ? await signInWithPassword(trimmedPw, "test")
-      : isAdmin
-        ? await signInAsAdmin(trimmedEmail, trimmedPw)
-        : await signInAsStaff(trimmedEmail, trimmedPw, "live");
+    const res = isAdmin
+      ? await signInAsAdmin(trimmedEmail, trimmedPw)
+      : await signInAsStaff(trimmedEmail, trimmedPw, "live");
     if (res.ok) {
       navigate(isAdmin ? "/admin/clients" : CLIENT_HOME, { replace: true });
     } else {
@@ -71,23 +64,19 @@ export default function Login() {
     }
   };
 
-  // Live mode shows only the single sign-in line (no title). Made Better and
-  // admin keep their functional heading + subtitle.
+  // Live mode shows only the single sign-in line (no title). Admin keeps its
+  // functional heading + subtitle.
   const blockTitle = isAdmin
     ? "Admin Console"
-    : isTest
-      ? "Made Better Landscaping Co"
-      : "Sign in with your email and password";
+    : "Sign in with your email and password";
   const blockSubtitle = isAdmin
     ? "Sign in to the admin console with your username."
-    : isTest
-      ? "Sign in with the shared account password."
-      : null;
+    : null;
 
   const submitLabel = phase === "submitting" ? "Signing in..." : "Sign in";
 
   const submitDisabled =
-    phase === "submitting" || !password.trim() || (!isTest && !email.trim());
+    phase === "submitting" || !password.trim() || !email.trim();
 
   const inputClass =
     "mt-2 w-full rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 text-base text-[var(--text)] outline-none transition-[border-color,box-shadow] placeholder:text-[var(--text-faint)] focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[rgba(79,70,229,0.15)] disabled:opacity-60";
@@ -95,7 +84,7 @@ export default function Login() {
   const block = (
     <div className="fx-rise w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-[0_18px_40px_rgba(40,42,70,0.12),0_6px_14px_rgba(40,42,70,0.07)]">
       {/* Re-keying on `mode` remounts the inner sections so they re-cascade
-          when the user switches between live / Made Better / admin. fx-stagger sets
+          when the user switches between live / admin. fx-stagger sets
           --i on each direct child; login-field reads it for the delay. */}
       <div key={mode} className="fx-stagger">
       <div className="login-field text-center">
@@ -108,23 +97,20 @@ export default function Login() {
       </div>
 
       <form onSubmit={onSubmit} className="login-field mt-7 space-y-4">
-        {/* This is a shared-password login, so it shows no email field. */}
-        {!isTest && (
-          <label className="block">
-            <span className="label-cap">{isAdmin ? "Username" : "Email"}</span>
-            <input
-              type={isAdmin ? "text" : "email"}
-              autoCapitalize="none"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={isAdmin ? "your username" : "name@email.com"}
-              autoComplete="username"
-              required
-              disabled={phase === "submitting"}
-              className={inputClass}
-            />
-          </label>
-        )}
+        <label className="block">
+          <span className="label-cap">{isAdmin ? "Username" : "Email"}</span>
+          <input
+            type={isAdmin ? "text" : "email"}
+            autoCapitalize="none"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={isAdmin ? "your username" : "name@email.com"}
+            autoComplete="username"
+            required
+            disabled={phase === "submitting"}
+            className={inputClass}
+          />
+        </label>
         <label className="block">
           <span className="label-cap">Password</span>
           <input
@@ -161,16 +147,6 @@ export default function Login() {
       </form>
 
       <div className="login-field mt-6 space-y-2 border-t border-[var(--border)] pt-4 text-center">
-        {!isAdmin && (
-          <button
-            type="button"
-            onClick={() => switchMode(isTest ? "live" : "test")}
-            disabled={phase === "submitting"}
-            className="block w-full text-sm text-[var(--text-muted)] underline-offset-4 transition-colors hover:text-[var(--text)] hover:underline disabled:opacity-60"
-          >
-            {isTest ? "Back to client login" : "Log into Made Better"}
-          </button>
-        )}
         <button
           type="button"
           onClick={() => switchMode(isAdmin ? "live" : "admin")}

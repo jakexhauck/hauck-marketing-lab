@@ -6,7 +6,7 @@ import { PAID_ADS_CONTAINER } from "./shared";
 import { useAuth } from "../../context/AuthContext";
 import { useAdsTrackerQuery } from "../../hooks/useApi";
 import type { AdTrackerLevel, AdTrackerRange } from "../../lib/api";
-import { ErrorNote, Spinner } from "./trackerShared";
+import { DEFAULT_RANGE, ErrorNote, Spinner } from "./trackerShared";
 
 // Paid Ads > Dashboard. The client tracking sheet's Dashboard tab.
 //
@@ -16,7 +16,7 @@ import { ErrorNote, Spinner } from "./trackerShared";
 
 export default function AdsDashboard() {
   const { session } = useAuth();
-  const [range, setRange] = useState<AdTrackerRange>("all");
+  const [range, setRange] = useState<AdTrackerRange>(DEFAULT_RANGE);
   const [level, setLevel] = useState<AdTrackerLevel>("ad");
 
   const query = useAdsTrackerQuery(range, level, Boolean(session));

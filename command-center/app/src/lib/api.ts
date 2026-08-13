@@ -410,6 +410,10 @@ export interface AdminClient {
   brandInitials: string;
   appName: string;
   ghlLocationId: string;
+  // Whether this client has a real GHL location id AND a real token. The
+  // Fulfillment GHL page gates its sub-tabs on it, the way Paid Ads gates on
+  // metaAdAccountId.
+  ghlConnected: boolean;
   // The client's Meta ad account, or null when their ads are not wired yet.
   // The Fulfillment Paid Ads page gates its sub-tabs on this.
   metaAdAccountId: string | null;
@@ -564,6 +568,13 @@ export interface AdminOnboardingListResponse {
 export interface AdminOnboardingResponse {
   fields: Record<string, string>;
   intake: Record<string, string>;
+  /** The login they chose on the form. Null for a client added by hand. */
+  loginEmail: string | null;
+  /**
+   * The password they typed, as they typed it, so an owner can be signed in
+   * over the phone. Admin-gated; null for anyone who signed up before 0081.
+   */
+  password: string | null;
   status: string;
   hasToken: boolean;
   provisionResult: AdminProvisionResult | null;
@@ -623,11 +634,26 @@ export interface AdminProvisionResponse extends AdminProvisionResult {
 // quietly disagree with the sheet this was ported from. null means the
 // denominator was zero; render it as "-", never as 0.
 
-export type AdTrackerRange = "all" | "7" | "30" | "90";
+// Ads Manager's own presets. Must stay in step with TrackerRange in
+// functions/lib/adTrackerMetrics.ts, where each one's exact boundaries live.
+export type AdTrackerRange =
+  | "today"
+  | "yesterday"
+  | "last_7d"
+  | "last_14d"
+  | "last_30d"
+  | "this_month"
+  | "last_month"
+  | "maximum";
+
 export type AdTrackerLevel = "campaign" | "adset" | "ad";
 
 export interface AdTrackerKpis {
+  // Meta's own lead count for the window. Matches Ads Manager.
   leads: number;
+  // How many of those leads reached a GHL pipeline. The gap between the two is
+  // leads paid for and never worked.
+  crmLeads: number;
   pickups: number;
   bookings: number;
   sales: number;
@@ -674,6 +700,12 @@ export interface AdTrackerResponse {
   meta: {
     opportunities: number;
     spendDays: number;
+    // The ad account's reporting zone, and the exact days the window covers.
+    // Shown on the page so the client can line it up against Ads Manager
+    // instead of assuming the two agree.
+    timezone: string;
+    windowStart: string | null;
+    windowEnd: string | null;
     // No snapshot has ever been taken, which looks identical to "no spend".
     neverSynced: boolean;
     // Most recent day in the spend snapshot (YYYY-MM-DD), null when empty.

@@ -56,6 +56,7 @@ export interface DetailClient {
   healthStatus: HealthStatus;
   healthNote: string | null;
   socialGateWaived: boolean;
+  calendarGateWaived: boolean;
 }
 
 interface StaffPerm {
@@ -178,6 +179,7 @@ export default function ClientConfigPanel({
       <WebsiteCard client={client} onSaved={refreshAfterSave} />
       <AnalyticsCard client={client} onSaved={refreshAfterSave} />
       <SocialGateCard client={client} onSaved={refreshAfterSave} />
+      <CalendarGateCard client={client} onSaved={refreshAfterSave} />
       <OwnerCard tenantId={tenantId} ownerPasswordSet={client.ownerPasswordSet} onSaved={refreshAfterSave} />
       <EntitlementsCard tenantId={tenantId} enabled={data.entitlements} onSaved={refreshAfterSave} />
       <div id="cockpit-team">
@@ -488,6 +490,38 @@ function SocialGateCard({ client, onSaved }: { client: DetailClient; onSaved: ()
         className="rounded-[10px] border border-border bg-surface px-3 py-1.5 text-[13px] font-medium text-text hover:bg-surface-2 disabled:opacity-60"
       >
         {saving ? "Saving..." : waived ? "Enforce the gate" : "Waive the gate"}
+      </button>
+      {saved && <span className="ml-3 text-[12.5px] text-positive">Saved</span>}
+      {err && <span className="ml-3 text-[12.5px] text-danger">{err}</span>}
+    </Card>
+  );
+}
+
+// The calendar step of that same gate (0101), which is waived for every client
+// that predates it. Requiring one has always been possible and has never been
+// reachable: the flag had no UI, so the only way to switch it on was SQL against
+// the live database. It is a separate card rather than a second button inside
+// the social one because the two gates fail for unrelated reasons, and a client
+// held up by Meta should not have their calendar requirement quietly moved too.
+function CalendarGateCard({ client, onSaved }: { client: DetailClient; onSaved: () => Promise<void> }) {
+  const { saving, saved, err, run } = useSaver(onSaved);
+  const waived = client.calendarGateWaived;
+  return (
+    <Card title="Google Calendar step">
+      <p className="mb-4 text-[13px] text-muted">
+        {waived
+          ? "Off. The connect screen asks this client for Facebook and Instagram only."
+          : "On. The connect screen also asks this client to link their Google Calendar, and holds them there until they do."}
+      </p>
+      <button
+        type="button"
+        disabled={saving}
+        onClick={() =>
+          void run(`/api/admin/clients/${client.id}`, { calendarGateWaived: !waived })
+        }
+        className="rounded-[10px] border border-border bg-surface px-3 py-1.5 text-[13px] font-medium text-text hover:bg-surface-2 disabled:opacity-60"
+      >
+        {saving ? "Saving..." : waived ? "Ask for the calendar" : "Stop asking"}
       </button>
       {saved && <span className="ml-3 text-[12.5px] text-positive">Saved</span>}
       {err && <span className="ml-3 text-[12.5px] text-danger">{err}</span>}

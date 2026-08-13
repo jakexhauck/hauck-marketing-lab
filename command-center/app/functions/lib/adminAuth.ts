@@ -61,10 +61,13 @@ export interface TenantRow {
   health_note: string | null;
   // Lets this client past the blocking social-connect gate (0094).
   social_gate_waived: boolean;
+  // Drops the calendar step from that same gate (0101). True for every client
+  // that predates the step, so requiring one is always a deliberate act.
+  calendar_gate_waived: boolean;
 }
 
 const TENANT_COLUMNS =
-  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, subdomain, meta_ad_account_id, google_place_id, ga4_property_id, website_url, owner_password_hash, monthly_spend, created_at, health_status, health_note, social_gate_waived";
+  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, subdomain, meta_ad_account_id, google_place_id, ga4_property_id, website_url, owner_password_hash, monthly_spend, created_at, health_status, health_note, social_gate_waived, calendar_gate_waived";
 
 export async function getTenantById(
   client: SupabaseClient,

@@ -1,0 +1,558 @@
+<!doctype html><html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Onboarding: Mission Control, flat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<style>
+/* Mission Control, third pass.
+   Gone on top of the last cut: the health dots and their summary, the row of
+   check chips, the "cannot go live yet" line, every re-check button, and the
+   headings that split the list. One flat list. Everyone looks the same, whether
+   their account is built or they have only filled the form. Go live is always
+   pressable; it is Jake's call, not the app's. */
+.hero{margin-bottom:18px}
+.hero h1{font-family:var(--font-display);font-size:26px;font-weight:700;letter-spacing:-.03em;margin:0 0 4px}
+.hero p{margin:0;font-size:13px;color:var(--text-muted)}
+
+.roster{display:flex;flex-direction:column;gap:8px}
+.row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;transition:box-shadow .2s var(--ease),border-color .2s}
+.row[open]{box-shadow:var(--shadow-md);border-color:var(--border-strong)}
+.row>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:32px 1fr auto auto;align-items:center;gap:16px;padding:14px 16px}
+.row>summary::-webkit-details-marker{display:none}
+.row>summary:hover{background:var(--surface-2)}
+.who b{display:block;font-size:14px;font-weight:600;letter-spacing:-.015em}
+.who span{font-size:11.5px;color:var(--text-faint)}
+.caret{color:var(--text-faint);font-size:11px;transition:transform .2s var(--ease)}
+.row[open] .caret{transform:rotate(90deg)}
+
+/* the sheet */
+.doc{border-top:1px solid var(--divider);background:var(--surface-2);padding:14px 18px 18px}
+.sheet{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.sheettop{display:flex;justify-content:flex-end;padding:8px 12px 0}
+.cols{columns:2;column-gap:34px;padding:10px 20px 16px}
+@media (max-width:900px){.cols{columns:1}}
+.sect{break-inside:avoid;margin-bottom:18px}
+.sect:last-child{margin-bottom:0}
+.sect h4{font-size:10px;text-transform:uppercase;letter-spacing:.09em;font-weight:700;color:var(--brand-text);margin:0 0 6px;padding-bottom:5px;border-bottom:1px solid var(--divider)}
+.fld{display:grid;grid-template-columns:118px 1fr auto;gap:10px;align-items:baseline;padding:4px 0;border-radius:6px}
+.fld:hover{background:var(--surface-2)}
+.fld dt{font-size:11.5px;color:var(--text-faint);line-height:1.5}
+.fld dd{margin:0;font-size:13px;font-weight:500;line-height:1.5;word-break:break-word}
+.fld dd.mono{font-family:var(--font-mono);font-size:12px;font-weight:600}
+.fld dd.none{color:var(--text-faint);font-weight:400;font-style:italic}
+.fld .cp{opacity:0;border:none;background:none;font:inherit;font-size:10.5px;font-weight:600;color:var(--brand-text);cursor:pointer;padding:0 2px;transition:opacity .15s}
+.fld:hover .cp,.fld .cp:focus-visible{opacity:1}
+.fld.copied{background:var(--positive-tint)}
+.fld.copied .cp{opacity:1;color:var(--positive)}
+.hours{font-size:12.5px;line-height:1.75}
+.hours span{color:var(--text-faint);display:inline-block;width:38px}
+.docfoot{display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap;margin-top:12px}
+@media (max-width:760px){.row>summary{grid-template-columns:32px 1fr auto;row-gap:10px}}
+</style></head><body>
+<div class="app">
+<aside class="sidebar glass">
+  <div class="brandrow"><span class="brandmark">HM</span><b class="font-display" style="font-size:14px">Lab Console</b></div>
+  <div class="nav-group"><div class="label-cap">Agency</div>
+    <a class="nav-row"><span class="dot"></span>Overview</a>
+    <a class="nav-row"><span class="dot"></span>Acquisition</a>
+    <a class="nav-row"><span class="dot"></span>Sales</a>
+  </div>
+  <div class="nav-group"><div class="label-cap">Fulfillment</div>
+    <a class="nav-row active"><span class="dot"></span>Onboarding</a>
+    <a class="nav-row"><span class="dot"></span>Software</a>
+    <a class="nav-row"><span class="dot"></span>Paid Ads</a>
+    <a class="nav-row"><span class="dot"></span>GHL</a>
+    <a class="nav-row"><span class="dot"></span>Setter Suite</a>
+    <a class="nav-row"><span class="dot"></span>Management</a>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar glass">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="chip brand">Flat</span>
+      <span style="font-size:13px;font-weight:600">Mission Control</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn sm" data-theme-toggle>Dark</button>
+      <button class="btn primary sm">Add a client</button>
+    </div>
+  </header>
+
+  <div class="page">
+    <div class="hero">
+      <h1>Onboarding</h1>
+      <p>Eight accounts. Open one for their details.</p>
+    </div>
+
+    <div class="roster">
+
+      <details class="row" open>
+        <summary>
+          <span class="av a">WW</span>
+          <span class="who"><b>Willis Windows</b><span>Windows and siding · Meridian, ID</span></span>
+          <button class="btn primary sm">Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc">
+          <div class="sheet">
+            <div class="sheettop"><button class="btn sm" data-copy-all>Copy the whole sheet</button></div>
+            <div class="cols">
+              <div class="sect"><h4>Business</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Willis Windows</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>What they do</dt><dd>Windows and siding</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Website</dt><dd>williswindows.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Legal name</dt><dd>Willis Windows LLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Structure</dt><dd>LLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Tax ID</dt><dd class="mono">87-2049113</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Contact</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Dave Willis</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Title</dt><dd>Owner</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Email</dt><dd>dave@williswindows.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Phone</dt><dd class="mono">(208) 555-0142</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Timezone</dt><dd>America/Boise</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Address</dt><dd>1420 N Eagle Rd, Suite 200, Meridian, ID 83642</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Targeting</h4><dl style="margin:0">
+                <div class="fld"><dt>Zip codes</dt><dd class="mono">83642, 83646, 83616, 83702</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Area call-out</dt><dd>The Treasure Valley</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Primary offer</dt><dd>Free in-home window estimate</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Hours</h4><div class="hours">
+                <span>Mon</span>8am to 5pm<br><span>Tue</span>8am to 5pm<br><span>Wed</span>8am to 5pm<br>
+                <span>Thu</span>8am to 5pm<br><span>Fri</span>8am to 5pm<br><span>Sat</span>9am to 1pm<br><span>Sun</span>Closed
+              </div></div>
+              <div class="sect"><h4>Their login</h4><dl style="margin:0">
+                <div class="fld"><dt>Email</dt><dd>dave@williswindows.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>App</dt><dd>app.hauckmarketing.com</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Wiring</h4><dl style="margin:0">
+                <div class="fld"><dt>GHL location</dt><dd class="mono">loc_QhT4x9fA2mNp</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>API token</dt><dd class="mono">••••••••••••3f1c</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Meta ad account</dt><dd class="mono">act_884120344</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Subdomain</dt><dd class="mono">go.williswindows.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Facebook page</dt><dd>Willis Windows &amp; Siding</dd><button class="cp">Copy</button></div>
+              </dl></div>
+            </div>
+          </div>
+          <div class="docfoot">
+            <button class="btn primary sm">Go live</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av c">MR</span>
+          <span class="who"><b>Marek Roofing</b><span>Roofing and gutters · Nampa, ID</span></span>
+          <button class="btn primary sm">Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc">
+          <div class="sheet">
+            <div class="sheettop"><button class="btn sm" data-copy-all>Copy the whole sheet</button></div>
+            <div class="cols">
+              <div class="sect"><h4>Business</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Marek Roofing</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>What they do</dt><dd>Roofing and gutters</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Website</dt><dd>marekroofing.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Legal name</dt><dd>Marek Roofing Co</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Structure</dt><dd>Corporation</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Tax ID</dt><dd class="mono">82-4471902</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Contact</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Tomas Marek</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Title</dt><dd>Owner</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Email</dt><dd>tomas@marekroofing.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Phone</dt><dd class="mono">(208) 555-0388</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Timezone</dt><dd>America/Boise</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Address</dt><dd>905 12th Ave S, Nampa, ID 83651</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Targeting</h4><dl style="margin:0">
+                <div class="fld"><dt>Zip codes</dt><dd class="mono">83651, 83686, 83687, 83605</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Area call-out</dt><dd>The Nampa and Caldwell area</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Primary offer</dt><dd>Free roof inspection</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Hours</h4><div class="hours">
+                <span>Mon</span>7am to 6pm<br><span>Tue</span>7am to 6pm<br><span>Wed</span>7am to 6pm<br>
+                <span>Thu</span>7am to 6pm<br><span>Fri</span>7am to 4pm<br><span>Sat</span>Closed<br><span>Sun</span>Closed
+              </div></div>
+              <div class="sect"><h4>Their login</h4><dl style="margin:0">
+                <div class="fld"><dt>Email</dt><dd>tomas@marekroofing.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>App</dt><dd>app.hauckmarketing.com</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Wiring</h4><dl style="margin:0">
+                <div class="fld"><dt>GHL location</dt><dd class="mono">loc_Bd82kLpQ4vXr</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>API token</dt><dd class="mono">••••••••••••9a04</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Meta ad account</dt><dd class="mono">act_771903255</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Subdomain</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Facebook page</dt><dd>Marek Roofing</dd><button class="cp">Copy</button></div>
+              </dl></div>
+            </div>
+          </div>
+          <div class="docfoot">
+            <button class="btn primary sm">Go live</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av d">CL</span>
+          <span class="who"><b>Cedar &amp; Co Landscaping</b><span>Landscaping and hardscape · Boise, ID</span></span>
+          <button class="btn primary sm">Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc">
+          <div class="sheet">
+            <div class="sheettop"><button class="btn sm" data-copy-all>Copy the whole sheet</button></div>
+            <div class="cols">
+              <div class="sect"><h4>Business</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Cedar &amp; Co Landscaping</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>What they do</dt><dd>Landscaping and hardscape</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Website</dt><dd>cedarandco.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Legal name</dt><dd>Cedar and Company LLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Structure</dt><dd>LLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Tax ID</dt><dd class="mono">88-1290477</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Contact</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Rachel Cedar</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Title</dt><dd>Co-owner</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Email</dt><dd>rachel@cedarandco.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Phone</dt><dd class="mono">(208) 555-0917</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Timezone</dt><dd>America/Boise</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Address</dt><dd>3311 W State St, Boise, ID 83703</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Targeting</h4><dl style="margin:0">
+                <div class="fld"><dt>Zip codes</dt><dd class="mono">83702, 83703, 83704, 83714, 83616</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Area call-out</dt><dd>The Boise foothills</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Primary offer</dt><dd>Free design consultation</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Hours</h4><div class="hours">
+                <span>Mon</span>8am to 5pm<br><span>Tue</span>8am to 5pm<br><span>Wed</span>8am to 5pm<br>
+                <span>Thu</span>8am to 5pm<br><span>Fri</span>8am to 5pm<br><span>Sat</span>By appointment<br><span>Sun</span>Closed
+              </div></div>
+              <div class="sect"><h4>Their login</h4><dl style="margin:0">
+                <div class="fld"><dt>Email</dt><dd>rachel@cedarandco.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>App</dt><dd>app.hauckmarketing.com</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Wiring</h4><dl style="margin:0">
+                <div class="fld"><dt>GHL location</dt><dd class="mono">loc_Nz71wRtY6cKm</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>API token</dt><dd class="mono">••••••••••••c7d2</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Meta ad account</dt><dd class="mono">act_609338710</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Subdomain</dt><dd class="mono">go.cedarandco.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Facebook page</dt><dd>Cedar &amp; Co Landscaping</dd><button class="cp">Copy</button></div>
+              </dl></div>
+            </div>
+          </div>
+          <div class="docfoot">
+            <button class="btn primary sm">Go live</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av b">HH</span>
+          <span class="who"><b>Halstead HVAC</b><span>Heating and cooling · Caldwell, ID</span></span>
+          <button class="btn primary sm">Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc">
+          <div class="sheet">
+            <div class="sheettop"><button class="btn sm" data-copy-all>Copy the whole sheet</button></div>
+            <div class="cols">
+              <div class="sect"><h4>Business</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Halstead HVAC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>What they do</dt><dd>Heating and cooling</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Website</dt><dd>halsteadhvac.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Legal name</dt><dd>Halstead Heating &amp; Air LLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Structure</dt><dd>LLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Tax ID</dt><dd class="mono">84-3308215</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Contact</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Ben Halstead</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Title</dt><dd>Owner</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Email</dt><dd>ben@halsteadhvac.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Phone</dt><dd class="mono">(208) 555-0264</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Timezone</dt><dd>America/Boise</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Address</dt><dd>210 S Kimball Ave, Caldwell, ID 83605</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Targeting</h4><dl style="margin:0">
+                <div class="fld"><dt>Zip codes</dt><dd class="mono">83605, 83607, 83651, 83686</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Area call-out</dt><dd>Canyon County</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Primary offer</dt><dd>$79 tune-up</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Hours</h4><div class="hours">
+                <span>Mon</span>7am to 7pm<br><span>Tue</span>7am to 7pm<br><span>Wed</span>7am to 7pm<br>
+                <span>Thu</span>7am to 7pm<br><span>Fri</span>7am to 7pm<br><span>Sat</span>8am to 2pm<br><span>Sun</span>Emergency only
+              </div></div>
+              <div class="sect"><h4>Their login</h4><dl style="margin:0">
+                <div class="fld"><dt>Email</dt><dd>ben@halsteadhvac.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>App</dt><dd>app.hauckmarketing.com</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Wiring</h4><dl style="margin:0">
+                <div class="fld"><dt>GHL location</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>API token</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Meta ad account</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Subdomain</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Facebook page</dt><dd>Halstead Heating &amp; Air</dd><button class="cp">Copy</button></div>
+              </dl></div>
+            </div>
+          </div>
+          <div class="docfoot">
+            <button class="btn primary sm">Go live</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av e">CV</span>
+          <span class="who"><b>Corso Concrete</b><span>Driveways and patios · Eagle, ID</span></span>
+          <button class="btn primary sm">Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc">
+          <div class="sheet">
+            <div class="sheettop"><button class="btn sm" data-copy-all>Copy the whole sheet</button></div>
+            <div class="cols">
+              <div class="sect"><h4>Business</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Corso Concrete</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>What they do</dt><dd>Driveways and patios</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Website</dt><dd>corsoconcrete.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Legal name</dt><dd>Corso Concrete LLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Structure</dt><dd>LLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Tax ID</dt><dd class="mono">86-5512088</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Contact</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Nick Corso</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Title</dt><dd>Owner</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Email</dt><dd>nick@corsoconcrete.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Phone</dt><dd class="mono">(208) 555-0731</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Timezone</dt><dd>America/Boise</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Address</dt><dd>1180 E State St, Eagle, ID 83616</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Targeting</h4><dl style="margin:0">
+                <div class="fld"><dt>Zip codes</dt><dd class="mono">83616, 83714, 83646, 83642</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Area call-out</dt><dd>Eagle and Star</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Primary offer</dt><dd>Free driveway quote</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Hours</h4><div class="hours">
+                <span>Mon</span>7am to 5pm<br><span>Tue</span>7am to 5pm<br><span>Wed</span>7am to 5pm<br>
+                <span>Thu</span>7am to 5pm<br><span>Fri</span>7am to 3pm<br><span>Sat</span>Closed<br><span>Sun</span>Closed
+              </div></div>
+              <div class="sect"><h4>Their login</h4><dl style="margin:0">
+                <div class="fld"><dt>Email</dt><dd>nick@corsoconcrete.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>App</dt><dd>app.hauckmarketing.com</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Wiring</h4><dl style="margin:0">
+                <div class="fld"><dt>GHL location</dt><dd class="mono">loc_Vk40hSdE1yBt</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>API token</dt><dd class="mono">••••••••••••e618</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Meta ad account</dt><dd class="mono">act_452117690</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Subdomain</dt><dd class="mono">go.corsoconcrete.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Facebook page</dt><dd>Corso Concrete</dd><button class="cp">Copy</button></div>
+              </dl></div>
+            </div>
+          </div>
+          <div class="docfoot">
+            <button class="btn primary sm">Go live</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av e">BP</span>
+          <span class="who"><b>Bright Path Dental</b><span>Implants and cosmetic · Boise, ID</span></span>
+          <button class="btn primary sm">Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc">
+          <div class="sheet">
+            <div class="sheettop"><button class="btn sm" data-copy-all>Copy the whole sheet</button></div>
+            <div class="cols">
+              <div class="sect"><h4>Business</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Bright Path Dental</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>What they do</dt><dd>Implants and cosmetic dentistry</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Website</dt><dd>brightpathdental.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Legal name</dt><dd>Bright Path Dental PLLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Structure</dt><dd>Corporation</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Tax ID</dt><dd class="mono">83-7740126</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Contact</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Dr Anita Rao</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Title</dt><dd>Practice owner</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Email</dt><dd>anita@brightpathdental.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Phone</dt><dd class="mono">(208) 555-0450</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Timezone</dt><dd>America/Boise</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Address</dt><dd>7620 W Overland Rd, Suite 110, Boise, ID 83709</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Targeting</h4><dl style="margin:0">
+                <div class="fld"><dt>Zip codes</dt><dd class="mono">83709, 83705, 83706, 83642</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Area call-out</dt><dd>West Boise</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Primary offer</dt><dd>Free implant consultation and scan</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Hours</h4><div class="hours">
+                <span>Mon</span>8am to 4pm<br><span>Tue</span>8am to 4pm<br><span>Wed</span>8am to 4pm<br>
+                <span>Thu</span>8am to 4pm<br><span>Fri</span>8am to 12pm<br><span>Sat</span>Closed<br><span>Sun</span>Closed
+              </div></div>
+              <div class="sect"><h4>Their login</h4><dl style="margin:0">
+                <div class="fld"><dt>Email</dt><dd>anita@brightpathdental.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>App</dt><dd>app.hauckmarketing.com</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Wiring</h4><dl style="margin:0">
+                <div class="fld"><dt>GHL location</dt><dd class="mono">loc_Jr93uPwX8fLd</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>API token</dt><dd class="mono">••••••••••••b155</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Meta ad account</dt><dd class="mono">act_318772904</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Subdomain</dt><dd class="mono">go.brightpathdental.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Facebook page</dt><dd>Bright Path Dental</dd><button class="cp">Copy</button></div>
+              </dl></div>
+            </div>
+          </div>
+          <div class="docfoot">
+            <button class="btn primary sm">Go live</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av f">TR</span>
+          <span class="who"><b>Torres Remodeling</b><span>Windows and siding · Boise, ID</span></span>
+          <button class="btn primary sm">Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc">
+          <div class="sheet">
+            <div class="sheettop"><button class="btn sm" data-copy-all>Copy the whole sheet</button></div>
+            <div class="cols">
+              <div class="sect"><h4>Business</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Torres Remodeling</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>What they do</dt><dd>Windows and siding</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Website</dt><dd>torresremodel.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Legal name</dt><dd>Torres Remodeling LLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Structure</dt><dd>LLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Tax ID</dt><dd class="mono">87-9903441</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Contact</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Elena Torres</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Title</dt><dd>Owner</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Email</dt><dd>elena@torresremodel.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Phone</dt><dd class="mono">(208) 555-0126</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Timezone</dt><dd>America/Boise</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Address</dt><dd>2044 W Fairview Ave, Boise, ID 83702</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Targeting</h4><dl style="margin:0">
+                <div class="fld"><dt>Zip codes</dt><dd class="mono">83702, 83704, 83709, 83646</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Area call-out</dt><dd>The Boise Bench</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Primary offer</dt><dd>Free window and siding estimate</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Hours</h4><div class="hours">
+                <span>Mon</span>8am to 5pm<br><span>Tue</span>8am to 5pm<br><span>Wed</span>8am to 5pm<br>
+                <span>Thu</span>8am to 5pm<br><span>Fri</span>8am to 5pm<br><span>Sat</span>9am to 12pm<br><span>Sun</span>Closed
+              </div></div>
+              <div class="sect"><h4>Their login</h4><dl style="margin:0">
+                <div class="fld"><dt>Email</dt><dd>elena@torresremodel.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>App</dt><dd>app.hauckmarketing.com</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Wiring</h4><dl style="margin:0">
+                <div class="fld"><dt>GHL location</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>API token</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Meta ad account</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Subdomain</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Facebook page</dt><dd>Torres Remodeling</dd><button class="cp">Copy</button></div>
+              </dl></div>
+            </div>
+          </div>
+          <div class="docfoot">
+            <button class="btn primary sm">Go live</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av c">GP</span>
+          <span class="who"><b>Gable Painting</b><span>Interior and exterior · Kuna, ID</span></span>
+          <button class="btn primary sm">Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc">
+          <div class="sheet">
+            <div class="sheettop"><button class="btn sm" data-copy-all>Copy the whole sheet</button></div>
+            <div class="cols">
+              <div class="sect"><h4>Business</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Gable Painting</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>What they do</dt><dd>Interior and exterior painting</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Website</dt><dd>gablepainting.co</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Legal name</dt><dd class="none">Not answered</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Structure</dt><dd class="none">Not answered</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Tax ID</dt><dd class="none">Not answered</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Contact</h4><dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Sam Gable</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Title</dt><dd class="none">Not answered</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Email</dt><dd>sam@gablepainting.co</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Phone</dt><dd class="none">Not answered</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Timezone</dt><dd class="none">Not answered</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Address</dt><dd class="none">Not answered</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Targeting</h4><dl style="margin:0">
+                <div class="fld"><dt>Zip codes</dt><dd class="none">Not answered</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Area call-out</dt><dd class="none">Not answered</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Primary offer</dt><dd class="none">Not answered</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Hours</h4><div class="hours faint">Not answered</div></div>
+              <div class="sect"><h4>Their login</h4><dl style="margin:0">
+                <div class="fld"><dt>Email</dt><dd>sam@gablepainting.co</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>App</dt><dd>app.hauckmarketing.com</dd><button class="cp">Copy</button></div>
+              </dl></div>
+              <div class="sect"><h4>Wiring</h4><dl style="margin:0">
+                <div class="fld"><dt>GHL location</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>API token</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Meta ad account</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Subdomain</dt><dd class="none">Not set up yet</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Facebook page</dt><dd class="none">Not answered</dd><button class="cp">Copy</button></div>
+              </dl></div>
+            </div>
+          </div>
+          <div class="docfoot">
+            <button class="btn primary sm">Go live</button>
+          </div>
+        </div>
+      </details>
+
+    </div>
+  </div>
+</div>
+</div>
+<script src="kit.js"></script>
+<script>
+// Click a field, or its Copy button, and the value goes to the clipboard. The
+// row flashes green so there is no doubt it landed.
+document.addEventListener("click", (e) => {
+  const all = e.target.closest("[data-copy-all]");
+  if (all) {
+    const sheet = all.closest(".sheet").querySelector(".cols");
+    navigator.clipboard?.writeText(sheet.innerText.trim());
+    all.textContent = "Copied the sheet";
+    setTimeout(() => (all.textContent = "Copy the whole sheet"), 1400);
+    return;
+  }
+  const f = e.target.closest(".fld");
+  if (!f) return;
+  const value = f.querySelector("dd")?.textContent ?? "";
+  navigator.clipboard?.writeText(value);
+  f.classList.add("copied");
+  const btn = f.querySelector(".cp");
+  if (btn) btn.textContent = "Copied";
+  setTimeout(() => {
+    f.classList.remove("copied");
+    if (btn) btn.textContent = "Copy";
+  }, 1200);
+});
+</script>
+</body></html>

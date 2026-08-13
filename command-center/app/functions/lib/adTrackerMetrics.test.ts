@@ -5,7 +5,8 @@ import {
   isBooking,
   isSale,
   furthestLevel,
-  rangeStart,
+  rangeWindow,
+  inWindow,
   rollup,
   breakdown,
   ratio,
@@ -99,10 +100,14 @@ function sheetFixture(): TrackerLead[] {
   ];
 }
 
+// `leadCount` is Meta's own lead count for that ad on that day, which is where
+// every Leads figure now comes from. It sits before `date` because almost every
+// test cares about it and almost none care about the date.
 function spendRow(
   adId: string,
   adsetId: string,
   spend: number,
+  leadCount = 0,
   date = DAY,
 ): TrackerSpendRow {
   return {
@@ -117,15 +122,21 @@ function spendRow(
     impressions: 1000,
     reach: 900,
     linkClicks: 20,
+    leads: leadCount,
   };
 }
 
+// The Meta side of the sheet fixture. The per-ad lead counts are the same
+// numbers the CRM fixture above carries (a1 20, a2 12, b1 24, c1 24), so ad set
+// A still totals 32 and the account still totals 80. That is deliberate: the
+// sheet's cross-validation has to keep holding now that Leads comes from Meta
+// rather than from counting contacts.
 function sheetSpend(): TrackerSpendRow[] {
   return [
-    spendRow("a1", "A", 1000),
-    spendRow("a2", "A", 647),
-    spendRow("b1", "B", 1357),
-    spendRow("c1", "C", 1504),
+    spendRow("a1", "A", 1000, 20),
+    spendRow("a2", "A", 647, 12),
+    spendRow("b1", "B", 1357, 24),
+    spendRow("c1", "C", 1504, 24),
   ];
 }
 
@@ -289,17 +300,98 @@ describe("furthestLevel", () => {
   });
 });
 
-describe("rangeStart", () => {
-  const now = new Date("2026-03-31T12:00:00Z");
+// Every expectation here is transcribed from a live probe of Willis's ad
+// account (act_27110669075184924) on 2026-08-13, one call per preset with
+// time_increment=1, reading Meta's own first and last date_start. They are not
+// derived from Meta's documentation and they are not what a tidy implementation
+// would produce. See rangeWindow().
+describe("rangeWindow matches Ads Manager's presets", () => {
+  // 2026-08-13 18:11 EST. Deliberately an instant that is ALREADY the next day
+  // in UTC, which is exactly the case the old Date.UTC implementation got wrong.
+  const now = new Date("2026-08-13T23:11:00Z");
+  const EST = "EST";
 
-  it("returns null for all-time so nothing is filtered", () => {
-    expect(rangeStart("all", now)).toBeNull();
+  it("treats today as today in the ad account's zone, not UTC's", () => {
+    expect(rangeWindow("today", now, EST)).toEqual({
+      start: "2026-08-13",
+      end: "2026-08-13",
+    });
+    // The same instant is already the 14th in Tokyo, and Meta would bucket it
+    // there. Proves the zone is doing the work rather than being decoration.
+    expect(rangeWindow("today", now, "Asia/Tokyo")).toEqual({
+      start: "2026-08-14",
+      end: "2026-08-14",
+    });
   });
 
-  it("counts back N days like the sheet's TODAY()-N", () => {
-    expect(rangeStart("7", now)).toBe("2026-03-24");
-    expect(rangeStart("30", now)).toBe("2026-03-01");
-    expect(rangeStart("90", now)).toBe("2025-12-31");
+  it("ends the last_Nd presets YESTERDAY, the way Meta does", () => {
+    expect(rangeWindow("last_7d", now, EST)).toEqual({
+      start: "2026-08-06",
+      end: "2026-08-12",
+    });
+    expect(rangeWindow("last_14d", now, EST)).toEqual({
+      start: "2026-07-30",
+      end: "2026-08-12",
+    });
+    expect(rangeWindow("last_30d", now, EST)).toEqual({
+      start: "2026-07-14",
+      end: "2026-08-12",
+    });
+  });
+
+  it("includes today in this_month, which last_7d does not", () => {
+    // Meta's own inconsistency, reproduced on purpose.
+    expect(rangeWindow("this_month", now, EST)).toEqual({
+      start: "2026-08-01",
+      end: "2026-08-13",
+    });
+  });
+
+  it("closes last_month on the last day of the previous month", () => {
+    expect(rangeWindow("last_month", now, EST)).toEqual({
+      start: "2026-07-01",
+      end: "2026-07-31",
+    });
+    // Across a year boundary, and out of a 31-day month into a 30-day one.
+    expect(rangeWindow("last_month", new Date("2026-01-09T12:00:00Z"), EST)).toEqual({
+      start: "2025-12-01",
+      end: "2025-12-31",
+    });
+  });
+
+  it("leaves maximum unbounded at both ends", () => {
+    expect(rangeWindow("maximum", now, EST)).toEqual({ start: null, end: null });
+  });
+
+  it("counts back over a month boundary without landing on day zero", () => {
+    const mar1 = new Date("2026-03-01T18:00:00Z");
+    expect(rangeWindow("last_7d", mar1, EST)).toEqual({
+      start: "2026-02-22",
+      end: "2026-02-28",
+    });
+  });
+});
+
+describe("inWindow", () => {
+  const w = { start: "2026-03-10", end: "2026-03-20" };
+
+  it("includes both boundary days", () => {
+    expect(inWindow("2026-03-10", w)).toBe(true);
+    expect(inWindow("2026-03-20", w)).toBe(true);
+  });
+
+  it("excludes the days either side", () => {
+    expect(inWindow("2026-03-09", w)).toBe(false);
+    expect(inWindow("2026-03-21", w)).toBe(false);
+  });
+
+  it("treats an unbounded end as open", () => {
+    expect(inWindow("2030-01-01", { start: "2026-03-10", end: null })).toBe(true);
+    expect(inWindow("1999-01-01", { start: null, end: "2026-03-10" })).toBe(true);
+  });
+
+  it("reads the date out of a full timestamp", () => {
+    expect(inWindow("2026-03-15T22:41:03.000Z", w)).toBe(true);
   });
 });
 
@@ -311,6 +403,25 @@ describe("rollup against the live sheet's numbers", () => {
     expect(kpis.pickups).toBe(60);
     expect(kpis.bookings).toBe(32);
     expect(kpis.sales).toBe(9);
+  });
+
+  it("takes Leads from Meta and reports the CRM's own count separately", () => {
+    // The fixture is built so both agree at 80. They agree here and nowhere
+    // else in real life: Willis reads Meta 51, CRM 6 for the same thirty days.
+    // What matters is that `leads` is read off the Meta rows, so a CRM that has
+    // lost half its leads can no longer drag the headline figure down with it.
+    const halfLost = rollup(sheetFixture().slice(0, 40), sheetSpend());
+    expect(halfLost.leads).toBe(80);
+    expect(halfLost.crmLeads).toBe(40);
+  });
+
+  it("counts no leads at all when Meta has not been synced", () => {
+    // Spend rows exist but carry no lead counts (every row before migration
+    // 0108 backfilled). Zero is the honest answer; falling back to counting
+    // contacts is what produced the number this whole rebuild exists to kill.
+    const unsynced = rollup(sheetFixture(), [spendRow("a1", "A", 1000)]);
+    expect(unsynced.leads).toBe(0);
+    expect(unsynced.crmLeads).toBe(80);
   });
 
   it("matches the sheet's rates", () => {
@@ -336,29 +447,68 @@ describe("rollup against the live sheet's numbers", () => {
 
   it("counts a booking that was lost, matching the sheet's Lost-is-a-booking rule", () => {
     const lost = [lead(1, "a1", "booking")]; // No Close / No-Show land here
-    const k = rollup(lost, [spendRow("a1", "A", 100)]);
+    const k = rollup(lost, [spendRow("a1", "A", 100, 1)]);
     expect(k.bookings).toBe(1);
     expect(k.sales).toBe(0);
     expect(k.closeRate).toBe(0);
   });
+
+  it("divides the rates by Meta's leads, not the CRM's", () => {
+    // Meta reported 10 leads; only 2 ever reached the CRM, and one booked.
+    // Booking rate is 1/10, not 1/2. Dividing by the CRM count would report a
+    // 50% booking rate on a campaign that is actually converting at 10%, which
+    // is precisely the flattery this page must not offer.
+    const k = rollup([lead(1, "a1", "booking"), lead(2, "a1", "lead")], [
+      spendRow("a1", "A", 100, 10),
+    ]);
+    expect(k.leads).toBe(10);
+    expect(k.crmLeads).toBe(2);
+    expect(k.bookingRate).toBeCloseTo(0.1, 10);
+  });
 });
 
 describe("rollup date filtering", () => {
-  it("excludes leads and spend outside the range", () => {
+  const W = { start: "2026-03-10", end: "2026-03-31" };
+
+  it("excludes leads and spend outside the window", () => {
     const rows: TrackerLead[] = [
       lead(1, "a1", "sale", 100, "2026-03-01"),
       lead(2, "a1", "sale", 100, "2026-03-20"),
     ];
-    const spend = [spendRow("a1", "A", 50, "2026-03-01"), spendRow("a1", "A", 50, "2026-03-20")];
-    const k = rollup(rows, spend, "2026-03-10");
-    expect(k.leads).toBe(1);
+    const spend = [
+      spendRow("a1", "A", 50, 3, "2026-03-01"),
+      spendRow("a1", "A", 50, 4, "2026-03-20"),
+    ];
+    const k = rollup(rows, spend, W);
+    expect(k.leads).toBe(4);
+    expect(k.crmLeads).toBe(1);
     expect(k.revenue).toBe(100);
     expect(k.spend).toBe(50);
   });
 
   it("includes a lead landing exactly on the boundary", () => {
-    const k = rollup([lead(1, "a1", "lead", 0, "2026-03-10")], [], "2026-03-10");
-    expect(k.leads).toBe(1);
+    const k = rollup([lead(1, "a1", "lead", 0, "2026-03-10")], [], W);
+    expect(k.crmLeads).toBe(1);
+  });
+
+  it("excludes what falls past the END of the window", () => {
+    // The old implementation had no end at all, so "Last 7 days" silently
+    // included today and could never agree with Meta's version of it.
+    const spend = [
+      spendRow("a1", "A", 50, 4, "2026-03-31"),
+      spendRow("a1", "A", 50, 9, "2026-04-01"),
+    ];
+    const k = rollup([], spend, W);
+    expect(k.leads).toBe(4);
+    expect(k.spend).toBe(50);
+  });
+
+  it("buckets a CRM lead by the ad account's day, not UTC's", () => {
+    // 2026-03-20 21:30 EST is already the 21st in UTC. Meta would put the ad
+    // impression that produced it on the 20th, so the lead belongs there too.
+    const late = [lead(1, "a1", "lead", 0, "2026-03-21T02:30:00Z")];
+    expect(rollup(late, [], { start: "2026-03-20", end: "2026-03-20" }, "EST").crmLeads).toBe(1);
+    expect(rollup(late, [], { start: "2026-03-21", end: "2026-03-21" }, "EST").crmLeads).toBe(0);
   });
 });
 
@@ -389,10 +539,22 @@ describe("breakdown", () => {
     expect(rows[0]).toMatchObject({ id: "camp1", leads: 80, bookings: 32, sales: 9 });
   });
 
+  it("adds up to the Results row, because both count the same Meta rows", () => {
+    // The property that could not hold before 2026-08-13. Results counted CRM
+    // contacts and the breakdown counted only the attributed subset, so the two
+    // never reconciled and the payload had to publish an `unattributed` figure
+    // to explain the difference away.
+    const summed = breakdown(sheetFixture(), sheetSpend(), "ad").reduce(
+      (n, r) => n + r.leads,
+      0,
+    );
+    expect(summed).toBe(rollup(sheetFixture(), sheetSpend()).leads);
+  });
+
   it("computes cost per lead and per booking, null when the denominator is zero", () => {
     const rows = breakdown(
       [...leads(2, "a1", "lead")],
-      [spendRow("a1", "A", 100), spendRow("z9", "Z", 500)],
+      [spendRow("a1", "A", 100, 2), spendRow("z9", "Z", 500, 0)],
       "ad",
     );
     const a1 = rows.find((r) => r.id === "a1")!;
@@ -413,35 +575,46 @@ describe("breakdown", () => {
     expect(rows[0].costPerLead).toBeNull();
   });
 
-  it("excludes unattributed leads from the breakdown but keeps them in the rollup", () => {
+  it("counts a lead Meta reported even when no CRM contact ever arrived", () => {
+    // Willis's Instant Form campaigns, in miniature: Meta reported the lead and
+    // billed for it, and nothing reached the CRM. The row must still show it.
+    const b = breakdown([], [spendRow("a1", "A", 100, 7)], "ad");
+    expect(b[0]).toMatchObject({ leads: 7, bookings: 0 });
+    expect(b[0].costPerLead).toBeCloseTo(100 / 7, 10);
+  });
+
+  it("attributes a booking to its ad without touching the lead count", () => {
     const rows: TrackerLead[] = [
       lead(1, "a1", "sale", 100),
       lead(2, null, "sale", 100), // no utmAdId on the contact
     ];
-    const spend = [spendRow("a1", "A", 10)];
+    const spend = [spendRow("a1", "A", 10, 5)];
 
-    expect(rollup(rows, spend).leads).toBe(2);
+    // Meta's five, not the CRM's two.
+    expect(rollup(rows, spend).leads).toBe(5);
     expect(rollup(rows, spend).revenue).toBe(200);
 
     const b = breakdown(rows, spend, "ad");
     expect(b).toHaveLength(1);
-    expect(b[0].leads).toBe(1);
+    expect(b[0].leads).toBe(5);
+    // Only the attributed sale can be placed on an ad.
     expect(b[0].revenue).toBe(100);
   });
 
-  it("drops a lead whose ad id has no matching spend row", () => {
+  it("drops a booking whose ad id has no matching spend row", () => {
     // Ad deleted in Meta before the first snapshot: nothing to attribute it to.
-    const b = breakdown([lead(1, "ghost", "sale", 100)], [spendRow("a1", "A", 10)], "ad");
+    const b = breakdown([lead(1, "ghost", "sale", 100)], [spendRow("a1", "A", 10, 2)], "ad");
     expect(b).toHaveLength(1);
     expect(b[0].id).toBe("a1");
-    expect(b[0].leads).toBe(0);
+    expect(b[0].sales).toBe(0);
+    expect(b[0].leads).toBe(2);
   });
 
   it("is a ratio of sums, not an average of ratios", () => {
     // Two ads, wildly different efficiency. Campaign ROAS must be
     // total revenue / total spend (2000/1100), not the mean of 10 and 1.
     const rows: TrackerLead[] = [lead(1, "x", "sale", 1000), lead(2, "y", "sale", 1000)];
-    const spend = [spendRow("x", "X", 100), spendRow("y", "Y", 1000)];
+    const spend = [spendRow("x", "X", 100, 1), spendRow("y", "Y", 1000, 1)];
     const [camp] = breakdown(rows, spend, "campaign");
     expect(camp.roas).toBeCloseTo(2000 / 1100, 10);
   });
@@ -592,8 +765,8 @@ const ENTITIES: BreakdownEntity[] = [
   ent("a9", "ad", "old1", false),
 ];
 
-function adSpend(adId: string, spend: number): TrackerSpendRow {
-  return { ...spendRow(adId, "A", spend), adName: `ad ${adId}` };
+function adSpend(adId: string, spend: number, leadCount = 0): TrackerSpendRow {
+  return { ...spendRow(adId, "A", spend, leadCount), adName: `ad ${adId}` };
 }
 
 describe("breakdown scoped to the live campaign", () => {
@@ -684,9 +857,12 @@ describe("breakdown scoped to the live campaign", () => {
   });
 
   it("sends an excluded ad's leads to the reconciling row, not nowhere", () => {
+    // Meta's lead counts ride on the spend rows; the CRM leads supply the
+    // bookings.
+    const scoped = [adSpend("a1", 80, 3), adSpend("a2", 20, 0), adSpend("a9", 500, 5)];
     const rows = breakdown(
       [...leads(3, "a1", "booking"), ...leads(5, "a9", "booking")],
-      spend,
+      scoped,
       "ad",
       null,
       ENTITIES,
@@ -700,6 +876,7 @@ describe("breakdown scoped to the live campaign", () => {
     expect(other.costPerLead).toBe(100);
     // And the lead column reconciles with Results the way spend does.
     expect(rows.reduce((n, r) => n + r.leads, 0)).toBe(8);
+    expect(rows.reduce((n, r) => n + r.leads, 0)).toBe(rollup([], scoped).leads);
   });
 });
 

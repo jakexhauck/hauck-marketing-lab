@@ -1,0 +1,241 @@
+<!doctype html><html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Onboarding 5: The Runway</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<style>
+/* Direction 5: onboarding is a seven-day pipeline with timings written into the
+   SOP, so draw it as a schedule. Each client is a lane running left to right
+   from the day they signed. The hollow marker is where the SOP says they should
+   be today; the solid bar is where they actually are. The gap between the two
+   is the answer to the only question this page has never been able to answer:
+   am I late, and by how much. */
+.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+.hero h1{font-family:var(--font-display);font-size:26px;font-weight:700;letter-spacing:-.03em;margin:0 0 4px}
+.hero p{margin:0;font-size:13px;color:var(--text-muted);max-width:56ch}
+
+.legend{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:var(--text-muted);margin-bottom:14px}
+.legend i{display:inline-block;width:22px;height:8px;border-radius:999px;vertical-align:middle;margin-right:6px}
+.legend .g{background-image:var(--grad-brand)}
+.legend .h{width:2px;height:14px;border-radius:2px;background:var(--text-faint);margin-right:8px}
+
+.gantt{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden}
+.gr{display:grid;grid-template-columns:210px minmax(420px,1fr) 132px;align-items:center;border-bottom:1px solid var(--divider)}
+.gr:last-child{border-bottom:0}
+.gr.head{background:var(--surface-2);border-bottom:1px solid var(--border)}
+.gr.head .lane{display:grid;grid-template-columns:repeat(9,1fr);padding:0}
+.gr.head .lane span{font-family:var(--font-mono);font-size:10px;font-weight:700;color:var(--text-faint);text-align:center;padding:9px 0;border-left:1px solid var(--border)}
+.gr.head .lane span:first-child{border-left:0}
+.gr.head .nm,.gr.head .rt{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--text-faint);padding:9px 14px}
+.gr.head .rt{text-align:right}
+
+.nm{display:flex;align-items:center;gap:9px;padding:11px 14px;min-width:0}
+.nm b{font-size:12.5px;font-weight:600;letter-spacing:-.01em;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nm span{font-size:10.5px;color:var(--text-faint)}
+
+.lane{position:relative;height:44px;background-image:repeating-linear-gradient(to right,var(--divider) 0 1px,transparent 1px calc(100%/9))}
+.lane .track{position:absolute;left:0;top:50%;transform:translateY(-50%);height:11px;border-radius:999px;background-image:var(--grad-brand);box-shadow:var(--shadow-sm)}
+.lane .track.done{background-image:linear-gradient(135deg,#15803d,#22c55e)}
+.lane .track.slow{background-image:linear-gradient(135deg,#b45309,#f59e0b)}
+.lane .track.stall{background-image:linear-gradient(135deg,#991b1b,#ef4444)}
+.lane .should{position:absolute;top:7px;bottom:7px;width:2px;border-radius:2px;background:var(--text-faint);opacity:.55}
+.lane .should::after{content:"";position:absolute;left:-3px;top:-4px;width:8px;height:8px;border-radius:50%;border:2px solid var(--text-faint);background:var(--surface)}
+.lane .gap{position:absolute;top:50%;transform:translateY(-50%);height:11px;border-radius:999px;border:1px dashed var(--danger);background:var(--danger-tint)}
+.lane .flag{position:absolute;top:4px;font-size:9.5px;font-family:var(--font-mono);font-weight:700;color:var(--text-faint);white-space:nowrap}
+
+.rt{padding:11px 14px;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.rt .d{font-family:var(--font-mono);font-size:11px;font-weight:700}
+.rt .d.late{color:var(--danger)} .rt .d.ok{color:var(--positive)} .rt .d.warn{color:var(--warning)}
+.rt small{font-size:10.5px;color:var(--text-faint)}
+
+.grid2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,1fr);gap:14px;margin-top:20px}
+.pan{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:14px 16px}
+.pan h3{font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-.01em;margin:0 0 3px}
+.pan p.sub{margin:0 0 10px;font-size:11.5px;color:var(--text-faint)}
+.slip{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--divider);font-size:12.5px}
+.slip:last-child{border-bottom:0}
+.slip .av{width:24px;height:24px;border-radius:7px;font-size:9.5px}
+.slip .txt{flex:1;min-width:0}
+.slip .txt b{display:block;font-weight:600;font-size:12.5px}
+.slip .txt span{font-size:11px;color:var(--text-faint)}
+.stat{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--divider)}
+.stat:last-child{border-bottom:0}
+.stat .k{font-size:12px;color:var(--text-muted)}
+.stat .v{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:-.03em}
+.stat .v.late{color:var(--danger)}
+@media (max-width:1080px){
+  .gr{grid-template-columns:150px minmax(300px,1fr) 104px}
+  .grid2{grid-template-columns:1fr}
+}
+</style></head><body>
+<div class="app">
+<aside class="sidebar glass">
+  <div class="brandrow"><span class="brandmark">HM</span><b class="font-display" style="font-size:14px">Lab Console</b></div>
+  <div class="nav-group"><div class="label-cap">Agency</div>
+    <a class="nav-row"><span class="dot"></span>Overview</a>
+    <a class="nav-row"><span class="dot"></span>Acquisition</a>
+    <a class="nav-row"><span class="dot"></span>Sales</a>
+  </div>
+  <div class="nav-group"><div class="label-cap">Fulfillment</div>
+    <a class="nav-row active"><span class="dot"></span>Onboarding</a>
+    <a class="nav-row"><span class="dot"></span>Software</a>
+    <a class="nav-row"><span class="dot"></span>Paid Ads</a>
+    <a class="nav-row"><span class="dot"></span>GHL</a>
+    <a class="nav-row"><span class="dot"></span>Setter Suite</a>
+    <a class="nav-row"><span class="dot"></span>Management</a>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar glass">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="chip brand">Mockup 5</span>
+      <span style="font-size:13px;font-weight:600">The Runway</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="seg"><button aria-selected="true">Runway</button><button aria-selected="false">Checklists</button><button aria-selected="false">Forms in</button></div>
+      <button class="btn sm" data-theme-toggle>Dark</button>
+      <button class="btn primary sm">Add a client</button>
+    </div>
+  </header>
+
+  <div class="page">
+    <div class="hero">
+      <div>
+        <h1>Onboarding</h1>
+        <p>Every client from the day they signed. The solid bar is where they are. The hollow marker is where the seven-day pipeline says they should be by now.</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn sm">Re-run readiness</button>
+        <button class="btn sm">Manage the steps</button>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i class="g"></i>Where they are</span>
+      <span><i class="h"></i>Where they should be</span>
+      <span><i style="background:var(--danger-tint);border:1px dashed var(--danger)"></i>The slip</span>
+      <span><i style="background-image:linear-gradient(135deg,#15803d,#22c55e)"></i>Ready to launch</span>
+    </div>
+
+    <div class="gantt">
+      <div class="gr head">
+        <div class="nm">Client</div>
+        <div class="lane">
+          <span>KICK</span><span>D1</span><span>D2</span><span>D3</span><span>D4</span><span>D5</span><span>D6</span><span>D7</span><span>LIVE</span>
+        </div>
+        <div class="rt">Schedule</div>
+      </div>
+
+      <div class="gr">
+        <div class="nm"><span class="av b">HH</span><span><b>Halstead HVAC</b><span>Signed 11 Aug</span></span></div>
+        <div class="lane">
+          <div class="track stall" style="width:6%"></div>
+          <div class="gap" style="left:6%;width:16%"></div>
+          <div class="should" style="left:22%"></div>
+          <div class="flag" style="left:8%">kickoff, unsent</div>
+        </div>
+        <div class="rt"><span class="d late">2 days late</span><small>1 of 55 steps</small></div>
+      </div>
+
+      <div class="gr">
+        <div class="nm"><span class="av c">MR</span><span><b>Marek Roofing</b><span>Signed 9 Aug</span></span></div>
+        <div class="lane">
+          <div class="track" style="width:30%"></div>
+          <div class="should" style="left:33%"></div>
+          <div class="flag" style="left:32%">call at 2pm</div>
+        </div>
+        <div class="rt"><span class="d ok">on time</span><small>17 of 55 steps</small></div>
+      </div>
+
+      <div class="gr">
+        <div class="nm"><span class="av e">CV</span><span><b>Corso Concrete</b><span>Signed 6 Aug</span></span></div>
+        <div class="lane">
+          <div class="track" style="width:50%"></div>
+          <div class="gap" style="left:50%;width:11%"></div>
+          <div class="should" style="left:61%"></div>
+          <div class="flag" style="left:52%">GHL build</div>
+        </div>
+        <div class="rt"><span class="d warn">1 day late</span><small>32 of 55 steps</small></div>
+      </div>
+
+      <div class="gr">
+        <div class="nm"><span class="av a">WW</span><span><b>Willis Windows</b><span>Signed 4 Aug</span></span></div>
+        <div class="lane">
+          <div class="track slow" style="width:44%"></div>
+          <div class="gap" style="left:44%;width:44%"></div>
+          <div class="should" style="left:88%"></div>
+          <div class="flag" style="left:46%">stuck: A2P, email domain</div>
+        </div>
+        <div class="rt"><span class="d late">6 days late</span><small>38 of 55 steps</small></div>
+      </div>
+
+      <div class="gr">
+        <div class="nm"><span class="av d">CL</span><span><b>Cedar &amp; Co</b><span>Signed 28 Jul</span></span></div>
+        <div class="lane">
+          <div class="track slow" style="width:78%"></div>
+          <div class="gap" style="left:78%;width:22%"></div>
+          <div class="should" style="left:100%"></div>
+          <div class="flag" style="left:52%">waiting on their creative approval</div>
+        </div>
+        <div class="rt"><span class="d late">8 days late</span><small>49 of 55 steps</small></div>
+      </div>
+
+      <div class="gr">
+        <div class="nm"><span class="av e">BP</span><span><b>Bright Path Dental</b><span>Signed 25 Jul</span></span></div>
+        <div class="lane">
+          <div class="track done" style="width:100%"></div>
+          <div class="flag" style="left:40%;color:var(--positive)">55 of 55 · QA 30/30 · nothing blocking</div>
+        </div>
+        <div class="rt"><span class="d ok">ready</span><small><button class="btn primary sm">Go live</button></small></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="pan">
+        <h3>Why they are late</h3>
+        <p class="sub">The step that stopped the clock, and how long it has been stopped</p>
+        <div class="slip">
+          <span class="av d">CL</span>
+          <span class="txt"><b>Client approved the creatives, in writing</b><span>Cedar &amp; Co · asked 8 days ago · they have not replied</span></span>
+          <button class="btn sm">Nudge them</button>
+        </div>
+        <div class="slip">
+          <span class="av a">WW</span>
+          <span class="txt"><b>Phone number provisioned, A2P approved</b><span>Willis Windows · with the carrier since 6 Aug</span></span>
+          <button class="btn sm">Check</button>
+        </div>
+        <div class="slip">
+          <span class="av a">WW</span>
+          <span class="txt"><b>Sending email domain verified</b><span>Willis Windows · yours to do</span></span>
+          <button class="btn sm">Open in GHL</button>
+        </div>
+        <div class="slip">
+          <span class="av b">HH</span>
+          <span class="txt"><b>Send the welcome email</b><span>Halstead HVAC · yours to do, 2 days ago</span></span>
+          <button class="btn sm">Send it</button>
+        </div>
+        <div class="slip">
+          <span class="av e">CV</span>
+          <span class="txt"><b>Book a test appointment and watch it flip</b><span>Corso Concrete · yours to do</span></span>
+          <button class="btn sm">Open the calendar</button>
+        </div>
+      </div>
+
+      <div class="pan">
+        <h3>How onboarding is running</h3>
+        <p class="sub">Last twelve clients</p>
+        <div class="stat"><span class="k">Median days to live</span><span class="v">11</span></div>
+        <div class="stat"><span class="k">The SOP says</span><span class="v">7</span></div>
+        <div class="stat"><span class="k">Launched on time</span><span class="v late">3 of 12</span></div>
+        <div class="stat"><span class="k">Phase that slips most</span><span class="v" style="font-size:14px">Creative approval</span></div>
+        <div class="stat"><span class="k">Days lost waiting on clients</span><span class="v late">31</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+<script src="kit.js"></script>
+</body></html>

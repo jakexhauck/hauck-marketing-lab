@@ -18,8 +18,13 @@ export function ClientSheet({ tenantId }: { tenantId: string }) {
   const secrets = useClientSecrets(tenantId);
 
   const sections = useMemo(
-    () => sheetSections(record.data?.intake ?? {}, secrets.data?.fields ?? []),
-    [record.data?.intake, secrets.data?.fields],
+    () =>
+      sheetSections(
+        record.data?.intake ?? {},
+        secrets.data?.fields ?? [],
+        record.data?.password,
+      ),
+    [record.data?.intake, record.data?.password, secrets.data?.fields],
   );
 
   return (
@@ -35,8 +40,8 @@ export function SubmissionSheet({ submissionId }: { submissionId: string }) {
   const detail = useIntakeSubmission(submissionId);
 
   const sections = useMemo(
-    () => sheetSections(detail.data?.answers ?? {}, []),
-    [detail.data?.answers],
+    () => sheetSections(detail.data?.answers ?? {}, [], detail.data?.password),
+    [detail.data?.answers, detail.data?.password],
   );
 
   return (

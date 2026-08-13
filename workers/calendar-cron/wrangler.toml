@@ -1,0 +1,25 @@
+name = "hauck-calendar-cron"
+main = "src/index.ts"
+compatibility_date = "2026-05-18"
+
+# Third sibling of workers/ads-cron and workers/health-cron, and here for the
+# same reason: Cloudflare Pages projects cannot carry a cron trigger, so the
+# thing that wakes up has to be a Worker sitting beside the app.
+#
+# It holds no database access, no Google grant and no GoHighLevel token: it
+# makes one authenticated POST and logs the outcome. Everything that decides
+# which clients to sync and which slots to block lives in the app.
+
+[triggers]
+# Every fifteen minutes. The window that matters is between a client accepting
+# something in their own diary and a customer being offered that same slot, so
+# this is the one cron in the estate that cannot be nightly.
+crons = ["*/15 * * * *"]
+
+[vars]
+SYNC_URL = "https://app.hauckmarketing.com/api/admin/calendar/sync"
+
+# CALENDAR_CRON_SECRET is NOT here on purpose: it is a secret, set with
+#   wrangler secret put CALENDAR_CRON_SECRET
+# and it has to match the value in the Pages project's own environment exactly,
+# or every run comes back 401 and blocked slots silently stop updating.

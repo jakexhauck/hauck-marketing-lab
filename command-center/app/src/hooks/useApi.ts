@@ -1811,6 +1811,47 @@ export function useAdminMetaAdAccountsQuery(tenantId: string, enabled = true) {
   });
 }
 
+// One client's GoHighLevel wiring, as the connect screen reads it (GET
+// /api/admin/clients/:tenantId/ghl). `connected` is proven, not assumed: the
+// endpoint calls GHL with the stored pair before answering, so a token the
+// sub-account has stopped accepting comes back false with GHL's own reason.
+export interface GhlConnectionState {
+  locationId: string;
+  tokenSet: boolean;
+  connected: boolean;
+  locationName: string | null;
+  error: string | null;
+}
+
+export function useAdminGhlConnectionQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "clients", tenantId, "ghl", "connection"],
+    enabled: enabled && !!tenantId,
+    // A token pasted into GHL thirty seconds ago should count on the next
+    // press of Check again, which is exactly when somebody presses it.
+    staleTime: 15_000,
+    queryFn: () => api<GhlConnectionState>(`/api/admin/clients/${tenantId}/ghl`),
+  });
+}
+
+// Save a client's GHL pair. The endpoint proves it against GoHighLevel first
+// and refuses a pair that does not work, so a resolved mutation means the
+// client is genuinely wired. Live immediately: it is a row on tenants.
+export function useSaveGhlCreds(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { token: string; locationId: string }) =>
+      api<{ ok: true; locationName: string | null }>(`/api/admin/clients/${tenantId}/ghl`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "clients"] });
+      qc.invalidateQueries({ queryKey: ["admin", "crm-connection", tenantId] });
+    },
+  });
+}
+
 // One client's real Meta insights for the Fulfillment cockpit's Paid Ads tab
 // (Campaigns hero + Data & Leads metrics), from GET
 // /api/admin/clients/:tenantId/ads/insights. Same shared adsCore.buildAdsInsights
@@ -3284,6 +3325,96 @@ export interface CrmConnection {
   };
   statuses: { summary: string; lastSeenAt: string }[];
   statusModel: string[];
+}
+
+// Fulfillment > GHL > Calendars.
+export interface CalendarDay {
+  day: number;
+  ranges: { open: string; close: string }[];
+}
+
+export interface ClientCalendar {
+  id: string;
+  name: string;
+  active: boolean;
+  kind: string | null;
+  /** One line per distinct set of open hours. Empty means nothing bookable. */
+  hours: string[];
+  /** The same hours a day at a time, for editing. Always seven entries. */
+  days: CalendarDay[];
+  /** Does the client's own Google busy time block this calendar. */
+  blocked: boolean;
+}
+
+export interface ClientCalendars {
+  googleLinked: boolean;
+  crmWired: boolean;
+  /** No calendar has been chosen yet, so the old name match is still deciding. */
+  usingFallback: boolean;
+  calendars: ClientCalendar[];
+}
+
+export function useClientCalendarsQuery(tenantId: string) {
+  return useQuery({
+    queryKey: ["admin", "client-calendars", tenantId],
+    enabled: !!tenantId,
+    queryFn: () =>
+      api<ClientCalendars>(`/api/admin/clients/${encodeURIComponent(tenantId)}/calendars`),
+  });
+}
+
+export function useSetBlockedCalendars(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (body: { calendarIds: string[]; names: { id: string; name: string }[] }) =>
+      api<{ ok: boolean; count: number }>(
+        `/api/admin/clients/${encodeURIComponent(tenantId)}/calendars`,
+        { method: "POST", body: JSON.stringify(body) },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "client-calendars", tenantId] });
+    },
+  });
+}
+
+// Opening hours, written into GHL. There is no draft: the client's booking page
+// is the only copy, so saving here is saving there.
+export function useSetCalendarHours(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (body: { calendarId: string; days: CalendarDay[] }) =>
+      api<{ ok: boolean; hours: string[] }>(
+        `/api/admin/clients/${encodeURIComponent(tenantId)}/calendars`,
+        { method: "POST", body: JSON.stringify({ action: "hours", ...body }) },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "client-calendars", tenantId] });
+    },
+  });
+}
+
+// The busy-time sync for one client, fired by the page rather than by a button.
+//
+// It is the same endpoint the cron Worker calls every fifteen minutes. Running
+// it on load and after a change is what makes the screen tell the truth
+// immediately instead of up to a quarter of an hour later; nothing about it is
+// a manual step, and nothing on the page waits for it.
+export function useCalendarSync(tenantId: string) {
+  return useMutation({
+    retry: false,
+    mutationFn: () =>
+      api<{
+        ran: number;
+        created: number;
+        updated: number;
+        removed: number;
+        results: { status: string; detail?: string; calendars?: number }[];
+      }>(`/api/admin/calendar/sync?tenantId=${encodeURIComponent(tenantId)}`, {
+        method: "POST",
+      }),
+  });
 }
 
 export function useCrmConnectionQuery(tenantId: string) {

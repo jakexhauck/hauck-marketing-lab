@@ -52,10 +52,17 @@ function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Demo-only approximation of each preset's length. The real boundaries live in
+// functions/lib/adTrackerMetrics.ts rangeWindow(); this only has to make the
+// sample data look sensible, so it does not reproduce Meta's ends-yesterday rule.
 function rangeDays(range: AdTrackerRange): number {
-  if (range === "7") return 7;
-  if (range === "30") return 30;
-  if (range === "90") return 90;
+  if (range === "today") return 1;
+  if (range === "yesterday") return 2;
+  if (range === "last_7d") return 7;
+  if (range === "last_14d") return 14;
+  if (range === "last_30d") return 30;
+  if (range === "this_month") return 30;
+  if (range === "last_month") return 60;
   return 3650;
 }
 
@@ -128,7 +135,7 @@ function demoLeadRows(): LeadTrackerLead[] {
 
 function leadsInRange(range: AdTrackerRange): LeadTrackerLead[] {
   const all = demoLeadRows();
-  if (range === "all") return all;
+  if (range === "maximum") return all;
   const cutoff = ANCHOR.getTime() - rangeDays(range) * 86400_000;
   return all.filter((l) => new Date(l.createdAt).getTime() >= cutoff);
 }
@@ -197,6 +204,9 @@ export function demoLeadTracker(
     level,
     kpis: {
       leads: count,
+      // The demo has no Meta feed to disagree with, so every lead it invents is
+      // one the CRM also has.
+      crmLeads: count,
       pickups,
       bookings,
       sales,
@@ -214,6 +224,9 @@ export function demoLeadTracker(
     meta: {
       opportunities: count,
       spendDays: Math.min(rangeDays(range), 30),
+      timezone: "America/Detroit",
+      windowStart: isoDate(new Date(ANCHOR.getTime() - rangeDays(range) * 86400_000)),
+      windowEnd: isoDate(ANCHOR),
       neverSynced: false,
       lastSpendDate: isoDate(ANCHOR),
       liveCampaigns: ["Always-On Offers"],

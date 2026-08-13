@@ -51,11 +51,44 @@ export function pickEstimateCalendar(
   return null;
 }
 
+// Which calendars this client's busy time protects.
+//
+// A selection (Fulfillment > GHL > Calendars) wins. No selection falls back to
+// the name match above, which is what every client had before the page existed:
+// a deploy must never quietly change what somebody is protected by. Ids that no
+// longer exist in GHL are dropped rather than written to, so a calendar deleted
+// in GHL costs a dead row and nothing else.
+export function pickBlockedCalendars(
+  calendars: GhlCalendar[],
+  selectedIds: readonly string[],
+  overrideId?: string | null,
+): GhlCalendar[] {
+  if (selectedIds.length > 0) {
+    const wanted = new Set(selectedIds);
+    return calendars.filter((c) => wanted.has(c.id));
+  }
+  const fallback = pickEstimateCalendar(calendars, overrideId);
+  return fallback ? [fallback] : [];
+}
+
 export interface ExistingBlock {
   gcal_event_id: string;
   ghl_block_id: string;
+  ghl_calendar_id: string;
   starts_at: string;
   ends_at: string;
+}
+
+// Blocks we hold on a calendar we no longer protect: the operator turned its
+// switch off, or it was deleted in GHL. They have to be taken back out, or the
+// client keeps losing that slot forever with nothing on any screen explaining
+// why. Exported for tests; the failure it prevents is invisible in production.
+export function staleBlocks(
+  existing: ExistingBlock[],
+  targetIds: readonly string[],
+): ExistingBlock[] {
+  const kept = new Set(targetIds);
+  return existing.filter((b) => !kept.has(b.ghl_calendar_id));
 }
 
 export interface BlockPlan {
@@ -128,6 +161,8 @@ export interface SyncResult {
   created: number;
   updated: number;
   removed: number;
+  /** How many of the client's calendars this run protected. */
+  calendars?: number;
   detail?: string;
 }
 
@@ -159,106 +194,151 @@ export async function syncTenantCalendar(
 
   const gctx: GhlContext = { token: tenant.ghl_token, locationId: tenant.ghl_location_id };
 
-  let calendar: GhlCalendar | null = null;
+  let targets: GhlCalendar[] = [];
   try {
     const data = await ghlJson<{ calendars?: GhlCalendar[] }>(
       gctx,
       `/calendars/?locationId=${encodeURIComponent(tenant.ghl_location_id)}`,
     );
-    calendar = pickEstimateCalendar(data.calendars ?? [], tenant.estimate_calendar_id);
+    const { data: selected } = await client
+      .from("tenant_blocked_calendars")
+      .select("ghl_calendar_id")
+      .eq("tenant_id", tenant.id);
+    targets = pickBlockedCalendars(
+      data.calendars ?? [],
+      (selected ?? []).map((r) => (r as { ghl_calendar_id: string }).ghl_calendar_id),
+      tenant.estimate_calendar_id,
+    );
   } catch (err) {
     return { ...base, status: "unreadable", detail: (err as Error).message };
   }
-  if (!calendar) return { ...base, status: "no_calendar" };
 
   const { data: existingRows } = await client
     .from("gcal_busy_blocks")
-    .select("gcal_event_id, ghl_block_id, starts_at, ends_at")
+    .select("gcal_event_id, ghl_block_id, ghl_calendar_id, starts_at, ends_at")
     .eq("tenant_id", tenant.id);
+  const existing = (existingRows ?? []) as ExistingBlock[];
 
-  const plan = planBlocks(events, (existingRows ?? []) as ExistingBlock[]);
-  const result = { ...base };
+  const result: SyncResult = { ...base, calendars: targets.length };
 
-  for (const event of plan.create) {
-    try {
-      const created = await ghlJson<{ id?: string; event?: { id?: string } }>(
-        gctx,
-        "/calendars/events/block-slots",
-        {
+  // Blocks on calendars we no longer protect come out FIRST, whether or not any
+  // calendar is still selected. An empty selection must still hand back the
+  // slots the last one was holding, so "no_calendar" cannot mean "leave them
+  // blocked forever".
+  const orphans = staleBlocks(
+    existing,
+    targets.map((c) => c.id),
+  );
+  for (const block of orphans) {
+    await releaseBlock(client, gctx, tenant.id, block);
+    result.removed += 1;
+  }
+
+  if (targets.length === 0) {
+    return { ...result, status: "no_calendar" };
+  }
+
+  for (const calendar of targets) {
+    const plan = planBlocks(
+      events,
+      existing.filter((b) => b.ghl_calendar_id === calendar.id),
+    );
+
+    for (const event of plan.create) {
+      try {
+        const created = await ghlJson<{ id?: string; event?: { id?: string } }>(
+          gctx,
+          "/calendars/events/block-slots",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              calendarId: calendar.id,
+              locationId: tenant.ghl_location_id,
+              startTime: event.start,
+              endTime: event.end,
+              title: BLOCK_TITLE,
+            }),
+          },
+        );
+        const blockId = created.id ?? created.event?.id ?? "";
+        if (!blockId) continue;
+        await client.from("gcal_busy_blocks").upsert(
+          {
+            tenant_id: tenant.id,
+            gcal_event_id: event.id,
+            ghl_block_id: blockId,
+            ghl_calendar_id: calendar.id,
+            starts_at: event.start,
+            ends_at: event.end,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "tenant_id,gcal_event_id,ghl_calendar_id" },
+        );
+        result.created += 1;
+      } catch (err) {
+        // One bad event must not abandon the rest of the diary.
+        console.warn("[calendar-sync] block create failed", (err as Error).message);
+      }
+    }
+
+    for (const { event, blockId } of plan.update) {
+      try {
+        await ghlJson(gctx, `/calendars/events/block-slots/${encodeURIComponent(blockId)}`, {
           method: "POST",
           body: JSON.stringify({
             calendarId: calendar.id,
-            locationId: tenant.ghl_location_id,
             startTime: event.start,
             endTime: event.end,
             title: BLOCK_TITLE,
           }),
-        },
-      );
-      const blockId = created.id ?? created.event?.id ?? "";
-      if (!blockId) continue;
-      await client.from("gcal_busy_blocks").upsert(
-        {
-          tenant_id: tenant.id,
-          gcal_event_id: event.id,
-          ghl_block_id: blockId,
-          ghl_calendar_id: calendar.id,
-          starts_at: event.start,
-          ends_at: event.end,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "tenant_id,gcal_event_id" },
-      );
-      result.created += 1;
-    } catch (err) {
-      // One bad event must not abandon the rest of the diary.
-      console.warn("[calendar-sync] block create failed", (err as Error).message);
+        });
+        await client
+          .from("gcal_busy_blocks")
+          .update({
+            starts_at: event.start,
+            ends_at: event.end,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("tenant_id", tenant.id)
+          .eq("gcal_event_id", event.id)
+          .eq("ghl_calendar_id", calendar.id);
+        result.updated += 1;
+      } catch (err) {
+        console.warn("[calendar-sync] block update failed", (err as Error).message);
+      }
     }
-  }
 
-  for (const { event, blockId } of plan.update) {
-    try {
-      await ghlJson(gctx, `/calendars/events/block-slots/${encodeURIComponent(blockId)}`, {
-        method: "POST",
-        body: JSON.stringify({
-          calendarId: calendar.id,
-          startTime: event.start,
-          endTime: event.end,
-          title: BLOCK_TITLE,
-        }),
-      });
-      await client
-        .from("gcal_busy_blocks")
-        .update({
-          starts_at: event.start,
-          ends_at: event.end,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("tenant_id", tenant.id)
-        .eq("gcal_event_id", event.id);
-      result.updated += 1;
-    } catch (err) {
-      console.warn("[calendar-sync] block update failed", (err as Error).message);
+    for (const block of plan.remove) {
+      await releaseBlock(client, gctx, tenant.id, block);
+      result.removed += 1;
     }
-  }
-
-  for (const block of plan.remove) {
-    try {
-      await ghlJson(gctx, `/calendars/events/${encodeURIComponent(block.ghl_block_id)}`, {
-        method: "DELETE",
-      });
-    } catch (err) {
-      // A block already gone from GHL still needs its row dropped, or the sync
-      // retries the same delete forever.
-      console.warn("[calendar-sync] block delete failed", (err as Error).message);
-    }
-    await client
-      .from("gcal_busy_blocks")
-      .delete()
-      .eq("tenant_id", tenant.id)
-      .eq("gcal_event_id", block.gcal_event_id);
-    result.removed += 1;
   }
 
   return result;
+}
+
+// Take one block back out of GHL and forget it.
+//
+// The row is dropped even when GHL refuses the delete: a block already gone
+// from GHL still needs its row removed, or the sync retries the same delete on
+// every tick forever.
+async function releaseBlock(
+  client: SupabaseClient,
+  gctx: GhlContext,
+  tenantId: string,
+  block: ExistingBlock,
+): Promise<void> {
+  try {
+    await ghlJson(gctx, `/calendars/events/${encodeURIComponent(block.ghl_block_id)}`, {
+      method: "DELETE",
+    });
+  } catch (err) {
+    console.warn("[calendar-sync] block delete failed", (err as Error).message);
+  }
+  await client
+    .from("gcal_busy_blocks")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("gcal_event_id", block.gcal_event_id)
+    .eq("ghl_calendar_id", block.ghl_calendar_id);
 }

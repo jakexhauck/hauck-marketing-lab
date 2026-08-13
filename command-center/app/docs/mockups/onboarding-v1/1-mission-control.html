@@ -1,0 +1,289 @@
+<!doctype html><html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Onboarding 1: Mission Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<style>
+/* Direction 1: one screen, no tabs, no client picker. Every client in
+   onboarding is a row; the row opens in place. Submissions are rows too, just
+   rows that aren't a client yet. */
+.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:16px}
+.hero h1{font-family:var(--font-display);font-size:26px;font-weight:700;letter-spacing:-.03em;margin:0 0 4px}
+.hero p{margin:0;font-size:13px;color:var(--text-muted)}
+.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.count{font-family:var(--font-mono);font-size:10.5px;font-weight:700;opacity:.7;margin-left:2px}
+
+.roster{display:flex;flex-direction:column;gap:8px}
+.row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;transition:box-shadow .2s var(--ease),border-color .2s}
+.row[open]{box-shadow:var(--shadow-md);border-color:var(--border-strong)}
+.row>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:28px minmax(180px,1.3fr) 130px minmax(210px,1.6fr) minmax(190px,1fr) auto;align-items:center;gap:14px;padding:13px 16px}
+.row>summary::-webkit-details-marker{display:none}
+.row>summary:hover{background:var(--surface-2)}
+.who{min-width:0}
+.who b{display:block;font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+.who span{font-size:11.5px;color:var(--text-faint)}
+.prog{display:block;min-width:0;max-width:230px}
+.prog .n{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:5px;font-family:var(--font-mono);font-weight:600}
+.blocker{font-size:12px;color:var(--text-muted);min-width:0;display:flex;align-items:center;gap:6px}
+.blocker b{color:var(--text);font-weight:600}
+.blocker .pin{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.pin.warn{background:var(--warning)} .pin.bad{background:var(--danger)} .pin.ok{background:var(--positive)}
+.caret{color:var(--text-faint);font-size:11px;transition:transform .2s var(--ease)}
+.row[open] .caret{transform:rotate(90deg)}
+
+/* the opened body: all four sections side by side, nothing behind a tab */
+.body{border-top:1px solid var(--divider);background:var(--surface-2);padding:14px 16px 16px}
+.secs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.sec{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 9px 9px}
+.sec h4{margin:0 0 2px;font-size:12px;font-weight:700;font-family:var(--font-display);letter-spacing:-.01em;padding:0 5px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sec h4 em{font-style:normal;font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--text-faint)}
+.sec .grp{padding:9px 5px 3px;font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--text-faint)}
+.sec .tick .txt{font-size:12px}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.wire{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+
+/* submissions live in the same list, visually recessed until they matter */
+.row.sub{border-style:dashed;background:transparent}
+.row.sub>summary{grid-template-columns:28px minmax(180px,1.3fr) 130px 1fr auto}
+.row.sub .av{opacity:.75}
+@media (max-width:1180px){
+  .row>summary{grid-template-columns:28px 1fr auto;grid-auto-rows:auto}
+  .prog,.blocker{grid-column:1/-1}
+  .secs{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style></head><body>
+<div class="app">
+<aside class="sidebar glass">
+  <div class="brandrow"><span class="brandmark">HM</span><b class="font-display" style="font-size:14px">Lab Console</b></div>
+  <div class="nav-group"><div class="label-cap">Agency</div>
+    <a class="nav-row"><span class="dot"></span>Overview</a>
+    <a class="nav-row"><span class="dot"></span>Acquisition</a>
+    <a class="nav-row"><span class="dot"></span>Sales</a>
+  </div>
+  <div class="nav-group"><div class="label-cap">Fulfillment</div>
+    <a class="nav-row active"><span class="dot"></span>Onboarding</a>
+    <a class="nav-row"><span class="dot"></span>Software</a>
+    <a class="nav-row"><span class="dot"></span>Paid Ads</a>
+    <a class="nav-row"><span class="dot"></span>GHL</a>
+    <a class="nav-row"><span class="dot"></span>Setter Suite</a>
+    <a class="nav-row"><span class="dot"></span>Management</a>
+  </div>
+  <div class="nav-group"><div class="label-cap">Settings</div>
+    <a class="nav-row"><span class="dot"></span>Keys</a>
+    <a class="nav-row"><span class="dot"></span>Steps</a>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar glass">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="chip brand">Mockup 1</span>
+      <span style="font-size:13px;font-weight:600">Mission Control</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="faint" style="font-size:11.5px">Jump to a client <span class="kbd">/</span></span>
+      <button class="btn sm" data-theme-toggle>Dark</button>
+      <button class="btn primary sm">Add a client</button>
+    </div>
+  </header>
+
+  <div class="page">
+    <div class="hero">
+      <div>
+        <h1>Onboarding</h1>
+        <p>Six accounts being stood up. Two forms came in that aren't clients yet.</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn sm">Re-run every readiness check</button>
+        <button class="btn sm">Manage the steps</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="seg">
+        <button aria-selected="true">Needs me <span class="count">4</span></button>
+        <button aria-selected="false">Waiting on the client <span class="count">2</span></button>
+        <button aria-selected="false">Everything <span class="count">8</span></button>
+      </div>
+      <span style="flex:1"></span>
+      <span class="faint" style="font-size:11.5px"><span class="kbd">j</span> <span class="kbd">k</span> to move &nbsp;·&nbsp; <span class="kbd">space</span> to tick &nbsp;·&nbsp; <span class="kbd">↵</span> to open</span>
+    </div>
+
+    <div class="roster">
+
+      <!-- open by default so the direction is legible at a glance -->
+      <details class="row" open>
+        <summary>
+          <span class="av a">WW</span>
+          <span class="who"><b>Willis Windows</b><span>Signed 4 Aug · day 8</span></span>
+          <span><span class="chip warn">GoHighLevel</span></span>
+          <span class="prog">
+            <span class="n"><span>38 / 55 steps</span><span>3 required left</span></span>
+            <span class="bar"><i style="width:69%"></i></span>
+          </span>
+          <span class="blocker"><span class="pin bad"></span><b>A2P still pending</b> · 3 days</span>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="body">
+          <div class="secs">
+            <div class="sec">
+              <h4>Kickoff <em>3/3</em></h4>
+              <div class="tick on"><span class="box">✓</span><span class="txt">Book the onboarding call</span></div>
+              <div class="tick on"><span class="box">✓</span><span class="txt">Send the welcome email with the agreement and the form</span></div>
+              <div class="tick on"><span class="box">✓</span><span class="txt">Send them the exciting text message</span></div>
+            </div>
+            <div class="sec">
+              <h4>Onboarding call <em>14/16</em></h4>
+              <div class="grp">Their account</div>
+              <div class="tick on"><span class="box">✓</span><span class="txt">Create their sub-account from the snapshot</span></div>
+              <div class="tick on"><span class="box">✓</span><span class="txt">Create the client's login</span></div>
+              <div class="grp">Ads manager</div>
+              <div class="tick on"><span class="box">✓</span><span class="txt">Connect their Facebook business page</span></div>
+              <div class="tick on"><span class="box">✓</span><span class="txt">Create a new pixel and install it</span></div>
+              <div class="tick"><span class="box"></span><span class="txt">Verify their business domain<span class="req">*</span></span></div>
+              <div class="grp">HighLevel</div>
+              <div class="tick"><span class="box"></span><span class="txt">They connect their Google Calendar from their end</span></div>
+            </div>
+            <div class="sec">
+              <h4>GoHighLevel <em>9/14</em></h4>
+              <div class="tick on auto"><span class="box">✓</span><span class="txt">API token valid and connected</span></div>
+              <div class="tick on auto"><span class="box">✓</span><span class="txt">Custom values written to GHL</span></div>
+              <div class="tick on auto"><span class="box">✓</span><span class="txt">Calendars exist in the sub-account</span></div>
+              <div class="tick on"><span class="box">✓</span><span class="txt">Publish the workflows, activate the triggers</span></div>
+              <div class="tick"><span class="box"></span><span class="txt">Phone number provisioned, A2P approved<span class="req">*</span></span></div>
+              <div class="tick"><span class="box"></span><span class="txt">Sending email domain verified<span class="req">*</span></span></div>
+              <div class="tick"><span class="box"></span><span class="txt">Book a test appointment and watch it flip</span></div>
+            </div>
+            <div class="sec">
+              <h4>Meta ads <em>12/22</em></h4>
+              <div class="grp">Day 2, research and setup</div>
+              <div class="tick on"><span class="box">✓</span><span class="txt">Install the Meta pixel via GTM</span></div>
+              <div class="tick on"><span class="box">✓</span><span class="txt">Add a payment method to the ad account</span></div>
+              <div class="grp">Day 3 to 4, creative</div>
+              <div class="tick on"><span class="box">✓</span><span class="txt">Twelve or more ad copy variations</span></div>
+              <div class="tick"><span class="box"></span><span class="txt">Client approved the top three to five, in writing<span class="req">*</span></span></div>
+              <div class="grp">Day 5 to 6, build and QA</div>
+              <div class="tick"><span class="box"></span><span class="txt">Pre-launch QA passed <span class="chip" style="margin-left:4px">0 / 30</span></span></div>
+            </div>
+          </div>
+          <div class="foot">
+            <div class="wire">
+              <span class="chip ok">✓ Token live</span>
+              <span class="chip ok">✓ 14 custom values</span>
+              <span class="chip ok">✓ 3 calendars</span>
+              <span class="chip warn">Ad account: act_8841…203</span>
+              <span class="chip">Location: loc_QhT…9fA</span>
+              <button class="btn sm ghost">Edit wiring</button>
+              <button class="btn sm ghost">What they told us (24 answers)</button>
+            </div>
+            <button class="btn primary" disabled>Go live · 3 required steps left</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av c">MR</span>
+          <span class="who"><b>Marek Roofing</b><span>Signed 9 Aug · day 3</span></span>
+          <span><span class="chip brand">Onboarding call</span></span>
+          <span class="prog">
+            <span class="n"><span>17 / 55 steps</span><span>11 required left</span></span>
+            <span class="bar"><i style="width:31%"></i></span>
+          </span>
+          <span class="blocker"><span class="pin warn"></span><b>Call is today at 2pm</b></span>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="body"><p class="muted" style="margin:6px;font-size:13px">The four sections open here, exactly as above.</p></div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av d">CL</span>
+          <span class="who"><b>Cedar &amp; Co Landscaping</b><span>Signed 28 Jul · day 15</span></span>
+          <span><span class="chip warn">Meta ads</span></span>
+          <span class="prog">
+            <span class="n"><span>49 / 55 steps</span><span>1 required left</span></span>
+            <span class="bar"><i style="width:89%"></i></span>
+          </span>
+          <span class="blocker"><span class="pin warn"></span><b>Waiting on creative approval</b> · 4 days</span>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="body"><p class="muted" style="margin:6px;font-size:13px">The four sections open here, exactly as above.</p></div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av b">HH</span>
+          <span class="who"><b>Halstead HVAC</b><span>Signed 11 Aug · day 1</span></span>
+          <span><span class="chip">Kickoff</span></span>
+          <span class="prog">
+            <span class="n"><span>1 / 55 steps</span><span>17 required left</span></span>
+            <span class="bar"><i style="width:2%"></i></span>
+          </span>
+          <span class="blocker"><span class="pin bad"></span><b>Welcome email not sent</b></span>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="body"><p class="muted" style="margin:6px;font-size:13px">The four sections open here, exactly as above.</p></div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av e">BP</span>
+          <span class="who"><b>Bright Path Dental</b><span>Signed 25 Jul · day 18</span></span>
+          <span><span class="chip ok">Ready to launch</span></span>
+          <span class="prog">
+            <span class="n"><span>55 / 55 steps</span><span>nothing blocking</span></span>
+            <span class="bar"><i class="done" style="width:100%"></i></span>
+          </span>
+          <span class="blocker"><span class="pin ok"></span><b>Everything passed</b></span>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="body">
+          <div class="foot" style="margin:0;padding:0;border:0">
+            <div class="wire">
+              <span class="chip ok">✓ Token live</span><span class="chip ok">✓ 14 custom values</span><span class="chip ok">✓ 4 calendars</span><span class="chip ok">✓ QA 30/30</span>
+            </div>
+            <button class="btn primary">Go live</button>
+          </div>
+        </div>
+      </details>
+
+      <div style="display:flex;align-items:center;gap:10px;margin:16px 2px 6px">
+        <span class="label-cap">Came in from the form, not clients yet</span>
+        <span class="hr" style="flex:1"></span>
+      </div>
+
+      <details class="row sub">
+        <summary>
+          <span class="av f">TR</span>
+          <span class="who"><b>Torres Remodeling</b><span>Finished the form 10 Aug</span></span>
+          <span><span class="chip ok">Complete</span></span>
+          <span class="blocker"><span class="pin ok"></span>24 of 24 answers · Boise, ID</span>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="body">
+          <div class="foot" style="margin:0;padding:0;border:0">
+            <span class="muted" style="font-size:12.5px">Windows and siding · $4k/mo budget · wants leads in 14 days</span>
+            <span style="display:flex;gap:8px"><button class="btn sm">Dismiss</button><button class="btn primary sm">Make them a client</button></span>
+          </div>
+        </div>
+      </details>
+
+      <details class="row sub">
+        <summary>
+          <span class="av c">GP</span>
+          <span class="who"><b>Gable Painting</b><span>Started 11 Aug, stopped at step 3</span></span>
+          <span><span class="chip warn">Still typing</span></span>
+          <span class="blocker"><span class="pin warn"></span>9 of 24 answers · no phone number yet</span>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="body"><p class="muted" style="margin:6px;font-size:13px">The answers they did give open here.</p></div>
+      </details>
+
+    </div>
+  </div>
+</div>
+</div>
+<script src="kit.js"></script>
+</body></html>

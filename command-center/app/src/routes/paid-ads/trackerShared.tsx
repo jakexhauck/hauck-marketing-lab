@@ -7,12 +7,26 @@ import type { AdTrackerLevel, AdTrackerRange, LeadTrackerStatus } from "../../li
 // Pipeline Stats), ported from the client tracking sheet. Formatting rules
 // match the sheet: a null ratio renders "-", never a fabricated zero.
 
+// Ads Manager's presets, named the way Ads Manager names them.
+//
+// Was All Time / 7 / 30 / 90 Days, which looked like Meta's ranges and was not
+// one of them: Meta's "Last 7 days" ends yesterday, ours ran to today, and
+// nothing on either screen said the two were covering different days.
+//
+// DEFAULT_RANGE is last_30d, matching what Ads Manager opens on, so a client
+// comparing the two screens is comparing the same window by default.
 export const RANGES: { id: AdTrackerRange; label: string }[] = [
-  { id: "all", label: "All Time" },
-  { id: "7", label: "7 Days" },
-  { id: "30", label: "30 Days" },
-  { id: "90", label: "90 Days" },
+  { id: "today", label: "Today" },
+  { id: "yesterday", label: "Yesterday" },
+  { id: "last_7d", label: "Last 7 days" },
+  { id: "last_14d", label: "Last 14 days" },
+  { id: "last_30d", label: "Last 30 days" },
+  { id: "this_month", label: "This month" },
+  { id: "last_month", label: "Last month" },
+  { id: "maximum", label: "Maximum" },
 ];
+
+export const DEFAULT_RANGE: AdTrackerRange = "last_30d";
 
 export const LEVELS: { id: AdTrackerLevel; label: string }[] = [
   { id: "campaign", label: "Campaign" },

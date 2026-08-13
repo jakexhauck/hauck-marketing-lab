@@ -127,7 +127,7 @@ export default function HomeDesktop() {
   const closeOuts = useCloseOutCountQuery(useReal);
   // The month's own figures, from the same tracker Paid Ads reads. Shared query
   // key, so opening Paid Ads afterwards costs nothing.
-  const tracker = useAdsTrackerQuery("30", "ad", useReal);
+  const tracker = useAdsTrackerQuery("last_30d", "ad", useReal);
 
   const summary = summaryQuery.data;
   const events = calendarQuery.data?.events ?? [];

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { pickEstimateCalendar, planBlocks, type ExistingBlock } from "./calendarSync";
+import {
+  pickBlockedCalendars,
+  pickEstimateCalendar,
+  planBlocks,
+  staleBlocks,
+  type ExistingBlock,
+} from "./calendarSync";
 import type { SyncableBusyEvent } from "./googleCalendar";
 
 // The diff is where every interesting failure of this feature lives, which is
@@ -20,6 +26,7 @@ function ev(over: Partial<SyncableBusyEvent> & { id: string }): SyncableBusyEven
 function block(over: Partial<ExistingBlock> & { gcal_event_id: string }): ExistingBlock {
   return {
     ghl_block_id: `blk_${over.gcal_event_id}`,
+    ghl_calendar_id: "c3",
     starts_at: "2026-08-11T09:00:00Z",
     ends_at: "2026-08-11T10:00:00Z",
     ...over,
@@ -57,6 +64,60 @@ describe("pickEstimateCalendar", () => {
 
   it("returns null when the override names a calendar that no longer exists", () => {
     expect(pickEstimateCalendar(live, "deleted")).toBeNull();
+  });
+});
+
+describe("pickBlockedCalendars", () => {
+  const live = [
+    { id: "c1", name: "Job" },
+    { id: "c2", name: "Phone Appointment" },
+    { id: "c3", name: "Home Estimate" },
+    { id: "c4", name: "Window Cleaning Service" },
+  ];
+
+  it("protects exactly what the operator selected", () => {
+    expect(pickBlockedCalendars(live, ["c1", "c4"]).map((c) => c.id)).toEqual(["c1", "c4"]);
+  });
+
+  it("falls back to the old name match when nothing is selected", () => {
+    // The whole point of the fallback: shipping the selection page must not
+    // change what a client who has never seen it is protected by.
+    expect(pickBlockedCalendars(live, []).map((c) => c.id)).toEqual(["c3"]);
+  });
+
+  it("still honours the per-client override in the fallback", () => {
+    expect(pickBlockedCalendars(live, [], "c1").map((c) => c.id)).toEqual(["c1"]);
+  });
+
+  it("drops a selected calendar that no longer exists in GHL", () => {
+    // Writing to a deleted calendar id is a 404 on every event, every run.
+    expect(pickBlockedCalendars(live, ["c3", "deleted"]).map((c) => c.id)).toEqual(["c3"]);
+  });
+
+  it("protects nothing when the fallback matches nothing", () => {
+    expect(pickBlockedCalendars([{ id: "z", name: "Job" }], [])).toEqual([]);
+  });
+});
+
+describe("staleBlocks", () => {
+  it("returns blocks held on a calendar no longer protected", () => {
+    // Turning a switch off has to hand the slots back. Without this the client
+    // keeps losing that time forever, with nothing on any screen explaining it.
+    const held = [
+      block({ gcal_event_id: "g1", ghl_calendar_id: "c3" }),
+      block({ gcal_event_id: "g1", ghl_calendar_id: "c1" }),
+    ];
+    expect(staleBlocks(held, ["c3"]).map((b) => b.ghl_calendar_id)).toEqual(["c1"]);
+  });
+
+  it("returns everything when nothing is protected any more", () => {
+    const held = [block({ gcal_event_id: "g1", ghl_calendar_id: "c3" })];
+    expect(staleBlocks(held, [])).toHaveLength(1);
+  });
+
+  it("returns nothing when every block is on a protected calendar", () => {
+    const held = [block({ gcal_event_id: "g1", ghl_calendar_id: "c3" })];
+    expect(staleBlocks(held, ["c3", "c1"])).toEqual([]);
   });
 });
 

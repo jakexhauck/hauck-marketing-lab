@@ -16,6 +16,8 @@ import {
   DEFAULT_FULFILLMENT_PAGE,
   fulfillmentPath,
   getFulfillmentPage,
+  GHL_SETUP_SUB,
+  ghlSubTabs,
   paidAdsSubTabs,
   placeholderCopy,
   resolveGatedSubTab,
@@ -55,14 +57,18 @@ export default function FulfillmentPage() {
   // linked, and opens on the wizard that links it. Every other page is ungated,
   // so the two lines below are a no-op for them.
   const adAccountId = selected?.metaAdAccountId ?? null;
+  // GHL is gated the same way, on the client's own sub-account credentials.
+  const ghlConnected = selected?.ghlConnected === true;
+  const gated = pageParam === "paid-ads" || pageParam === "ghl";
   const subs =
     pageParam === "paid-ads"
       ? paidAdsSubTabs(subTabsFor(pageParam), Boolean((adAccountId ?? "").trim()))
-      : subTabsFor(pageParam);
-  const activeSub =
-    pageParam === "paid-ads"
-      ? resolveGatedSubTab(subs, searchParams.get("sub"))
-      : resolveSubTab(pageParam, searchParams.get("sub"));
+      : pageParam === "ghl"
+        ? ghlSubTabs(subTabsFor(pageParam), ghlConnected)
+        : subTabsFor(pageParam);
+  const activeSub = gated
+    ? resolveGatedSubTab(subs, searchParams.get("sub"))
+    : resolveSubTab(pageParam, searchParams.get("sub"));
 
   const setSub = (sub: string) => {
     setSearchParams(
@@ -140,6 +146,7 @@ export default function FulfillmentPage() {
           clientSlug={selected?.slug ?? ""}
           activeSub={activeSub}
           adAccountId={adAccountId}
+          ghlConnected={ghlConnected}
           onSelectSub={setSub}
           isLoading={isLoading}
           isError={isError}
@@ -159,6 +166,7 @@ function PageBody({
   clientSlug,
   activeSub,
   adAccountId,
+  ghlConnected,
   onSelectSub,
   isLoading,
   isError,
@@ -169,6 +177,7 @@ function PageBody({
   clientSlug: string;
   activeSub: string | null;
   adAccountId: string | null;
+  ghlConnected: boolean;
   onSelectSub: (sub: string) => void;
   isLoading: boolean;
   isError: boolean;
@@ -210,7 +219,9 @@ function PageBody({
           tenantId={tenantId}
           clientName={clientName}
           clientSlug={clientSlug}
-          activeSub={activeSub ?? "conversion-assets"}
+          activeSub={activeSub ?? GHL_SETUP_SUB}
+          ghlConnected={ghlConnected}
+          onSelectSub={onSelectSub}
         />
       );
     case "management":

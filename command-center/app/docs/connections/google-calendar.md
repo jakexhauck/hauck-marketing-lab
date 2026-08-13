@@ -89,10 +89,53 @@ client later is a change to the auth config id, not to app code.
 
 ## Why Composio rather than GHL
 
-GHL exposes a `/calendars/connections` surface (it returns 401 rather than 404
-on the Willis PIT), but it was never confirmed to support an API-initiable
-Google OAuth. Composio works today. If the GHL route is later proven, it would
-be cheaper still, because the Jobs feed already reads GHL calendar events.
+GHL's own Google integration cannot be started from here, and this was settled
+rather than assumed on 2026-08-13:
+
+- `GET /calendars/connections` answers **401 "This route is not yet supported by
+  the IAM Service"** on a live Private Integration Token. The route exists for
+  GHL's own UI and is not reachable by any API credential.
+- Nothing under `/calendars/oauth/...` exists at all (404).
+- The Marketplace app's `calendars.readonly` scope reads calendars. It does not
+  create the Google link.
+- In GHL the link is made **per staff user**, inside the sub-account, by the
+  person who owns the Google account. Their own support documentation says
+  "login as" cannot be used for it, because the Google owner has to be the one
+  consenting.
+
+So a client cannot connect Google to GHL from anything we build without being
+sent into GoHighLevel's UI as a GHL user, which is the one thing every
+client-facing surface here exists to avoid. We hold the grant instead and push
+the result into GHL ourselves, below.
+
+## What the client's diary actually protects
+
+`functions/lib/calendarSync.ts` writes their busy time into GHL as blocked
+slots, and takes them back out when a meeting is cancelled or moved. That, not
+GHL's integration, is what stops a customer being offered a time the owner is
+not free for.
+
+Which calendars it protects is set per client in **Fulfillment > GHL >
+Calendars**:
+
+- Rows in `tenant_blocked_calendars` (0107) are the selection.
+- **No rows falls back** to matching a calendar named "Home Estimate", which is
+  what every client had before that page existed. Shipping the page therefore
+  changed nothing about who was protected by what.
+- A block held on a calendar that is no longer selected is deleted from GHL on
+  the next run. Turning a switch off hands the slots back rather than stranding
+  them.
+- `gcal_busy_blocks` is keyed `(tenant_id, gcal_event_id, ghl_calendar_id)`, so
+  one Google meeting can hold a block on several calendars at once.
+
+## What runs it
+
+`workers/calendar-cron`, every fifteen minutes, holding `CALENDAR_CRON_SECRET`.
+
+Before it existed nothing called the sync on a schedule: it had been run once by
+hand on 2026-08-10, which left 16 blocks sitting in Willis's Home Estimate
+calendar going quietly stale. The Fulfillment page also carries a **Sync now**
+button on the same code path, so a run can be forced and read.
 
 ## Rendering rules
 

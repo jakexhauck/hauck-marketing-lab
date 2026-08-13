@@ -129,6 +129,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       healthStatus: tenant.health_status ?? "healthy",
       healthNote: tenant.health_note ?? null,
       socialGateWaived: Boolean(tenant.social_gate_waived),
+      calendarGateWaived: Boolean(tenant.calendar_gate_waived),
     },
     entitlements: enabled,
     staff: staff.map((s) => ({
@@ -180,11 +181,21 @@ interface PatchBody {
   // pass it for a reason they cannot fix: no Facebook page, not a page admin, a
   // personal rather than Business Instagram, or a Meta outage.
   socialGateWaived?: boolean;
+  // Whether that same gate skips its calendar step (0101). True for every
+  // client older than the step, so switching it off is how a client is asked
+  // for a calendar at all.
+  calendarGateWaived?: boolean;
   // New owner login password for this client. Hashed; never read back.
   ownerPassword?: string;
   // Manual per-account health flag surfaced in the Service Delivery roster.
   healthStatus?: "healthy" | "warn" | "paused";
   healthNote?: string;
+  // Phones and emails belonging to us and to the client's own staff, comma or
+  // newline separated. Contacts matching them are dropped from every inbox,
+  // lead list and count (lib/internalRecipients.ts), which is how an agency
+  // test contact stops being counted as one of the client's leads. Until now
+  // the column could only be set with hand-written SQL. Empty string clears it.
+  internalRecipients?: string;
 }
 
 const HEALTH_STATUSES = ["healthy", "warn", "paused"] as const;
@@ -219,6 +230,10 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   if (typeof body.monthlySpend === "number") update.monthly_spend = body.monthlySpend;
   if (str(body.ghlLocationId)) update.ghl_location_id = str(body.ghlLocationId);
   if (str(body.ghlToken)) update.ghl_token = str(body.ghlToken);
+  if (body.internalRecipients !== undefined) {
+    const v = str(body.internalRecipients);
+    update.internal_recipients = v ? v : null;
+  }
   // Present-but-empty clears the ad account (back to env fallback / not-connected).
   if (body.metaAdAccountId !== undefined) {
     const v = str(body.metaAdAccountId);
@@ -263,6 +278,9 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   }
   if (typeof body.socialGateWaived === "boolean") {
     update.social_gate_waived = body.socialGateWaived;
+  }
+  if (typeof body.calendarGateWaived === "boolean") {
+    update.calendar_gate_waived = body.calendarGateWaived;
   }
   if (str(body.ownerPassword)) {
     const pw = str(body.ownerPassword)!;

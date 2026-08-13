@@ -25,9 +25,31 @@ export const onRequestGet: PagesFunction<Env, "tenantId", ApiData> = async (ctx)
   const tok = tenant?.ghl_token as string | undefined;
   const hasToken = Boolean(tok && tok !== "pending" && tok !== "env");
 
+  // The login the client chose, read back from the form they filled in.
+  //
+  // The PASSWORD is the point of this lookup. It is never in `intake` (the
+  // funnel hashes it on arrival and strips it from the saved answers), so the
+  // client sheet had a Login section that could not show the one thing Jake
+  // opens it for: getting an owner signed in while he has them on the phone.
+  //
+  // Same rule as GET /api/admin/intake/:id, which has returned it since
+  // migration 0081: admin-gated in _middleware.ts, never on a list endpoint,
+  // and never anywhere the client's own app can reach. Null for anyone who
+  // signed up before 0081, and for a client created by hand rather than through
+  // the funnel.
+  const { data: submission } = await client
+    .from("intake_submissions")
+    .select("login_email, password_plain")
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   return Response.json({
     fields,
     intake: (row?.intake ?? {}) as Record<string, string>,
+    loginEmail: (submission?.login_email as string | null) ?? null,
+    password: (submission?.password_plain as string | null) ?? null,
     status: (row?.status as string) ?? "draft",
     hasToken,
     provisionResult: row?.provision_result ?? null,

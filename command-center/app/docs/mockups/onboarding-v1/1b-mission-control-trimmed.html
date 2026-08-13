@@ -1,0 +1,349 @@
+<!doctype html><html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Onboarding: Mission Control, trimmed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<style>
+/* Mission Control, second pass.
+   Gone: the checklist, the filter tabs, the keyboard hints, the phase pills,
+   the signed dates, the chip strip of wiring.
+   What is left is the three jobs Jake asked for: who is being set up, whether
+   their account actually works, and their details in a document he can copy
+   from without hunting. */
+.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+.hero h1{font-family:var(--font-display);font-size:26px;font-weight:700;letter-spacing:-.03em;margin:0 0 4px}
+.hero p{margin:0;font-size:13px;color:var(--text-muted)}
+
+.roster{display:flex;flex-direction:column;gap:8px}
+.row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;transition:box-shadow .2s var(--ease),border-color .2s}
+.row[open]{box-shadow:var(--shadow-md);border-color:var(--border-strong)}
+.row>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:32px minmax(190px,1.1fr) minmax(230px,1.4fr) auto auto;align-items:center;gap:16px;padding:14px 16px}
+.row>summary::-webkit-details-marker{display:none}
+.row>summary:hover{background:var(--surface-2)}
+.who b{display:block;font-size:14px;font-weight:600;letter-spacing:-.015em}
+.who span{font-size:11.5px;color:var(--text-faint)}
+
+/* the health read: five dots, one per live check, so a broken account is
+   visible without opening anything */
+.health{display:flex;align-items:center;gap:10px;min-width:0}
+.dots{display:flex;gap:3px;flex-shrink:0}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--positive)}
+.dots i.warn{background:var(--warning)} .dots i.bad{background:var(--danger)} .dots i.off{background:var(--border-strong)}
+.health .say{font-size:12.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.health .say b{font-weight:600;color:var(--text)}
+.health.good .say b{color:var(--positive)}
+.health.bad .say b{color:var(--danger)}
+.caret{color:var(--text-faint);font-size:11px;transition:transform .2s var(--ease)}
+.row[open] .caret{transform:rotate(90deg)}
+
+/* the document */
+.doc{border-top:1px solid var(--divider);background:var(--surface-2);padding:16px 18px 18px}
+.docbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.checks{display:flex;gap:6px;flex-wrap:wrap}
+.sheet{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px 0}
+.cols{columns:2;column-gap:34px;padding:14px 20px}
+@media (max-width:900px){.cols{columns:1}}
+.sect{break-inside:avoid;margin-bottom:18px}
+.sect:last-child{margin-bottom:0}
+.sect h4{font-size:10px;text-transform:uppercase;letter-spacing:.09em;font-weight:700;color:var(--brand-text);margin:0 0 6px;padding-bottom:5px;border-bottom:1px solid var(--divider)}
+.fld{display:grid;grid-template-columns:118px 1fr auto;gap:10px;align-items:baseline;padding:4px 0;border-radius:6px;position:relative}
+.fld:hover{background:var(--surface-2)}
+.fld dt{font-size:11.5px;color:var(--text-faint);line-height:1.5}
+.fld dd{margin:0;font-size:13px;font-weight:500;line-height:1.5;word-break:break-word}
+.fld dd.mono{font-family:var(--font-mono);font-size:12px;font-weight:600}
+.fld .cp{opacity:0;border:none;background:none;font:inherit;font-size:10.5px;font-weight:600;color:var(--brand-text);cursor:pointer;padding:0 2px;transition:opacity .15s}
+.fld:hover .cp,.fld .cp:focus-visible{opacity:1}
+.fld.copied{background:var(--positive-tint)}
+.fld.copied .cp{opacity:1;color:var(--positive)}
+.hours{font-size:12.5px;line-height:1.75}
+.hours span{color:var(--text-faint);display:inline-block;width:38px}
+.docfoot{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:14px}
+.why{font-size:12px;color:var(--text-muted)}
+.why b{color:var(--danger);font-weight:600}
+
+.newin{display:flex;align-items:center;gap:10px;margin:22px 2px 8px}
+.newin .rule{flex:1;height:1px;background:var(--divider)}
+.row.sub{border-style:dashed;background:transparent}
+.row.sub>summary{grid-template-columns:32px minmax(190px,1.1fr) 1fr auto auto}
+@media (max-width:1000px){
+  .row>summary,.row.sub>summary{grid-template-columns:32px 1fr auto;row-gap:10px}
+  .health{grid-column:1/-1}
+}
+</style></head><body>
+<div class="app">
+<aside class="sidebar glass">
+  <div class="brandrow"><span class="brandmark">HM</span><b class="font-display" style="font-size:14px">Lab Console</b></div>
+  <div class="nav-group"><div class="label-cap">Agency</div>
+    <a class="nav-row"><span class="dot"></span>Overview</a>
+    <a class="nav-row"><span class="dot"></span>Acquisition</a>
+    <a class="nav-row"><span class="dot"></span>Sales</a>
+  </div>
+  <div class="nav-group"><div class="label-cap">Fulfillment</div>
+    <a class="nav-row active"><span class="dot"></span>Onboarding</a>
+    <a class="nav-row"><span class="dot"></span>Software</a>
+    <a class="nav-row"><span class="dot"></span>Paid Ads</a>
+    <a class="nav-row"><span class="dot"></span>GHL</a>
+    <a class="nav-row"><span class="dot"></span>Setter Suite</a>
+    <a class="nav-row"><span class="dot"></span>Management</a>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar glass">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="chip brand">Trimmed</span>
+      <span style="font-size:13px;font-weight:600">Mission Control</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn sm" data-theme-toggle>Dark</button>
+      <button class="btn primary sm">Add a client</button>
+    </div>
+  </header>
+
+  <div class="page">
+    <div class="hero">
+      <div>
+        <h1>Onboarding</h1>
+        <p>Six accounts being set up. Open one for their details.</p>
+      </div>
+      <button class="btn sm">Re-check every account</button>
+    </div>
+
+    <div class="roster">
+
+      <details class="row" open>
+        <summary>
+          <span class="av a">WW</span>
+          <span class="who"><b>Willis Windows</b><span>Windows and siding · Meridian, ID</span></span>
+          <span class="health bad">
+            <span class="dots"><i></i><i></i><i></i><i class="warn"></i><i class="bad"></i></span>
+            <span class="say"><b>Two checks failing</b> · A2P pending, email domain unverified</span>
+          </span>
+          <button class="btn sm" disabled>Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+
+        <div class="doc">
+          <div class="docbar">
+            <div class="checks">
+              <span class="chip ok">✓ API token valid</span>
+              <span class="chip ok">✓ Custom values 14 of 14</span>
+              <span class="chip ok">✓ Calendars 3 found</span>
+              <span class="chip warn">A2P pending</span>
+              <span class="chip bad">Email domain unverified</span>
+            </div>
+            <div style="display:flex;gap:7px">
+              <button class="btn sm">Re-check</button>
+              <button class="btn sm" data-copy-all>Copy the whole sheet</button>
+            </div>
+          </div>
+
+          <div class="sheet"><div class="cols">
+
+            <div class="sect">
+              <h4>Business</h4>
+              <dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Willis Windows</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>What they do</dt><dd>Windows and siding</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Website</dt><dd>williswindows.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Legal name</dt><dd>Willis Windows LLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Structure</dt><dd>LLC</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Tax ID</dt><dd class="mono">87-2049113</dd><button class="cp">Copy</button></div>
+              </dl>
+            </div>
+
+            <div class="sect">
+              <h4>Contact</h4>
+              <dl style="margin:0">
+                <div class="fld"><dt>Name</dt><dd>Dave Willis</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Title</dt><dd>Owner</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Email</dt><dd>dave@williswindows.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Phone</dt><dd class="mono">(208) 555-0142</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Timezone</dt><dd>America/Boise</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Address</dt><dd>1420 N Eagle Rd, Suite 200, Meridian, ID 83642</dd><button class="cp">Copy</button></div>
+              </dl>
+            </div>
+
+            <div class="sect">
+              <h4>Targeting</h4>
+              <dl style="margin:0">
+                <div class="fld"><dt>Zip codes</dt><dd class="mono">83642, 83646, 83616, 83702</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Area call-out</dt><dd>The Treasure Valley</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Primary offer</dt><dd>Free in-home window estimate</dd><button class="cp">Copy</button></div>
+              </dl>
+            </div>
+
+            <div class="sect">
+              <h4>Hours</h4>
+              <div class="hours">
+                <span>Mon</span>8am to 5pm<br>
+                <span>Tue</span>8am to 5pm<br>
+                <span>Wed</span>8am to 5pm<br>
+                <span>Thu</span>8am to 5pm<br>
+                <span>Fri</span>8am to 5pm<br>
+                <span>Sat</span>9am to 1pm<br>
+                <span>Sun</span>Closed
+              </div>
+            </div>
+
+            <div class="sect">
+              <h4>Their login</h4>
+              <dl style="margin:0">
+                <div class="fld"><dt>Email</dt><dd>dave@williswindows.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>App</dt><dd>app.hauckmarketing.com</dd><button class="cp">Copy</button></div>
+              </dl>
+            </div>
+
+            <div class="sect">
+              <h4>Wiring</h4>
+              <dl style="margin:0">
+                <div class="fld"><dt>GHL location</dt><dd class="mono">loc_QhT4x9fA2mNp</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>API token</dt><dd class="mono">••••••••••••3f1c</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Meta ad account</dt><dd class="mono">act_884120344</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Subdomain</dt><dd class="mono">go.williswindows.com</dd><button class="cp">Copy</button></div>
+                <div class="fld"><dt>Facebook page</dt><dd>Willis Windows &amp; Siding</dd><button class="cp">Copy</button></div>
+              </dl>
+            </div>
+
+          </div></div>
+
+          <div class="docfoot">
+            <span class="why">Cannot go live yet: <b>the sending email domain is unverified</b> and <b>A2P is still with the carrier</b>.</span>
+            <div style="display:flex;gap:7px">
+              <button class="btn sm">Edit the wiring</button>
+              <button class="btn sm">Open in GHL</button>
+              <button class="btn primary sm" disabled>Go live</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av c">MR</span>
+          <span class="who"><b>Marek Roofing</b><span>Roofing and gutters · Nampa, ID</span></span>
+          <span class="health good">
+            <span class="dots"><i></i><i></i><i></i><i class="off"></i><i class="off"></i></span>
+            <span class="say"><b>Account healthy</b> · phone and email not set up yet</span>
+          </span>
+          <button class="btn sm" disabled>Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc"><p class="muted" style="margin:4px 2px;font-size:13px">Their sheet opens here, same as above.</p></div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av d">CL</span>
+          <span class="who"><b>Cedar &amp; Co Landscaping</b><span>Landscaping and hardscape · Boise, ID</span></span>
+          <span class="health good">
+            <span class="dots"><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="say"><b>Account healthy</b> · every check passing</span>
+          </span>
+          <button class="btn primary sm">Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc"><p class="muted" style="margin:4px 2px;font-size:13px">Their sheet opens here, same as above.</p></div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av b">HH</span>
+          <span class="who"><b>Halstead HVAC</b><span>Heating and cooling · Caldwell, ID</span></span>
+          <span class="health bad">
+            <span class="dots"><i class="bad"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i></span>
+            <span class="say"><b>Not connected</b> · no sub-account yet</span>
+          </span>
+          <button class="btn sm" disabled>Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc"><p class="muted" style="margin:4px 2px;font-size:13px">Their sheet opens here, same as above.</p></div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av e">CV</span>
+          <span class="who"><b>Corso Concrete</b><span>Driveways and patios · Eagle, ID</span></span>
+          <span class="health">
+            <span class="dots"><i></i><i class="warn"></i><i></i><i></i><i class="off"></i></span>
+            <span class="say"><b>One check failing</b> · 11 of 14 custom values written</span>
+          </span>
+          <button class="btn sm" disabled>Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc"><p class="muted" style="margin:4px 2px;font-size:13px">Their sheet opens here, same as above.</p></div>
+      </details>
+
+      <details class="row">
+        <summary>
+          <span class="av e">BP</span>
+          <span class="who"><b>Bright Path Dental</b><span>Implants and cosmetic · Boise, ID</span></span>
+          <span class="health good">
+            <span class="dots"><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="say"><b>Account healthy</b> · every check passing</span>
+          </span>
+          <button class="btn primary sm">Go live</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc"><p class="muted" style="margin:4px 2px;font-size:13px">Their sheet opens here, same as above.</p></div>
+      </details>
+
+      <div class="newin">
+        <span class="label-cap">Filled in the onboarding form, not set up yet</span>
+        <span class="rule"></span>
+      </div>
+
+      <details class="row sub">
+        <summary>
+          <span class="av f">TR</span>
+          <span class="who"><b>Torres Remodeling</b><span>Windows and siding · Boise, ID</span></span>
+          <span class="health"><span class="say">All 24 answers in · came in 10 Aug</span></span>
+          <button class="btn primary sm">Set them up</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc"><p class="muted" style="margin:4px 2px;font-size:13px">Their answers open here as a sheet, ready to copy.</p></div>
+      </details>
+
+      <details class="row sub">
+        <summary>
+          <span class="av c">GP</span>
+          <span class="who"><b>Gable Painting</b><span>Interior and exterior · Kuna, ID</span></span>
+          <span class="health"><span class="say">9 of 24 answers · stopped at contact details</span></span>
+          <button class="btn sm">Resend the link</button>
+          <span class="caret">▶</span>
+        </summary>
+        <div class="doc"><p class="muted" style="margin:4px 2px;font-size:13px">What they did fill in opens here.</p></div>
+      </details>
+
+    </div>
+  </div>
+</div>
+</div>
+<script src="kit.js"></script>
+<script>
+// Click a field, or its Copy button, and the value goes to the clipboard. The
+// row flashes green so there is no doubt it landed.
+document.addEventListener("click", (e) => {
+  const all = e.target.closest("[data-copy-all]");
+  if (all) {
+    const sheet = all.closest(".doc").querySelector(".sheet");
+    navigator.clipboard?.writeText(sheet.innerText.trim());
+    all.textContent = "Copied the sheet";
+    setTimeout(() => (all.textContent = "Copy the whole sheet"), 1400);
+    return;
+  }
+  const f = e.target.closest(".fld");
+  if (!f) return;
+  const value = f.querySelector("dd")?.textContent ?? "";
+  navigator.clipboard?.writeText(value);
+  f.classList.add("copied");
+  const btn = f.querySelector(".cp");
+  if (btn) btn.textContent = "Copied";
+  setTimeout(() => {
+    f.classList.remove("copied");
+    if (btn) btn.textContent = "Copy";
+  }, 1200);
+});
+</script>
+</body></html>

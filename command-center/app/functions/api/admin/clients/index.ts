@@ -3,6 +3,7 @@ import { getServiceClient } from "../../../lib/supabase";
 import { hashPassword } from "../../../lib/password";
 import { normalizeEmail } from "../../../lib/staff";
 import { logAdminAction } from "../../../lib/adminAuth";
+import { tenantHasGhlCreds } from "../../../lib/tenantResolve";
 import {
   CreateTenantError,
   createTenantWithOwner,
@@ -13,7 +14,10 @@ import { CHECKLIST_TASKS } from "../../../../src/lib/onboarding";
 
 // GET /api/admin/clients  (admin-only, gated in _middleware.ts)
 // Every client in the database, with a light member count. Cross-tenant: this
-// is the "all clients" list the tower opens on. ghl_token is never selected.
+// is the "all clients" list the tower opens on. ghl_token is read only to
+// answer whether one is set (the Fulfillment GHL page gates its sub-tabs on
+// that, exactly as Paid Ads gates on the ad account); the value itself never
+// leaves this function.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
@@ -25,7 +29,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const { data: tenantRows, error } = await client
     .from("tenants")
     .select(
-      "id, slug, name, niche, brand_color, brand_initials, app_name, ghl_location_id, meta_ad_account_id, monthly_spend, created_at, health_status, health_note, onboarding_status",
+      "id, slug, name, niche, brand_color, brand_initials, app_name, ghl_location_id, ghl_token, meta_ad_account_id, monthly_spend, created_at, health_status, health_note, onboarding_status",
     )
     .order("created_at", { ascending: true });
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -48,6 +52,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     brand_initials: string;
     app_name: string;
     ghl_location_id: string;
+    ghl_token: string;
     meta_ad_account_id: string | null;
     monthly_spend: number | null;
     created_at: string;
@@ -75,6 +80,14 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     brandInitials: t.brand_initials,
     appName: t.app_name,
     ghlLocationId: t.ghl_location_id,
+    // Whether this client is wired to a GoHighLevel sub-account at all: a real
+    // location id AND a real token, since one without the other is a
+    // half-filled form rather than a connection (tenantHasGhlCreds). The token
+    // itself is not returned.
+    ghlConnected: tenantHasGhlCreds({
+      ghl_location_id: t.ghl_location_id,
+      ghl_token: t.ghl_token,
+    }),
     // Whether this client's ads are wired at all. Carried on the roster because
     // the Paid Ads page gates its tabs on it: an unlinked client is shown the
     // setup wizard instead of four pages that can only read zero.

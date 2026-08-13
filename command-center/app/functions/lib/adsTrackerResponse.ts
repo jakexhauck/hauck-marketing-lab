@@ -19,13 +19,15 @@ import {
 } from "./leadWhen";
 import {
   breakdown,
+  inWindow,
   lastSpendDate,
-  rangeStart,
+  rangeWindow,
   rollup,
   type BreakdownLevel,
   type TrackerLevel,
   type TrackerRange,
 } from "./adTrackerMetrics";
+import { dateStringInZone } from "./tz";
 
 // The one Paid Ads tracker payload, shared by the client's own page and the
 // admin cockpit's view of that client.
@@ -38,8 +40,30 @@ import {
 // does. Two implementations of one payload is how the two surfaces drifted, so
 // there is now one, and the routes differ only in how they name the tenant.
 
-const RANGES: TrackerRange[] = ["all", "7", "30", "90"];
+// Ads Manager's presets, and the default the page opens on.
+//
+// The default used to be "all". A client opened the dashboard on an all-time
+// figure and compared it against whatever their Ads Manager happened to be
+// showing, which is last 30 days out of the box. Two different questions, and
+// nothing on either screen said so.
+const RANGES: TrackerRange[] = [
+  "today",
+  "yesterday",
+  "last_7d",
+  "last_14d",
+  "last_30d",
+  "this_month",
+  "last_month",
+  "maximum",
+];
+export const DEFAULT_RANGE: TrackerRange = "last_30d";
+
 const LEVELS: BreakdownLevel[] = ["campaign", "adset", "ad"];
+
+// Fallback when a tenant has never had a sync write meta_timezone. UTC is the
+// honest default: it is what the old code did implicitly, and it is obviously
+// wrong for a US account rather than quietly plausible.
+const DEFAULT_ZONE = "UTC";
 
 // The tracker's client-facing status is Jake's 12-status model, derived from the
 // lead's live GHL stage in lib/leadStatus.ts and carried on TrackerLead.
@@ -90,7 +114,7 @@ export function manualLevel(status: ManualLeadStatus, booked: boolean): TrackerL
 export function parseTrackerParams(
   url: URL,
 ): { range: TrackerRange; level: BreakdownLevel } | { error: string } {
-  const range = (url.searchParams.get("range") ?? "all") as TrackerRange;
+  const range = (url.searchParams.get("range") ?? DEFAULT_RANGE) as TrackerRange;
   const level = (url.searchParams.get("level") ?? "ad") as BreakdownLevel;
   if (!RANGES.includes(range)) return { error: "bad range" };
   if (!LEVELS.includes(level)) return { error: "bad level" };
@@ -110,18 +134,37 @@ export interface TrackerResponseInput {
   // their own job values, so both are read from Supabase rather than derived
   // from the GHL stage. Defaults to the derived behaviour.
   manualStatus?: boolean;
+  // tenants.meta_timezone (0108): the ad account's own reporting zone, which is
+  // the only zone in which this page's date ranges agree with Ads Manager.
+  metaTimezone?: string | null;
 }
 
 export async function buildTrackerResponse(input: TrackerResponseInput) {
   const { client, gctx, tenantId, internalRecipients, range, level } = input;
   const manual = input.manualStatus === true;
-  const start = rangeStart(range, new Date());
 
-  const [data, typedStatus, typedValues] = await Promise.all([
+  const [data, typedStatus, typedValues, zoneRow] = await Promise.all([
     loadTrackerData(gctx, client, tenantId, internalRecipients),
     manual ? loadManualStatuses(client, tenantId) : Promise.resolve(new Map<string, ManualLeadStatus>()),
     manual ? loadTrackerJobValues(client, tenantId) : Promise.resolve(new Map<string, number>()),
+    // Resolved here rather than by each route, so the client's page and the
+    // admin cockpit's view of that same client cannot cut their days in two
+    // different zones. A caller that already knows it can pass it in.
+    input.metaTimezone !== undefined
+      ? Promise.resolve({ data: { meta_timezone: input.metaTimezone } })
+      : client.from("tenants").select("meta_timezone").eq("id", tenantId).maybeSingle(),
   ]);
+
+  const zone = (zoneRow?.data?.meta_timezone ?? "").trim() || DEFAULT_ZONE;
+  const window = rangeWindow(range, new Date(), zone);
+  // GHL timestamps are UTC instants; the window is in the ad account's zone.
+  const inLeadWindow = (createdAt: string) => {
+    const ms = Date.parse(createdAt);
+    return inWindow(
+      Number.isFinite(ms) ? dateStringInZone(zone, ms) : createdAt,
+      window,
+    );
+  };
 
   // Drop staff contacts ONCE, before anything counts them. This filter used to
   // sit only on the lead rows below, so Willis Windows showed "Leads 35" in
@@ -159,18 +202,21 @@ export async function buildTrackerResponse(input: TrackerResponseInput) {
       }))
     : rawLeads;
 
-  const kpis = rollup(leads, data.spendRows, start);
-  const rows = breakdown(leads, data.spendRows, level, start, data.entities);
+  const kpis = rollup(leads, data.spendRows, window, zone);
+  const rows = breakdown(leads, data.spendRows, level, window, data.entities, zone);
 
-  // Leads inside the window that carry no ad id. Surfaced so the KPI row and
-  // the breakdown never look like they disagree: the breakdown is always the
-  // attributed subset.
+  // CRM leads inside the window carrying no ad id.
+  //
+  // This used to exist to explain why the Results row and the breakdown
+  // disagreed. They no longer can: both count leads from the same Meta rows. It
+  // survives as a different measurement, of how much of the CRM's own lead list
+  // cannot be traced back to an ad at all.
   const unattributed = leads.filter(
-    (l) => !l.adId && (!start || l.createdAt.slice(0, 10) >= start),
+    (l) => !l.adId && inLeadWindow(l.createdAt),
   ).length;
 
   const baseRows = leads
-    .filter((l) => !start || l.createdAt.slice(0, 10) >= start)
+    .filter((l) => inLeadWindow(l.createdAt))
     .map((l) => {
       const c = data.contactById.get(l.contactId);
       const att = data.attributionByContact.get(l.contactId) ?? null;
@@ -268,6 +314,12 @@ export async function buildTrackerResponse(input: TrackerResponseInput) {
     meta: {
       opportunities: data.opportunitiesCount,
       spendDays: data.spendRows.length,
+      // The zone every date on this page was cut in, and the window it produced.
+      // Returned so the UI can say which days it is showing rather than leaving
+      // the client to assume it matches whatever Ads Manager is set to.
+      timezone: zone,
+      windowStart: window.start,
+      windowEnd: window.end,
       // True when nothing has ever been snapshotted, which reads identically to
       // "no spend" on the page. The UI uses it to say which.
       neverSynced: data.spendRows.length === 0,
