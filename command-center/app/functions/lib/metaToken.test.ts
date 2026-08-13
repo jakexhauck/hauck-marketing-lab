@@ -2,18 +2,21 @@ import { describe, it, expect } from "vitest";
 import { maskToken, metaTokenSource, resolveMetaToken } from "./metaToken";
 import type { Env } from "./env";
 
-// The env var winning is the whole safety of this change: a token bound at
-// deploy must never be shadowed by one pasted into a browser, or rotating the
-// real one would silently do nothing.
+// A stored token outranks the deploy-bound one. That ordering is what makes the
+// wizard's box mean anything: an env var can only be changed by a deploy, and
+// this app cannot deploy itself, so ranking it first would make Connect save a
+// token and change nothing.
+//
+// These cases have no database configured, so they exercise the fallback half:
+// with no row to find, the env var is what is left.
 const env = (over: Partial<Env> = {}) => over as Env;
 
 describe("resolveMetaToken", () => {
-  it("uses the deploy-bound token when there is one", async () => {
+  it("falls back to the deploy-bound token when nothing is stored", async () => {
     expect(await resolveMetaToken(env({ META_SYSTEM_USER_TOKEN: "EAAG-live" }))).toBe("EAAG-live");
   });
 
   it("ignores an env var that is only whitespace", async () => {
-    // No database configured either, so this proves it did not return "   ".
     expect(await resolveMetaToken(env({ META_SYSTEM_USER_TOKEN: "   " }))).toBeNull();
   });
 
@@ -23,7 +26,7 @@ describe("resolveMetaToken", () => {
 });
 
 describe("metaTokenSource", () => {
-  it("names env when the deploy carries the token", async () => {
+  it("names env when the deploy carries the token and nothing is stored", async () => {
     expect(await metaTokenSource(env({ META_SYSTEM_USER_TOKEN: "EAAG" }))).toBe("env");
   });
 
