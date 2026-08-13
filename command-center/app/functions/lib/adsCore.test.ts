@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { buildAdsInsights, buildAds, derivePhase, type AdsContext } from "./adsCore";
+import { buildAdsInsights, buildAds, derivePhase, actionsValue, type AdsContext } from "./adsCore";
 import type { Env } from "./env";
 
 // Pins the exact shaping/join behavior extracted out of
@@ -347,5 +347,59 @@ describe("derivePhase", () => {
     ).toBeNull();
     expect(derivePhase([])).toBeNull();
     expect(derivePhase([active("")])).toBeNull();
+  });
+});
+
+describe("actionsValue", () => {
+  const a = (action_type: string, value: string) => ({ action_type, value });
+
+  // The regression this whole grouping exists for. These are Willis Windows'
+  // real August 2026 numbers: Meta's `lead` roll-up is the sum of the two
+  // component types beside it, so a flat sum returned 52 leads instead of 26
+  // and halved cost per lead on the client's Overview.
+  it("takes Meta's roll-up instead of adding it to its own components", () => {
+    const row = {
+      actions: [
+        a("lead", "26"),
+        a("offsite_conversion.fb_pixel_lead", "22"),
+        a("onsite_conversion.lead_grouped", "4"),
+        a("link_click", "164"),
+        a("post_engagement", "2449"),
+      ],
+    };
+    expect(actionsValue(row, "actions")).toBe(26);
+  });
+
+  it("falls back to summing the components when Meta sends no roll-up", () => {
+    const row = {
+      actions: [a("offsite_conversion.fb_pixel_lead", "22"), a("onsite_conversion.lead_grouped", "4")],
+    };
+    expect(actionsValue(row, "actions")).toBe(26);
+  });
+
+  it("counts a purchase once, not once per way Meta describes it", () => {
+    const row = {
+      actions: [
+        a("omni_purchase", "5"),
+        a("purchase", "5"),
+        a("offsite_conversion.fb_pixel_purchase", "5"),
+      ],
+    };
+    expect(actionsValue(row, "actions")).toBe(5);
+  });
+
+  it("adds across groups, so leads and purchases both count", () => {
+    const row = { actions: [a("lead", "10"), a("omni_purchase", "3"), a("complete_registration", "2")] };
+    expect(actionsValue(row, "actions")).toBe(15);
+  });
+
+  it("ignores engagement noise and a missing or malformed array", () => {
+    expect(actionsValue({ actions: [a("video_view", "5611"), a("page_engagement", "6135")] }, "actions")).toBe(0);
+    expect(actionsValue({}, "actions")).toBe(0);
+    expect(actionsValue({ actions: "nope" }, "actions")).toBe(0);
+  });
+
+  it("adds duplicate entries of one type rather than letting the last win", () => {
+    expect(actionsValue({ actions: [a("lead", "3"), a("lead", "4")] }, "actions")).toBe(7);
   });
 });

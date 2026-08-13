@@ -46,17 +46,42 @@ export interface AdsContext {
 // The conversion action types we count as a "lead"/result, matching meta_ads.rs.
 // A client on a non-standard action type simply reads zero results (never a
 // fabricated number).
-const CONVERSION_ACTIONS = new Set([
-  "offsite_conversion.fb_pixel_purchase",
-  "purchase",
-  "omni_purchase",
-  "offsite_conversion.fb_pixel_lead",
-  "lead",
-  "leadgen.other",
-  "onsite_conversion.lead_grouped",
-  "complete_registration",
-  "offsite_conversion.fb_pixel_complete_registration",
-]);
+//
+// Grouped, not a flat set, and that is the whole point. Meta does not report
+// disjoint action types: it reports a ROLL-UP alongside the components that make
+// it up. Willis Windows, August 2026, one account, one month:
+//
+//   lead                             26   <- Meta's own roll-up
+//   offsite_conversion.fb_pixel_lead  22
+//   onsite_conversion.lead_grouped     4
+//
+// 22 + 4 = 26. Summing all three (which a flat set does) returned 52, so the
+// client's Overview read "52 new leads" at "$4.72 each" when the truth was 26 at
+// $9.44: exactly double, exactly half, and plausible enough to go unnoticed for
+// weeks. Purchases would have been counted three times the same way.
+//
+// So each group names its roll-up first. Take the roll-up when Meta reports it;
+// only fall back to summing the components when it is absent (an account that
+// runs one conversion type sometimes gets the component and no roll-up). Sum
+// ACROSS groups, never within one.
+const ACTION_GROUPS: { rollup: string; parts: string[] }[] = [
+  {
+    rollup: "lead",
+    parts: [
+      "offsite_conversion.fb_pixel_lead",
+      "onsite_conversion.lead_grouped",
+      "leadgen.other",
+    ],
+  },
+  {
+    rollup: "omni_purchase",
+    parts: ["purchase", "offsite_conversion.fb_pixel_purchase"],
+  },
+  {
+    rollup: "complete_registration",
+    parts: ["offsite_conversion.fb_pixel_complete_registration"],
+  },
+];
 
 function num(v: unknown): number {
   if (typeof v === "number") return Number.isFinite(v) ? v : 0;
@@ -72,14 +97,29 @@ function round2(n: number): number {
 }
 
 // Sum the values of the conversion action types in an insights row's `actions`
-// (count) or `action_values` (revenue) array.
-function actionsValue(row: Record<string, unknown>, key: string): number {
+// (count) or `action_values` (revenue) array, counting each conversion once.
+// See ACTION_GROUPS for why "once" needs saying.
+export function actionsValue(row: Record<string, unknown>, key: string): number {
   const arr = row[key];
   if (!Array.isArray(arr)) return 0;
-  let total = 0;
+
+  const byType = new Map<string, number>();
   for (const entry of arr) {
     const t = (entry as { action_type?: string }).action_type ?? "";
-    if (CONVERSION_ACTIONS.has(t)) total += num((entry as { value?: unknown }).value);
+    if (!t) continue;
+    // Meta sends one entry per type, but a duplicated type must add rather than
+    // overwrite: losing a conversion is as wrong as counting one twice.
+    byType.set(t, (byType.get(t) ?? 0) + num((entry as { value?: unknown }).value));
+  }
+
+  let total = 0;
+  for (const group of ACTION_GROUPS) {
+    const rolled = byType.get(group.rollup);
+    if (rolled !== undefined) {
+      total += rolled;
+      continue;
+    }
+    for (const part of group.parts) total += byType.get(part) ?? 0;
   }
   return total;
 }
