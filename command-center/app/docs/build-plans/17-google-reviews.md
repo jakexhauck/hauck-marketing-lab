@@ -1,5 +1,13 @@
 # 17. Google Reviews: completed-job review requests
 
+> **The "test account" in this document is a live client.** GHL location
+> `r0WfsA12qpBv7M185V3v` became **Made Better Landscaping Co's** own
+> sub-account on **2026-08-09**. It holds real client data and is not a
+> scratch account. Wherever this document says test account, test
+> sub-account or test template, read it as Made Better's live account. The
+> `TEST_GHL_*` / `TEST_APP_PASSWORD` env vars keep their names but point at
+> that client.
+
 ## Objective
 
 Turn the stubbed `/marketing/reviews` page into a working "Google Reviews" section.

@@ -1,5 +1,13 @@
 # hauck-ads-cron
 
+> **The "test account" in this document is a live client.** GHL location
+> `r0WfsA12qpBv7M185V3v` became **Made Better Landscaping Co's** own
+> sub-account on **2026-08-09**. It holds real client data and is not a
+> scratch account. Wherever this document says test account, test
+> sub-account or test template, read it as Made Better's live account. The
+> `TEST_GHL_*` / `TEST_APP_PASSWORD` env vars keep their names but point at
+> that client.
+
 The alarm clock for the Command Center's Meta spend snapshot.
 
 Cloudflare Pages projects cannot carry a cron trigger, so the thing that wakes
@@ -65,7 +73,7 @@ curl -X POST https://hauck-ads-cron.<your-subdomain>.workers.dev/run \
 It answers with the run summary, for example:
 
 ```
-412 rows across 2 clients (7d) | skipped: Test Account | failed: none
+412 rows across 2 clients (7d) | skipped: Made Better Landscaping Co | failed: none
 ```
 
 To watch the scheduled runs instead:

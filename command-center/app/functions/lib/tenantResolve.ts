@@ -197,9 +197,10 @@ export function tenantHasGhlCreds(t: Pick<TenantRow, "ghl_location_id" | "ghl_to
 // So: no env fallback. A client that has not been wired up yet resolves to
 // null, and callers turn that into "not connected", which is the truth.
 //
-// Test-mode sessions are unaffected: _middleware.ts builds their tenant from
-// TEST_GHL_LOCATION_ID / TEST_GHL_TOKEN before reaching here, so those are the
-// tenant's own creds by the time this sees them.
+// The shared-password ("test") sessions are unaffected: _middleware.ts builds
+// their tenant from TEST_GHL_LOCATION_ID / TEST_GHL_TOKEN before reaching here,
+// so those are the tenant's own creds by the time this sees them. Those vars
+// name Made Better Landscaping Co's real sub-account, not a test account.
 export function resolveGhlCreds(
   tenant: Pick<TenantRow, "ghl_location_id" | "ghl_token">,
 ): { locationId: string; token: string } | null {

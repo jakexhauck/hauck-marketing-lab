@@ -1,5 +1,13 @@
 # Setter Suite: Spec + Implementation Plan
 
+> **The "test account" in this document is a live client.** GHL location
+> `r0WfsA12qpBv7M185V3v` became **Made Better Landscaping Co's** own
+> sub-account on **2026-08-09**. It holds real client data and is not a
+> scratch account. Wherever this document says test account, test
+> sub-account or test template, read it as Made Better's live account. The
+> `TEST_GHL_*` / `TEST_APP_PASSWORD` env vars keep their names but point at
+> that client.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Give the Hauck team one admin screen where a setter works a client's leads across all 8 GHL pipelines, logs every dial, applies tags, and books estimates, so the per-lead ledger Jake specced can actually be measured.

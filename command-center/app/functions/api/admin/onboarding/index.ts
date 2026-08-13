@@ -1,45 +1,37 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { CHECKLIST_TASKS } from "../../../../src/lib/onboarding";
 
 // GET /api/admin/onboarding  (admin-only, gated in _middleware.ts)
-// Every client with its onboarding status and how far through the checklist it
-// is, for the Onboarding page's roster.
 //
-// The count is taken against the shipped task list rather than against whatever
-// rows happen to exist, so a saved tick for a task we no longer ship cannot push
-// a client past done. Three of the nine tasks are answered live by GHL and are
-// not reflected here: this is what has been recorded, and the client's own page
-// is where the live checks run.
+// Every client, with the four things a row on the Onboarding list shows: who
+// they are, what they do, where they are, and whether they are still being set
+// up. The page filters to the ones in setup; the whole roster is returned so
+// that reopening a client who has already gone live needs no second request.
+//
+// This used to count each client's checklist. The checklist went with the
+// redesign: the process lives in Jake's SOPs, and a second copy inside the app
+// was one to maintain and one to ignore. What survived is the record of what the
+// client told us, which is the part nothing else in the app holds.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
 
   const { data: tenants, error } = await client
     .from("tenants")
-    .select("id, name, slug, niche, brand_color, brand_initials")
+    .select("id, name, slug, niche, brand_color, brand_initials, onboarding_status")
     .order("created_at", { ascending: true });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  const { data: ob } = await client
-    .from("onboarding")
-    .select("tenant_id, status, provisioned_at");
-  const byId = new Map(
-    ((ob ?? []) as { tenant_id: string; status: string; provisioned_at: string | null }[]).map(
-      (r) => [r.tenant_id, r],
-    ),
+  // The town they are in comes from their own intake answers, so a client who
+  // has not filled the form in simply has no location line rather than a
+  // placeholder pretending to be one.
+  const { data: ob } = await client.from("onboarding").select("tenant_id, intake");
+  const intakeById = new Map(
+    ((ob ?? []) as { tenant_id: string; intake: Record<string, string> | null }[]).map((r) => [
+      r.tenant_id,
+      r.intake ?? {},
+    ]),
   );
-
-  const { data: ticks } = await client
-    .from("onboarding_checklist")
-    .select("tenant_id, task_key")
-    .eq("done", true);
-  const shipped = new Set(CHECKLIST_TASKS.map((t) => t.key));
-  const doneById = new Map<string, number>();
-  for (const row of (ticks ?? []) as { tenant_id: string; task_key: string }[]) {
-    if (!shipped.has(row.task_key)) continue;
-    doneById.set(row.tenant_id, (doneById.get(row.tenant_id) ?? 0) + 1);
-  }
 
   const clients = (
     (tenants ?? []) as {
@@ -49,19 +41,24 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       niche: string | null;
       brand_color: string | null;
       brand_initials: string | null;
+      onboarding_status: string | null;
     }[]
-  ).map((t) => ({
-    id: t.id,
-    name: t.name,
-    slug: t.slug,
-    niche: t.niche ?? "",
-    brandColor: t.brand_color ?? "",
-    brandInitials: t.brand_initials ?? "",
-    status: byId.get(t.id)?.status ?? "draft",
-    provisionedAt: byId.get(t.id)?.provisioned_at ?? null,
-    tasksDone: doneById.get(t.id) ?? 0,
-    tasksTotal: CHECKLIST_TASKS.length,
-  }));
+  ).map((t) => {
+    const intake = intakeById.get(t.id) ?? {};
+    return {
+      id: t.id,
+      name: t.name,
+      slug: t.slug,
+      niche: t.niche ?? "",
+      brandColor: t.brand_color ?? "",
+      brandInitials: t.brand_initials ?? "",
+      city: (intake.addressCity ?? "").trim(),
+      region: (intake.addressState ?? "").trim(),
+      // 'setup' while they are held at the holding screen, 'live' once Go live
+      // has been pressed. The list is built on this.
+      onboardingStatus: t.onboarding_status ?? "live",
+    };
+  });
 
   return Response.json({ clients });
 };

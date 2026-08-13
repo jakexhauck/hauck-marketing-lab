@@ -1,5 +1,13 @@
 # Leads: Sales / Trash / Organic / Paid Ads Restructure Implementation Plan
 
+> **The "test account" in this document is a live client.** GHL location
+> `r0WfsA12qpBv7M185V3v` became **Made Better Landscaping Co's** own
+> sub-account on **2026-08-09**. It holds real client data and is not a
+> scratch account. Wherever this document says test account, test
+> sub-account or test template, read it as Made Better's live account. The
+> `TEST_GHL_*` / `TEST_APP_PASSWORD` env vars keep their names but point at
+> that client.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rebuild the client app's Leads section into four tabs (Sales, Trash, Organic, Paid Ads) that share one header, bound to the client's real, newly-consolidated GoHighLevel pipelines, and replace the lead detail page with a chat-first page whose one-touch action buttons map to real actions.

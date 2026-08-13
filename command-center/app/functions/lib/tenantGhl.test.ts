@@ -127,16 +127,36 @@ describe("getGhlContextForTenant", () => {
     });
   });
 
-  it("derives mode test for the seeded test-account tenant", async () => {
+  it("derives mode test for the Made Better tenant", async () => {
+    // The shared-password session's tenant. It used to be a separate
+    // 'test-account' row; migration 0105 collapsed that into Made Better
+    // Landscaping Co's real row, which is the one DEFAULT_TEST_SLUG names.
+    vi.mocked(getServiceClient).mockReturnValue(
+      stubClient({
+        data: {
+          ghl_location_id: REAL_LOCATION,
+          ghl_token: REAL_TOKEN,
+          slug: "made-better-landscaping-co",
+        },
+        error: null,
+      }),
+    );
+    const ctx = await getGhlContextForTenant(envWithSentinels(), "t-made-better");
+    expect(ctx.slug).toBe("made-better-landscaping-co");
+    expect(ctx.mode).toBe("test");
+  });
+
+  it("derives mode live for the retired test-account tenant", async () => {
+    // Migration 0105 retired that row. Nothing should resolve to it any more,
+    // and if something does it must not be handed the shared-password session.
     vi.mocked(getServiceClient).mockReturnValue(
       stubClient({
         data: { ghl_location_id: REAL_LOCATION, ghl_token: REAL_TOKEN, slug: "test-account" },
         error: null,
       }),
     );
-    const ctx = await getGhlContextForTenant(envWithSentinels(), "t-test");
-    expect(ctx.slug).toBe("test-account");
-    expect(ctx.mode).toBe("test");
+    const ctx = await getGhlContextForTenant(envWithSentinels(), "t-retired");
+    expect(ctx.mode).toBe("live");
   });
 
   it("derives mode live for any other tenant", async () => {
@@ -152,7 +172,7 @@ describe("getGhlContextForTenant", () => {
   });
 
   it("honours TEST_TENANT_SLUG when the env overrides the default", async () => {
-    // testTenantSlug(env) is env.TEST_TENANT_SLUG || "test-account", so the
+    // testTenantSlug(env) is env.TEST_TENANT_SLUG || DEFAULT_TEST_SLUG, so the
     // derivation has to read the env, not hardcode the default slug.
     vi.mocked(getServiceClient).mockReturnValue(
       stubClient({

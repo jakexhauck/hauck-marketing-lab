@@ -4,8 +4,11 @@ import {
   enablePush,
   hasPushSubscription,
   isInstalledPwa,
+  isIos,
   pushAlreadyGranted,
+  pushSupported,
 } from "../lib/push";
+import InstallSteps from "./InstallSteps";
 
 const DISMISS_KEY = "hml_notif_dismissed_until";
 const DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -27,11 +30,13 @@ function rememberDismissal(): void {
   }
 }
 
-// An "Enable notifications" prompt shown only when the app runs as an
-// installed PWA (matchMedia display-mode: standalone). Covers two states:
-// permission never granted (first ask), and permission granted but no live
-// subscription (e.g. after sign-out unsubscribed the device), which offers
-// re-enabling. "Not now" sticks for 7 days.
+// An "Enable notifications" prompt, shown on any device that could be buzzing
+// but is not. Covers three states: iOS not yet installed to the home screen
+// (shows how, since Web Push is unavailable to a plain Safari tab), permission
+// never granted (first ask), and permission granted but no live subscription
+// (e.g. after sign-out unsubscribed the device), which offers re-enabling.
+// "Not now" sticks for 7 days. Never shown on a browser that cannot do push
+// at all: there would be nothing the reader could act on.
 export default function NotificationPrompt() {
   const [hidden, setHidden] = useState(false);
   const [status, setStatus] = useState<
@@ -41,9 +46,11 @@ export default function NotificationPrompt() {
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
 
   const granted = pushAlreadyGranted();
+  // Only iOS demands the home-screen install before push is offered at all.
+  const needsInstall = isIos() && !isInstalledPwa();
 
   useEffect(() => {
-    if (!isInstalledPwa() || !granted) return;
+    if (needsInstall || !granted) return;
     let mounted = true;
     hasPushSubscription().then((has) => {
       if (mounted) setSubscribed(has);
@@ -51,14 +58,17 @@ export default function NotificationPrompt() {
     return () => {
       mounted = false;
     };
-  }, [granted]);
+  }, [granted, needsInstall]);
 
-  if (hidden || !isInstalledPwa() || dismissedRecently()) return null;
+  if (hidden || dismissedRecently()) return null;
+  // A browser with no Push API and no install path ahead of it can do nothing
+  // with this card, so say nothing.
+  if (!pushSupported() && !needsInstall) return null;
   // Permission granted: hide while the subscription check is pending or when
   // a live subscription already exists; otherwise offer re-enabling.
-  if (granted && subscribed !== false) return null;
+  if (!needsInstall && granted && subscribed !== false) return null;
 
-  const reEnable = granted && subscribed === false;
+  const reEnable = !needsInstall && granted && subscribed === false;
 
   const onEnable = async () => {
     setStatus("working");
@@ -83,9 +93,11 @@ export default function NotificationPrompt() {
         ? "This device does not support notifications."
         : status === "failed"
           ? "Could not enable notifications. Check your connection and try again."
-          : reEnable
-            ? "Notifications were turned off on this device. Tap to turn them back on."
-            : "One quick buzz per new lead or reply. Nothing else, and you can turn it off anytime.";
+          : needsInstall
+            ? "Add Hauck to your home screen and your phone will buzz the moment a lead comes in."
+            : reEnable
+              ? "Notifications were turned off on this device. Tap to turn them back on."
+              : "One quick buzz per new lead or reply. Nothing else, and you can turn it off anytime.";
 
   return (
     <div className="mx-[22px] mt-5 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4">
@@ -102,23 +114,30 @@ export default function NotificationPrompt() {
           </div>
         </div>
       </div>
+      {/* iOS cannot subscribe from a Safari tab at all, so show the install
+          route instead of an Enable button that is guaranteed to fail. */}
+      {needsInstall && <InstallSteps className="mt-3" />}
       <div className="mt-3 flex gap-2">
-        <button
-          type="button"
-          onClick={onEnable}
-          disabled={status === "working" || status === "unsupported"}
-          className="inline-flex flex-1 items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-[13px] font-bold uppercase tracking-wider text-[var(--brand-fg)] transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {status === "working"
-            ? "Enabling..."
-            : reEnable
-              ? "Re-enable"
-              : "Enable"}
-        </button>
+        {!needsInstall && (
+          <button
+            type="button"
+            onClick={onEnable}
+            disabled={status === "working" || status === "unsupported"}
+            className="inline-flex flex-1 items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-[13px] font-bold uppercase tracking-wider text-[var(--brand-fg)] transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {status === "working"
+              ? "Enabling..."
+              : reEnable
+                ? "Re-enable"
+                : "Enable"}
+          </button>
+        )}
         <button
           type="button"
           onClick={onDismiss}
-          className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-[13px] font-bold uppercase tracking-wider text-[var(--text-muted)] transition-transform active:scale-[0.98]"
+          className={`inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-[13px] font-bold uppercase tracking-wider text-[var(--text-muted)] transition-transform active:scale-[0.98] ${
+            needsInstall ? "flex-1" : ""
+          }`}
         >
           Not now
         </button>

@@ -51,8 +51,9 @@ export default function Login() {
     e.preventDefault();
     const trimmedPw = password.trim();
     const trimmedEmail = email.trim();
-    // Test mode is a shared-password login into the internal staging sub-account
-    // (no per-person account), so it takes only the password. Live and admin are
+    // The "test" mode string is legacy plumbing: this door now opens Made Better
+    // Landscaping Co's real sub-account. It is a shared-password login (no
+    // per-person account), so it takes only the password. Live and admin are
     // account-based and require an email too.
     if (!trimmedPw || (!isTest && !trimmedEmail)) return;
     setPhase("submitting");
@@ -70,25 +71,20 @@ export default function Login() {
     }
   };
 
-  // Live mode shows only the single sign-in line (no title). Test/admin keep
-  // their functional heading + subtitle.
+  // Live mode shows only the single sign-in line (no title). Made Better and
+  // admin keep their functional heading + subtitle.
   const blockTitle = isAdmin
     ? "Admin Console"
     : isTest
-      ? "Test Account"
+      ? "Made Better Landscaping Co"
       : "Sign in with your email and password";
   const blockSubtitle = isAdmin
     ? "Sign in to the admin console with your username."
     : isTest
-      ? "Preview changes on the staging sub-account."
+      ? "Sign in with the shared account password."
       : null;
 
-  const submitLabel =
-    phase === "submitting"
-      ? "Signing in..."
-      : isTest
-        ? "Enter test account"
-        : "Sign in";
+  const submitLabel = phase === "submitting" ? "Signing in..." : "Sign in";
 
   const submitDisabled =
     phase === "submitting" || !password.trim() || (!isTest && !email.trim());
@@ -99,7 +95,7 @@ export default function Login() {
   const block = (
     <div className="fx-rise w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-[0_18px_40px_rgba(40,42,70,0.12),0_6px_14px_rgba(40,42,70,0.07)]">
       {/* Re-keying on `mode` remounts the inner sections so they re-cascade
-          when the user switches between live / test / admin. fx-stagger sets
+          when the user switches between live / Made Better / admin. fx-stagger sets
           --i on each direct child; login-field reads it for the delay. */}
       <div key={mode} className="fx-stagger">
       <div className="login-field text-center">
@@ -111,15 +107,8 @@ export default function Login() {
         )}
       </div>
 
-      {isTest && (
-        <div className="login-field mt-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          You are signing into the internal test sub-account, not a client
-          account.
-        </div>
-      )}
-
       <form onSubmit={onSubmit} className="login-field mt-7 space-y-4">
-        {/* Test mode is a shared-password login, so it shows no email field. */}
+        {/* This is a shared-password login, so it shows no email field. */}
         {!isTest && (
           <label className="block">
             <span className="label-cap">{isAdmin ? "Username" : "Email"}</span>
@@ -137,12 +126,12 @@ export default function Login() {
           </label>
         )}
         <label className="block">
-          <span className="label-cap">{isTest ? "Test password" : "Password"}</span>
+          <span className="label-cap">Password</span>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder={isTest ? "Enter test password" : "Enter password"}
+            placeholder="Enter password"
             autoComplete="current-password"
             required
             disabled={phase === "submitting"}
@@ -179,7 +168,7 @@ export default function Login() {
             disabled={phase === "submitting"}
             className="block w-full text-sm text-[var(--text-muted)] underline-offset-4 transition-colors hover:text-[var(--text)] hover:underline disabled:opacity-60"
           >
-            {isTest ? "Back to client login" : "Log into test account"}
+            {isTest ? "Back to client login" : "Log into Made Better"}
           </button>
         )}
         <button

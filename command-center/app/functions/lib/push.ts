@@ -71,18 +71,25 @@ export async function sendPushForActivity(
   const allRows = (subs as SubRow[] | null) ?? [];
   if (allRows.length === 0) return;
 
-  // Honour the owner's audience rule. Default to "everyone" if the column is
-  // unset or unreadable: better an extra buzz than a missed lead.
   const { data: tenantRow } = await client
     .from("tenants")
-    .select("notify_audience")
+    .select("notify_audience, notify_push_enabled")
     .eq("id", tenantId)
     .maybeSingle();
+  const prefs = tenantRow as {
+    notify_audience?: string;
+    notify_push_enabled?: boolean | null;
+  } | null;
+
+  // The owner's master push switch (0021). Only an explicit false silences the
+  // tenant: an unset or unreadable column means push stays on, because a missed
+  // lead costs more than an extra buzz.
+  if (prefs?.notify_push_enabled === false) return;
+
+  // Honour the owner's audience rule, defaulting to "everyone" on the same
+  // reasoning.
   const audience: NotifyAudience =
-    (tenantRow as { notify_audience?: string } | null)?.notify_audience ===
-    "assigned"
-      ? "assigned"
-      : "everyone";
+    prefs?.notify_audience === "assigned" ? "assigned" : "everyone";
 
   const rows = selectRecipients(allRows, audience, activity.assigned_user_id);
   if (rows.length === 0) return;

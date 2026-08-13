@@ -1445,16 +1445,17 @@ export function useAdminOnboardingProvision(tenantId: string) {
   });
 }
 
-// The end of onboarding: open the client's app. The server re-counts the
-// checklist and refuses if anything is outstanding, so this can be called from
-// a button that is merely disabled rather than one that is trusted.
+// The end of onboarding: open the client's app. Ungated, so this is exactly as
+// trusted as the person pressing it.
 export function useAdminOnboardingGoLive(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () =>
       api<AdminGoLiveResult>(`/api/admin/onboarding/${tenantId}/go-live`, { method: "POST" }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["admin", "onboarding", tenantId] });
+      // Prefix, not exact: the roster this client should now drop off is keyed
+      // ["admin","onboarding","list"], which the tenant key would never reach.
+      void qc.invalidateQueries({ queryKey: ["admin", "onboarding"] });
       // The board reads the same lifecycle, so it must not keep showing this
       // client as still being set up.
       void qc.invalidateQueries({ queryKey: ["admin", "intake"] });

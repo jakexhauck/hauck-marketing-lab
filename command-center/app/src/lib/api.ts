@@ -550,10 +550,11 @@ export interface AdminOnboardingListItem {
   niche: string;
   brandColor: string;
   brandInitials: string;
-  status: string;
-  provisionedAt: string | null;
-  tasksDone: number;
-  tasksTotal: number;
+  /** From their own intake answers, so blank until they fill the form in. */
+  city: string;
+  region: string;
+  /** 'setup' = still being stood up, 'live' = their app is open. */
+  onboardingStatus: string;
 }
 
 export interface AdminOnboardingListResponse {

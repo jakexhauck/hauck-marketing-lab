@@ -22,6 +22,11 @@ export interface Env {
   GHL_APP_ID?: string;
   // Supabase tenant slug for the live session mode (defaults to willis-windows).
   TENANT_SLUG?: string;
+  // The TEST_* credentials below are named for what this sub-account used to
+  // be. Since 2026-08-09 it is Made Better Landscaping Co's own sub-account: a
+  // real client, holding real client data, NOT a scratch account to experiment
+  // in. The names are kept only because renaming them means renaming secrets in
+  // Cloudflare and Doppler; treat every TEST_* value here as a live client's.
   TEST_APP_PASSWORD?: string;
   TEST_GHL_LOCATION_ID?: string;
   TEST_GHL_TOKEN?: string;
@@ -40,7 +45,8 @@ export interface Env {
   // something else: reading every calendar on the account is what put four
   // flights and a school prom on the sales meetings page.
   AGENCY_SALES_CALENDAR_IDS?: string;
-  // Supabase tenant slug for the test session mode (defaults to test-account).
+  // Supabase tenant slug for the shared-password ("test") session mode, which
+  // is Made Better Landscaping Co. Defaults to the legacy test-account slug.
   TEST_TENANT_SLUG?: string;
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
@@ -180,7 +186,13 @@ export function tenantTimezone(env: Env): string {
 // Generic defaults. At client promotion time, set TENANT_SLUG (and seed the
 // matching tenants row) per client; nothing client-specific belongs in code.
 export const DEFAULT_LIVE_SLUG = "live-client";
-export const DEFAULT_TEST_SLUG = "test-account";
+// The shared-password session resolves to Made Better Landscaping Co's REAL
+// tenant row. It used to resolve to a separate 'test-account' row, which meant
+// one account was two tenants: the session scoped to an empty 'test-account'
+// while reading GHL data from Made Better's location. Migration 0105 collapsed
+// them and retired that row. The constant keeps its TEST name because the
+// session mode and the TEST_GHL_* env vars still carry it.
+export const DEFAULT_TEST_SLUG = "made-better-landscaping-co";
 
 export function liveTenantSlug(env: Env): string {
   return env.TENANT_SLUG || DEFAULT_LIVE_SLUG;

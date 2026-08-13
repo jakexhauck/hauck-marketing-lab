@@ -4,7 +4,8 @@ export type LeadSource = "ad" | "form" | "chat";
 // Chat wins first (a chat lead could also carry a site name); then paid signals;
 // everything else is a form submission. NOTE: the paid-signal list is tuned to
 // the known Meta stamps and MUST be re-verified against real ad leads once they
-// flow (the test account currently only has Chat Widget leads). Bare "fb"/"ig"
+// flow (as of the audit, Made Better's account only had Chat Widget leads).
+// Bare "fb"/"ig"
 // were dropped: they false-positive on ordinary words (Signup, Digital, Original);
 // "facebook" and "instagram" already cover the real Meta source stamps.
 const PAID = ["facebook", "instagram", "meta", "paid", " ad"];

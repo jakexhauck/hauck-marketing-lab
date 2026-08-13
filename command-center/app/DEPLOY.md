@@ -22,17 +22,22 @@ Public URL goal: `hauck-dashboard.pages.dev` (or pick another name during setup)
    - `SESSION_SECRET` = any random 32+ char string (used to sign session cookies; rotate to log everyone out)
    - `GHL_LOCATION_ID` = the live client sub-account's Location ID (GHL → Settings → Business Profile)
    - `GHL_TOKEN` = the Private Integration token from the live client sub-account (GHL → Settings → Integrations → Private Integrations → grant `opportunities.read/write`, `contacts.read/write`, `conversations.read/write`)
-5. Test account (optional, for previewing changes against your snapshot/staging sub-account before they reach clients). Add these three as Secrets too:
-   - `TEST_APP_PASSWORD` = the password typed after tapping "Log into test account" on the login screen. Must differ from `APP_PASSWORD`.
-   - `TEST_GHL_LOCATION_ID` = the test sub-account's Location ID.
-   - `TEST_GHL_TOKEN` = the Private Integration token from the test sub-account (same scopes as above).
-   If these are unset, the test login simply returns "test account not configured" and the live login is unaffected.
+5. Second client sub-account (optional). These vars are named `TEST_*` for
+   historical reasons only. **They point at Made Better Landscaping Co
+   (`r0WfsA12qpBv7M185V3v`), a real client, as of 2026-08-09.** That location was
+   the internal test account before then. It is not a staging or snapshot
+   account and nothing should be experimented with in it. Add these three as
+   Secrets too:
+   - `TEST_APP_PASSWORD` = the password typed after tapping "Log into Made Better" on the login screen. Must differ from `APP_PASSWORD`.
+   - `TEST_GHL_LOCATION_ID` = that sub-account's Location ID.
+   - `TEST_GHL_TOKEN` = the Private Integration token from that sub-account (same scopes as above).
+   If these are unset, that login simply returns "test account not configured" and the live login is unaffected.
 6. Save and deploy. First build takes ~2 minutes.
 
 ## Verifying after the first deploy
 
 - Open the `*.pages.dev` URL on iPhone Safari. Login screen renders with full branding, no console errors.
-- Enter the `APP_PASSWORD` value → tap **Send sign-in link** → land on Dashboard with real leads from the test sub-account.
+- Enter the `APP_PASSWORD` value → tap **Send sign-in link** → land on Dashboard with real leads from the live client sub-account.
 - Add to Home Screen. Reopen from the home-screen icon — it launches standalone (no Safari chrome).
 - Walk the flow: tap a lead → mark Won, enter a value → confirms back to Dashboard.
 - Confirm the dev panel (gear icon) is **hidden** on the bare URL.
@@ -50,7 +55,7 @@ If you want `dash.hauckmarketing.com`:
 ## What's deployed
 
 - Frontend PWA + Cloudflare Pages Functions for the GHL bridge.
-- Auth: shared `APP_PASSWORD` (live) plus optional `TEST_APP_PASSWORD` (test). Successful login sets an HttpOnly session cookie signed with `SESSION_SECRET`; the cookie records which mode you logged in as and is good for 30 days.
-- All `/api/*` calls (except `/api/health`, `/api/webhook`, and the three `/api/auth/*` endpoints) require a valid session cookie. The Worker injects the GHL location + token for that session's mode into every request — live sessions hit `GHL_*`, test sessions hit `TEST_GHL_*`. The app is locked to those sub-accounts by configuration.
-- To swap the live sub-account: update `GHL_LOCATION_ID` and `GHL_TOKEN`. To swap the test sub-account: update `TEST_GHL_LOCATION_ID` and `TEST_GHL_TOKEN`. To force-logout everyone (e.g., after sharing the password too widely): rotate `SESSION_SECRET`.
+- Auth: shared `APP_PASSWORD` (live) plus optional `TEST_APP_PASSWORD` (Made Better). Successful login sets an HttpOnly session cookie signed with `SESSION_SECRET`; the cookie records which mode you logged in as and is good for 30 days.
+- All `/api/*` calls (except `/api/health`, `/api/webhook`, and the three `/api/auth/*` endpoints) require a valid session cookie. The Worker injects the GHL location + token for that session's mode into every request — live sessions hit `GHL_*`, Made Better sessions hit `TEST_GHL_*`. The app is locked to those sub-accounts by configuration.
+- To swap the live sub-account: update `GHL_LOCATION_ID` and `GHL_TOKEN`. To swap the Made Better sub-account: update `TEST_GHL_LOCATION_ID` and `TEST_GHL_TOKEN`. To force-logout everyone (e.g., after sharing the password too widely): rotate `SESSION_SECRET`.
 - Push-to-`main` triggers an automatic rebuild and deploy. No manual step.

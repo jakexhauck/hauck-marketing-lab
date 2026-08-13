@@ -6,12 +6,16 @@ import { Button } from "../ui/Button";
 import { api } from "../../lib/api";
 import { useTheme, type ThemePref } from "../../context/ThemeContext";
 import {
+  disablePush,
   enablePush,
   hasPushSubscription,
   isInstalledPwa,
+  isIos,
   pushAlreadyGranted,
+  pushSupported,
   type PushEnableResult,
 } from "../../lib/push";
+import InstallSteps from "../InstallSteps";
 
 // Shared Settings controls. Both the phone (Settings.tsx) and desktop
 // (SettingsDesktop.tsx) layouts render these inside their own section headers,
@@ -67,15 +71,14 @@ export function ThisDeviceControl() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const supported =
-        typeof navigator !== "undefined" &&
-        "serviceWorker" in navigator &&
-        typeof window !== "undefined" &&
-        "PushManager" in window;
-      if (!supported) return mounted && setState("unsupported");
-      if (!isInstalledPwa() && !pushAlreadyGranted()) {
-        return mounted && setState("needs-install");
+      // An iPhone in a plain Safari tab hides the Push API entirely, so a
+      // missing PushManager there is an install problem, not a dead browser.
+      // Check the platform before writing the device off as unsupported.
+      const needsInstall = isIos() && !isInstalledPwa();
+      if (!pushSupported()) {
+        return mounted && setState(needsInstall ? "needs-install" : "unsupported");
       }
+      if (needsInstall) return mounted && setState("needs-install");
       const has = await hasPushSubscription();
       if (mounted) setState(has && pushAlreadyGranted() ? "on" : "off");
     })();
@@ -100,6 +103,16 @@ export function ThisDeviceControl() {
     }
   };
 
+  // Drops the browser subscription and deletes the server row, so this device
+  // stops buzzing without the owner having to sign out.
+  const disable = async () => {
+    setBusy(true);
+    setNote(null);
+    await disablePush();
+    setBusy(false);
+    setState("off");
+  };
+
   const on = state === "on";
   const Icon = on ? Bell : BellOff;
 
@@ -122,21 +135,26 @@ export function ThisDeviceControl() {
             {state === "on" && "On. This device will buzz for new leads, messages, and wins."}
             {state === "off" && "Off. Turn on to get buzzed on this device."}
             {state === "needs-install" &&
-              "Install the app to your home screen first, then turn this on."}
+              "Add the app to your home screen first, then turn this on."}
             {state === "unsupported" && "This browser cannot show notifications."}
           </div>
         </div>
-        {(state === "off") && (
+        {state === "off" && (
           <Button variant="primary" size="sm" onClick={() => void enable()} disabled={busy}>
             {busy ? "Turning on" : "Turn on"}
           </Button>
         )}
         {state === "on" && (
-          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">
-            On
-          </span>
+          <Button variant="secondary" size="sm" onClick={() => void disable()} disabled={busy}>
+            {busy ? "Turning off" : "Turn off"}
+          </Button>
         )}
       </div>
+      {state === "needs-install" && (
+        <div className="border-t border-border px-4 py-3.5">
+          <InstallSteps />
+        </div>
+      )}
       {note && (
         <div className="border-t border-border px-4 py-2.5 text-[12px] text-[#be123c]">
           {note}

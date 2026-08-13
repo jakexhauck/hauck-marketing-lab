@@ -285,9 +285,11 @@ export default function Sidebar() {
           Settings, theme and sign out, matching the admin rail row for row.
           The desktop top-right cluster keeps search, chat and the bell only. */}
       <div className="border-t border-[var(--divider)] px-3 py-3">
+        {/* The "test" mode string is legacy: this session is Made Better
+            Landscaping Co's real sub-account, so the chip names the client. */}
         {mode === "test" && (
-          <div className="mb-2 flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-amber-600">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Test account
+          <div className="mb-2 flex items-center gap-1.5 rounded-lg bg-[var(--brand-primary)]/10 px-2.5 py-1.5 text-[11px] font-semibold text-[var(--brand-primary)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-primary)]" /> Made Better
           </div>
         )}
         {/* Team is account administration, not a business surface, so it sits

@@ -140,7 +140,7 @@ export const CONNECTIONS: ConnectionDef[] = [
         home: "cloudflare",
         inDoppler: true,
         optional: true,
-        note: "The TEST ACCOUNT sub-account, used by test-mode sessions.",
+        note: "Made Better Landscaping Co's sub-account. A real client: it was the test account until 2026-08-09, so the var name still says TEST.",
       },
       { name: "TEST_GHL_LOCATION_ID", home: "cloudflare", inDoppler: true, optional: true },
       {

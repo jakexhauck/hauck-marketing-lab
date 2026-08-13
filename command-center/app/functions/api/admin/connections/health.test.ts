@@ -165,7 +165,7 @@ describe("connection health endpoint", () => {
 
   it("does not probe a client whose token is still a placeholder", async () => {
     tenantRows = [
-      { id: "t1", slug: "test-account", name: "TEST ACCOUNT", ghl_location_id: "pending", ghl_token: "pending" },
+      { id: "t1", slug: "test-account", name: "Made Better Landscaping Co", ghl_location_id: "pending", ghl_token: "pending" },
     ];
     const fetchSpy = vi.fn(() => Promise.resolve(new Response("{}")));
     vi.stubGlobal("fetch", fetchSpy);

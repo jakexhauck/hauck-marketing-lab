@@ -19,8 +19,27 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return output;
 }
 
-function pushSupported(): boolean {
-  return "serviceWorker" in navigator && "PushManager" in window;
+export function pushSupported(): boolean {
+  return (
+    typeof navigator !== "undefined" &&
+    "serviceWorker" in navigator &&
+    typeof window !== "undefined" &&
+    "PushManager" in window
+  );
+}
+
+// iOS is the only platform that refuses Web Push to a plain browser tab: it
+// exposes the Push API exclusively to apps installed on the home screen.
+// Android Chrome and every desktop browser subscribe straight from the tab, so
+// the "install first" step must be asked of iPhones and iPads only.
+export function isIos(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  // iPadOS 13+ reports a desktop Mac user agent; touch points give it away.
+  return (
+    /iPad|iPhone|iPod/.test(ua) ||
+    (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+  );
 }
 
 // The device's chosen GHL identity (the "who are you?" step stores it under

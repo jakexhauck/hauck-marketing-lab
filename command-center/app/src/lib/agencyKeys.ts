@@ -31,7 +31,7 @@ export const KEY_GROUPS: KeyGroup[] = [
   { id: "signin", label: "Sign-in", blurb: "The shared password and the signed session cookie." },
   { id: "crons", label: "Scheduled jobs", blurb: "The health watchdog and the nightly ad spend refresh." },
   { id: "buildlab", label: "Build Lab", blurb: "Reads the build plans out of the repo." },
-  { id: "testmode", label: "Test mode", blurb: "The TEST ACCOUNT sub-account, used by test-mode sessions." },
+  { id: "testmode", label: "Made Better", blurb: "Made Better Landscaping Co's sub-account. A real client: it was the test account until 2026-08-09, so these var names still say TEST." },
   { id: "platform", label: "Platform", blurb: "The keys this page runs on. Read-only here, on purpose." },
   { id: "unused", label: "Not in use", blurb: "Declared, but you do not do this work. Left visible so nothing is a mystery." },
 ];
@@ -250,7 +250,7 @@ export const AGENCY_KEYS: AgencyKeyDef[] = [
     help: "Signs the session cookie. Nobody types this, so it should be random.",
     warning: "Changing this signs every user out at once, clients included.",
   },
-  { name: "TEST_APP_PASSWORD", group: "signin", entry: "paste", help: "The password for test-mode sessions." },
+  { name: "TEST_APP_PASSWORD", group: "signin", entry: "paste", help: "The shared password for Made Better Landscaping Co's sign-in." },
 
   // --- Crons ----------------------------------------------------------------
   {
@@ -280,9 +280,9 @@ export const AGENCY_KEYS: AgencyKeyDef[] = [
   },
   { name: "GITHUB_REPO", group: "buildlab", entry: "paste", help: "owner/repo. Defaults to this one." },
 
-  // --- Test mode ------------------------------------------------------------
-  { name: "TEST_GHL_TOKEN", group: "testmode", entry: "paste", help: "A token inside the TEST ACCOUNT sub-account." },
-  { name: "TEST_GHL_LOCATION_ID", group: "testmode", entry: "paste", help: "The TEST ACCOUNT location id." },
+  // --- Made Better Landscaping Co --------------------------------------------
+  { name: "TEST_GHL_TOKEN", group: "testmode", entry: "paste", help: "A token inside Made Better Landscaping Co's sub-account." },
+  { name: "TEST_GHL_LOCATION_ID", group: "testmode", entry: "paste", help: "Made Better Landscaping Co's location id." },
 
   // --- Platform (locked) ----------------------------------------------------
   { name: "CF_DEPLOY_TOKEN", group: "platform", entry: "locked", help: "Pages:Edit on this project only. What makes Apply work." },

@@ -1,5 +1,13 @@
 # Test Account Snapshot Diagnosis (`r0WfsA12qpBv7M185V3v`)
 
+> **The "test account" in this document is a live client.** GHL location
+> `r0WfsA12qpBv7M185V3v` became **Made Better Landscaping Co's** own
+> sub-account on **2026-08-09**. It holds real client data and is not a
+> scratch account. Wherever this document says test account, test
+> sub-account or test template, read it as Made Better's live account. The
+> `TEST_GHL_*` / `TEST_APP_PASSWORD` env vars keep their names but point at
+> that client.
+
 Full diagnosis of the GHL test subaccount for the purpose of building **one clean snapshot** that
 duplicates to new clients easily. Read-only audit, nothing in the account was changed.
 

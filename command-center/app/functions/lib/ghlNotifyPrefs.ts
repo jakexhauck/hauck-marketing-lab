@@ -3,7 +3,8 @@ import { ghlFetch, type GhlContext } from "./ghl";
 // Mirror the owner's email/SMS notification choices into GHL so the snapshot's
 // internal_notification actions obey them WITHOUT any workflow edits.
 //
-// How the snapshot actually works (confirmed against the test sub-account):
+// How the snapshot actually works (confirmed against Made Better Landscaping
+// Co's sub-account, the one the TEST_* env vars name):
 // every internal staff alert is a GHL `internal_notification` action whose
 // recipient is a LOCATION CUSTOM VALUE, not a hard-coded address:
 //   to_custom_email  -> the staff email recipient
@@ -18,7 +19,7 @@ import { ghlFetch, type GhlContext } from "./ghl";
 //   sms off   -> to_custom_number = "" (suppressed)
 //
 // Custom-value IDs differ per cloned account, so we match by fieldKey/name, not
-// by the test account's ids. Best-effort and idempotent: callers wrap this in
+// by one account's ids. Best-effort and idempotent: callers wrap this in
 // waitUntil + catch; the Supabase tenant row is the source of truth.
 
 const KEYS = {

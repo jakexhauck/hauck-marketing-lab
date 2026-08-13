@@ -49,9 +49,9 @@ function slugForLocation(env: Env, locationId: string): string | null {
 
 // Resolve the tenant id for an inbound event's GHL location. Prefer a DB tenant
 // whose ghl_location_id matches (true multi-tenant: every client's events route,
-// not just the single env-configured one) and fall back to the env live/test
-// locations for the single-tenant / test-sub-account case. null when nothing
-// matches.
+// not just the single env-configured one) and fall back to the env live/TEST_*
+// locations for the single-tenant case. (TEST_* is Made Better Landscaping Co's
+// real sub-account; the var name is legacy.) null when nothing matches.
 async function tenantIdForLocation(
   client: SupabaseClient,
   env: Env,
@@ -284,8 +284,8 @@ async function confirmIntroCallStage(
 }
 
 // Build the GHL API context (token + location) for an event's location. Prefer
-// the tenant row's own creds (true multi-tenant), fall back to the env live/test
-// creds for the single-tenant / test-sub-account case. null when neither has
+// the tenant row's own creds (true multi-tenant), fall back to the env live/TEST_*
+// creds for the single-tenant case. null when neither has
 // usable creds, in which case the confirmation flip is skipped.
 async function ghlContextForLocation(
   client: SupabaseClient,

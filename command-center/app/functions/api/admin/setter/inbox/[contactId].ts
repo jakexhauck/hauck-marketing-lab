@@ -27,7 +27,7 @@ import { logAdminAction } from "../../../../lib/adminAuth";
 // 1. Credentials come from getGhlContextForTenant ONLY. On this
 //    client-switching admin surface, anything that quietly resolved to another
 //    account would text a DIFFERENT client's real customers while the setter
-//    believed they were on the test account. getGhlContextForTenant throws on a
+//    believed they were on another one. getGhlContextForTenant throws on a
 //    half-configured client rather than returning something plausible.
 // 2. The audit row is written ONLY after the send actually succeeded. A row for
 //    a message that was never delivered is worse than no row: this log is the

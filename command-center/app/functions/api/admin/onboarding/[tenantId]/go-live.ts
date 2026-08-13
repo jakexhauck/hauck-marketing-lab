@@ -1,7 +1,6 @@
 import type { Env, ApiData } from "../../../../lib/env";
 import { getServiceClient } from "../../../../lib/supabase";
 import { logAdminAction } from "../../../../lib/adminAuth";
-import { outstandingRequired, type GateStep } from "../../../../../src/lib/setupSteps";
 
 // POST /api/admin/onboarding/:tenantId/go-live
 //
@@ -9,10 +8,11 @@ import { outstandingRequired, type GateStep } from "../../../../../src/lib/setup
 // opens. Until this runs they can sign in and see the holding screen, which is
 // the middleware's onboarding gate reading the same column.
 //
-// The checklist is re-counted HERE rather than trusted from the browser. The
-// button is disabled while anything is outstanding, but a disabled button is a
-// courtesy and not a rule, and going live early is exactly the mistake worth
-// making impossible: it hands a client an app wired to nothing.
+// There is no gate on this any more. It used to re-count the required setup
+// steps and refuse while any were outstanding, which was the right rule while
+// the app held the checklist. The app no longer holds one: the process is in
+// Jake's SOPs, he is the only person who presses this, and he asked for the
+// judgement to be his rather than the server's. The action is still logged.
 export const onRequestPost: PagesFunction<Env, "tenantId", ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
@@ -29,43 +29,6 @@ export const onRequestPost: PagesFunction<Env, "tenantId", ApiData> = async (ctx
     // Already live. Not an error: two clicks on a slow connection should not
     // read as a failure when the client is in exactly the state asked for.
     return Response.json({ ok: true, onboardingStatus: "live", alreadyLive: true });
-  }
-
-  const { data: rows } = await client
-    .from("onboarding_checklist")
-    .select("task_key, done")
-    .eq("tenant_id", tenantId);
-
-  const done = new Set(
-    ((rows ?? []) as { task_key: string; done: boolean }[])
-      .filter((r) => r.done)
-      .map((r) => r.task_key),
-  );
-
-  // Counted over the steps the process currently ships, read from setup_steps,
-  // not over the rows that happen to exist: a saved tick for a step since
-  // deleted must not stand in for a real one.
-  //
-  // This used to count the old hardcoded list in src/lib/clientSetup.ts, whose
-  // keys stopped matching what a tick is saved against when the steps moved into
-  // the table. Every Go Live was refused. Ticks are keyed by row id now, and so
-  // is this.
-  const { data: stepRows, error: stepsErr } = await client
-    .from("setup_steps")
-    .select("id, label, required, code")
-    .eq("archived", false)
-    .eq("required", true);
-  if (stepsErr) return Response.json({ error: stepsErr.message }, { status: 500 });
-
-  const outstanding = outstandingRequired((stepRows ?? []) as GateStep[], done);
-  if (outstanding.length > 0) {
-    return Response.json(
-      {
-        error: `${outstanding.length} ${outstanding.length === 1 ? "item is" : "items are"} still outstanding.`,
-        outstanding: outstanding.map((t) => t.label),
-      },
-      { status: 409 },
-    );
   }
 
   const { error } = await client

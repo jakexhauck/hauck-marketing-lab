@@ -95,7 +95,8 @@ export async function createTenantWithOwner(
     won_label: (input.wonLabel ?? "Won").trim() || "Won",
     value_label: (input.valueLabel ?? "Job Value").trim() || "Job Value",
     // tenants.ghl_* are NOT NULL. Store placeholders until the client is wired
-    // to GoHighLevel (matches the test-account 'env' convention).
+    // to GoHighLevel (matches the 'env' convention on the test-account tenant,
+    // which is Made Better Landscaping Co).
     ghl_location_id: (input.ghlLocationId ?? "").trim() || "pending",
     ghl_token: (input.ghlToken ?? "").trim() || "pending",
     subdomain: normalizeSubdomain(input.subdomain?.trim() || slug),

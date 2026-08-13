@@ -56,8 +56,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
   // Account-based resolution: the email decides which client this person belongs
   // to (emails are globally unique across staff_accounts — see migration 0010).
-  // Test mode stays pinned to the single test tenant so test logins never reach
-  // live data.
+  // The shared-password mode stays pinned to its single tenant (Made Better
+  // Landscaping Co) so those logins never reach another client's data.
   const STAFF_COLS =
     "id, tenant_id, ghl_user_id, email, name, role, status, created_at, updated_at";
   let staff: StaffRecord | null;

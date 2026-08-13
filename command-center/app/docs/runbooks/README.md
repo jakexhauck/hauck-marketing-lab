@@ -2,7 +2,14 @@
 
 The June 2026 audit of `client-dashboard/` produced roughly 80 findings. They are being fixed in five parts, in this order. Each part has its own runbook folder containing the implementation spec (what Claude changes in code) and your manual-actions checklist (what Jake does by hand: dashboards, GHL config, and verification).
 
-Scope reminder: everything targets the **test account only**. No live client is being configured yet. The goal is a fully functional, fully generic app that can be stamped out for any client later; client onboarding gets its own runbook once the app is proven.
+Scope reminder (as written, June 2026): everything targeted the **test account only**. No live client was being configured yet. The goal was a fully functional, fully generic app that could be stamped out for any client later; client onboarding gets its own runbook once the app is proven.
+
+> **Read this before following any step below.** The "test account" these runbooks
+> point at is GHL location `r0WfsA12qpBv7M185V3v`, and since **2026-08-09** that
+> location is **Made Better Landscaping Co's own sub-account**. It holds a real
+> client's data. Nothing in it is safe to experiment with, delete, or use as a
+> scratch pad. Every instruction below that says "in the test account" now means
+> "in a live client's account", so treat it accordingly.
 
 Before doing any manual step, skim [SOFTWARE-GUIDE.md](SOFTWARE-GUIDE.md): it holds the exact click paths (Recipes A through F) for Supabase, Cloudflare, and GoHighLevel that every checklist references. UI labels verified against official docs, June 2026.
 

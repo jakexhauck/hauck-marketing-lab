@@ -9,8 +9,9 @@ import { hashPassword, verifyPassword } from "../../lib/password";
 //   owner session  -> tenants.owner_password_hash (promoting an APP_PASSWORD
 //                     fallback client to a per-tenant hash on first change).
 //
-// Test mode is rejected: the test login uses the TEST_APP_PASSWORD env var,
-// which is not a per-tenant secret and cannot be rotated from the app.
+// The shared-password mode (Made Better) is rejected: that login uses the
+// TEST_APP_PASSWORD env var, which is not a per-tenant secret and cannot be
+// rotated from the app.
 
 interface Body {
   currentPassword?: unknown;

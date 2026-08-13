@@ -1,5 +1,13 @@
 # Part 5: Your Manual Actions
 
+> **The "test account" in this document is a live client.** GHL location
+> `r0WfsA12qpBv7M185V3v` became **Made Better Landscaping Co's** own
+> sub-account on **2026-08-09**. It holds real client data and is not a
+> scratch account. Wherever this document says test account, test
+> sub-account or test template, read it as Made Better's live account. The
+> `TEST_GHL_*` / `TEST_APP_PASSWORD` env vars keep their names but point at
+> that client.
+
 Do these only after Claude reports Part 5 implementation complete. Click paths are in the [Software Guide](../SOFTWARE-GUIDE.md).
 
 ## Manual actions checklist (do these, in this order)
