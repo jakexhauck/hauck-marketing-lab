@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import { ChevronLeft } from "lucide-react";
 import { TabLinks } from "./PageTabs";
+import { useBackToAll } from "../hooks/useBackToAll";
 import GlobalControls from "./desktop/GlobalControls";
 import { sectionLabel, type PageTab } from "../lib/pageTabs";
 
@@ -45,6 +47,11 @@ export default function PageBar({
   globalControls?: boolean;
 }) {
   const label = section ?? sectionLabel(tabs);
+  // Phone-only chevron back to the All features list, on the pages /apps is the
+  // only way to reach (Meta Data, Creatives, Organic, Schedule, Inbox). See
+  // needsBackToAll in nav.ts; undefined everywhere else, including on desktop
+  // sections and the whole admin console.
+  const backToAll = useBackToAll();
   // Is there a tab row at all? Drives both whether the <nav> renders and which
   // element absorbs the leftover width on desktop, so the two can never
   // disagree and strand the global controls mid-row.
@@ -67,7 +74,10 @@ export default function PageBar({
             left on desktop. */}
         <div
           className={
-            "order-1 flex w-full min-w-0 basis-full items-baseline justify-center gap-2.5 lg:w-auto lg:basis-auto lg:justify-start " +
+            // `relative`: the back chevron below is taken out of the flow so it
+            // cannot pull the centred phone title off centre, matching
+            // <PageHeader>.
+            "relative order-1 flex w-full min-w-0 basis-full items-baseline justify-center gap-2.5 lg:w-auto lg:basis-auto lg:justify-start " +
             // With a tab row present the nav takes the slack (lg:flex-1) and the
             // title stays its natural width. With no tab row the title takes it
             // instead, so the actions and the bell stay pinned right on desktop
@@ -75,6 +85,19 @@ export default function PageBar({
             (hasTabRow ? "lg:shrink-0" : "lg:flex-1")
           }
         >
+          {backToAll && (
+            <button
+              type="button"
+              onClick={backToAll}
+              aria-label="Back to All features"
+              // 44px hit area (the iOS minimum) on a 36px visual box, and
+              // lg:hidden because on desktop the sidebar is the way back and
+              // /apps is a phone-only page.
+              className="absolute left-0 top-1/2 flex h-11 w-9 -translate-y-1/2 shrink-0 items-center justify-center rounded-[9px] text-[var(--text-muted)] transition-colors hover:text-[var(--text)] active:bg-[var(--surface-2)] lg:hidden"
+            >
+              <ChevronLeft size={19} aria-hidden="true" />
+            </button>
+          )}
           <h2 className="truncate font-display text-[16px] font-semibold leading-none tracking-[-0.01em] text-text lg:whitespace-nowrap">
             {label}
           </h2>

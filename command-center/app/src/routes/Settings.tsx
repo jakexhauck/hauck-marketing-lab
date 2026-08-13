@@ -17,7 +17,6 @@ import { useClient } from "../context/ClientContext";
 import { roleLabel } from "../lib/rolePermissions";
 import { APP_BRAND } from "../lib/appBrand";
 import { api } from "../lib/api";
-import { CLIENT_HOME } from "../lib/nav";
 
 type Audience = "everyone" | "assigned";
 
@@ -129,11 +128,10 @@ export default function Settings() {
           SettingsDesktop instead; both share the same auth, client and
           notification-preference state. */}
       <div className={PAGE_CONTAINER + " lg:hidden"}>
-      <PageHeader
-        title="Settings"
-        onBack={() => navigate(CLIENT_HOME)}
-        backLabel="Back to home"
-      />
+      {/* No onBack: <PageHeader> supplies the chevron back to All features, the
+          list this page is opened from. It used to send you to the Lead Tracker
+          instead, which is not where you came from. */}
+      <PageHeader title="Settings" />
 
       <div className="flex-1">
         {/* Account */}

@@ -6,6 +6,8 @@ import {
   filterNav,
   flattenNav,
   isNavSection,
+  allFeaturesRoutes,
+  needsBackToAll,
   needsExactMatch,
 } from "./nav";
 
@@ -240,5 +242,63 @@ describe("data-gated surfaces", () => {
       (i) => i.to,
     );
     expect(routes).toContain(CLIENT_HOME);
+  });
+});
+
+// The phone's "back to All features" rule. /apps is the only way a phone reaches
+// anything outside the five-tab bottom bar, so every page it opens has to be able
+// to get back to it. Two of them could not: Team's back button pointed at /home
+// (retired from the nav 2026-08-01) and Settings' at the Lead Tracker.
+describe("back to All features", () => {
+  const barRoutes = bottomNavItems(NAV).map((i) => i.to);
+
+  it("covers every route the All features list can open", () => {
+    const routes = allFeaturesRoutes(NAV);
+    // The Account block's two rows, which is where the bug was reported.
+    expect(routes).toContain("/settings");
+    expect(routes).toContain("/team");
+    // And the feature rows, including the data-gated one: this list answers
+    // "can /apps reach it", not "may this person see it".
+    for (const to of ["/marketing/paid-ads/meta", "/organic", "/sales/schedule"]) {
+      expect(routes).toContain(to);
+    }
+  });
+
+  it("never offers a tile back to the page you are on", () => {
+    expect(allFeaturesRoutes(NAV)).not.toContain("/apps");
+    expect(needsBackToAll("/apps")).toBe(false);
+  });
+
+  it("gives a back control to every page the bottom bar cannot reach", () => {
+    const stranded = allFeaturesRoutes(NAV).filter((to) => !barRoutes.includes(to));
+    expect(stranded.length).toBeGreaterThan(0);
+    for (const to of stranded) {
+      expect(needsBackToAll(to)).toBe(true);
+    }
+    // The two from the bug report specifically.
+    expect(needsBackToAll("/settings")).toBe(true);
+    expect(needsBackToAll("/team")).toBe(true);
+  });
+
+  it("leaves the five bar tabs alone, they are one tap from anywhere", () => {
+    for (const to of barRoutes) {
+      expect(needsBackToAll(to)).toBe(false);
+    }
+    // The page the app opens on must never show a chevron back to a screen the
+    // client did not come from.
+    expect(needsBackToAll(CLIENT_HOME)).toBe(false);
+  });
+
+  it("stays off every page the All features list does not open", () => {
+    // The admin console, a lead detail screen (it has its own back control,
+    // pointing at the list it belongs to), and the retired home route.
+    for (const to of ["/admin/pillar/sales", "/sales/leads/abc123", "/home", "/login"]) {
+      expect(needsBackToAll(to)).toBe(false);
+    }
+  });
+
+  it("matches the exact path, so a sub-page does not inherit the chevron", () => {
+    expect(needsBackToAll("/settings")).toBe(true);
+    expect(needsBackToAll("/settings/notifications")).toBe(false);
   });
 });

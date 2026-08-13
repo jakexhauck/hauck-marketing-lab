@@ -204,6 +204,13 @@ export const NAV: NavEntry[] = [
   // App.tsx so an existing bookmark still resolves.
 ];
 
+// The phone's "All features" launcher, and the one page it never links to
+// (itself). Named because three modules test against them.
+export const APPS_ROUTE = "/apps";
+// Settings is not a nav row: AllFeatures renders it by hand in its Account
+// block. It is still somewhere /apps opens, so it counts as one of its routes.
+export const SETTINGS_ROUTE = "/settings";
+
 // A single item's leaf pages: its children when it has them (the parent's own
 // route equals its overview child, so the parent itself is not a separate leaf),
 // otherwise just the item. Keeps flat consumers (bottom bar, global search) free
@@ -228,6 +235,41 @@ export function bottomNavItems(entries: NavEntry[]): NavItem[] {
   return flattenNav(entries)
     .filter((item) => item.bottomNav !== undefined)
     .sort((a, b) => a.bottomNav! - b.bottomNav!);
+}
+
+// Every destination the phone's "All features" list can open: the nav's flat
+// list, minus /apps itself, plus Settings. Ungated on purpose. This answers
+// "can /apps reach this page at all", not "may this person see it"; the list
+// AllFeatures renders is permission-filtered before it is grouped, so a page
+// somebody cannot open is a page they cannot arrive on either.
+//
+// Derived rather than hand-listed for the reason appGrid.ts derives its
+// catch-all group: a second copy of this list drifts the moment a nav row moves,
+// and nothing fails to say so.
+export function allFeaturesRoutes(entries: NavEntry[] = NAV): string[] {
+  return flattenNav(entries)
+    .map((item) => item.to)
+    .filter((to) => to !== APPS_ROUTE)
+    .concat(SETTINGS_ROUTE);
+}
+
+// Does this page need the phone's "back to All features" control?
+//
+// True for a destination /apps opens that the bottom bar holds NO tab for. On a
+// phone those pages are reachable only through the All list, and they used to
+// strand you on the way out: Team's back button pointed at /home (retired from
+// the nav 2026-08-01, so it was literally the old home page) and Settings' at
+// the Lead Tracker. Either way, leaving landed you somewhere you had not been.
+//
+// False for the five bar tabs, which the bar itself reaches in one tap from
+// anywhere: a back chevron on the Lead Tracker, the page the app OPENS on, would
+// promise a screen you never came from. False for everything else as well (the
+// admin console, the detail screens, an old bookmark like /home), which is why
+// this matches the exact path and not a prefix. Detail screens keep their own
+// back control, pointing at the list they belong to rather than at /apps.
+export function needsBackToAll(pathname: string, entries: NavEntry[] = NAV): boolean {
+  if (!allFeaturesRoutes(entries).includes(pathname)) return false;
+  return !bottomNavItems(entries).some((item) => item.to === pathname);
 }
 
 // Permission gate for a flat list of items: owner-only items need owner;

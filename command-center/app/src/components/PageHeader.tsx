@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "../lib/cn";
+import { useBackToAll } from "../hooks/useBackToAll";
 import GlobalControls from "./desktop/GlobalControls";
 
 // The header every tab-less desktop surface renders at the top of its scroll
@@ -34,6 +35,13 @@ export function PageHeader({
   backLabel?: string;
   className?: string;
 }) {
+  // A page that /apps opens and the bottom bar has no tab for gets a phone-only
+  // chevron back to the All features list, unless it already passes its own
+  // onBack (which is always a more specific answer than "the launcher").
+  const backToAll = useBackToAll();
+  const back = onBack ?? backToAll;
+  const isBackToAll = !onBack && Boolean(backToAll);
+  const label = isBackToAll ? "Back to All features" : backLabel;
   return (
     <div className={cn("mb-5 shrink-0", className)}>
       {/* Wraps onto a second line below lg, for the same reason <PageBar> does:
@@ -49,14 +57,24 @@ export function PageHeader({
             in the top-left corner of a full-width panel with a stretch of empty
             white beside it. Desktop keeps the original left-aligned row. */}
         <div className="relative flex w-full min-w-0 flex-1 basis-full items-baseline justify-center gap-2.5 lg:w-auto lg:basis-auto lg:justify-start">
-          {onBack && (
+          {back && (
             <button
               type="button"
-              onClick={onBack}
-              aria-label={backLabel}
+              onClick={back}
+              aria-label={label}
               // 44px hit area (the iOS minimum) on a 36px visual box, pulled
               // left so the chevron optically lines up with the panel edge.
-              className="absolute left-0 top-1/2 flex h-11 w-9 -translate-y-1/2 shrink-0 items-center justify-center rounded-[9px] text-[var(--text-muted)] transition-colors hover:text-[var(--text)] active:bg-[var(--surface-2)] lg:static lg:-my-1 lg:-ml-1.5 lg:translate-y-0 lg:self-center"
+              //
+              // The back-to-All variant is lg:hidden rather than lg:static: on
+              // desktop the sidebar is the way back and /apps is a phone-only
+              // page, so the chevron would point at a screen that layout does
+              // not have.
+              className={cn(
+                "absolute left-0 top-1/2 flex h-11 w-9 -translate-y-1/2 shrink-0 items-center justify-center rounded-[9px] text-[var(--text-muted)] transition-colors hover:text-[var(--text)] active:bg-[var(--surface-2)]",
+                isBackToAll
+                  ? "lg:hidden"
+                  : "lg:static lg:-my-1 lg:-ml-1.5 lg:translate-y-0 lg:self-center",
+              )}
             >
               <ChevronLeft size={19} aria-hidden="true" />
             </button>

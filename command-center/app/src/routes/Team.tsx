@@ -135,7 +135,10 @@ export default function Team() {
         className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2"
         style={{ paddingTop: "calc(env(safe-area-inset-top) + 8px)" }}
       >
-        <BackButton to="/home" />
+        {/* /apps, not /home: this page is opened from the All features list, and
+            /home is the home page retired from the nav on 2026-08-01, so the
+            old target dropped you on a screen nothing else links to. */}
+        <BackButton to="/apps" label="All" />
         <span className="font-display text-[15px] font-bold text-[var(--text)]">
           Team
         </span>
