@@ -6,23 +6,23 @@ import { graphGet } from "./metaGraph";
 //
 // Two homes, in this order:
 //
-//   1. env.META_SYSTEM_USER_TOKEN, bound at deploy. Still first, so a token set
-//      the old way keeps working and can never be silently overridden by one
-//      pasted into a browser.
-//   2. The agency_meta row (0106). Written by the Paid Ads wizard, read on every
+//   1. The agency_meta row (0106). Written by the Paid Ads wizard, read on every
 //      request, live the moment it saves.
+//   2. env.META_SYSTEM_USER_TOKEN, bound at deploy. The bootstrap, and the
+//      fallback for anything running before a token was ever pasted.
 //
-// The second home exists because the first one cannot be written to from the
-// app. Cloudflare binds environment variables at deploy time and this
-// deployment holds no Doppler write token and no deploy token, so "paste the
-// token here" was a box that could only ever apologise. The database can model
-// "the token as of right now", which is the thing being asked for.
+// The stored one wins, and that ordering is the whole point. Cloudflare binds
+// environment variables at deploy time and this deployment can neither write
+// Doppler nor redeploy itself, so an env var is a value only a deploy can
+// change. Ranking it above the box would mean pasting a token, being told it
+// saved, and watching nothing happen: exactly the failure the box exists to
+// remove. The same shape as resolveAdAccount, where a client's own account
+// beats the global fallback.
+//
+// Rotating a dead token is therefore always possible from the app, and clearing
+// the row falls back to whatever the deploy carries.
 
-/** The token to use for Meta calls, or null when the agency has none. */
-export async function resolveMetaToken(env: Env): Promise<string | null> {
-  const fromEnv = (env.META_SYSTEM_USER_TOKEN ?? "").trim();
-  if (fromEnv) return fromEnv;
-
+async function storedToken(env: Env): Promise<string | null> {
   const client = getServiceClient(env);
   if (!client) return null;
   const { data } = await client
@@ -34,17 +34,17 @@ export async function resolveMetaToken(env: Env): Promise<string | null> {
   return stored || null;
 }
 
+/** The token to use for Meta calls, or null when the agency has none. */
+export async function resolveMetaToken(env: Env): Promise<string | null> {
+  const saved = await storedToken(env);
+  if (saved) return saved;
+  return (env.META_SYSTEM_USER_TOKEN ?? "").trim() || null;
+}
+
 /** Where the token in play came from, for the panel that reports on it. */
 export async function metaTokenSource(env: Env): Promise<"env" | "database" | null> {
-  if ((env.META_SYSTEM_USER_TOKEN ?? "").trim()) return "env";
-  const client = getServiceClient(env);
-  if (!client) return null;
-  const { data } = await client
-    .from("agency_meta")
-    .select("system_user_token")
-    .eq("id", true)
-    .maybeSingle();
-  return (data as { system_user_token?: string } | null)?.system_user_token ? "database" : null;
+  if (await storedToken(env)) return "database";
+  return (env.META_SYSTEM_USER_TOKEN ?? "").trim() ? "env" : null;
 }
 
 /**

@@ -368,8 +368,8 @@ function TokenConnect({
   const [failure, setFailure] = useState<string | null>(null);
 
   const masked = state.data?.masked ?? null;
-  // A token bound at deploy is not this box's to replace: it would be saved and
-  // then ignored, since the env var wins. Say so rather than pretend.
+  // Only ever a note now, never a reason to hide the box: a pasted token
+  // outranks the deploy-bound one, so Connect always does something.
   const fromEnv = state.data?.source === "env";
   const busy = phase === "checking" || phase === "saving";
 
@@ -401,8 +401,7 @@ function TokenConnect({
         One token covers every client. Checked against Meta and live the moment it saves.
       </p>
 
-      {!fromEnv ? (
-        <>
+      <div>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <input
               type="password"
@@ -480,13 +479,15 @@ function TokenConnect({
               )}
             </>
           )}
-        </>
-      ) : (
-        <p className="mt-3 rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2.5 text-[13px] text-text">
-          This token is set in the deploy environment, which wins over anything pasted here. Change
-          it there, or clear it, and this box takes over.
-        </p>
-      )}
+
+          {/* Where the one in play came from. A note, not a warning: pasting
+              here replaces it either way. */}
+          {fromEnv && connected && !busy && phase !== "done" && (
+            <p className="mt-1 text-[12px] text-faint">
+              Currently using the token from the deploy environment. Pasting one here replaces it.
+            </p>
+          )}
+      </div>
 
       <Directions />
 
