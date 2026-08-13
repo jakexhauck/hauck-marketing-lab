@@ -5,11 +5,7 @@ import SetupWizard from "./SetupWizard";
 import { Button } from "../../../ui/Button";
 import { api } from "../../../../lib/api";
 import type { AdAccountOption } from "../../../../../functions/lib/metaAdAccounts";
-import {
-  useAdminMetaAdAccountsQuery,
-  useMetaTokenQuery,
-  useSaveMetaToken,
-} from "../../../../hooks/useApi";
+import { useAdminMetaAdAccountsQuery, useSaveMetaToken } from "../../../../hooks/useApi";
 
 // Paid Ads > Connect ads. Where the page opens for a client whose ad account is
 // not linked yet, and the only thing on offer besides the Ad Builder and
@@ -114,11 +110,7 @@ export default function AdsSetupWizard({
       steps={STEPS}
       currentIndex={!tokenOk ? 0 : linked ? 2 : 1}
     >
-      <TokenConnect
-        connected={tokenOk}
-        error={accounts.data?.error ?? null}
-        onConnected={() => void accounts.refetch()}
-      />
+      <TokenConnect onConnected={() => void accounts.refetch()} />
 
       {tokenOk && (
         <AccountState
@@ -350,27 +342,13 @@ const PHASE_TEXT: Record<Phase, string> = {
   done: "Saved. The token works.",
 };
 
-function TokenConnect({
-  connected,
-  error,
-  onConnected,
-}: {
-  /** Whether the running app can already talk to Meta. */
-  connected: boolean;
-  error: string | null;
-  onConnected: () => void;
-}) {
-  const state = useMetaTokenQuery();
+function TokenConnect({ onConnected }: { onConnected: () => void }) {
   const saveToken = useSaveMetaToken();
 
   const [token, setToken] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [failure, setFailure] = useState<string | null>(null);
 
-  const masked = state.data?.masked ?? null;
-  // Only ever a note now, never a reason to hide the box: a pasted token
-  // outranks the deploy-bound one, so Connect always does something.
-  const fromEnv = state.data?.source === "env";
   const busy = phase === "checking" || phase === "saving";
 
   const connect = async () => {
@@ -397,9 +375,6 @@ function TokenConnect({
   return (
     <div>
       <h3 className="text-[14px] font-semibold text-text">1. Paste your Meta token</h3>
-      <p className="mt-1 max-w-prose text-[12.5px] leading-snug text-muted">
-        One token covers every client. Checked against Meta and live the moment it saves.
-      </p>
 
       <div>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -453,45 +428,12 @@ function TokenConnect({
             </div>
           )}
 
+          {/* The only thing that speaks without being asked: why a press
+              failed. Everything else here is a bar and a tick. */}
           {failure && <p className="mt-3 text-[12.5px] text-danger">{failure}</p>}
-
-          {/* Where it stands right now, under the field rather than instead of
-              it. The tick is only earned by Meta answering: a token that exists
-              and a token that works are different things, and claiming the
-              second while showing the first is how this said "connected" over a
-              page with nothing on it. */}
-          {!busy && phase !== "done" && (
-            <>
-              {connected && !error && (
-                <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] font-medium text-positive">
-                  <Check size={13} aria-hidden />
-                  Agency token is working.
-                  {masked && <span className="font-mono text-muted">{masked}</span>}
-                </p>
-              )}
-              {connected && error && (
-                <p className="mt-3 text-[12.5px] text-danger">
-                  The saved token is not working: {error} Paste a new one above.
-                </p>
-              )}
-              {!connected && !failure && (
-                <p className="mt-3 text-[12.5px] text-muted">No token saved yet.</p>
-              )}
-            </>
-          )}
-
-          {/* Where the one in play came from. A note, not a warning: pasting
-              here replaces it either way. */}
-          {fromEnv && connected && !busy && phase !== "done" && (
-            <p className="mt-1 text-[12px] text-faint">
-              Currently using the token from the deploy environment. Pasting one here replaces it.
-            </p>
-          )}
       </div>
 
       <Directions />
-
-      {error && !busy && <p className="mt-2 text-[12.5px] text-muted">Meta said: {error}</p>}
     </div>
   );
 }
