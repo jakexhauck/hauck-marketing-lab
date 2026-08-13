@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   AD_TRACKER_OTHER_ID,
   type AdTrackerBreakdownRow,
@@ -68,10 +69,13 @@ const BREAKDOWN_COLUMNS = [
 // `flex flex-col` with min-h-0, so any child left at the default flex-shrink:1
 // gets squashed to fit the viewport instead of scrolling. See the Results
 // wrapper below for what that looked like.
-function Band({ children }: { children: string }) {
+// `right` is the operator's controls riding on the band itself rather than in a
+// row above it. The client passes nothing and the band is unchanged.
+function Band({ children, right }: { children: string; right?: ReactNode }) {
   return (
     <div
       className={
+        (right ? "flex items-center justify-between gap-3 " : "") +
         // Phone: a plain section kicker, no fill, no border, no boxed band.
         // The workbook banding is what makes the DESKTOP page recognisable as
         // the sheet, but on a 390px screen a full-width tinted bar above a
@@ -82,7 +86,8 @@ function Band({ children }: { children: string }) {
         "lg:mb-0 lg:mt-0 lg:border lg:border-b-0 lg:border-border lg:bg-brand/10 lg:px-3 lg:py-2 lg:text-[11.5px] lg:font-bold lg:tracking-[0.08em] lg:text-brand"
       }
     >
-      {children}
+      <span>{children}</span>
+      {right}
     </div>
   );
 }
@@ -215,12 +220,15 @@ export default function DashboardSheet({
   onRange,
   level,
   onLevel,
+  resultsRight,
 }: {
   data: AdTrackerResponse;
   range: AdTrackerRange;
   onRange: (r: AdTrackerRange) => void;
   level: AdTrackerLevel;
   onLevel: (l: AdTrackerLevel) => void;
+  /** Operator-only controls, drawn on the Results band. Clients pass nothing. */
+  resultsRight?: ReactNode;
 }) {
   const rows: AdTrackerBreakdownRow[] = data.breakdown ?? [];
   const levelLabel = LEVELS.find((l) => l.id === level)!.label;
@@ -233,7 +241,7 @@ export default function DashboardSheet({
           numbers below the fold. */}
 
       {/* RESULTS */}
-      <Band>Results</Band>
+      <Band right={resultsRight}>Results</Band>
       {/* shrink-0 is load-bearing, not tidiness. This div is a child of
           PAGE_CONTAINER, a `flex flex-col` with min-h-0, so it defaults to
           flex-shrink:1 and gets compressed when the page is taller than the

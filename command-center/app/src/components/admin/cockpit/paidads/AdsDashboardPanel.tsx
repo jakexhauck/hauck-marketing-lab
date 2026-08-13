@@ -53,26 +53,6 @@ export default function AdsDashboardPanel({ tenantId }: { tenantId: string }) {
 
   return (
     <div className="flex flex-col">
-      {/* The operator's row, above the client's sheet. Everything below this
-          line is what the client sees; everything on it is not. */}
-      <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
-        <span
-          className={
-            age.stale ? "text-[12px] font-semibold text-warning" : "text-[12px] text-faint"
-          }
-        >
-          {age.text}
-        </span>
-        <button
-          type="button"
-          onClick={() => sync.mutate(tenantId)}
-          disabled={sync.isPending}
-          className="rounded-[var(--radius)] border border-border bg-surface px-3 py-1.5 text-[12px] font-semibold text-text transition-colors hover:border-brand disabled:opacity-60"
-        >
-          {sync.isPending ? "Pulling..." : "Refresh spend"}
-        </button>
-      </div>
-
       {sync.isError && (
         <p className="mb-3 text-[12px] text-danger">
           Could not pull spend: {(sync.error as Error | null)?.message ?? "unknown error"}
@@ -85,17 +65,29 @@ export default function AdsDashboardPanel({ tenantId }: { tenantId: string }) {
         onRange={setRange}
         level={level}
         onLevel={setLevel}
+        resultsRight={
+          <span className="flex items-center gap-2.5 normal-case tracking-normal">
+            <span
+              className={
+                age.stale ? "text-[11.5px] font-semibold text-warning" : "text-[11.5px] text-faint"
+              }
+            >
+              {age.text}
+            </span>
+            <button
+              type="button"
+              onClick={() => sync.mutate(tenantId)}
+              disabled={sync.isPending}
+              className="rounded-[var(--radius)] border border-border bg-surface px-2.5 py-1 text-[11.5px] font-semibold text-text transition-colors hover:border-brand disabled:opacity-60"
+            >
+              {sync.isPending ? "Pulling..." : "Refresh spend"}
+            </button>
+          </span>
+        }
       />
 
-      {/* Leads in range carrying no ad id. The client's sheet does not say this;
-          an operator reconciling Results against Breakdown needs to. */}
-      {data!.unattributed > 0 && (
-        <p className="mt-3 text-[12px] text-faint">
-          {data!.unattributed} lead{data!.unattributed === 1 ? "" : "s"} in this range carried no ad,
-          so {data!.unattributed === 1 ? "it is" : "they are"} counted in Results but not in
-          Breakdown.
-        </p>
-      )}
+      {/* No unattributed line here: the sheet below prints its own, and the two
+          said the same thing one under the other. */}
     </div>
   );
 }

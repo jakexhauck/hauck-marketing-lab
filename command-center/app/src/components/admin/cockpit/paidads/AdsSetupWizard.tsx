@@ -97,7 +97,20 @@ export default function AdsSetupWizard({
           : `Connect ${clientName || "this client"}'s ads`
       }
     >
-      <TokenConnect onConnected={() => void accounts.refetch()} />
+      {/* The token is agency-wide and already in place, so there is nothing to
+          paste here: the work is a grant inside Meta. The box only comes back
+          when the token is missing or Meta has stopped accepting it, which is
+          the one time somebody genuinely has to type. */}
+      {tokenOk ? (
+        <MetaInstructions
+          clientName={clientName}
+          waiting={!linked && free.length === 0}
+          checking={accounts.isFetching}
+          onCheck={() => void accounts.refetch()}
+        />
+      ) : (
+        <TokenConnect onConnected={() => void accounts.refetch()} />
+      )}
 
       {tokenOk && (
         <AccountState
@@ -112,6 +125,85 @@ export default function AdsSetupWizard({
         />
       )}
     </SetupWizard>
+  );
+}
+
+// What to do in Meta, which is where the whole job actually happens. The app
+// cannot grant itself an ad account: somebody has to hand it over inside
+// Business settings, and then this page notices.
+// The client is named in the two steps that pick something out of a list, so an
+// operator with six businesses in Business Suite is told which one to open
+// rather than left to remember.
+const metaSteps = (clientName: string): string[] => {
+  const who = clientName.trim() || "The Client";
+  return [
+    "Go to Meta Business Suite",
+    "Click Settings",
+    "Click Pages",
+    `Go To ${who} & Click Assign People`,
+    'Add "COMMAND-CENTER" With Full Access',
+    "Click Ad Accounts",
+    `Go To ${who} & Click Assign People`,
+    'Add "COMMAND-CENTER" With Full Access',
+  ];
+};
+
+function MetaInstructions({
+  clientName,
+  waiting,
+  checking,
+  onCheck,
+}: {
+  clientName: string;
+  /** Nothing to attach yet: the grant in Meta has not been made. */
+  waiting: boolean;
+  checking: boolean;
+  onCheck: () => void;
+}) {
+  return (
+    <div>
+      <ol className="grid gap-2.5">
+        {metaSteps(clientName).map((step, i) => (
+          <li key={i} className="flex items-center gap-2.5">
+            <span
+              className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-surface-3 text-[11px] font-semibold text-muted"
+              aria-hidden
+            >
+              {i + 1}
+            </span>
+            <p className="min-w-0 text-[13.5px] font-medium leading-snug text-text">{step}</p>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <a
+          href="https://business.facebook.com/settings"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3.5 py-2 text-[12.5px] font-semibold text-text transition-colors hover:border-brand hover:text-brand"
+        >
+          <ExternalLink size={13} aria-hidden />
+          Open Business settings
+        </a>
+        <Button variant="secondary" size="sm" onClick={onCheck} disabled={checking}>
+          {checking ? (
+            <>
+              <Loader2 size={13} className="animate-spin" aria-hidden />
+              Checking Meta
+            </>
+          ) : (
+            "Check Meta again"
+          )}
+        </Button>
+      </div>
+
+      {waiting && !checking && (
+        <p className="mt-3 text-[12.5px] text-muted">
+          Meta has not handed {clientName || "this client"}&apos;s ad account over yet.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -151,7 +243,7 @@ function AccountState({
             >
               <Check size={13} />
             </span>
-            2. Their ads are flowing
+            Their ads are flowing
           </span>
         </div>
         <div className="mt-4">
@@ -361,7 +453,7 @@ function TokenConnect({ onConnected }: { onConnected: () => void }) {
 
   return (
     <div>
-      <h3 className="text-[14px] font-semibold text-text">1. Paste your Meta token</h3>
+      <h3 className="text-[14px] font-semibold text-text">Paste your Meta token</h3>
 
       <div>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
