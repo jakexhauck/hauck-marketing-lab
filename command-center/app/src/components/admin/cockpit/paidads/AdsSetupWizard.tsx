@@ -50,9 +50,11 @@ export default function AdsSetupWizard({
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
 
-  // The token is proven, not assumed: "configured" comes back from the endpoint
-  // that just tried to use it.
-  const tokenOk = accounts.data?.configured === true;
+  // Proven, not assumed. `configured` alone only says a token EXISTS; a dead
+  // one exists too, and calling that connected is what put a green tick over a
+  // page with nothing on it. A token is connected when Meta answered without
+  // complaint, which is exactly `configured && no error`.
+  const tokenOk = accounts.data?.configured === true && !accounts.data?.error;
   const linked = Boolean((currentAccountId ?? "").trim());
 
   // The accounts this client could be put on: everything the token can see that
@@ -345,7 +347,7 @@ const PHASE_TEXT: Record<Phase, string> = {
   idle: "",
   checking: "Checking it with Meta...",
   saving: "Saving it...",
-  done: "Connected.",
+  done: "Saved. The token works.",
 };
 
 function TokenConnect({
@@ -364,9 +366,6 @@ function TokenConnect({
   const [token, setToken] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [failure, setFailure] = useState<string | null>(null);
-  // A working token collapses the field, because the common visit is not a
-  // credential rotation. It reopens on a click.
-  const [replacing, setReplacing] = useState(false);
 
   const masked = state.data?.masked ?? null;
   // A token bound at deploy is not this box's to replace: it would be saved and
@@ -386,7 +385,6 @@ function TokenConnect({
       setPhase("saving");
       setToken("");
       setPhase("done");
-      setReplacing(false);
       // Ask Meta again through the app itself. That answer is what turns the
       // tick on, not this component's own optimism.
       onConnected();
@@ -395,28 +393,6 @@ function TokenConnect({
       setFailure(err instanceof Error ? err.message : "That did not save.");
     }
   };
-
-  // Done, and nobody is replacing it: one green line, no controls to read past.
-  if (connected && !replacing && !busy) {
-    return (
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius)] border border-positive/40 bg-positive-tint px-3.5 py-3">
-        <span className="inline-flex items-center gap-2 text-[13.5px] font-semibold text-text">
-          <span className="grid h-5 w-5 place-items-center rounded-full bg-positive text-white" aria-hidden>
-            <Check size={13} />
-          </span>
-          1. Meta is connected
-        </span>
-        {masked && <span className="font-mono text-[12px] text-muted">{masked}</span>}
-        <button
-          type="button"
-          onClick={() => setReplacing(true)}
-          className="text-[12.5px] font-medium text-muted underline decoration-dotted underline-offset-4 hover:text-text"
-        >
-          Paste a new token
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -479,14 +455,30 @@ function TokenConnect({
           )}
 
           {failure && <p className="mt-3 text-[12.5px] text-danger">{failure}</p>}
-          {replacing && !busy && (
-            <button
-              type="button"
-              onClick={() => setReplacing(false)}
-              className="mt-3 text-[12.5px] font-medium text-muted hover:text-text"
-            >
-              Cancel
-            </button>
+
+          {/* Where it stands right now, under the field rather than instead of
+              it. The tick is only earned by Meta answering: a token that exists
+              and a token that works are different things, and claiming the
+              second while showing the first is how this said "connected" over a
+              page with nothing on it. */}
+          {!busy && phase !== "done" && (
+            <>
+              {connected && !error && (
+                <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] font-medium text-positive">
+                  <Check size={13} aria-hidden />
+                  Agency token is working.
+                  {masked && <span className="font-mono text-muted">{masked}</span>}
+                </p>
+              )}
+              {connected && error && (
+                <p className="mt-3 text-[12.5px] text-danger">
+                  The saved token is not working: {error} Paste a new one above.
+                </p>
+              )}
+              {!connected && !failure && (
+                <p className="mt-3 text-[12.5px] text-muted">No token saved yet.</p>
+              )}
+            </>
           )}
         </>
       ) : (
