@@ -20,6 +20,10 @@ export interface SalesCallSyncResult {
   // has none this app recognises, which a page must say out loud rather than
   // rendering as a month with no meetings in it.
   calendarsRead: number;
+  // Meetings joined back to the prospect in the cold call book.
+  linked: number;
+  // Leads moved to Booked because GoHighLevel says they have a meeting.
+  booked: number;
 }
 
 export class ApiError extends Error {
@@ -2140,6 +2144,10 @@ export async function recordSalesCallOutcome(input: {
 
 export async function getSalesMeetings(callerId?: string): Promise<{
   meetings: SalesMeeting[];
+  // This page reconciles against the agency calendars itself, so a meeting
+  // booked inside GoHighLevel shows up here without waiting for somebody to
+  // open Sales Calls.
+  sync: (SalesCallSyncResult & { ok: true }) | { ok: false; error: string } | null;
 }> {
   return api(
     "/api/admin/cold-call/meetings" +

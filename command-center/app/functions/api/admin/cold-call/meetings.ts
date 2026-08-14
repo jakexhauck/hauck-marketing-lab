@@ -10,6 +10,8 @@ import {
   type RecordBody,
 } from "../../lib/recordSalesCall";
 import { isColdCallCalendar } from "../../../lib/coldCallCalendar";
+import { getAgencyGhlContext, AgencyGhlError } from "../../../lib/agencyGhl";
+import { syncAgencyMeetings, type SyncResult } from "../../lib/salesCallSync";
 
 // GET   /api/admin/cold-call/meetings            -> booked meetings and what became of them
 // PATCH /api/admin/cold-call/meetings            -> record one meeting's outcome
@@ -38,6 +40,35 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const scope =
     admin.role === "owner" ? (url.searchParams.get("callerId") ?? "").trim() : admin.id;
 
+  // Read the calendars before reading the table.
+  //
+  // This page used to show only what some OTHER page's sync had already
+  // adopted: Sales Calls and Sales Data reconcile against GoHighLevel on load,
+  // and both are Jake's. So a meeting booked inside GHL, off a booking link or
+  // by a workflow, was invisible here until he happened to open one of them.
+  // The page whose whole job is showing bookings is the last page that should
+  // be waiting on somebody else to go and look.
+  //
+  // Best effort, and skippable with ?sync=0 for the refresh after recording an
+  // outcome. A CRM that cannot be reached must still leave a readable page: the
+  // meetings already recorded are real.
+  let sync: (SyncResult & { ok: true }) | { ok: false; error: string } | null = null;
+  if (url.searchParams.get("sync") !== "0") {
+    try {
+      const gctx = getAgencyGhlContext(ctx.env);
+      const result = await syncAgencyMeetings(gctx, client, {
+        calendarIds: ctx.env.AGENCY_SALES_CALENDAR_IDS ?? null,
+      });
+      sync = { ok: true, ...result };
+    } catch (err) {
+      if (!(err instanceof AgencyGhlError)) {
+        console.error("[cold-call/meetings] sync failed", err);
+        const raw = err instanceof Error ? err.message : String(err);
+        sync = { ok: false, error: raw.split("\n")[0].slice(0, 200) };
+      }
+    }
+  }
+
   const { data, error } = await client
     .from("sales_calls")
     .select(MEETING_SELECT)
@@ -63,7 +94,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     .map(shapeMeeting);
 
   await attachBookers(client, meetings);
-  return Response.json({ meetings });
+  return Response.json({ meetings, sync });
 };
 
 export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) => {

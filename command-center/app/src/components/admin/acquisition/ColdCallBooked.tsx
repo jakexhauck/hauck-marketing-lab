@@ -21,10 +21,29 @@ import { Funnel, MeetingRow } from "../sales/meetingUi";
 // This is the CALLER's end of that record, scoped to one person's prospects;
 // Sales Calls is Jake's, showing every meeting on the calendar. Two ends of one
 // table, and neither may own a private copy of what a show rate is.
+function Warning({ text }: { text: string }) {
+  return <div className="mb-3 text-[12px] font-semibold text-[var(--warning)]">{text}</div>;
+}
+
 export default function ColdCallBooked({ callerId = "" }: { callerId?: string }) {
   const query = useSalesMeetingsQuery(callerId);
   const record = useRecordMeetingOutcome();
   const meetings = useMemo(() => query.data?.meetings ?? [], [query.data]);
+
+  // The page reads the calendars itself now, so a meeting booked inside
+  // GoHighLevel lands here on its own. Said out loud only when that read went
+  // wrong: an empty week and an unread calendar look identical, and one of them
+  // is a prospect nobody is expecting.
+  const sync = query.data?.sync ?? null;
+  const syncWarning = !sync
+    ? ""
+    : sync.ok === false
+      ? `The calendar could not be read: ${sync.error}`
+      : sync.calendarsRead === 0
+        ? "No sales calendar was found in GoHighLevel, so nothing here is being read from it."
+        : sync.failedCalendarIds.length > 0
+          ? `${sync.failedCalendarIds.length} calendar could not be read, so meetings may be missing.`
+          : "";
 
   const { dueBack, awaiting, upcoming, recorded, totals } = useMemo(() => {
     const now = Date.now();
@@ -57,14 +76,18 @@ export default function ColdCallBooked({ callerId = "" }: { callerId?: string })
   }
   if (meetings.length === 0) {
     return (
-      <div className="pk-empty">
-        No meetings booked yet. They land here when a call ends in &quot;Booked&quot;.
+      <div>
+        {syncWarning && <Warning text={syncWarning} />}
+        <div className="pk-empty">
+          No meetings booked yet. They land here when a call ends in &quot;Booked&quot;.
+        </div>
       </div>
     );
   }
 
   return (
     <div>
+      {syncWarning && <Warning text={syncWarning} />}
       {/* The strip counts what is OVERDUE an answer, not everything undecided.
           A meeting three days out is undecided too, and calling it "still to
           record" would be nagging somebody about the future. */}

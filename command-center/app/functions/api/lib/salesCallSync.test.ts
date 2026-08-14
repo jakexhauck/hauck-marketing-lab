@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { isDeadStatus, nameFromEvent, needsUpdate, pickSalesCalendars } from "./salesCallSync";
+import {
+  isDeadStatus,
+  leadBookings,
+  nameFromEvent,
+  nameFromLead,
+  needsUpdate,
+  pickSalesCalendars,
+  type BookableLead,
+} from "./salesCallSync";
 import type { CalendarEvent } from "./appointments";
 
 // The agency account as it actually is. The Onboarding calendar is linked to a
@@ -91,6 +99,32 @@ describe("nameFromEvent", () => {
   });
 });
 
+describe("nameFromLead", () => {
+  const lead: BookableLead = {
+    id: "lead-1",
+    ghl_contact_id: "c-1",
+    status: "New Lead",
+    appointment_date: null,
+    first_name: "Honeycutt",
+    last_name: "Heating & Cooling",
+  };
+
+  it("uses the book's own name for the prospect", () => {
+    // Beats "Hauck Marketing X  Rich Honey Cut Heating Rich", which is what the
+    // calendar title gives and what the page would otherwise show.
+    expect(nameFromLead(lead)).toBe("Honeycutt Heating & Cooling");
+  });
+
+  it("copes with half a name", () => {
+    expect(nameFromLead({ ...lead, last_name: "" })).toBe("Honeycutt");
+    expect(nameFromLead({ ...lead, first_name: null, last_name: null })).toBe("");
+  });
+
+  it("is empty when there is no lead, so the caller falls back to the title", () => {
+    expect(nameFromLead(undefined)).toBe("");
+  });
+});
+
 describe("needsUpdate", () => {
   const row = {
     id: "row-1",
@@ -99,6 +133,7 @@ describe("needsUpdate", () => {
     appointment_status: "confirmed",
     prospect_name: "Tom Hale",
     ghl_contact_id: "c-1",
+    lead_id: null,
   };
 
   it("is false when nothing GoHighLevel owns has moved", () => {
@@ -127,6 +162,119 @@ describe("needsUpdate", () => {
     expect(
       needsUpdate({ ...row, scheduled_at: null }, event({ startTime: null })),
     ).toBe(false);
+  });
+});
+
+describe("leadBookings", () => {
+  // The booking that produced this function. Honeycutt Heating booked itself a
+  // demo through the widget on the cold call calendar, and the lead book sat
+  // there saying New Lead.
+  const NOW = Date.parse("2026-08-14T21:30:00.000Z");
+
+  const coldCall = (over: Partial<CalendarEvent> = {}): CalendarEvent =>
+    event({
+      id: "appt-honeycutt",
+      contactId: "mpCk5KQfmz3nwRGKUDfH",
+      contactName: "rich honey cut heating",
+      calendarId: "88RWwB2ki5xVTFMn4Xz3",
+      calendarName: "Demo Call - Cold Call",
+      startTime: "2026-08-17T16:00:00-04:00",
+      endTime: "2026-08-17T16:30:00-04:00",
+      ...over,
+    });
+
+  const lead = (over: Partial<BookableLead> = {}): BookableLead => ({
+    id: "lead-1",
+    ghl_contact_id: "mpCk5KQfmz3nwRGKUDfH",
+    status: "New Lead",
+    appointment_date: null,
+    ...over,
+  });
+
+  it("marks the prospect Booked on the day of their meeting", () => {
+    expect(leadBookings([coldCall()], [lead()], NOW)).toEqual([
+      { leadId: "lead-1", appointmentDate: "2026-08-17" },
+    ]);
+  });
+
+  it("takes the day from the calendar's own offset, not from UTC", () => {
+    // 00:30 on the 18th in London is still the 17th where the meeting is.
+    const bookings = leadBookings([coldCall({ startTime: "2026-08-17T20:30:00-04:00" })], [lead()], NOW);
+    expect(bookings[0].appointmentDate).toBe("2026-08-17");
+  });
+
+  it("ignores a meeting whose contact is in nobody's book", () => {
+    expect(leadBookings([coldCall({ contactId: "stranger" })], [lead()], NOW)).toEqual([]);
+    expect(leadBookings([coldCall({ contactId: "" })], [lead()], NOW)).toEqual([]);
+  });
+
+  it("leaves a demo that is not a cold call alone", () => {
+    // Jake's own demo calendar. The Booked page would never show the meeting,
+    // so the lead must not claim to have one.
+    expect(
+      leadBookings([coldCall({ calendarName: "Hauck Marketing Demo Call" })], [lead()], NOW),
+    ).toEqual([]);
+  });
+
+  it("ignores a meeting that was cancelled or nobody turned up to", () => {
+    expect(leadBookings([coldCall({ status: "cancelled" })], [lead()], NOW)).toEqual([]);
+    expect(leadBookings([coldCall({ status: "noshow" })], [lead()], NOW)).toEqual([]);
+  });
+
+  it("does not reach back into meetings that have already happened", () => {
+    // The sync reads 90 days back. Re-stamping Booked onto a prospect whose
+    // meeting was in June is rewriting the past, not recording it.
+    expect(leadBookings([coldCall({ startTime: "2026-06-02T16:00:00-04:00" })], [lead()], NOW)).toEqual(
+      [],
+    );
+  });
+
+  it("still records a meeting earlier today", () => {
+    expect(
+      leadBookings([coldCall({ startTime: "2026-08-14T09:00:00-04:00" })], [lead()], NOW),
+    ).toHaveLength(1);
+  });
+
+  it("says nothing about a lead already booked on that day", () => {
+    // Every sync would otherwise rewrite the same row forever.
+    const settled = lead({ status: "Booked", appointment_date: "2026-08-17" });
+    expect(leadBookings([coldCall()], [settled], NOW)).toEqual([]);
+  });
+
+  it("follows a meeting that was moved inside GoHighLevel", () => {
+    const settled = lead({ status: "Booked", appointment_date: "2026-08-17" });
+    const moved = coldCall({ startTime: "2026-08-19T16:00:00-04:00" });
+    expect(leadBookings([moved], [settled], NOW)).toEqual([
+      { leadId: "lead-1", appointmentDate: "2026-08-19" },
+    ]);
+  });
+
+  it("books a prospect who had already said no", () => {
+    // They booked. Whatever they said last week is no longer the latest fact.
+    expect(leadBookings([coldCall()], [lead({ status: "Not Interested" })], NOW)).toHaveLength(1);
+  });
+
+  it("gives a prospect with two meetings the next one, once", () => {
+    const events = [
+      coldCall({ id: "a", startTime: "2026-08-17T16:00:00-04:00" }),
+      coldCall({ id: "b", startTime: "2026-08-25T16:00:00-04:00" }),
+    ];
+    expect(leadBookings(events, [lead()], NOW)).toEqual([
+      { leadId: "lead-1", appointmentDate: "2026-08-17" },
+    ]);
+  });
+
+  it("ignores a meeting with no time on it at all", () => {
+    expect(leadBookings([coldCall({ startTime: null })], [lead()], NOW)).toEqual([]);
+  });
+
+  it("keeps two prospects apart", () => {
+    const events = [coldCall(), coldCall({ id: "b", contactId: "c-2" })];
+    const leads = [lead(), lead({ id: "lead-2", ghl_contact_id: "c-2" })];
+    expect(leadBookings(events, leads, NOW)).toEqual([
+      { leadId: "lead-1", appointmentDate: "2026-08-17" },
+      { leadId: "lead-2", appointmentDate: "2026-08-17" },
+    ]);
   });
 });
 
