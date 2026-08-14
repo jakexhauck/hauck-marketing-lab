@@ -15,6 +15,16 @@ export interface Env {
   /** The sync endpoint to call. Set in wrangler.toml [vars]. */
   SYNC_URL: string;
   /**
+   * Reporting booked appointments back to Meta's Conversions API. Set in
+   * wrangler.toml [vars]; unset simply skips that half of the run.
+   *
+   * Runs on the same schedule as the spend sync but is NOT the same job: this
+   * one is the only way Meta ever learns that a lead booked, and it works
+   * against a hard seven-day wall. Meta refuses any conversion older than that,
+   * so a week of missed runs is a week of bookings that can never be reported.
+   */
+  CAPI_SCHEDULE_URL?: string;
+  /**
    * Shared with the app's own environment. Must match EXACTLY on both sides or
    * every run comes back 401 and spend silently stops updating.
    *
@@ -77,10 +87,56 @@ async function runSync(env: Env): Promise<string> {
   ].join(" | ");
 }
 
+interface CapiBody {
+  sent?: number;
+  failed?: number;
+  results?: { name?: string; found?: number; sent?: number; matched?: number; reason?: string; error?: string }[];
+}
+
+// Report bookings to Meta. Independent of the spend sync on purpose: a Meta
+// outage on one must not stop the other, since they fix different halves of the
+// same broken dashboard.
+async function runCapiSchedule(env: Env): Promise<string> {
+  if (!env.CAPI_SCHEDULE_URL) return "CAPI_SCHEDULE_URL not set, skipped.";
+  if (!env.ADS_CRON_SECRET) return "ADS_CRON_SECRET is not set. No bookings reported.";
+
+  const res = await fetch(env.CAPI_SCHEDULE_URL, {
+    method: "POST",
+    headers: { "x-ads-cron": env.ADS_CRON_SECRET },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+
+  if (res.status === 401) return "401 from the capi endpoint. Secret mismatch.";
+  if (!res.ok) return `Capi endpoint returned ${res.status}.`;
+
+  const body = (await res.json()) as CapiBody;
+  const results = body.results ?? [];
+  const matched = results.reduce((n, r) => n + (r.matched ?? 0), 0);
+  const failed = results.filter((r) => r.error);
+
+  // `matched` is worth logging on its own: a booking reported without click
+  // signals is recorded by Meta but far less likely to be attributed to the ad,
+  // so a run where sent is healthy and matched is zero still means the
+  // attribution is not working.
+  return [
+    `bookings sent ${body.sent ?? 0} (matched ${matched}), failed ${body.failed ?? 0}`,
+    failed.length ? `errors: ${failed.map((r) => `${r.name}: ${r.error}`).join("; ")}` : "errors: none",
+  ].join(" | ");
+}
+
+async function runAll(env: Env): Promise<string> {
+  // Sequential, not Promise.all: both hit the same Pages deployment and the
+  // spend sync already walks every client calling Meta. Running them at once
+  // buys nothing on a nightly job and doubles the peak load.
+  const spend = await runSync(env).catch((err) => `sync threw: ${err}`);
+  const capi = await runCapiSchedule(env).catch((err) => `capi threw: ${err}`);
+  return `${spend} || ${capi}`;
+}
+
 export default {
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(
-      runSync(env)
+      runAll(env)
         .then((line) => console.log("[ads-cron]", line))
         // A thrown error here would just retry on the next tick anyway. Log it
         // so `wrangler tail` shows a reason rather than a silent gap.
@@ -102,7 +158,7 @@ export default {
     if (!secretMatches(request.headers.get("x-ads-cron"), env.ADS_CRON_SECRET)) {
       return new Response("unauthorized", { status: 401 });
     }
-    const line = await runSync(env);
+    const line = await runAll(env);
     console.log("[ads-cron] manual:", line);
     return new Response(line, { status: 200 });
   },

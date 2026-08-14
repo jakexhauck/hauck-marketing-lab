@@ -235,6 +235,10 @@ export interface TrackerSpendRow {
   linkClicks: number;
   // Meta's own deduplicated lead count for this ad on this day.
   leads: number;
+  // Meta's own booked-appointment count, from the Schedule events we report
+  // back to it. Zero for any day before that reporting existed, and never
+  // backfillable: Meta refuses a conversion older than seven days.
+  metaBookings: number;
 }
 
 // Ads Manager's own date presets, not ours.

@@ -20,6 +20,7 @@ import {
 import { bumpEventSeen, eventSourceForTenant } from "../lib/ghlEventHealth";
 import { insertActivityOnce } from "../lib/activityLog";
 import { mirrorFromWebhook } from "../lib/appointmentMirror";
+import { reportBookingFromWebhook } from "../lib/capiScheduleWebhook";
 
 // Auth model: GHL cannot produce a signature we can verify here (marketplace
 // webhooks sign with an RSA key under x-wh-signature; workflow webhook actions
@@ -396,6 +397,23 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     ctx.waitUntil(
       mirrorFromWebhook(ctx.env, client, tenantId, event).catch((err) =>
         console.error("[webhook] calendar mirror failed", err),
+      ),
+    );
+
+    // Tell Meta the lead booked, so the campaign can optimise for booked jobs
+    // rather than for form fills.
+    //
+    // The instant half of the pair. /api/admin/ads/capi-schedule polls the same
+    // calendars on a schedule and reports exactly the same thing, because these
+    // workflow webhooks are not wired for every client (Willis has never had
+    // them). Both key the event on the GHL appointment id and both consult the
+    // capi_sent ledger, so whichever arrives second sends nothing.
+    //
+    // Off the response path: GHL gets its 200 immediately, and a Meta round
+    // trip must never be able to delay or fail that ack.
+    ctx.waitUntil(
+      reportBookingFromWebhook(ctx.env, client, tenantId, event).catch((err) =>
+        console.error("[webhook] meta schedule report failed", err),
       ),
     );
 

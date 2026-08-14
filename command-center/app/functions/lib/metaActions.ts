@@ -66,6 +66,28 @@ export const ACTION_GROUPS: { rollup: string; parts: string[] }[] = [
   },
 ];
 
+// Booked appointments, as Meta reports them back.
+//
+// A SEPARATE list, not a fourth entry in ACTION_GROUPS, and the distinction is
+// load-bearing: actionsValue sums ACROSS every group it is given, so folding
+// Schedule in there would have added booked appointments to the lead count and
+// reported 51 leads as 58.
+//
+// These only ever appear for a client whose bookings are reported back to Meta
+// by lib/capiSchedule.ts. Meta cannot know about a booking nobody sent it, so a
+// client without that wiring reads zero here, which is the truth rather than a
+// gap.
+export const SCHEDULE_GROUPS: { rollup: string; parts: string[] }[] = [
+  {
+    rollup: "schedule",
+    parts: [
+      "offsite_conversion.fb_pixel_schedule",
+      "onsite_conversion.schedule",
+      "onsite_web_schedule",
+    ],
+  },
+];
+
 function num(v: unknown): number {
   if (typeof v === "number") return Number.isFinite(v) ? v : 0;
   if (typeof v === "string") {
@@ -79,6 +101,20 @@ function num(v: unknown): number {
 // (count) or `action_values` (revenue) array, counting each conversion once.
 // See ACTION_GROUPS for why "once" needs saying.
 export function actionsValue(row: Record<string, unknown>, key: string): number {
+  return groupedValue(row, key, ACTION_GROUPS);
+}
+
+// Booked appointments Meta reported for this row. Zero for a client whose
+// bookings are not sent back to Meta, which is honest rather than missing.
+export function scheduleValue(row: Record<string, unknown>, key = "actions"): number {
+  return groupedValue(row, key, SCHEDULE_GROUPS);
+}
+
+export function groupedValue(
+  row: Record<string, unknown>,
+  key: string,
+  groups: { rollup: string; parts: string[] }[],
+): number {
   const arr = row[key];
   if (!Array.isArray(arr)) return 0;
 
@@ -92,7 +128,7 @@ export function actionsValue(row: Record<string, unknown>, key: string): number 
   }
 
   let total = 0;
-  for (const group of ACTION_GROUPS) {
+  for (const group of groups) {
     const rolled = byType.get(group.rollup);
     if (rolled !== undefined) {
       total += rolled;

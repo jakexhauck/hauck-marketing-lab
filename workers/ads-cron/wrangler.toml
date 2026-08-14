@@ -21,6 +21,14 @@ crons = ["0 6 * * *"]
 # Pulling only yesterday would freeze each day at its first, lowest reading.
 SYNC_URL = "https://app.hauckmarketing.com/api/admin/ads/sync?days=7"
 
+# Reporting booked appointments back to Meta.
+#
+# No ?days: the handler's own default (5) is deliberately well inside Meta's
+# hard seven-day limit on how old a conversion may be, so a run that fails for a
+# day or two still catches up rather than silently dropping those bookings.
+# Widening it here would not help; Meta would simply refuse the older events.
+CAPI_SCHEDULE_URL = "https://app.hauckmarketing.com/api/admin/ads/capi-schedule"
+
 # ADS_CRON_SECRET is NOT here on purpose: it is a secret, set with
 #   wrangler secret put ADS_CRON_SECRET
 # and it has to match the value in the Pages project's own environment exactly,

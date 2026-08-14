@@ -123,6 +123,10 @@ function spendRow(
     reach: 900,
     linkClicks: 20,
     leads: leadCount,
+    // Meta's own booked-appointment count. Zero throughout this file: the sheet
+    // fixture predates bookings being reported back to Meta, and the KPI
+    // arithmetic still takes Bookings from the CRM.
+    metaBookings: 0,
   };
 }
 

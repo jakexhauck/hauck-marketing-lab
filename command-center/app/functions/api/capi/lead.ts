@@ -1,6 +1,8 @@
 import type { Env, ApiData } from "../../lib/env";
 import { FUNNEL_CAPI, originAllowedForFunnel, sendLeadEvent } from "../../lib/metaCapi";
+import { rememberIdentity } from "../../lib/capiIdentity";
 import { resolveMetaToken } from "../../lib/metaToken";
+import { getServiceClient } from "../../lib/supabase";
 
 // POST /api/capi/lead  -> reports one funnel conversion to Meta.
 //
@@ -45,7 +47,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
   const body = await readBody(ctx.request);
 
-  const funnel = FUNNEL_CAPI[(body.funnel ?? "").trim()];
+  const funnelKey = (body.funnel ?? "").trim();
+  const funnel = FUNNEL_CAPI[funnelKey];
   if (!funnel) return Response.json({ error: "unknown funnel" }, { status: 404 });
 
   const origin = ctx.request.headers.get("origin");
@@ -89,6 +92,25 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     },
     testEventCode: body.test_event_code || undefined,
   });
+
+  // Keep the click signals, so the Schedule event fired when this person books
+  // days from now can still be matched to the ad that produced them. After the
+  // send and never allowed to fail it: a lost row costs future match quality,
+  // a thrown error would cost the conversion we have already reported.
+  const client = getServiceClient(ctx.env);
+  if (client) {
+    try {
+      await rememberIdentity(
+        client,
+        funnelKey,
+        { email: body.email, phone: body.phone },
+        { fbc: body.fbc, fbp: body.fbp },
+        body.event_source_url,
+      );
+    } catch (err) {
+      console.warn("[capi/lead] identity write threw", err);
+    }
+  }
 
   // 502 when Meta refused, so a curl of this endpoint tells the truth. The
   // browser never reads either answer: sendBeacon discards the response.

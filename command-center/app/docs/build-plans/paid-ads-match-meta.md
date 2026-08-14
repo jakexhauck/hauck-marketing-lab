@@ -1,8 +1,9 @@
 # Paid Ads: make the numbers literally match Meta
 
-Status: **Phase 0 and Phase 1 built and verified on localhost, 2026-08-13. Not
-deployed.** Migration 0108 IS applied to the live database (additive columns
-only). Phases 2 to 4 not started.
+Status: **Phases 0, 1 and 2 built and verified on localhost, 2026-08-13. Not
+deployed.** Migrations 0108 and 0109 ARE applied to the live database (additive
+only). Bookings are proven against Meta's Test Events tab but **no live
+conversion has been sent**. Phases 3 and 4 not started.
 
 ## Verified result
 
@@ -178,7 +179,50 @@ the Breakdown rows finally come from one source and cannot disagree.
 Run the sync at `days=90`, then a Maximum pass, so All Time is real history and
 not "whatever we happened to have snapshotted".
 
-## Phase 2: Bookings go to Meta
+## Phase 2: Bookings go to Meta — BUILT 2026-08-13, not yet sent live
+
+Built, tested, and proven against Meta's Test Events tab: 8 of Willis's real
+bookings accepted, 0 refused. **No live conversion has been sent yet**; that is
+a one-line call away and is deliberately left as Jake's decision, because a
+conversion written into a client's pixel cannot be withdrawn.
+
+What went in:
+
+- `0109_capi_schedule.sql`: `capi_identity` (fbc/fbp kept from the funnel
+  submit, keyed by hashed email/phone), `capi_sent` (idempotency ledger keyed on
+  the GHL appointment id), and `meta_ad_days.meta_bookings`.
+- `lib/capiSchedule.ts`: reads the client's calendars, finds appointments
+  **booked** since a cutoff (by `dateAdded`, never `startTime`), looks up the
+  click signals, sends `Schedule`, records the outcome.
+- `lib/capiScheduleWebhook.ts` + a hook in `api/webhook.ts`: the instant path,
+  for when the GHL workflows exist.
+- `api/admin/ads/capi-schedule.ts`: the polling path, which needs no GHL
+  configuration at all and is what actually runs today.
+- `workers/ads-cron`: now runs both jobs nightly.
+
+Three decisions worth not re-litigating:
+
+**The poll exists because the webhook does not fire.** Willis has never had the
+GHL workflows wired; their activity log holds three test rows from June. Both
+paths key on the appointment id and both consult the ledger, so running both is
+safe and the second one to arrive sends nothing.
+
+**A test run never touches the ledger.** Recording a test event would mark the
+booking as reported and permanently suppress the real one: proving the wiring
+works would be the thing that stopped it working.
+
+**Meta refuses any conversion older than seven days.** So none of this can be
+backfilled. Meta's Bookings figure starts at zero on the day it goes live and
+fills in from there, which is why the dashboard still shows the CRM's booking
+count and `meta_bookings` is only stored, not yet displayed. Flip it once a full
+window has accumulated.
+
+Known limitation on day one: `matched` was 0 on the test run, because
+`capi_identity` is empty until funnel submissions start populating it. Those
+events still carry hashed email and phone, which Meta accepts but attributes
+less confidently. Match quality climbs as leads come through the funnel.
+
+## Phase 2 (original plan, superseded by the above)
 
 We already have a working Conversions API (`functions/lib/metaCapi.ts`), the
 funnel already sends a Lead event with `fbc`/`fbp`, and Willis's live ad set

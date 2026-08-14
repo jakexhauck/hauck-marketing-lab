@@ -11,7 +11,7 @@
 //   4. cpm is not requested. The sheet recomputed it anyway; so do we.
 
 import { graphGetAll, graphGet } from "./metaGraph";
-import { actionsValue, UNIFIED_ATTRIBUTION } from "./metaActions";
+import { actionsValue, scheduleValue, UNIFIED_ATTRIBUTION } from "./metaActions";
 import { dateStringInZone } from "./tz";
 import type { TrackerSpendRow } from "./adTrackerMetrics";
 
@@ -52,6 +52,7 @@ export const AD_DAY_COLUMNS = [
   "reach",
   "link_clicks",
   "leads",
+  "meta_bookings",
 ].join(", ");
 
 export interface MetaInsightRow {
@@ -86,6 +87,7 @@ export interface AdDayUpsert {
   reach: number;
   link_clicks: number;
   leads: number;
+  meta_bookings: number;
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -141,6 +143,9 @@ export function buildAdDayUpserts(
       // array that has to be deduplicated first, and an ad with no conversions
       // legitimately has no `actions` key at all.
       leads: Math.round(actionsValue(row as unknown as Record<string, unknown>, "actions")),
+      // Zero until bookings are reported back to Meta (lib/capiSchedule.ts).
+      // Meta cannot report a conversion nobody sent it.
+      meta_bookings: Math.round(scheduleValue(row as unknown as Record<string, unknown>)),
     });
   }
 
@@ -169,6 +174,7 @@ export function toSpendRows(rows: Record<string, unknown>[]): TrackerSpendRow[] 
     reach: n(row.reach),
     linkClicks: n(row.link_clicks),
     leads: n(row.leads),
+    metaBookings: n(row.meta_bookings),
   }));
 }
 

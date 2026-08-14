@@ -51,6 +51,9 @@ describe("buildAdDayUpserts", () => {
       reach: 891,
       link_clicks: 19,
       leads: 4,
+      // Zero: Willis's bookings are reported to Meta by capiSchedule.ts, and
+      // this fixture row predates any Schedule event coming back.
+      meta_bookings: 0,
     });
   });
 
@@ -162,6 +165,7 @@ describe("toSpendRows", () => {
         reach: 891,
         link_clicks: 19,
         leads: 4,
+        meta_bookings: 3,
       },
     ]);
     expect(rows[0]).toEqual({
@@ -177,6 +181,7 @@ describe("toSpendRows", () => {
       reach: 891,
       linkClicks: 19,
       leads: 4,
+      metaBookings: 3,
     });
   });
 
@@ -191,5 +196,6 @@ describe("toSpendRows", () => {
   it("reads a pre-0108 row, written before the leads column existed, as zero", () => {
     const rows = toSpendRows([{ date: "2026-03-21", ad_id: "a1", spend: "5.00" }]);
     expect(rows[0].leads).toBe(0);
+    expect(rows[0].metaBookings).toBe(0);
   });
 });

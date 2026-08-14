@@ -59,9 +59,39 @@ export const FUNNEL_CAPI: Record<string, FunnelCapi> = {
 // against and will not report.
 export const LEAD_EVENT = "Lead";
 
+// Meta's standard event for a booked appointment.
+//
+// "Schedule" is one of Meta's own standard event names, which matters: a custom
+// event would be reportable but not selectable as an ad set's optimisation
+// goal, and optimising for booked jobs rather than form fills is most of the
+// point of sending it.
+export const SCHEDULE_EVENT = "Schedule";
+
+// Which funnel (and therefore which pixel) a tenant's bookings belong to.
+//
+// A funnel is a hand-written set of files, so there is no screen that creates
+// one and nothing to configure: a client with no entry here simply reports no
+// bookings, which is the honest outcome for a client whose ads do not run
+// through one of our funnels.
+//
+// Keyed by tenant SLUG rather than id so it reads as something a human can
+// check against the tenants table.
+export const TENANT_FUNNEL: Record<string, string> = {
+  "willis-windows": "willis",
+};
+
+export function funnelForTenantSlug(slug: string | null | undefined): FunnelCapi | null {
+  const key = TENANT_FUNNEL[String(slug ?? "").trim()];
+  return key ? (FUNNEL_CAPI[key] ?? null) : null;
+}
+
+export function funnelKeyForTenantSlug(slug: string | null | undefined): string | null {
+  return TENANT_FUNNEL[String(slug ?? "").trim()] ?? null;
+}
+
 // ---------------------------------------------------------------- hashing
 
-async function sha256Hex(value: string): Promise<string> {
+export async function sha256Hex(value: string): Promise<string> {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest))
@@ -201,18 +231,47 @@ export async function sendLeadEvent(
   funnel: FunnelCapi,
   input: LeadEventInput,
 ): Promise<LeadEventResult> {
+  return sendConversionEvent(token, funnel, LEAD_EVENT, input);
+}
+
+// A booked appointment, reported to the same pixel the Lead went to.
+//
+// `eventId` must be the GHL appointment id. Both paths that can report a
+// booking (the AppointmentCreate webhook, and the polling sync for clients
+// whose webhook is not wired) therefore send the same id, so firing both counts
+// one booking rather than two.
+//
+// `actionSource` is "website" for a self-serve booking widget, which is what
+// the funnel's booking step is. A booking the office typed in by hand should
+// pass "system_generated" instead: claiming a website action for a phone call
+// misrepresents where the conversion happened, and Meta weighs the two
+// differently.
+export async function sendScheduleEvent(
+  token: string,
+  funnel: FunnelCapi,
+  input: LeadEventInput & { actionSource?: string },
+): Promise<LeadEventResult> {
+  return sendConversionEvent(token, funnel, SCHEDULE_EVENT, input);
+}
+
+export async function sendConversionEvent(
+  token: string,
+  funnel: FunnelCapi,
+  eventName: string,
+  input: LeadEventInput & { actionSource?: string },
+): Promise<LeadEventResult> {
   const body: Record<string, unknown> = {
     access_token: token,
     data: [
       {
-        event_name: LEAD_EVENT,
+        event_name: eventName,
         event_time: input.eventTime,
         // The funnel's id for this submission. If a browser-side pixel Lead is
         // ever added it must reuse the same value, or Meta counts one lead
         // twice: once from the browser and once from here.
         event_id: input.eventId,
         event_source_url: input.sourceUrl || undefined,
-        action_source: "website",
+        action_source: input.actionSource || "website",
         user_data: await buildUserData(input.who, input.signals),
       },
     ],

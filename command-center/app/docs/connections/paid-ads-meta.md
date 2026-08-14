@@ -78,3 +78,61 @@ soon" by design: it is for real landing funnels, not lead forms (Jake, 2026-07-0
 - ⚠️ **Revenue window** is the current calendar month, so a job completed this
   month from an ad lead acquired earlier still counts (standard approximation).
   Revisit if Jake wants strict same-cohort attribution.
+
+---
+
+## Bookings reported back to Meta (Conversions API) — 2026-08-13
+
+Meta knows what it billed for and nothing else. It reported 51 leads for Willis
+in thirty days with no idea whether any of them booked, so the campaign was
+optimising toward whoever filled in a form rather than whoever turned up. This
+closes that loop, and it is also the only way the dashboard's Bookings figure
+can ever agree with Ads Manager: Meta cannot report a conversion nobody sent it.
+
+- ✅ **Event:** `Schedule`, one of Meta's standard events (so it can be selected
+  as an ad set's optimisation goal, which a custom event cannot).
+- ✅ **Pixel:** the funnel's own, from `FUNNEL_CAPI` in
+  `functions/lib/metaCapi.ts`. Tenant → funnel comes from `TENANT_FUNNEL`, keyed
+  by tenant slug. A client with no entry reports no bookings, deliberately:
+  guessing a pixel writes a conversion into somebody else's ad account.
+- ✅ **When the booking happened** is GHL's `dateAdded` on the calendar event,
+  never `startTime`. An estimate booked today for next month carries a start
+  time weeks in the future, which Meta rejects outright.
+- ✅ **Two paths, one event.**
+  - `functions/lib/capiScheduleWebhook.ts`, off `AppointmentCreate` on
+    `/api/webhook`. Instant, but only for a client whose GHL workflows are wired.
+    **Willis's are not** (their activity log holds three test rows from June).
+  - `POST /api/admin/ads/capi-schedule`, which reads the calendars directly and
+    needs no GHL configuration whatsoever. This is what actually runs, nightly,
+    from `workers/ads-cron`.
+  - Both key `event_id` on the GHL appointment id and both consult the
+    `capi_sent` ledger, so running both counts one booking, and a re-run sends
+    nothing.
+- ✅ **Match quality.** `capi_identity` keeps the `fbc` (ad click) and `fbp`
+  (browser) that `/api/capi/lead` used to discard, keyed by hashed email and
+  phone. Meta weighs those far above hashed contact details, and without them a
+  booking made days after the click is recorded but rarely attributed. The
+  `matched` count in the endpoint's response is how many events carried them.
+- ✅ **Cancellations** are not reported. `AppointmentCreate` only: an update is a
+  reschedule of a booking Meta already counted, and the Conversions API has no
+  honest way to retract one.
+
+### Two limits worth knowing before reading the numbers
+
+1. **Meta refuses any conversion older than seven days.** None of this is
+   backfillable. Meta's Bookings figure starts at zero the day it goes live and
+   fills in from there. `meta_ad_days.meta_bookings` stores it from day one so
+   history accumulates, but the dashboard still shows the CRM's booking count
+   until a full window exists.
+2. **A test run (`?test=CODE`) never writes the ledger.** Recording a test event
+   would mark that booking as reported and permanently suppress the real one.
+
+### Proving it without inventing conversions
+
+```
+POST /api/admin/ads/capi-schedule?tenantId=<id>&days=7&test=<TEST_CODE>
+```
+
+Routes to Events Manager → Test Events instead of the live stream. Verified this
+way on 2026-08-13: 8 of Willis's real bookings accepted, 0 refused, `matched` 0
+(expected, `capi_identity` was still empty). Drop `&test=` to send live.

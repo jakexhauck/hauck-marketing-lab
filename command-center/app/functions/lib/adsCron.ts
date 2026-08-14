@@ -10,20 +10,21 @@
 // both of which make it the more dangerous of the two:
 //
 //   - It allows POST, because the sync is a POST.
-//   - The handler behind it WRITES. It writes exactly one thing: upserts into
-//     meta_ad_days, built from Meta's own Graph API response. No part of the
-//     request body reaches the database, because the handler reads no body at
-//     all; the only caller-supplied values are `tenantId` and `days` in the
-//     query string, and both are already validated by the handler. The upsert
-//     is keyed on (tenant_id, date, ad_id), so replaying a captured request is
-//     a no-op rather than a way to duplicate or corrupt rows.
+//   - The handlers behind it WRITE. Both write upserts keyed on something the
+//     caller cannot choose: meta_ad_days on (tenant_id, date, ad_id) built from
+//     Meta's own Graph response, and capi_sent on (funnel, event_name,
+//     event_id) where event_id is a GHL appointment id. Neither reads a request
+//     body at all; the only caller-supplied values are `tenantId` and `days` in
+//     the query string, both validated by the handler. Replaying a captured
+//     request is therefore a no-op rather than a way to duplicate rows or to
+//     re-send conversions into a client's pixel.
 //
 // Everything else is held identical to the health gate on purpose, so the two
 // can be read side by side and any divergence is visible:
 //
-//   - ONE exact pathname. Not a prefix, not a startsWith. A prefix rule here
-//     would eventually be widened by someone in a hurry, and the route next
-//     door reads every credential in the estate.
+//   - EXACT pathnames, from a fixed list (CRON_PATHS). Not a prefix, not a
+//     startsWith. A prefix rule here would eventually be widened by someone in
+//     a hurry, and the route next door reads every credential in the estate.
 //   - Unset secret means CLOSED, never "everything matches".
 //   - A short secret is refused rather than accepted.
 //
@@ -31,8 +32,31 @@
 // so a caller holding the secret is not an admin and cannot become one: the
 // only thing it buys is this one sync.
 
-/** The one route the scheduler may call. Compared with ===, never a prefix. */
+/** The spend sync. Compared with ===, never a prefix. */
 export const ADS_CRON_PATH = "/api/admin/ads/sync";
+
+/**
+ * Reporting booked appointments back to Meta's Conversions API.
+ *
+ * Second route on this gate, added 2026-08-13. It writes to `capi_sent` (an
+ * idempotency ledger keyed on the GHL appointment id) and sends Schedule events
+ * to Meta. Like the sync, it reads no request body: the only caller-supplied
+ * values are `tenantId` and `days` in the query string, both validated by the
+ * handler, so replaying a captured request re-sends nothing (the ledger has
+ * already recorded every appointment id).
+ */
+export const CAPI_CRON_PATH = "/api/admin/ads/capi-schedule";
+
+/**
+ * Every route this secret opens, matched with === against the whole set.
+ *
+ * A LIST of exact paths, deliberately, rather than the prefix "/api/admin/ads/"
+ * that would have been one character cheaper. The route next door
+ * (/api/admin/clients) reads every credential in the estate, and a prefix rule
+ * is the kind of thing that gets widened by someone in a hurry. Adding a path
+ * here should stay a decision, not a side effect.
+ */
+export const CRON_PATHS: readonly string[] = [ADS_CRON_PATH, CAPI_CRON_PATH];
 
 /** The header the scheduler sends the shared secret in. */
 export const ADS_CRON_HEADER = "x-ads-cron";
@@ -75,7 +99,7 @@ export function isAdsCronRequest(
   const expected = (secret ?? "").trim();
   if (expected.length < MIN_SECRET_LENGTH) return false;
   if (method !== "POST") return false;
-  if (pathname !== ADS_CRON_PATH) return false;
+  if (!CRON_PATHS.includes(pathname)) return false;
   const presented = (header ?? "").trim();
   if (!presented) return false;
   return timingSafeEqual(presented, expected);
