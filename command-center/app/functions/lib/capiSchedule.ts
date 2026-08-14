@@ -34,6 +34,18 @@ import {
 // catches up rather than silently dropping the bookings it missed.
 export const SCHEDULE_LOOKBACK_DAYS = 5;
 
+// The `days` query parameter, read so that ZERO survives.
+//
+// `Number(raw) || SCHEDULE_LOOKBACK_DAYS` is the obvious spelling and it is
+// wrong: 0 is falsy, so a caller asking for no lookback at all gets the full
+// default window and five days of live conversions land in a client's pixel.
+// That is not hypothetical, it happened during this feature's own deploy.
+export function parseLookbackDays(raw: string | null): number {
+  if (raw === null || raw.trim() === "") return SCHEDULE_LOOKBACK_DAYS;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : SCHEDULE_LOOKBACK_DAYS;
+}
+
 // How far either side of today to ask GHL for appointments. A job booked months
 // out was still BOOKED today, and it is the booking we are reporting, not the
 // appointment, so the search has to be wide even though the filter is narrow.

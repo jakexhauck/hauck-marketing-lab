@@ -5,7 +5,7 @@ import { resolveGhlCreds } from "../../../lib/tenantResolve";
 import type { GhlContext } from "../../../lib/ghl";
 import { funnelForTenantSlug, funnelKeyForTenantSlug } from "../../../lib/metaCapi";
 import { resolveMetaToken } from "../../../lib/metaToken";
-import { reportBookingsForTenant, SCHEDULE_LOOKBACK_DAYS } from "../../../lib/capiSchedule";
+import { parseLookbackDays, reportBookingsForTenant } from "../../../lib/capiSchedule";
 
 // Report booked appointments to Meta's Conversions API.
 //
@@ -32,8 +32,6 @@ import { reportBookingsForTenant, SCHEDULE_LOOKBACK_DAYS } from "../../../lib/ca
 // stream, which is how the wiring gets proven without inventing conversions in
 // a client's reporting. It is deliberately NOT written to the ledger as a real
 // send... see the note in the handler.
-
-const DEFAULT_DAYS = SCHEDULE_LOOKBACK_DAYS;
 
 interface TenantRow {
   id: string;
@@ -68,7 +66,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
   const url = new URL(ctx.request.url);
   const onlyTenant = url.searchParams.get("tenantId");
-  const days = Number(url.searchParams.get("days")) || DEFAULT_DAYS;
+  // See parseLookbackDays: `days=0` must mean zero, not "unset".
+  const days = parseLookbackDays(url.searchParams.get("days"));
   const testEventCode = url.searchParams.get("test")?.trim() || undefined;
 
   // ghl_token / ghl_location_id are what resolveGhlCreds reads. Selected here

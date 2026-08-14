@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { isRealBooking, toAppointment } from "./capiSchedule";
+import {
+  isRealBooking,
+  parseLookbackDays,
+  SCHEDULE_LOOKBACK_DAYS,
+  toAppointment,
+} from "./capiSchedule";
 import { scheduleValue, actionsValue } from "./metaActions";
 
 // A GHL calendar event, shaped like the real one read off Willis's "Phone
@@ -116,5 +121,28 @@ describe("scheduleValue", () => {
     const row = { actions: [a("lead", "51"), a("schedule", "7")] };
     expect(actionsValue(row, "actions")).toBe(51);
     expect(scheduleValue(row)).toBe(7);
+  });
+});
+
+describe("parseLookbackDays", () => {
+  it("treats days=0 as zero, not as missing", () => {
+    // The whole reason this function exists. `Number("0") || 5` is 5, so a call
+    // meant to send nothing sent five days of live conversions into Willis's
+    // pixel during this feature's own deploy.
+    expect(parseLookbackDays("0")).toBe(0);
+  });
+
+  it("falls back to the default when absent, blank or nonsense", () => {
+    expect(parseLookbackDays(null)).toBe(SCHEDULE_LOOKBACK_DAYS);
+    expect(parseLookbackDays("")).toBe(SCHEDULE_LOOKBACK_DAYS);
+    expect(parseLookbackDays("  ")).toBe(SCHEDULE_LOOKBACK_DAYS);
+    expect(parseLookbackDays("soon")).toBe(SCHEDULE_LOOKBACK_DAYS);
+    // Negative would search into the future and report nothing, silently.
+    expect(parseLookbackDays("-3")).toBe(SCHEDULE_LOOKBACK_DAYS);
+  });
+
+  it("takes a caller's real window", () => {
+    expect(parseLookbackDays("2")).toBe(2);
+    expect(parseLookbackDays("7")).toBe(7);
   });
 });
