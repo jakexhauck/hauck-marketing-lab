@@ -447,58 +447,6 @@
     root.innerHTML = view();
   }
 
-  // ------------------------------------------------------- the conversion
-  //
-  // Meta's Schedule event, fired from the browser because only the browser
-  // holds the cookies (_fbc, _fbp) that Meta attributes on. This page is the
-  // right place and the only place: GHL's booking widget runs in a
-  // cross-origin iframe that never tells its parent a booking succeeded, so
-  // the ONLY signal a booking happened is that GHL redirected the homeowner
-  // here afterwards.
-  //
-  // WHICH MEANS THIS PAGE COUNTS NOTHING UNLESS THE CALENDAR REDIRECTS TO IT.
-  // The calendar's "redirect after booking" must be set to this URL in GHL. If
-  // it is left empty GHL shows its own confirmation inside the iframe, nobody
-  // ever arrives here, and the campaign reports zero booked appointments while
-  // looking perfectly healthy.
-  //
-  // The pixel is injected by GHL, not by us, and it loads LATE: on a real
-  // visit `fbq` is still undefined for a second or two after DOMContentLoaded.
-  // So this waits for it rather than firing once and missing.
-  var SCHEDULE_TRIES = 0;
-
-  function fireSchedule() {
-    if (window.__wwtScheduleSent) return;
-
-    if (typeof window.fbq !== "function") {
-      // Ten seconds, then give up quietly. A homeowner must never see or wait
-      // on this, and a missing conversion is not worth a console error on a
-      // page whose real job is to reassure them.
-      if (SCHEDULE_TRIES++ < 100) { setTimeout(fireSchedule, 100); return; }
-      return;
-    }
-
-    window.__wwtScheduleSent = true;
-
-    // The SAME id quote.js minted for this submission, so a refresh of this
-    // page reports the same booking rather than a second one. Meta deduplicates
-    // on event name plus id, and Lead and Schedule are different names, so
-    // sharing the id across the two is safe and gives us a stable value that
-    // survives a reload. Without a handoff (someone pasting the URL) we send no
-    // id at all rather than invent one, since an invented id is a new booking
-    // to Meta every single time.
-    var who = lead();
-    var eventId = who && who.event_id ? String(who.event_id) : "";
-
-    try {
-      if (eventId) window.fbq("track", "Schedule", {}, { eventID: eventId });
-      else window.fbq("track", "Schedule");
-    } catch (e) {
-      // An ad blocker stubbed fbq, or GHL changed how it loads. The
-      // appointment is already real and in the calendar either way.
-    }
-  }
-
   var tries = 0;
   function boot() {
     var root = document.getElementById(ROOT_ID);
@@ -520,10 +468,5 @@
   } else {
     boot();
   }
-
-  // Deliberately NOT inside boot(). boot gives up when the GHL step is missing
-  // its <div>, and a page that failed to draw is still a page the homeowner
-  // reached by booking. The conversion must not depend on our own layout.
-  fireSchedule();
 
 })();
