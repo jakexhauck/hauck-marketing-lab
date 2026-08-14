@@ -1,7 +1,8 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import BoardScrollbar from "../../BoardScrollbar";
 import SetterCard from "./SetterCard";
+import { useIsMobile } from "../../../hooks/useIsMobile";
 import { dialCheckKey, stageTone } from "../../../lib/setterModel";
 import type { LeadAppointment } from "../../../lib/setterApptConfirm";
 import type { ApiSetterLead, ApiSetterPipeline } from "../../../lib/api";
@@ -45,6 +46,18 @@ export default function SetterBoard({
   // For the slider below the board: the columns overflow this container.
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // A phone gets ONE stage at a time, picked from a chip strip: six 280px
+  // columns side by side on a 390px screen is a board nobody can work. The
+  // opening stage is the first that needs dialing, because that is the pile
+  // the setter came to clear. Null falls back to the first column.
+  const isMobile = useIsMobile();
+  const [pickedStageId, setPickedStageId] = useState<string | null>(null);
+  // A different pipeline is a different set of stages: keep no stale pick.
+  useEffect(() => setPickedStageId(null), [pipeline.id]);
+  const openingStage = pipeline.stages.find((s) => s.needsDialing) ?? pipeline.stages[0];
+  const mobileStage =
+    pipeline.stages.find((s) => s.id === pickedStageId) ?? openingStage ?? null;
+
   const byStage = useMemo(() => {
     const m = new Map<string, ApiSetterLead[]>();
     for (const s of pipeline.stages) m.set(s.name, []);
@@ -59,25 +72,24 @@ export default function SetterBoard({
     return m;
   }, [leads, pipeline.stages]);
 
-  return (
-    <div className="pt-2">
-      {truncated && (
-        <div className="mx-1 mb-3 flex items-center gap-2 rounded-xl border border-warning/35 bg-warning-tint px-3 py-2 text-[12.5px] font-semibold text-warning">
-          <AlertTriangle size={14} aria-hidden />
-          Showing the first 1,000 leads in this pipeline. There are more that are not shown here.
-        </div>
-      )}
-
-      <div ref={scrollRef} className="no-scrollbar flex items-start gap-3 overflow-x-auto pb-2">
-        {pipeline.stages.map((stage) => {
-          const items = byStage.get(stage.name) ?? [];
-          // Semantic tone only, deliberately ignoring the CRM's stage.color:
-          // GHL only sets it on some stages and its values are not reliably
-          // valid CSS, which left a board where only some columns showed any
-          // color at all. One rule, every column colored, always.
-          const tone = stageTone(stage.name);
-          return (
-            <section key={stage.id} className="flex w-[280px] shrink-0 flex-col gap-2">
+  // One stage column. The phone renders exactly one of these at full width;
+  // desktop lays every one of them out side by side, unchanged.
+  const column = (stage: ApiSetterPipeline["stages"][number]) => {
+      const items = byStage.get(stage.name) ?? [];
+      // Semantic tone only, deliberately ignoring the CRM's stage.color:
+      // GHL only sets it on some stages and its values are not reliably
+      // valid CSS, which left a board where only some columns showed any
+      // color at all. One rule, every column colored, always.
+      const tone = stageTone(stage.name);
+      return (
+            <section
+              key={stage.id}
+              className={
+                isMobile
+                  ? "flex w-full flex-col gap-2"
+                  : "flex w-[280px] shrink-0 flex-col gap-2"
+              }
+            >
               <header className="flex items-baseline justify-between gap-2 px-1">
                 <span className="flex min-w-0 items-center gap-1.5">
                   <span
@@ -139,14 +151,72 @@ export default function SetterBoard({
                 )}
               </div>
             </section>
-          );
-        })}
-      </div>
+      );
+  };
 
-      {/* Draggable slider mirroring the board's horizontal scroll, so the
-          off-screen stages are obviously reachable. Renders nothing when
-          every column already fits. */}
-      <BoardScrollbar scrollRef={scrollRef} className="px-1 pt-1" />
+  return (
+    <div className="pt-2">
+      {truncated && (
+        <div className="mx-1 mb-3 flex items-center gap-2 rounded-xl border border-warning/35 bg-warning-tint px-3 py-2 text-[12.5px] font-semibold text-warning">
+          <AlertTriangle size={14} aria-hidden />
+          Showing the first 1,000 leads in this pipeline. There are more that are not shown here.
+        </div>
+      )}
+
+      {isMobile ? (
+        <>
+          {/* The stage switcher. Every stage with its count, so the setter can
+              see where the work is without opening each one. */}
+          <div
+            className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+            role="tablist"
+            aria-label="Stages"
+          >
+            {pipeline.stages.map((stage) => {
+              const on = stage.id === mobileStage?.id;
+              const tone = stageTone(stage.name);
+              return (
+                <button
+                  key={stage.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => setPickedStageId(stage.id)}
+                  className={
+                    "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors " +
+                    (on
+                      ? "border-text bg-text text-bg"
+                      : "border-border bg-surface text-muted")
+                  }
+                >
+                  <span
+                    className="h-1.5 w-1.5 shrink-0 rounded-full"
+                    style={{ background: tone }}
+                    aria-hidden
+                  />
+                  <span className="whitespace-nowrap">{stage.name}</span>
+                  <span className={"font-data text-[11px] " + (on ? "opacity-65" : "text-faint")}>
+                    {(byStage.get(stage.name) ?? []).length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-3">{mobileStage && column(mobileStage)}</div>
+        </>
+      ) : (
+        <>
+          <div ref={scrollRef} className="no-scrollbar flex items-start gap-3 overflow-x-auto pb-2">
+            {pipeline.stages.map((stage) => column(stage))}
+          </div>
+
+          {/* Draggable slider mirroring the board's horizontal scroll, so the
+              off-screen stages are obviously reachable. Renders nothing when
+              every column already fits. */}
+          <BoardScrollbar scrollRef={scrollRef} className="px-1 pt-1" />
+        </>
+      )}
     </div>
   );
 }

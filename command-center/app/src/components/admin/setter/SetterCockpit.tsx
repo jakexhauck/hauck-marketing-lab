@@ -1,15 +1,18 @@
 import { useState } from "react";
 import {
   BellOff,
+  ChevronLeft,
   Handshake,
   Mail,
   MessagesSquare,
   Phone,
+  PhoneCall,
   TriangleAlert,
   Users,
   X,
 } from "lucide-react";
 import Avatar from "../../Avatar";
+import CockpitSection from "./CockpitSection";
 import DialLogger from "./DialLogger";
 import TagField from "./TagField";
 import SlotPicker from "./SlotPicker";
@@ -62,15 +65,11 @@ interface Props {
   // in an "Appt Booked" stage); inside the final 24h the cockpit shows the
   // manual-confirm banner.
   appointment?: LeadAppointment | null;
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="border-t border-divider px-4 py-4 first:border-t-0">
-      <h3 className="label-cap mb-2.5 text-faint">{title}</h3>
-      {children}
-    </section>
-  );
+  // Phone: the cockpit is a full-screen sheet over the board rather than a
+  // panel docked beside it. Header gains a back row, the call button pins to
+  // the bottom, and the reference sections (tags, history, notes, hand-off)
+  // collapse so the outcome buttons stay above the fold.
+  sheet?: boolean;
 }
 
 // Once a lead is qualified, the setter hands it to the owner. This drops the
@@ -81,10 +80,12 @@ function HandoffToOwner({
   tenantId,
   contactId,
   onDone,
+  fold,
 }: {
   tenantId: string;
   contactId: string;
   onDone?: () => void;
+  fold?: boolean;
 }) {
   const tags = useSetterTagsMutation();
   const { showToast } = useToast();
@@ -106,7 +107,15 @@ function HandoffToOwner({
   };
 
   return (
-    <Section title="Hand off">
+    <CockpitSection
+      fold={fold}
+      title={
+        <>
+          <Handshake size={fold ? 14 : 12} aria-hidden />
+          Hand off
+        </>
+      }
+    >
       <Button
         variant="primary"
         size="md"
@@ -121,7 +130,7 @@ function HandoffToOwner({
         Tags the lead <span className="font-semibold text-text">lead hand off</span> and sends it
         to the owner's Leads.
       </p>
-    </Section>
+    </CockpitSection>
   );
 }
 
@@ -164,6 +173,7 @@ export default function SetterCockpit({
   dialed,
   onToggleDial,
   appointment,
+  sheet = false,
 }: Props) {
   const now = useNow();
   const apptState = appointment ? confirmState(appointment, now) : null;
@@ -224,11 +234,36 @@ export default function SetterCockpit({
   // from, which only its tags now record.
   const stageConfig = stageActionsFor(lead.stageName, pipelineName, tags);
 
+  // First name only for the call button: "Call Tom Gallagher" wraps on a
+  // phone, and the full name is already an inch above it.
+  const firstName = name.trim().split(/\s+/)[0] || name;
+
   return (
     <aside
-      className="flex w-full shrink-0 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)] lg:w-[380px] lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)]"
+      className={
+        sheet
+          ? "flex h-full w-full flex-col overflow-hidden bg-surface"
+          : "flex w-full shrink-0 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)] lg:w-[380px] lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)]"
+      }
       aria-label="Lead cockpit"
     >
+      {/* Phone only: the row that gets you back to the board. The X in the
+          identity row below is a 28px target in the corner of a full screen;
+          this is the back control a phone expects, and it names the stage the
+          setter came from. */}
+      {sheet && (
+        <div className="flex items-center border-b border-divider px-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="-ml-1 flex min-w-0 items-center gap-0.5 rounded-[var(--radius)] px-2 py-2 text-[13px] font-semibold text-brand-text"
+          >
+            <ChevronLeft size={17} aria-hidden />
+            <span className="truncate">{lead.stageName}</span>
+          </button>
+        </div>
+      )}
+
       {/* Header: identity + call, stays put while the body scrolls.
 
           The phone number opens the lead's CRM contact record in a new tab
@@ -289,7 +324,8 @@ export default function SetterCockpit({
               </span>
             </div>
           )}
-          <div className="mt-1.5 truncate text-[11px] text-faint">{lead.stageName}</div>
+          {/* The sheet's back row already names the stage. */}
+          {!sheet && <div className="mt-1.5 truncate text-[11px] text-faint">{lead.stageName}</div>}
         </div>
         {conversationsUrl && (
           <button
@@ -313,14 +349,16 @@ export default function SetterCockpit({
             <MessagesSquare size={14} />
           </button>
         )}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close lead cockpit"
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-muted transition-colors hover:bg-surface-3 hover:text-text"
-        >
-          <X size={14} />
-        </button>
+        {!sheet && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close lead cockpit"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-muted transition-colors hover:bg-surface-3 hover:text-text"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {/* Body: everything below scrolls on its own, the board above/behind
@@ -378,7 +416,11 @@ export default function SetterCockpit({
             {/* Read-only: the stage panel's own buttons are the only tag
                 writers here, this just shows what is already on the live
                 contact so the setter can see prior automation state. */}
-            <Section title="Tags on contact">
+            <CockpitSection
+              title="Tags on contact"
+              fold={sheet}
+              meta={sheet && tags.length > 0 ? tags.length : undefined}
+            >
               {detailQuery.isError ? (
                 <DetailLoadError what="tags" onRetry={() => detailQuery.refetch()} />
               ) : detailQuery.isLoading ? (
@@ -397,35 +439,39 @@ export default function SetterCockpit({
                   ))}
                 </div>
               )}
-            </Section>
+            </CockpitSection>
           </>
         ) : (
           <>
-        <Section title="Answered the phone">
+        <CockpitSection title="Answered the phone">
           <LeadAnsweredButton
             tenantId={tenantId}
             contactId={lead.contactId}
             answered={answered}
           />
-        </Section>
+        </CockpitSection>
 
-        <Section title="Log this call">
+        <CockpitSection title="Log this call">
           <DialLogger tenantId={tenantId} pipelineId={pipelineId} pipelineName={pipelineName} lead={lead} />
-        </Section>
+        </CockpitSection>
 
-        <Section title="Tags">
+        <CockpitSection title="Tags">
           {detailQuery.isError ? (
             <DetailLoadError what="tags" onRetry={() => detailQuery.refetch()} />
           ) : (
             <TagField tenantId={tenantId} contactId={lead.contactId} tags={tags} dials={dials} />
           )}
-        </Section>
+        </CockpitSection>
 
-        <Section title="Book an estimate">
+        <CockpitSection title="Book an estimate">
           <SlotPicker tenantId={tenantId} contactId={lead.contactId} leadName={name} />
-        </Section>
+        </CockpitSection>
 
-        <Section title="Call history">
+        <CockpitSection
+          title="Call history"
+          fold={sheet}
+          meta={sheet && dials.length > 0 ? `${dials.length} dials` : undefined}
+        >
           {detailQuery.isLoading ? (
             <p className="text-[12.5px] text-muted">Loading history...</p>
           ) : detailQuery.isError ? (
@@ -486,7 +532,7 @@ export default function SetterCockpit({
               ))}
             </ul>
           )}
-        </Section>
+        </CockpitSection>
           </>
         )}
 
@@ -496,9 +542,47 @@ export default function SetterCockpit({
           tenantId={tenantId}
           contactId={lead.contactId}
           onDone={onAutomationStart}
+          fold={sheet}
         />
-        <SetterNotesTasks tenantId={tenantId} contactId={lead.contactId} leadName={name} />
+        <SetterNotesTasks
+          tenantId={tenantId}
+          contactId={lead.contactId}
+          leadName={name}
+          fold={sheet}
+        />
       </div>
+
+      {/* Phone only: the call, pinned under the thumb so it stays put while
+          the outcome buttons scroll. Same destination as the header's number
+          on desktop, for the same reason: the CRM owns the client's business
+          number, the recording and the call log, and a tel: link would show
+          the lead a personal mobile. On a phone with the CRM app installed
+          this URL opens it; without it, the CRM's mobile web. */}
+      {sheet && hasPhone && (
+        <div className="shrink-0 border-t border-border bg-surface px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3">
+          {crmUrl ? (
+            <a
+              href={crmUrl}
+              target="ghl-contact"
+              rel="noopener noreferrer"
+              className={
+                "flex h-[52px] w-full items-center justify-center gap-2 rounded-[var(--radius)] text-[15.5px] font-bold text-brand-fg shadow-[var(--shadow-md)] " +
+                (callBlocked ? "bg-faint" : "bg-brand")
+              }
+            >
+              <PhoneCall size={18} aria-hidden />
+              {callBlocked ? `Do not call ${firstName}` : `Call ${firstName}`}
+            </a>
+          ) : (
+            <p className="py-3 text-center text-[12px] text-faint">
+              Connect the client's CRM to call from here.
+            </p>
+          )}
+          <p className="mt-1.5 text-center text-[10.5px] text-faint">
+            Opens the CRM, dials from the client's number
+          </p>
+        </div>
+      )}
     </aside>
   );
 }

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Setter Suite on a phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --brand:#4f46e5; --brand-2:#7c73f0; --brand-dark:#4338ca;
+  --brand-soft:#eceaff; --brand-tint:rgba(79,70,229,.10);
+  --grad-brand:linear-gradient(135deg,#4f46e5 0%,#7c73f0 100%);
+  --green:#16a34a; --green-soft:#e6f6ec;
+  --amber:#d97706; --amber-bright:#f59e0b; --amber-soft:#fef3e2;
+  --red:#dc2626; --red-soft:#fdeaea;
+  --sky:#0ea5e9; --sky-soft:#e2f3fc;
+
+  --bg:#f6f7fb; --surface:#ffffff; --surface-2:#f1f3f9; --surface-3:#e7eaf3;
+  --ink:#14161f; --muted:#555a6b; --faint:#8a90a3;
+  --border:#e7e9f1; --divider:#f1f3f9;
+
+  --r-sm:10px; --r:14px; --r-lg:18px; --r-xl:22px;
+  --shadow-sm:0 1px 2px rgba(20,22,31,.04),0 1px 3px rgba(20,22,31,.05);
+  --shadow-md:0 6px 18px rgba(40,42,70,.07),0 2px 6px rgba(40,42,70,.05);
+  --shadow-lg:0 18px 40px rgba(40,42,70,.14),0 6px 14px rgba(40,42,70,.08);
+  --font-d:"Poppins","Inter",ui-sans-serif,system-ui,sans-serif;
+  --font-b:"Inter",ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  font-family:var(--font-b); color:var(--ink); background:var(--bg);
+  background-image:
+    radial-gradient(60rem 40rem at 12% -8%, rgba(124,115,240,.16), transparent 60%),
+    radial-gradient(50rem 38rem at 100% 0%, rgba(79,70,229,.12), transparent 55%),
+    radial-gradient(46rem 36rem at 50% 120%, rgba(99,102,241,.10), transparent 60%);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  padding:38px 26px 70px;
+}
+.tnum{font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;}
+.d{font-family:var(--font-d); letter-spacing:-.025em;}
+
+/* ============ review page chrome ============ */
+.page-head{max-width:1400px; margin:0 auto 30px;}
+.page-head h1{font-family:var(--font-d); font-size:26px; font-weight:800; letter-spacing:-.03em; margin:0;}
+.page-head p{margin:8px 0 0; color:var(--muted); font-size:14px; max-width:62ch; line-height:1.55;}
+.rail{max-width:1400px; margin:0 auto; display:flex; gap:34px; align-items:flex-start; flex-wrap:wrap;}
+.slot{display:flex; flex-direction:column; gap:12px;}
+.slot-label{font-family:var(--font-d); font-size:13px; font-weight:700; letter-spacing:-.01em;}
+.slot-label span{display:block; font-family:var(--font-b); font-weight:400; font-size:12px; color:var(--muted); margin-top:3px; letter-spacing:0;}
+
+/* ============ phone frame ============ */
+.phone{
+  width:390px; height:800px; flex:0 0 390px;
+  border-radius:38px; background:#0c0d14; padding:11px;
+  box-shadow:var(--shadow-lg);
+  position:relative;
+}
+.screen{
+  width:100%; height:100%; border-radius:28px; overflow:hidden;
+  background:var(--bg); position:relative;
+  display:flex; flex-direction:column;
+}
+.statusbar{
+  height:34px; flex:0 0 34px; display:flex; align-items:center;
+  justify-content:space-between; padding:0 20px 0 24px;
+  font-size:12px; font-weight:600; color:var(--ink);
+}
+.statusbar .dots{display:flex; gap:4px; align-items:center;}
+.statusbar .dots i{width:5px; height:9px; border-radius:1px; background:var(--ink); display:block; opacity:.85;}
+.body{flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;}
+.scroll{flex:1; min-height:0; overflow-y:auto; padding:0 14px 90px; -webkit-overflow-scrolling:touch;}
+.scroll::-webkit-scrollbar{display:none;}
+
+/* ============ page header ============ */
+.pagehead{padding:4px 14px 0;}
+.pagehead-row{display:flex; align-items:center; gap:8px;}
+.pagehead h2{font-family:var(--font-d); font-size:19px; font-weight:800; letter-spacing:-.03em; margin:0; flex:1;}
+.iconbtn{
+  width:32px; height:32px; flex:0 0 32px; border-radius:var(--r-sm);
+  border:1px solid var(--border); background:var(--surface); color:var(--muted);
+  display:grid; place-items:center; box-shadow:var(--shadow-sm);
+}
+.clientpick{
+  display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 10px;
+  border-radius:var(--r-sm); border:1px solid var(--border); background:var(--surface);
+  font-size:12.5px; font-weight:600; color:var(--ink); box-shadow:var(--shadow-sm);
+  max-width:150px;
+}
+.clientpick b{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+/* tabs */
+.tabs{
+  display:flex; gap:4px; margin:12px 0 0; padding:4px;
+  background:var(--surface-2); border-radius:var(--r); border:1px solid var(--border);
+}
+.tab{
+  flex:1; text-align:center; padding:8px 4px; border-radius:10px;
+  font-size:12.5px; font-weight:600; color:var(--muted);
+}
+.tab.on{background:var(--surface); color:var(--ink); box-shadow:var(--shadow-sm);}
+
+/* ============ due back rail ============ */
+.duewrap{margin-top:14px;}
+.sec-label{
+  font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--faint); margin:0 0 8px 2px;
+}
+.duecard{
+  display:flex; align-items:center; gap:10px; padding:10px 12px;
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
+  box-shadow:var(--shadow-sm); margin-bottom:8px;
+  border-left:3px solid var(--amber-bright);
+}
+.duecard.late{border-left-color:var(--red);}
+.duecard .who{flex:1; min-width:0;}
+.duecard .who b{display:block; font-family:var(--font-d); font-size:13.5px; font-weight:600; letter-spacing:-.01em;}
+.duecard .who span{display:block; font-size:11.5px; color:var(--faint); margin-top:2px;}
+.pill{
+  font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:99px;
+  background:var(--amber-soft); color:var(--amber);
+}
+.pill.red{background:var(--red-soft); color:var(--red);}
+.tick{
+  width:30px; height:30px; flex:0 0 30px; border-radius:50%;
+  background:var(--surface-2); color:var(--faint); display:grid; place-items:center;
+}
+
+/* ============ pipeline picker + stage chips ============ */
+.picker{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  width:100%; height:40px; padding:0 12px; margin-top:14px;
+  border-radius:var(--r); border:1px solid var(--border); background:var(--surface);
+  box-shadow:var(--shadow-sm); font-size:13.5px; font-weight:600;
+}
+.chips{
+  display:flex; gap:7px; margin:12px -14px 0; padding:0 14px 2px;
+  overflow-x:auto; scrollbar-width:none;
+}
+.chips::-webkit-scrollbar{display:none;}
+.chip{
+  flex:0 0 auto; display:inline-flex; align-items:center; gap:6px;
+  padding:7px 12px; border-radius:99px; background:var(--surface);
+  border:1px solid var(--border); font-size:12.5px; font-weight:600; color:var(--muted);
+  box-shadow:var(--shadow-sm); white-space:nowrap;
+}
+.chip .n{font-size:11px; font-weight:700; color:var(--faint);}
+.chip .dot{width:6px; height:6px; border-radius:50%;}
+.chip.on{background:var(--ink); border-color:var(--ink); color:#fff;}
+.chip.on .n{color:rgba(255,255,255,.65);}
+
+/* ============ stage column ============ */
+.stagehead{display:flex; align-items:center; gap:7px; margin:16px 2px 8px;}
+.stagehead .dot{width:8px; height:8px; border-radius:50%;}
+.stagehead h3{font-family:var(--font-d); font-size:15px; font-weight:700; letter-spacing:-.02em; margin:0; flex:1;}
+.stagehead .cnt{font-size:12px; font-weight:700; padding:1px 7px; border-radius:99px;}
+.needs{
+  display:inline-block; font-size:9px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; padding:3px 7px; border-radius:99px;
+  background:var(--amber-soft); color:var(--amber); margin:0 0 10px 2px;
+}
+
+/* lead card */
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
+  box-shadow:var(--shadow-sm); padding:11px 13px; margin-bottom:9px;
+  position:relative; overflow:hidden;
+}
+.card::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--brand);}
+.card.warm::before{background:var(--amber-bright);}
+.card.cold::before{background:var(--sky);}
+.card-top{display:flex; align-items:baseline; gap:8px;}
+.card-top b{font-family:var(--font-d); font-size:14.5px; font-weight:600; letter-spacing:-.015em; flex:1; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.card-top .ago{font-size:11px; color:var(--faint); flex:0 0 auto;}
+.card-meta{display:flex; align-items:center; gap:10px; margin-top:5px; font-size:12px; color:var(--muted);}
+.card-meta .ph{font-variant-numeric:tabular-nums; letter-spacing:.01em;}
+.segs{display:flex; gap:3px; margin-top:9px;}
+.segs i{height:3px; flex:1; border-radius:2px; background:var(--surface-3); display:block;}
+.segs i.on{background:var(--brand);}
+.flag{
+  display:inline-flex; align-items:center; gap:5px; margin-top:8px;
+  font-size:11px; font-weight:600; padding:3px 8px; border-radius:8px;
+}
+.flag.hot{background:var(--red-soft); color:var(--red);}
+.flag.appt{background:var(--sky-soft); color:#0369a1;}
+
+/* ============ bottom app bar (admin spine) ============ */
+.appbar{
+  position:absolute; left:0; right:0; bottom:0; height:66px;
+  background:rgba(255,255,255,.88); backdrop-filter:saturate(180%) blur(18px);
+  -webkit-backdrop-filter:saturate(180%) blur(18px);
+  border-top:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-around; padding-bottom:8px;
+}
+.appbar div{display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; font-weight:600; color:var(--faint);}
+.appbar div.on{color:var(--brand);}
+.appbar svg{width:19px; height:19px;}
+
+/* ============ lead sheet (full screen) ============ */
+.sheet{position:absolute; inset:0; background:var(--bg); display:flex; flex-direction:column; border-radius:28px; overflow:hidden;}
+.sheet-head{
+  flex:0 0 auto; background:var(--surface); border-bottom:1px solid var(--border);
+  padding:10px 14px 12px;
+}
+.sheet-nav{display:flex; align-items:center; gap:10px;}
+.sheet-nav .back{font-size:13px; font-weight:600; color:var(--brand); display:flex; align-items:center; gap:4px; flex:1;}
+.sheet-id{display:flex; align-items:flex-start; gap:11px; margin-top:9px;}
+.avatar{
+  width:40px; height:40px; flex:0 0 40px; border-radius:50%; background:var(--grad-brand);
+  color:#fff; display:grid; place-items:center; font-family:var(--font-d); font-weight:700; font-size:14px;
+}
+.sheet-id .who{flex:1; min-width:0;}
+.sheet-id .who b{display:block; font-family:var(--font-d); font-size:17px; font-weight:700; letter-spacing:-.025em;}
+.sheet-id .who .stg{display:block; font-size:11.5px; color:var(--faint); margin-top:3px;}
+.sheet-id .who .ph{display:block; font-size:12.5px; color:var(--muted); margin-top:4px; font-variant-numeric:tabular-nums;}
+.dnd{
+  display:flex; gap:7px; align-items:flex-start; margin-top:10px; padding:8px 10px;
+  background:var(--red-soft); border-radius:var(--r-sm); font-size:11.5px;
+  font-weight:600; color:var(--red); line-height:1.35;
+}
+.sheet-scroll{flex:1; min-height:0; overflow-y:auto; padding:0 0 96px;}
+.sheet-scroll::-webkit-scrollbar{display:none;}
+.block{background:var(--surface); border-bottom:1px solid var(--divider); padding:15px 16px;}
+.block h4{
+  font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--faint); margin:0 0 11px;
+}
+.dials{display:flex; gap:10px;}
+.dialbox{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:11px 0; border-radius:var(--r); border:1.5px solid var(--border);
+  background:var(--surface-2); font-size:12px; font-weight:600; color:var(--muted);
+}
+.dialbox.on{border-color:var(--brand); background:var(--brand-soft); color:var(--brand-dark);}
+.dialbox .mark{width:18px; height:18px; border-radius:50%; border:1.5px solid var(--surface-3); display:grid; place-items:center; background:#fff;}
+.dialbox.on .mark{background:var(--brand); border-color:var(--brand); color:#fff;}
+.btn{
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  width:100%; height:46px; border-radius:var(--r); font-size:14px; font-weight:600;
+  border:1px solid var(--border); background:var(--surface); color:var(--ink);
+}
+.btn.primary{background:var(--grad-brand); color:#fff; border-color:transparent; box-shadow:0 3px 10px rgba(79,70,229,.28);}
+.btn.green{background:var(--green); color:#fff; border-color:transparent;}
+.btn.quiet{background:var(--surface-2); color:var(--muted);}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:9px;}
+.grid2 .btn{height:44px; font-size:13px;}
+.tagline{font-size:9.5px; color:var(--faint); text-align:center; margin-top:4px;}
+.select{
+  display:flex; align-items:center; justify-content:space-between;
+  height:44px; padding:0 12px; border-radius:var(--r); border:1px solid var(--border);
+  background:var(--surface); font-size:13px; color:var(--ink); margin-bottom:9px;
+}
+.acc{
+  display:flex; align-items:center; gap:9px; padding:15px 16px;
+  background:var(--surface); border-bottom:1px solid var(--divider);
+  font-size:13.5px; font-weight:600;
+}
+.acc .c{margin-left:auto; font-size:12px; color:var(--faint); font-weight:500;}
+.appt{
+  margin:0; padding:12px 16px; background:var(--sky-soft);
+  border-bottom:1px solid var(--divider); font-size:12.5px; font-weight:600; color:#0369a1;
+}
+.callbar{
+  position:absolute; left:0; right:0; bottom:0; padding:12px 14px 20px;
+  background:linear-gradient(to top, var(--surface) 62%, rgba(255,255,255,0));
+}
+.callbar .btn{height:52px; font-size:15.5px; font-weight:700;}
+.callbar .hint{text-align:center; font-size:10.5px; color:var(--faint); margin-top:7px;}
+
+/* ============ notes panel ============ */
+.notes{
+  width:430px; flex:0 0 430px; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r-lg); box-shadow:var(--shadow-md); padding:22px 24px;
+}
+.notes h3{font-family:var(--font-d); font-size:16px; font-weight:700; letter-spacing:-.02em; margin:0 0 4px;}
+.notes h3+p{margin:0 0 18px; font-size:12.5px; color:var(--muted); line-height:1.5;}
+.notes h5{
+  font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--faint); margin:20px 0 9px;
+}
+.notes h5:first-of-type{margin-top:0;}
+.line{display:flex; gap:9px; align-items:flex-start; padding:7px 0; border-bottom:1px solid var(--divider); font-size:13px; line-height:1.45;}
+.line:last-child{border-bottom:0;}
+.line .k{flex:0 0 16px; font-weight:700; color:var(--green);}
+.line .k.cut{color:var(--red);}
+.line b{font-weight:600;}
+.line span{color:var(--muted);}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1 class="d">Setter Suite on a phone</h1>
+  <p>The same suite, not a second app. Everything that is not dialing gets dropped below 1024px, the board goes one stage at a time, and the cockpit becomes a full screen sheet with the call button pinned under your thumb.</p>
+</div>
+
+<div class="rail">
+
+  <!-- ============================================================ 1. BOARD -->
+  <div class="slot">
+    <div class="slot-label">1 · Pipeline<span>Due back first, then one stage at a time</span></div>
+    <div class="phone">
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="body">
+          <div class="pagehead">
+            <div class="pagehead-row">
+              <h2 class="d">Setter Suite</h2>
+              <div class="iconbtn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>
+              </div>
+              <div class="clientpick"><b>Willis Windows</b>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </div>
+            <div class="tabs">
+              <div class="tab on">Pipeline</div>
+              <div class="tab">Inbox</div>
+              <div class="tab">Calendar</div>
+            </div>
+          </div>
+
+          <div class="scroll">
+            <div class="duewrap">
+              <p class="sec-label">Due back</p>
+              <div class="duecard late">
+                <div class="who"><b>Marcus Bell</b><span>Said call back after 4</span></div>
+                <span class="pill red">2h late</span>
+                <div class="tick"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+              </div>
+              <div class="duecard">
+                <div class="who"><b>Dana Whitfield</b><span>Wanted a quote on the back sliders</span></div>
+                <span class="pill">4:30 PM</span>
+                <div class="tick"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+              </div>
+            </div>
+
+            <div class="picker">
+              <span>1) Leads</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+
+            <div class="chips">
+              <div class="chip on"><span class="dot" style="background:#f59e0b"></span>Lead Form Opt In<span class="n">7</span></div>
+              <div class="chip"><span class="dot" style="background:#f59e0b"></span>Funnel Opt In<span class="n">3</span></div>
+              <div class="chip"><span class="dot" style="background:#0ea5e9"></span>Phone Appt<span class="n">4</span></div>
+              <div class="chip"><span class="dot" style="background:#4f46e5"></span>Lead Follow Up<span class="n">12</span></div>
+            </div>
+
+            <div class="stagehead">
+              <span class="dot" style="background:#f59e0b"></span>
+              <h3 class="d">Lead Form Opt In</h3>
+              <span class="cnt" style="color:#d97706;background:var(--amber-soft)">7</span>
+            </div>
+            <span class="needs">Needs dialing</span>
+
+            <div class="card warm">
+              <div class="card-top"><b>Priya Raman</b><span class="ago">4m</span></div>
+              <div class="card-meta"><span class="ph">(602) 555‑0148</span></div>
+              <span class="flag hot">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                Call now · 4 minutes old
+              </span>
+            </div>
+
+            <div class="card warm">
+              <div class="card-top"><b>Tom Gallagher</b><span class="ago">1h</span></div>
+              <div class="card-meta"><span class="ph">(480) 555‑0102</span><span>2 dials</span></div>
+              <div class="segs"><i class="on"></i><i class="on"></i><i></i></div>
+            </div>
+
+            <div class="card warm">
+              <div class="card-top"><b>Alicia Fuentes</b><span class="ago">3h</span></div>
+              <div class="card-meta"><span class="ph">(623) 555‑0177</span><span>1 dial</span></div>
+              <div class="segs"><i class="on"></i><i></i><i></i></div>
+            </div>
+
+            <div class="card warm">
+              <div class="card-top"><b>Ken Osei</b><span class="ago">5h</span></div>
+              <div class="card-meta"><span class="ph">(602) 555‑0193</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="appbar">
+          <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Home</div>
+          <div class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92"/></svg>Setter</div>
+          <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calls</div>
+          <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1"/></svg>More</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ 2. SHEET -->
+  <div class="slot">
+    <div class="slot-label">2 · The lead<span>Full screen. Call button pinned under your thumb.</span></div>
+    <div class="phone">
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="sheet">
+          <div class="sheet-head">
+            <div class="sheet-nav">
+              <span class="back">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                Lead Form Opt In
+              </span>
+              <div class="iconbtn" style="width:30px;height:30px;flex:0 0 30px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div class="iconbtn" style="width:30px;height:30px;flex:0 0 30px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>
+              </div>
+            </div>
+            <div class="sheet-id">
+              <div class="avatar">TG</div>
+              <div class="who">
+                <b>Tom Gallagher</b>
+                <span class="stg">1) Leads · Lead Form Opt In</span>
+                <span class="ph">(480) 555‑0102 · tom.g@email.com</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sheet-scroll">
+            <div class="block">
+              <h4>Dial attempts</h4>
+              <div class="dials">
+                <div class="dialbox on"><span class="mark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Dial 1</div>
+                <div class="dialbox on"><span class="mark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Dial 2</div>
+                <div class="dialbox"><span class="mark"></span>Dial 3</div>
+              </div>
+            </div>
+
+            <div class="block">
+              <h4>Answered the phone</h4>
+              <div class="btn green">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                They picked up
+              </div>
+            </div>
+
+            <div class="block">
+              <h4>Outcome</h4>
+              <div class="grid2">
+                <div>
+                  <div class="btn quiet">Unqualified</div>
+                  <p class="tagline">+ services unqualified</p>
+                </div>
+                <div>
+                  <div class="btn quiet">Uninterested</div>
+                  <p class="tagline">+ services uninterested</p>
+                </div>
+                <div>
+                  <div class="btn">Follow Up</div>
+                  <p class="tagline">+ lead form follow up</p>
+                </div>
+                <div>
+                  <div class="btn">No Answer</div>
+                  <p class="tagline">+ no answer day 1</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="block">
+              <h4>Appointment</h4>
+              <div class="select">
+                <span>Phone Estimate · 30 min</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+              <div class="btn primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg>
+                Book appointment
+              </div>
+            </div>
+
+            <div class="acc">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+              Tags on contact <span class="c">4</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--faint)"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+            <div class="acc">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+              Call history <span class="c">2 dials</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--faint)"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+            <div class="acc">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 2H8.6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h9.8a2 2 0 0 0 2-2V7z"/><path d="M15 2v5h5"/></svg>
+              Notes &amp; tasks
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--faint);margin-left:auto"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+            <div class="acc">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              Hand off to the owner
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--faint);margin-left:auto"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <div class="callbar">
+            <div class="btn primary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92"/></svg>
+              Call Tom
+            </div>
+            <p class="hint">Opens the CRM app · dials from the client's number</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ 3. NOTES -->
+  <div class="notes">
+    <h3 class="d">What changes below 1024px</h3>
+    <p>Desktop is untouched. Everything here is behind one media query on the surfaces the suite already owns.</p>
+
+    <h5>Kept</h5>
+    <div class="line"><span class="k">✓</span><span><b>Due back</b> moves to the top of Pipeline. It is the answer to "who am I ringing".</span></div>
+    <div class="line"><span class="k">✓</span><span><b>Client picker</b> and the <b>dialing script</b> stay in the header.</span></div>
+    <div class="line"><span class="k">✓</span><span><b>Pipeline, Inbox, Calendar</b> tabs.</span></div>
+    <div class="line"><span class="k">✓</span><span>The full <b>dialing panel</b>: dials, answered, outcome tags, book.</span></div>
+
+    <h5>Dropped on a phone</h5>
+    <div class="line"><span class="k cut">✕</span><span><b>Results tab.</b> Reporting. Read it at the desk.</span></div>
+    <div class="line"><span class="k cut">✕</span><span><b>Settings tab.</b> Its only content is the script, already one tap away in the header.</span></div>
+    <div class="line"><span class="k cut">✕</span><span><b>Score strip.</b> Today's numbers are not why you opened the phone.</span></div>
+    <div class="line"><span class="k cut">✕</span><span><b>The kanban.</b> Six 280px columns side by side becomes one stage at a time, picked from the chip row.</span></div>
+    <div class="line"><span class="k cut">✕</span><span><b>Docked cockpit.</b> It stops squeezing next to the board and becomes the full screen sheet.</span></div>
+
+    <h5>Folded away, one tap to open</h5>
+    <div class="line"><span class="k">›</span><span>Tags on contact, call history, notes &amp; tasks, hand off to the owner. Present, just not between you and the outcome buttons.</span></div>
+
+    <h5>The call button</h5>
+    <div class="line"><span class="k">✓</span><span>Pinned to the bottom of the sheet, so it stays under your thumb while the outcomes scroll. Opens the lead in the CRM app, which dials from the client's business number and records the call, same rule as desktop.</span></div>
+    <div class="line"><span class="k">›</span><span>It tries the <b>LeadConnector app</b> first and falls back to the CRM in the browser if the app is not installed.</span></div>
+  </div>
+
+</div>
+</body>
+</html>

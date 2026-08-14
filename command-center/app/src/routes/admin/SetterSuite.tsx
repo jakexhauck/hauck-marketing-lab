@@ -15,6 +15,8 @@ import {
   useSetterEventsQuery,
 } from "../../hooks/useApi";
 import { useNow } from "../../context/NowContext";
+import { useIsMobile } from "../../hooks/useIsMobile";
+import { useHomeScreenTarget } from "../../hooks/useHomeScreenTarget";
 import { Segmented } from "../../components/ui";
 import SetterBoard from "../../components/admin/setter/SetterBoard";
 import SetterCockpit from "../../components/admin/setter/SetterCockpit";
@@ -66,6 +68,12 @@ const SETTER_VIEWS: { value: SetterView; label: string; icon: LucideIcon }[] = [
   { value: "settings", label: "Settings", icon: Settings },
 ];
 
+// What survives on a phone. The suite opens on a phone for ONE reason: a lead
+// needs dialing and the setter is not at a desk. Results is reporting, and
+// Settings holds only the dialing script, which the header button already
+// opens from every tab. Neither is worth a third of the tab row out there.
+const PHONE_VIEWS: SetterView[] = ["board", "inbox", "calendar"];
+
 // A stored "scoreboard" (the retired tab; its numbers live on the board
 // strip now) falls through to the "board" default below.
 function isSetterView(v: string | null | undefined): v is SetterView {
@@ -113,7 +121,20 @@ export default function SetterSuite() {
   const activeTenantId = tenantId ?? clients[0]?.id ?? null;
   const activeClient = clients.find((c) => c.id === activeTenantId) ?? null;
 
-  const [view, setView] = useState<SetterView>(initialSetterView);
+  // A phone gets the dialing surfaces only, and the docked cockpit becomes a
+  // full-screen sheet. Structural differences, not something a media query can
+  // express, so they switch on the hook rather than in CSS.
+  const isMobile = useIsMobile();
+
+  // Added to a home screen from this page, the icon opens the Setter Suite
+  // rather than the whole console (public/setter.webmanifest).
+  useHomeScreenTarget("/setter.webmanifest", "Setter");
+
+  const [storedView, setView] = useState<SetterView>(initialSetterView);
+  // Derived, deliberately NOT written back: a setter who left the suite on
+  // Results at their desk should find it on Results when they sit back down,
+  // not reset because they glanced at their phone in between.
+  const view = isMobile && !PHONE_VIEWS.includes(storedView) ? "board" : storedView;
   const selectView = (v: SetterView) => {
     setView(v);
     try {
@@ -286,7 +307,9 @@ export default function SetterSuite() {
           already, and icons inside it fought the sliding pill for space. */}
       <AdminPage
         section="Setter Suite"
-        tabs={SETTER_VIEWS.map((v) => ({ id: v.value, label: v.label }))}
+        tabs={SETTER_VIEWS.filter(
+          (v) => !isMobile || PHONE_VIEWS.includes(v.value),
+        ).map((v) => ({ id: v.value, label: v.label }))}
         active={view}
         onSelect={(id) => selectView(id as (typeof SETTER_VIEWS)[number]["value"])}
         actions={
@@ -355,11 +378,15 @@ export default function SetterSuite() {
             />
           ) : (
             <>
-              <SetterScoreStrip
-                tenantId={activeTenantId}
-                leads={boardLeads ?? []}
-                now={now}
-              />
+              {/* Today's numbers are a desk thing. On a phone the first
+                  screenful belongs to the callbacks that are due. */}
+              {!isMobile && (
+                <SetterScoreStrip
+                  tenantId={activeTenantId}
+                  leads={boardLeads ?? []}
+                  now={now}
+                />
+              )}
               <SetterCallbacksRail tenantId={activeTenantId} />
               {pipelines.length > 0 && activePipelineId && (
                 <div className="mb-4">
@@ -415,7 +442,11 @@ export default function SetterSuite() {
                       onSelectLead={selectLead}
                     />
                   </div>
-                  {selectedLead && activeTenantId && (
+                  {/* Desktop docks the cockpit beside the board. A phone has
+                      no room to dock anything: it opens as a full-screen sheet
+                      over the whole app (see below), so the board is not left
+                      squeezed into 100px beside it. */}
+                  {selectedLead && activeTenantId && !isMobile && (
                     <SetterCockpit
                       key={selectedLead.id}
                       tenantId={activeTenantId}
@@ -434,6 +465,31 @@ export default function SetterSuite() {
                       onToggleDial={toggleDial}
                       appointment={apptByContact.get(selectedLead.contactId) ?? null}
                     />
+                  )}
+
+                  {selectedLead && activeTenantId && isMobile && (
+                    <div className="fixed inset-0 z-50 bg-surface">
+                      <SetterCockpit
+                        key={selectedLead.id}
+                        sheet
+                        tenantId={activeTenantId}
+                        pipelineId={activePipelineId ?? ""}
+                        pipelineName={activePipeline.name}
+                        locationId={locationId}
+                        lead={selectedLead}
+                        onClose={closeCockpit}
+                        onBookAppointment={bookAppointment}
+                        onOpenChat={openChat}
+                        onAutomationStart={lockSelectedLead}
+                        dialed={
+                          dialChecks[
+                            dialCheckKey(selectedLead.contactId, selectedLead.stageName)
+                          ] ?? []
+                        }
+                        onToggleDial={toggleDial}
+                        appointment={apptByContact.get(selectedLead.contactId) ?? null}
+                      />
+                    </div>
                   )}
                 </div>
               )}
@@ -457,30 +513,18 @@ export default function SetterSuite() {
 
 // Phone layout rules for the suite, scoped under .pk-kit like the admin
 // spine's own style block. App-level navigation is the admin bottom bar
-// (AdminLayout); this page keeps its own view switch as a full-width
-// scrollable pill strip so the sub-views (Pipeline/Inbox/Calendar/...) never
-// wrap onto two rows on a narrow screen. Everything is behind one max-width
-// query so desktop renders exactly as before.
+// (AdminLayout) and the page header wraps its own tab row (PageBar), so the
+// only rules left here are the page gutter and the script button, which drops
+// its label to sit beside the client picker. Everything structural (which
+// tabs exist, one stage column, the cockpit as a sheet) switches on
+// useIsMobile instead, because a media query cannot change a React tree.
 function SetterMobileStyle() {
   return (
     <style>{`
       @media (max-width: 1023.98px) {
         .pk-kit .pk-root { padding: 14px 14px 24px; }
-        /* Smaller page title so the title + client picker sit on one tidy row. */
-        .pk-kit .setter-title { font-size: 19px; }
-        /* Script button collapses to an icon so it does not crowd the picker. */
         .pk-kit .setter-scriptbtn { padding-left: 9px; padding-right: 9px; }
         .pk-kit .setter-scriptlabel { display: none; }
-        /* View tabs: one full-width scrollable pill strip, never two rows. */
-        .pk-kit .setter-toptabs {
-          width: 100%;
-          flex-wrap: nowrap;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-        }
-        .pk-kit .setter-toptabs::-webkit-scrollbar { display: none; }
-        .pk-kit .setter-toptabs .pk-tab { flex: 0 0 auto; padding: 8px 12px; }
       }
     `}</style>
   );

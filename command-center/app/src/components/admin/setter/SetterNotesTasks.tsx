@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CheckSquare, StickyNote } from "lucide-react";
+import CockpitSection from "./CockpitSection";
 import SetterTaskModal from "./SetterTaskModal";
 import { Button } from "../../ui/Button";
 import { useSetterNotesQuery, useCreateSetterNote } from "../../../hooks/useApi";
@@ -20,13 +21,15 @@ interface Props {
   tenantId: string;
   contactId: string;
   leadName: string;
+  // Phone sheet: collapse behind a disclosure row (see CockpitSection).
+  fold?: boolean;
 }
 
 // Show this many notes before collapsing behind a count; a chatty contact
 // record must not bury the dialing panel above it.
 const VISIBLE_NOTES = 4;
 
-export default function SetterNotesTasks({ tenantId, contactId, leadName }: Props) {
+export default function SetterNotesTasks({ tenantId, contactId, leadName, fold }: Props) {
   const now = useNow();
   const { showToast } = useToast();
   const notesQuery = useSetterNotesQuery(tenantId, contactId);
@@ -55,12 +58,16 @@ export default function SetterNotesTasks({ tenantId, contactId, leadName }: Prop
   };
 
   return (
-    <section className="border-t border-divider px-4 py-4">
-      <h3 className="label-cap mb-2.5 flex items-center gap-1.5 text-faint">
-        <StickyNote size={12} aria-hidden />
-        Notes
-      </h3>
-
+    <CockpitSection
+      fold={fold}
+      meta={fold && notes.length > 0 ? notes.length : undefined}
+      title={
+        <>
+          <StickyNote size={fold ? 14 : 12} aria-hidden />
+          Notes
+        </>
+      }
+    >
       <textarea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
@@ -134,6 +141,6 @@ export default function SetterNotesTasks({ tenantId, contactId, leadName }: Prop
           onClose={() => setTaskOpen(false)}
         />
       )}
-    </section>
+    </CockpitSection>
   );
 }
