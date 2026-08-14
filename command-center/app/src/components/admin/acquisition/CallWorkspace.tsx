@@ -25,8 +25,10 @@ import { ghlContactUrl } from "../../../lib/setterModel";
 import { useColdCallScripts } from "../../../hooks/useColdCallAssets";
 import { resolveScriptId, useSelectedScriptId } from "../../../lib/selectedScript";
 import {
+  ZONE_CHOICES,
   isOutsideCallingHours,
   localTimeLabel,
+  pickedZone,
   zoneForLead,
 } from "../../../lib/leadLocalTime";
 import BookingPanel from "./BookingPanel";
@@ -336,7 +338,18 @@ export default function CallWorkspace({
                   : selected.source || "No source recorded"}
               </p>
               <ProspectFacts lead={selected} />
-              <LocalTime lead={selected} now={now} />
+              <LocalTime
+                lead={selected}
+                now={now}
+                // Saved the moment it is chosen. Mid-call is the wrong time to
+                // hunt for a Save button, and the same PATCH the notes use
+                // already rolls itself back if the write fails.
+                onZone={(timezone) =>
+                  updateLead.mutate({ id: selected.id, timezone } as Parameters<
+                    typeof updateLead.mutate
+                  >[0])
+                }
+              />
             </div>
             <span className="font-mono text-[12px] text-muted">
               {selected.noAnswer > 0
@@ -491,26 +504,68 @@ export default function CallWorkspace({
   );
 }
 
-// What time it is where the prospect is, and a word when that time is one
-// nobody should be rung at. Shows nothing at all when neither the lead's
-// timezone nor its area code says where they are: a guessed clock would be
-// worse than none, since the whole point is to be trusted before dialing.
-function LocalTime({ lead, now }: { lead: AdminLead; now: number }) {
+// What time it is where the prospect is, a word when that time is one nobody
+// should be rung at, and the means to correct it.
+//
+// The clock is the lead's own timezone if it holds anything, and otherwise an
+// inference from the area code, labelled as one. That inference is wrong for a
+// handful of numbers by design: several states straddle a zone line. The caller
+// learns where somebody actually is in the first ten seconds, so the picker is
+// here, next to the clock it fixes, rather than on a settings page nobody opens
+// mid-call.
+//
+// "From the area code" is the absence of a value rather than a value: choosing
+// it clears the lead's timezone and puts the inference back.
+//
+// The picker shows even when neither source says anything, which is the one case
+// this used to render nothing at all for. A prospect whose area code means
+// nothing is exactly the one worth setting by hand. The TIME still hides in that
+// case: a guessed clock would be worse than none, since the whole point is to be
+// trusted before dialing.
+function LocalTime({
+  lead,
+  now,
+  onZone,
+}: {
+  lead: AdminLead;
+  now: number;
+  onZone: (zone: string) => void;
+}) {
   const zone = zoneForLead(lead);
-  if (!zone) return null;
+  const late = zone ? isOutsideCallingHours(zone.zone, now) : false;
 
-  const late = isOutsideCallingHours(zone.zone, now);
   return (
     <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px]">
-      <span
-        className={late ? "font-semibold text-danger" : "text-text"}
-        title={zone.zone}
-      >
-        {localTimeLabel(zone.zone, now)}
-      </span>
-      {zone.source === "areaCode" && (
-        <span className="text-[12px] text-faint">from the area code</span>
+      {zone && (
+        <span
+          className={late ? "font-semibold text-danger" : "text-text"}
+          title={zone.zone}
+        >
+          {localTimeLabel(zone.zone, now)}
+        </span>
       )}
+      <select
+        // pk-select, because it is the class that paints our own chevron rather
+        // than leaving an OS widget in the middle of the call card.
+        //
+        // Sized inline, not with utilities. PillarKit injects its CSS from a
+        // <style> tag, so .pk-select's width:100% and 8px padding beat any
+        // Tailwind class here and the control comes out full width and clipped.
+        // Narrowed to its content and shrunk a step, so it reads as a note
+        // beside the clock rather than a form to fill in.
+        className="pk-select"
+        style={{ width: "auto", padding: "3px 28px 3px 9px", fontSize: 12 }}
+        value={pickedZone(lead)}
+        aria-label="Their timezone"
+        onChange={(e) => onZone(e.target.value)}
+      >
+        <option value="">{zone ? "From the area code" : "Set their timezone"}</option>
+        {ZONE_CHOICES.map((c) => (
+          <option key={c.zone} value={c.zone}>
+            {c.label}
+          </option>
+        ))}
+      </select>
       {late && (
         <span className="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2 py-0.5 text-[11.5px] font-semibold text-danger">
           <Moon size={12} aria-hidden />

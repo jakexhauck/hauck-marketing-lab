@@ -149,6 +149,44 @@ export function zoneForLead(lead: { timezone?: string; phone?: string }): LeadZo
   return zone ? { zone, source: "areaCode" } : null;
 }
 
+// The zones a caller can pick from, in the order a North American list reads.
+//
+// Every zone the area-code map can infer is here, because the picker exists to
+// CORRECT that inference: a zone the app can guess but not offer would be a
+// prospect nobody could put back. Arizona is listed separately from Mountain on
+// purpose, since it does not move for daylight saving and is an hour out from
+// Denver for most of the year, which is exactly the kind of mistake this fixes.
+export const ZONE_CHOICES: { zone: string; label: string }[] = [
+  { zone: "America/New_York", label: "Eastern" },
+  { zone: "America/Chicago", label: "Central" },
+  { zone: "America/Denver", label: "Mountain" },
+  { zone: "America/Phoenix", label: "Arizona" },
+  { zone: "America/Los_Angeles", label: "Pacific" },
+  { zone: "America/Anchorage", label: "Alaska" },
+  { zone: "Pacific/Honolulu", label: "Hawaii" },
+  { zone: "America/Halifax", label: "Atlantic" },
+  { zone: "America/Puerto_Rico", label: "Puerto Rico" },
+  { zone: "America/Regina", label: "Saskatchewan" },
+];
+
+/** "Mountain" for a zone that is offered, the raw IANA name for one that is not. */
+export function zoneLabel(zone: string): string {
+  return ZONE_CHOICES.find((c) => c.zone === zone)?.label ?? zone;
+}
+
+/**
+ * The zone the picker should show as chosen, or "" for "from the area code".
+ *
+ * "" is the absence of a value rather than a value: it means nothing has been
+ * written down, so the inference stands. A lead whose timezone reads "EST" is
+ * shown as Eastern, because that is what it means and a picker that could not
+ * represent what is stored would rewrite it the moment anything else was saved.
+ */
+export function pickedZone(lead: { timezone?: string; phone?: string }): string {
+  const found = zoneForLead(lead);
+  return found?.source === "lead" ? found.zone : "";
+}
+
 // "3:42 PM" in that zone.
 export function timeInZone(zone: string, nowMs: number): string {
   return new Intl.DateTimeFormat("en-US", {

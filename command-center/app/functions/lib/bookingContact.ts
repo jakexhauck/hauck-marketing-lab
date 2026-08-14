@@ -177,11 +177,15 @@ export function resolveBookingContact(
     if (email !== (stored.email ?? "").trim()) changed.email = email;
   }
 
-  // The existing rule, unchanged: GoHighLevel needs somewhere to send a
-  // reminder. It is checked AFTER the merge so typing a phone number in the
-  // panel is a valid way to satisfy it for a prospect that had none.
-  if (!phone && !email) {
-    return fail("Add a phone number or an email so GoHighLevel can hold the booking.");
+  // A meeting needs an email address. Not a phone number OR an email, which is
+  // what this used to ask for: every scraped prospect arrives with a phone, so
+  // that rule passed every time and never once stopped a meeting being booked
+  // against a contact nobody could email.
+  //
+  // Checked AFTER the merge, so typing the address in the panel is a valid way
+  // to satisfy it for a prospect that had none, which is nearly all of them.
+  if (!email) {
+    return fail("Add their email address. A booking needs one.");
   }
 
   return { contact: { firstName, lastName, businessName, phone, email }, changed, error: null };

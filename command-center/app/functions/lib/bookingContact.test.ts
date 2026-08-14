@@ -9,7 +9,10 @@ const stored = {
   first_name: "",
   last_name: "",
   phone: "+12485550171",
-  email: "",
+  // A booking needs an email, so the baseline prospect has one and the tests
+  // below are about everything EXCEPT that rule. The rule itself is tested on
+  // its own, further down.
+  email: "office@reidroofing.com",
 };
 
 describe("cleanPhone", () => {
@@ -98,11 +101,9 @@ describe("resolveBookingContact", () => {
     expect(resolveBookingContact(stored, { email: "dana@" }).error).toMatch(/email/i);
   });
 
-  it("lets a typed phone satisfy a prospect that had neither", () => {
-    const bare = { first_name: "", last_name: "", phone: "", email: "" };
-    expect(resolveBookingContact(bare, {}).error).toMatch(/phone number or an email/i);
-
-    const r = resolveBookingContact(bare, { phone: "248-555-0171" });
+  it("lets a typed phone stand in for one the book never had", () => {
+    const noPhone = { first_name: "", last_name: "", phone: "", email: "office@reidroofing.com" };
+    const r = resolveBookingContact(noPhone, { phone: "248-555-0171" });
     expect(r.error).toBeNull();
     expect(r.contact.phone).toBe("+12485550171");
     expect(r.changed).toEqual({ phone: "+12485550171" });
@@ -123,7 +124,7 @@ describe("resolveBookingContact, a business in the name columns", () => {
     last_name: "& Cooling",
     business_name: "",
     phone: "+12485550171",
-    email: "",
+    email: "office@bmheating.com",
   };
 
   it("lets the surname be cleared, because the company is not a surname", () => {
@@ -159,17 +160,56 @@ describe("resolveBookingContact, a business in the name columns", () => {
     expect(r.changed.businessName).toBeUndefined();
   });
 
-  it("still refuses to book with nowhere to send a reminder", () => {
-    const noReach = { ...scraped, phone: "" };
-    const r = resolveBookingContact(noReach, { firstName: "Mohamad", lastName: "" });
-    expect(r.error).toMatch(/phone number or an email/i);
-    // Nothing is reported as changed on a refusal, so nothing is written back.
+  it("hands back the stored company on a refusal, not an empty one", () => {
+    const known = { ...scraped, business_name: "BM Heating & Cooling LLC", email: "" };
+    const r = resolveBookingContact(known, { firstName: "Mohamad" });
+    expect(r.error).not.toBeNull();
+    expect(r.contact.businessName).toBe("BM Heating & Cooling LLC");
+  });
+});
+
+// A meeting needs an email address. The rule this replaced was "a phone number
+// OR an email", which every scraped prospect satisfied with the switchboard
+// number it arrived with, so it never once stopped a booking.
+describe("resolveBookingContact, the email rule", () => {
+  const noEmail = {
+    first_name: "Dana",
+    last_name: "",
+    business_name: "Reid Roofing",
+    phone: "+12485550171",
+    email: "",
+  };
+
+  it("refuses a booking for a prospect with no email", () => {
+    const r = resolveBookingContact(noEmail, {});
+    expect(r.error).toMatch(/email/i);
     expect(r.changed).toEqual({});
   });
 
-  it("hands back the stored company on a refusal, not an empty one", () => {
-    const known = { ...scraped, business_name: "BM Heating & Cooling LLC", phone: "" };
-    const r = resolveBookingContact(known, { firstName: "Mohamad" });
-    expect(r.contact.businessName).toBe("BM Heating & Cooling LLC");
+  it("is not satisfied by a phone number, which is the whole change", () => {
+    const r = resolveBookingContact(noEmail, { phone: "248-555-0171" });
+    expect(r.error).toMatch(/email/i);
+  });
+
+  it("lets one typed on the call satisfy it", () => {
+    const r = resolveBookingContact(noEmail, { email: "dana@reidroofing.com" });
+    expect(r.error).toBeNull();
+    expect(r.contact.email).toBe("dana@reidroofing.com");
+    expect(r.changed.email).toBe("dana@reidroofing.com");
+  });
+
+  it("refuses a half-typed one rather than reporting it missing", () => {
+    // Two different mistakes deserve two different sentences: "you have not
+    // typed one" and "what you typed is not an address".
+    expect(resolveBookingContact(noEmail, { email: "dana@" }).error).toMatch(
+      /does not look right/i,
+    );
+  });
+
+  it("still books when the book already holds one and nobody retypes it", () => {
+    const r = resolveBookingContact({ ...noEmail, email: "office@reidroofing.com" }, {});
+    expect(r.error).toBeNull();
+    expect(r.contact.email).toBe("office@reidroofing.com");
+    expect(r.changed).toEqual({});
   });
 });

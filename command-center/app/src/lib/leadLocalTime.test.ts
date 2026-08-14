@@ -1,11 +1,14 @@
 import { describe, it, expect } from "vitest";
 import {
+  ZONE_CHOICES,
   areaCodeOf,
   hourInZone,
   isOutsideCallingHours,
   localTimeLabel,
+  pickedZone,
   timeInZone,
   zoneForLead,
+  zoneLabel,
 } from "./leadLocalTime";
 
 // A fixed instant: 26 July 2026, 19:30 UTC. Summer, so the US is on DST.
@@ -119,5 +122,80 @@ describe("isOutsideCallingHours", () => {
     const early = Date.UTC(2026, 6, 26, 11, 30);
     expect(isOutsideCallingHours("America/New_York", early)).toBe(true);
     expect(isOutsideCallingHours("Europe/London", early)).toBe(false);
+  });
+});
+
+// The picker exists to correct the area-code inference, so what it can guess and
+// what it can offer have to be the same set.
+describe("ZONE_CHOICES", () => {
+  it("offers every zone an area code can produce", () => {
+    const offered = new Set(ZONE_CHOICES.map((c) => c.zone));
+    const guessable = new Set<string>();
+    // Sweep every possible area code and collect whatever the map returns.
+    for (let n = 200; n <= 999; n += 1) {
+      const found = zoneForLead({ phone: `${n}5550100` });
+      if (found) guessable.add(found.zone);
+    }
+    expect(guessable.size).toBeGreaterThan(5);
+    for (const zone of guessable) expect(offered.has(zone)).toBe(true);
+  });
+
+  it("offers only zones this runtime actually knows", () => {
+    for (const { zone } of ZONE_CHOICES) {
+      expect(() => new Intl.DateTimeFormat("en-US", { timeZone: zone })).not.toThrow();
+    }
+  });
+
+  it("has no two choices reading the same", () => {
+    const labels = ZONE_CHOICES.map((c) => c.label);
+    expect(new Set(labels).size).toBe(labels.length);
+    const zones = ZONE_CHOICES.map((c) => c.zone);
+    expect(new Set(zones).size).toBe(zones.length);
+  });
+
+  it("keeps Arizona apart from Mountain, which is the point of listing it", () => {
+    // Summer: Denver is on DST and Phoenix is not, so they are an hour apart.
+    expect(timeInZone("America/Denver", NOON_ISH)).not.toBe(
+      timeInZone("America/Phoenix", NOON_ISH),
+    );
+  });
+});
+
+describe("zoneLabel", () => {
+  it("names a zone the way the picker does", () => {
+    expect(zoneLabel("America/Denver")).toBe("Mountain");
+  });
+
+  it("hands back anything it does not offer rather than inventing a name", () => {
+    expect(zoneLabel("Europe/London")).toBe("Europe/London");
+  });
+});
+
+describe("pickedZone", () => {
+  it("is empty when the clock is only inferred, so the picker reads as auto", () => {
+    expect(pickedZone({ phone: "313-555-0142" })).toBe("");
+  });
+
+  it("is empty when nothing is known at all", () => {
+    expect(pickedZone({})).toBe("");
+  });
+
+  it("shows what was written down", () => {
+    expect(pickedZone({ timezone: "America/Denver", phone: "313-555-0142" })).toBe(
+      "America/Denver",
+    );
+  });
+
+  it("resolves the shorthand somebody typed, rather than showing auto", () => {
+    // A row that says "EST" HAS a timezone. Reading it as unset would quietly
+    // overwrite it with the area code the first time anything else was saved.
+    expect(pickedZone({ timezone: "EST", phone: "602-555-0142" })).toBe("America/New_York");
+  });
+
+  it("beats the area code, which is what an override is for", () => {
+    // A 313 number says Eastern. The caller learned they are in Denver.
+    const lead = { timezone: "America/Denver", phone: "313-555-0142" };
+    expect(zoneForLead(lead)?.source).toBe("lead");
+    expect(pickedZone(lead)).toBe("America/Denver");
   });
 });

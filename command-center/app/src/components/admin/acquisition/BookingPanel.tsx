@@ -12,6 +12,10 @@ import {
   cursorForIso,
   firstAvailableIso,
 } from "../../../lib/bookingCalendar";
+// The server's own check, imported rather than reimplemented, so the button and
+// the endpoint cannot come to disagree about what an email address is. The same
+// crossing is made in src/context/PipelinesContext.tsx.
+import { cleanEmail } from "../../../../functions/lib/bookingContact";
 import {
   DOW_LABELS,
   cursorForToday,
@@ -162,8 +166,14 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
 
   const daySlots = days.find((d) => d.date === day)?.slots ?? [];
 
+  // A booking needs an email address, so the button refuses without one and says
+  // which of the two things is wrong. The server refuses too: this only means
+  // the caller finds out before picking a time rather than after.
+  const emailOk = Boolean(cleanEmail(email));
+  const emailTyped = Boolean(email.trim());
+
   const confirm = async () => {
-    if (!slot || !calendarId) return;
+    if (!slot || !calendarId || !emailOk) return;
     setError(null);
     try {
       const res = await book.mutateAsync({
@@ -432,15 +442,21 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
         <button
           type="button"
           className="pk-btn-save"
-          disabled={!slot || book.isPending}
+          disabled={!slot || !emailOk || book.isPending}
           onClick={() => void confirm()}
         >
           <CalendarCheck size={14} aria-hidden style={{ marginRight: 7, verticalAlign: -2 }} />
+          {/* The reason, on the button. A control that is simply dead makes the
+              caller hunt for what is wrong while somebody waits on the line. */}
           {book.isPending
             ? "Booking..."
-            : slot
-              ? `Book ${dayLabel(day)} at ${timeLabel(slot)}`
-              : "Pick a time"}
+            : !emailOk
+              ? emailTyped
+                ? "Check their email address"
+                : "Add their email to book"
+              : slot
+                ? `Book ${dayLabel(day)} at ${timeLabel(slot)}`
+                : "Pick a time"}
         </button>
         <button type="button" className="pk-btn-cancel" onClick={onCancel} disabled={book.isPending}>
           Cancel
