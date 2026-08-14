@@ -65,6 +65,14 @@ export default function SopDocPicker({
   // ever picked" need different reactions from Jake.
   const missing = Boolean(value) && !picked && !hub.loading;
 
+  // A pointer is a file id, and Google opens a file id whether or not the SOP
+  // Hub can still see it. Building the link ourselves rather than waiting for a
+  // webViewLink off the listing is what keeps a document that has moved out of
+  // the folder editable instead of stranded: the reader goes on rendering it
+  // (the doc endpoint fetches by id too), so the words must stay reachable.
+  const openLink =
+    picked?.webViewLink ?? (value ? `https://docs.google.com/document/d/${value}/edit` : null);
+
   const total = options.reduce((n, g) => n + g.entries.length, 0);
 
   return (
@@ -76,7 +84,12 @@ export default function SopDocPicker({
           <select
             className="pk-select pk-select-pill"
             value={value ?? ""}
-            disabled={hub.loading || total === 0}
+            // An empty hub disables the picker, since there is nothing to point
+            // at. It must NOT disable a row that is already pointed somewhere:
+            // clearing the pointer is the way back to the text written in the
+            // app, and locking that away is what left a pointed script with no
+            // editor and no link to one.
+            disabled={hub.loading || (total === 0 && !value)}
             onChange={(e) => {
               const id = e.target.value;
               if (!id) return onChange(null);
@@ -85,6 +98,13 @@ export default function SopDocPicker({
             }}
           >
             <option value="">{emptyLabel}</option>
+            {/* A pointer the hub cannot list still gets an option of its own.
+                Without one the select falls back to showing the empty label,
+                which says "nothing is pointed at" directly underneath a warning
+                saying the opposite. */}
+            {value && !picked && (
+              <option value={value}>{valueTitle || "The document this points at"}</option>
+            )}
             {options.map((group) => (
               <optgroup key={group.folder} label={group.folder}>
                 {group.entries.map((e) => (
@@ -97,8 +117,8 @@ export default function SopDocPicker({
           </select>
         </label>
 
-        {picked?.webViewLink && (
-          <a className="sdp-open" href={picked.webViewLink} target="_blank" rel="noreferrer">
+        {openLink && (
+          <a className="sdp-open" href={openLink} target="_blank" rel="noreferrer">
             <ExternalLink size={12} aria-hidden />
             Edit in Docs
           </a>
@@ -123,8 +143,9 @@ export default function SopDocPicker({
 
       {missing && (
         <p className="sdp-note warn">
-          {valueTitle ? `"${valueTitle}" is` : "The document this points at is"} no longer in the
-          SOP folder. Pick another, or move it back in Drive.
+          {valueTitle ? `"${valueTitle}" is` : "The document this points at is"} not in the SOP
+          folder, so it cannot be listed here. It is still being read. Edit it in Docs, move it back
+          in Drive, or clear this to go back to the text written in the app.
         </p>
       )}
 
