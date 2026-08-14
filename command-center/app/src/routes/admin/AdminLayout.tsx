@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -14,6 +14,8 @@ import {
   Moon,
   Users,
   ChevronDown,
+  PanelLeftClose,
+  PanelLeftOpen,
   type LucideIcon,
 } from "lucide-react";
 import { getPillar, resolvePillarTab, type PillarId } from "../../lib/adminPillars";
@@ -164,6 +166,29 @@ export function adminHomeFor(role: AdminRole): string {
 const BOTTOM_LEFT: NavRow[] = [PILLAR_NAV[1], PILLAR_NAV[2]]; // Acquisition, Sales
 const BOTTOM_RIGHT: NavRow[] = [PILLAR_NAV[3], PILLAR_NAV[4]]; // Fulfillment, Operations
 
+// Collapsed rail. The whole desktop rail can shrink to an icon column so a wide
+// page (a board, the cockpit) gets the width back. Read through a context rather
+// than threaded as a prop, because every row treatment below needs it and the
+// rows are drawn from three separate lists.
+const RailCollapsed = createContext(false);
+const useRailCollapsed = () => useContext(RailCollapsed);
+
+// Remembered per browser: a rail that springs back open on every navigation is
+// worse than no toggle at all.
+const COLLAPSE_KEY = "hauck.admin.rail.collapsed";
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+// Row geometry when the rail is an icon column: the label is gone, so the icon
+// centers itself in the narrower track and the row becomes a square target.
+const COLLAPSED_ROW = "justify-center !px-0 hover:!translate-x-0";
+
 // Is this child the page currently on screen? A pillar tab is matched through
 // the pillar's own resolver so the default tab reads as active on arrival, when
 // the URL still carries no ?tab=. Everything else matches its route subtree.
@@ -205,6 +230,7 @@ function NavChildLink({ child }: { child: NavChild }) {
 function NavRowGroup({ item }: { item: NavRow }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const collapsed = useRailCollapsed();
   const children = item.children ?? [];
   const parentPath = item.to.split("?")[0];
   const within =
@@ -219,6 +245,11 @@ function NavRowGroup({ item }: { item: NavRow }) {
   useEffect(() => {
     if (within) setOpen(true);
   }, [within]);
+
+  // Collapsed there is nowhere to put a sub-list, so the group becomes the plain
+  // icon row its parent page already is: clicking it opens the pillar on its
+  // first tab, exactly as clicking the header does when expanded.
+  if (collapsed) return <NavRowLink item={item} />;
 
   const Icon = item.icon;
   return (
@@ -261,22 +292,26 @@ function NavRowGroup({ item }: { item: NavRow }) {
 // One sidebar row. Active is the brand gradient pill; hover nudges right by a
 // half-pixel, matching the client rail exactly so the two never drift apart.
 function NavRowLink({ item }: { item: NavRow }) {
+  const collapsed = useRailCollapsed();
   return (
     <NavLink
       to={item.to}
       end={item.end}
+      title={collapsed ? item.label : undefined}
+      aria-label={collapsed ? item.label : undefined}
       className={({ isActive }) =>
         [
           "group relative mb-0.5 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-[color,background,transform] duration-200",
           isActive
             ? "text-white shadow-[var(--shadow-brand)]"
             : "text-[var(--text)] hover:translate-x-0.5 hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)]",
+          collapsed ? COLLAPSED_ROW : "",
         ].join(" ")
       }
       style={({ isActive }) => (isActive ? { backgroundImage: "var(--grad-brand)" } : undefined)}
     >
       <item.icon size={17} className="shrink-0 opacity-80" />
-      {item.label}
+      {!collapsed && item.label}
     </NavLink>
   );
 }
@@ -294,25 +329,65 @@ function FooterButton({
   onClick: () => void;
   danger?: boolean;
 }) {
+  const collapsed = useRailCollapsed();
   return (
     <button
       type="button"
       onClick={onClick}
+      title={collapsed ? label : undefined}
+      aria-label={collapsed ? label : undefined}
       className={[
         "mb-0.5 flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-medium transition-[color,background,transform] duration-200",
         "hover:translate-x-0.5 hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)]",
         danger ? "text-[var(--text)] hover:text-[var(--danger)]" : "text-[var(--text)]",
+        collapsed ? COLLAPSED_ROW : "",
       ].join(" ")}
     >
       <Icon size={16} className="shrink-0 opacity-80" />
-      {label}
+      {!collapsed && label}
     </button>
+  );
+}
+
+// A footer link (Team, Settings). Same geometry as FooterButton so the account
+// zone reads as one column whether the row navigates or acts.
+function FooterLink({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) {
+  const collapsed = useRailCollapsed();
+  return (
+    <NavLink
+      to={to}
+      title={collapsed ? label : undefined}
+      aria-label={collapsed ? label : undefined}
+      className={({ isActive }) =>
+        [
+          "mb-0.5 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-medium transition-[color,background,transform] duration-200",
+          isActive
+            ? "text-white shadow-[var(--shadow-brand)]"
+            : "text-[var(--text)] hover:translate-x-0.5 hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)]",
+          collapsed ? COLLAPSED_ROW : "",
+        ].join(" ")
+      }
+      style={({ isActive }) => (isActive ? { backgroundImage: "var(--grad-brand)" } : undefined)}
+    >
+      <Icon size={16} className="shrink-0 opacity-80" />
+      {!collapsed && label}
+    </NavLink>
   );
 }
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { admin, signOut } = useAuth();
   const { resolved, toggle } = useTheme();
+  // Desktop rail width. Phone chrome ignores it entirely: the bottom bar is the
+  // navigation there, so there is nothing to collapse.
+  const [collapsed, setCollapsed] = useState(readCollapsed);
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
+    } catch {
+      /* private mode: the rail just forgets between sessions */
+    }
+  }, [collapsed]);
   const isLight = resolved === "light";
   const themeLabel = isLight ? "Switch to dark mode" : "Switch to light mode";
   const role = effectiveAdminRole(admin?.role);
@@ -345,19 +420,36 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <UpdateDialog />
 
       {/* Desktop sidebar (lg+). */}
-      <aside className="adm-rail hidden lg:flex">
-        {/* Brand mark */}
-        <NavLink to={nav.home} end className="adm-rail-brand" aria-label="Command home">
-          <span className="adm-rail-brand-mark" aria-hidden>
-            H
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate font-display text-[15px] font-semibold leading-tight text-[var(--text)]">
-              Hauck Admin
+      <RailCollapsed.Provider value={collapsed}>
+      <aside className={`adm-rail hidden lg:flex${collapsed ? " is-collapsed" : ""}`}>
+        {/* Brand mark, and the control that shrinks the rail to icons. */}
+        <div className="adm-rail-head">
+          <NavLink to={nav.home} end className="adm-rail-brand" aria-label="Command home">
+            <span className="adm-rail-brand-mark" aria-hidden>
+              H
             </span>
-            <span className="block truncate text-[11px] text-[var(--text-faint)]">Agency console</span>
-          </span>
-        </NavLink>
+            {!collapsed && (
+              <span className="min-w-0">
+                <span className="block truncate font-display text-[15px] font-semibold leading-tight text-[var(--text)]">
+                  Hauck Admin
+                </span>
+                <span className="block truncate text-[11px] text-[var(--text-faint)]">
+                  Agency console
+                </span>
+              </span>
+            )}
+          </NavLink>
+          <button
+            type="button"
+            onClick={() => setCollapsed((c) => !c)}
+            className="adm-rail-collapse"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!collapsed}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
+        </div>
 
         {/* Agency pillars, then the client-work zone behind a divider. Both
             lists come from the role, so a hired role sees only its own. */}
@@ -384,61 +476,35 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div className="border-t border-[var(--border)] px-3 py-3">
           {/* Team sits with Settings rather than in the org chart: it is account
               administration, not a pillar of the business. Owners only. */}
-          {isOwnerAdmin && (
-            <NavLink
-              to="/admin/team"
-              className={({ isActive }) =>
-                [
-                  "mb-0.5 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-medium transition-[color,background,transform] duration-200",
-                  isActive
-                    ? "text-white shadow-[var(--shadow-brand)]"
-                    : "text-[var(--text)] hover:translate-x-0.5 hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)]",
-                ].join(" ")
-              }
-              style={({ isActive }) =>
-                isActive ? { backgroundImage: "var(--grad-brand)" } : undefined
-              }
-            >
-              <Users size={16} className="shrink-0 opacity-80" /> Team
-            </NavLink>
-          )}
-          {isOwnerAdmin && (
-          <NavLink
-            to="/admin/settings"
-            className={({ isActive }) =>
-              [
-                "mb-0.5 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-medium transition-[color,background,transform] duration-200",
-                isActive
-                  ? "text-white shadow-[var(--shadow-brand)]"
-                  : "text-[var(--text)] hover:translate-x-0.5 hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)]",
-              ].join(" ")
-            }
-            style={({ isActive }) =>
-              isActive ? { backgroundImage: "var(--grad-brand)" } : undefined
-            }
-          >
-            <Settings size={16} className="shrink-0 opacity-80" /> Settings
-          </NavLink>
-          )}
+          {isOwnerAdmin && <FooterLink to="/admin/team" icon={Users} label="Team" />}
+          {isOwnerAdmin && <FooterLink to="/admin/settings" icon={Settings} label="Settings" />}
           <FooterButton
             icon={isLight ? Moon : Sun}
             label={isLight ? "Dark mode" : "Light mode"}
             onClick={toggle}
           />
           <FooterButton icon={LogOut} label="Sign out" onClick={() => void signOut()} danger />
-          <div className="mt-2 flex items-center gap-2.5 border-t border-[var(--border)] px-3 pt-3">
-            <span className="adm-rail-avatar" aria-hidden>
+          <div
+            className={[
+              "mt-2 flex items-center gap-2.5 border-t border-[var(--border)] pt-3",
+              collapsed ? "justify-center px-0" : "px-3",
+            ].join(" ")}
+          >
+            <span className="adm-rail-avatar" aria-hidden title={admin?.email ?? "Admin"}>
               {initials(admin?.email)}
             </span>
-            <span
-              className="min-w-0 truncate text-[12px] text-[var(--text-faint)]"
-              title={admin?.email ?? "Admin"}
-            >
-              {admin?.email ?? "Admin"}
-            </span>
+            {!collapsed && (
+              <span
+                className="min-w-0 truncate text-[12px] text-[var(--text-faint)]"
+                title={admin?.email ?? "Admin"}
+              >
+                {admin?.email ?? "Admin"}
+              </span>
+            )}
           </div>
         </div>
       </aside>
+      </RailCollapsed.Provider>
 
       {/* On lg this column fills the locked frame and is the single scroll
           container. Admin pages remount per route, so it starts at the top on
@@ -581,11 +647,35 @@ function AdminSpineStyle() {
         background: rgba(255,255,255,0.60);
         backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
         border-right: 1px solid rgba(120,115,160,0.16); z-index: 30;
+        transition: width .18s ease;
       }
+      /* Collapsed: an icon column. 68px holds a 34px brand mark and a centered
+         17px row icon with the same 12px gutters the open rail uses. */
+      .pk-kit .adm-rail.is-collapsed { width: 68px; }
+      @media (prefers-reduced-motion: reduce) { .pk-kit .adm-rail { transition: none; } }
       [data-theme="dark"] .pk-kit .adm-rail { background: rgba(18,22,31,0.55); border-right-color: rgba(255,255,255,0.07); }
+      .pk-kit .adm-rail-head {
+        display: flex; align-items: center; gap: 6px;
+        padding: 16px 10px 16px 16px;
+      }
       .pk-kit .adm-rail-brand {
-        display: flex; align-items: center; gap: 10px;
-        padding: 16px 16px 16px 16px; text-decoration: none;
+        display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto;
+        text-decoration: none;
+      }
+      /* Stacked when collapsed: the mark on top, the expand control under it,
+         both centered on the narrow track. */
+      .pk-kit .adm-rail.is-collapsed .adm-rail-head {
+        flex-direction: column; gap: 10px; padding: 16px 0 14px;
+      }
+      .pk-kit .adm-rail.is-collapsed .adm-rail-brand { flex: 0 0 auto; justify-content: center; }
+      .pk-kit .adm-rail-collapse {
+        width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+        display: grid; place-items: center; color: var(--text-faint);
+        transition: color .14s, background .14s;
+      }
+      .pk-kit .adm-rail-collapse:hover {
+        color: var(--text);
+        background: color-mix(in srgb, var(--surface) 72%, transparent);
       }
       .pk-kit .adm-rail-brand-mark {
         width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
