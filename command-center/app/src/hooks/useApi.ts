@@ -94,6 +94,8 @@ import {
   type ApiSetterContact,
   type ApiSetterInboxResponse,
   type ApiSetterThreadResponse,
+  type ApiAgencyInboxResponse,
+  type ApiAgencyThreadResponse,
   type ApiAuditResponse,
 } from "../lib/api";
 import {
@@ -1218,6 +1220,68 @@ export function useSetterSendMutation() {
         queryKey: ["admin", "setter-inbox", "thread", input.tenantId, input.contactId],
       });
       qc.invalidateQueries({ queryKey: ["admin", "setter-inbox", "threads", input.tenantId] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// The agency's own inbox (Operations > Inbox)
+//
+// Hauck Marketing's GoHighLevel sub-account, the one the cold call texts from.
+// Separate query keys from the Setter Suite's inbox on purpose: they are
+// different accounts, and a shared key would serve one account's threads to a
+// screen that names the other.
+// ---------------------------------------------------------------------------
+
+export function useAgencyInboxQuery(q: string, limit: number, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "agency-inbox", "threads", q, limit],
+    enabled,
+    staleTime: 15_000,
+    queryFn: () => {
+      const p = new URLSearchParams({ limit: String(limit) });
+      if (q.trim()) p.set("q", q.trim());
+      return api<ApiAgencyInboxResponse>(`/api/admin/inbox?${p.toString()}`);
+    },
+  });
+}
+
+export function useAgencyThreadQuery(contactId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "agency-inbox", "thread", contactId],
+    enabled: enabled && !!contactId,
+    staleTime: 10_000,
+    queryFn: () =>
+      api<ApiAgencyThreadResponse>(
+        `/api/admin/inbox/${encodeURIComponent(contactId ?? "")}`,
+      ),
+  });
+}
+
+// Sends a REAL text to a REAL person as Hauck Marketing. No undo, no approval
+// step. Never retried: a retried POST here sends the message twice, and a
+// duplicate text reads as a malfunction. The composer disables its send control
+// while isPending for the same reason.
+//
+// Invalidates on settle rather than on success: a send that reports failure may
+// still have gone out (the failure can be in our response path, not GHL's
+// delivery), so the thread is refetched either way rather than left disagreeing
+// with what the recipient received.
+export function useAgencySendMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: { contactId: string; body: string }) =>
+      // `audited` false means the text WENT OUT but no audit row landed.
+      api<{ sent: boolean; messageId?: string; audited: boolean }>(
+        `/api/admin/inbox/${encodeURIComponent(input.contactId)}`,
+        { method: "POST", body: JSON.stringify({ body: input.body }) },
+      ),
+    onSettled: (_d, _e, input) => {
+      qc.invalidateQueries({
+        queryKey: ["admin", "agency-inbox", "thread", input.contactId],
+      });
+      qc.invalidateQueries({ queryKey: ["admin", "agency-inbox", "threads"] });
     },
   });
 }

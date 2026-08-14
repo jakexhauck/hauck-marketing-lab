@@ -2,12 +2,9 @@ import type { Env, ApiData } from "../../../../lib/env";
 import { readJsonBody } from "../../../../lib/body";
 import { readContactDnd } from "../../../../lib/dnd";
 import { ghlFetch, ghlJson } from "../../../../lib/ghl";
-import {
-  fetchContactThread,
-  sendChannelMessage,
-  type ThreadMessage,
-} from "../../../../lib/messaging";
+import { fetchContactThread, sendChannelMessage } from "../../../../lib/messaging";
 import { getGhlContextForTenant, TenantGhlError } from "../../../../lib/tenantGhl";
+import { SEND_ERROR_CODES, shapeMessages } from "../../../../lib/inboxFeed";
 import {
   isInternalRecipient,
   parseInternalRecipients,
@@ -41,13 +38,10 @@ import { logAdminAction } from "../../../../lib/adminAuth";
 //    direction. Instead `audited` comes back false and the caller warns the
 //    operator that the send happened but was not recorded.
 
-export interface ApiThreadMessage {
-  id: string;
-  direction: string;
-  channel: string;
-  body: string;
-  sentAt: string;
-}
+// Shaped in lib/inboxFeed.ts, shared with the Operations pillar's Inbox.
+// Re-exported so this route's contract and its tests keep naming one place.
+export { shapeMessages } from "../../../../lib/inboxFeed";
+export type { ApiThreadMessage } from "../../../../lib/inboxFeed";
 
 export interface SendBody {
   tenantId?: string;
@@ -67,25 +61,6 @@ interface GhlContactResponse {
     dnd?: boolean;
     dndSettings?: Record<string, { status?: string; message?: string } | null | undefined>;
   };
-}
-
-// sendChannelMessage's codes predate this contract (it backs the client app's
-// own send routes too). Map its vocabulary onto the documented one rather
-// than renaming it there, which would change two live client-facing routes.
-const SEND_ERROR_CODES: Record<string, string> = {
-  empty_message: "missing_body",
-  subject_required: "missing_subject",
-};
-
-// Pure: rename the lib's thread shape onto the API contract.
-export function shapeMessages(messages: ThreadMessage[]): ApiThreadMessage[] {
-  return messages.map((m) => ({
-    id: m.id,
-    direction: m.direction,
-    channel: m.type,
-    body: m.body,
-    sentAt: m.at,
-  }));
 }
 
 export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (ctx) => {

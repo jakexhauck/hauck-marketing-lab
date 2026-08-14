@@ -1642,6 +1642,18 @@ export interface ApiSetterThreadResponse {
   dnd: ApiContactDnd | null;
 }
 
+// Hauck Marketing's OWN inbox (functions/api/admin/inbox/*): the agency
+// sub-account the cold call texts from, not a client's. The same feed read with
+// different credentials, so the shapes are aliased rather than re-declared and
+// cannot drift apart.
+export type ApiAgencyThread = ApiSetterThread;
+export type ApiAgencyInboxResponse = ApiSetterInboxResponse;
+export interface ApiAgencyThreadResponse extends ApiSetterThreadResponse {
+  // The number the reply goes to. Shown in the thread header because on this
+  // account a row is often a prospect with no name yet.
+  phone: string;
+}
+
 // One row of admin_audit_log (functions/api/admin/audit.ts). adminName is the
 // signed-in ADMIN ACCOUNT, not a person: there are no per-setter accounts, so
 // every setter's action attributes to whoever's account was used. The viewer

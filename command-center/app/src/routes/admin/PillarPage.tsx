@@ -14,6 +14,7 @@ import SalesCallsSection from "../../components/admin/sales/SalesCallsSection";
 import PlaybookSection from "../../components/admin/sales/PlaybookSection";
 import SalesPipelineBoard from "../../components/admin/sales/SalesPipelineBoard";
 import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
+import InboxTab from "../../components/admin/operations/InboxTab";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
 import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
@@ -151,6 +152,9 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
       return <SalesDataTracker />;
     case "business-health":
       return <BusinessHealthTab />;
+    // The agency's own GoHighLevel messages, read and answered by text.
+    case "inbox":
+      return <InboxTab />;
     case "calculator":
       return <ScalingCalculatorTab />;
     case "time-audit":

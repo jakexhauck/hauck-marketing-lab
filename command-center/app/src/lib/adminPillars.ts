@@ -90,8 +90,12 @@ export const ADMIN_PILLARS: PillarDef[] = [
     label: "Operations",
     // Business Health leads the pillar: it was the Command home until Command
     // became the shortcut launcher, and it is the page you open Operations for.
+    // Inbox is second: Hauck Marketing's own GoHighLevel sub-account, the one
+    // the cold call texts from. Every other inbox in this app belongs to a
+    // client, so this was the only conversation the console could not show.
     tabs: [
       { id: "business-health", label: "Business Health", ready: true },
+      { id: "inbox", label: "Inbox", ready: true },
       { id: "calculator", label: "Calculator", ready: true },
       { id: "time-audit", label: "Time Audit", ready: true },
       { id: "tasks", label: "Tasks", ready: true },
