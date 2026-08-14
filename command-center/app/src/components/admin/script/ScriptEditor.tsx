@@ -69,7 +69,9 @@ function ToolButton({
 
 interface Props {
   title: string;
-  subtitle: string;
+  // Optional: the cold-call scripts sit under a row that already names them, and
+  // a line of explanatory text under a heading is not wanted there.
+  subtitle?: string;
   // undefined until the stored document arrives; the editor seeds exactly once.
   html: string | undefined;
   isLoading: boolean;
@@ -142,7 +144,7 @@ export default function ScriptEditor({ title, subtitle, html, isLoading, isError
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-4 py-3">
           <div>
             <h2 className="font-display text-[15px] font-semibold text-text">{title}</h2>
-            <p className="mt-0.5 text-[12px] text-faint">{subtitle}</p>
+            {subtitle && <p className="mt-0.5 text-[12px] text-faint">{subtitle}</p>}
           </div>
           <span
             className={

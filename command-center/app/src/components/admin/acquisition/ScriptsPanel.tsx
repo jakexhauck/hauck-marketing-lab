@@ -8,6 +8,7 @@ import {
 } from "../../../hooks/useColdCallAssets";
 import { MIN_DIALS_FOR_RATE, leadingScript } from "../../../../functions/lib/coldCallAssets";
 import SopDocPicker, { type SopDocChoice } from "./SopDocPicker";
+import ScriptEditor from "../script/ScriptEditor";
 
 // Cold Call > Management > Scripts: the dialing scripts, how each one is doing,
 // and the objection handling read alongside them.
@@ -25,11 +26,15 @@ import SopDocPicker, { type SopDocChoice } from "./SopDocPicker";
 // nothing, and rendering it beside a real rate would let a hunch borrow the
 // typography of a result.
 //
-// Since 0077 a variation is a POINTER at a Google Doc rather than a rich-text box
-// on this page. The row keeps its id, so every dial ever recorded against it still
-// attributes and the table above is unaffected; only where the words live has
-// changed. A variation that has not been pointed anywhere yet still renders the
-// text it already had, which is why there is no migration deadline on this.
+// Since 0077 a variation MAY be a pointer at a Google Doc instead of holding its
+// own text. The row keeps its id either way, so every dial ever recorded against
+// it still attributes and the table above is unaffected; only where the words
+// live has changed.
+//
+// So there are two places a script can be written, and the row says which one it
+// is using: point it at a Doc and the words are edited in Docs, leave it pointed
+// at nothing and they are edited in the box below the picker. Exactly one editor
+// is offered at a time, because the reader only ever renders one of the two.
 //
 // Objection handling is at the bottom of this page rather than on a "Call shelf"
 // page of its own, because the shelf held exactly one document and it is read in
@@ -170,12 +175,28 @@ export default function ScriptsPanel() {
                       value={script.driveFileId}
                       valueTitle={script.driveTitle}
                       emptyLabel={
-                        script.html.trim()
-                          ? "Still using the text typed into this app"
-                          : "Nothing written yet"
+                        script.html.trim() ? "Text written in this app" : "Nothing written yet"
                       }
                       onChange={(choice) => void point(script, choice)}
                     />
+
+                    {/* Not pointed at a Doc, so the words live here and are
+                        editable here. When a Doc IS picked the reader ignores
+                        this stored text (assetHtml owns that rule), so the
+                        editor is withheld rather than shown writing to a field
+                        nobody reads; the picker links straight into Docs. */}
+                    {!script.driveFileId && (
+                      <div className="mt-4">
+                        <ScriptEditor
+                          key={script.id}
+                          title="Script text"
+                          html={script.html}
+                          isLoading={false}
+                          isError={false}
+                          save={(html) => update.mutateAsync({ id: script.id, html })}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </li>
