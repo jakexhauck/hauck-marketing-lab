@@ -11,6 +11,7 @@
 export interface ContactEdits {
   firstName?: unknown;
   lastName?: unknown;
+  businessName?: unknown;
   phone?: unknown;
   email?: unknown;
 }
@@ -18,6 +19,7 @@ export interface ContactEdits {
 export interface CleanContact {
   firstName: string;
   lastName: string;
+  businessName: string;
   phone: string;
   email: string;
 }
@@ -91,16 +93,32 @@ export interface ResolvedContact {
  * Merge what the caller typed over what the book already holds.
  *
  * A field the caller left alone keeps the stored value; a field they typed wins.
- * Clearing a field is NOT supported and is treated as "leave it alone": the one
- * moment somebody is mid-call is the wrong moment to let an accidental select-all
- * delete the only phone number for a prospect.
+ *
+ * NAMES CAN BE CLEARED. Everything else cannot. The asymmetry is the point:
+ *
+ *   - A scraped prospect's first and last name hold a COMPANY, so "this person
+ *     has no surname I know" has to be sayable, and the only way to say it is an
+ *     empty box. The panel always sends both name fields and always prefills
+ *     them, so a blank one arriving here is somebody deleting it on purpose.
+ *   - A blank phone, email or business name still means "leave it alone". A
+ *     reminder needs somewhere to go, and a company name corrected by hand in
+ *     GoHighLevel must not be wiped by a booking that simply did not mention it.
+ *
+ * A field OMITTED entirely (undefined) always means "leave it alone", whatever
+ * it is. The distinction is `undefined` versus `""`, never truthiness.
  *
  * An input that is present but unusable (a half-typed email, four digits of a
  * phone number) is an ERROR rather than a silent fallback to the stored value.
  * Silently booking against the old number would look identical to success.
  */
 export function resolveBookingContact(
-  stored: { first_name?: string | null; last_name?: string | null; phone?: string | null; email?: string | null },
+  stored: {
+    first_name?: string | null;
+    last_name?: string | null;
+    business_name?: string | null;
+    phone?: string | null;
+    email?: string | null;
+  },
   edits: ContactEdits,
 ): ResolvedContact {
   const changed: Partial<CleanContact> = {};
@@ -109,6 +127,7 @@ export function resolveBookingContact(
     contact: {
       firstName: (stored.first_name ?? "").trim(),
       lastName: (stored.last_name ?? "").trim(),
+      businessName: (stored.business_name ?? "").trim(),
       phone: (stored.phone ?? "").trim(),
       email: (stored.email ?? "").trim(),
     },
@@ -116,18 +135,30 @@ export function resolveBookingContact(
     error,
   });
 
-  // Names: any non-empty string is a name. Nobody's name needs validating, and
-  // rejecting one is how an app tells somebody they are spelled wrong.
+  // Names: any string is a name, including an empty one. Nobody's name needs
+  // validating, and rejecting one is how an app tells somebody they are spelled
+  // wrong.
   let firstName = (stored.first_name ?? "").trim();
-  if (typeof edits.firstName === "string" && edits.firstName.trim()) {
-    firstName = cleanName(edits.firstName);
-    if (firstName !== (stored.first_name ?? "").trim()) changed.firstName = firstName;
+  if (typeof edits.firstName === "string") {
+    const next = cleanName(edits.firstName);
+    if (next !== firstName) changed.firstName = next;
+    firstName = next;
   }
 
   let lastName = (stored.last_name ?? "").trim();
-  if (typeof edits.lastName === "string" && edits.lastName.trim()) {
-    lastName = cleanName(edits.lastName);
-    if (lastName !== (stored.last_name ?? "").trim()) changed.lastName = lastName;
+  if (typeof edits.lastName === "string") {
+    const next = cleanName(edits.lastName);
+    if (next !== lastName) changed.lastName = next;
+    lastName = next;
+  }
+
+  // Who the business is. Where the company goes once the name columns hold the
+  // person instead, so the thing the scraper found is not lost by correcting it.
+  let businessName = (stored.business_name ?? "").trim();
+  if (typeof edits.businessName === "string" && edits.businessName.trim()) {
+    const next = cleanName(edits.businessName);
+    if (next !== businessName) changed.businessName = next;
+    businessName = next;
   }
 
   let phone = (stored.phone ?? "").trim();
@@ -153,5 +184,5 @@ export function resolveBookingContact(
     return fail("Add a phone number or an email so GoHighLevel can hold the booking.");
   }
 
-  return { contact: { firstName, lastName, phone, email }, changed, error: null };
+  return { contact: { firstName, lastName, businessName, phone, email }, changed, error: null };
 }

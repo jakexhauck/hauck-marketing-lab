@@ -1708,10 +1708,12 @@ export async function bookColdCall(input: {
   // business with no person on it, so these are usually learned on the phone.
   //
   // Sent RAW. The server normalises and validates them (bookingContact.ts) and
-  // writes back only what changed; a blank field means leave the stored value
-  // alone rather than clear it.
+  // writes back only what changed. A blank NAME clears it, because the company
+  // is what is sitting in those two columns and it has to be removable; a blank
+  // business, phone or email means leave the stored value alone.
   firstName?: string;
   lastName?: string;
+  businessName?: string;
   phone?: string;
   email?: string;
 }): Promise<ColdCallBookResult> {

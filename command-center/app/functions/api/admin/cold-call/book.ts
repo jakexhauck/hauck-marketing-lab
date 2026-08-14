@@ -38,9 +38,12 @@ interface Body {
   // phone, which is the only moment there is anyone to type it, so the booking
   // panel collects it and it is merged over the stored record here.
   //
-  // Omitted or blank means "leave it alone". See resolveBookingContact.
+  // Omitted means "leave it alone", always. Blank means "leave it alone" for
+  // everything EXCEPT the two name fields, which a caller has to be able to
+  // empty: the company is what is sitting in them. See resolveBookingContact.
   firstName?: unknown;
   lastName?: unknown;
+  businessName?: unknown;
   phone?: unknown;
   email?: unknown;
 }
@@ -66,24 +69,29 @@ interface LeadRow {
 // person does not litter the CRM with duplicates.
 async function upsertContact(
   gctx: { locationId: string; token: string },
-  lead: LeadRow,
   // The merge of what is stored and what the caller typed. Passed in rather than
-  // read off `lead`, so the contact GoHighLevel gets is the person actually on
-  // the call and not the thin scraped record underneath them.
+  // read off the lead row, so the contact GoHighLevel gets is the person actually
+  // on the call and not the thin scraped record underneath them.
   contact: CleanContact,
 ): Promise<{ ok: true; contactId: string } | { ok: false; status: number; body: string }> {
   const payload: Record<string, unknown> = {
     locationId: gctx.locationId,
     firstName: contact.firstName || "Prospect",
+    // Sent even when empty, deliberately. A scraped prospect's surname holds
+    // half a company name, and the caller clearing it has to actually reach the
+    // contact: this is the field {{contact.name}} renders from, so leaving a
+    // stale one behind puts the company back into every reminder and onto the
+    // calendar invite.
     lastName: contact.lastName || "",
     // Where this person came from, visible in GHL rather than only in our app.
     source: "Cold call",
   };
   if (contact.phone) payload.phone = contact.phone;
   if (contact.email) payload.email = contact.email;
-  // Only when we have one: sending "" would blank a company name already
-  // corrected in GoHighLevel, which is where Jake works the board.
-  if (lead.business_name) payload.companyName = lead.business_name;
+  // Where the company goes once the name columns hold the person. Only when we
+  // have one: sending "" would blank a company name already corrected in
+  // GoHighLevel, which is where Jake works the board.
+  if (contact.businessName) payload.companyName = contact.businessName;
 
   const res = await ghlFetch(gctx, "/contacts/upsert", {
     method: "POST",
@@ -209,7 +217,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     return Response.json({ error: resolved.error }, { status: 422 });
   }
 
-  const contact = await upsertContact(gctx, lead, resolved.contact);
+  const contact = await upsertContact(gctx, resolved.contact);
   if (!contact.ok) {
     console.error("[cold-call/book] contact upsert failed", contact.status, contact.body);
     return Response.json({ error: "could not create the contact" }, { status: 502 });
@@ -219,7 +227,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // see the appointment title note under createAppointment.
   const name =
     `${resolved.contact.firstName} ${resolved.contact.lastName}`.trim() ||
-    lead.business_name ||
+    resolved.contact.businessName ||
     "Cold call prospect";
 
   // No title. The calendar names its own events.
@@ -272,6 +280,9 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       // typed nothing, and an unchanged field must not be restamped.
       ...(resolved.changed.firstName !== undefined && { first_name: resolved.changed.firstName }),
       ...(resolved.changed.lastName !== undefined && { last_name: resolved.changed.lastName }),
+      ...(resolved.changed.businessName !== undefined && {
+        business_name: resolved.changed.businessName,
+      }),
       ...(resolved.changed.phone !== undefined && { phone: resolved.changed.phone }),
       ...(resolved.changed.email !== undefined && { email: resolved.changed.email }),
     })
@@ -307,9 +318,11 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       // Copied rather than joined, so a purged prospect still has a name on the
       // revenue line.
       prospect_name: name,
-      business_name: lead.business_name ?? "",
-      phone: lead.phone ?? "",
-      email: lead.email ?? "",
+      // The resolved values, not the row read before the call: the row is the
+      // scraped business, and this record is what the revenue line reads.
+      business_name: resolved.contact.businessName,
+      phone: resolved.contact.phone,
+      email: resolved.contact.email,
       timezone: lead.timezone ?? "",
       source: lead.source ?? "Cold call",
       scheduled_at: startTime,

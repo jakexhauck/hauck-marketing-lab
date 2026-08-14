@@ -26,13 +26,25 @@ import {
 //
 // WHO the meeting is with is asked here, not assumed. A scraped prospect is a
 // BUSINESS: a company name and a switchboard number, no person and usually no
-// email. The name is learned while somebody is on the phone, which is the only
-// moment there is anyone to type it, so the three fields that matter to a
-// calendar invite sit above the grid and are prefilled from whatever is known.
+// email. Worse, the company arrives split across the first and last name
+// columns, so the contact GoHighLevel would otherwise create is called "BM
+// Heating & Cooling". That name is what {{contact.name}} renders from, which
+// means it reaches the calendar invite, every reminder and every automation the
+// prospect actually sees.
 //
-// A field left alone keeps what is stored. What is typed is merged over it and
-// written back to the lead, so the next person to open this prospect sees the
-// person rather than the switchboard.
+// The name is learned while somebody is on the phone, which is the only moment
+// there is anyone to type it, so the fields that matter to an invite sit above
+// the grid and are prefilled from whatever is known.
+//
+// Clearing the LAST NAME is the point of the surname box being here at all: a
+// person usually gives a first name and nothing else, and half a company cannot
+// be left behind as their surname. The company is not lost, it moves to
+// Business, which is prefilled with the stored name when the book has no
+// business of its own to offer.
+//
+// A blank business, phone or email keeps what is stored. What is typed is merged
+// over it and written back to the lead, so the next person to open this prospect
+// sees the person rather than the switchboard.
 //
 // Real slots, read live from GoHighLevel, because the alternative is a caller
 // offering a time that is already taken and then having to take it back. The
@@ -89,6 +101,15 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
   // rather than read straight off `lead` so typing does not fight a refetch
   // landing mid-sentence.
   const [firstName, setFirstName] = useState(lead.firstName ?? "");
+  const [lastName, setLastName] = useState(lead.lastName ?? "");
+  // The company, falling back to the stored name when the book holds no business
+  // of its own. That fallback IS the scraped-business case: for a lead imported
+  // with the company in the name columns, this is the only place it exists, and
+  // the caller is about to type a person over it. Shown rather than inferred
+  // server-side, so what lands in GoHighLevel is something a human read first.
+  const [businessName, setBusinessName] = useState(
+    lead.businessName || `${lead.firstName ?? ""} ${lead.lastName ?? ""}`.trim(),
+  );
   // Prefilled in the shape a person reads, not the shape it is stored in. Safe
   // because the server normalises whatever comes back and resolveBookingContact
   // compares the NORMALISED value, so leaving this untouched is still "no
@@ -150,10 +171,13 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
         calendarId,
         startTime: slot,
         endTime: endOf(slot),
-        // Sent as typed. The server normalises and validates them
-        // (functions/lib/bookingContact.ts), because the rules a booking is
-        // accepted on must not be enforceable only by the browser.
+        // Sent as typed, and the names sent even when empty. The server
+        // normalises and validates them (functions/lib/bookingContact.ts),
+        // because the rules a booking is accepted on must not be enforceable
+        // only by the browser.
         firstName,
+        lastName,
+        businessName,
         phone,
         email,
       });
@@ -233,6 +257,32 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
             autoComplete="off"
           />
         </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-faint">
+            Last name
+          </span>
+          <input
+            className="pk-input"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Leave empty if you did not get it"
+            autoComplete="off"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-faint">
+            Business
+          </span>
+          <input
+            className="pk-input"
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+            placeholder="BM Heating &amp; Cooling"
+            autoComplete="off"
+          />
+        </label>
+      </div>
+      <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
         <label className="flex flex-col gap-1">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-faint">
             Phone

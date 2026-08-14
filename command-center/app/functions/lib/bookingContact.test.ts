@@ -77,7 +77,7 @@ describe("resolveBookingContact", () => {
     expect(r.changed).toEqual({ firstName: "Dana" });
   });
 
-  it("treats an empty field as leave it alone, never as clear it", () => {
+  it("treats an empty phone or email as leave it alone, never as clear it", () => {
     // Mid-call, an accidental select-all-delete must not wipe the only number
     // a prospect has.
     const r = resolveBookingContact(stored, { phone: "", email: "" });
@@ -111,5 +111,65 @@ describe("resolveBookingContact", () => {
   it("collapses whitespace in a name without rejecting it", () => {
     const r = resolveBookingContact(stored, { firstName: "  Mary   Anne  " });
     expect(r.contact.firstName).toBe("Mary Anne");
+  });
+});
+
+// The whole reason the panel asks. A scraped prospect arrives with the COMPANY
+// sitting in the two name columns, so booking one has to be able to put a person
+// there instead, and the company has to survive somewhere.
+describe("resolveBookingContact, a business in the name columns", () => {
+  const scraped = {
+    first_name: "BM Heating",
+    last_name: "& Cooling",
+    business_name: "",
+    phone: "+12485550171",
+    email: "",
+  };
+
+  it("lets the surname be cleared, because the company is not a surname", () => {
+    const r = resolveBookingContact(scraped, { firstName: "Mohamad", lastName: "" });
+    expect(r.error).toBeNull();
+    expect(r.contact.firstName).toBe("Mohamad");
+    expect(r.contact.lastName).toBe("");
+    expect(r.changed).toEqual({ firstName: "Mohamad", lastName: "" });
+  });
+
+  it("leaves a name alone when the field was not sent at all", () => {
+    // undefined, not "". An older client that never had the box must not have
+    // its silence read as an erase.
+    const r = resolveBookingContact(scraped, { firstName: "Mohamad" });
+    expect(r.contact.lastName).toBe("& Cooling");
+    expect(r.changed).toEqual({ firstName: "Mohamad" });
+  });
+
+  it("keeps the company, typed alongside the person", () => {
+    const r = resolveBookingContact(scraped, {
+      firstName: "Mohamad",
+      lastName: "",
+      businessName: "BM Heating & Cooling",
+    });
+    expect(r.contact.businessName).toBe("BM Heating & Cooling");
+    expect(r.changed.businessName).toBe("BM Heating & Cooling");
+  });
+
+  it("does not blank a company name corrected in GoHighLevel by hand", () => {
+    const known = { ...scraped, business_name: "BM Heating & Cooling LLC" };
+    const r = resolveBookingContact(known, { firstName: "Mohamad", businessName: "" });
+    expect(r.contact.businessName).toBe("BM Heating & Cooling LLC");
+    expect(r.changed.businessName).toBeUndefined();
+  });
+
+  it("still refuses to book with nowhere to send a reminder", () => {
+    const noReach = { ...scraped, phone: "" };
+    const r = resolveBookingContact(noReach, { firstName: "Mohamad", lastName: "" });
+    expect(r.error).toMatch(/phone number or an email/i);
+    // Nothing is reported as changed on a refusal, so nothing is written back.
+    expect(r.changed).toEqual({});
+  });
+
+  it("hands back the stored company on a refusal, not an empty one", () => {
+    const known = { ...scraped, business_name: "BM Heating & Cooling LLC", phone: "" };
+    const r = resolveBookingContact(known, { firstName: "Mohamad" });
+    expect(r.contact.businessName).toBe("BM Heating & Cooling LLC");
   });
 });
