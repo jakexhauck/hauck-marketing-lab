@@ -1,5 +1,4 @@
 import CalendarPanel from "./CalendarPanel";
-import ConnectionPanel from "./ConnectionPanel";
 import ConversionAssetPanel from "./ConversionAssetPanel";
 import GhlSetupWizard from "./GhlSetupWizard";
 import { GHL_SETUP_SUB, placeholderCopy, subTabsFor } from "../../../../lib/fulfillmentPages";
@@ -51,14 +50,6 @@ export default function GhlTab({
     case "calendars":
       return (
         <CalendarPanel
-          tenantId={tenantId}
-          clientName={clientName}
-          clientSlug={clientSlug}
-        />
-      );
-    case "connection":
-      return (
-        <ConnectionPanel
           tenantId={tenantId}
           clientName={clientName}
           clientSlug={clientSlug}

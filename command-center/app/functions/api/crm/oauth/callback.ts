@@ -24,7 +24,9 @@ import {
 
 function back(origin: string, params: Record<string, string>): Response {
   const qs = new URLSearchParams(params).toString();
-  return Response.redirect(`${origin}/admin/fulfillment/ghl?sub=connection&${qs}`, 302);
+  // No ?sub=: the Connection tab that used to receive this is gone, so the page
+  // decides for itself which sub-tab a client is entitled to.
+  return Response.redirect(`${origin}/admin/fulfillment/ghl?${qs}`, 302);
 }
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {

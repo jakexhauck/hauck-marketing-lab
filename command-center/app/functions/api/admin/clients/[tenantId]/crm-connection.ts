@@ -21,13 +21,19 @@ import { APP_COVERED_TYPES } from "../../../../lib/ghlEvents";
 // GET  /api/admin/clients/:tenantId/crm-connection
 // POST /api/admin/clients/:tenantId/crm-connection  { action: ... }
 //
-// Everything the Fulfillment > GHL > Connection panel reads and writes. Admin
-// only, enforced upstream in _middleware.ts.
+// NO UI READS THIS. The Fulfillment > GHL > Connection panel it was written for
+// was removed: the Marketplace app half of it was dead (GHL_APP_CLIENT_ID and
+// GHL_APP_CLIENT_SECRET are set nowhere), and connecting a client is now the
+// Connect wizard's whole job. The route survives because two of its writes are
+// not: `stage-map` fills ghl_stage_map, which the Paid Ads lead tracker reads,
+// and `provision` installs the webhook wiring into a location. Both are
+// reachable by hand until they are re-homed on a screen that earns them.
 //
-// The page's job is to make "this client's reporting is wired" a fact you can
-// look at rather than a thing you hope. So this route answers four questions:
-// is the app installed, are events actually arriving, do their stages map onto
-// the status model, and is the client cut over yet.
+// Admin only, enforced upstream in _middleware.ts.
+//
+// It answers four questions: is the app installed, are events actually
+// arriving, do their stages map onto the status model, and is the client cut
+// over yet.
 
 // The 19 events the Marketplace app is subscribed to, in the order they are
 // listed in the developer portal. Anything arriving that is NOT in this list

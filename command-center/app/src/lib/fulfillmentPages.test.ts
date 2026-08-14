@@ -12,8 +12,10 @@ import {
   fulfillmentPath,
   placeholderCopy,
   paidAdsSubTabs,
+  ghlSubTabs,
   resolveGatedSubTab,
   ADS_SETUP_SUB,
+  GHL_SETUP_SUB,
 } from "./fulfillmentPages";
 
 describe("fulfillmentPages config", () => {
@@ -205,6 +207,29 @@ describe("resolveGatedSubTab", () => {
 
   it("answers null for a page with no sub-tabs at all", () => {
     expect(resolveGatedSubTab([], "anything")).toBeNull();
+  });
+});
+
+describe("ghlSubTabs", () => {
+  const subs = subTabsFor("ghl");
+
+  // The wiring screen is a setup step, not a tab you can go back to. A wired
+  // client has two sub-tabs and nowhere to read event health, by design.
+  it("offers no wiring screen once the client is connected", () => {
+    expect(ghlSubTabs(subs, true).map((s) => s.id)).toEqual([
+      "conversion-assets",
+      "calendars",
+    ]);
+  });
+
+  it("opens on the wizard and hides Calendars while unwired", () => {
+    const gated = ghlSubTabs(subs, false);
+    expect(gated.map((s) => s.id)).toEqual([GHL_SETUP_SUB, "conversion-assets"]);
+    expect(gated[0].label).toBe("Connect GHL");
+  });
+
+  it("sends a Calendars link for an unwired client to the wizard", () => {
+    expect(resolveGatedSubTab(ghlSubTabs(subs, false), "calendars")).toBe(GHL_SETUP_SUB);
   });
 });
 

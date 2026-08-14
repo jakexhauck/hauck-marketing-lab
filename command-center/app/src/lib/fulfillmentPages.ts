@@ -66,10 +66,10 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
   // it because the assets it builds are worked whether or not ads are the
   // source of the lead.
   //
-  // Three sub-tabs. Conversion Assets builds things a client's leads will read;
+  // Two sub-tabs. Conversion Assets builds things a client's leads will read;
   // Calendars decides which of their booking calendars their own diary
-  // protects; Connection is the wiring underneath, where the Marketplace app's
-  // install, the event health board and the cutover switch live.
+  // protects. The wiring underneath is not a tab: it is the Connect screen, and
+  // it is only on offer while there is something to connect.
   {
     id: "ghl",
     label: "GHL",
@@ -77,7 +77,6 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
     subTabs: [
       { id: "conversion-assets", label: "Conversion Assets", ready: true },
       { id: "calendars", label: "Calendars", ready: true },
-      { id: "connection", label: "Connection", ready: true },
     ],
   },
   // Management is the client's paperwork in one place: the commercial record
@@ -187,11 +186,15 @@ export const GHL_SETUP_SUB = "connect";
 
 // GHL before the sub-account is wired.
 //
-// Same rule as Paid Ads. Calendars reads the client's own GHL calendars and
-// Connection reports on events arriving from their sub-account: without
-// credentials both are empty screens that look like a quiet account rather than
-// an unfinished setup. Conversion Assets survives, because what it builds is
-// written here and pasted in later, so it needs nothing from GHL at all.
+// Same rule as Paid Ads. Calendars reads the client's own GHL calendars:
+// without credentials it is an empty screen that looks like a quiet account
+// rather than an unfinished setup. Conversion Assets survives, because what it
+// builds is written here and pasted in later, so it needs nothing from GHL at
+// all.
+//
+// Once the pair is stored the Connect screen goes too. A wired client has
+// nothing to connect, so the row is Conversion Assets and Calendars and no
+// wiring screen at all.
 export function ghlSubTabs(subs: SubTabDef[], ghlConnected: boolean): SubTabDef[] {
   if (ghlConnected) return subs;
   const kept = subs.filter((s) => s.id === "conversion-assets");

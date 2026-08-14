@@ -81,8 +81,8 @@ function Connected({
         <span className="font-data text-[12px] text-muted">{locationId}</span>
       </div>
       <div className="mt-4">
-        <Button variant="primary" onClick={() => onFinished("connection")}>
-          Open the Connection
+        <Button variant="primary" onClick={() => onFinished("calendars")}>
+          Open their Calendars
           <ArrowRight size={14} aria-hidden />
         </Button>
       </div>
