@@ -21,13 +21,19 @@ crons = ["0 6 * * *"]
 # Pulling only yesterday would freeze each day at its first, lowest reading.
 SYNC_URL = "https://app.hauckmarketing.com/api/admin/ads/sync?days=7"
 
-# Reporting booked appointments back to Meta.
+# Reporting booked appointments back to Meta: OFF (Jake, 2026-08-14).
 #
-# No ?days: the handler's own default (5) is deliberately well inside Meta's
-# hard seven-day limit on how old a conversion may be, so a run that fails for a
-# day or two still catches up rather than silently dropping those bookings.
-# Widening it here would not help; Meta would simply refuse the older events.
-CAPI_SCHEDULE_URL = "https://app.hauckmarketing.com/api/admin/ads/capi-schedule"
+# Willis reports bookings from the BROWSER instead, with a Schedule event on
+# williswindows.com/thank-you-quote. Both at once would count every booking
+# twice: the browser event and this one carry different ids (a pixel event id
+# versus the GHL appointment id) and Meta cannot deduplicate across them.
+#
+# Unsetting the variable is the whole switch. runCapiSchedule() checks for it
+# and skips, so the code, the endpoint and the capi_sent ledger all stay in
+# place. Put this line back to return to server-side reporting, and turn the
+# browser event off in public/sites/willis/thanks.js at the same time.
+#
+# CAPI_SCHEDULE_URL = "https://app.hauckmarketing.com/api/admin/ads/capi-schedule"
 
 # ADS_CRON_SECRET is NOT here on purpose: it is a secret, set with
 #   wrangler secret put ADS_CRON_SECRET
