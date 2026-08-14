@@ -4,7 +4,8 @@ The Call button on the cold call card asks GoHighLevel to place the call. It rin
 the caller's own phone, plays a whisper, takes a keypress, then dials the prospect
 from the agency number and bridges the two. The app never leaves the screen.
 
-Status: ⚠️ built and deployed, one workflow pending Jake.
+Status: ✅ live. Built, deployed and wired 2026-08-14. Workflow published, migration
+0112 applied. Awaiting the first real call to confirm the duration read-back.
 Legend: ❌ not wired · ⚠️ partial · ✅ live.
 
 ## Why it is built this way
@@ -24,20 +25,38 @@ The workflow Call action is the only route into LC Phone a third party can reach
 and enrolling a contact is the only way in. The alternative was our own Twilio
 line, costed and set aside in `docs/build-plans/cold-call-in-app-dialer.md`.
 
-## The one thing Jake builds (five minutes, no code)
+## The workflow (built by hand 2026-08-14)
 
-⚠️ **A workflow named exactly `CC Bridge Dial`, published.**
+✅ **`CC Bridge Dial`, published**, id `cffad8d7-59f2-402a-8fe2-08730ae045a4`.
+
+Its settings live in GoHighLevel and cannot be read back from here: the public API
+lists workflows but not their steps, and reading a step needs the internal API,
+whose Firebase token is expired. So this is the intended configuration rather than
+a reading of the live one.
+
+- **Connect call after keypress: off.** It exists to prove a human answered, which
+  matters for a power dialer where calls arrive unpredictably. Here the caller
+  pressed Call two seconds earlier and is holding the phone, so it charges an
+  action per call to guard a case they created themselves. The residual risk is
+  the caller's own voicemail answering and the prospect being bridged to it, which
+  voicemail detect covers imperfectly.
+- **Disable voicemail detect: off**, meaning detection is ON. It is the only thing
+  standing between a slow pickup and a prospect hearing a voicemail greeting.
+- **Call timeout: 30s.** Ring time before GoHighLevel gives up. GHL's wording does
+  not say whether it governs only the leg to the caller or the leg to the prospect
+  too. If both, 30 gives up at about the moment a mobile would roll to voicemail,
+  which is the right place to stop.
+- **Whisper:** "Cold call, connecting you now". It must not tell anyone to press a
+  key while the keypress is off.
+
+Rebuild it from these steps if it is ever lost:
 
 1. Automation > Workflows > Create Workflow > Start from scratch.
 2. Name it `CC Bridge Dial`.
 3. No trigger is needed: the app injects the contact over the API. If GHL refuses
    to publish without one, add trigger **Contact Tag** with the tag
    `cc bridge dial`, which nothing ever applies, so it stays inert.
-4. Add one action: **Call**.
-   - Whisper message: something like "Cold call, press 1 to connect".
-   - Require keypress: **on**. Without it, voicemail on the caller's phone can
-     answer and the prospect gets bridged to an answerphone.
-   - Call timeout: 30 seconds.
+4. Add one action: **Call**, configured as above.
 5. **Publish it.** A draft accepts the contact over the API and then does nothing
    at all, which on the phones looks exactly like a dead button. The app checks
    for this and says so by name rather than letting it happen silently.
@@ -48,6 +67,18 @@ follows, no deploy.
 ⚠️ **Check call recording is on** for outbound calls (Settings > Phone Numbers >
 Advanced Settings). The duration read-back does not depend on it, but the
 recording on the contact does.
+
+## The numbers on this account
+
+Two, read from `GET /phone-system/numbers?locationId=` on 2026-08-14:
+
+- `+1 313-370-4923` — Local Number. The line inbound calls arrive on, and the one
+  a cold call should go out from: a local caller ID gets answered.
+- `+1 855-612-2433` — Toll Free Number.
+
+Which one the Call action dials FROM is the location's default outbound number,
+set in GoHighLevel and not readable here. Worth confirming it is the 313: a
+toll-free caller ID on a cold call is close to a guaranteed no-answer.
 
 ## Who the call rings
 
