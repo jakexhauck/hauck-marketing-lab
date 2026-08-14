@@ -39,6 +39,9 @@ export interface Env {
   // Who a callback task is assigned to in the agency's GHL. Defaults to Jake's
   // user id; see functions/lib/agencyGhl.ts.
   AGENCY_GHL_USER_ID?: string;
+  // The workflow the call card drops a prospect into to place a call, matched by
+  // NAME. Defaults to "CC Bridge Dial"; see functions/lib/coldCallBridge.ts.
+  AGENCY_GHL_BRIDGE_WORKFLOW?: string;
   // Which calendars the Sales Calls page reads, comma separated. Absent means
   // the ones whose NAME says demo / discovery / sales, which is the same test
   // the booking panel uses. Set this only when a sales calendar is named

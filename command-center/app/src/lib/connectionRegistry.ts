@@ -199,10 +199,20 @@ export const CONNECTIONS: ConnectionDef[] = [
         optional: true,
         note: "Who a callback task is assigned to. Defaults to Jake.",
       },
+      {
+        name: "AGENCY_GHL_BRIDGE_WORKFLOW",
+        home: "cloudflare",
+        inDoppler: true,
+        optional: true,
+        note: 'The workflow the Call button drops a prospect into to place a call, matched by name. Defaults to "CC Bridge Dial". It must be PUBLISHED: a draft accepts the contact and never rings.',
+      },
     ],
     surfaces: [
       { label: "Cold Call booking", audience: "admin" },
-      { label: "Cold Call dials and pipelines", audience: "admin" },
+      // The Call button on the call card lives here too: it is the same account
+      // and the same credential, and listing it separately only lengthens the
+      // one-line consequence the control room prints without adding a fact.
+      { label: "Cold Call dials, pipelines and the Call button", audience: "admin" },
       {
         label: "Sales Calls",
         to: "/admin/pillar/sales?tab=calls",

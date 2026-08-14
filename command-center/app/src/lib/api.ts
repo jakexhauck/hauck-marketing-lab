@@ -1813,6 +1813,10 @@ export async function logColdCallDial(input: {
   // live script and drops it if not, so this is a claim rather than a fact
   // until it gets there.
   scriptId?: string | null;
+  // When the Call button placed this call, ISO (0112). Sent only for a call the
+  // app dialled, and what lets the server find this call on the contact's
+  // timeline and stamp the row with how long it lasted.
+  bridgedAt?: string | null;
 }): Promise<{
   dial: { id: string; day: string; outcome: string };
   // What the push to GoHighLevel did, or null when the account is not connected.
@@ -1821,6 +1825,36 @@ export async function logColdCallDial(input: {
   return api("/api/admin/cold-call/dials", {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+// Every way the call card can fail to place a call. The server sends a sentence
+// with it; these exist so the card can also decide what to SHOW, which differs:
+// a missing workflow wants the fallback link, a prospect with no number does not.
+export type BridgeDialError =
+  | "not_configured"
+  | "no_phone"
+  | "no_contact"
+  | "workflow_missing"
+  | "workflow_draft"
+  | "enroll_failed";
+
+export interface BridgeDialResult {
+  ok: boolean;
+  error?: BridgeDialError;
+  message?: string;
+  // When GoHighLevel took the call, ISO. Carried to the outcome press.
+  startedAt?: string;
+}
+
+// Ask GoHighLevel to place the call: it rings the caller's phone first, then
+// bridges the prospect from the agency number. Answers ok:false with a sentence
+// rather than throwing for the states a caller can act on (no workflow, draft
+// workflow, no number), because those are not exceptions, they are the account.
+export async function bridgeColdCallDial(leadId: string): Promise<BridgeDialResult> {
+  return api("/api/admin/cold-call/bridge", {
+    method: "POST",
+    body: JSON.stringify({ leadId }),
   });
 }
 

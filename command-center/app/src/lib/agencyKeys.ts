@@ -179,6 +179,13 @@ export const AGENCY_KEYS: AgencyKeyDef[] = [
     entry: "paste",
     help: "Who a callback task is assigned to. Defaults to you.",
   },
+  {
+    name: "AGENCY_GHL_BRIDGE_WORKFLOW",
+    group: "coldcall",
+    entry: "paste",
+    help: 'The workflow the Call button uses to place a call, by name. Defaults to "CC Bridge Dial".',
+    warning: "It has to be published in GoHighLevel. A draft accepts the prospect and never rings.",
+  },
 
   // --- Calendars ------------------------------------------------------------
   { name: "COMPOSIO_API_KEY", group: "calendars", entry: "paste", help: "From the Composio dashboard." },

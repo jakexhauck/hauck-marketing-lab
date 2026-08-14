@@ -2,6 +2,7 @@ import type { Env, ApiData } from "../../../lib/env";
 import { readJsonBody } from "../../../lib/body";
 import { getServiceClient } from "../../../lib/supabase";
 import { agencyTimezone } from "../../../lib/agencyGhl";
+import { fetchLatestCall } from "../../../lib/agencyCallLog";
 import { pushColdCallOutcome, type LeadForPush } from "../../../lib/agencyCrm";
 import { dateStringInZone } from "../../../lib/tz";
 import {
@@ -43,6 +44,11 @@ interface Body {
   // so a browser must not be able to attribute a booking to whichever script it
   // fancies.
   scriptId?: string | null;
+  // When the Call button placed this call, ISO, as handed back by
+  // /api/admin/cold-call/bridge. Present only for a call the app itself dialled,
+  // and the cut-off for which call on the contact's timeline is this one (0112).
+  // Absent means the caller used their own handset, and no duration is looked up.
+  bridgedAt?: string | null;
 }
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -103,8 +109,55 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       )
     : null;
 
+  // How long the call lasted, for a call this app placed (0112).
+  //
+  // After the GHL push, not before: that push is what guarantees a contact id
+  // exists to read a timeline from. Best effort throughout, and deliberately not
+  // awaited into the response the caller is waiting on, because the next prospect
+  // is on screen the instant an outcome is pressed and a duration is worth
+  // nothing next to that.
+  const bridgedAt = Date.parse(body.bridgedAt ?? "");
+  if (Number.isFinite(bridgedAt) && body.leadId) {
+    ctx.waitUntil(stampCall(ctx.env, client, body.leadId, data.id as string, bridgedAt));
+  }
+
   return Response.json({ dial: data, ghl }, { status: 201 });
 };
+
+// Read the call back off the contact's timeline and stamp the row with it.
+//
+// A minute of slack on the cut-off: the button is pressed while the caller is
+// still saying goodbye, and GoHighLevel timestamps the message from when the
+// call STARTED, which is by definition before the press. Without the slack the
+// call being logged would be the one call that never matched.
+async function stampCall(
+  env: Env,
+  client: NonNullable<ReturnType<typeof getServiceClient>>,
+  leadId: string,
+  dialId: string,
+  bridgedAt: number,
+): Promise<void> {
+  const { data } = await client
+    .from("leads")
+    .select("ghl_contact_id")
+    .eq("id", leadId)
+    .maybeSingle();
+  const contactId = (data as { ghl_contact_id: string | null } | null)?.ghl_contact_id;
+  if (!contactId) return;
+
+  const stamp = await fetchLatestCall(env, contactId, bridgedAt - 60_000);
+  if (!stamp) return;
+
+  await client
+    .from("cold_call_dials")
+    .update({
+      call_message_id: stamp.callMessageId,
+      call_sid: stamp.callSid,
+      call_status: stamp.callStatus,
+      duration_seconds: stamp.durationSeconds,
+    })
+    .eq("id", dialId);
+}
 
 // Confirm the id names a real, live dialing script, or return null.
 //

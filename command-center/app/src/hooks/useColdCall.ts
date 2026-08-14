@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   api,
   bookColdCall,
+  bridgeColdCallDial,
   getAgencyPipelines,
   getColdCallCalendars,
   getColdCallSlots,
@@ -164,6 +165,9 @@ export interface LogDialInput {
   // Which dialing variation was on screen (0058). Checked server-side against
   // the live scripts, so this cannot credit a booking to whatever it likes.
   scriptId?: string | null;
+  // When the Call button placed this call, ISO (0112). Only set for a call the
+  // app dialled; absent for a caller working off their own handset.
+  bridgedAt?: string | null;
 }
 
 // Append one attempt. Fire-and-forget from the caller's point of view: the
@@ -189,6 +193,25 @@ export function useLogColdCallDial() {
       // test is now one dial out of date.
       qc.invalidateQueries({ queryKey: ["admin", "cold-call", "assets"] });
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Placing the call itself (0112).
+
+// Press Call, GoHighLevel rings your phone and then bridges the prospect.
+//
+// Never retried, and for a harder reason than a dial is: a retry places a SECOND
+// call to a real person who is at that moment already talking to the caller. A
+// failed dial is a button pressed again by a human who can see what happened.
+//
+// Nothing is invalidated on success. Placing a call changes nothing anybody is
+// looking at; the outcome press is what moves the prospect and refreshes the
+// lists, exactly as before.
+export function useBridgeDial() {
+  return useMutation({
+    retry: false,
+    mutationFn: (leadId: string) => bridgeColdCallDial(leadId),
   });
 }
 
