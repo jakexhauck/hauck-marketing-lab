@@ -6,6 +6,7 @@ import {
   getColdCallCalendars,
   getColdCallSlots,
   getColdCallCallbackSlots,
+  getColdCallCrm,
   getSalesMeetings,
   logColdCallDial,
   recordMeetingOutcome,
@@ -224,6 +225,20 @@ export function useColdCallCallbackSlots(enabled = true) {
     enabled,
     staleTime: 30_000,
     queryFn: getColdCallCallbackSlots,
+  });
+}
+
+// Which GoHighLevel sub-account the book lives in, for the "Dial in
+// GoHighLevel" link on the call card. Held for the session: this is an
+// environment variable on the server, so it cannot change while somebody is on
+// the phones, and a refetch per prospect would be a request that can only ever
+// return the same string.
+export function useColdCallCrm(enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "cold-call", "crm"],
+    enabled,
+    staleTime: Infinity,
+    queryFn: getColdCallCrm,
   });
 }
 

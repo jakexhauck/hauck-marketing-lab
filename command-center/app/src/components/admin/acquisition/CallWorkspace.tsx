@@ -16,7 +16,12 @@ import {
 import type { AdminLead, ColdCallDialOutcome } from "../../../lib/api";
 import { metaFor } from "../../../lib/adminLeads";
 import { useUpdateAdminLead } from "../../../hooks/useAdminLeads";
-import { useColdCallCallbackSlots, useLogColdCallDial } from "../../../hooks/useColdCall";
+import {
+  useColdCallCallbackSlots,
+  useColdCallCrm,
+  useLogColdCallDial,
+} from "../../../hooks/useColdCall";
+import { ghlContactUrl } from "../../../lib/setterModel";
 import { useColdCallScripts } from "../../../hooks/useColdCallAssets";
 import { resolveScriptId, useSelectedScriptId } from "../../../lib/selectedScript";
 import {
@@ -114,6 +119,9 @@ export default function CallWorkspace({
   // appears on a click mid-call, and a spinner where the times should be is a
   // pause in a conversation.
   const callbackSlots = useColdCallCallbackSlots();
+  // Which GoHighLevel sub-account to send a dial to. Loaded once for the whole
+  // workspace, not per prospect: it is the same string all shift.
+  const crmLocationId = useColdCallCrm().data?.locationId ?? "";
 
   // Which dialing variation this call is being made from (0058). Read here
   // rather than passed down, so no component between this and the script panel
@@ -337,13 +345,7 @@ export default function CallWorkspace({
             </span>
           </div>
 
-          <a
-            href={telHref(selected.phone)}
-            className="mt-4 inline-flex items-center gap-3 font-mono text-[30px] font-semibold tracking-tight text-brand hover:underline"
-          >
-            <Phone size={22} aria-hidden />
-            {formatPhoneDashed(selected.phone) || "No number on file"}
-          </a>
+          <DialRow lead={selected} locationId={crmLocationId} />
 
           {selected.email && (
             <p className="mt-2 font-mono text-[12.5px] text-muted">{selected.email}</p>
@@ -516,6 +518,74 @@ function LocalTime({ lead, now }: { lead: AdminLead; now: number }) {
         </span>
       )}
     </p>
+  );
+}
+
+// How the call gets placed.
+//
+// GoHighLevel first, because the agency's softphone lives there: it dials from
+// the agency number, records the call and logs it against the contact. A tel:
+// link does none of that, dials from whichever handset the caller is sitting at
+// and shows the prospect a personal mobile.
+//
+// It lands on the contact record rather than the dialer, because GoHighLevel
+// exposes no way to open the dialer pre-filled (same as the Setter Suite, see
+// ghlContactUrl). The caller presses the phone icon there. The named tab means a
+// whole session of dialing reuses one tab instead of leaving forty behind.
+//
+// The plain number stays underneath, because two things need it: a caller
+// working off their own phone, and anyone who simply wants to read the digits.
+//
+// Falls back to the old single tel: link when there is no CRM record to open,
+// which is a prospect the import could not push (see GhlState below) or an
+// agency GoHighLevel account that is not connected at all.
+function DialRow({ lead, locationId }: { lead: AdminLead; locationId: string }) {
+  const number = formatPhoneDashed(lead.phone);
+  const crmUrl = lead.ghlContactId ? ghlContactUrl(locationId, lead.ghlContactId) : null;
+
+  if (!number) {
+    return (
+      <p className="mt-4 flex items-center gap-3 font-mono text-[30px] font-semibold tracking-tight text-faint">
+        <Phone size={22} aria-hidden />
+        No number on file
+      </p>
+    );
+  }
+
+  if (!crmUrl) {
+    return (
+      <a
+        href={telHref(lead.phone)}
+        className="mt-4 inline-flex items-center gap-3 font-mono text-[30px] font-semibold tracking-tight text-brand hover:underline"
+      >
+        <Phone size={22} aria-hidden />
+        {number}
+      </a>
+    );
+  }
+
+  return (
+    <div className="mt-4">
+      <a
+        href={crmUrl}
+        target="ghl-contact"
+        rel="noopener noreferrer"
+        title="Opens the prospect in GoHighLevel, where the phone icon dials from the agency number and records the call"
+        className="inline-flex items-center gap-2.5 rounded-[var(--radius)] bg-brand px-5 py-3 font-display text-[16px] font-semibold text-white transition-opacity hover:opacity-90"
+      >
+        <Phone size={19} aria-hidden />
+        Dial in GoHighLevel
+      </a>
+      <a
+        href={telHref(lead.phone)}
+        className="mt-2.5 flex items-center gap-2 font-mono text-[15px] font-semibold tracking-tight text-muted hover:text-brand hover:underline"
+      >
+        {number}
+        <span className="font-sans text-[12px] font-normal text-faint no-underline">
+          dial from this device
+        </span>
+      </a>
+    </div>
   );
 }
 

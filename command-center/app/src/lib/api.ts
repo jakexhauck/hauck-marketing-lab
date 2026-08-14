@@ -1729,6 +1729,19 @@ export async function getColdCallCallbackSlots(): Promise<{
   return api("/api/admin/cold-call/callback-slots");
 }
 
+// Which GoHighLevel sub-account the cold call book lives in. Enough to build a
+// link to a prospect's contact record (ghlContactUrl), which is how a caller
+// dials from the agency's number rather than their own handset.
+//
+// locationId is "" when the agency account is not connected, and the call card
+// falls back to the plain phone link.
+export async function getColdCallCrm(): Promise<{
+  configured: boolean;
+  locationId: string;
+}> {
+  return api("/api/admin/cold-call/crm");
+}
+
 // The agency's own GoHighLevel boards (Cold Call > Pipelines), read live.
 export interface AgencyPipeline {
   id: string;
