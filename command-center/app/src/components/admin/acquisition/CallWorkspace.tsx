@@ -610,10 +610,17 @@ function LocalTime({
 
 // How the call gets placed.
 //
-// The button asks GoHighLevel to place the call: it rings the caller's own phone,
-// plays a whisper, takes a keypress, then dials the prospect from the agency
-// number and bridges the two. Recorded, and on the contact's timeline, exactly as
-// it is when the phone icon is pressed by hand over there.
+// The button asks GoHighLevel to place the call: it rings the caller's own phone
+// and, the moment they answer, dials the prospect from the agency number and
+// bridges the two. Recorded, and on the contact's timeline, exactly as it is when
+// the phone icon is pressed by hand over there.
+//
+// No whisper and no keypress, both switched off in the workflow: the caller
+// pressed Call two seconds ago and is holding the phone, so anything played to
+// them before the prospect is connected is a delay they are paying for while the
+// prospect's phone rings. The label says "Dialing" and nothing else for the same
+// reason. It used to read "press 1 to connect" while the keypress was already
+// off, which is an instruction for a thing that never happens.
 //
 // This replaced a link that opened the contact in GoHighLevel for the caller to
 // press that icon themselves, which meant a second tab on every prospect and
@@ -692,7 +699,7 @@ function DialRow({
       {ringing ? (
         <div className="inline-flex items-center gap-2.5 rounded-[var(--radius)] border border-brand/40 bg-brand/10 px-5 py-3 font-display text-[16px] font-semibold text-brand">
           <PhoneCall size={19} className="animate-pulse" aria-hidden />
-          Ringing your phone, press 1 to connect
+          Dialing
         </div>
       ) : (
         <button

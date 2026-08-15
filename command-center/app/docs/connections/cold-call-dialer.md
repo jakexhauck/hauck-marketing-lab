@@ -1,8 +1,8 @@
 # Cold Call dialer (the Call button): connections
 
 The Call button on the cold call card asks GoHighLevel to place the call. It rings
-the caller's own phone, plays a whisper, takes a keypress, then dials the prospect
-from the agency number and bridges the two. The app never leaves the screen.
+the caller's own phone and, the moment they answer, dials the prospect from the
+agency number and bridges the two. The app never leaves the screen.
 
 Status: ✅ live. Built, deployed and wired 2026-08-14. Workflow published, migration
 0112 applied. Proven end to end on 2026-08-15 with a test call to an unroutable
@@ -67,9 +67,11 @@ line, costed and set aside in `docs/build-plans/cold-call-in-app-dialer.md`.
 
 ✅ **`CC Bridge Dial`, published**, id `cffad8d7-59f2-402a-8fe2-08730ae045a4`.
 
-Its settings live in GoHighLevel and cannot be read back from here: the public API
-lists workflows but not their steps, and reading a step needs the internal API,
-whose Firebase token is expired. So this is the intended configuration rather than
+Its settings live in GoHighLevel and can be neither read nor written from here.
+Re-verified 2026-08-15: `GET /workflows/{id}` and `PUT /workflows/{id}` are both
+**404, the endpoints do not exist**. The public API lists workflows and nothing
+more, and reaching a step needs the internal API, whose Firebase token is expired.
+Every setting below is therefore changed by hand in the GoHighLevel UI. So this is the intended configuration rather than
 a reading of the live one.
 
 - **Connect call after keypress: off.** It exists to prove a human answered, which
@@ -84,8 +86,15 @@ a reading of the live one.
   not say whether it governs only the leg to the caller or the leg to the prospect
   too. If both, 30 gives up at about the moment a mobile would roll to voicemail,
   which is the right place to stop.
-- **Whisper:** "Cold call, connecting you now". It must not tell anyone to press a
-  key while the keypress is off.
+- **Whisper: none. Leave the field EMPTY** (2026-08-15, Jake's call). It used to
+  say "Cold call, connecting you now", and that sentence is pure delay: the caller
+  pressed the button themselves and knows what the call is, so playing it to them
+  only holds the bridge open while the prospect's phone is already ringing, and a
+  prospect who answers during it hears silence. Answer the handset and the
+  prospect is simply there.
+
+  If GoHighLevel refuses to save an empty whisper, put a single space in it rather
+  than reinstating a sentence.
 
 Rebuild it from these steps if it is ever lost:
 

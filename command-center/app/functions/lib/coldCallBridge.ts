@@ -9,10 +9,15 @@ import type { Env } from "./env";
 // place the call, which is a thing GoHighLevel will happily do.
 //
 // The mechanism is one workflow with a single Call action. Dropping a contact
-// into it makes GHL ring the user assigned to that contact, play a whisper, take
-// a keypress, then dial the prospect and bridge the two. The call goes out on the
-// agency number, gets recorded, and lands on the contact's timeline exactly as it
-// does when the phone icon is pressed by hand over there.
+// into it makes GHL ring the user assigned to that contact and, the moment they
+// answer, dial the prospect and bridge the two. The call goes out on the agency
+// number, gets recorded, and lands on the contact's timeline exactly as it does
+// when the phone icon is pressed by hand over there.
+//
+// No whisper, no keypress. Both are off in the workflow because the caller
+// pressed the button two seconds earlier and is holding the phone: anything
+// played to them first is dead air they spend while the prospect's phone is
+// already ringing, and a prospect who picks up during it hears nobody.
 //
 // What this buys: the caller never leaves the app. What it costs: the audio comes
 // out of the caller's handset rather than the browser tab, and there is a couple

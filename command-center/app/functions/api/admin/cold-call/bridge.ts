@@ -21,8 +21,8 @@ import {
 //
 // The Call button on the call card. Drops the prospect into the one workflow
 // whose only action is GoHighLevel's Call action, which rings the caller's own
-// phone, plays the whisper, takes the keypress and then bridges the prospect from
-// the agency number.
+// phone and bridges the prospect from the agency number the moment it is
+// answered. No whisper and no keypress; see functions/lib/coldCallBridge.ts.
 //
 // Why a workflow and not a call API: GoHighLevel has no endpoint that places a
 // call, and its softphone cannot be embedded (x-frame-options SAMEORIGIN). The
