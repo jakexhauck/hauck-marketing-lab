@@ -96,6 +96,10 @@ export const ADMIN_PILLARS: PillarDef[] = [
     tabs: [
       { id: "business-health", label: "Business Health", ready: true },
       { id: "inbox", label: "Inbox", ready: true },
+      // Everyone already running, and what they told us on the intake form.
+      // The same list and the same sheet as Onboarding, which only holds the
+      // ones still being stood up.
+      { id: "clients", label: "Clients", ready: true },
       { id: "calculator", label: "Calculator", ready: true },
       { id: "time-audit", label: "Time Audit", ready: true },
       { id: "tasks", label: "Tasks", ready: true },

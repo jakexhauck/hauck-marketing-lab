@@ -43,6 +43,7 @@ describe("adminPillars config", () => {
       "playbook",
       "business-health",
       "inbox",
+      "clients",
       "calculator",
       "time-audit",
       "tasks",
@@ -70,6 +71,7 @@ describe("adminPillars config", () => {
     expect(tabsFor("operations").map((t) => t.id)).toEqual([
       "business-health",
       "inbox",
+      "clients",
       "calculator",
       "time-audit",
       "tasks",

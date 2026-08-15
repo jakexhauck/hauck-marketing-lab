@@ -16,6 +16,7 @@ import SalesPipelineBoard from "../../components/admin/sales/SalesPipelineBoard"
 import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
 import InboxTab from "../../components/admin/operations/InboxTab";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
+import ClientsTab from "../../components/admin/operations/ClientsTab";
 import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
 import SopsTab from "../../components/admin/operations/SopsTab";
@@ -155,6 +156,9 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     // The agency's own GoHighLevel messages, read and answered by text.
     case "inbox":
       return <InboxTab />;
+    // Every live client, opening onto the same sheet Onboarding shows.
+    case "clients":
+      return <ClientsTab />;
     case "calculator":
       return <ScalingCalculatorTab />;
     case "time-audit":

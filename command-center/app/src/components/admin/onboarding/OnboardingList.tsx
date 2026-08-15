@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { ChevronRight } from "lucide-react";
 import { Button } from "../../ui/Button";
+import AccountRow, { subtitle, type AccountRowData } from "./AccountRow";
 import { ClientSheet, SubmissionSheet } from "./OnboardingSheet";
 import { useAdminOnboardingGoLive, useAdminOnboardingListQuery } from "../../../hooks/useApi";
 import { useIntakeQueue } from "../../../hooks/useIntake";
@@ -14,25 +14,18 @@ import { useIntakeQueue } from "../../../hooks/useIntake";
 // Clients still in setup and forms that never became a client sit in the same
 // list on purpose: sorting them into groups was work Jake had to do with his
 // eyes before he could do the work he came for.
-
-interface Row {
-  key: string;
-  name: string;
-  sub: string;
-  initials: string;
-  color: string;
-  /** Present for a real client. Absent for a form nobody has stood up yet. */
-  tenantId?: string;
-  submissionId?: string;
-}
+//
+// Once Go live is pressed a client drops off this list and appears on
+// Operations > Clients, which is the same list and the same sheet for the ones
+// already running.
 
 export default function OnboardingList() {
   const roster = useAdminOnboardingListQuery();
   const forms = useIntakeQueue("all");
   const [openKey, setOpenKey] = useState<string | null>(null);
 
-  const rows = useMemo<Row[]>(() => {
-    const clients: Row[] = (roster.data?.clients ?? [])
+  const rows = useMemo<AccountRowData[]>(() => {
+    const clients: AccountRowData[] = (roster.data?.clients ?? [])
       .filter((c) => c.onboardingStatus === "setup")
       .map((c) => ({
         key: `client:${c.id}`,
@@ -45,7 +38,7 @@ export default function OnboardingList() {
 
     // Only the forms that never became a client. A finished form creates the
     // client itself, so anything with a tenant is already a row above.
-    const pending: Row[] = (forms.data?.submissions ?? [])
+    const pending: AccountRowData[] = (forms.data?.submissions ?? [])
       .filter((s) => !s.tenantId && s.status !== "rejected")
       .map((s) => ({
         key: `form:${s.id}`,
@@ -77,82 +70,25 @@ export default function OnboardingList() {
 
       <div className="flex flex-col gap-2">
         {rows.map((row) => (
-          <ListRow
+          <AccountRow
             key={row.key}
             row={row}
             open={openKey === row.key}
             onToggle={() => setOpenKey((k) => (k === row.key ? null : row.key))}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ListRow({
-  row,
-  open,
-  onToggle,
-}: {
-  row: Row;
-  open: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <div
-      className={
-        "overflow-hidden rounded-[var(--radius-lg)] border bg-surface transition-shadow " +
-        (open
-          ? "border-border-strong shadow-[var(--shadow-md)]"
-          : "border-border shadow-[var(--shadow-sm)]")
-      }
-    >
-      <div className="flex items-center gap-4 px-4 py-3">
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={open}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
-        >
-          <span
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius)] font-display text-[11px] font-bold text-white"
-            style={{ background: row.color }}
-            aria-hidden
+            // Only a real client can be made live. A form with no account behind
+            // it has nothing to flip, so the slot is empty rather than lying.
+            action={
+              row.tenantId && <GoLiveButton tenantId={row.tenantId} name={row.name} />
+            }
           >
-            {row.initials}
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-[14px] font-semibold tracking-[-0.015em] text-text">
-              {row.name}
-            </span>
-            <span className="block truncate text-[11.5px] text-faint">{row.sub}</span>
-          </span>
-        </button>
-
-        {/* Only a real client can be made live. A form with no account behind it
-            has nothing to flip, so the slot is empty rather than lying. */}
-        {row.tenantId && <GoLiveButton tenantId={row.tenantId} name={row.name} />}
-
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-label={open ? `Close ${row.name}` : `Open ${row.name}`}
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-[var(--radius-sm)] text-faint hover:bg-surface-2 hover:text-text"
-        >
-          <ChevronRight
-            size={15}
-            className={"transition-transform " + (open ? "rotate-90" : "")}
-            aria-hidden
-          />
-        </button>
-      </div>
-
-      {open &&
-        (row.tenantId ? (
-          <ClientSheet tenantId={row.tenantId} />
-        ) : (
-          <SubmissionSheet submissionId={row.submissionId!} />
+            {row.tenantId ? (
+              <ClientSheet tenantId={row.tenantId} />
+            ) : (
+              <SubmissionSheet submissionId={row.submissionId!} />
+            )}
+          </AccountRow>
         ))}
+      </div>
     </div>
   );
 }
@@ -178,10 +114,4 @@ function GoLiveButton({ tenantId, name }: { tenantId: string; name: string }) {
       </Button>
     </div>
   );
-}
-
-/** "Windows and siding · Meridian, ID", skipping whatever is missing. */
-function subtitle(niche: string, city: string, region: string): string {
-  const place = [city, region].filter(Boolean).join(", ");
-  return [niche, place].filter(Boolean).join(" · ");
 }
