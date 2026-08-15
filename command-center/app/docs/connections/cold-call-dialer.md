@@ -17,7 +17,16 @@ wrote the call onto the contact as `from +13133704923` (the local number, not th
 toll-free one, which settles the open question above) with `userId` Jake and
 `source: workflow`.
 
-Two things were wrong and are now fixed:
+Three things were wrong and are now fixed:
+
+0. **The enrolment was refused outright, in prod, for every call.** GoHighLevel
+   validates `eventStartTime` more strictly than ISO 8601:
+   `new Date().toISOString()` gives `2026-08-15T20:18:39.276Z` and the enrolment
+   answers **422 "The event start time must be a date and time with timezone
+   offset. ex: 2021-06-23T03:30:00+01:00"**. The FRACTIONAL SECONDS are the
+   objection. The manual test on 2026-08-15 passed only because `date -u` happens
+   to omit them, which is exactly why the bug survived that test. Now formatted by
+   `ghlEventStartTime()` as `2026-08-15T20:19:40+00:00`, verified 201 live.
 
 1. **The duration read-back never matched our own calls.** A call dialled by hand
    in GoHighLevel is `TYPE_CALL`, but a call placed BY A WORKFLOW, which is every

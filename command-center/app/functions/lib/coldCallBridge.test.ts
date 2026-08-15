@@ -4,6 +4,7 @@ import {
   bridgeFailureMessage,
   bridgeWorkflowName,
   callStamp,
+  ghlEventStartTime,
   latestOutboundCall,
   pickBridgeWorkflow,
   type GhlCallMessage,
@@ -93,6 +94,29 @@ describe("bridgeFailureMessage", () => {
     for (const code of codes) {
       expect(bridgeFailureMessage(code, "CC Bridge Dial").length).toBeGreaterThan(10);
     }
+  });
+});
+
+// The 422 that took the Call button out in prod on 2026-08-15.
+describe("ghlEventStartTime", () => {
+  it("drops the milliseconds GoHighLevel rejects", () => {
+    expect(ghlEventStartTime(new Date("2026-08-15T20:18:39.276Z"))).toBe(
+      "2026-08-15T20:18:39+00:00",
+    );
+  });
+
+  it("matches the shape GoHighLevel's own error documents", () => {
+    const out = ghlEventStartTime(new Date("2021-06-23T02:30:00.000Z"));
+    expect(out).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/);
+    expect(out).not.toContain(".");
+    expect(out).not.toContain("Z");
+  });
+
+  // The offset has to be real, not decorative: an enrolment stamped a day out
+  // would schedule the call rather than place it.
+  it("still names the same instant, to the second", () => {
+    const at = new Date("2026-08-15T20:18:39.276Z");
+    expect(Date.parse(ghlEventStartTime(at))).toBe(Math.floor(at.getTime() / 1000) * 1000);
   });
 });
 

@@ -11,6 +11,7 @@ import { readableError, toE164, upsertAgencyContact, type LeadForPush } from "..
 import {
   bridgeFailureMessage,
   bridgeWorkflowName,
+  ghlEventStartTime,
   pickBridgeWorkflow,
   type BridgeFailure,
   type GhlWorkflowSummary,
@@ -152,7 +153,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     await ghlJson(
       ghl,
       `/contacts/${encodeURIComponent(contactId)}/workflow/${encodeURIComponent(pick.id)}`,
-      { method: "POST", body: JSON.stringify({ eventStartTime: new Date().toISOString() }) },
+      {
+        method: "POST",
+        body: JSON.stringify({ eventStartTime: ghlEventStartTime(new Date()) }),
+      },
     );
   } catch (err) {
     return failed("enroll_failed", workflowName, detailWith(upsertError, readableError(err)));

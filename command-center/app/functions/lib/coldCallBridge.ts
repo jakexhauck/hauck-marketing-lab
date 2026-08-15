@@ -34,6 +34,23 @@ export function bridgeWorkflowName(env: Env): string {
   return (env.AGENCY_GHL_BRIDGE_WORKFLOW ?? "").trim() || BRIDGE_WORKFLOW_NAME;
 }
 
+// The enrolment's eventStartTime, in the one shape GoHighLevel accepts.
+//
+// Their validator is fussier than ISO 8601 and this cost a live button.
+// `new Date().toISOString()` yields "2026-08-15T20:18:39.276Z", and the
+// enrolment answers 422: "The event start time must be a date and time with
+// timezone offset. ex: 2021-06-23T03:30:00+01:00". The FRACTIONAL SECONDS are
+// what it refuses; the same instant without them enrolled with a 201 against the
+// live account on 2026-08-15.
+//
+// Written as +00:00 rather than the equivalent Z, because that is the shape their
+// own error message documents, and a validator that already rejects milliseconds
+// is one that could later reject Z too. UTC throughout: this is an instant, not a
+// wall clock, and the agency timezone has no say in when "now" is.
+export function ghlEventStartTime(at: Date): string {
+  return `${at.toISOString().slice(0, 19)}+00:00`;
+}
+
 // A workflow as GET /workflows/ returns it. Only the three fields that decide
 // anything; the endpoint never reads the rest.
 export interface GhlWorkflowSummary {
