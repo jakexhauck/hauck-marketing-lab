@@ -74,27 +74,41 @@ more, and reaching a step needs the internal API, whose Firebase token is expire
 Every setting below is therefore changed by hand in the GoHighLevel UI. So this is the intended configuration rather than
 a reading of the live one.
 
-- **Connect call after keypress: off.** It exists to prove a human answered, which
+- **Connect call after keypress: OFF.** It exists to prove a human answered, which
   matters for a power dialer where calls arrive unpredictably. Here the caller
   pressed Call two seconds earlier and is holding the phone, so it charges an
   action per call to guard a case they created themselves. The residual risk is
   the caller's own voicemail answering and the prospect being bridged to it, which
   voicemail detect covers imperfectly.
+
+  ⚠️ **This was ON in the live workflow until 2026-08-15**, despite what this file
+  used to claim. It is what made the whisper repeat: GoHighLevel plays the whisper
+  **up to three times** while it waits for a key. Jake heard the same sentence
+  three times on every call. The docs described the intended build, nobody had
+  read the live one back, and the two had drifted.
 - **Disable voicemail detect: off**, meaning detection is ON. It is the only thing
   standing between a slow pickup and a prospect hearing a voicemail greeting.
 - **Call timeout: 30s.** Ring time before GoHighLevel gives up. GHL's wording does
   not say whether it governs only the leg to the caller or the leg to the prospect
   too. If both, 30 gives up at about the moment a mobile would roll to voicemail,
   which is the right place to stop.
-- **Whisper: none. Leave the field EMPTY** (2026-08-15, Jake's call). It used to
-  say "Cold call, connecting you now", and that sentence is pure delay: the caller
-  pressed the button themselves and knows what the call is, so playing it to them
-  only holds the bridge open while the prospect's phone is already ringing, and a
-  prospect who answers during it hears silence. Answer the handset and the
-  prospect is simply there.
+- **Call whisper: none. Leave the field EMPTY** (2026-08-15, Jake's call).
 
-  If GoHighLevel refuses to save an empty whisper, put a single space in it rather
-  than reinstating a sentence.
+  ⚠️ The live workflow was never carrying "Cold call, connecting you now" as this
+  file claimed. It was on or near GoHighLevel's default, which reads the contact
+  back at you: Jake heard **"you have a new Lead scraper lead, connecting you"**,
+  three times over, "Lead scraper" being the `source` our upsert writes on the
+  contact. So the whisper was announcing our own database field to the person who
+  had just clicked the button.
+
+  Empty is the right answer, not a shorter sentence. The caller pressed Call two
+  seconds earlier and is looking at the prospect on screen, so anything played to
+  them first is dead air spent while the prospect's phone already rings, and a
+  prospect who answers during it hears nobody. The whisper is also billed as
+  text-to-speech per character.
+
+  If GoHighLevel refuses to save it empty, put a single space in rather than
+  reinstating a sentence.
 
 Rebuild it from these steps if it is ever lost:
 
@@ -103,7 +117,9 @@ Rebuild it from these steps if it is ever lost:
 3. No trigger is needed: the app injects the contact over the API. If GHL refuses
    to publish without one, add trigger **Contact Tag** with the tag
    `cc bridge dial`, which nothing ever applies, so it stays inert.
-4. Add one action: **Call**, configured as above.
+4. Add one action: **Call**, configured as above. Check the whisper field and the
+   keypress toggle by eye every time: they are the two that were wrong on the
+   build that shipped, and neither can be read back over the API to catch it.
 5. **Publish it.** A draft accepts the contact over the API and then does nothing
    at all, which on the phones looks exactly like a dead button. The app checks
    for this and says so by name rather than letting it happen silently.
