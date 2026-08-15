@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  bookingZoneOptions,
   buildBookingWeeks,
   cursorForIso,
+  dayKeyInZone,
   firstAvailableIso,
+  isKnownZone,
   isoOf,
+  regroupDaysInZone,
+  timeLabelInZone,
 } from "./bookingCalendar";
 import type { TodayRef } from "./trackerMonth";
 
@@ -102,5 +107,106 @@ describe("firstAvailableIso", () => {
   it("returns null when the calendar is fully booked", () => {
     expect(firstAvailableIso([{ date: "2026-07-27", slots: [] }])).toBeNull();
     expect(firstAvailableIso([])).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Reading the same slots on another clock
+// ---------------------------------------------------------------------------
+
+describe("timeLabelInZone", () => {
+  it("reads one instant differently on each clock", () => {
+    const slot = "2026-07-29T14:30:00-04:00";
+    expect(timeLabelInZone(slot, "America/New_York")).toBe("2:30 PM");
+    expect(timeLabelInZone(slot, "America/Chicago")).toBe("1:30 PM");
+    expect(timeLabelInZone(slot, "America/Los_Angeles")).toBe("11:30 AM");
+  });
+});
+
+describe("dayKeyInZone", () => {
+  it("keys a slot to its calendar day on that clock", () => {
+    expect(dayKeyInZone("2026-07-29T14:30:00-04:00", "America/New_York")).toBe("2026-07-29");
+  });
+
+  // The reason the grouping is rebuilt at all: an early Eastern slot is the
+  // PREVIOUS day in Hawaii, so a grid that kept the server's day would file it
+  // under a date the caller is not looking at.
+  it("moves a slot to the previous day where the clock says so", () => {
+    expect(dayKeyInZone("2026-07-29T05:00:00-04:00", "Pacific/Honolulu")).toBe("2026-07-28");
+  });
+});
+
+describe("regroupDaysInZone", () => {
+  const DAYS = [
+    {
+      date: "2026-07-29",
+      slots: ["2026-07-29T05:00:00-04:00", "2026-07-29T14:30:00-04:00"],
+    },
+  ];
+
+  it("keeps the server's grouping when the clock agrees with it", () => {
+    const out = regroupDaysInZone(DAYS, "America/New_York");
+    expect(out).toEqual(DAYS);
+  });
+
+  it("splits a day whose slots straddle midnight on the chosen clock", () => {
+    const out = regroupDaysInZone(DAYS, "Pacific/Honolulu");
+    expect(out.map((d) => d.date)).toEqual(["2026-07-28", "2026-07-29"]);
+    expect(out[0].slots).toEqual(["2026-07-29T05:00:00-04:00"]);
+    expect(out[1].slots).toEqual(["2026-07-29T14:30:00-04:00"]);
+  });
+
+  it("hands back the days untouched for a zone this runtime does not know", () => {
+    expect(regroupDaysInZone(DAYS, "Mars/Olympus")).toEqual(DAYS);
+    expect(regroupDaysInZone(DAYS, "")).toEqual(DAYS);
+  });
+
+  it("sorts the times inside each rebuilt day", () => {
+    const jumbled = [
+      { date: "2026-07-29", slots: ["2026-07-29T16:00:00-04:00"] },
+      { date: "2026-07-29", slots: ["2026-07-29T09:00:00-04:00"] },
+    ];
+    const out = regroupDaysInZone(jumbled, "America/Chicago");
+    expect(out).toHaveLength(1);
+    expect(out[0].slots).toEqual([
+      "2026-07-29T09:00:00-04:00",
+      "2026-07-29T16:00:00-04:00",
+    ]);
+  });
+});
+
+describe("isKnownZone", () => {
+  it("accepts real IANA zones and refuses anything else", () => {
+    expect(isKnownZone("America/Denver")).toBe(true);
+    expect(isKnownZone("Mars/Olympus")).toBe(false);
+    expect(isKnownZone("")).toBe(false);
+  });
+});
+
+describe("bookingZoneOptions", () => {
+  it("names whose clock each of the two that matter is", () => {
+    const opts = bookingZoneOptions("America/New_York", "America/Los_Angeles");
+    expect(opts.find((o) => o.zone === "America/New_York")?.label).toBe("Eastern (yours)");
+    expect(opts.find((o) => o.zone === "America/Los_Angeles")?.label).toBe("Pacific (theirs)");
+    // Everything else reads as the plain list it came from.
+    expect(opts.find((o) => o.zone === "America/Denver")?.label).toBe("Mountain");
+  });
+
+  it("says so once when the prospect is on the agency's own clock", () => {
+    const opts = bookingZoneOptions("America/New_York", "America/New_York");
+    expect(opts.find((o) => o.zone === "America/New_York")?.label).toBe(
+      "Eastern (yours and theirs)",
+    );
+  });
+
+  it("marks nothing as theirs when the prospect's zone is unknown", () => {
+    const opts = bookingZoneOptions("America/New_York", null);
+    expect(opts.filter((o) => o.label.includes("theirs"))).toHaveLength(0);
+  });
+
+  // The default has to be selectable, whatever AGENCY_TIMEZONE holds.
+  it("adds an agency zone the list does not carry", () => {
+    const opts = bookingZoneOptions("Europe/London", null);
+    expect(opts[0]).toEqual({ zone: "Europe/London", label: "Europe/London (yours)" });
   });
 });

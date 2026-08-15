@@ -1,4 +1,5 @@
 import { buildMonthDays, type MonthCursor, type TodayRef } from "./trackerMonth";
+import { ZONE_CHOICES, zoneLabel } from "./leadLocalTime";
 
 // The month grid behind the booking calendar: the same shape GoHighLevel's own
 // booking page uses, so a caller looking at it recognises it.
@@ -75,4 +76,114 @@ export function firstAvailableIso(
   days: { date: string; slots: string[] }[] | null | undefined,
 ): string | null {
   return days?.find((d) => d.slots.length > 0)?.date ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Reading the same slots in a different timezone
+// ---------------------------------------------------------------------------
+//
+// A slot is an instant: "2026-07-26T14:30:00-04:00" is one moment whichever
+// clock reads it. What changes with the zone is the DAY and the TIME a person
+// sees, and both have to change together. Showing 11:30 AM Pacific under a day
+// heading the Eastern calendar decided is how a caller books Tuesday while
+// saying Monday out loud.
+//
+// So the grouping is rebuilt here rather than trusted from the server, which
+// grouped by the agency's own zone.
+
+export interface SlotDay {
+  date: string;
+  slots: string[];
+}
+
+// Is this a timezone this runtime knows? A picker fed an unknown zone would
+// throw inside a formatter on every render.
+export function isKnownZone(zone: string): boolean {
+  if (!zone) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: zone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Built through formatToParts rather than a locale that happens to print
+// year-first, so the key is the same string on every machine.
+export function dayKeyInZone(slot: string, zone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(slot));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+export function timeLabelInZone(slot: string, zone: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(slot));
+}
+
+// The same slots, filed under the day each one falls on in `zone`, sorted so
+// the grid and the time column read in order. An unknown zone returns the days
+// untouched: the caller keeps a working calendar rather than an empty one.
+export function regroupDaysInZone(days: SlotDay[], zone: string): SlotDay[] {
+  if (!isKnownZone(zone)) return days;
+
+  const byDate = new Map<string, string[]>();
+  for (const d of days) {
+    for (const slot of d.slots) {
+      const key = dayKeyInZone(slot, zone);
+      const list = byDate.get(key);
+      if (list) list.push(slot);
+      else byDate.set(key, [slot]);
+    }
+  }
+
+  return [...byDate.entries()]
+    .map(([date, slots]) => ({
+      date,
+      slots: slots.sort((a, b) => +new Date(a) - +new Date(b)),
+    }))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
+
+export interface ZoneOption {
+  zone: string;
+  label: string;
+}
+
+// What the booking panel's timezone control offers.
+//
+// The same list the call card corrects a prospect's zone with, plus a note on
+// the two entries that mean something: the agency's own clock, which the
+// calendar's free times were computed against, and the prospect's, which is the
+// one being read down the phone. Marking them is the whole point of the
+// control: "Pacific" alone does not tell a caller whose Pacific it is.
+//
+// An agency zone the list does not carry (the env var can hold any IANA name)
+// is added at the top rather than silently dropped, or the default itself would
+// be unselectable.
+export function bookingZoneOptions(
+  agencyZone: string,
+  prospectZone: string | null,
+): ZoneOption[] {
+  const base = ZONE_CHOICES.map((c) => ({ zone: c.zone, label: c.label }));
+  if (agencyZone && !base.some((o) => o.zone === agencyZone)) {
+    base.unshift({ zone: agencyZone, label: zoneLabel(agencyZone) });
+  }
+
+  return base.map((o) => {
+    const mine = o.zone === agencyZone;
+    const theirs = Boolean(prospectZone) && o.zone === prospectZone;
+    if (mine && theirs) return { ...o, label: `${o.label} (yours and theirs)` };
+    if (mine) return { ...o, label: `${o.label} (yours)` };
+    if (theirs) return { ...o, label: `${o.label} (theirs)` };
+    return o;
+  });
 }

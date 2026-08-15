@@ -8,10 +8,16 @@ import {
   useColdCallSlotsQuery,
 } from "../../../hooks/useColdCall";
 import {
+  bookingZoneOptions,
   buildBookingWeeks,
   cursorForIso,
+  dayKeyInZone,
   firstAvailableIso,
+  isKnownZone,
+  regroupDaysInZone,
+  timeLabelInZone,
 } from "../../../lib/bookingCalendar";
+import { zoneForLead, zoneLabel } from "../../../lib/leadLocalTime";
 // The server's own check, imported rather than reimplemented, so the button and
 // the endpoint cannot come to disagree about what an email address is. The same
 // crossing is made in src/context/PipelinesContext.tsx.
@@ -52,9 +58,13 @@ import {
 //
 // Real slots, read live from GoHighLevel, because the alternative is a caller
 // offering a time that is already taken and then having to take it back. The
-// slots are the agency's actual availability, in the agency's timezone, and the
-// booking creates the prospect as a contact in GHL so the reminders GHL sends
-// have somewhere to go.
+// slots are the agency's actual availability, computed in the agency's timezone,
+// and the booking creates the prospect as a contact in GHL so the reminders GHL
+// sends have somewhere to go.
+//
+// Which clock those times are READ on is now a choice: the agency's, or the
+// prospect's, or any other in the list. Display only, so the meeting itself is
+// the instant the calendar offered whatever is on screen.
 //
 // The panel deliberately does not let a time be typed. Every offer is a slot the
 // calendar said was free, which is what makes "boom, booked" true.
@@ -73,13 +83,11 @@ function endOf(slot: string, minutes = DEFAULT_MINUTES): string {
   return new Date(start.getTime() + minutes * 60_000).toISOString();
 }
 
+// A day key is already a calendar date in whichever zone produced it, so it is
+// read at noon to name the weekday and never shifted again.
 function dayLabel(date: string): string {
   const d = new Date(`${date}T12:00:00`);
   return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-}
-
-function timeLabel(slot: string): string {
-  return new Date(slot).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
 interface Props {
@@ -124,6 +132,34 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
   const book = useBookColdCall();
   const slots = useColdCallSlotsQuery(calendarId);
 
+  // Which clock these times are read on.
+  //
+  // The calendar's free windows are computed in the agency's own zone, and that
+  // is still what this opens on. What it now allows is reading the SAME windows
+  // on the prospect's clock, because the time being said out loud on the call is
+  // theirs, and doing that arithmetic in your head while someone waits is how a
+  // caller books 2pm and means 11am.
+  //
+  // Display only. The slot sent to GoHighLevel is the instant the calendar
+  // offered, unchanged, so switching this can move nothing but what is on screen.
+  const [zone, setZone] = useState("");
+  const agencyZone = slots.data?.timezone ?? "";
+  const prospectZone = useMemo(() => zoneForLead(lead)?.zone ?? null, [lead]);
+  const shownZone = zone || agencyZone;
+  // False until the slots land (the agency zone comes back with them), and for
+  // any zone this browser does not know. Both fall back to the machine's own
+  // clock rather than throwing inside a formatter mid-render.
+  const zoneReady = isKnownZone(shownZone);
+  const zoneOptions = useMemo(
+    () => bookingZoneOptions(agencyZone, prospectZone),
+    [agencyZone, prospectZone],
+  );
+
+  const timeLabel = (slot: string): string =>
+    zoneReady
+      ? timeLabelInZone(slot, shownZone)
+      : new Date(slot).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+
   // There is exactly one calendar a cold call books into, and the endpoint
   // returns only that one (functions/lib/coldCallCalendar.ts). This used to be a
   // select over all three agency calendars that merely DEFAULTED to a demo one,
@@ -135,7 +171,14 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
     setCalendarId(calendar.id);
   }, [calendar, calendarId]);
 
-  const days = useMemo(() => slots.data?.days ?? [], [slots.data]);
+  // Filed under the days they fall on ON THE CHOSEN CLOCK, not the ones the
+  // server grouped them into. A late Eastern slot is an earlier Pacific one and
+  // can belong to a different date; a grid that kept the server's grouping
+  // would put a time under the wrong heading.
+  const days = useMemo(() => {
+    const raw = slots.data?.days ?? [];
+    return zoneReady ? regroupDaysInZone(raw, shownZone) : raw;
+  }, [slots.data, shownZone, zoneReady]);
 
   // Keep the chosen day pointing at something bookable as the data arrives or
   // the calendar changes, and open the grid on the month that day is in. The
@@ -152,6 +195,20 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
     const c = cursorForIso(first);
     if (c) setCursor(c);
   }, [days, day]);
+
+  // A chosen time keeps its selection when the clock changes, and the grid
+  // follows it to whatever day it now falls on. Losing the pick would be worse
+  // than the arithmetic this control exists to remove.
+  useEffect(() => {
+    if (!slot || !zoneReady) return;
+    const key = dayKeyInZone(slot, shownZone);
+    setDay(key);
+    const c = cursorForIso(key);
+    if (c) setCursor(c);
+    // Deliberately only on a zone change: the same effect on every slot click
+    // would fight the day the caller just chose.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shownZone]);
 
   // Which days the calendar offered anything on, for the dots in the grid.
   const availableDates = useMemo(
@@ -246,8 +303,26 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
           <RefreshCw size={13} aria-hidden style={{ marginRight: 6, verticalAlign: -2 }} />
           {slots.isFetching ? "Checking..." : "Refresh times"}
         </button>
-        {slots.data?.timezone && (
-          <span className="text-[12px] text-muted">Times in {slots.data.timezone}</span>
+        {agencyZone && (
+          <span className="inline-flex items-center gap-1.5 text-[12px] text-muted">
+            Times in
+            <select
+              // pk-select paints our own chevron; sized inline because
+              // PillarKit's injected CSS beats a utility class here, same as
+              // the zone control on the call card.
+              className="pk-select"
+              style={{ width: "auto", padding: "3px 28px 3px 9px", fontSize: 12 }}
+              value={shownZone}
+              aria-label="Show times in"
+              onChange={(e) => setZone(e.target.value)}
+            >
+              {zoneOptions.map((o) => (
+                <option key={o.zone} value={o.zone}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </span>
         )}
       </div>
 
@@ -455,7 +530,13 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
                 ? "Check their email address"
                 : "Add their email to book"
               : slot
-                ? `Book ${dayLabel(day)} at ${timeLabel(slot)}`
+                ? // The zone is named on the button only when it is not the one
+                  // the panel opened on. A caller who switched clocks is about
+                  // to commit to a time on somebody else's, and the control that
+                  // does it should say whose.
+                  `Book ${dayLabel(day)} at ${timeLabel(slot)}${
+                    shownZone && shownZone !== agencyZone ? ` ${zoneLabel(shownZone)}` : ""
+                  }`
                 : "Pick a time"}
         </button>
         <button type="button" className="pk-btn-cancel" onClick={onCancel} disabled={book.isPending}>
