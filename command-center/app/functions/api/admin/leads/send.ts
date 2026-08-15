@@ -10,6 +10,7 @@ import {
   type ScrapedLead,
 } from "../../../lib/leadScraper";
 import { toScrapedLead } from "./index";
+import { LEAD_STATUSES } from "../tracker/leads";
 
 // POST /api/admin/leads/send -> hand ticked leads to Cold Call or SMS.
 //
@@ -104,7 +105,12 @@ async function addToProspectBook(
     email: "",
     // So the call card can show the prospect's local time rather than a blank.
     timezone: zoneForState(lead.state),
-    status: "New",
+    // The book's first stage, by its real name. This was the literal "New" until
+    // 15 August 2026, which the status constraint had stopped accepting at 0076,
+    // so every Cold Call send created the GoHighLevel contact and then failed
+    // here: nothing reached the book by this path, and nothing was stamped, so
+    // the same leads sat on the Leads page to be sent again.
+    status: LEAD_STATUSES[0],
     source: "Lead scraper",
     notes: "",
     admin_id: adminId,

@@ -1,6 +1,11 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { explainFlags, scoreBand, type ScrapedLead } from "../../../lib/leadScraper";
+import {
+  explainFlags,
+  scoreBand,
+  EXPORT_THRESHOLD,
+  type ScrapedLead,
+} from "../../../lib/leadScraper";
 
 // GET /api/admin/leads -> the scraped leads table, best score first.
 //
@@ -99,7 +104,21 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   if (runId) query = query.eq("run_id", runId);
   if (nicheId) query = query.eq("niche_id", nicheId);
   if (sent === "1") query = query.neq("send_status", "pending");
-  if (sent === "0") query = query.eq("send_status", "pending");
+  if (sent === "0") {
+    // "Not sent yet" means SENDABLE, not merely unstamped. The send applies the
+    // SOP's floor and refuses anything under the threshold or without a business
+    // name, and those two facts do not change on their own: a lead the send will
+    // always refuse used to sit here forever, offering itself to be ticked again
+    // every day. It is filtered rather than stamped because a re-scrape CAN lift
+    // a score (pipeline.py enriches in place and deliberately never writes
+    // send_status), and a stamped row would never be offered again. Filtering
+    // corrects itself the moment the score does. Everything still shows them.
+    query = query
+      .eq("send_status", "pending")
+      .gte("icp_score", EXPORT_THRESHOLD)
+      .not("business_name", "is", null)
+      .neq("business_name", "");
+  }
   if (search) {
     const safe = search.replace(/[,()*]/g, " ").trim();
     if (safe) query = query.or(`business_name.ilike.%${safe}%,city.ilike.%${safe}%`);

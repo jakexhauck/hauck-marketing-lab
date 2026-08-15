@@ -133,15 +133,64 @@ export interface SendResult {
   notConfigured: boolean;
 }
 
+// Where a send has got to. `etaMs` is null until the first batch has landed,
+// because before that there is nothing honest to estimate from.
+export interface SendProgress {
+  done: number;
+  total: number;
+  etaMs: number | null;
+}
+
+// A batch of 200 is 200 sequential GoHighLevel pushes on the server, so it is
+// sent in slices of this many: each slice is one request, and the page counts
+// them off as they land. Small enough that the bar moves every few seconds,
+// large enough that the request overhead stays a rounding error.
+const SEND_SLICE = 10;
+
 export function useSendLeads() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { ids: string[]; channel: Channel }) =>
-      api<SendResult>("/api/admin/leads/send", {
-        method: "POST",
-        body: JSON.stringify(input),
-      }),
-    onSuccess: () => {
+    mutationFn: async (input: {
+      ids: string[];
+      channel: Channel;
+      onProgress?: (p: SendProgress) => void;
+    }): Promise<SendResult> => {
+      const { ids, channel, onProgress } = input;
+      const total = ids.length;
+      const merged: SendResult = {
+        channel,
+        label: "",
+        sent: 0,
+        addedToProspectBook: 0,
+        skipped: [],
+        notConfigured: false,
+      };
+      const startedAt = Date.now();
+      let done = 0;
+      onProgress?.({ done, total, etaMs: null });
+      for (let i = 0; i < ids.length; i += SEND_SLICE) {
+        const slice = ids.slice(i, i + SEND_SLICE);
+        const res = await api<SendResult>("/api/admin/leads/send", {
+          method: "POST",
+          body: JSON.stringify({ ids: slice, channel }),
+        });
+        merged.label = res.label || merged.label;
+        merged.sent += res.sent;
+        merged.addedToProspectBook += res.addedToProspectBook;
+        merged.skipped.push(...res.skipped);
+        merged.notConfigured = merged.notConfigured || res.notConfigured;
+        done += slice.length;
+        const perLead = (Date.now() - startedAt) / done;
+        onProgress?.({ done, total, etaMs: Math.round(perLead * (total - done)) });
+        // Nothing further will go if GoHighLevel is not connected; stop
+        // rather than fail the same way nineteen more times.
+        if (res.notConfigured) break;
+      }
+      return merged;
+    },
+    // On settle, not success: a batch that fails halfway has still stamped the
+    // slices before it, and the page must stop showing those as sendable.
+    onSettled: () => {
       // Both: the leads change status, and the run's sent tally moves with them.
       void qc.invalidateQueries({ queryKey: LEADS_KEY });
       void qc.invalidateQueries({ queryKey: RUNS_KEY });

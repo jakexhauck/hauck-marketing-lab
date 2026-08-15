@@ -50,6 +50,7 @@ import {
   useStartRun,
   type LeadFilters,
   type SendResult,
+  type SendProgress,
 } from "../../../hooks/useLeadScraper";
 
 // Acquisition > Leads.
@@ -380,6 +381,7 @@ function LeadsTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
   const [result, setResult] = useState<SendResult | null>(null);
+  const [progress, setProgress] = useState<(SendProgress & { channel: Channel }) | null>(null);
   const send = useSendLeads();
 
   const summary = summariseSelection(leads, selected);
@@ -399,12 +401,17 @@ function LeadsTable({
   const doSend = (channel: Channel) => {
     const ids = leads.filter((l) => selected.has(l.id)).map((l) => l.id);
     if (ids.length === 0) return;
-    send.mutate({ ids, channel }, {
-      onSuccess: (res) => {
-        setResult(res);
-        setSelected(new Set());
+    setResult(null);
+    send.mutate(
+      { ids, channel, onProgress: (p) => setProgress({ ...p, channel }) },
+      {
+        onSuccess: (res) => {
+          setResult(res);
+          setSelected(new Set());
+        },
+        onSettled: () => setProgress(null),
       },
-    });
+    );
   };
 
   return (
@@ -420,7 +427,7 @@ function LeadsTable({
         </div>
 
         <select className="ls-select" value={filters.sent ?? ""} onChange={(e) => onFilters({ ...filters, sent: (e.target.value || null) as LeadFilters["sent"] })}>
-          <option value="0">Not sent yet</option>
+          <option value="0">Ready to send</option>
           <option value="1">Already sent</option>
           <option value="">Everything</option>
         </select>
@@ -461,6 +468,18 @@ function LeadsTable({
         </div>
       )}
 
+      {progress && <SendProgressBar progress={progress} />}
+      {send.isError && !progress && (
+        <div className="ls-receipt warn">
+          <div>
+            <b>The send stopped early.</b>
+            <div className="ls-receipt-skipped">
+              {send.error instanceof Error ? send.error.message : "Something went wrong."} Anything sent before that is marked; tick the rest and send again.
+            </div>
+          </div>
+          <button type="button" className="ls-linkbtn" onClick={() => send.reset()}>Dismiss</button>
+        </div>
+      )}
       {result && <SendReceipt result={result} onDismiss={() => setResult(null)} />}
 
       <div className="ls-scroll">
@@ -569,6 +588,36 @@ function LeadRow({
       )}
     </>
   );
+}
+
+function SendProgressBar({ progress }: { progress: SendProgress & { channel: Channel } }) {
+  const { done, total, etaMs, channel } = progress;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  return (
+    <div className="ls-sending" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
+      <div className="ls-sending-line">
+        <span>
+          <Loader2 size={13} className="ls-spin" />
+          Sending to {channelLabel(channel)}
+        </span>
+        <span>
+          <b>{done}</b> of <b>{total}</b>
+          <em>{etaMs === null ? "working out the pace" : etaLabel(etaMs)}</em>
+        </span>
+      </div>
+      <div className="ls-bar">
+        <div className={`ls-bar-fill${etaMs === null ? " indet" : ""}`} style={etaMs === null ? undefined : { width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function etaLabel(ms: number): string {
+  const s = Math.ceil(ms / 1000);
+  if (s <= 3) return "nearly done";
+  if (s < 60) return `about ${s} sec left`;
+  const m = Math.ceil(s / 60);
+  return `about ${m} min left`;
 }
 
 function SendReceipt({ result, onDismiss }: { result: SendResult; onDismiss: () => void }) {
@@ -801,6 +850,13 @@ function LeadsStyle() {
       .pk-kit .ls-actionbar-count b { font-variant-numeric: tabular-nums; }
       .pk-kit .ls-actionbar-count em { font-style: normal; color: var(--text-faint); margin-left: 8px; }
       .pk-kit .ls-actionbar-btns { display: flex; gap: 8px; }
+
+      .pk-kit .ls-sending { padding: 10px 18px 12px; background: var(--ls-hover); border-bottom: 1px solid var(--border); }
+      .pk-kit .ls-sending-line { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12.5px; color: var(--text); }
+      .pk-kit .ls-sending-line span { display: inline-flex; align-items: center; gap: 6px; }
+      .pk-kit .ls-sending-line b { font-variant-numeric: tabular-nums; }
+      .pk-kit .ls-sending-line em { font-style: normal; color: var(--text-faint); margin-left: 8px; }
+      .pk-kit .ls-sending .ls-bar { margin: 8px 0 0; }
 
       .pk-kit .ls-receipt {
         display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
