@@ -100,17 +100,22 @@ import type { ReactNode } from "react";
 import { CLIENT_HOME } from "./lib/nav";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { status, currentUser, needsIdentity, setIdentity, isAdmin, onboardingStatus } =
+  const { status, currentUser, needsIdentity, setIdentity, isAdmin, crmConnected } =
     useAuth();
   if (status === "loading") return null;
   // A super-admin has no tenant and never belongs on a client surface.
   if (isAdmin) return <Navigate to="/admin" replace />;
   if (!currentUser) return <Navigate to="/login" replace />;
-  // Approved, but not yet live. Ahead of the identity picker: choosing who you
-  // are is pointless in an app you cannot open yet. The API refuses every tenant
-  // surface in this state regardless, so this is the presentable version of a
-  // gate that is already being enforced.
-  if (onboardingStatus === "setup") return <SetupHoldingScreen />;
+  // Signed in, but their GoHighLevel sub-account does not exist yet. Ahead of
+  // the identity picker: choosing who you are is pointless in an app you cannot
+  // open yet. The API refuses every tenant surface in this state regardless, so
+  // this is the presentable version of a gate that is already being enforced.
+  //
+  // This used to read an onboarding_status flag an admin flipped by hand. It
+  // now reads the only thing that actually matters, so it clears itself the
+  // moment the sub-account is wired and the client goes straight to connecting
+  // their socials (Jake, 2026-08-15).
+  if (!crmConnected) return <SetupHoldingScreen />;
   // One-time "who are you?" step after the shared-password login. Skipping
   // (or any failure) falls back to the hardcoded-owner default in AuthContext.
   if (needsIdentity) {

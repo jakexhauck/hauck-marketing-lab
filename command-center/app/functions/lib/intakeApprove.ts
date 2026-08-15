@@ -76,9 +76,10 @@ export async function approveSubmission(
       ownerEmail: row.login_email as string,
       ownerName: text("contactName"),
       ownerPasswordHash: row.password_hash as string,
-      // The client stays behind the holding screen until Go Live is pressed.
-      // This is what makes self-approval safe: finishing the form gets you an
-      // account that can sign in and see that it is being built, nothing more.
+      // Marks them as still being stood up, which is what puts them on Jake's
+      // Onboarding list. It no longer gates the client: what they can actually
+      // see is decided by whether their GoHighLevel sub-account is wired, and
+      // they connect their own Facebook and Instagram the moment it is.
       onboardingStatus: "setup",
     });
   } catch (e) {

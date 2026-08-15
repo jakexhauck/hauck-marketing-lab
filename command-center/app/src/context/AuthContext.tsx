@@ -77,10 +77,11 @@ interface AuthContextValue {
   staff: StaffIdentity | null;
   // Effective per-surface permissions for a staff session; empty for owners.
   permissions: EffectivePermissions;
-  // 'setup' while this client is still being stood up: they can sign in, but
-  // every tenant surface answers 423 until Go Live, so the app shows a holding
-  // screen instead. 'live' for everyone else, including admins.
-  onboardingStatus: string;
+  // Is this client's GoHighLevel sub-account wired yet? False only in the window
+  // between them getting a login and Jake standing the sub-account up; every
+  // tenant surface answers 503 in that window, so the app shows a holding screen
+  // instead. True for everyone else, including admins and test mode.
+  crmConnected: boolean;
   // Permission gate used by the nav + edit controls. Owners pass everything;
   // staff need a matching grant. Mirrors the backend enforcement, which stays
   // authoritative. Defaults to the "view" action.
@@ -216,7 +217,7 @@ interface SessionProbe {
   staff: StaffIdentity | null;
   permissions: EffectivePermissions;
   preview: PreviewState;
-  onboardingStatus: string;
+  crmConnected: boolean;
 }
 
 interface ApiMe {
@@ -227,7 +228,7 @@ interface ApiMe {
   staff?: StaffIdentity | null;
   permissions?: EffectivePermissions;
   preview?: { tenantId: string; staff?: { id: string; name: string } | null } | null;
-  onboardingStatus?: string;
+  crmConnected?: boolean;
 }
 
 const EMPTY_PROBE = (offline: boolean): SessionProbe => ({
@@ -240,7 +241,7 @@ const EMPTY_PROBE = (offline: boolean): SessionProbe => ({
   staff: null,
   permissions: {},
   preview: null,
-  onboardingStatus: "live",
+  crmConnected: true,
 });
 
 async function checkSession(): Promise<SessionProbe> {
@@ -270,9 +271,10 @@ async function checkSession(): Promise<SessionProbe> {
       staff: body?.staff ?? null,
       permissions: body?.permissions ?? {},
       preview: body?.preview ?? null,
-      // Absent means live: every client that predates the onboarding gate, and
-      // every admin session, has no such status and must not be held back.
-      onboardingStatus: body?.onboardingStatus ?? "live",
+      // Absent means connected. An admin or preview session never carries this
+      // field, and a probe that failed to say must not hold anybody back: the
+      // API is the real gate, and it answers for itself.
+      crmConnected: body?.crmConnected !== false,
     };
   } catch {
     return EMPTY_PROBE(true);
@@ -291,7 +293,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [staff, setStaff] = useState<StaffIdentity | null>(null);
   const [permissions, setPermissions] = useState<EffectivePermissions>({});
   const [preview, setPreview] = useState<PreviewState>(null);
-  const [onboardingStatus, setOnboardingStatus] = useState("live");
+  const [crmConnected, setCrmConnected] = useState(true);
   // The stored GHL user id chosen at the "who are you?" step, and the resolved
   // team member it maps to. identityResolved guards the picker from flashing
   // before the lookup completes.
@@ -322,7 +324,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStaff(null);
       setPermissions({});
       setPreview(null);
-      setOnboardingStatus("live");
+      setCrmConnected(true);
       setStatus("authenticated");
       return;
     }
@@ -336,7 +338,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStaff(probe.staff);
       setPermissions(probe.permissions);
       setPreview(probe.preview);
-      setOnboardingStatus(probe.onboardingStatus);
+      setCrmConnected(probe.crmConnected);
       setStatus("authenticated");
       return;
     }
@@ -776,7 +778,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isOwner,
       staff,
       permissions,
-      onboardingStatus,
+      crmConnected,
       can,
       signInWithPassword,
       signInAsStaff,
@@ -800,7 +802,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isOwner,
       staff,
       permissions,
-      onboardingStatus,
+      crmConnected,
       can,
       signInWithPassword,
       signInAsStaff,

@@ -220,7 +220,7 @@ function Detail({ submission }: { submission: IntakeSubmissionSummary }) {
               ) : confirming ? (
                 "This creates a real client and a real login they can sign in with straight away."
               ) : (
-                "Creating the client is what submitting was meant to do. It is safe to press: they land behind the holding screen until you press Go live."
+                "Creating the client is what submitting was meant to do. It is safe to press: they see a short setup note until their GoHighLevel is wired, then connect their own accounts."
               )}
             </p>
 

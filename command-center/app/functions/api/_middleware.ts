@@ -240,25 +240,14 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         }
       }
 
-      // The onboarding gate. A client who has been approved but not yet stood
-      // up can authenticate, but cannot use the app: every tenant surface
-      // answers 423 and the frontend renders a holding screen.
-      //
-      // This sits ABOVE the GHL credentials check on purpose. A freshly approved
-      // tenant has placeholder creds, so falling through to the env fallback
-      // would quietly serve them another client's GoHighLevel data.
-      //
-      // Admin sessions never reach here (they short-circuit above). Preview is
-      // explicitly exempt: previewing a client mid-setup is exactly when Jake
-      // most wants to look.
-      if (tenant && tenant.onboarding_status === "setup" && !session.preview) {
-        return json(
-          423,
-          { error: "account setup in progress", onboardingStatus: "setup" },
-          origin,
-          ctx.env,
-        );
-      }
+      // There used to be an onboarding gate here: a client whose tenant row
+      // said onboarding_status='setup' got a 423 on every tenant surface until
+      // an admin pressed Go Live. It is gone (Jake, 2026-08-15). Nothing about
+      // a client's readiness is a flag somebody has to remember to flip: the
+      // only thing that actually decides whether their app works is whether
+      // their GoHighLevel sub-account is wired, which the next check reads
+      // straight off the tenant row. onboarding_status survives as an
+      // admin-side marker of what Jake still has to do, and blocks nobody.
 
       // The client's own sub-account, or none. This had its own copy of the
       // tenant-vs-env ladder; it now asks the one helper, so the client path

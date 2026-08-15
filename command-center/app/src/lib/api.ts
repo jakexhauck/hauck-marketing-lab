@@ -430,8 +430,8 @@ export interface AdminClient {
   healthStatus: "healthy" | "warn" | "paused";
   healthNote: string | null;
   // 'setup' until Go Live is pressed on Onboarding, 'live' after. What the
-  // Onboarding picker filters on, and what the middleware's onboarding gate
-  // reads to decide whether the client sees their app or the holding screen.
+  // Onboarding picker filters on, and nothing else: it stopped gating the
+  // client app in 2026-08, so it tracks Jake's work, not their access.
   onboardingStatus: "setup" | "live";
 }
 
@@ -561,7 +561,7 @@ export interface AdminOnboardingListItem {
   /** From their own intake answers, so blank until they fill the form in. */
   city: string;
   region: string;
-  /** 'setup' = still being stood up, 'live' = their app is open. */
+  /** 'setup' = still on Jake's Onboarding list, 'live' = cleared off it. */
   onboardingStatus: string;
 }
 
@@ -583,7 +583,7 @@ export interface AdminOnboardingResponse {
   hasToken: boolean;
   provisionResult: AdminProvisionResult | null;
   name: string;
-  /** 'setup' = held at the holding screen, 'live' = their app is open. */
+  /** 'setup' = still on Jake's Onboarding list, 'live' = cleared off it. */
   onboardingStatus: string;
 }
 

@@ -54,8 +54,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       brandInitials: t.brand_initials ?? "",
       city: (intake.addressCity ?? "").trim(),
       region: (intake.addressState ?? "").trim(),
-      // 'setup' while they are held at the holding screen, 'live' once Go live
-      // has been pressed. The list is built on this.
+      // 'setup' while they are still being stood up, 'live' once Go live has
+      // been pressed. The list is built on this, and nothing else reads it: it
+      // stopped gating the client app in 2026-08.
       onboardingStatus: t.onboarding_status ?? "live",
     };
   });

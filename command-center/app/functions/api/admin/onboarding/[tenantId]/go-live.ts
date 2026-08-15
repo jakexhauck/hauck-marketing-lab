@@ -4,9 +4,14 @@ import { logAdminAction } from "../../../../lib/adminAuth";
 
 // POST /api/admin/onboarding/:tenantId/go-live
 //
-// The end of onboarding: flip the client from 'setup' to 'live' and their app
-// opens. Until this runs they can sign in and see the holding screen, which is
-// the middleware's onboarding gate reading the same column.
+// The end of onboarding: flip the client from 'setup' to 'live', which clears
+// them off the Onboarding list.
+//
+// It no longer decides anything for the CLIENT (Jake, 2026-08-15). It used to:
+// the middleware answered 423 on every tenant surface until this ran. Their app
+// now opens as soon as their GoHighLevel sub-account is wired, so this is a
+// marker of Jake's own work being finished, and forgetting to press it costs
+// the client nothing.
 //
 // There is no gate on this any more. It used to re-count the required setup
 // steps and refuse while any were outstanding, which was the right rule while

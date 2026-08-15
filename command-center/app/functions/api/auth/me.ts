@@ -3,6 +3,7 @@ import { testTenantSlug } from "../../lib/env";
 import { verifySession } from "../../lib/session";
 import { getServiceClient, resolveTenantId } from "../../lib/supabase";
 import { loadLiveTenantForHost } from "../../lib/tenantResolve";
+import { isPlaceholder } from "../../lib/tenantGhl";
 import { resolveCaller } from "../../lib/identity";
 import { getActiveAdmin } from "../../lib/adminAuth";
 
@@ -96,22 +97,35 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
   if (caller.revoked) return Response.json({ ok: false }, { status: 401 });
 
-  // Whether this client's app is open to them yet. A client approved from the
-  // intake funnel can sign in the moment Jake approves them, but every tenant
-  // surface answers 423 until Go Live, so the app needs to know to render the
-  // holding screen rather than a page full of failed requests.
+  // Whether this client's GoHighLevel sub-account is wired yet. A client
+  // approved from the intake funnel can sign in the same afternoon, but their
+  // tenant row carries placeholder creds until Jake stands the sub-account up,
+  // and the middleware answers 503 on every tenant surface while it does. The
+  // app needs to know that BEFORE it renders, so it can show a holding screen
+  // rather than a page full of failed requests.
+  //
+  // This replaced an onboarding_status flag an admin had to flip by hand. The
+  // fact is better than the flag: it becomes true the moment the sub-account is
+  // real, and there is nothing to forget to press.
   //
   // This endpoint is on the public path and does its own session check, so it
-  // never hits the middleware's gate and can still answer while the rest of the
-  // API is closed. That is exactly what makes it the right place to say so.
-  let onboardingStatus = "live";
-  if (client && tenantId) {
+  // answers even while the rest of the API is closed to this client. That is
+  // exactly what makes it the right place to say so.
+  //
+  // Test mode is always connected: those sessions run on the TEST_GHL_* env
+  // creds (see _middleware), not on the test tenant's row, whose own ghl_* are
+  // placeholders and would otherwise hold the test app behind a holding screen.
+  let crmConnected = true;
+  if (client && tenantId && session.mode !== "test") {
     const { data } = await client
       .from("tenants")
-      .select("onboarding_status, name")
+      .select("ghl_location_id, ghl_token")
       .eq("id", tenantId)
       .maybeSingle();
-    onboardingStatus = (data?.onboarding_status as string) ?? "live";
+    crmConnected =
+      !!data &&
+      !isPlaceholder(data.ghl_location_id as string) &&
+      !isPlaceholder(data.ghl_token as string);
   }
 
   return Response.json({
@@ -129,6 +143,6 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
         }
       : null,
     permissions: caller.permissions,
-    onboardingStatus,
+    crmConnected,
   });
 };

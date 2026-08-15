@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { LogOut, Mail } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
-// What a client sees between being approved and going live.
+// What a client sees while their GoHighLevel sub-account does not exist yet.
 //
 // They chose this password themselves at the end of the intake form, so signing
 // in the same afternoon is the natural thing to try. The app behind this screen
@@ -13,14 +13,19 @@ import { useAuth } from "../../context/AuthContext";
 // progress note in the same voice as the form they just filled in: we have your
 // answers, we are building, here is what happens next.
 //
-// The API is enforcing this independently (every tenant surface answers 423
-// while the client is in setup), so this screen cannot be skipped by editing
-// state in the browser. It is the polite face of a real gate.
+// It answers to the sub-account being wired, NOT to an admin pressing a button
+// (Jake, 2026-08-15). Nobody has to remember to release a client: the screen
+// clears itself the moment their GoHighLevel is real, and the next thing they
+// see is SocialConnectGate asking for Facebook and Instagram.
+//
+// The API is enforcing this independently (every tenant surface answers 503
+// while the client's creds are placeholders), so this screen cannot be skipped
+// by editing state in the browser. It is the polite face of a real gate.
 
 const STEPS = [
   "Your account is created",
   "We are connecting your phone number, calendar and ad account",
-  "Then we open your app and walk you through it on your kickoff call",
+  "Then you connect your Facebook and Instagram, and your app opens",
 ];
 
 export default function SetupHoldingScreen() {
