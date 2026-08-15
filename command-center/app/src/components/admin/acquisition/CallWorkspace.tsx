@@ -639,7 +639,11 @@ function DialRow({
 }) {
   const bridge = useBridgeDial();
   const [ringing, setRinging] = useState(false);
-  const [failure, setFailure] = useState<{ error: string; message: string } | null>(null);
+  const [failure, setFailure] = useState<{
+    error: string;
+    message: string;
+    detail: string | null;
+  } | null>(null);
   const number = formatPhoneDashed(lead.phone);
   const crmUrl = lead.ghlContactId ? ghlContactUrl(locationId, lead.ghlContactId) : null;
 
@@ -662,12 +666,14 @@ function DialRow({
         setFailure({
           error: res.error ?? "enroll_failed",
           message: res.message ?? "The call could not be placed.",
+          detail: res.detail ?? null,
         });
       }
     } catch {
       setFailure({
         error: "enroll_failed",
         message: "Could not reach the server to place the call.",
+        detail: null,
       });
     }
   };
@@ -740,6 +746,13 @@ function DialRow({
                   Open in GoHighLevel
                 </a>
               </>
+            )}
+            {/* GoHighLevel's reason, verbatim. "Refused" on its own sends the
+                caller to guess; the API's sentence usually names the fix. */}
+            {failure.detail && (
+              <span className="mt-1.5 block font-mono text-[11.5px] text-muted">
+                {failure.detail}
+              </span>
             )}
           </span>
         </p>

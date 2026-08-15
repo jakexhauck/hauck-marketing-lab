@@ -52,6 +52,12 @@ function failed(error: BridgeFailure, workflow: string, detail: string | null = 
   );
 }
 
+// Both reasons on one line when there are two, because the earlier one is
+// often the cause of the later one.
+function detailWith(upsertError: string | null, error: string): string {
+  return upsertError ? `${error} (the contact also failed to sync: ${upsertError})` : error;
+}
+
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const body = await readJsonBody<Body>(ctx.request);
   const leadId = (body?.leadId ?? "").trim();
@@ -93,6 +99,15 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const contactId = contact.contactId;
   if (!contactId) return failed("no_contact", workflowName, contact.error);
 
+  // A FAILED upsert still hands back the id we already had on file, so the dial
+  // can go ahead on a contact that is merely out of date rather than refusing to
+  // ring over a name change. But the reason it failed has to survive: if the
+  // enrolment then falls over too, that first error is usually the one that
+  // explains it (a deleted contact, a token that has lost a scope), and
+  // swallowing it is what left "GoHighLevel refused the call" with nothing after
+  // it. Carried, not raised.
+  const upsertError = contact.ok ? null : contact.error;
+
   // Remember it, so the next dial and the outcome push skip the upsert.
   if (contactId !== row.ghl_contact_id) {
     await client.from("leads").update({ ghl_contact_id: contactId }).eq("id", leadId);
@@ -127,7 +142,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     );
     workflows = res.workflows ?? [];
   } catch (err) {
-    return failed("enroll_failed", workflowName, readableError(err));
+    return failed("enroll_failed", workflowName, detailWith(upsertError, readableError(err)));
   }
 
   const pick = pickBridgeWorkflow(workflows, workflowName);
@@ -140,7 +155,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       { method: "POST", body: JSON.stringify({ eventStartTime: new Date().toISOString() }) },
     );
   } catch (err) {
-    return failed("enroll_failed", workflowName, readableError(err));
+    return failed("enroll_failed", workflowName, detailWith(upsertError, readableError(err)));
   }
 
   // startedAt is handed back so the outcome press can ask GoHighLevel for calls

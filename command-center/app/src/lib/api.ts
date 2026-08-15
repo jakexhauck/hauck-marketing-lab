@@ -1855,6 +1855,9 @@ export interface BridgeDialResult {
   ok: boolean;
   error?: BridgeDialError;
   message?: string;
+  // GoHighLevel's own words when it refused, so a caller can read WHY rather
+  // than only that it did. Null when there is nothing more to say.
+  detail?: string | null;
   // When GoHighLevel took the call, ISO. Carried to the outcome press.
   startedAt?: string;
 }

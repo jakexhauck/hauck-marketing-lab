@@ -5,7 +5,36 @@ the caller's own phone, plays a whisper, takes a keypress, then dials the prospe
 from the agency number and bridges the two. The app never leaves the screen.
 
 Status: ✅ live. Built, deployed and wired 2026-08-14. Workflow published, migration
-0112 applied. Awaiting the first real call to confirm the duration read-back.
+0112 applied. Proven end to end on 2026-08-15 with a test call to an unroutable
+555 number: the workflow ran, rang the assigned user and dialled out from the 313
+local number. Still awaiting a real ANSWERED call to confirm a non-null duration.
+
+### What the 2026-08-15 test proved, and the two bugs it found
+
+The chain itself is sound. `GET /workflows/` finds the published workflow, the
+`assignedTo` PUT returns 200, and the enrolment POST returns **201**. GoHighLevel
+wrote the call onto the contact as `from +13133704923` (the local number, not the
+toll-free one, which settles the open question above) with `userId` Jake and
+`source: workflow`.
+
+Two things were wrong and are now fixed:
+
+1. **The duration read-back never matched our own calls.** A call dialled by hand
+   in GoHighLevel is `TYPE_CALL`, but a call placed BY A WORKFLOW, which is every
+   call this app makes, is **`TYPE_CAMPAIGN_CALL`**. `latestOutboundCall()`
+   matched only the former, so it recognised nothing and every dial row kept a
+   null duration, status and CallSid. Both types are now accepted.
+2. **A failed contact sync was swallowed.** `upsertAgencyContact` returns the id
+   already on file when the upsert fails, and the endpoint checked only that an
+   id came back, never `ok`. A contact that failed to sync therefore proceeded
+   silently, and if the enrolment then failed the caller read "GoHighLevel refused
+   the call" with nothing after it. The reason is now carried into the failure
+   detail, and the card renders it under the message.
+
+Note the live message carried no `meta.call` object at all, only `status` and
+`altId`. `callStamp` already falls back to `status` and records a null duration,
+which is the right answer for a call that never connected. Whether `meta.call`
+appears on an ANSWERED call is the one thing still unproven.
 Legend: ❌ not wired · ⚠️ partial · ✅ live.
 
 ## Why it is built this way

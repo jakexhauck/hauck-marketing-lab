@@ -132,6 +132,16 @@ export interface CallStamp {
 // called last Tuesday would stamp today's dial with last Tuesday's duration,
 // which is worse than leaving it blank: a wrong number here is one somebody
 // would report on.
+// The two names GoHighLevel gives a call on the timeline.
+//
+// A call dialled by hand over there is TYPE_CALL. A call placed BY A WORKFLOW,
+// which is every call this app makes, is TYPE_CAMPAIGN_CALL. Confirmed against
+// the live agency account on 2026-08-15: a bridged dial came back as
+// TYPE_CAMPAIGN_CALL, source "workflow". Matching only TYPE_CALL meant the
+// read-back never once recognised our own calls, so every dial row kept a null
+// duration and the feature looked like it simply did not work.
+export const CALL_MESSAGE_TYPES = ["TYPE_CALL", "TYPE_CAMPAIGN_CALL"] as const;
+
 export function latestOutboundCall(
   messages: GhlCallMessage[],
   since?: number,
@@ -139,7 +149,8 @@ export function latestOutboundCall(
   let best: GhlCallMessage | null = null;
   let bestAt = -Infinity;
   for (const m of messages) {
-    if ((m.messageType ?? "") !== "TYPE_CALL") continue;
+    if (!CALL_MESSAGE_TYPES.includes((m.messageType ?? "") as (typeof CALL_MESSAGE_TYPES)[number]))
+      continue;
     if ((m.direction ?? "") !== "outbound") continue;
     const at = Date.parse(m.dateAdded ?? "");
     if (!Number.isFinite(at)) continue;

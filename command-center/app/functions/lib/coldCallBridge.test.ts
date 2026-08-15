@@ -121,6 +121,27 @@ describe("latestOutboundCall", () => {
     expect(latestOutboundCall([sms, inbound])).toBeNull();
   });
 
+  // The regression that made the read-back look dead. Every call this app
+  // places comes from a workflow, and GoHighLevel writes those as
+  // TYPE_CAMPAIGN_CALL rather than TYPE_CALL. Shape taken verbatim from a real
+  // bridged dial on the agency account, 2026-08-15.
+  it("recognises a call placed by the workflow", () => {
+    const bridged = call({
+      id: "bridged",
+      messageType: "TYPE_CAMPAIGN_CALL",
+      status: "failed",
+      altId: "CA6f5f60e4f94520463b6072c191fd3d38",
+      meta: null,
+    });
+    expect(latestOutboundCall([bridged])?.id).toBe("bridged");
+    expect(callStamp(bridged)).toEqual({
+      callMessageId: "bridged",
+      callSid: "CA6f5f60e4f94520463b6072c191fd3d38",
+      callStatus: "failed",
+      durationSeconds: null,
+    });
+  });
+
   // The whole point of `since`: a prospect called last week must not stamp
   // today's dial with last week's duration.
   it("ignores calls older than the button press", () => {
