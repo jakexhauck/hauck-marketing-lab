@@ -81,11 +81,20 @@ a reading of the live one.
   the caller's own voicemail answering and the prospect being bridged to it, which
   voicemail detect covers imperfectly.
 
-  ⚠️ **This was ON in the live workflow until 2026-08-15**, despite what this file
-  used to claim. It is what made the whisper repeat: GoHighLevel plays the whisper
-  **up to three times** while it waits for a key. Jake heard the same sentence
-  three times on every call. The docs described the intended build, nobody had
-  read the live one back, and the two had drifted.
+  ⚠️ **Turning this off is what makes the whisper repeat three times.** From
+  HighLevel's own changelog for the toggle, quoted because it is the opposite of
+  what you would guess: enabled, "we will wait for the agent to press any key to
+  connect the call with the contact"; disabled, **"we will play the whisper
+  message three times and automatically connect the call."**
+
+  So the two settings are coupled, and the trade is not the one it looks like:
+
+  - keypress ON  = whisper plays ONCE, caller presses a key, connected.
+  - keypress OFF = whisper plays THREE TIMES, then connects on its own.
+
+  With a whisper configured, OFF is the slower and more irritating of the two.
+  Off is only correct when there is NO whisper to play. If the whisper cannot be
+  removed, turn the keypress back ON: one play beats three.
 - **Disable voicemail detect: off**, meaning detection is ON. It is the only thing
   standing between a slow pickup and a prospect hearing a voicemail greeting.
 - **Call timeout: 30s.** Ring time before GoHighLevel gives up. GHL's wording does
@@ -95,11 +104,24 @@ a reading of the live one.
 - **Call whisper: none. Leave the field EMPTY** (2026-08-15, Jake's call).
 
   ⚠️ The live workflow was never carrying "Cold call, connecting you now" as this
-  file claimed. It was on or near GoHighLevel's default, which reads the contact
-  back at you: Jake heard **"you have a new Lead scraper lead, connecting you"**,
-  three times over, "Lead scraper" being the `source` our upsert writes on the
-  contact. So the whisper was announcing our own database field to the person who
-  had just clicked the button.
+  file claimed. Jake heard **"you have a new Lead scraper lead, connecting you"**,
+  three times over, which is GoHighLevel's stock whisper wording with our own data
+  in it: "Lead scraper" is the `source` our upsert writes on the contact. The
+  whisper was reading one of our database fields back to the person who had just
+  clicked the button.
+
+  **There are TWO places a whisper can be set, and neither is readable over the
+  API.** If the workflow's own whisper field is already clear and a voice still
+  plays, it is the other one:
+
+  1. The **Call action's** Call Whisper field, in the workflow.
+  2. The **phone number's** own whisper: Settings > Phone Numbers > edit
+     `+1 313-370-4923` > Advanced Settings > the **Whisper Message** checkbox.
+     This one is a checkbox, so clearing the text is not the same as turning it
+     off, and it applies to calls on that number regardless of the workflow.
+
+  `GET /phone-system/numbers` returns only sid, value and title, so number config
+  cannot be read back here either. Both are eyes-on checks.
 
   Empty is the right answer, not a shorter sentence. The caller pressed Call two
   seconds earlier and is looking at the prospect on screen, so anything played to
