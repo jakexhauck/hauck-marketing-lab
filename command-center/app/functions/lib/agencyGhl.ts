@@ -1,5 +1,6 @@
 import type { Env } from "./env";
 import type { GhlContext } from "./ghl";
+import { NEW_LEAD_TAG } from "./leadScraper";
 
 // Hauck Marketing's OWN GoHighLevel account.
 //
@@ -75,7 +76,19 @@ export const RETIRED_CC_TAGS = ["cc brush off"] as const;
 // Every tag this app is allowed to write or remove. Anything outside this list
 // is somebody else's and is left alone. Retired tags are removable but never
 // applicable, which is the whole reason they are listed separately above.
-export const ALL_CC_TAGS: string[] = [...Object.values(CC_TAGS), ...RETIRED_CC_TAGS];
+//
+// NEW_LEAD_TAG is in here as of 2026-08-17 (Jake's call) and it is the one entry
+// this file does not also apply. It is written on import, by leadScraper's push,
+// and until now nothing ever took it off: a prospect called five times still
+// read as new, so the New Lead list was the only one a power dialer could not be
+// pointed at. Being removable makes the tags EXCLUSIVE, which is what lets a
+// Smart List be one filter and still mean exactly one page of the book. See
+// coldCallTags.ts for the rule in full.
+export const ALL_CC_TAGS: string[] = [
+  ...Object.values(CC_TAGS),
+  NEW_LEAD_TAG,
+  ...RETIRED_CC_TAGS,
+];
 
 export interface OutcomeTags {
   // The single tag this outcome leaves on the contact. Null for Booked: the

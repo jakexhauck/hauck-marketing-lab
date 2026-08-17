@@ -1844,6 +1844,34 @@ export async function logColdCallDial(input: {
   });
 }
 
+// What one press of Push to GoHighLevel did.
+export interface ColdCallReconcileReport {
+  configured: boolean;
+  checked: number;
+  created: number;
+  retagged: number;
+  unchanged: number;
+  failed: { name: string; error: string }[];
+  truncated: boolean;
+  // Nothing was written; these are the numbers a real run would produce.
+  preview: boolean;
+}
+
+// Make every prospect in the book exist in GoHighLevel carrying exactly the one
+// tag its stage means, so a Smart List filtered on that tag IS that page.
+//
+// By hand only: it writes to live contact records. Never retried, because a
+// half-finished run is fixed by pressing again and a retry of one that actually
+// worked would spend the rate limit saying the same thing twice.
+export async function reconcileColdCallTags(
+  // Preview answers the same numbers having written nothing, which is what the
+  // first press does: nobody should discover how many contacts this touches by
+  // watching it touch them.
+  preview = false,
+): Promise<ColdCallReconcileReport> {
+  return api(`/api/admin/cold-call/reconcile${preview ? "?preview=1" : ""}`, { method: "POST" });
+}
+
 // A call GoHighLevel's power dialer placed, that nobody has judged yet (0113).
 export interface LiveDialerCall {
   dialId: string;

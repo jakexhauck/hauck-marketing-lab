@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ScrollText } from "lucide-react";
+import { ScrollText, Tags } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { effectiveAdminRole } from "../../../lib/adminRoles";
 import {
@@ -14,6 +14,7 @@ import { assetHtml, useDriveDocs } from "../../../hooks/useDriveDoc";
 import { resolveScriptId, setSelectedScriptId, useSelectedScriptId } from "../../../lib/selectedScript";
 import { useAssignableCallersQuery } from "../../../hooks/useLeadAssignment";
 import { useSyncAdminLeadsFromGhl } from "../../../hooks/useAdminLeads";
+import { useReconcileColdCallTags } from "../../../hooks/useColdCall";
 import ScriptPanel from "../script/ScriptPanel";
 import { TAB_TRACK, TabButton } from "../../PageTabs";
 import { TrackerMonthNav } from "../tracker/DailyTracker";
@@ -97,6 +98,45 @@ export default function ColdCallSection() {
       : "";
     return `Added ${n} new ${n === 1 ? "prospect" : "prospects"} from ${syncResult.pipeline ?? "GoHighLevel"}.${drift}`;
   }, [sync.isError, syncResult]);
+
+  // The other direction, and the only one that writes: push the book INTO
+  // GoHighLevel so a Smart List filtered on one tag is one page of this section,
+  // which is what a power dialer needs to be pointed at.
+  // Two presses, and the first one cannot break anything.
+  //
+  // The first asks what a real run WOULD do and writes nothing; the second does
+  // it. On this account the first press reported 182 contacts to retag out of
+  // 275, and a number that size is one somebody should read before it happens
+  // rather than after. It also means the tags on live contact records are only
+  // ever changed by a click made while looking at the count.
+  const push = useReconcileColdCallTags();
+  const previewed = push.data?.preview ? push.data : null;
+  const willChange = previewed ? previewed.created + previewed.retagged : 0;
+
+  const pushNote = useMemo(() => {
+    if (push.isError) return "Could not reach GoHighLevel, so nothing was pushed.";
+    const r = push.data;
+    if (!r) return "";
+    if (!r.configured) return "The agency GoHighLevel account is not connected.";
+    const parts: string[] = [];
+    if (r.created) parts.push(`${r.created} to add`);
+    if (r.retagged) parts.push(`${r.retagged} to retag`);
+    if (r.preview) {
+      if (parts.length === 0) return `Checked ${r.checked}, all of them already right.`;
+      return `Checked ${r.checked}: ${parts.join(", ")}. Press again to write it.`;
+    }
+    const did = [
+      r.created ? `${r.created} added` : null,
+      r.retagged ? `${r.retagged} retagged` : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    const failed = r.failed.length
+      ? ` ${r.failed.length} could not be pushed: ${r.failed.map((f) => f.name).join(", ")}.`
+      : "";
+    const more = r.truncated ? " Stopped at the per-run limit, press again to carry on." : "";
+    return `Checked ${r.checked}, ${did || "nothing to change"}.${failed}${more}`;
+  }, [push.isError, push.data]);
 
   // The team availability page IS the whole roster, so a "whose section is
   // this" selector sitting above it would be a control with nothing to control.
@@ -206,6 +246,27 @@ export default function ColdCallSection() {
           {view === "tracker" && (
             <TrackerMonthNav cursor={cursor} today={today} onMonthChange={setCursor} />
           )}
+          {/* Owner only, and by hand only. It writes tags onto live contact
+              records, so the moment it happens should be a moment somebody
+              chose. */}
+          {isOwner && (
+            <button
+              type="button"
+              className="pk-link"
+              // Preview until a preview says there is something to write, then
+              // the same button is the one that writes it.
+              onClick={() => push.mutate(willChange === 0)}
+              disabled={push.isPending}
+              title="Give every prospect in the book a GoHighLevel contact carrying exactly the tag its stage means, so a Smart List on that tag is this page"
+            >
+              <Tags aria-hidden />
+              {push.isPending
+                ? "Working..."
+                : willChange > 0
+                  ? `Push ${willChange} to GoHighLevel`
+                  : "Push to GoHighLevel"}
+            </button>
+          )}
           <button
             type="button"
             className="pk-link"
@@ -221,6 +282,12 @@ export default function ColdCallSection() {
       {syncNote && (
         <p className="mb-4 text-[13px] text-muted" role="status">
           {syncNote}
+        </p>
+      )}
+
+      {pushNote && (
+        <p className="mb-4 text-[13px] text-muted" role="status">
+          {pushNote}
         </p>
       )}
 

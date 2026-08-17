@@ -89,6 +89,50 @@ Before that it tries to match an existing lead on the last ten digits of the
 number, and backfills `ghl_contact_id` when it finds one, so the same prospect
 imported here and dialled over there stops being two records.
 
+## Pointing the dialer at the right people (Push to GoHighLevel)
+
+A power dialer is only as good as the list it is given, and a Smart List only
+equals a page of this section if every prospect on that page carries one tag and
+nobody else does. The tags existed already; the guarantee did not.
+
+**Push to GoHighLevel**, in the Cold Call header, owner only, makes the whole
+book true at once: every live lead gets a contact, and every contact gets
+exactly the one tag its stage means.
+
+| Stage | Tag |
+|---|---|
+| New Lead | `cc new lead` |
+| No Answer Day 1 | `cc no answer day 1` |
+| No Answer Day 2 | `cc no answer day 2` |
+| Call Back | `cc call back` |
+| Not Interested | `cc not interested` |
+| Booked | none, the appointment is the state |
+
+So a Smart List is one filter, with no "does not have" conditions holding it
+together.
+
+**`cc new lead` is now removable** (Jake's call, 2026-08-17). It was applied on
+import and never taken off, so a prospect called five times still read as new
+and New Lead was the one list a dialer could not be pointed at. It is in
+`ALL_CC_TAGS` now, which means the outcome press strips it too. Anything in
+GoHighLevel watching that tag should expect it to disappear on the first call.
+
+**Two presses.** The first previews and writes nothing; the second writes. The
+button then names the number, so nobody discovers how many contacts this touches
+by watching it touch them. `?preview=1` and `?limit=N` are on the endpoint for
+the same reason.
+
+**By hand only.** No timer, no run on page load. It writes to live contact
+records, so the moment it happens should be a moment somebody chose.
+
+Cheap to repeat: it reads every contact once in bulk, then decides. A settled
+book is a handful of reads and no writes.
+
+First preview on the live account, 2026-08-17: **275 in the book, 0 missing a
+contact, 182 to retag, 93 already right.** Of those 182, 174 were purely the
+`cc new lead` strip; the remaining 8 also needed their own tag or had an old
+stage tag to clean off.
+
 ## Files
 
 - `functions/lib/powerDialer.ts` (+ tests) — every rule above, pure.
@@ -99,6 +143,9 @@ imported here and dialled over there stops being two records.
 - `src/components/admin/acquisition/CallWorkspace.tsx` — follow, and carry
   `dialId` into every press.
 - `supabase/migrations/0113_power_dialer.sql`.
+- `functions/lib/coldCallTags.ts` (+ tests) — one tag per stage, exclusively.
+- `functions/api/admin/cold-call/reconcile.ts` — the push, its preview and limit.
+- `src/components/admin/acquisition/ColdCallSection.tsx` — the button.
 
 ## Secrets / env
 

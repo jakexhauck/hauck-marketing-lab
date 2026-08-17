@@ -12,6 +12,7 @@ import {
   getSalesMeetings,
   logColdCallDial,
   recordMeetingOutcome,
+  reconcileColdCallTags,
   type ColdCallDialOutcome,
   type ColdCallRow,
   type SalesMeeting,
@@ -219,6 +220,27 @@ export function useBridgeDial() {
   return useMutation({
     retry: false,
     mutationFn: (leadId: string) => bridgeColdCallDial(leadId),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Making a GoHighLevel list mean a page of the book.
+
+// Push the whole book over and set one tag per prospect.
+//
+// Never retried: it writes to live contact records, and a run that half
+// finished is put right by pressing again, which is cheap because everything
+// already correct is a no-op.
+export function useReconcileColdCallTags() {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (preview: boolean) => reconcileColdCallTags(preview),
+    onSuccess: () => {
+      // Prospects that had no contact record now have one, and the lead rows
+      // carry the id and the cleared error.
+      qc.invalidateQueries({ queryKey: ["admin", "tracker", "leads"] });
+    },
   });
 }
 
