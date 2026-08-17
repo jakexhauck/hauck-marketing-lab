@@ -81,6 +81,26 @@ The card **follows the dialer**: when a live call belongs to a prospect in the
 queue on screen, that prospect is selected automatically, once per call. After
 that the caller can click anywhere and stay there.
 
+## The Dialing page
+
+`?view=dialing`, in the Cold Call strip after Booked. The same calling workspace
+as a stage page **with no queue on it**.
+
+The stage pages answer "who do I call next", which is a list. While a dialing
+session is running that is the wrong question: the phone has already chosen, and
+all that is left is what became of the call. This page answers only that.
+
+It is the same `CallWorkspace` component with `hideQueue`, not a copy, so the
+six outcomes, the script attribution, the callback picker, the booking panel and
+every write are identical by construction. Two ways of recording a `pitch_no`
+would be two numbers to argue over.
+
+What is on the card is whichever call the panel is on, newest first. Empty it
+reads "No calls waiting".
+
+It does NOT change the section's landing page: the strip order puts it after the
+stages, and `resolveColdCallView` falls back to the first page.
+
 ## Prospects the app has never seen
 
 A dialer can be pointed at any list in GoHighLevel. A call to a contact with no
