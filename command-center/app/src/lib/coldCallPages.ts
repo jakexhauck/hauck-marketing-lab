@@ -40,6 +40,14 @@ export const COLD_CALL_PAGES: ColdCallPageDef[] = [
     label: stage.short,
     side: "left" as ColdCallSide,
   })),
+  // The page to have open while dialing from GoHighLevel: the same calling
+  // workspace as a stage page with no queue on it, because the phone decides who
+  // is on it and nobody is choosing from a list.
+  //
+  // After the stages rather than before them, so the section still OPENS on New
+  // Lead: resolveColdCallView falls back to the first page, and moving somebody
+  // else's landing page is not what adding one should do.
+  { id: "dialing", label: "Dialing", side: "left" },
   // The caller's own month of dialing. His numbers, so he can see them.
   { id: "tracker", label: "Tracker", side: "left" },
   // When he is on the phones. LEFT rather than right: filling this in is his

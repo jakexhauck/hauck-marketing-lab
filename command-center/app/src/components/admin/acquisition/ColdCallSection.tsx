@@ -21,6 +21,7 @@ import { TrackerMonthNav } from "../tracker/DailyTracker";
 import { cursorForToday, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
 import ColdCallSurface, { AGENCY_CALLER_ID } from "./ColdCallSurface";
 import ColdCallLeads from "./ColdCallLeads";
+import ColdCallDialing from "./ColdCallDialing";
 import ColdCallManagement from "./ColdCallManagement";
 import ColdCallCallbacks from "./ColdCallCallbacks";
 import ColdCallBooked from "./ColdCallBooked";
@@ -371,6 +372,11 @@ function ColdCallBody({
   }
 
   switch (view) {
+    // The dialing session: the same workspace, no queue. Its own page rather
+    // than a mode of a stage page, because a stage page IS a list and this is
+    // the one screen that deliberately has none.
+    case "dialing":
+      return <ColdCallDialing callerId={callerId} />;
     case "management":
       return <ColdCallManagement callerId={callerId} />;
     case "tracker":

@@ -97,6 +97,14 @@ interface Props {
   emptyHint: string;
   // Optional per-row chip, used by Callbacks for Overdue / Today / a date.
   badgeFor?: (lead: AdminLead) => QueueBadge | null;
+  // Drop the left column entirely (the Dialing page). Everything else is the
+  // same workspace: the same card, the same six outcomes, the same callback
+  // picker and booking panel, recorded the same way.
+  //
+  // A prop rather than a second component on purpose. The outcome buttons are
+  // the part nobody may fork: two copies of "what a pitch_no counts as" is how
+  // a commission ends up argued over two different numbers.
+  hideQueue?: boolean;
 }
 
 // The prospect's own clock, re-read every half minute. Their time is the one
@@ -116,6 +124,7 @@ export default function CallWorkspace({
   emptyTitle,
   emptyHint,
   badgeFor,
+  hideQueue = false,
 }: Props) {
   const updateLead = useUpdateAdminLead();
   const logDial = useLogColdCallDial();
@@ -337,8 +346,13 @@ export default function CallWorkspace({
         onOutcome={panelOutcome}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
+      <div
+        className={
+          hideQueue ? "grid gap-4" : "grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]"
+        }
+      >
       {/* The queue */}
+      {!hideQueue && (
       <div className="pk-card overflow-hidden rounded-[var(--radius-lg)] border border-border">
         <div className="flex items-center justify-between border-b border-divider px-4 py-3">
           <span className="font-display text-[14px] font-semibold">{queueTitle}</span>
@@ -411,6 +425,7 @@ export default function CallWorkspace({
           </ul>
         )}
       </div>
+      )}
 
       {/* The call */}
       {selected ? (
