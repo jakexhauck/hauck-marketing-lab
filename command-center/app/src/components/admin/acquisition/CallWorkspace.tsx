@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   Phone,
-  PhoneCall,
   PhoneOff,
   CalendarClock,
   CalendarCheck,
@@ -18,7 +17,6 @@ import type { AdminLead, ColdCallDialOutcome } from "../../../lib/api";
 import { metaFor } from "../../../lib/adminLeads";
 import { useUpdateAdminLead } from "../../../hooks/useAdminLeads";
 import {
-  useBridgeDial,
   useColdCallCallbackSlots,
   useColdCallCrm,
   useLogColdCallDial,
@@ -145,12 +143,12 @@ export default function CallWorkspace({
   // silently carry the last one's variation over, and going back to a prospect
   // mid-shift should find the same one selected.
   const [scriptByLead, setScriptByLead] = useState<Record<string, string>>({});
-  // When the app placed a call to this prospect, ISO (0112). Kept per prospect
-  // for the same reason the script pick is: going back to somebody mid-shift
-  // should still know which call was theirs. Carried to the outcome press, which
-  // is what lets the server find that call on the timeline and record how long it
-  // lasted. Absent for a prospect dialled from the caller's own handset, and the
-  // duration is then simply not looked up.
+  // When the caller went to GoHighLevel to dial this prospect, ISO (0112). Kept
+  // per prospect for the same reason the script pick is: going back to somebody
+  // mid-shift should still know which call was theirs. Carried to the outcome
+  // press, which is what lets the server find that call on the timeline and
+  // record how long it lasted. Absent for a prospect dialled from the caller's
+  // own handset, and the duration is then simply not looked up.
   const [bridgedByLead, setBridgedByLead] = useState<Record<string, string>>({});
   const now = useNow();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -382,7 +380,7 @@ export default function CallWorkspace({
           <DialRow
             lead={selected}
             locationId={crmLocationId}
-            onBridged={(startedAt) =>
+            onOpened={(startedAt) =>
               setBridgedByLead((prev) => ({ ...prev, [selected.id]: startedAt }))
             }
           />
@@ -610,80 +608,46 @@ function LocalTime({
 
 // How the call gets placed.
 //
-// The button asks GoHighLevel to place the call: it rings the caller's own phone
-// and, the moment they answer, dials the prospect from the agency number and
-// bridges the two. Recorded, and on the contact's timeline, exactly as it is when
-// the phone icon is pressed by hand over there.
+// GoHighLevel first, because the agency's softphone lives there: it dials from
+// the agency number, records the call and logs it against the contact. A tel:
+// link does none of that, dials from whichever handset the caller is sitting at
+// and shows the prospect a personal mobile.
 //
-// No whisper and no keypress, both switched off in the workflow: the caller
-// pressed Call two seconds ago and is holding the phone, so anything played to
-// them before the prospect is connected is a delay they are paying for while the
-// prospect's phone rings. The label says "Dialing" and nothing else for the same
-// reason. It used to read "press 1 to connect" while the keypress was already
-// off, which is an instruction for a thing that never happens.
+// It lands on the contact record rather than the dialer, because GoHighLevel
+// exposes no way to open the dialer pre-filled (same as the Setter Suite, see
+// ghlContactUrl). The caller presses the phone icon there. The named tab means a
+// whole session of dialing reuses one tab instead of leaving forty behind.
 //
-// This replaced a link that opened the contact in GoHighLevel for the caller to
-// press that icon themselves, which meant a second tab on every prospect and
-// forty of them by lunchtime. The softphone itself cannot be brought over here:
-// app.gohighlevel.com is served x-frame-options SAMEORIGIN and LC Phone publishes
-// no way to register a browser as a device. So the app does not try to be a
-// phone, it asks the system that is one. See functions/lib/coldCallBridge.ts.
+// For a while this button asked GoHighLevel to place the call itself, through a
+// workflow, which is the only route into LC Phone a third party can reach: the
+// softphone cannot be brought over here at all (app.gohighlevel.com is served
+// x-frame-options SAMEORIGIN, and LC Phone publishes no way to register a
+// browser as a device). That is now off, by Jake's call, and dialing is his hand
+// on the phone icon in GoHighLevel again. The bridge endpoint is still there,
+// unwired, if it is ever wanted back.
 //
-// The trade the caller feels: the audio comes out of their handset, and there is
-// a second or two between the press and the ring because a workflow is doing the
-// work. The plain number stays underneath for a caller working off their own
-// phone, and for anyone who just wants to read the digits.
+// The plain number stays underneath, because two things need it: a caller
+// working off their own phone, and anyone who simply wants to read the digits.
+//
+// Falls back to the old single tel: link when there is no CRM record to open,
+// which is a prospect the import could not push (see GhlState below) or an
+// agency GoHighLevel account that is not connected at all.
 function DialRow({
   lead,
   locationId,
-  onBridged,
+  onOpened,
 }: {
   lead: AdminLead;
   locationId: string;
-  // Told when GoHighLevel took the call, so the outcome press can ask for this
-  // call's duration and nothing older.
-  onBridged: (startedAt: string) => void;
+  // Told when the caller went over to GoHighLevel to dial, so the outcome press
+  // can ask for that call's duration and nothing older. The click is the marker
+  // now that no workflow reports a start time; the read-back looks for the
+  // newest outbound call from a minute before it, which covers the seconds
+  // between opening the tab and pressing the phone icon.
+  onOpened: (startedAt: string) => void;
 }) {
-  const bridge = useBridgeDial();
-  const [ringing, setRinging] = useState(false);
-  const [failure, setFailure] = useState<{
-    error: string;
-    message: string;
-    detail: string | null;
-  } | null>(null);
   const number = formatPhoneDashed(lead.phone);
   const crmUrl = lead.ghlContactId ? ghlContactUrl(locationId, lead.ghlContactId) : null;
-
-  // A new prospect is a clean card. Without this, the ringing state from the last
-  // call would sit under the next prospect's name, which reads as a call being
-  // placed to somebody nobody has dialled.
-  useEffect(() => {
-    setRinging(false);
-    setFailure(null);
-  }, [lead.id]);
-
-  const place = async () => {
-    setFailure(null);
-    try {
-      const res = await bridge.mutateAsync(lead.id);
-      if (res.ok) {
-        setRinging(true);
-        onBridged(res.startedAt ?? new Date().toISOString());
-      } else {
-        setFailure({
-          error: res.error ?? "enroll_failed",
-          message: res.message ?? "The call could not be placed.",
-          detail: res.detail ?? null,
-        });
-      }
-    } catch {
-      setFailure({
-        error: "enroll_failed",
-        message: "Could not reach the server to place the call.",
-        detail: null,
-      });
-    }
-  };
 
   if (!number) {
     return (
@@ -694,35 +658,31 @@ function DialRow({
     );
   }
 
+  if (!crmUrl) {
+    return (
+      <a
+        href={telHref(lead.phone)}
+        className="mt-4 inline-flex items-center gap-3 font-mono text-[30px] font-semibold tracking-tight text-brand hover:underline"
+      >
+        <Phone size={22} aria-hidden />
+        {number}
+      </a>
+    );
+  }
+
   return (
     <div className="mt-4">
-      {ringing ? (
-        <div className="inline-flex items-center gap-2.5 rounded-[var(--radius)] border border-brand/40 bg-brand/10 px-5 py-3 font-display text-[16px] font-semibold text-brand">
-          <PhoneCall size={19} className="animate-pulse" aria-hidden />
-          Dialing
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={place}
-          disabled={bridge.isPending}
-          className="inline-flex items-center gap-2.5 rounded-[var(--radius)] bg-brand px-5 py-3 font-display text-[16px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-        >
-          <Phone size={19} aria-hidden />
-          {bridge.isPending ? "Placing the call" : "Call"}
-        </button>
-      )}
-
-      {ringing && (
-        <button
-          type="button"
-          onClick={place}
-          className="ml-3 text-[13px] font-semibold text-muted hover:text-brand hover:underline"
-        >
-          Call again
-        </button>
-      )}
-
+      <a
+        href={crmUrl}
+        target="ghl-contact"
+        rel="noopener noreferrer"
+        onClick={() => onOpened(new Date().toISOString())}
+        title="Opens the prospect in GoHighLevel, where the phone icon dials from the agency number and records the call"
+        className="inline-flex items-center gap-2.5 rounded-[var(--radius)] bg-brand px-5 py-3 font-display text-[16px] font-semibold text-white transition-opacity hover:opacity-90"
+      >
+        <Phone size={19} aria-hidden />
+        Dial in GoHighLevel
+      </a>
       <a
         href={telHref(lead.phone)}
         className="mt-2.5 flex items-center gap-2 font-mono text-[15px] font-semibold tracking-tight text-muted hover:text-brand hover:underline"
@@ -732,38 +692,6 @@ function DialRow({
           dial from this device
         </span>
       </a>
-
-      {failure && (
-        <p className="mt-3 flex items-start gap-2 rounded-[var(--radius)] border border-danger/40 px-4 py-3 text-[12.5px] text-danger">
-          <TriangleAlert size={14} className="mt-0.5 shrink-0" aria-hidden />
-          <span>
-            {failure.message}
-            {/* The way through while whatever broke is being fixed: the contact
-                in GoHighLevel, where the phone icon still dials by hand. Only
-                offered when there is a contact to open. */}
-            {crmUrl && (
-              <>
-                {" "}
-                <a
-                  href={crmUrl}
-                  target="ghl-contact"
-                  rel="noopener noreferrer"
-                  className="font-semibold underline"
-                >
-                  Open in GoHighLevel
-                </a>
-              </>
-            )}
-            {/* GoHighLevel's reason, verbatim. "Refused" on its own sends the
-                caller to guess; the API's sentence usually names the fix. */}
-            {failure.detail && (
-              <span className="mt-1.5 block font-mono text-[11.5px] text-muted">
-                {failure.detail}
-              </span>
-            )}
-          </span>
-        </p>
-      )}
     </div>
   );
 }

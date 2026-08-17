@@ -1,13 +1,22 @@
 # Cold Call dialer (the Call button): connections
 
-The Call button on the cold call card asks GoHighLevel to place the call. It rings
-the caller's own phone and, the moment they answer, dials the prospect from the
-agency number and bridges the two. The app never leaves the screen.
+⚠️ **The bridge is switched OFF at the button (2026-08-17, Jake's call).** The card
+reads **Dial in GoHighLevel** again: it opens the prospect's contact record in the
+agency sub-account and Jake presses the phone icon there himself. Everything below
+about the workflow, the whisper and the numbers still describes a working system,
+and the endpoint is still deployed, but **nothing in the app calls it**. To put it
+back, restore the bridge `DialRow` in `CallWorkspace.tsx` (git `1740a2b`) and check
+the whisper and keypress settings by eye first, both of which shipped wrong.
 
-Status: ✅ live. Built, deployed and wired 2026-08-14. Workflow published, migration
-0112 applied. Proven end to end on 2026-08-15 with a test call to an unroutable
-555 number: the workflow ran, rang the assigned user and dialled out from the 313
-local number. Still awaiting a real ANSWERED call to confirm a non-null duration.
+The duration read-back survives the change: the click that opens GoHighLevel is now
+the start marker sent as `bridgedAt`, and `latestOutboundCall()` already accepts the
+`TYPE_CALL` a hand-dialled call writes, not only the workflow's `TYPE_CAMPAIGN_CALL`.
+
+Status of the bridge itself, as built: ✅ deployed and proven, ⚪️ unwired. Built
+2026-08-14, workflow published, migration 0112 applied. Proven end to end on
+2026-08-15 with a test call to an unroutable 555 number: the workflow ran, rang the
+assigned user and dialled out from the 313 local number. A real ANSWERED call never
+confirmed a non-null duration before it was turned off.
 
 ### What the 2026-08-15 test proved, and the two bugs it found
 
