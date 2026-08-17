@@ -1,0 +1,239 @@
+import { describe, expect, it } from "vitest";
+import {
+  DEFAULT_WINDOW_MINUTES,
+  MATCH_AFTER_MS,
+  MATCH_BEFORE_MS,
+  MAX_WINDOW_MINUTES,
+  readWindowMinutes,
+  conversationMs,
+  conversationsToOpen,
+  isLiveCall,
+  matchCall,
+  outboundCallsSince,
+  splitContactName,
+  type KnownDial,
+  type RecentConversation,
+} from "./powerDialer";
+import type { GhlCallMessage } from "./coldCallBridge";
+
+const T = Date.parse("2026-08-17T15:00:00.000Z");
+
+function conv(over: Partial<RecentConversation> = {}): RecentConversation {
+  return {
+    id: "conv-1",
+    contactId: "contact-1",
+    fullName: "Reid Roofing",
+    lastMessageDate: T,
+    ...over,
+  };
+}
+
+function dial(over: Partial<KnownDial> = {}): KnownDial {
+  return {
+    id: "dial-1",
+    contactId: "contact-1",
+    callMessageId: null,
+    dialedAtMs: T,
+    ...over,
+  };
+}
+
+function call(over: Partial<GhlCallMessage> = {}): GhlCallMessage {
+  return {
+    id: "msg-1",
+    direction: "outbound",
+    messageType: "TYPE_CAMPAIGN_CALL",
+    dateAdded: new Date(T).toISOString(),
+    ...over,
+  };
+}
+
+describe("readWindowMinutes", () => {
+  it("defaults when the parameter is absent, which Number() calls zero", () => {
+    // The bug this exists for: Number(null) is 0, 0 is finite, and a 0 clamped
+    // to 1 is a one minute window that hides every call before the last one.
+    expect(readWindowMinutes(null)).toBe(DEFAULT_WINDOW_MINUTES);
+    expect(readWindowMinutes(undefined)).toBe(DEFAULT_WINDOW_MINUTES);
+    expect(readWindowMinutes("")).toBe(DEFAULT_WINDOW_MINUTES);
+    expect(readWindowMinutes("   ")).toBe(DEFAULT_WINDOW_MINUTES);
+  });
+
+  it("defaults on anything that is not a number", () => {
+    expect(readWindowMinutes("twenty")).toBe(DEFAULT_WINDOW_MINUTES);
+  });
+
+  it("takes a number and holds it inside the range", () => {
+    expect(readWindowMinutes("45")).toBe(45);
+    expect(readWindowMinutes("0")).toBe(1);
+    expect(readWindowMinutes("-5")).toBe(1);
+    expect(readWindowMinutes("9999")).toBe(MAX_WINDOW_MINUTES);
+  });
+});
+
+describe("conversationMs", () => {
+  it("reads the epoch millis GHL actually sends", () => {
+    expect(conversationMs(conv({ lastMessageDate: T }))).toBe(T);
+  });
+
+  it("tolerates the ISO string the docs promise", () => {
+    expect(conversationMs(conv({ lastMessageDate: "2026-08-17T15:00:00.000Z" }))).toBe(T);
+  });
+
+  it("is null rather than NaN when there is nothing to read", () => {
+    expect(conversationMs(conv({ lastMessageDate: null }))).toBeNull();
+    expect(conversationMs(conv({ lastMessageDate: "not a date" }))).toBeNull();
+  });
+});
+
+describe("conversationsToOpen", () => {
+  it("skips a conversation with no contact to attribute it to", () => {
+    expect(conversationsToOpen([conv({ contactId: null })], [], T - 60_000)).toEqual([]);
+  });
+
+  it("skips anything older than the window", () => {
+    expect(conversationsToOpen([conv({ lastMessageDate: T - 60 * 60_000 })], [], T - 60_000))
+      .toEqual([]);
+  });
+
+  it("skips a conversation whose newest call is already a row", () => {
+    const known = [dial({ callMessageId: "msg-1", dialedAtMs: T })];
+    expect(conversationsToOpen([conv()], known, T - 20 * 60_000)).toEqual([]);
+  });
+
+  it("opens it again once something newer than that row lands", () => {
+    const known = [dial({ callMessageId: "msg-1", dialedAtMs: T })];
+    const later = conv({ lastMessageDate: T + 5 * 60_000 });
+    expect(conversationsToOpen([later], known, T - 20 * 60_000)).toEqual([later]);
+  });
+
+  it("does not let a hand-written row (no message id) suppress the fetch", () => {
+    // The row exists but carries no call, so the call it belongs to has never
+    // been read. Skipping here is what would leave it without a duration.
+    expect(conversationsToOpen([conv()], [dial()], T - 20 * 60_000)).toHaveLength(1);
+  });
+
+  it("returns newest first and caps the burst", () => {
+    const convs = [
+      conv({ id: "a", contactId: "c-a", lastMessageDate: T - 3_000 }),
+      conv({ id: "b", contactId: "c-b", lastMessageDate: T - 1_000 }),
+      conv({ id: "c", contactId: "c-c", lastMessageDate: T - 2_000 }),
+    ];
+    expect(conversationsToOpen(convs, [], T - 60_000, 2).map((c) => c.id)).toEqual(["b", "c"]);
+  });
+});
+
+describe("matchCall", () => {
+  const target = { callMessageId: "msg-1", contactId: "contact-1", atMs: T };
+
+  it("recognises a call it has already recorded", () => {
+    expect(matchCall([dial({ callMessageId: "msg-1" })], target)).toEqual({ kind: "known" });
+  });
+
+  it("recognises it by id even when the timestamps disagree wildly", () => {
+    const known = [dial({ callMessageId: "msg-1", dialedAtMs: T + 60 * 60_000 })];
+    expect(matchCall(known, target)).toEqual({ kind: "known" });
+  });
+
+  it("stamps the row a caller wrote by hand for the same call", () => {
+    // Pressed the outcome ninety seconds after the call began.
+    const known = [dial({ id: "hand", dialedAtMs: T + 90_000 })];
+    expect(matchCall(known, target)).toEqual({ kind: "stamp", dialId: "hand" });
+  });
+
+  it("stamps the nearest hand-written row when a prospect was called twice", () => {
+    const known = [
+      dial({ id: "far", dialedAtMs: T + 10 * 60_000 }),
+      dial({ id: "near", dialedAtMs: T + 30_000 }),
+    ];
+    expect(matchCall(known, target)).toEqual({ kind: "stamp", dialId: "near" });
+  });
+
+  it("never stamps another prospect's row", () => {
+    expect(matchCall([dial({ contactId: "contact-2" })], target)).toEqual({ kind: "new" });
+  });
+
+  it("never stamps a row that is already somebody else's call", () => {
+    const known = [dial({ callMessageId: "msg-other" })];
+    expect(matchCall(known, target)).toEqual({ kind: "new" });
+  });
+
+  it("holds the window at both ends", () => {
+    expect(matchCall([dial({ dialedAtMs: T - MATCH_BEFORE_MS - 1 })], target).kind).toBe("new");
+    expect(matchCall([dial({ dialedAtMs: T - MATCH_BEFORE_MS })], target).kind).toBe("stamp");
+    expect(matchCall([dial({ dialedAtMs: T + MATCH_AFTER_MS })], target).kind).toBe("stamp");
+    expect(matchCall([dial({ dialedAtMs: T + MATCH_AFTER_MS + 1 })], target).kind).toBe("new");
+  });
+
+  it("is new when nothing has been recorded at all", () => {
+    expect(matchCall([], target)).toEqual({ kind: "new" });
+  });
+});
+
+describe("outboundCallsSince", () => {
+  it("takes both names GoHighLevel gives a call", () => {
+    const messages = [
+      call({ id: "hand", messageType: "TYPE_CALL" }),
+      call({ id: "dialer", messageType: "TYPE_CAMPAIGN_CALL", dateAdded: new Date(T + 1_000).toISOString() }),
+    ];
+    expect(outboundCallsSince(messages, T - 60_000).map((c) => c.message.id)).toEqual([
+      "hand",
+      "dialer",
+    ]);
+  });
+
+  it("ignores texts, inbound calls and anything before the window", () => {
+    const messages = [
+      call({ id: "sms", messageType: "TYPE_SMS" }),
+      call({ id: "inbound", direction: "inbound" }),
+      call({ id: "old", dateAdded: new Date(T - 60 * 60_000).toISOString() }),
+      call({ id: "keep" }),
+    ];
+    expect(outboundCallsSince(messages, T - 60_000).map((c) => c.message.id)).toEqual(["keep"]);
+  });
+
+  it("returns a burst oldest first, so the queue reads in the order it happened", () => {
+    const messages = [
+      call({ id: "third", dateAdded: new Date(T + 200_000).toISOString() }),
+      call({ id: "first", dateAdded: new Date(T).toISOString() }),
+      call({ id: "second", dateAdded: new Date(T + 100_000).toISOString() }),
+    ];
+    expect(outboundCallsSince(messages, T - 60_000).map((c) => c.message.id)).toEqual([
+      "first",
+      "second",
+      "third",
+    ]);
+  });
+
+  it("drops a message with no readable timestamp rather than filing it at 1970", () => {
+    expect(outboundCallsSince([call({ dateAdded: null })], 0)).toEqual([]);
+  });
+});
+
+describe("splitContactName", () => {
+  it("splits on the first space", () => {
+    expect(splitContactName("Dave Reid")).toEqual({ firstName: "Dave", lastName: "Reid" });
+  });
+
+  it("keeps a compound surname whole", () => {
+    expect(splitContactName("Ana Maria de Souza")).toEqual({
+      firstName: "Ana",
+      lastName: "Maria de Souza",
+    });
+  });
+
+  it("is empty rather than guessing", () => {
+    expect(splitContactName("   ")).toEqual({ firstName: "", lastName: "" });
+  });
+});
+
+describe("isLiveCall", () => {
+  it("is live for the first few minutes", () => {
+    expect(isLiveCall(T, T + 30_000)).toBe(true);
+    expect(isLiveCall(T, T + 4 * 60_000)).toBe(false);
+  });
+
+  it("tolerates a clock a little ahead of ours", () => {
+    expect(isLiveCall(T, T - 30_000)).toBe(true);
+    expect(isLiveCall(T, T - 5 * 60_000)).toBe(false);
+  });
+});

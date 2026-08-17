@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Phone,
   PhoneOff,
@@ -13,14 +13,16 @@ import {
   Globe,
   TriangleAlert,
 } from "lucide-react";
-import type { AdminLead, ColdCallDialOutcome } from "../../../lib/api";
+import type { AdminLead, ColdCallDialOutcome, LiveDialerCall } from "../../../lib/api";
 import { metaFor } from "../../../lib/adminLeads";
 import { useUpdateAdminLead } from "../../../hooks/useAdminLeads";
 import {
   useColdCallCallbackSlots,
   useColdCallCrm,
+  useColdCallLive,
   useLogColdCallDial,
 } from "../../../hooks/useColdCall";
+import PowerDialerPanel from "./PowerDialerPanel";
 import { ghlContactUrl } from "../../../lib/setterModel";
 import { useColdCallScripts } from "../../../hooks/useColdCallAssets";
 import { resolveScriptId, useSelectedScriptId } from "../../../lib/selectedScript";
@@ -160,10 +162,43 @@ export default function CallWorkspace({
   // nothing more, which is what a lot of prospects actually say.
   const [pendingTime, setPendingTime] = useState("");
 
+  // Calls GoHighLevel's own power dialer has placed and nobody has judged (0113).
+  // Polled, and the poll is what records them, so it runs whenever this page is
+  // open rather than only when somebody is looking at the panel.
+  const liveCalls = useColdCallLive().data?.calls ?? [];
+
+  // The pending row per prospect, newest first. Carried into every outcome press
+  // below, and it is the whole reason the counts stay honest: with it the press
+  // COMPLETES the row the call already wrote, and without it the same call is
+  // recorded twice, once by the phone system and once by the person.
+  const pendingByLead = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const call of liveCalls) {
+      if (call.leadId && !map[call.leadId]) map[call.leadId] = call.dialId;
+    }
+    return map;
+  }, [liveCalls]);
+
   // Selection follows the list: no explicit pick means the top, and a lead that
   // leaves the list hands over to whoever is now in its place.
   const selectedIndex = selectedId ? leads.findIndex((l) => l.id === selectedId) : 0;
   const selected = leads[selectedIndex >= 0 ? selectedIndex : 0] ?? null;
+
+  // The dialer picks who is on the phone; the card follows it there.
+  //
+  // Once per call, tracked by the dial id: after that the caller is free to
+  // click somewhere else and stay there, which matters because the panel is
+  // often used to catch up on a call that ended two prospects ago.
+  const followedRef = useRef<string | null>(null);
+  const live = liveCalls.find((c) => c.live && c.leadId) ?? null;
+  useEffect(() => {
+    if (!live || !live.leadId) return;
+    if (followedRef.current === live.dialId) return;
+    if (!leads.some((l) => l.id === live.leadId)) return;
+    followedRef.current = live.dialId;
+    setSelectedId(live.leadId);
+    setPending(null);
+  }, [live, leads]);
 
   // What this call will be attributed to: this prospect's pick if one was made,
   // otherwise the shelf's. The server checks the id again before storing it, so
@@ -202,6 +237,7 @@ export default function CallWorkspace({
       followUpTime,
       scriptId,
       bridgedAt: bridgedByLead[lead.id] ?? null,
+      dialId: pendingByLead[lead.id] ?? null,
     });
     updateLead.mutate({ id: lead.id, ...fields } as Parameters<typeof updateLead.mutate>[0]);
     advance(lead.id);
@@ -231,6 +267,7 @@ export default function CallWorkspace({
       outcome,
       scriptId,
       bridgedAt: bridgedByLead[lead.id] ?? null,
+      dialId: pendingByLead[lead.id] ?? null,
     });
     updateLead.mutate({
       id: lead.id,
@@ -240,6 +277,30 @@ export default function CallWorkspace({
       followUpDate: null,
     } as Parameters<typeof updateLead.mutate>[0]);
     advance(lead.id);
+  };
+
+  // An outcome pressed on the panel rather than on the card.
+  //
+  // Same two writes as the card makes, and the same rules: the dial completes
+  // the row the call already wrote, and the prospect moves by the stage rules
+  // rather than by anything looser. It exists because the prospect being judged
+  // is often not the prospect on the card, and may not be in this stage at all,
+  // which is exactly the case a dialer working its own list produces.
+  const panelOutcome = (call: LiveDialerCall, outcome: ColdCallDialOutcome) => {
+    logDial.mutate({ leadId: call.leadId, outcome, scriptId, dialId: call.dialId });
+    if (!call.leadId) return;
+    const fields =
+      outcome === "no_answer"
+        ? {
+            status: stageAfterNoAnswer(call.noAnswer + 1),
+            noAnswer: call.noAnswer + 1,
+            lastContact: today(),
+            followUpDate: null,
+          }
+        : { status: "Not Interested", lastContact: today(), followUpDate: null };
+    updateLead.mutate({ id: call.leadId, ...fields } as Parameters<
+      typeof updateLead.mutate
+    >[0]);
   };
 
   // Callback is a local date; Booked is a real appointment on the agency
@@ -264,7 +325,19 @@ export default function CallWorkspace({
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
+    <div className="grid gap-4">
+      <PowerDialerPanel
+        calls={liveCalls}
+        queueIds={new Set(leads.map((l) => l.id))}
+        selectedLeadId={selected?.id ?? null}
+        onPick={(leadId) => {
+          setSelectedId(leadId);
+          setPending(null);
+        }}
+        onOutcome={panelOutcome}
+      />
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
       {/* The queue */}
       <div className="pk-card overflow-hidden rounded-[var(--radius-lg)] border border-border">
         <div className="flex items-center justify-between border-b border-divider px-4 py-3">
@@ -514,6 +587,7 @@ export default function CallWorkspace({
                     outcome: "booked",
                     scriptId,
                     bridgedAt: bridgedByLead[selected.id] ?? null,
+                    dialId: pendingByLead[selected.id] ?? null,
                   });
                   advance(selected.id);
                 }}
@@ -530,6 +604,7 @@ export default function CallWorkspace({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

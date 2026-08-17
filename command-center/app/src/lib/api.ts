@@ -1829,6 +1829,10 @@ export async function logColdCallDial(input: {
   // app dialled, and what lets the server find this call on the contact's
   // timeline and stamp the row with how long it lasted.
   bridgedAt?: string | null;
+  // The pending dial this outcome belongs to (0113): a call GoHighLevel's power
+  // dialer placed, whose row already exists. Sent, the press completes that row;
+  // omitted, it writes a new one. This is what keeps one call to one row.
+  dialId?: string | null;
 }): Promise<{
   dial: { id: string; day: string; outcome: string };
   // What the push to GoHighLevel did, or null when the account is not connected.
@@ -1838,6 +1842,36 @@ export async function logColdCallDial(input: {
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+// A call GoHighLevel's power dialer placed, that nobody has judged yet (0113).
+export interface LiveDialerCall {
+  dialId: string;
+  leadId: string | null;
+  businessName: string;
+  name: string;
+  phone: string;
+  // Which cold call stage the prospect sits in, so the panel can say where to
+  // find somebody who is not in the list on screen.
+  status: string;
+  // Unanswered calls before this one, so the panel moves a lead through the two
+  // dial stages by the same rule the call card uses.
+  noAnswer: number;
+  startedAt: string;
+  // The call happening now, as near as a poll can tell.
+  live: boolean;
+  callStatus: string | null;
+  durationSeconds: number | null;
+  isNew: boolean;
+}
+
+// Who the dialer just rang. Polled while the calling page is open; the same
+// request is what turns those calls into rows, so it is never fired blind.
+export async function getColdCallLive(): Promise<{
+  configured: boolean;
+  calls: LiveDialerCall[];
+}> {
+  return api("/api/admin/cold-call/live");
 }
 
 // Every way the call card can fail to place a call. The server sends a sentence

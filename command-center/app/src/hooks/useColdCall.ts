@@ -8,6 +8,7 @@ import {
   getColdCallSlots,
   getColdCallCallbackSlots,
   getColdCallCrm,
+  getColdCallLive,
   getSalesMeetings,
   logColdCallDial,
   recordMeetingOutcome,
@@ -168,6 +169,9 @@ export interface LogDialInput {
   // When the Call button placed this call, ISO (0112). Only set for a call the
   // app dialled; absent for a caller working off their own handset.
   bridgedAt?: string | null;
+  // The pending row a power-dialer call already wrote (0113). Sent, this press
+  // completes that row rather than adding a second one for the same call.
+  dialId?: string | null;
 }
 
 // Append one attempt. Fire-and-forget from the caller's point of view: the
@@ -192,6 +196,9 @@ export function useLogColdCallDial() {
       // numbers are recomputed from these rows on read (0058), so the script
       // test is now one dial out of date.
       qc.invalidateQueries({ queryKey: ["admin", "cold-call", "assets"] });
+      // A judged call leaves the waiting list (0113). Without this the panel
+      // keeps offering a call somebody has just dealt with until the next poll.
+      qc.invalidateQueries({ queryKey: ["admin", "cold-call", "live"] });
     },
   });
 }
@@ -212,6 +219,35 @@ export function useBridgeDial() {
   return useMutation({
     retry: false,
     mutationFn: (leadId: string) => bridgeColdCallDial(leadId),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Following GoHighLevel's power dialer (0113).
+
+// How often the calling page asks who was just rung.
+//
+// Eight seconds is picked against the job rather than against a network: a cold
+// call is rarely under thirty, so this is several looks per call, and it is slow
+// enough that a quiet afternoon costs one request every eight seconds and
+// nothing else. The server answers most of those from the table alone.
+const LIVE_POLL_MS = 8_000;
+
+// Who the dialer just called. The request also RECORDS those calls, so this is
+// the one query in the app that must keep running while a page sits open: stop
+// polling and the calls still happen, they simply stop being counted.
+//
+// Refetches on focus and in the background, because a caller on the phone is by
+// definition not looking at this tab.
+export function useColdCallLive(enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "cold-call", "live"],
+    enabled,
+    refetchInterval: LIVE_POLL_MS,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    queryFn: getColdCallLive,
   });
 }
 

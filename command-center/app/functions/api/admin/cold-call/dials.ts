@@ -9,6 +9,7 @@ import {
   DIAL_OUTCOMES,
   isDialOutcome,
 } from "../../../lib/coldCallDials";
+import { PENDING_OUTCOME } from "../../../lib/powerDialer";
 
 // POST /api/admin/cold-call/dials (admin session gated in _middleware.ts).
 // Appends one row to cold_call_dials for an attempt just made on the Leads or
@@ -49,6 +50,12 @@ interface Body {
   // and the cut-off for which call on the contact's timeline is this one (0112).
   // Absent means the caller used their own handset, and no duration is looked up.
   bridgedAt?: string | null;
+  // The pending dial this outcome belongs to (0113). Present when the call came
+  // from GoHighLevel's power dialer, which means the ROW ALREADY EXISTS: the
+  // call created it and this press only says what it became. Sending it is what
+  // stops one call being counted twice, once by the phone system and once by the
+  // person describing it.
+  dialId?: string | null;
 }
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -76,20 +83,50 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // invented script is worse than one that admits it does not know.
   const scriptId = await resolveScriptId(client, body.scriptId ?? null);
 
-  const { data, error } = await client
-    .from("cold_call_dials")
-    .insert({
-      lead_id: body.leadId ?? null,
-      caller_id: callerId,
-      day,
-      spoke,
-      pitched,
-      outcome,
-      note,
-      script_id: scriptId,
-    })
-    .select("id, day, outcome, spoke, pitched")
-    .single();
+  // A call the power dialer placed already has its row, written by the sync when
+  // GoHighLevel reported the call (0113). Completing it is an UPDATE, and the
+  // day is left exactly as the call itself set it: a call made at 11.58pm and
+  // judged at 12.02am belongs to the day it was made, not the day of the press.
+  //
+  // Guarded on outcome = pending, so a second press cannot overwrite an answer
+  // already given, and cannot resurrect a row into a different outcome.
+  const { data, error } = body.dialId
+    ? await client
+        .from("cold_call_dials")
+        .update({
+          caller_id: callerId,
+          spoke,
+          pitched,
+          outcome,
+          note,
+          script_id: scriptId,
+          ...(body.leadId ? { lead_id: body.leadId } : {}),
+        })
+        .eq("id", body.dialId)
+        .eq("outcome", PENDING_OUTCOME)
+        .select("id, day, outcome, spoke, pitched")
+        .maybeSingle()
+    : await client
+        .from("cold_call_dials")
+        .insert({
+          lead_id: body.leadId ?? null,
+          caller_id: callerId,
+          day,
+          spoke,
+          pitched,
+          outcome,
+          note,
+          script_id: scriptId,
+        })
+        .select("id, day, outcome, spoke, pitched")
+        .single();
+
+  // Nothing updated means the row was judged already, by another tab or a
+  // double press. Answering 409 rather than inserting is the point: a fallback
+  // insert here would be the double count this whole path exists to prevent.
+  if (body.dialId && !error && !data) {
+    return Response.json({ error: "already_recorded" }, { status: 409 });
+  }
   if (error || !data) {
     return Response.json({ error: error?.message ?? "could not log dial" }, { status: 500 });
   }
