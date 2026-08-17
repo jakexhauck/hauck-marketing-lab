@@ -2,8 +2,13 @@
 
 Legend: ❌ not wired · ⚠️ partial · ✅ live.
 
-Status: ✅ built and verified on localhost 2026-08-17 against a live dialing
-session. Migration 0113 applied to the live database. **Not deployed.**
+Status: ✅ **live**, deployed 2026-08-17 (commit `2010f61`). Migration 0113
+applied. Built and verified on localhost first, against a real dialing session.
+
+Smoke-tested on app.hauckmarketing.com after the deploy: the endpoint answers
+`{"configured":true,...}` to a signed admin session, and the calling page polls
+it every 8.5 seconds. The panel was correctly absent, because at that moment
+nothing was waiting on an outcome.
 
 ## The problem it solves
 
