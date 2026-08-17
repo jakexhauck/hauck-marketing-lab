@@ -34,6 +34,7 @@ export const leadScraperKeys = {
 
 export interface LeadFilters {
   runId?: string | null;
+  nicheId?: string | null;
   sent?: "0" | "1" | null;
   q?: string;
 }
@@ -48,6 +49,7 @@ interface LeadsResponse {
 function leadsPath(filters: LeadFilters): string {
   const params = new URLSearchParams();
   if (filters.runId) params.set("runId", filters.runId);
+  if (filters.nicheId) params.set("nicheId", filters.nicheId);
   if (filters.sent) params.set("sent", filters.sent);
   if (filters.q?.trim()) params.set("q", filters.q.trim());
   const qs = params.toString();

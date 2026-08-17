@@ -81,6 +81,22 @@ export default function LeadsSurface() {
   const leadsQuery = useLeads(filters);
   const leads = leadsQuery.data?.leads ?? [];
 
+  // The niches worth offering as a filter are the ones that have actually been
+  // scraped, read from the run history rather than the preset list: a niche
+  // renamed or deleted since its run still owns rows sitting in the table, and a
+  // preset that has never been run would filter to nothing. Presets only supply
+  // the nicer label when they still have one.
+  const presetsQuery = useNichePresets();
+  const niches = useMemo(() => {
+    const labels = new Map((presetsQuery.data?.presets ?? []).map((p) => [p.nicheId, p.label]));
+    const seen = new Map<string, string>();
+    for (const r of runs) {
+      if (!r.nicheId || seen.has(r.nicheId)) continue;
+      seen.set(r.nicheId, labels.get(r.nicheId) ?? r.nicheLabel ?? r.nicheId);
+    }
+    return [...seen].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [runs, presetsQuery.data]);
+
   return (
     <div className="ls">
       <LeadsStyle />
@@ -106,6 +122,7 @@ export default function LeadsSurface() {
           filters={filters}
           onFilters={setFilters}
           runs={runs}
+          niches={niches}
         />
       )}
       {view === "new" && (
@@ -373,10 +390,11 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 // --- the table ---------------------------------------------------------------
 
 function LeadsTable({
-  leads, total, loading, filters, onFilters, runs,
+  leads, total, loading, filters, onFilters, runs, niches,
 }: {
   leads: ScrapedLeadView[]; total: number; loading: boolean;
   filters: LeadFilters; onFilters: (f: LeadFilters) => void; runs: ScrapeRun[];
+  niches: { id: string; label: string }[];
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -386,6 +404,16 @@ function LeadsTable({
 
   const summary = summariseSelection(leads, selected);
   const allTicked = leads.length > 0 && leads.every((l) => selected.has(l.id));
+
+  const runsForNiche = filters.nicheId ? runs.filter((r) => r.nicheId === filters.nicheId) : runs;
+
+  const exportQuery = useMemo(() => {
+    const params = new URLSearchParams();
+    if (filters.runId) params.set("runId", filters.runId);
+    if (filters.nicheId) params.set("nicheId", filters.nicheId);
+    const qs = params.toString();
+    return qs ? `?${qs}` : "";
+  }, [filters.runId, filters.nicheId]);
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -432,9 +460,32 @@ function LeadsTable({
           <option value="">Everything</option>
         </select>
 
+        {niches.length > 1 && (
+          <select
+            className="ls-select"
+            value={filters.nicheId ?? ""}
+            aria-label="Niche"
+            onChange={(e) => {
+              const nicheId = e.target.value || null;
+              // A run belongs to one niche, so keeping a run picked from another
+              // one would filter to an empty table with two controls both looking
+              // set. Dropping it is the only reading that can be right.
+              const runId = nicheId && runs.find((r) => r.id === filters.runId)?.nicheId !== nicheId
+                ? null
+                : filters.runId ?? null;
+              onFilters({ ...filters, nicheId, runId });
+            }}
+          >
+            <option value="">Every niche</option>
+            {niches.map((n) => (
+              <option key={n.id} value={n.id}>{n.label}</option>
+            ))}
+          </select>
+        )}
+
         <select className="ls-select" value={filters.runId ?? ""} onChange={(e) => onFilters({ ...filters, runId: e.target.value || null })}>
           <option value="">Every run</option>
-          {runs.map((r) => (
+          {runsForNiche.map((r) => (
             <option key={r.id} value={r.id}>
               {r.nicheLabel} - {new Date(r.createdAt).toLocaleDateString()}
             </option>
@@ -442,7 +493,7 @@ function LeadsTable({
         </select>
 
         <div className="ls-toolbar-right">
-          <a className="ls-ghost" href={`/api/admin/leads/export${filters.runId ? `?runId=${filters.runId}` : ""}`} title="Downloads the qualified, unsent leads and marks them as sent">
+          <a className="ls-ghost" href={`/api/admin/leads/export${exportQuery}`} title="Downloads the qualified, unsent leads and marks them as sent">
             <Download size={14} />
             CSV
           </a>

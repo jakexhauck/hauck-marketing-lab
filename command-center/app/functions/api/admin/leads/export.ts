@@ -45,6 +45,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   const url = new URL(ctx.request.url);
   const runId = url.searchParams.get("runId");
+  const nicheId = url.searchParams.get("nicheId");
   const dryRun = url.searchParams.get("dryRun") === "1";
 
   let query = client
@@ -55,6 +56,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     .gte("icp_score", EXPORT_THRESHOLD);
 
   if (runId) query = query.eq("run_id", runId);
+  // The file has to match the table it was downloaded from, or a niche filter on
+  // screen would quietly stamp rows from every other trade as sent.
+  if (nicheId) query = query.eq("niche_id", nicheId);
 
   const { data, error } = await query
     .order("icp_score", { ascending: false, nullsFirst: false })
@@ -97,6 +101,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     await logAdminAction(client, ctx.data.admin!.id, "leads.export.csv", null, {
       rows: sendable.length,
       runId,
+      nicheId,
     });
   }
 
