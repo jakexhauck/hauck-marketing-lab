@@ -176,6 +176,12 @@ export interface LogDialInput {
   dialId?: string | null;
 }
 
+// Where the live calls live in the cache. Named because the press below edits
+// it directly, and a key spelled twice is a card that never moves.
+const LIVE_KEY = ["admin", "cold-call", "live"] as const;
+
+type LiveResponse = Awaited<ReturnType<typeof getColdCallLive>>;
+
 // Append one attempt. Fire-and-forget from the caller's point of view: the
 // outcome buttons hand over the next prospect immediately rather than making
 // someone wait on a write, and the month is invalidated when it lands so the
@@ -189,7 +195,42 @@ export function useLogColdCallDial() {
   return useMutation({
     retry: false,
     mutationFn: (input: LogDialInput) => logColdCallDial(input),
-    onSuccess: () => {
+    // The judged call leaves the screen on the CLICK, not when the write comes
+    // back (Jake, 2026-08-18: "it lags a lot after I hit the button").
+    //
+    // It was waiting on two round trips in a row. The POST tells GoHighLevel
+    // about the outcome, which is a second or two of somebody else's API; only
+    // then was the live query invalidated, and that refetch runs the power
+    // dialer sync, which is another. Until both landed the call was still in the
+    // list the card is built from, so the card sat on the prospect that had just
+    // been dealt with and the next press risked landing on them.
+    //
+    // The write is unaffected. This is the screen catching up with the caller
+    // rather than the caller waiting on the screen, and if the write fails the
+    // call comes straight back.
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: LIVE_KEY });
+      const previous = qc.getQueryData<LiveResponse>(LIVE_KEY);
+      if (previous) {
+        qc.setQueryData<LiveResponse>(LIVE_KEY, {
+          ...previous,
+          // By the dial when there is one, which is the exact call being judged.
+          // Falling back to the prospect covers a press on somebody the dialer
+          // rang twice in the window: both rows go, and the sync puts back
+          // whichever is genuinely still waiting.
+          calls: previous.calls.filter((call) =>
+            input.dialId ? call.dialId !== input.dialId : call.leadId !== input.leadId,
+          ),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _input, context) => {
+      // The call is still waiting on an outcome, so it goes back on the list
+      // rather than disappearing on a write nobody knows failed.
+      if (context?.previous) qc.setQueryData(LIVE_KEY, context.previous);
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["admin", "tracker", "cold-calls"] });
       // The same request pushed the prospect into GoHighLevel and stamped the
       // result onto the lead, so the list is now stale by one row.
@@ -198,9 +239,9 @@ export function useLogColdCallDial() {
       // numbers are recomputed from these rows on read (0058), so the script
       // test is now one dial out of date.
       qc.invalidateQueries({ queryKey: ["admin", "cold-call", "assets"] });
-      // A judged call leaves the waiting list (0113). Without this the panel
-      // keeps offering a call somebody has just dealt with until the next poll.
-      qc.invalidateQueries({ queryKey: ["admin", "cold-call", "live"] });
+      // The truth catches up with what the click already showed: the row is
+      // completed server side, and the next sync will not offer it again.
+      qc.invalidateQueries({ queryKey: LIVE_KEY });
     },
   });
 }

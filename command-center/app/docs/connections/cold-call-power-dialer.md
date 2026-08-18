@@ -77,6 +77,20 @@ per call, after which the caller can click anywhere and stay there. Every press
 carries that call's `dialId`, so it COMPLETES the row the call already wrote
 rather than adding a second one.
 
+## Why the press feels instant
+
+The outcome leaves the screen on the click, not when the write returns.
+
+It used to wait on two round trips in a row: the POST tells GoHighLevel what
+happened (a second or two of somebody else's API), and only then was the live
+query invalidated, whose refetch runs the sync above (another). Until both
+landed the judged call was still in the list the card is built from, so the card
+sat on the prospect that had just been dealt with.
+
+`useLogColdCallDial` now drops that call from the live cache in `onMutate`, by
+`dialId` where there is one. The write is untouched, and a write that fails puts
+the call straight back.
+
 ## The Power dialer page
 
 `?view=dialing`, in the Cold Call strip after Booked, labelled **Power dialer**
