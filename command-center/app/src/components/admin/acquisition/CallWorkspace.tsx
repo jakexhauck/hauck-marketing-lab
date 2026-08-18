@@ -13,7 +13,7 @@ import {
   Globe,
   TriangleAlert,
 } from "lucide-react";
-import type { AdminLead, ColdCallDialOutcome, LiveDialerCall } from "../../../lib/api";
+import type { AdminLead, ColdCallDialOutcome } from "../../../lib/api";
 import { metaFor } from "../../../lib/adminLeads";
 import { useUpdateAdminLead } from "../../../hooks/useAdminLeads";
 import {
@@ -22,7 +22,6 @@ import {
   useColdCallLive,
   useLogColdCallDial,
 } from "../../../hooks/useColdCall";
-import PowerDialerPanel from "./PowerDialerPanel";
 import DialCounter from "./DialCounter";
 import { useAuth } from "../../../context/AuthContext";
 import { ghlContactUrl } from "../../../lib/setterModel";
@@ -188,7 +187,14 @@ export default function CallWorkspace({
 
   // Calls GoHighLevel's own power dialer has placed and nobody has judged (0113).
   // Polled, and the poll is what records them, so it runs whenever this page is
-  // open rather than only when somebody is looking at the panel.
+  // open, whether or not anybody is looking.
+  //
+  // There is no longer a panel of quick outcome buttons above the card (Jake,
+  // 2026-08-18). The outcome is pressed on the CARD, in one place, because two
+  // rows of buttons for the same six outcomes is two ways to record a call and
+  // one of them is always the wrong one to be looking at. What the live calls
+  // still do is drive the card: it follows whoever the dialer is on, and each
+  // press carries that call's dialId so it completes the row the call wrote.
   const liveQuery = useColdCallLive();
   const liveCalls = liveQuery.data?.calls ?? [];
   // The day's dial count, off the same poll. It is on every calling page by
@@ -311,31 +317,6 @@ export default function CallWorkspace({
     advance(lead.id);
   };
 
-  // An outcome pressed on the panel rather than on the card.
-  //
-  // Same two writes as the card makes, and the same rules: the dial completes
-  // the row the call already wrote, and the prospect moves by the stage rules
-  // rather than by anything looser. It exists because the prospect being judged
-  // is often not the prospect on the card, and may not be in this stage at all,
-  // which is exactly the case a dialer working its own list produces.
-  const panelOutcome = (call: LiveDialerCall, outcome: ColdCallDialOutcome) => {
-    logDial.mutate({ leadId: call.leadId, outcome, scriptId, dialId: call.dialId });
-    if (!call.leadId) return;
-    onLogged?.(call.leadId);
-    const fields =
-      outcome === "no_answer"
-        ? {
-            status: stageAfterNoAnswer(call.noAnswer + 1),
-            noAnswer: call.noAnswer + 1,
-            lastContact: today(),
-            followUpDate: null,
-          }
-        : { status: "Not Interested", lastContact: today(), followUpDate: null };
-    updateLead.mutate({ id: call.leadId, ...fields } as Parameters<
-      typeof updateLead.mutate
-    >[0]);
-  };
-
   // Callback is a local date; Booked is a real appointment on the agency
   // calendar and is written by the booking endpoint, not here.
   const confirmCallback = (lead: AdminLead) => {
@@ -360,17 +341,6 @@ export default function CallWorkspace({
   return (
     <div className="grid gap-4">
       {dialTally && <DialCounter tally={dialTally} callerId={me} />}
-
-      <PowerDialerPanel
-        calls={liveCalls}
-        queueIds={new Set(leads.map((l) => l.id))}
-        selectedLeadId={selected?.id ?? null}
-        onPick={(leadId) => {
-          setSelectedId(leadId);
-          setPending(null);
-        }}
-        onOutcome={panelOutcome}
-      />
 
       <div
         className={

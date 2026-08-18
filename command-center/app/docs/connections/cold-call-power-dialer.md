@@ -64,51 +64,18 @@ yet, and inferring it from the duration would be inventing the one number
 
 ## What the caller sees
 
-A **Waiting on an outcome** panel above the queue, on both calling pages. Silent
-when there is nothing waiting, so a caller working the queue by hand never sees
-it.
+The **call card**, and only the call card (Jake, 2026-08-18).
 
-- Newest first, a filled dot for the call happening now.
-- Business, the time it started, and the duration or GoHighLevel's status word.
-- Four icon buttons: no answer, not qualified, heard opener, heard pitch. Those
-  are the outcomes that need pressing before the dialer has moved on twice more.
-- Clicking the business opens it in the queue below, where the full set of
-  buttons lives (a callback needs a date, a booking needs a calendar).
-- A prospect in another stage says which stage instead of pretending to be
-  selectable.
+There was a "Waiting on an outcome" panel above it with four quick buttons. It
+is gone. Two rows of buttons for the same six outcomes is two ways to record a
+call, and the one somebody is looking at is not always the one the dialer is on.
+The card is the single place a call is judged.
 
-The card **follows the dialer**: when a live call belongs to a prospect in the
-queue on screen, that prospect is selected automatically, once per call. After
-that the caller can click anywhere and stay there.
-
-## The count, while the calling is happening
-
-`GET /api/admin/cold-call/live` also answers `today`: the day's dial count and
-who made them.
-
-```
-today: { day: "2026-08-18", total: 118, callers: [ { callerId, name, dials } ] }
-```
-
-Counted from `cold_call_dials` rows whose `day` equals the agency's day, read
-AFTER the sync in the same request, so a call the dialer placed twenty seconds
-ago is already in the number. No new request and no second poll: the count rides
-the recorder, which means it cannot be running while the recording is not.
-
-**Pending rows count.** GoHighLevel's phone system reported the call, so it
-happened; what it became is the question the panel below asks. A count that
-waited for the press would read low all shift and then jump.
-
-**Every dial, not just the dialer's.** A call recorded by hand off the card is
-the same row, so the number is the shift's calling, however it was placed.
-
-A dial whose caller has since been deleted stays in the total and sits under
-nobody, which is the honest shape.
-
-On screen: a **Dials today** strip at the top of every calling page, from
-`CallWorkspace`, so the stage pages and the Dialing page have it by construction.
-Names and per-person counts appear only when more than one person has dialled
-today, since one caller's breakdown is the total said twice.
+The live calls still drive it. The card **follows the dialer**: when a live call
+belongs to a prospect on screen, that prospect is selected automatically, once
+per call, after which the caller can click anywhere and stay there. Every press
+carries that call's `dialId`, so it COMPLETES the row the call already wrote
+rather than adding a second one.
 
 ## The Power dialer page
 
@@ -226,7 +193,6 @@ stage tag to clean off.
 - `functions/lib/agencyCallLog.ts` — the three GoHighLevel reads.
 - `functions/api/admin/cold-call/live.ts` — the poll and the sync.
 - `functions/api/admin/cold-call/dials.ts` — `dialId` completes a pending row.
-- `src/components/admin/acquisition/PowerDialerPanel.tsx` — the panel.
 - `src/components/admin/acquisition/DialCounter.tsx` — the Dials today strip.
 - `functions/lib/powerDialer.ts` `tallyDials()` — the count, pure.
 - `src/components/admin/acquisition/CallWorkspace.tsx` — follow, and carry
