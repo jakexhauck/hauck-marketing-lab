@@ -245,3 +245,59 @@ export function splitContactName(full: string): { firstName: string; lastName: s
 export function isLiveCall(atMs: number, now: number, windowMs = LIVE_WINDOW_MS): boolean {
   return now - atMs <= windowMs && now - atMs >= -60_000;
 }
+
+// ---------------------------------------------------------------------------
+// The day's dials, while the day is still being worked.
+//
+// Every call is already a row: the six outcome buttons write one, and the sync
+// above writes one for anything GoHighLevel's dialer placed that nobody has
+// judged yet. This turns those rows into the only number a caller mid-shift
+// actually wants, which is how many calls have been made, and by whom.
+//
+// It counts PENDING rows too, and that is the point. A call the phone system
+// reported provably happened; whether anybody picked up is a separate question,
+// and it is the one the waiting panel exists to ask. A count that waited for the
+// press would read low all shift and then jump, which is worse than no count.
+//
+// Pure, and given the rows rather than a query, because the endpoint already
+// holds a client and this is the part worth being sure about.
+export interface DialTallyRow {
+  callerId: string;
+  name: string;
+  dials: number;
+}
+
+export interface DialTally {
+  // The agency's day, not the browser's: the row's own `day` column decides it,
+  // so a call at 11.58pm belongs to the shift that made it.
+  day: string;
+  total: number;
+  callers: DialTallyRow[];
+}
+
+export function tallyDials(
+  rows: { caller_id: string | null }[],
+  names: Map<string, string>,
+  day: string,
+): DialTally {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    // A dial whose caller has since been deleted still happened, so it is in the
+    // total. It has nobody to sit under, which is the honest shape.
+    const id = (row.caller_id ?? "").trim();
+    if (!id) continue;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+
+  const callers: DialTallyRow[] = [...counts.entries()]
+    .map(([callerId, dials]) => ({
+      callerId,
+      name: (names.get(callerId) ?? "").trim() || "Unknown caller",
+      dials,
+    }))
+    // Busiest first, and a name to break a tie, so the order does not shuffle
+    // under somebody watching it between two polls.
+    .sort((a, b) => b.dials - a.dials || a.name.localeCompare(b.name));
+
+  return { day, total: rows.length, callers };
+}

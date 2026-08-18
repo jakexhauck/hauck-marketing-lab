@@ -1893,11 +1893,27 @@ export interface LiveDialerCall {
   isNew: boolean;
 }
 
+// The day's dials as they happen: every row for today, whoever made it and
+// however it was recorded. Rides the live poll, so it ticks while a dialer runs.
+export interface DialTallyRow {
+  callerId: string;
+  name: string;
+  dials: number;
+}
+
+export interface DialTally {
+  // The agency's day, not the browser's.
+  day: string;
+  total: number;
+  callers: DialTallyRow[];
+}
+
 // Who the dialer just rang. Polled while the calling page is open; the same
 // request is what turns those calls into rows, so it is never fired blind.
 export async function getColdCallLive(): Promise<{
   configured: boolean;
   calls: LiveDialerCall[];
+  today: DialTally;
 }> {
   return api("/api/admin/cold-call/live");
 }

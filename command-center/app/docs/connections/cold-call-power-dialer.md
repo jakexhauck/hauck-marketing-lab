@@ -81,6 +81,35 @@ The card **follows the dialer**: when a live call belongs to a prospect in the
 queue on screen, that prospect is selected automatically, once per call. After
 that the caller can click anywhere and stay there.
 
+## The count, while the calling is happening
+
+`GET /api/admin/cold-call/live` also answers `today`: the day's dial count and
+who made them.
+
+```
+today: { day: "2026-08-18", total: 118, callers: [ { callerId, name, dials } ] }
+```
+
+Counted from `cold_call_dials` rows whose `day` equals the agency's day, read
+AFTER the sync in the same request, so a call the dialer placed twenty seconds
+ago is already in the number. No new request and no second poll: the count rides
+the recorder, which means it cannot be running while the recording is not.
+
+**Pending rows count.** GoHighLevel's phone system reported the call, so it
+happened; what it became is the question the panel below asks. A count that
+waited for the press would read low all shift and then jump.
+
+**Every dial, not just the dialer's.** A call recorded by hand off the card is
+the same row, so the number is the shift's calling, however it was placed.
+
+A dial whose caller has since been deleted stays in the total and sits under
+nobody, which is the honest shape.
+
+On screen: a **Dials today** strip at the top of every calling page, from
+`CallWorkspace`, so the stage pages and the Dialing page have it by construction.
+Names and per-person counts appear only when more than one person has dialled
+today, since one caller's breakdown is the total said twice.
+
 ## The Dialing page
 
 `?view=dialing`, in the Cold Call strip after Booked. The same calling workspace
@@ -160,6 +189,8 @@ stage tag to clean off.
 - `functions/api/admin/cold-call/live.ts` — the poll and the sync.
 - `functions/api/admin/cold-call/dials.ts` — `dialId` completes a pending row.
 - `src/components/admin/acquisition/PowerDialerPanel.tsx` — the panel.
+- `src/components/admin/acquisition/DialCounter.tsx` — the Dials today strip.
+- `functions/lib/powerDialer.ts` `tallyDials()` — the count, pure.
 - `src/components/admin/acquisition/CallWorkspace.tsx` — follow, and carry
   `dialId` into every press.
 - `supabase/migrations/0113_power_dialer.sql`.

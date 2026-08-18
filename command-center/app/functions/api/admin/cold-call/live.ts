@@ -16,6 +16,8 @@ import {
   matchCall,
   readWindowMinutes,
   splitContactName,
+  tallyDials,
+  type DialTally,
   type KnownDial,
 } from "../../../lib/powerDialer";
 
@@ -104,6 +106,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     if (synced) ({ dials, leads } = await readWindowRows(client, since));
   }
 
+  // Read AFTER the sync, so a call the dialer placed twenty seconds ago is in
+  // the number the caller is looking at. Same rows the tracker derives from.
+  const today = await readDayTally(client, agencyTimezone(ctx.env), now);
+
   const leadById = new Map(leads.map((lead) => [lead.id, lead]));
   const calls: LiveCall[] = dials
     .filter((dial) => dial.outcome === PENDING_OUTCOME)
@@ -132,8 +138,42 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   return Response.json({
     configured: isAgencyGhlConfigured(ctx.env),
     calls,
+    today,
   });
 };
+
+// How many dials the day has, and who made them.
+//
+// Counted from the rows rather than kept as a total anywhere: the tracker's own
+// numbers are derived from this table for exactly the same reason, and a second
+// place to store a count is a second number to argue over.
+//
+// The day is the agency's day, and it is compared against the row's own `day`
+// column, which the writer stamped in that same zone. A call at 11.58pm stays on
+// the shift that made it.
+async function readDayTally(
+  client: SupabaseClient,
+  zone: string,
+  now: number,
+): Promise<DialTally> {
+  const day = dateStringInZone(zone, now);
+  const { data } = await client.from("cold_call_dials").select("caller_id").eq("day", day);
+  const rows = (data ?? []) as { caller_id: string | null }[];
+
+  const ids = [...new Set(rows.map((row) => row.caller_id).filter(Boolean))] as string[];
+  const names = new Map<string, string>();
+  if (ids.length > 0) {
+    const { data: accounts } = await client
+      .from("admin_accounts")
+      .select("id, name")
+      .in("id", ids);
+    for (const account of (accounts ?? []) as { id: string; name: string | null }[]) {
+      names.set(account.id, account.name ?? "");
+    }
+  }
+
+  return tallyDials(rows, names, day);
+}
 
 async function readWindowRows(
   client: SupabaseClient,

@@ -11,6 +11,7 @@ import {
   matchCall,
   outboundCallsSince,
   splitContactName,
+  tallyDials,
   type KnownDial,
   type RecentConversation,
 } from "./powerDialer";
@@ -235,5 +236,45 @@ describe("isLiveCall", () => {
   it("tolerates a clock a little ahead of ours", () => {
     expect(isLiveCall(T, T - 30_000)).toBe(true);
     expect(isLiveCall(T, T - 5 * 60_000)).toBe(false);
+  });
+});
+
+describe("tallyDials", () => {
+  const names = new Map([
+    ["a", "Jake"],
+    ["b", "Caller 2"],
+  ]);
+
+  it("counts every row and names who made them", () => {
+    const tally = tallyDials(
+      [{ caller_id: "a" }, { caller_id: "b" }, { caller_id: "b" }],
+      names,
+      "2026-08-18",
+    );
+    expect(tally.total).toBe(3);
+    expect(tally.day).toBe("2026-08-18");
+    expect(tally.callers).toEqual([
+      { callerId: "b", name: "Caller 2", dials: 2 },
+      { callerId: "a", name: "Jake", dials: 1 },
+    ]);
+  });
+
+  it("keeps a dial whose caller is gone in the total", () => {
+    const tally = tallyDials([{ caller_id: "a" }, { caller_id: null }], names, "2026-08-18");
+    expect(tally.total).toBe(2);
+    expect(tally.callers).toEqual([{ callerId: "a", name: "Jake", dials: 1 }]);
+  });
+
+  it("names a caller it cannot find rather than dropping them", () => {
+    const tally = tallyDials([{ caller_id: "z" }], names, "2026-08-18");
+    expect(tally.callers[0]).toEqual({ callerId: "z", name: "Unknown caller", dials: 1 });
+  });
+
+  it("is a quiet zero before anybody has dialled", () => {
+    expect(tallyDials([], names, "2026-08-18")).toEqual({
+      day: "2026-08-18",
+      total: 0,
+      callers: [],
+    });
   });
 });

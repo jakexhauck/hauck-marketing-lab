@@ -23,6 +23,8 @@ import {
   useLogColdCallDial,
 } from "../../../hooks/useColdCall";
 import PowerDialerPanel from "./PowerDialerPanel";
+import DialCounter from "./DialCounter";
+import { useAuth } from "../../../context/AuthContext";
 import { ghlContactUrl } from "../../../lib/setterModel";
 import { useColdCallScripts } from "../../../hooks/useColdCallAssets";
 import { resolveScriptId, useSelectedScriptId } from "../../../lib/selectedScript";
@@ -97,14 +99,18 @@ interface Props {
   emptyHint: string;
   // Optional per-row chip, used by Callbacks for Overdue / Today / a date.
   badgeFor?: (lead: AdminLead) => QueueBadge | null;
-  // Drop the left column entirely (the Dialing page). Everything else is the
-  // same workspace: the same card, the same six outcomes, the same callback
-  // picker and booking panel, recorded the same way.
+  // Called with a prospect the moment their call has been recorded, by any of
+  // the ways there are to record one: the card's six outcomes, the booking
+  // panel, or the power dialer panel above.
   //
-  // A prop rather than a second component on purpose. The outcome buttons are
-  // the part nobody may fork: two copies of "what a pitch_no counts as" is how
-  // a commission ends up argued over two different numbers.
-  hideQueue?: boolean;
+  // For the Dialing page, whose list is a worklist rather than a stage: a
+  // prospect who has been judged leaves it immediately, and a stage change is
+  // not enough to say so, because that list holds every stage at once.
+  //
+  // A notification rather than a hook that decides anything. Nothing about how
+  // an outcome is written lives out here, because two copies of "what a
+  // pitch_no counts as" is how a commission ends up argued over two numbers.
+  onLogged?: (leadId: string) => void;
 }
 
 // The prospect's own clock, re-read every half minute. Their time is the one
@@ -124,7 +130,7 @@ export default function CallWorkspace({
   emptyTitle,
   emptyHint,
   badgeFor,
-  hideQueue = false,
+  onLogged,
 }: Props) {
   const updateLead = useUpdateAdminLead();
   const logDial = useLogColdCallDial();
@@ -174,7 +180,12 @@ export default function CallWorkspace({
   // Calls GoHighLevel's own power dialer has placed and nobody has judged (0113).
   // Polled, and the poll is what records them, so it runs whenever this page is
   // open rather than only when somebody is looking at the panel.
-  const liveCalls = useColdCallLive().data?.calls ?? [];
+  const liveQuery = useColdCallLive();
+  const liveCalls = liveQuery.data?.calls ?? [];
+  // The day's dial count, off the same poll. It is on every calling page by
+  // construction rather than by being remembered on three of them.
+  const dialTally = liveQuery.data?.today ?? null;
+  const me = useAuth().admin?.id ?? "";
 
   // The pending row per prospect, newest first. Carried into every outcome press
   // below, and it is the whole reason the counts stay honest: with it the press
@@ -219,7 +230,10 @@ export default function CallWorkspace({
     setScriptByLead((prev) => ({ ...prev, [selected.id]: id }));
   };
 
+  // Every way of recording a call ends here, which is why the "this one is
+  // done" signal is raised here rather than at each of the six buttons.
   const advance = (fromId: string) => {
+    onLogged?.(fromId);
     const i = leads.findIndex((l) => l.id === fromId);
     const next = leads[i + 1] ?? leads[0] ?? null;
     setSelectedId(next && next.id !== fromId ? next.id : null);
@@ -298,6 +312,7 @@ export default function CallWorkspace({
   const panelOutcome = (call: LiveDialerCall, outcome: ColdCallDialOutcome) => {
     logDial.mutate({ leadId: call.leadId, outcome, scriptId, dialId: call.dialId });
     if (!call.leadId) return;
+    onLogged?.(call.leadId);
     const fields =
       outcome === "no_answer"
         ? {
@@ -335,6 +350,8 @@ export default function CallWorkspace({
 
   return (
     <div className="grid gap-4">
+      {dialTally && <DialCounter tally={dialTally} callerId={me} />}
+
       <PowerDialerPanel
         calls={liveCalls}
         queueIds={new Set(leads.map((l) => l.id))}
@@ -346,13 +363,8 @@ export default function CallWorkspace({
         onOutcome={panelOutcome}
       />
 
-      <div
-        className={
-          hideQueue ? "grid gap-4" : "grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]"
-        }
-      >
+      <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
       {/* The queue */}
-      {!hideQueue && (
       <div className="pk-card overflow-hidden rounded-[var(--radius-lg)] border border-border">
         <div className="flex items-center justify-between border-b border-divider px-4 py-3">
           <span className="font-display text-[14px] font-semibold">{queueTitle}</span>
@@ -425,7 +437,6 @@ export default function CallWorkspace({
           </ul>
         )}
       </div>
-      )}
 
       {/* The call */}
       {selected ? (
