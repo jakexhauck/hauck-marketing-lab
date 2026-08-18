@@ -110,10 +110,16 @@ On screen: a **Dials today** strip at the top of every calling page, from
 Names and per-person counts appear only when more than one person has dialled
 today, since one caller's breakdown is the total said twice.
 
-## The Dialing page
+## The Power dialer page
 
-`?view=dialing`, in the Cold Call strip after Booked. The same calling workspace
-as a stage page **with no queue on it**.
+`?view=dialing`, in the Cold Call strip after Booked, labelled **Power dialer**
+(renamed 2026-08-18). The same calling workspace as a stage page **with no queue
+on it**.
+
+It starts EMPTY and stays empty until GoHighLevel rings somebody. A worklist of
+prospects here was tried and taken out again (Jake, 2026-08-18): it is a second
+answer to "who do I call next", which the stage pages already answer, and the
+dialer is not going to read it.
 
 The stage pages answer "who do I call next", which is a list. While a dialing
 session is running that is the wrong question: the phone has already chosen, and
@@ -129,6 +135,29 @@ reads "No calls waiting".
 
 It does NOT change the section's landing page: the strip order puts it after the
 stages, and `resolveColdCallView` falls back to the first page.
+
+## Send to power dialer
+
+`POST /api/admin/cold-call/power-dialer` with `{ ids: [...] }`, from the **Send
+to power dialer** button in the bulk bar on Cold Call > Leads (tick rows, press
+it). For each prospect: a contact in the agency account (upserted, so one that is
+already there is updated rather than doubled), then the tag **`Power Dialer`** on
+it. Jake's workflow in GoHighLevel watches that tag and builds the dialer's list.
+
+The tag sits OUTSIDE the exclusive stage set in `coldCallTags.ts`. A prospect
+keeps whichever stage tag they carry while they are queued, because the two say
+different things: the stage says where they are in the book, this says they are
+next on the phone.
+
+**Nothing here ever removes it.** What becomes of the list once the dialer has
+worked through it is decided in GoHighLevel. If a prospect should come off the
+list after a call, that is a step in the workflow, not a write from this app: two
+systems taking people off a list somebody is dialling is how a dialer ends up
+ringing half of what it was given.
+
+200 per press, sequential, and pressing again is a no-op for anything that
+already landed. A prospect with no phone and no email is refused, because
+GoHighLevel has nothing to key the contact on.
 
 ## Prospects the app has never seen
 
@@ -196,6 +225,8 @@ stage tag to clean off.
 - `supabase/migrations/0113_power_dialer.sql`.
 - `functions/lib/coldCallTags.ts` (+ tests) — one tag per stage, exclusively.
 - `functions/api/admin/cold-call/reconcile.ts` — the push, its preview and limit.
+- `functions/api/admin/cold-call/power-dialer.ts` — Send to power dialer.
+- `functions/lib/coldCallTags.ts` `POWER_DIALER_TAG` — the tag, "Power Dialer".
 - `src/components/admin/acquisition/ColdCallSection.tsx` — the button.
 
 ## Secrets / env

@@ -48,6 +48,18 @@ export const BOOK_TAGS: string[] = [
 
 export const OWNED_TAGS: string[] = [...BOOK_TAGS, ...RETIRED_CC_TAGS];
 
+// The tag that hands a prospect to GoHighLevel's power dialer (Jake, 2026-08-18).
+//
+// NOT part of the exclusive set above, deliberately. Those tags say which stage
+// of the book somebody is in; this one says only "put them on the phone next",
+// so a prospect keeps their stage tag while they are queued and the dialer list
+// can still be one filter on this tag alone.
+//
+// A hand-off rather than a state the app maintains: a workflow on Jake's side
+// watches for it, and nothing here removes it, because what happens to the list
+// once the dialer has worked it is decided over there.
+export const POWER_DIALER_TAG = "Power Dialer";
+
 // undefined means a status with no place in the cold call book at all, which is
 // a lead the reconcile should skip rather than guess about.
 export function tagForStatus(status: string): string | null | undefined {

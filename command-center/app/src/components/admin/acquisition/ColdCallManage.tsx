@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CloudUpload, Upload, UserPlus } from "lucide-react";
+import { CloudUpload, PhoneForwarded, Upload, UserPlus } from "lucide-react";
 import type { AdminLead, AdminLeadStatus } from "../../../lib/api";
 import { metaFor } from "../../../lib/adminLeads";
 import { useAdminLeadsQuery, useUpdateAdminLead } from "../../../hooks/useAdminLeads";
@@ -11,6 +11,7 @@ import {
   usePushLeadsToGhl,
   type BulkField,
 } from "../../../hooks/useLeadAssignment";
+import { useSendToPowerDialer } from "../../../hooks/useColdCall";
 import { splitFullName } from "../../../lib/csvLeads";
 import { useToast } from "../../../context/ToastContext";
 import ColdCallImportDialog from "./ColdCallImportDialog";
@@ -47,6 +48,7 @@ export default function ColdCallManage({
   const callers = useAssignableCallersQuery();
   const assignLeads = useAssignLeads();
   const pushToGhl = usePushLeadsToGhl();
+  const toPowerDialer = useSendToPowerDialer();
   const updateLead = useUpdateAdminLead();
   const bulkSet = useBulkSetLeadField();
 
@@ -238,6 +240,30 @@ export default function ColdCallManage({
     }
   };
 
+  // Hand the selection to GoHighLevel's power dialer. One tag, "Power Dialer",
+  // and a workflow over there picks them up: the app deliberately does not build
+  // the dialer's list itself, because the list is a Smart List and Jake owns it.
+  const doPowerDialer = async () => {
+    if (selected.size === 0) return;
+    try {
+      const res = await toPowerDialer.mutateAsync([...selected]);
+      if (res.notConfigured) {
+        showToast("GoHighLevel is not connected, so nothing was sent.");
+        return;
+      }
+      showToast(
+        res.failed === 0
+          ? `${res.sent} sent to the power dialer`
+          : `${res.sent} sent, ${res.failed} refused: ${res.error ?? "no reason given"}`,
+      );
+      // Kept when some failed, same as the push: those rows are the ones worth
+      // pressing again.
+      if (res.failed === 0) setSelected(new Set());
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Could not send those to the dialer");
+    }
+  };
+
   if (leadsQuery.isLoading) return <div className="pk-empty">Loading the book...</div>;
   if (leadsQuery.isError) {
     return <div className="pk-empty">Could not load the book. Reload to try again.</div>;
@@ -317,6 +343,16 @@ export default function ColdCallManage({
             onClick={() => void doAssign(null)}
           >
             Return to the book
+          </button>
+          <button
+            type="button"
+            className="pk-btn-save"
+            disabled={toPowerDialer.isPending}
+            onClick={() => void doPowerDialer()}
+            title="Tag these in GoHighLevel as 'Power Dialer', which is what puts them on the dialer"
+          >
+            <PhoneForwarded size={14} aria-hidden style={{ marginRight: 6, verticalAlign: -2 }} />
+            {toPowerDialer.isPending ? "Sending..." : "Send to power dialer"}
           </button>
           <button
             type="button"

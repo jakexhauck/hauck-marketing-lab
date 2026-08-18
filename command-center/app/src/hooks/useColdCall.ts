@@ -13,6 +13,7 @@ import {
   logColdCallDial,
   recordMeetingOutcome,
   reconcileColdCallTags,
+  sendToPowerDialer,
   type ColdCallDialOutcome,
   type ColdCallRow,
   type SalesMeeting,
@@ -239,6 +240,24 @@ export function useReconcileColdCallTags() {
     onSuccess: () => {
       // Prospects that had no contact record now have one, and the lead rows
       // carry the id and the cleared error.
+      qc.invalidateQueries({ queryKey: ["admin", "tracker", "leads"] });
+    },
+  });
+}
+
+// Hand a selection to the power dialer: a contact over there for each of them,
+// carrying the "Power Dialer" tag Jake's workflow watches.
+//
+// Never retried, same reason as the reconcile above: it writes to live contact
+// records, and pressing again is both the fix and a no-op for anything that
+// already landed.
+export function useSendToPowerDialer() {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (ids: string[]) => sendToPowerDialer(ids),
+    onSuccess: () => {
+      // A prospect who had no contact record now has one, stamped on the row.
       qc.invalidateQueries({ queryKey: ["admin", "tracker", "leads"] });
     },
   });

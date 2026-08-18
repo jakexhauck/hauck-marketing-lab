@@ -47,7 +47,7 @@ export const COLD_CALL_PAGES: ColdCallPageDef[] = [
   // After the stages rather than before them, so the section still OPENS on New
   // Lead: resolveColdCallView falls back to the first page, and moving somebody
   // else's landing page is not what adding one should do.
-  { id: "dialing", label: "Dialing", side: "left" },
+  { id: "dialing", label: "Power dialer", side: "left" },
   // The caller's own month of dialing. His numbers, so he can see them.
   { id: "tracker", label: "Tracker", side: "left" },
   // When he is on the phones. LEFT rather than right: filling this in is his

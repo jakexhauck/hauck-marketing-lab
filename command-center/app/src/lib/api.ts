@@ -1872,6 +1872,25 @@ export async function reconcileColdCallTags(
   return api(`/api/admin/cold-call/reconcile${preview ? "?preview=1" : ""}`, { method: "POST" });
 }
 
+export interface PowerDialerSendResult {
+  sent: number;
+  failed: number;
+  // The agency GoHighLevel account is not connected, so nothing was attempted.
+  notConfigured: boolean;
+  // The first reason a prospect was refused, or null if none were.
+  error: string | null;
+}
+
+// Hand a selection to GoHighLevel's power dialer: each one becomes a contact
+// over there carrying the "Power Dialer" tag, which is what Jake's workflow
+// watches. Never retried: a half-finished send is fixed by pressing again.
+export async function sendToPowerDialer(ids: string[]): Promise<PowerDialerSendResult> {
+  return api("/api/admin/cold-call/power-dialer", {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
+}
+
 // A call GoHighLevel's power dialer placed, that nobody has judged yet (0113).
 export interface LiveDialerCall {
   dialId: string;
