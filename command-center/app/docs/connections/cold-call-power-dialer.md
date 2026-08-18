@@ -138,9 +138,18 @@ stages, and `resolveColdCallView` falls back to the first page.
 
 ## Send to power dialer
 
-`POST /api/admin/cold-call/power-dialer` with `{ ids: [...] }`, from the **Send
-to power dialer** button in the bulk bar on Cold Call > Leads (tick rows, press
-it). For each prospect: a contact in the agency account (upserted, so one that is
+Two buttons, one tag.
+
+**Acquisition > Leads** (the scraped list): **Send to power dialer** sits beside
+Send to Cold Call. It IS the Cold Call send, with `powerDialer: true` on
+`/api/admin/leads/send`: the same GoHighLevel contact, the same prospect book
+row, the same stamp, and then the tag. Not a third channel on purpose. A channel
+decides where a lead lives; this decides only what happens to it next, and the
+two roads must not diverge. SMS cannot go to the dialer, and asking is ignored
+rather than obeyed.
+
+**Cold Call > Leads** (the book): the same button in the bulk bar, for prospects
+already in it. `POST /api/admin/cold-call/power-dialer` with `{ ids: [...] }`. For each prospect: a contact in the agency account (upserted, so one that is
 already there is updated rather than doubled), then the tag **`Power Dialer`** on
 it. Jake's workflow in GoHighLevel watches that tag and builds the dialer's list.
 
@@ -225,7 +234,8 @@ stage tag to clean off.
 - `supabase/migrations/0113_power_dialer.sql`.
 - `functions/lib/coldCallTags.ts` (+ tests) — one tag per stage, exclusively.
 - `functions/api/admin/cold-call/reconcile.ts` — the push, its preview and limit.
-- `functions/api/admin/cold-call/power-dialer.ts` — Send to power dialer.
+- `functions/api/admin/cold-call/power-dialer.ts` — Send to power dialer (book).
+- `functions/api/admin/leads/send.ts` — `powerDialer` on the scraper send.
 - `functions/lib/coldCallTags.ts` `POWER_DIALER_TAG` — the tag, "Power Dialer".
 - `src/components/admin/acquisition/ColdCallSection.tsx` — the button.
 

@@ -155,9 +155,13 @@ export function useSendLeads() {
     mutationFn: async (input: {
       ids: string[];
       channel: Channel;
+      // Cold Call, and onto GoHighLevel's power dialer as well: the same send
+      // with the "Power Dialer" tag added, which is what puts them on the phone
+      // list over there.
+      powerDialer?: boolean;
       onProgress?: (p: SendProgress) => void;
     }): Promise<SendResult> => {
-      const { ids, channel, onProgress } = input;
+      const { ids, channel, powerDialer, onProgress } = input;
       const total = ids.length;
       const merged: SendResult = {
         channel,
@@ -174,7 +178,7 @@ export function useSendLeads() {
         const slice = ids.slice(i, i + SEND_SLICE);
         const res = await api<SendResult>("/api/admin/leads/send", {
           method: "POST",
-          body: JSON.stringify({ ids: slice, channel }),
+          body: JSON.stringify({ ids: slice, channel, powerDialer: powerDialer === true }),
         });
         merged.label = res.label || merged.label;
         merged.sent += res.sent;

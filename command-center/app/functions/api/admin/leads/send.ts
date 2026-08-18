@@ -3,6 +3,9 @@ import { readJsonBody } from "../../../lib/body";
 import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
 import { pushScrapedLead } from "../../../lib/leadHandoff";
+import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../lib/agencyGhl";
+import { ghlJson } from "../../../lib/ghl";
+import { POWER_DIALER_TAG } from "../../../lib/coldCallTags";
 import {
   partitionForSend,
   zoneForState,
@@ -49,6 +52,12 @@ const SEND_SELECT =
 interface PostBody {
   ids?: unknown;
   channel?: unknown;
+  // Cold Call, and straight onto GoHighLevel's power dialer: the same send,
+  // plus the `Power Dialer` tag on each contact, which is what Jake's workflow
+  // watches for. Not a third channel on purpose. A channel decides where a lead
+  // lives; this decides only what happens to it next, and the book, the tags and
+  // the stamp must stay identical either way or the two roads diverge.
+  powerDialer?: unknown;
 }
 
 interface LeadRowForSend {
@@ -132,6 +141,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   if (!CHANNELS.has(channel)) {
     return Response.json({ error: "Pick Cold Call or SMS." }, { status: 400 });
   }
+
+  // Only Cold Call can go to the dialer. An SMS lead has no place on a phone
+  // list, and silently tagging one would put it there.
+  const toPowerDialer = body.powerDialer === true && channel === "cold_call";
 
   const ids = Array.isArray(body.ids)
     ? [...new Set(body.ids.map((v) => String(v ?? "").trim()).filter(Boolean))]
@@ -262,6 +275,23 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
         continue;
       }
       if (book.added) addedToBook += 1;
+
+      // Onto the dialer's list. AFTER the book, so a prospect the dialer can
+      // ring is always a prospect this app can record the call against.
+      //
+      // A tag that will not go does not fail the lead: it is in GoHighLevel and
+      // in the book, which is everything except being next in the queue, and
+      // reporting it as skipped would offer to send it all over again.
+      if (toPowerDialer && push.contactId && isAgencyGhlConfigured(ctx.env)) {
+        try {
+          await ghlJson(getAgencyGhlContext(ctx.env), `/contacts/${encodeURIComponent(push.contactId)}/tags`, {
+            method: "POST",
+            body: JSON.stringify({ tags: [POWER_DIALER_TAG] }),
+          });
+        } catch (err) {
+          console.error("[leads/send] power dialer tag failed", lead.id, err);
+        }
+      }
     }
 
     // Stamped NOW, not after the loop. This lead is in GoHighLevel; if the run
@@ -301,6 +331,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
   await logAdminAction(client, ctx.data.admin!.id, "leads.send", null, {
     channel,
+    powerDialer: toPowerDialer,
     requested: ids.length,
     sent: sent.length,
     failed: failures.length,

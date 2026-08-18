@@ -7,6 +7,7 @@ import {
   History,
   Loader2,
   Phone,
+  PhoneForwarded,
   Play,
   MapPin,
   Radar,
@@ -426,12 +427,15 @@ function LeadsTable({
   const toggleAll = () =>
     setSelected(allTicked ? new Set() : new Set(leads.map((l) => l.id)));
 
-  const doSend = (channel: Channel) => {
+  // powerDialer is Cold Call plus the tag that puts them on GoHighLevel's dialer
+  // list. Same send, same book row, same stamp: the only difference is that they
+  // are next on the phone rather than waiting to be picked.
+  const doSend = (channel: Channel, powerDialer = false) => {
     const ids = leads.filter((l) => selected.has(l.id)).map((l) => l.id);
     if (ids.length === 0) return;
     setResult(null);
     send.mutate(
-      { ids, channel, onProgress: (p) => setProgress({ ...p, channel }) },
+      { ids, channel, powerDialer, onProgress: (p) => setProgress({ ...p, channel }) },
       {
         onSuccess: (res) => {
           setResult(res);
@@ -510,6 +514,10 @@ function LeadsTable({
             <button type="button" className="ls-primary sm" disabled={!canSend(summary) || send.isPending} onClick={() => doSend("cold_call")}>
               <Phone size={14} />
               Send to Cold Call
+            </button>
+            <button type="button" className="ls-primary sm" disabled={!canSend(summary) || send.isPending} onClick={() => doSend("cold_call", true)} title="Send to Cold Call and tag them 'Power Dialer' in GoHighLevel">
+              <PhoneForwarded size={14} />
+              Send to power dialer
             </button>
             <button type="button" className="ls-primary sm alt" disabled={!canSend(summary) || send.isPending} onClick={() => doSend("sms")}>
               <MessageSquare size={14} />
