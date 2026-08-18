@@ -681,11 +681,12 @@ function etaLabel(ms: number): string {
 
 function SendReceipt({ result, onDismiss }: { result: SendResult; onDismiss: () => void }) {
   return (
-    <div className={`ls-receipt${result.sent === 0 ? " warn" : ""}`}>
+    <div className={`ls-receipt${result.sent === 0 && result.taggedForDialer === 0 ? " warn" : ""}`}>
       <div>
         <b>
           {result.sent} sent to {channelLabel(result.channel)}
           {result.addedToProspectBook > 0 && `, ${result.addedToProspectBook} added to the call list`}
+          {result.taggedForDialer > 0 && `, ${result.taggedForDialer} on the power dialer`}
         </b>
         {result.notConfigured && <div>GoHighLevel is not connected, so nothing was pushed.</div>}
         {result.skipped.length > 0 && (

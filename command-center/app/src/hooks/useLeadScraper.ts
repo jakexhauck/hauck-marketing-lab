@@ -131,6 +131,11 @@ export interface SendResult {
   label: string;
   sent: number;
   addedToProspectBook: number;
+  // How many came out of it carrying the "Power Dialer" tag, which includes the
+  // ones this send skipped: a lead already sent, or already in the book, is
+  // exactly who a dialer run is for, and refusing it the tag is how a list of
+  // eighty ends up a list of nine.
+  taggedForDialer: number;
   skipped: { id: string; reason: string }[];
   notConfigured: boolean;
 }
@@ -168,6 +173,7 @@ export function useSendLeads() {
         label: "",
         sent: 0,
         addedToProspectBook: 0,
+        taggedForDialer: 0,
         skipped: [],
         notConfigured: false,
       };
@@ -183,6 +189,7 @@ export function useSendLeads() {
         merged.label = res.label || merged.label;
         merged.sent += res.sent;
         merged.addedToProspectBook += res.addedToProspectBook;
+        merged.taggedForDialer += res.taggedForDialer ?? 0;
         merged.skipped.push(...res.skipped);
         merged.notConfigured = merged.notConfigured || res.notConfigured;
         done += slice.length;

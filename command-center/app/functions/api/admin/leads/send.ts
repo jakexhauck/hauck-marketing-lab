@@ -7,6 +7,7 @@ import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../lib/agencyG
 import { ghlJson } from "../../../lib/ghl";
 import { POWER_DIALER_TAG } from "../../../lib/coldCallTags";
 import {
+  DNC_REASON,
   partitionForSend,
   zoneForState,
   type Channel,
@@ -82,6 +83,42 @@ interface LeadRowForSend {
 export function sendLabel(channel: Channel, date: Date): string {
   const stamp = date.toISOString().slice(0, 10).replace(/-/g, "");
   return `${channel}_${stamp}_queued`;
+}
+
+// Put the dialer's tag on a prospect who is NOT being pushed by this run.
+//
+// The send deliberately skips a lead it has sent before, or one already in the
+// book, because sending it twice would double the record. Tagging it is a
+// different question: those are exactly the people somebody wants on the phone
+// today, and refusing them the tag is how "send these to the dialer" ends up
+// putting a third of them on the list (Jake, 2026-08-18).
+//
+// So the contact is found rather than made: they already exist over there, and
+// an upsert would rewrite fields and re-apply the import's tags, which for a
+// prospect who has since been called five times would say something false.
+//
+// Best effort by design. It returns whether the tag landed, and the caller
+// counts rather than fails: the lead is where it was either way.
+async function tagExistingForPowerDialer(env: Env, phoneE164: string): Promise<boolean> {
+  const phone = (phoneE164 ?? "").trim();
+  if (!phone || !isAgencyGhlConfigured(env)) return false;
+  const ctx = getAgencyGhlContext(env);
+  try {
+    const found = await ghlJson<{ contact?: { id?: string } }>(
+      ctx,
+      `/contacts/search/duplicate?locationId=${encodeURIComponent(ctx.locationId)}&number=${encodeURIComponent(phone)}`,
+    );
+    const contactId = found.contact?.id;
+    if (!contactId) return false;
+    await ghlJson(ctx, `/contacts/${encodeURIComponent(contactId)}/tags`, {
+      method: "POST",
+      body: JSON.stringify({ tags: [POWER_DIALER_TAG] }),
+    });
+    return true;
+  } catch (err) {
+    console.error("[leads/send] power dialer tag failed", phone, err);
+    return false;
+  }
 }
 
 /**
@@ -243,6 +280,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const sent: string[] = [];
   const failures: { id: string; reason: string }[] = [];
   let addedToBook = 0;
+  // How many prospects came out of this carrying the dialer's tag, pushed or
+  // not. The number the page reports, because it is the one that decides how
+  // long the dialer's list is.
+  let taggedForDialer = 0;
   let notConfigured = false;
   // A stamp that would not write. Reported rather than swallowed: the lead IS in
   // GoHighLevel, so the page must not imply it can simply be sent again.
@@ -288,6 +329,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
             method: "POST",
             body: JSON.stringify({ tags: [POWER_DIALER_TAG] }),
           });
+          taggedForDialer += 1;
         } catch (err) {
           console.error("[leads/send] power dialer tag failed", lead.id, err);
         }
@@ -306,6 +348,23 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     }
 
     sent.push(lead.id);
+  }
+
+  // Everybody else who was ticked. A lead skipped for having been sent before,
+  // or for already being in the book, is still somebody this press asked to put
+  // on the phone, and their contact is already over there waiting for the tag.
+  //
+  // The do-not-contact list is the one refusal that survives this: it is a
+  // refusal to ring them at all, which a dialer list is precisely a way of doing.
+  if (toPowerDialer) {
+    const tagged = new Set(sent);
+    const refusedDnc = new Set(
+      rejected.filter((r) => r.reason === DNC_REASON).map((r) => r.id),
+    );
+    for (const lead of leads) {
+      if (tagged.has(lead.id) || refusedDnc.has(lead.id)) continue;
+      if (await tagExistingForPowerDialer(ctx.env, lead.phoneE164)) taggedForDialer += 1;
+    }
   }
 
   if (sent.length > 0) {
@@ -332,6 +391,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   await logAdminAction(client, ctx.data.admin!.id, "leads.send", null, {
     channel,
     powerDialer: toPowerDialer,
+    taggedForDialer,
     requested: ids.length,
     sent: sent.length,
     failed: failures.length,
@@ -342,6 +402,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     label,
     sent: sent.length,
     addedToProspectBook: addedToBook,
+    // Only meaningful on a power dialer send, and 0 otherwise.
+    taggedForDialer,
     // Everything that did not go, and why. Refused before the push and failed
     // during it are both here, because from the page they are the same question.
     skipped: [...rejected, ...alreadyDialing, ...failures],

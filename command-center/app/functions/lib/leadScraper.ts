@@ -240,6 +240,11 @@ export interface SendRejection {
  * qualified, it must not already have been sent, and it must have a business name
  * (a nameless row is a row nobody can open a conversation with).
  */
+// The one refusal that outlives a send: it says do not ring them at all, so it
+// also refuses them a place on a dialer's list. Named because two places check
+// for it and a typo in either would quietly ring somebody who asked not to be.
+export const DNC_REASON = "On the do-not-contact list";
+
 export function partitionForSend(
   leads: ScrapedLead[],
   suppressed: Set<string> = new Set(),
@@ -256,7 +261,7 @@ export function partitionForSend(
     } else if (!(lead.businessName ?? "").trim()) {
       rejected.push({ id: lead.id, reason: "No business name" });
     } else if (suppressed.has(lead.phoneE164)) {
-      rejected.push({ id: lead.id, reason: "On the do-not-contact list" });
+      rejected.push({ id: lead.id, reason: DNC_REASON });
     } else if (seen.has(lead.phoneE164)) {
       rejected.push({ id: lead.id, reason: "Duplicate number in this batch" });
     } else {
