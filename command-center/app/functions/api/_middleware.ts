@@ -15,6 +15,7 @@ import { canAdminAccess } from "../lib/adminRoles";
 import { HEALTH_CRON_HEADER, isHealthCronRequest } from "../lib/healthCron";
 import { ADS_CRON_HEADER, isAdsCronRequest } from "../lib/adsCron";
 import { CALENDAR_CRON_HEADER, isCalendarCronRequest } from "../lib/calendarCron";
+import { COLD_CALL_CRON_HEADER, isColdCallCronRequest } from "../lib/coldCallCron";
 import { funnelOrigin } from "../lib/funnelUrl";
 
 const allowedOrigins = new Set([
@@ -87,7 +88,40 @@ const PUBLIC_PATHS = new Set([
   // no session of ours. Guarded by its own shared secret (SHEETS_SYNC_TOKEN),
   // read-only, and it names its tenant explicitly. See api/sheets/leads.ts.
   "/api/sheets/leads",
+  // The sales coach's two doors (0110), neither of which can carry a session.
+  //
+  // /api/coach/ingest receives Google Meet's live captions, read off the page
+  // by the Chrome extension and posted as plain text. Guarded by a shared token
+  // in the URL. Fails closed: no token configured, no requests accepted.
+  //
+  // /api/coach/live is read by the Chrome overlay INSIDE the Google Meet
+  // window, which runs on meet.google.com. Its own shared secret
+  // (COACH_OVERLAY_TOKEN), read-only, and it can reach exactly one thing: the
+  // cards for whichever call is live right now.
+  "/api/coach/ingest",
+  "/api/coach/live",
 ]);
+
+// The overlay's origin. Deliberately NOT in allowedOrigins above, because that
+// set is credentialed: adding meet.google.com there would let anything running
+// on a Google Meet page make cookie-bearing calls to every admin route in this
+// app. It gets its own headers instead, on its own path, with no credentials,
+// so the only thing it can ever read is what its token buys.
+const OVERLAY_ORIGIN = "https://meet.google.com";
+
+const OVERLAY_PATHS = new Set(["/api/coach/live", "/api/coach/ingest"]);
+
+function overlayCors(origin: string | null, pathname: string): HeadersInit | null {
+  if (origin !== OVERLAY_ORIGIN) return null;
+  if (!OVERLAY_PATHS.has(pathname)) return null;
+  return {
+    "access-control-allow-origin": OVERLAY_ORIGIN,
+    "access-control-allow-methods": "GET,POST,OPTIONS",
+    "access-control-allow-headers": "content-type",
+    "access-control-max-age": "86400",
+    vary: "origin",
+  };
+}
 
 // Public paths with a dynamic segment, matched by prefix. Kept separate from the
 // exact-match set so no path can be made public by accident.
@@ -113,7 +147,10 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const url = new URL(ctx.request.url);
 
   if (ctx.request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders(origin, ctx.env) });
+    return new Response(null, {
+      status: 204,
+      headers: overlayCors(origin, url.pathname) ?? corsHeaders(origin, ctx.env),
+    });
   }
 
   // The scheduled health probe, and only that. See lib/healthCron.ts for why
@@ -157,6 +194,24 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       url.pathname,
       ctx.request.headers.get(CALENDAR_CRON_HEADER),
       ctx.env.CALENDAR_CRON_SECRET,
+    )
+  ) {
+    return await runNext(ctx, origin, url);
+  }
+
+  // The scheduled power dialer sync, and only that. Fourth sibling of the three
+  // gates above, same rules: one exact path, its own secret, no ctx.data.admin,
+  // and a miss falls through to 401.
+  //
+  // It exists because recording a call used to be a side effect of somebody
+  // having a page open, which stopped being true the moment a tab went to the
+  // background. See lib/coldCallCron.ts for what the handler behind it writes.
+  if (
+    isColdCallCronRequest(
+      ctx.request.method,
+      url.pathname,
+      ctx.request.headers.get(COLD_CALL_CRON_HEADER),
+      ctx.env.COLD_CALL_CRON_SECRET,
     )
   ) {
     return await runNext(ctx, origin, url);
@@ -350,7 +405,10 @@ async function runNext(
   try {
     const response = await ctx.next();
     const headers = new Headers(response.headers);
-    for (const [key, value] of Object.entries(corsHeaders(origin, ctx.env))) {
+    // The Meet overlay's own uncredentialed headers take the place of the
+    // normal ones on its one path; everything else gets the usual set.
+    const cors = overlayCors(origin, url.pathname) ?? corsHeaders(origin, ctx.env);
+    for (const [key, value] of Object.entries(cors)) {
       headers.set(key, value as string);
     }
     return new Response(response.body, {

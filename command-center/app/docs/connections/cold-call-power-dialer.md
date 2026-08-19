@@ -24,8 +24,15 @@ Nothing in GoHighLevel exposes a dialer session. What it exposes is the wake:
 every call it places lands on the prospect's conversation as a call message with
 a timestamp, a CallSid, a status and a duration.
 
-`GET /api/admin/cold-call/live` reads that wake, once every eight seconds while a
-calling page is open:
+Two things read that wake, and both write through the same rules:
+
+- **The cron**, every minute, always. `workers/dialer-cron` wakes up and POSTs
+  `/api/admin/cold-call/sync`. No browser involved.
+- **The browser poll**, every eight seconds while a calling page is open.
+  `GET /api/admin/cold-call/live`. It still syncs, because a caller watching the
+  card should not wait up to a minute for it to move.
+
+Either way the reading is the same three steps:
 
 1. `GET /conversations/search?sort=desc&sortBy=last_message_date` — one request,
    naming the conversations that just moved.
@@ -35,10 +42,40 @@ calling page is open:
 
 In a quiet minute that is one request. During a run of calls it is two or three.
 
-**The endpoint writes on a GET.** Deliberate: the alternative is a separate sync
-somebody has to remember to run, and a caller mid-shift with a dialer going is
-exactly who would not. It is idempotent, so polling twice, or from two tabs,
-cannot double count.
+**The `/live` endpoint writes on a GET.** Deliberate, and now a convenience
+rather than the whole mechanism: the cron is what makes the record
+unconditional. It is idempotent, so the cron and any number of tabs polling over
+the same call cannot double count.
+
+### Why the cron exists (2026-08-19)
+
+Recording used to be a side effect of the browser poll alone, which meant the
+record depended on somebody having a tab in front. That assumption broke in the
+ordinary way. Jake was dialing in GoHighLevel, the Command Center tab sat behind
+it, Chrome throttled the background tab's timers, and three real calls went
+unrecorded for eight minutes until one late poll swept them up:
+
+| Call | Seconds until recorded |
+| --- | --- |
+| 2:39:43 | 9 |
+| 2:43:03 | 10 |
+| 2:44:07 | 468 |
+| 2:47:02 | 292 |
+| 2:47:39 | 253 |
+
+Every call that day before the gap landed within seventeen seconds. Nothing was
+broken, GoHighLevel was healthy, and no code had changed. Nobody was looking.
+
+The dial table feeds the tracker, the funnel and the script variation numbers,
+so "was a tab in front" is not an acceptable input to any of them. The cron
+removes the browser from the recording path. The browser keeps polling only so
+the card moves at conversation speed.
+
+**Attribution when nobody is at the keyboard.** `caller_id` is `NOT NULL` (0052),
+so the cron has to name somebody. It uses whoever recorded the last dial in the
+past twelve hours, falling back to the last caller ever. The guess is
+self-correcting: an outcome press stamps `caller_id` onto the row it completes
+(`dials.ts`), so the moment a human judges the call, their id replaces it.
 
 ## What keeps it accurate
 
@@ -205,7 +242,14 @@ stage tag to clean off.
 
 - `functions/lib/powerDialer.ts` (+ tests) — every rule above, pure.
 - `functions/lib/agencyCallLog.ts` — the three GoHighLevel reads.
-- `functions/api/admin/cold-call/live.ts` — the poll and the sync.
+- `functions/lib/powerDialerSync.ts` — the sync itself, shared by both callers,
+  plus `resolveCronCaller()`.
+- `functions/api/admin/cold-call/live.ts` — the browser poll.
+- `functions/api/admin/cold-call/sync.ts` — the cron endpoint.
+- `functions/lib/coldCallCron.ts` — the gate that lets the cron skip the session.
+- `workers/dialer-cron/` — the every-minute Worker. Pages cannot hold a cron
+  trigger, so it sits beside the app like ads-cron, health-cron and
+  calendar-cron.
 - `functions/api/admin/cold-call/dials.ts` — `dialId` completes a pending row.
 - `src/components/admin/acquisition/DialCounter.tsx` — the Dials today strip.
 - `functions/lib/powerDialer.ts` `tallyDials()` — the count, pure.
@@ -221,7 +265,19 @@ stage tag to clean off.
 
 ## Secrets / env
 
-Nothing new. `AGENCY_GHL_LOCATION_ID` and `AGENCY_GHL_TOKEN`, already set and
+`COLD_CALL_CRON_SECRET` (2026-08-19), on BOTH sides and identical:
+
+- the Pages project, bound with
+  `node scripts/cf-rebind.mjs --from-doppler --add COLD_CALL_CRON_SECRET`
+  (never `cf.mjs env:set`, which blanks every other secret),
+- the Worker, with `wrangler secret put COLD_CALL_CRON_SECRET` in
+  `workers/dialer-cron`.
+
+Mismatched, every run comes back 401 and calls silently stop being recorded,
+which is the exact failure the cron exists to end. `wrangler tail` on the Worker
+says so in as many words.
+
+Otherwise `AGENCY_GHL_LOCATION_ID` and `AGENCY_GHL_TOKEN`, already set and
 shared with the rest of the cold call suite. Unconfigured, the endpoint answers
 `configured: false` and the panel never appears.
 

@@ -1,0 +1,32 @@
+name = "hauck-dialer-cron"
+main = "src/index.ts"
+compatibility_date = "2026-05-18"
+
+# Fourth sibling of workers/ads-cron, workers/health-cron and
+# workers/calendar-cron, and here for the same reason: Cloudflare Pages projects
+# cannot carry a cron trigger, so the thing that wakes up has to be a Worker
+# sitting beside the app.
+#
+# It holds no database access and no GoHighLevel token: it makes one
+# authenticated POST and logs the outcome. Everything that decides which calls
+# are new and who they belong to lives in the app.
+
+[triggers]
+# Every minute, which is the fastest Cloudflare schedules. It is the right rate
+# because the thing being recorded is a phone dialing continuously: a caller
+# working a list places one every thirty to sixty seconds, and a record that
+# lags five minutes behind the phone is a record nobody trusts.
+#
+# Cheap by construction. A run with nothing new to do is one GoHighLevel search
+# that returns conversations the app already holds rows for, and it writes
+# nothing.
+crons = ["* * * * *"]
+
+[vars]
+SYNC_URL = "https://app.hauckmarketing.com/api/admin/cold-call/sync"
+
+# COLD_CALL_CRON_SECRET is NOT here on purpose: it is a secret, set with
+#   wrangler secret put COLD_CALL_CRON_SECRET
+# and it has to match the value in the Pages project's own environment exactly,
+# or every run comes back 401 and calls silently stop being recorded, which is
+# the exact failure this Worker exists to end.
