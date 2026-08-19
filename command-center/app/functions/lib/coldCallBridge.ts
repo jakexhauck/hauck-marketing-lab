@@ -68,6 +68,7 @@ export interface GhlWorkflowSummary {
 export type BridgeFailure =
   | "not_configured"
   | "no_phone"
+  | "not_mobile"
   | "no_contact"
   | "workflow_missing"
   | "workflow_draft"
@@ -107,6 +108,8 @@ export function bridgeFailureMessage(error: BridgeFailure, workflow: string): st
       return "The agency GoHighLevel account is not connected, so the call cannot be placed.";
     case "no_phone":
       return "This prospect has no phone number on file.";
+    case "not_mobile":
+      return "That number is a landline, not a mobile, so it is not dialled.";
     case "no_contact":
       return "Could not create this prospect in GoHighLevel, so there is nobody to dial.";
     case "workflow_missing":

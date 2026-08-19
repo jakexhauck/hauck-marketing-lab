@@ -82,10 +82,17 @@ describe("bridgeFailureMessage", () => {
     expect(bridgeFailureMessage("workflow_draft", "CC Bridge Dial")).toContain("draft");
   });
 
+  it("tells a caller a landline was refused on purpose, not that something broke", () => {
+    const message = bridgeFailureMessage("not_mobile", "CC Bridge Dial");
+    expect(message).toContain("landline");
+    expect(message).not.toContain("failed");
+  });
+
   it("says something for every failure", () => {
     const codes = [
       "not_configured",
       "no_phone",
+      "not_mobile",
       "no_contact",
       "workflow_missing",
       "workflow_draft",

@@ -251,10 +251,14 @@ export default function ColdCallManage({
         showToast("GoHighLevel is not connected, so nothing was sent.");
         return;
       }
+      // Landlines are counted separately from failures. A failure is something to
+      // press again about; a landline is a decision, and saying so is what stops
+      // "I ticked forty and thirty went" reading as a bug.
+      const skipped = res.notMobile > 0 ? `, ${res.notMobile} skipped (not mobile)` : "";
       showToast(
         res.failed === 0
-          ? `${res.sent} sent to the power dialer`
-          : `${res.sent} sent, ${res.failed} refused: ${res.error ?? "no reason given"}`,
+          ? `${res.sent} sent to the power dialer${skipped}`
+          : `${res.sent} sent${skipped}, ${res.failed} refused: ${res.error ?? "no reason given"}`,
       );
       // Kept when some failed, same as the push: those rows are the ones worth
       // pressing again.

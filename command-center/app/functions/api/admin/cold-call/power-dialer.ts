@@ -5,6 +5,7 @@ import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../lib/agencyG
 import { ghlJson } from "../../../lib/ghl";
 import { readableError, upsertAgencyContact, type LeadForPush } from "../../../lib/agencyCrm";
 import { POWER_DIALER_TAG } from "../../../lib/coldCallTags";
+import { isMobile } from "../../../lib/leadScraper";
 
 // POST /api/admin/cold-call/power-dialer  (admin session gated in _middleware.ts)
 //
@@ -42,6 +43,7 @@ interface LeadRow {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  line_type: string | null;
   email: string | null;
   source: string | null;
   ghl_contact_id: string | null;
@@ -79,7 +81,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const { data, error } = await client
     .from("leads")
     .select(
-      "id, first_name, last_name, phone, email, source, ghl_contact_id, business_name, website",
+      "id, first_name, last_name, phone, email, source, ghl_contact_id, business_name, website, line_type",
     )
     .in("id", ids)
     .is("deleted_at", null);
@@ -88,9 +90,21 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     return Response.json({ error: "Could not read those prospects." }, { status: 500 });
   }
 
-  const rows = (data ?? []) as LeadRow[];
-  if (rows.length === 0) {
+  const all = (data ?? []) as LeadRow[];
+  if (all.length === 0) {
     return Response.json({ error: "None of those are still in the book." }, { status: 404 });
+  }
+
+  // A landline never reaches the dialer's list. Counted rather than silently
+  // dropped, because "I ticked forty and thirty went" needs a reason attached to
+  // it, and the reason is the same one every time.
+  const rows = all.filter((row) => isMobile(row.line_type));
+  const notMobile = all.length - rows.length;
+  if (rows.length === 0) {
+    return Response.json(
+      { error: "None of those are mobile numbers, so there is nothing to dial." },
+      { status: 400 },
+    );
   }
 
   const agency = getAgencyGhlContext(ctx.env);
@@ -154,5 +168,5 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     failed,
   });
 
-  return Response.json({ sent, failed, notConfigured: false, error: firstError });
+  return Response.json({ sent, failed, notMobile, notConfigured: false, error: firstError });
 };

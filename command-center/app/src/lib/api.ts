@@ -1875,6 +1875,8 @@ export async function reconcileColdCallTags(
 export interface PowerDialerSendResult {
   sent: number;
   failed: number;
+  // Ticked, but a landline, so never handed to the dialer.
+  notMobile: number;
   // The agency GoHighLevel account is not connected, so nothing was attempted.
   notConfigured: boolean;
   // The first reason a prospect was refused, or null if none were.
