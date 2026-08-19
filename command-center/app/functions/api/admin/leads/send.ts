@@ -48,7 +48,7 @@ const CHANNELS = new Set<Channel>(["cold_call", "sms"]);
 // One literal, not a concatenation: supabase-js infers the row type from this
 // string, and a joined expression collapses it to an error type.
 const SEND_SELECT =
-  "id, business_name, phone_e164, city, state, website, rating, review_count, icp_score, icp_flags, send_status, sent_to, run_id, niche_id";
+  "id, business_name, phone_e164, city, state, website, rating, review_count, icp_score, icp_flags, send_status, sent_to, line_type, run_id, niche_id";
 
 interface PostBody {
   ids?: unknown;
@@ -74,6 +74,7 @@ interface LeadRowForSend {
   icp_flags: string[] | null;
   send_status: string;
   sent_to: string | null;
+  line_type: string | null;
   run_id: string | null;
   niche_id: string | null;
 }

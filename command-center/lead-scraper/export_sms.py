@@ -1,8 +1,11 @@
 """Export send_status='pending' rows with icp_score >= EXPORT_THRESHOLD, best score
-first, re-validate phone, drop suppressed phones, dedupe, require a name, write
-<=1000-row CSVs, and stamp send_status so re-runs pull only fresh numbers. Line type
-is screened by your SMS platform at send, so no paid API here. --dry-run stamps
-nothing.
+first, re-validate phone, drop landlines, drop suppressed phones, dedupe, require a
+name, write <=1000-row CSVs, and stamp send_status so re-runs pull only fresh
+numbers. --dry-run stamps nothing.
+
+Line type is screened here rather than at send. The SOP left it to the SMS platform
+because the check used to cost money per lookup; NANPA's free block data (linetype.py)
+means we can refuse a landline before it ever reaches a list.
 
 Verbatim from the SOP. The app's "send to Cold Call / SMS" path stamps the same
 send_status column through the same rules, so the CSV button and the in-app send can
@@ -20,6 +23,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+import linetype
 import net
 import niche
 import suppress
@@ -59,11 +63,17 @@ def fetch_pool(min_score=None, run_id=None, niche_id=None, include_in_crm=False)
 
 
 def clean(pool):
+    """Landlines are dropped outright, not merely deprioritised: the whole point of
+    this list is a number somebody carries in their pocket. 'unknown' fails the same
+    test, which is what we want, because the numbers that land there are toll-free
+    and non-US ones that were never mobiles either."""
     suppressed = suppress.load_suppressed()
     seen, out = set(), []
     for row in pool:
         e164 = normalize_phone(row.get("phone_e164") or "")
         if not e164 or e164 in suppressed or e164 in seen:
+            continue
+        if not linetype.is_mobile(e164):
             continue
         company = (row.get("business_name") or "").strip()
         if not company:

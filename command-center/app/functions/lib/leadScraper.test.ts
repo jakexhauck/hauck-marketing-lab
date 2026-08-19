@@ -28,6 +28,7 @@ function lead(over: Partial<ScrapedLead> = {}): ScrapedLead {
     icpFlags: [],
     sendStatus: "pending",
     sentTo: null,
+    lineType: "wireless",
     ...over,
   };
 }
@@ -218,6 +219,23 @@ describe("what may be sent", () => {
     expect(rejected[0].reason).toBe("On the do-not-contact list");
   });
 
+  it("refuses a landline", () => {
+    const { sendable, rejected } = partitionForSend([lead({ lineType: "landline" })]);
+    expect(sendable).toHaveLength(0);
+    expect(rejected[0].reason).toBe("Not a mobile number");
+  });
+
+  // The block map answers "unknown" for toll-free and out-of-country numbers, and
+  // for a row scraped before the column existed it is null. Neither is evidence of
+  // a mobile, and the whole point of the filter is that the burden runs that way.
+  it("refuses a number it cannot prove is a mobile", () => {
+    for (const lineType of ["unknown", null]) {
+      const { sendable, rejected } = partitionForSend([lead({ lineType })]);
+      expect(sendable).toHaveLength(0);
+      expect(rejected[0].reason).toBe("Not a mobile number");
+    }
+  });
+
   it("sends one number once even when it is ticked twice", () => {
     const { sendable, rejected } = partitionForSend([
       lead({ id: "a" }),
@@ -232,7 +250,8 @@ describe("what may be sent", () => {
       lead({ id: "a", icpScore: 10 }),
       lead({ id: "b", sendStatus: "sent" }),
       lead({ id: "c", businessName: "" }),
+      lead({ id: "d", lineType: "landline" }),
     ]);
-    expect(rejected.map((r) => r.id)).toEqual(["a", "b", "c"]);
+    expect(rejected.map((r) => r.id)).toEqual(["a", "b", "c", "d"]);
   });
 });

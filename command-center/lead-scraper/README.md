@@ -41,6 +41,8 @@ doing the same work twice.
 | `build_queue.py` | The resumable keyword x location queue. |
 | `fallback.py` | Houzz/Manta top-up when a metro comes back thin. |
 | `suppress.py` | Permanent, file-backed exclusion. |
+| `linetype.py` | Mobile or landline per NPA-NXX, from NANPA's free block data. |
+| `backfill_line_type.py` | Stamps `line_type` on leads scraped before the column existed. |
 | `export_sms.py` | Score-qualified CSV batches, best first. |
 | `coordinator.py` | Walks the queue, backs off when throttled, reports progress. |
 | `store.py` | The run queue and the CRM phone snapshot. Never touches leads. |
@@ -100,10 +102,31 @@ maximum favourable signals (live website, 5.0 rating, healthy review count) and
 asserts every single one still fails to export. This is what stops a future
 word-list edit from quietly re-opening the junk gate. Keep it green.
 
+## Mobiles only
+
+Every lead is stamped `wireless`, `landline` or `unknown` at scrape time, and both
+send paths (the CSV export and the Leads page's send) refuse anything that is not a
+mobile. A landline is still stored and still visible under the "Everything" filter;
+it simply cannot be put on a list.
+
+The answer comes from NANPA's free public file of who owns each six-digit NPA-NXX
+block. NANPA does not publish a wireless flag, so `linetype.py` derives one from the
+carrier name. Two limits come with the price: it works per block rather than per
+number, and it cannot see a number that has been ported between carriers. Roughly 70
+to 80% right, which is the trade for free and for no per-lookup cost.
+
+The map is committed as `data/npanxx_line_type.txt.gz`, so a scrape never touches the
+network for it. NANPA rebuilds their file daily; refresh ours whenever it feels stale:
+
+    .venv/bin/python linetype.py --refresh
+    .venv/bin/python backfill_line_type.py     # re-stamp blocks that changed hands
+
+Check one number with `.venv/bin/python linetype.py +15551234567`.
+
 ## A note on sending and compliance
 
-This system sources numbers. It does not send. The SMS platform handles line-type
-screening, opt-outs and throttling. Cold SMS is regulated: check the rules for the
-states you text into, honour opt-outs immediately, and keep volume sane. The cleaner
-the targeting, the fewer wrong people get contacted, and the longer the sending
-stays healthy.
+This system sources numbers, it does not send. Line type is screened here, before a
+number ever reaches a list; the SMS platform still handles opt-outs and throttling.
+Cold SMS is regulated: check the rules for the states you text into, honour opt-outs
+immediately, and keep volume sane. The cleaner the targeting, the fewer wrong people
+get contacted, and the longer the sending stays healthy.

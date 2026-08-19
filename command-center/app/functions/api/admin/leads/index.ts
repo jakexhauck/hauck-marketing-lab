@@ -21,7 +21,7 @@ import {
 // One literal, not a concatenation: supabase-js infers the row type from this
 // string, and a joined expression collapses it to an error type.
 const SELECT =
-  "id, business_name, phone_e164, city, state, website, rating, review_count, icp_score, icp_flags, send_status, sent_to, sent_at, primary_type, metro, source, source_keyword, niche_id, run_id, created_at";
+  "id, business_name, phone_e164, city, state, website, rating, review_count, icp_score, icp_flags, send_status, sent_to, line_type, sent_at, primary_type, metro, source, source_keyword, niche_id, run_id, created_at";
 
 const PAGE_MAX = 500;
 
@@ -38,6 +38,7 @@ interface LeadRow {
   icp_flags: string[] | null;
   send_status: string;
   sent_to: string | null;
+  line_type: string | null;
   sent_at: string | null;
   primary_type: string | null;
   metro: string | null;
@@ -62,6 +63,7 @@ export function toScrapedLead(row: LeadRow): ScrapedLead {
     icpFlags: row.icp_flags ?? [],
     sendStatus: row.send_status,
     sentTo: row.sent_to,
+    lineType: row.line_type,
   };
 }
 
@@ -117,7 +119,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       .eq("send_status", "pending")
       .gte("icp_score", EXPORT_THRESHOLD)
       .not("business_name", "is", null)
-      .neq("business_name", "");
+      .neq("business_name", "")
+      .eq("line_type", "wireless");
   }
   if (search) {
     const safe = search.replace(/[,()*]/g, " ").trim();

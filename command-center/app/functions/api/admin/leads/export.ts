@@ -22,7 +22,7 @@ const SERIES = "cold_sms_v2_batch";
 // One literal, not a concatenation: supabase-js infers the row type from this
 // string, and a joined expression collapses it to an error type.
 const EXPORT_SELECT =
-  "id, business_name, phone_e164, city, state, website, rating, review_count, icp_score, icp_flags, send_status, sent_to";
+  "id, business_name, phone_e164, city, state, website, rating, review_count, icp_score, icp_flags, send_status, sent_to, line_type";
 
 interface ExportRow {
   id: string;
@@ -37,6 +37,7 @@ interface ExportRow {
   icp_flags: string[] | null;
   send_status: string;
   sent_to: string | null;
+  line_type: string | null;
 }
 
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -53,7 +54,11 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     .select(EXPORT_SELECT)
     .eq("in_crm", false)
     .eq("send_status", "pending")
-    .gte("icp_score", EXPORT_THRESHOLD);
+    .gte("icp_score", EXPORT_THRESHOLD)
+    // Filtered in the query, not just in partitionForSend: the batch is capped at
+    // BATCH_SIZE rows, and letting landlines fill it would cap the file at whatever
+    // fraction of them happened to be mobiles.
+    .eq("line_type", "wireless");
 
   if (runId) query = query.eq("run_id", runId);
   // The file has to match the table it was downloaded from, or a niche filter on

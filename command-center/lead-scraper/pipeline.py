@@ -10,6 +10,9 @@ Straight from the SOP. Two additions, both columns rather than logic:
   in_crm  - true when the phone was already in GoHighLevel at the start of the run.
             The row is still stored and still enriched, exactly as the SOP does;
             the Leads page simply never renders it.
+  line_type - wireless, landline or unknown, from NANPA's free block data. Stored
+            rather than acted on here: the row is kept whatever it says, and the two
+            send paths are the ones that refuse anything that is not a mobile.
 """
 
 from __future__ import annotations
@@ -23,6 +26,7 @@ from datetime import datetime, timezone
 
 import phonenumbers
 
+import linetype
 import net
 
 import niche
@@ -141,6 +145,7 @@ def records_from_json(
             "source": source, "source_keyword": source_keyword,
             "primary_type": category or None, "updated_at": now,
             "niche_id": n.id, "run_id": run_id, "in_crm": already,
+            "line_type": linetype.line_type_of(e164),
         })
     return list(out.values()), stats
 

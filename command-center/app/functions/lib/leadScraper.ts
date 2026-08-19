@@ -35,6 +35,10 @@ export interface ScrapedLead {
   icpFlags: string[];
   sendStatus: string;
   sentTo: string | null;
+  // 'wireless' | 'landline' | 'unknown', from the scraper's NANPA block map. Null
+  // on a row scraped before the column existed, which reads the same as landline
+  // to every check below: the burden is on proving a number IS a mobile.
+  lineType: string | null;
 }
 
 export interface RunForTags {
@@ -235,15 +239,25 @@ export interface SendRejection {
 /**
  * Split a tick-list into what may actually go out and what may not.
  *
- * The same three rules the SOP's exporter enforces, applied here so the in-app
- * send cannot hand out a number the CSV path would have refused: it must be
- * qualified, it must not already have been sent, and it must have a business name
- * (a nameless row is a row nobody can open a conversation with).
+ * The same rules the SOP's exporter enforces, applied here so the in-app send
+ * cannot hand out a number the CSV path would have refused: it must be qualified,
+ * it must not already have been sent, it must have a business name (a nameless row
+ * is a row nobody can open a conversation with), and it must be a mobile.
  */
 // The one refusal that outlives a send: it says do not ring them at all, so it
 // also refuses them a place on a dialer's list. Named because two places check
 // for it and a typo in either would quietly ring somebody who asked not to be.
 export const DNC_REASON = "On the do-not-contact list";
+
+// Landline is a refusal, not a demotion. A cold list is worth having because the
+// number rings in somebody's pocket, and a business's published main line rings on
+// a desk nobody is sitting at. 'unknown' fails with it deliberately: the numbers
+// that land there are toll-free and out-of-country ones, which were never mobiles.
+export const LANDLINE_REASON = "Not a mobile number";
+
+export function isMobile(lineType: string | null | undefined): boolean {
+  return lineType === "wireless";
+}
 
 export function partitionForSend(
   leads: ScrapedLead[],
@@ -260,6 +274,8 @@ export function partitionForSend(
       rejected.push({ id: lead.id, reason: "Already sent" });
     } else if (!(lead.businessName ?? "").trim()) {
       rejected.push({ id: lead.id, reason: "No business name" });
+    } else if (!isMobile(lead.lineType)) {
+      rejected.push({ id: lead.id, reason: LANDLINE_REASON });
     } else if (suppressed.has(lead.phoneE164)) {
       rejected.push({ id: lead.id, reason: DNC_REASON });
     } else if (seen.has(lead.phoneE164)) {
