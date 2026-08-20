@@ -23,13 +23,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import niche  # noqa: E402
 
-TRADES = ("roofing", "remodeling", "siding_windows", "general_contracting")
+TRADES = ("roofing", "remodeling", "siding_windows", "windows_doors",
+          "general_contracting")
 
 # The primary category that unambiguously means each trade.
 PRIMARY = {
     "roofing": "roofing contractor",
     "remodeling": "kitchen remodeler",
     "siding_windows": "siding contractor",
+    "windows_doors": "window installation service",
     "general_contracting": "general contractor",
 }
 

@@ -1,24 +1,22 @@
 {
   "id": "siding_windows",
-  "label": "Siding and windows",
+  "label": "Siding, gutters and insulation",
   "extends": "_shared",
   "_comment": "A single trade. It inherits the shared deny list, venue words and whole-word guards, and separates itself from its sibling trades by PRIMARY category only. A roofer who also remodels is still a roofer, so no sibling trade is ever denied on the business name.",
   "keywords": [
     "siding contractor",
-    "window replacement",
     "vinyl siding installation",
-    "replacement windows",
     "james hardie siding",
-    "window installation",
-    "gutter installation",
     "exterior siding company",
-    "door replacement",
-    "insulation contractor"
+    "fiber cement siding",
+    "siding replacement",
+    "gutter installation",
+    "seamless gutters",
+    "insulation contractor",
+    "attic insulation"
   ],
   "allow_core": [
     "siding contractor",
-    "window installation service",
-    "door installation service",
     "insulation contractor",
     "gutter service"
   ],
@@ -28,6 +26,7 @@
     "bathroom remodeler",
     "bathroom remodeling service",
     "construction company",
+    "door installation service",
     "furnace repair service",
     "general contractor",
     "heating contractor",
@@ -37,15 +36,12 @@
     "remodeler",
     "roof repair service",
     "roofing contractor",
-    "roofing service"
+    "roofing service",
+    "window installation service"
   ],
   "name_signals": {
     "siding": [
       "siding"
-    ],
-    "windows": [
-      "window",
-      "windows"
     ],
     "exteriors": [
       "exterior",
@@ -54,9 +50,6 @@
     "gutters": [
       "gutter",
       "gutters"
-    ],
-    "glass": [
-      "glass"
     ]
   }
 }

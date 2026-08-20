@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-20-windows-doors-trade",
+    date: "20 August 2026",
+    title: "Windows and doors is its own trade, and a dead scrape is no longer blocking you",
+    items: [
+      "There is a new trade in the picker: Windows and doors installation. It hunts replacement windows, entry doors, patio doors and storm doors. Garage door companies are deliberately not in it.",
+      "The trade that used to be called Siding and windows is now Siding, gutters and insulation, and no longer collects window or door firms. Two trades cannot both claim the same kind of business, or picking one of them would quietly return the other's leads. If you want windows, pick the new trade.",
+      "The all-trades option still finds everything, windows and doors included.",
+      "A scrape that died on 17 August was still showing as running, which was the message on your screen and was also refusing to let you start a new one. It has been closed out as failed, because it stopped at 8 of its 280 searches rather than finishing.",
+    ],
+  },
+  {
     id: "2026-08-20-hvac-dropped",
     date: "20 August 2026",
     title: "HVAC is no longer a trade the lead scraper hunts",

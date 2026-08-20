@@ -13,7 +13,9 @@
     "home renovation",
     "general contractor",
     "siding contractor",
-    "window replacement"
+    "window replacement",
+    "door installation",
+    "door replacement"
   ],
   "allow_core": [
     "roofing contractor",
@@ -26,6 +28,7 @@
     "home builder",
     "siding contractor",
     "window installation service",
+    "door installation service",
     "insulation contractor",
     "gutter service"
   ],
@@ -71,6 +74,10 @@
     "windows": [
       "window",
       "windows"
+    ],
+    "doors": [
+      "door",
+      "doors"
     ]
   }
 }

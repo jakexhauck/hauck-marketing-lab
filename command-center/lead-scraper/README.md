@@ -66,7 +66,8 @@ One button per trade in the wizard:
 | --- | --- |
 | `roofing` | Roofers, roof replacement, storm damage |
 | `remodeling` | Kitchen, bath, whole-home, additions |
-| `siding_windows` | Siding, replacement windows, gutters, insulation |
+| `siding_windows` | Siding, gutters, insulation |
+| `windows_doors` | Replacement windows, entry and patio doors |
 | `general_contracting` | GCs, custom home builders |
 | `home_services` | The catch-all: all of the above at once |
 
