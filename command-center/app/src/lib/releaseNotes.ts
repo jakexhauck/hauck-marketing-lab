@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-20-import-leads-page",
+    date: "20 August 2026",
+    title: "Import leads: one place for lists from other scrapers",
+    items: [
+      "There is a new page beside Leads called Import leads. Drop in a CSV from any external scraper, confirm which column is which, and the rows land in the same list everything else lives in.",
+      "Imported leads work exactly like scraped ones: same table, same filters, same Send to power dialer. They are not scored, because a score is what our own qualifier thought of a business it found, and a row from someone else's file has no such history.",
+      "A number already in the table is skipped rather than added twice, and the result says how many. Rows with no phone number are left out, since this is a calling list.",
+      "The CSV download button has moved onto that page, and now downloads the list you are looking at rather than everything.",
+    ],
+  },
+  {
     id: "2026-08-20-sent-leads-leave-the-list",
     date: "20 August 2026",
     title: "A lead you have sent to the power dialer leaves the list",

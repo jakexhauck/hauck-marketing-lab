@@ -3,9 +3,9 @@ import { getServiceClient } from "../../../lib/supabase";
 import {
   explainFlags,
   scoreBand,
-  EXPORT_THRESHOLD,
   type ScrapedLead,
 } from "../../../lib/leadScraper";
+import { IMPORT_SOURCE } from "./import";
 
 // GET /api/admin/leads -> the scraped leads table, best score first.
 //
@@ -93,6 +93,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const runId = url.searchParams.get("runId");
   const nicheId = url.searchParams.get("nicheId");
   const sent = url.searchParams.get("sent"); // "1" sent, "0" not yet, absent = both
+  const imported = url.searchParams.get("imported"); // "1" CSV, "0" scraped, absent = both
   const search = (url.searchParams.get("q") ?? "").trim();
   const limit = Math.min(Number(url.searchParams.get("limit") ?? 200) || 200, PAGE_MAX);
   const offset = Math.max(Number(url.searchParams.get("offset") ?? 0) || 0, 0);
@@ -111,6 +112,12 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   if (runId) query = query.eq("run_id", runId);
   if (nicheId) query = query.eq("niche_id", nicheId);
+  // Imported rows live in this table beside the scraped ones so they share the
+  // send path, and are told apart only here: "imported" is the Import leads page,
+  // "scraped" is Leads. Absent means both, which is what the send and the export
+  // still see, because where a number came from does not change how it is dialled.
+  if (imported === "1") query = query.eq("source", IMPORT_SOURCE);
+  if (imported === "0") query = query.or(`source.is.null,source.neq.${IMPORT_SOURCE}`);
   if (sent === "0") {
     // Ready to send narrows the remaining rows to the ones a send will accept:
     // named, and on a mobile. Filtered rather than stamped because a re-scrape

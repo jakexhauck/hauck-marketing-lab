@@ -36,6 +36,9 @@ export interface LeadFilters {
   runId?: string | null;
   nicheId?: string | null;
   sent?: "0" | "1" | null;
+  // "1" the imported list, "0" the scraped one. The two pages are the same table
+  // and the same components, told apart by this and nothing else.
+  imported?: "0" | "1" | null;
   q?: string;
 }
 
@@ -51,6 +54,7 @@ function leadsPath(filters: LeadFilters): string {
   if (filters.runId) params.set("runId", filters.runId);
   if (filters.nicheId) params.set("nicheId", filters.nicheId);
   if (filters.sent) params.set("sent", filters.sent);
+  if (filters.imported) params.set("imported", filters.imported);
   if (filters.q?.trim()) params.set("q", filters.q.trim());
   const qs = params.toString();
   return `/api/admin/leads${qs ? `?${qs}` : ""}`;
@@ -243,6 +247,39 @@ export function useDeletePreset() {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: PRESETS_KEY });
+    },
+  });
+}
+
+export interface ImportLeadRow {
+  phone: string;
+  businessName?: string;
+  city?: string;
+  state?: string;
+  website?: string;
+  niche?: string;
+}
+
+export interface ImportResult {
+  imported: number;
+  alreadyHad: number;
+  noPhone: number;
+  duplicateInFile: number;
+  received: number;
+}
+
+// Put an external scraper's CSV into the same table our own scraper writes to.
+// Invalidates the leads list because the rows appear there the moment they land.
+export function useImportScrapedLeads() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (rows: ImportLeadRow[]) =>
+      api<ImportResult>("/api/admin/leads/import", {
+        method: "POST",
+        body: JSON.stringify({ rows }),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: LEADS_KEY });
     },
   });
 }

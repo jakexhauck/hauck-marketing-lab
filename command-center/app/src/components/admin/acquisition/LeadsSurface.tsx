@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Check,
   Download,
+  Upload,
   ExternalLink,
   History,
   Loader2,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { PillarTitleActions } from "../../pillars/PillarKit";
 import CitiesTable from "./CitiesTable";
+import ImportLeadsPanel from "./ImportLeadsPanel";
 import { formatPhoneDashed } from "../../../lib/phone";
 import {
   RUN_SIZES,
@@ -68,11 +70,14 @@ import {
 // Nothing here fabricates a number. Every score, reason, rating and count is read
 // from what the qualifier actually wrote.
 
-type View = "leads" | "new" | "runs" | "cities";
+type View = "leads" | "import" | "new" | "runs" | "cities";
 
 export default function LeadsSurface() {
   const [view, setView] = useState<View>("leads");
-  const [filters, setFilters] = useState<LeadFilters>({ sent: "0" });
+  // Two lists, same table, told apart by `imported`. Separate filter state so
+  // that a niche or search typed on one page does not follow you to the other.
+  const [filters, setFilters] = useState<LeadFilters>({ sent: "0", imported: "0" });
+  const [importFilters, setImportFilters] = useState<LeadFilters>({ sent: "0", imported: "1" });
 
   const runsQuery = useScrapeRuns();
   const runs = runsQuery.data?.runs ?? [];
@@ -80,6 +85,9 @@ export default function LeadsSurface() {
 
   const leadsQuery = useLeads(filters);
   const leads = leadsQuery.data?.leads ?? [];
+
+  const importQuery = useLeads(importFilters);
+  const importedLeads = importQuery.data?.leads ?? [];
 
   // The niches worth offering as a filter are the ones that have actually been
   // scraped, read from the run history rather than the preset list: a niche
@@ -104,6 +112,8 @@ export default function LeadsSurface() {
       <PillarTitleActions>
         <nav className="ls-subnav" role="tablist" aria-label="Leads views">
           <SubTab id="leads" view={view} onSelect={setView} icon={<Table2 size={15} />} label="Leads" count={leadsQuery.data?.total} />
+          {/* Next to Leads, because it is the same list arriving a different way. */}
+          <SubTab id="import" view={view} onSelect={setView} icon={<Upload size={15} />} label="Import leads" count={importQuery.data?.total} />
           <SubTab id="new" view={view} onSelect={setView} icon={<Radar size={15} />} label="New scrape" />
           <SubTab id="runs" view={view} onSelect={setView} icon={<History size={15} />} label="Runs" count={runs.length || undefined} />
           {/* Cities sits last: it is the planning view, read before starting a
@@ -125,12 +135,27 @@ export default function LeadsSurface() {
           niches={niches}
         />
       )}
+      {view === "import" && (
+        <>
+          <ImportLeadsPanel />
+          <LeadsTable
+            leads={importedLeads}
+            total={importQuery.data?.total ?? 0}
+            loading={importQuery.isLoading}
+            filters={importFilters}
+            onFilters={setImportFilters}
+            runs={runs}
+            niches={niches}
+            imported
+          />
+        </>
+      )}
       {view === "new" && (
         <Wizard
           disabled={!!activeRun}
           onStarted={() => {
             setView("leads");
-            setFilters({ sent: "0" });
+            setFilters({ sent: "0", imported: "0" });
           }}
         />
       )}
@@ -390,11 +415,14 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 // --- the table ---------------------------------------------------------------
 
 function LeadsTable({
-  leads, total, loading, filters, onFilters, runs, niches,
+  leads, total, loading, filters, onFilters, runs, niches, imported = false,
 }: {
   leads: ScrapedLeadView[]; total: number; loading: boolean;
   filters: LeadFilters; onFilters: (f: LeadFilters) => void; runs: ScrapeRun[];
   niches: { id: string; label: string }[];
+  // The imported list. Same table, minus the controls that only mean something
+  // for a scrape: an imported row belongs to no run, and the CSV lives here now.
+  imported?: boolean;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -411,9 +439,13 @@ function LeadsTable({
     const params = new URLSearchParams();
     if (filters.runId) params.set("runId", filters.runId);
     if (filters.nicheId) params.set("nicheId", filters.nicheId);
+    // The file has to be the list it was downloaded from. The button lives on
+    // Import leads now, so without this it would quietly hand back every scraped
+    // lead as well, and stamp them all as sent.
+    if (filters.imported) params.set("imported", filters.imported);
     const qs = params.toString();
     return qs ? `?${qs}` : "";
-  }, [filters.runId, filters.nicheId]);
+  }, [filters.runId, filters.nicheId, filters.imported]);
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -485,21 +517,27 @@ function LeadsTable({
           </select>
         )}
 
-        <select className="ls-select" value={filters.runId ?? ""} onChange={(e) => onFilters({ ...filters, runId: e.target.value || null })}>
-          <option value="">Every run</option>
-          {runsForNiche.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.nicheLabel} - {new Date(r.createdAt).toLocaleDateString()}
-            </option>
-          ))}
-        </select>
+        {/* An imported row belongs to no scrape, so the run picker would list
+            runs none of these leads came from. */}
+        {!imported && (
+          <select className="ls-select" value={filters.runId ?? ""} onChange={(e) => onFilters({ ...filters, runId: e.target.value || null })}>
+            <option value="">Every run</option>
+            {runsForNiche.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.nicheLabel} - {new Date(r.createdAt).toLocaleDateString()}
+              </option>
+            ))}
+          </select>
+        )}
 
-        <div className="ls-toolbar-right">
-          <a className="ls-ghost" href={`/api/admin/leads/export${exportQuery}`} title="Downloads the qualified, unsent leads and marks them as sent">
-            <Download size={14} />
-            CSV
-          </a>
-        </div>
+        {imported && (
+          <div className="ls-toolbar-right">
+            <a className="ls-ghost" href={`/api/admin/leads/export${exportQuery}`} title="Downloads the unsent leads and marks them as sent">
+              <Download size={14} />
+              CSV
+            </a>
+          </div>
+        )}
       </div>
 
       {summary.ticked > 0 && (

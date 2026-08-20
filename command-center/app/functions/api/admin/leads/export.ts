@@ -1,7 +1,8 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
-import { EXPORT_THRESHOLD, partitionForSend, toCsv } from "../../../lib/leadScraper";
+import { partitionForSend, toCsv } from "../../../lib/leadScraper";
+import { IMPORT_SOURCE } from "./import";
 import { toScrapedLead } from "./index";
 
 // GET /api/admin/leads/export -> the SOP's CSV, for anything Jake wants to import
@@ -48,6 +49,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const runId = url.searchParams.get("runId");
   const nicheId = url.searchParams.get("nicheId");
   const dryRun = url.searchParams.get("dryRun") === "1";
+  const imported = url.searchParams.get("imported");
 
   let query = client
     .from("cold_sms_outreach_numbers")
@@ -63,6 +65,11 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // The file has to match the table it was downloaded from, or a niche filter on
   // screen would quietly stamp rows from every other trade as sent.
   if (nicheId) query = query.eq("niche_id", nicheId);
+  // Same reason as the niche filter above: the file must match the list on
+  // screen, or downloading from Import leads would stamp every scraped lead
+  // as sent too.
+  if (imported === "1") query = query.eq("source", IMPORT_SOURCE);
+  if (imported === "0") query = query.or(`source.is.null,source.neq.${IMPORT_SOURCE}`);
 
   const { data, error } = await query
     .order("icp_score", { ascending: false, nullsFirst: false })
