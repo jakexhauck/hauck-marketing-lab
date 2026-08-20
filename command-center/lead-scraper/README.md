@@ -65,7 +65,6 @@ One button per trade in the wizard:
 | Niche | What it hunts |
 | --- | --- |
 | `roofing` | Roofers, roof replacement, storm damage |
-| `hvac` | Heating, cooling, furnace, heat pump |
 | `remodeling` | Kitchen, bath, whole-home, additions |
 | `siding_windows` | Siding, replacement windows, gutters, insulation |
 | `general_contracting` | GCs, custom home builders |

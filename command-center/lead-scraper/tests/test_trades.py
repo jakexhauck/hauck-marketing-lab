@@ -23,12 +23,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import niche  # noqa: E402
 
-TRADES = ("roofing", "hvac", "remodeling", "siding_windows", "general_contracting")
+TRADES = ("roofing", "remodeling", "siding_windows", "general_contracting")
 
 # The primary category that unambiguously means each trade.
 PRIMARY = {
     "roofing": "roofing contractor",
-    "hvac": "hvac contractor",
     "remodeling": "kitchen remodeler",
     "siding_windows": "siding contractor",
     "general_contracting": "general contractor",
@@ -104,11 +103,6 @@ class MultiTradeOperatorsSurvive(unittest.TestCase):
     def test_a_remodeler_who_also_roofs_is_still_a_remodeler(self):
         n = niche.load_niche("remodeling")
         s, flags, verdict = score(n, "Boyd Remodeling and Roofing", "remodeler")
-        self.assertEqual(verdict, "pass", f"{s} {flags}")
-
-    def test_an_hvac_firm_named_for_construction_survives(self):
-        n = niche.load_niche("hvac")
-        s, flags, verdict = score(n, "Summit Mechanical & Construction", "hvac contractor")
         self.assertEqual(verdict, "pass", f"{s} {flags}")
 
     def test_a_secondary_sibling_category_does_not_disqualify(self):

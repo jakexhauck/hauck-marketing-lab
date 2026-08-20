@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-20-hvac-dropped",
+    date: "20 August 2026",
+    title: "HVAC is no longer a trade the lead scraper hunts",
+    items: [
+      "The trade picker offers five trades instead of six. Heating and cooling is gone from it.",
+      "The all-trades option no longer collects HVAC either. It was hunting furnace, air conditioning and heating firms directly, so removing the HVAC button on its own would have left them still arriving through the catch-all.",
+      "Every remaining trade now refuses an HVAC company outright, including ones that only say Mechanical or Air Conditioning in their category.",
+      "The 129 HVAC companies already in the book have been taken out of the calling list. They cannot be dialled, texted or sent onward. Their call history is kept and still readable, including the ones marked Not Interested and the six asking for a call back.",
+    ],
+  },
+  {
     id: "2026-08-11-conversion-asset-fields-saved",
     date: "11 August 2026",
     title: "Conversion Assets now keeps everything you type into it",

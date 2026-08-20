@@ -14,3 +14,6 @@ out/
 logs/
 !data/metros.json
 !data/suppression.txt
+
+# One-off operational undo records (contain lead names).
+hvac_softdelete_undo.json

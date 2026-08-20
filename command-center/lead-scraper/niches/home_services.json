@@ -7,10 +7,6 @@
     "roofing contractor",
     "roof replacement",
     "roofing company",
-    "hvac contractor",
-    "air conditioning repair",
-    "heating and cooling",
-    "furnace repair",
     "home remodeling",
     "kitchen remodeling",
     "bathroom remodeling",
@@ -22,10 +18,6 @@
   "allow_core": [
     "roofing contractor",
     "roofing service",
-    "hvac contractor",
-    "heating contractor",
-    "air conditioning contractor",
-    "furnace repair service",
     "general contractor",
     "remodeler",
     "kitchen remodeler",
@@ -37,19 +29,19 @@
     "insulation contractor",
     "gutter service"
   ],
+  "primary_deny": [
+    "air conditioning contractor",
+    "air conditioning repair service",
+    "furnace repair service",
+    "heating contractor",
+    "hvac contractor",
+    "hvac installation service",
+    "hvac repair service"
+  ],
   "name_signals": {
     "roof": [
       "roof",
       "roofing"
-    ],
-    "hvac": [
-      "hvac"
-    ],
-    "heating and air": [
-      "heating",
-      "cooling",
-      "air conditioning",
-      "heating and air"
     ],
     "remodel": [
       "remodel",

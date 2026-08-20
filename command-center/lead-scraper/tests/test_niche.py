@@ -53,6 +53,7 @@ LOOK_ALIKES = [
     ("Metro Home Improvement Store", "home improvement store", ()),
     ("Northside Lumber Supply", "lumber store", ()),
     # Adjacent-but-not-buyers.
+    ("Apex Heating & Air", "hvac contractor", ()),
     ("Keystone Real Estate Group", "real estate agency", ()),
     ("Anchor Property Management", "property management company", ()),
     ("Studio Nine Interior Design", "interior designer", ()),
@@ -67,7 +68,6 @@ LOOK_ALIKES = [
 DENY_ON_NAME_ONLY = [
     ("Almco Roofing & Plumbing", "roofing contractor", ()),
     ("Evergreen Roofing & Landscaping", "roofing contractor", ()),
-    ("Total Home HVAC & Pest Control", "hvac contractor", ()),
 ]
 
 # A clean primary category, with the disqualifier hiding in a SECONDARY category.
@@ -79,7 +79,6 @@ DENY_ON_SECONDARY_CATEGORY = [
 # Real operators. These must export.
 IDEAL = [
     ("Summit Roofing & Restoration", "roofing contractor", (), 45, 4.8),
-    ("Apex Heating & Air", "hvac contractor", (), 30, 4.6),
     ("Heritage Kitchen & Bath Remodeling", "kitchen remodeler", (), 20, 4.9),
     ("Cornerstone Home Renovation", "remodeler", (), 12, 4.5),
     ("Blue Ridge Exteriors & Siding", "siding contractor", (), 60, 4.4),
@@ -90,7 +89,7 @@ WHOLE_WORD_SAFE = [
     ("Whirlpool Roofing Co", "roofing contractor"),      # pool
     ("Storey Brothers Construction", "general contractor"),  # store
     ("Cardinal Roofing", "roofing contractor"),          # car
-    ("Bankston Heating & Air", "hvac contractor"),       # bank
+    ("Bankston Roofing", "roofing contractor"),          # bank
     ("Sparta Home Remodeling", "remodeler"),             # spa
     ("Lawndale Roofing", "roofing contractor"),          # lawn
     ("Solarium Home Additions", "general contractor"),   # solar

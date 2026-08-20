@@ -155,17 +155,13 @@
         "window installation service",
         "insulation installation service",
         "siding installation service",
-        "hvac installation service",
         "door installation service"
       ]
     },
     {
       "deny": "repair service",
       "unless": [
-        "air conditioning repair service",
-        "furnace repair service",
-        "roof repair service",
-        "hvac repair service"
+        "roof repair service"
       ]
     }
   ],

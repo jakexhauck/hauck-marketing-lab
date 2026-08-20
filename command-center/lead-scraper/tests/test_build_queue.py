@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import build_queue  # noqa: E402
 import niche  # noqa: E402
 
-KWS = ("roofing contractor", "hvac contractor", "home remodeling")
+KWS = ("roofing contractor", "home remodeling")
 
 
 class MetroGrid(unittest.TestCase):
