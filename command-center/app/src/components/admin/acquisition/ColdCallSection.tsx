@@ -8,7 +8,6 @@ import {
   resolveColdCallView,
   resolveManagementPage,
 } from "../../../lib/coldCallPages";
-import { stageById } from "../../../lib/coldCallStages";
 import { useColdCallAssetsQuery } from "../../../hooks/useColdCallAssets";
 import { assetHtml, useDriveDocs } from "../../../hooks/useDriveDoc";
 import { resolveScriptId, setSelectedScriptId, useSelectedScriptId } from "../../../lib/selectedScript";
@@ -20,18 +19,17 @@ import { TAB_TRACK, TabButton } from "../../PageTabs";
 import { TrackerMonthNav } from "../tracker/DailyTracker";
 import { cursorForToday, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
 import ColdCallSurface, { AGENCY_CALLER_ID } from "./ColdCallSurface";
-import ColdCallLeads from "./ColdCallLeads";
 import ColdCallDialing from "./ColdCallDialing";
+import ColdCallPipeline from "./ColdCallPipeline";
 import ColdCallManagement from "./ColdCallManagement";
-import ColdCallCallbacks from "./ColdCallCallbacks";
-import ColdCallBooked from "./ColdCallBooked";
 import ColdCallAvailability from "./ColdCallAvailability";
 import ColdCallAgencyAvailability from "./ColdCallAgencyAvailability";
 import ColdCallSops from "./ColdCallSops";
 
 // Acquisition > Cold Call. Unlike its sibling tabs this is a section rather than
-// a single surface: the caller works Leads all day, checks Callbacks, and the
-// rest are there to be looked at rather than lived in.
+// a single surface: the caller lives on the Power dialer page while GoHighLevel
+// works the list, reads the Pipeline to see where everybody stands, and the rest
+// are there to be looked at rather than lived in.
 //
 // The strip under the page title is this section's own; the pillar's siblings
 // (SMS and so on) live in the sidebar dropdown, not here.
@@ -55,8 +53,8 @@ export default function ColdCallSection() {
   const [cursor, setCursor] = useState<MonthCursor>(() => cursorForToday(today));
 
   // Whose section this is. An owner switches between people, which is what makes
-  // "each caller has their own page" true without building five pages per
-  // person: the same five pages, scoped. "" means the agency: everyone at once.
+  // "each caller has their own page" true without building a page per person:
+  // the same pages, scoped. "" means the agency: everyone at once.
   //
   // A caller never sees the selector and is pinned to themselves by the API,
   // regardless of what is rendered here.
@@ -139,10 +137,14 @@ export default function ColdCallSection() {
     return `Checked ${r.checked}, ${did || "nothing to change"}.${failed}${more}`;
   }, [push.isError, push.data]);
 
-  // The team availability page IS the whole roster, so a "whose section is
-  // this" selector sitting above it would be a control with nothing to control.
+  // Pages with nothing to scope. The team availability page IS the whole
+  // roster, the board is the whole board and an SOP is the same document for
+  // everyone, so a "whose section is this" selector above any of them would be
+  // a control with nothing to control.
   const rosterWide =
-    view === "management" && resolveManagementPage(searchParams.get("manage")) === "availability";
+    view === "pipeline" ||
+    view === "sops" ||
+    (view === "management" && resolveManagementPage(searchParams.get("manage")) === "availability");
 
   // The shelf: the script variations and everything else read mid-call (0058).
   //
@@ -360,23 +362,15 @@ function ColdCallBody({
   callerId: string;
   isOwner: boolean;
 }) {
-  // Most pages ARE a stage of the pipeline. Two of them have a surface built for
-  // the shape of that stage: Call Back is a list ordered by when someone is due,
-  // Booked is meetings split around today. Every other stage is a list you work,
-  // which is one page rendered seven ways rather than seven pages.
-  const stage = stageById(view);
-  if (stage) {
-    if (stage.id === "call-back") return <ColdCallCallbacks callerId={callerId} />;
-    if (stage.id === "booked") return <ColdCallBooked callerId={callerId} />;
-    return <ColdCallLeads stage={stage} callerId={callerId} />;
-  }
-
   switch (view) {
-    // The dialing session: the same workspace, no queue. Its own page rather
-    // than a mode of a stage page, because a stage page IS a list and this is
-    // the one screen that deliberately has none.
+    // The page open beside the GoHighLevel power dialer: the calling workspace
+    // with no queue on it, because the phone decides who is on it.
     case "dialing":
       return <ColdCallDialing callerId={callerId} />;
+    // The cold calling board, live from GoHighLevel. Agency-wide by nature: a
+    // board is where every prospect stands, not one caller's share of them.
+    case "pipeline":
+      return <ColdCallPipeline />;
     case "management":
       return <ColdCallManagement callerId={callerId} />;
     case "tracker":

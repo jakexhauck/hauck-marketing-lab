@@ -4,19 +4,20 @@
 // URL param: ?tab=cold-call&view=<id>. Same discipline as adminPillars' ?tab=,
 // one level down, which keeps every page linkable and reload-proof.
 //
-// Order is the order of the day: he lives in Leads, checks Callbacks, and the
-// rest are reference. Settings is last and only an owner sees it.
-
-import { COLD_CALL_STAGES } from "./coldCallStages";
+// The dialing happens in GoHighLevel's power dialer now (Jake, 2026-08-20), so
+// the strip opens on the page you keep beside it and the pipeline is ONE board
+// rather than a tab per stage. A stage is a column, not a page: five tabs onto
+// five filtered lists was a way of reading a board without drawing one.
 
 // The pages inside Acquisition > Cold Call, in two groups.
 //
-// LEFT is the work: the pipeline in order, then the caller's own dialing
-// tracker. A cold caller sees all of it, because all of it is his job.
+// LEFT is the work: the page open while the dialer runs, the board it feeds,
+// then the caller's own tracker, hours and SOPs. A cold caller sees all of it,
+// because all of it is his job.
 //
 // RIGHT is the running of it: who gets which leads, and the script. Owner only,
 // and separated by a divider so the strip reads as "what I do" and "what I
-// manage" rather than as one list of eleven things.
+// manage" rather than as one list of many things.
 
 export type ColdCallView = string;
 
@@ -32,22 +33,13 @@ export interface ColdCallPageDef {
 }
 
 export const COLD_CALL_PAGES: ColdCallPageDef[] = [
-  // Only the stages worth reading. Not Interested is a stage but not a page:
-  // see ColdCallStage.page. The outcome, the tag and the GoHighLevel move all
-  // still happen; there is simply no tab onto a list nobody works.
-  ...COLD_CALL_STAGES.filter((stage) => stage.page).map((stage) => ({
-    id: stage.id,
-    label: stage.short,
-    side: "left" as ColdCallSide,
-  })),
-  // The page to have open while dialing from GoHighLevel: the same calling
-  // workspace as a stage page with no queue on it, because the phone decides who
-  // is on it and nobody is choosing from a list.
-  //
-  // After the stages rather than before them, so the section still OPENS on New
-  // Lead: resolveColdCallView falls back to the first page, and moving somebody
-  // else's landing page is not what adding one should do.
+  // First, because it is where the day is spent: the page to have open while
+  // the GoHighLevel power dialer works through the list. It records what became
+  // of the call that just happened; nobody chooses who to call here.
   { id: "dialing", label: "Power dialer", side: "left" },
+  // The cold calling board, read live from GoHighLevel: every prospect in the
+  // column it currently sits in. This is what the five stage pages became.
+  { id: "pipeline", label: "Pipeline", side: "left" },
   // The caller's own month of dialing. His numbers, so he can see them.
   { id: "tracker", label: "Tracker", side: "left" },
   // When he is on the phones. LEFT rather than right: filling this in is his
@@ -97,6 +89,21 @@ export function resolveManagementPage(param: string | null | undefined): string 
   if (param && RETIRED_MANAGEMENT_PAGES[param]) return RETIRED_MANAGEMENT_PAGES[param];
   return MANAGEMENT_PAGES[0].id;
 }
+
+// The stage pages, and where they went. Each was ?view=<stage id> until the
+// board replaced them, so a bookmark or a pasted link lands on the board that
+// now holds that column rather than being silently dumped on the first page.
+//
+// Not driven off COLD_CALL_STAGES: these are dead URLs, and a stage renamed or
+// retired later must not quietly stop redirecting.
+const RETIRED_STAGE_PAGES = new Set([
+  "new-lead",
+  "first-dial",
+  "second-dial",
+  "call-back",
+  "booked",
+  "not-interested",
+]);
 
 // Pages that used to be their own entry in the strip, and where they went. A
 // bookmark or a pasted link from before this change lands on the page it names
@@ -148,7 +155,7 @@ export function coldCallSides(isOwner: boolean): {
 }
 
 // Resolve a raw ?view= against what this role can see, else the first page.
-// A cold caller who types ?view=settings lands on the first stage rather than
+// A cold caller who types ?view=settings lands on the Power dialer rather than
 // an error.
 export function resolveColdCallView(
   param: string | null | undefined,
@@ -157,8 +164,11 @@ export function resolveColdCallView(
   const pages = coldCallPagesFor(isOwner);
   const hit = pages.find((p) => p.id === param);
   if (hit) return hit.id;
+  // A link to a stage that used to be a page opens the board that stage is now
+  // a column of.
+  if (param && RETIRED_STAGE_PAGES.has(param)) return "pipeline";
   // An owner's link to a page that moved inside Management still opens
-  // Management rather than the first stage.
+  // Management rather than the first page.
   if (movedIntoManagement(param, isOwner)) return "management";
   return pages[0].id;
 }

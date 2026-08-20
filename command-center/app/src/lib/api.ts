@@ -1783,9 +1783,14 @@ export interface AgencyPipelineCard {
 export interface AgencyPipelinesResponse {
   // False when the agency GHL account is not connected at all.
   configured: boolean;
+  // The agency sub-account, so a board can link a card out to its contact.
+  locationId?: string;
   pipelines: AgencyPipeline[];
   // Only when a pipeline id was asked for.
   opportunities?: AgencyPipelineCard[];
+  // True when the card fetch hit its page cap, so the board is showing some of
+  // the prospects rather than all of them.
+  truncated?: boolean;
 }
 
 export async function getAgencyPipelines(

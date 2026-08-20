@@ -1,7 +1,12 @@
 import type { Env, ApiData } from "../../../lib/env";
-import { ghlJson } from "../../../lib/ghl";
+import { fetchAllOpportunities, ghlJson } from "../../../lib/ghl";
 import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../lib/agencyGhl";
-import { shapeOpportunity, type RawOpportunity } from "../../../lib/agencyPipelines";
+import { shapeOpportunity } from "../../../lib/agencyPipelines";
+
+// Five pages of 100. The cold calling board holds every prospect ever imported,
+// so it grows with each list bought; 500 is far more than anybody reads down a
+// column, and the cap is reported rather than hidden.
+const MAX_PAGES = 5;
 
 // GET /api/admin/cold-call/pipelines            -> every pipeline and its stages
 // GET /api/admin/cold-call/pipelines?id=<id>    -> that pipeline's cards too
@@ -31,21 +36,30 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     );
     const pipelines = (res.pipelines ?? []).map(shapePipeline);
 
-    if (!wanted) return Response.json({ configured: true, pipelines });
+    if (!wanted) {
+      return Response.json({ configured: true, locationId: agency.locationId, pipelines });
+    }
 
-    // The board for one pipeline. 100 is GHL's page cap and far more than these
-    // pipelines hold; a bigger book would want paging, and would say so by
-    // showing exactly 100 cards.
-    const cards = await ghlJson<{ opportunities?: RawOpportunity[] }>(
-      agency,
-      `/opportunities/search?location_id=${encodeURIComponent(agency.locationId)}` +
-        `&pipeline_id=${encodeURIComponent(wanted)}&limit=100`,
-    );
+    // The board for one pipeline, paged. It used to ask for one page of 100,
+    // which on a board of 275 prospects drew two thirds of it and said nothing:
+    // the Pipeline page IS the pipeline now, so a silently short board is the
+    // one failure it cannot have.
+    const truncated = { value: false };
+    const cards = await fetchAllOpportunities(agency, {
+      pipelineId: wanted,
+      maxPages: MAX_PAGES,
+      truncated,
+    });
 
     return Response.json({
       configured: true,
+      // The sub-account the cards belong to, so a board can link a card out to
+      // the contact record in the CRM. A URL built without it is a 404, so it
+      // travels with the cards rather than being assembled on the client.
+      locationId: agency.locationId,
       pipelines,
-      opportunities: (cards.opportunities ?? []).map(shapeOpportunity),
+      opportunities: cards.map(shapeOpportunity),
+      truncated: truncated.value,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "could not reach GoHighLevel";

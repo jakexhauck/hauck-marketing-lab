@@ -11,14 +11,10 @@ import {
 import { COLD_CALL_STAGES } from "./coldCallStages";
 
 describe("coldCallPagesFor", () => {
-  it("is the pipeline in order, then the tracker, then what an owner runs", () => {
+  it("opens on the power dialer, then the board, then what an owner runs", () => {
     expect(coldCallPagesFor(true).map((p) => p.id)).toEqual([
-      "new-lead",
-      "first-dial",
-      "second-dial",
-      "call-back",
-      "booked",
       "dialing",
+      "pipeline",
       "tracker",
       "availability",
       "sops",
@@ -26,22 +22,26 @@ describe("coldCallPagesFor", () => {
     ]);
   });
 
-  it("gives a caller every worked stage, his own tracker and his own availability", () => {
-    // All of the WORK is his job: hiding a stage would hide part of it, hiding
-    // the tracker would hide the numbers he is measured on, and hiding
-    // availability would leave his hours to be guessed at by someone else.
+  it("has no page per stage: a stage is a column of the board", () => {
+    // The five stage pages became one board. Putting either back would give a
+    // stage two places to be read and two counts to disagree.
+    const ids = COLD_CALL_PAGES.map((p) => p.id);
+    for (const stage of COLD_CALL_STAGES) expect(ids).not.toContain(stage.id);
+  });
+
+  it("gives a caller the dialer, the board, his tracker and his availability", () => {
+    // All of the WORK is his job: hiding the board would hide where his
+    // prospects stand, hiding the tracker would hide the numbers he is measured
+    // on, and hiding availability would leave his hours to be guessed at by
+    // someone else.
     const ids = coldCallPagesFor(false).map((p) => p.id);
-    for (const stage of COLD_CALL_STAGES.filter((s) => s.page)) {
-      expect(ids).toContain(stage.id);
-    }
+    expect(ids).toContain("dialing");
+    expect(ids).toContain("pipeline");
     expect(ids).toContain("tracker");
     expect(ids).toContain("availability");
     // The SOPs are written FOR him. A caller who cannot read how the job is
     // done is the one person who needed the page.
     expect(ids).toContain("sops");
-    // Not Interested is a stage without a page. Nobody works a list of hard
-    // noes, so it is recorded and tagged but never rendered as a tab.
-    expect(ids).not.toContain("not-interested");
   });
 
   it("keeps management owner-only, and it is the only owner-side tab", () => {
@@ -61,8 +61,9 @@ describe("coldCallPagesFor", () => {
   });
 
   it("has no page left over from an earlier strip", () => {
-    // Leads/Callbacks became stages; Brushed Off became a reason; Pipelines and
-    // the Scoreboard are gone; Book is now Assign.
+    // Leads/Callbacks became stages and the stages became columns; Brushed Off
+    // became a reason; the Scoreboard is gone; Book is now Assign. "pipelines",
+    // plural, was a tab per GHL board and is not this page.
     const ids = COLD_CALL_PAGES.map((p) => p.id);
     for (const gone of [
       "leads",
@@ -82,12 +83,8 @@ describe("coldCallSides", () => {
   it("splits the work from the running of it", () => {
     const { left, right } = coldCallSides(true);
     expect(left.map((p) => p.id)).toEqual([
-      "new-lead",
-      "first-dial",
-      "second-dial",
-      "call-back",
-      "booked",
       "dialing",
+      "pipeline",
       "tracker",
       "availability",
       "sops",
@@ -109,29 +106,39 @@ describe("coldCallSides", () => {
 
 describe("resolveColdCallView", () => {
   it("returns a known page", () => {
-    expect(resolveColdCallView("call-back", false)).toBe("call-back");
+    expect(resolveColdCallView("pipeline", false)).toBe("pipeline");
     expect(resolveColdCallView("management", true)).toBe("management");
   });
 
-  it("lands on the first stage when the param is missing or nonsense", () => {
-    expect(resolveColdCallView(null, false)).toBe("new-lead");
-    expect(resolveColdCallView(undefined, true)).toBe("new-lead");
-    expect(resolveColdCallView("", true)).toBe("new-lead");
-    expect(resolveColdCallView("bogus", true)).toBe("new-lead");
+  it("lands on the power dialer when the param is missing or nonsense", () => {
+    expect(resolveColdCallView(null, false)).toBe("dialing");
+    expect(resolveColdCallView(undefined, true)).toBe("dialing");
+    expect(resolveColdCallView("", true)).toBe("dialing");
+    expect(resolveColdCallView("bogus", true)).toBe("dialing");
+  });
+
+  it("opens the board for a link to a stage that used to be a page", () => {
+    // Every stage was its own tab until the board replaced them, so these are
+    // live bookmarks. Landing them on the Power dialer would look like the link
+    // did nothing; the board is where that stage now is.
+    for (const stage of COLD_CALL_STAGES) {
+      expect(resolveColdCallView(stage.id, true)).toBe("pipeline");
+      expect(resolveColdCallView(stage.id, false)).toBe("pipeline");
+    }
   });
 
   it("sends a bookmark from an earlier strip somewhere real", () => {
-    // ?view=book and ?view=scoreboard were both real pages an hour ago.
-    expect(resolveColdCallView("book", true)).toBe("new-lead");
-    expect(resolveColdCallView("scoreboard", true)).toBe("new-lead");
+    // ?view=book and ?view=scoreboard were both real pages once.
+    expect(resolveColdCallView("book", true)).toBe("dialing");
+    expect(resolveColdCallView("scoreboard", true)).toBe("dialing");
   });
 
-  it("sends a cold caller who types ?view=assign back to the first stage", () => {
+  it("sends a cold caller who types ?view=assign back to the first page", () => {
     // Hiding the tab is not the enforcement (the API is), but a typed URL must
     // not render a page the role cannot use.
-    expect(resolveColdCallView("assign", false)).toBe("new-lead");
-    expect(resolveColdCallView("management", false)).toBe("new-lead");
-    expect(resolveColdCallView("settings", false)).toBe("new-lead");
+    expect(resolveColdCallView("assign", false)).toBe("dialing");
+    expect(resolveColdCallView("management", false)).toBe("dialing");
+    expect(resolveColdCallView("settings", false)).toBe("dialing");
   });
 
   it("opens Management for an owner's old ?view=assign or ?view=settings link", () => {
@@ -202,7 +209,7 @@ describe("movedIntoManagement", () => {
 
   it("is null for a page that never moved", () => {
     expect(movedIntoManagement("tracker", true)).toBeNull();
-    expect(movedIntoManagement("booked", true)).toBeNull();
+    expect(movedIntoManagement("pipeline", true)).toBeNull();
     expect(movedIntoManagement(null, true)).toBeNull();
   });
 

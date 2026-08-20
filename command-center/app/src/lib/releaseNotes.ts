@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-20-cold-call-power-dialer-first",
+    date: "20 August 2026",
+    title: "Cold Call opens on the Power dialer, and the stages are one board",
+    items: [
+      "Cold Call opens on Power dialer. It is the page to have beside the GoHighLevel power dialer while it works the list: the call you just had appears on it and you record what happened.",
+      "New Lead, No Answer Day 1, No Answer Day 2, Call Back and Booked are no longer five pages. They are the five columns of one new page, Pipeline: the cold calling board read live from GoHighLevel, so it shows where every prospect stands right now.",
+      "A card on that board opens the contact in GoHighLevel. Nothing on the page moves a card: the dialer and your workflows do that, and a second place to drag them would let the two disagree.",
+      "The board draws up to 500 prospects and says so if there are more. The old stage pages read one page of 100 and said nothing.",
+      "An old link or bookmark to one of the stage pages now opens the board.",
+    ],
+  },
+  {
     id: "2026-08-20-windows-doors-trade",
     date: "20 August 2026",
     title: "Windows and doors is its own trade, and a dead scrape is no longer blocking you",

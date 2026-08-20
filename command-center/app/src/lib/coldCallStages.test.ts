@@ -50,11 +50,8 @@ describe("COLD_CALL_STAGES against the live board", () => {
     expect(extra).toEqual(["Booked"]);
   });
 
-  it("gives Not Interested a stage but no page", () => {
-    // The outcome still tags the contact and GoHighLevel still moves it; there
-    // is simply no tab onto a list nobody works.
+  it("tags Not Interested, which is what moves the card over there", () => {
     const ni = COLD_CALL_STAGES.find((s) => s.id === "not-interested");
-    expect(ni?.page).toBe(false);
     expect(ni?.tag).toBe("cc not interested");
   });
 
