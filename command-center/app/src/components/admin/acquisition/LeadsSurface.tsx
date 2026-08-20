@@ -459,7 +459,6 @@ function LeadsTable({
 
         <select className="ls-select" value={filters.sent ?? ""} onChange={(e) => onFilters({ ...filters, sent: (e.target.value || null) as LeadFilters["sent"] })}>
           <option value="0">Ready to send</option>
-          <option value="1">Already sent</option>
           <option value="">Everything</option>
         </select>
 

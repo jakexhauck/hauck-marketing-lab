@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-20-sent-leads-leave-the-list",
+    date: "20 August 2026",
+    title: "A lead you have sent to the power dialer leaves the list",
+    items: [
+      "Once a lead goes to the power dialer it disappears from Leads entirely, on every filter, not just the Ready to send one. It could never be sent twice anyway, so it was only offering work already done and making the counts read higher than the number of leads left to action.",
+      "The Already sent option is gone from the filter, because there is nothing left for it to show.",
+      "Across every niche that takes the list from 810 down to 387, which is the number actually left to work.",
+    ],
+  },
+  {
     id: "2026-08-20-score-no-longer-blocks-a-send",
     date: "20 August 2026",
     title: "A low score no longer stops you sending a lead",

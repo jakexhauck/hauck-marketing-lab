@@ -101,22 +101,22 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     .from("cold_sms_outreach_numbers")
     .select(SELECT, { count: "exact" })
     // The duplicate rule, applied in one place.
-    .eq("in_crm", false);
+    .eq("in_crm", false)
+    // A lead that has gone to the power dialer is finished with this screen. It
+    // cannot be sent again (partitionForSend refuses it), so leaving it in the
+    // table only offered work that was already done and made every count read
+    // higher than the number of leads actually left to action. This is the base
+    // query, not a tab, because "do not show them" means nowhere.
+    .eq("send_status", "pending");
 
   if (runId) query = query.eq("run_id", runId);
   if (nicheId) query = query.eq("niche_id", nicheId);
-  if (sent === "1") query = query.neq("send_status", "pending");
   if (sent === "0") {
-    // "Not sent yet" means SENDABLE, not merely unstamped. The send applies the
-    // SOP's floor and refuses anything under the threshold or without a business
-    // name, and those two facts do not change on their own: a lead the send will
-    // always refuse used to sit here forever, offering itself to be ticked again
-    // every day. It is filtered rather than stamped because a re-scrape CAN lift
-    // a score (pipeline.py enriches in place and deliberately never writes
-    // send_status), and a stamped row would never be offered again. Filtering
-    // corrects itself the moment the score does. Everything still shows them.
+    // Ready to send narrows the remaining rows to the ones a send will accept:
+    // named, and on a mobile. Filtered rather than stamped because a re-scrape
+    // CAN change either (pipeline.py enriches in place and deliberately never
+    // writes send_status), so this corrects itself the moment the row does.
     query = query
-      .eq("send_status", "pending")
       .not("business_name", "is", null)
       .neq("business_name", "")
       .eq("line_type", "wireless");
