@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 WD = Path(__file__).resolve().parent
@@ -84,8 +85,26 @@ def run_gmaps(queries, out_name, depth=10, concurrency=4, inactivity="2m",
     out_path = DATA / out_name
     in_path.parent.mkdir(parents=True, exist_ok=True)
     in_path.write_text("\n".join(queries) + "\n")
+    # Windows holds a file handle for a moment after the owning process exits, and a
+    # force-killed run leaves an orphaned gosom holding this results file outright.
+    # An un-deletable file raised WinError 32 straight out of run_gmaps and killed the
+    # WHOLE run on its next batch, so one stale handle cost every hour still to come.
+    # Retry through the transient case, then say plainly who to close.
     if out_path.exists():
-        out_path.unlink()
+        for attempt in range(10):
+            try:
+                out_path.unlink()
+                break
+            except PermissionError:
+                if attempt == 9:
+                    raise RuntimeError(
+                        f"{out_path.name} is locked by another process. A previous run "
+                        "was most likely force-killed, leaving its scraper alive. "
+                        "Close it and start again:\n"
+                        "  taskkill /IM google-maps-scraper.exe /F   (Windows)\n"
+                        "  pkill -f google-maps-scraper              (macOS)"
+                    ) from None
+                time.sleep(0.5)
 
     if engine() == "native":
         cmd = [str(NATIVE_BIN), "-input", str(in_path), "-results", str(out_path)]
