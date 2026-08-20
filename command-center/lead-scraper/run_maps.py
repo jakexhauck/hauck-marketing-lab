@@ -99,7 +99,13 @@ def run_gmaps(queries, out_name, depth=10, concurrency=4, inactivity="2m",
 
     timeout = 120 + len(queries) * 90
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        # encoding is explicit because text=True alone decodes with the LOCALE
+        # codec, which is cp1252 on Windows. gosom logs UTF-8, so the reader
+        # thread died on the first non-cp1252 byte and stderr came back EMPTY,
+        # which _analyze reads as failure_rate 0.0 no matter what Google did.
+        # Silent, and it disables the block backoff entirely on the PC.
+        proc = subprocess.run(cmd, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=timeout)
         err = (proc.stderr or "") + (proc.stdout or "")
         ok = proc.returncode == 0
     except subprocess.TimeoutExpired as e:
