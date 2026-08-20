@@ -54,7 +54,6 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     .select(EXPORT_SELECT)
     .eq("in_crm", false)
     .eq("send_status", "pending")
-    .gte("icp_score", EXPORT_THRESHOLD)
     // Filtered in the query, not just in partitionForSend: the batch is capped at
     // BATCH_SIZE rows, and letting landlines fill it would cap the file at whatever
     // fraction of them happened to be mobiles.

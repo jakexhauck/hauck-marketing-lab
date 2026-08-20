@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-20-score-no-longer-blocks-a-send",
+    date: "20 August 2026",
+    title: "A low score no longer stops you sending a lead",
+    items: [
+      "Ready to send was hiding good leads. It refused anything scoring under 50, which on the windows and doors list meant 5 of 26 sendable companies were shown and the other 21 were not. The score now sorts the list instead of policing it, so the best are still at the top and the rest are reachable.",
+      "The same change applies to the CSV download, so the file matches the list it came from.",
+      "Send to Cold Call is gone. Send to power dialer does that job and tags them for the dialer at the same time.",
+      "A lead that has already gone out is still never sent again, however many times it is ticked.",
+      "Landlines are still held back. That rule is untouched, and on this list it is now the only thing between a lead and a send.",
+    ],
+  },
+  {
     id: "2026-08-20-cold-call-power-dialer-first",
     date: "20 August 2026",
     title: "Cold Call opens on the Power dialer, and the stages are one board",

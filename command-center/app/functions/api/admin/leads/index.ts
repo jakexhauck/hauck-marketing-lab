@@ -117,7 +117,6 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     // corrects itself the moment the score does. Everything still shows them.
     query = query
       .eq("send_status", "pending")
-      .gte("icp_score", EXPORT_THRESHOLD)
       .not("business_name", "is", null)
       .neq("business_name", "")
       .eq("line_type", "wireless");

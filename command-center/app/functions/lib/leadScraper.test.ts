@@ -197,10 +197,12 @@ describe("what may be sent", () => {
     expect(rejected).toHaveLength(0);
   });
 
-  it("refuses a lead below the threshold", () => {
-    const { sendable, rejected } = partitionForSend([lead({ icpScore: 40 })]);
-    expect(sendable).toHaveLength(0);
-    expect(rejected[0].reason).toBe("Scored below 50");
+  // The score sorts the list, it does not police it. It used to reject 18 of every
+  // 23 qualified window firms while the screen still offered them to be ticked.
+  it("sends a lead the score would once have refused", () => {
+    const { sendable, rejected } = partitionForSend([lead({ icpScore: 10 })]);
+    expect(sendable).toHaveLength(1);
+    expect(rejected).toHaveLength(0);
   });
 
   it("refuses a lead that has already gone out", () => {
@@ -247,11 +249,19 @@ describe("what may be sent", () => {
 
   it("reports every rejection rather than stopping at the first", () => {
     const { rejected } = partitionForSend([
-      lead({ id: "a", icpScore: 10 }),
       lead({ id: "b", sendStatus: "sent" }),
       lead({ id: "c", businessName: "" }),
       lead({ id: "d", lineType: "landline" }),
     ]);
-    expect(rejected.map((r) => r.id)).toEqual(["a", "b", "c", "d"]);
+    expect(rejected.map((r) => r.id)).toEqual(["b", "c", "d"]);
+  });
+
+  // The one guard Jake asked for by name: a lead that has gone out once never goes
+  // out again, whatever its score and however many times it is ticked.
+  it("never sends the same lead twice", () => {
+    const alreadyGone = lead({ id: "x", sendStatus: "cold_call_20260818_queued", icpScore: 105 });
+    const { sendable, rejected } = partitionForSend([alreadyGone]);
+    expect(sendable).toHaveLength(0);
+    expect(rejected).toEqual([{ id: "x", reason: "Already sent" }]);
   });
 });

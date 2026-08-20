@@ -267,10 +267,12 @@ export function partitionForSend(
   const rejected: SendRejection[] = [];
   const seen = new Set<string>();
 
+  // The score no longer refuses a send. It was rejecting 18 of every 23 qualified
+  // window firms on Jake's own list while the screen offered them to be ticked, and
+  // a score is a hint about a business, not a fact about whether it can be rung.
+  // It stays on the row and still sorts the list, so the best ones remain first.
   for (const lead of leads) {
-    if (!isQualified(lead.icpScore)) {
-      rejected.push({ id: lead.id, reason: `Scored below ${EXPORT_THRESHOLD}` });
-    } else if (lead.sendStatus !== "pending") {
+    if (lead.sendStatus !== "pending") {
       rejected.push({ id: lead.id, reason: "Already sent" });
     } else if (!(lead.businessName ?? "").trim()) {
       rejected.push({ id: lead.id, reason: "No business name" });

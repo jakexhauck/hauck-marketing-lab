@@ -6,7 +6,6 @@ import {
   ExternalLink,
   History,
   Loader2,
-  Phone,
   PhoneForwarded,
   Play,
   MapPin,
@@ -511,11 +510,7 @@ function LeadsTable({
             {summary.reason && <em>{summary.reason}</em>}
           </span>
           <div className="ls-actionbar-btns">
-            <button type="button" className="ls-primary sm" disabled={!canSend(summary) || send.isPending} onClick={() => doSend("cold_call")}>
-              <Phone size={14} />
-              Send to Cold Call
-            </button>
-            <button type="button" className="ls-primary sm" disabled={!canSend(summary) || send.isPending} onClick={() => doSend("cold_call", true)} title="Send to Cold Call and tag them 'Power Dialer' in GoHighLevel">
+            <button type="button" className="ls-primary sm" disabled={!canSend(summary) || send.isPending} onClick={() => doSend("cold_call", true)}>
               <PhoneForwarded size={14} />
               Send to power dialer
             </button>
