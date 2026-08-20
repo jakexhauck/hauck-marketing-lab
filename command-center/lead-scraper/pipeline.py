@@ -67,7 +67,17 @@ def _num(v):
 
 
 def load_records(path):
-    """gosom -json is a JSON array or NDJSON; tolerate both."""
+    """gosom -json is a JSON array or NDJSON; tolerate both.
+
+    A MISSING file counts as no records, not as a crash. gosom writes nothing when
+    a batch returns nothing, and run_maps already treats that as rows=0, but the
+    coordinator handed the same path straight here and this opened it blind. One
+    empty batch 15 batches deep therefore killed the whole run. An empty file and
+    an absent file mean the same thing to everything downstream, so say so once,
+    here, rather than making every caller remember.
+    """
+    if not os.path.exists(path):
+        return []
     text = open(path, encoding="utf-8", errors="replace").read().strip()
     if not text:
         return []
