@@ -71,6 +71,18 @@ One button per trade in the wizard:
 | `general_contracting` | GCs, custom home builders |
 | `home_services` | The catch-all: all of the above at once |
 
+**Editing a file in `niches/` changes nothing in the app until it is seeded.**
+The wizard reads the `lead_niche_presets` table, not this folder; these files are
+only the source it is seeded FROM. After adding, editing or deleting a niche:
+
+    node ../app/scripts/seed-niches.mjs
+
+The seed upserts and never prunes, so a niche you DELETE here keeps being offered
+in the wizard until its row is removed from that table by hand. The standalone
+`python coordinator.py --local` path reads this folder directly, which is why a
+change can look applied on the command line while the wizard still shows the old
+list.
+
 `_shared.json` is not a niche. It holds the parts every trade wants (the venue
 words, the whole-word guards, the retail/supply and off-trade rejections) and each
 trade `extends` it, so a hole gets fixed in one place. A leading underscore keeps it
