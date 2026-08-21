@@ -47,12 +47,20 @@ export function toLeadForPush(lead: ScrapedLead): LeadForPush {
  * the contact's: a contact that exists without its tags is recoverable (re-send
  * it), whereas reporting the whole push as failed would tempt a second send and
  * duplicate the work.
+ *
+ * TWO outbound calls per lead, and that ceiling is deliberate. Pages Functions on
+ * the free plan allow fifty per request; the Leads page used to spend six a lead,
+ * so a batch of ten asked for sixty-five and died past the eighth. `extraTags` is
+ * what keeps it at two: the power dialer's tag used to be a third call of its own,
+ * and a tag is a tag, so it rides along with the run's.
  */
 export async function pushScrapedLead(
   env: Env,
   lead: ScrapedLead,
   run: RunForTags,
   channel: Channel,
+  // Applied in the SAME call as the run's tags, never a second one.
+  extraTags: string[] = [],
 ): Promise<HandoffResult> {
   if (!isAgencyGhlConfigured(env)) {
     return { ok: false, contactId: null, error: null, notConfigured: true };
@@ -67,12 +75,16 @@ export async function pushScrapedLead(
     };
   }
 
-  const tags = tagsForLead(lead, run, channel);
+  const tags = [...new Set([...tagsForLead(lead, run, channel), ...extraTags])];
   try {
-    await ghlJson(getAgencyGhlContext(env), `/contacts/${upserted.contactId}/tags`, {
-      method: "POST",
-      body: JSON.stringify({ tags }),
-    });
+    await ghlJson(
+      getAgencyGhlContext(env),
+      `/contacts/${upserted.contactId}/tags`,
+      { method: "POST", body: JSON.stringify({ tags }) },
+      // Applying a tag a contact already carries changes nothing, so a 429 here
+      // is worth one more try rather than failing a lead that is already made.
+      { idempotentPost: true },
+    );
   } catch (err) {
     return {
       ok: false,

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
-  Check,
   Download,
   Upload,
   ExternalLink,
@@ -27,7 +27,6 @@ import {
   draftProblem,
   emptyDraft,
   formatRating,
-  formatScore,
   isRunActive,
   parseCityList,
   sendRateLabel,
@@ -50,6 +49,7 @@ import {
   useScrapeRuns,
   useSendLeads,
   useStartRun,
+  leadScraperKeys,
   type LeadFilters,
   type SendResult,
   type SendProgress,
@@ -428,7 +428,10 @@ function LeadsTable({
   const [expanded, setExpanded] = useState<string | null>(null);
   const [result, setResult] = useState<SendResult | null>(null);
   const [progress, setProgress] = useState<(SendProgress & { channel: Channel }) | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [csvError, setCsvError] = useState("");
   const send = useSendLeads();
+  const qc = useQueryClient();
 
   const summary = summariseSelection(leads, selected);
   const allTicked = leads.length > 0 && leads.every((l) => selected.has(l.id));
@@ -457,6 +460,40 @@ function LeadsTable({
 
   const toggleAll = () =>
     setSelected(allTicked ? new Set() : new Set(leads.map((l) => l.id)));
+
+  // The CSV was a link until 21 August 2026, and the route behind it marks every
+  // row it hands over as sent. A link that permanently changes data is a link a
+  // browser is free to follow on its own, so it posts now and saves the answer.
+  const downloadCsv = async () => {
+    setDownloading(true);
+    setCsvError("");
+    try {
+      const res = await fetch(`/api/admin/leads/export${exportQuery}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        setCsvError(body?.error ?? "Could not build the file.");
+        return;
+      }
+      const blob = await res.blob();
+      const name =
+        /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? "leads.csv";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+      // Those rows are stamped now, so the list they came from is out of date.
+      void qc.invalidateQueries({ queryKey: leadScraperKeys.leads(filters) });
+    } catch {
+      setCsvError("Could not build the file.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   // powerDialer is Cold Call plus the tag that puts them on GoHighLevel's dialer
   // list. Same send, same book row, same stamp: the only difference is that they
@@ -532,10 +569,16 @@ function LeadsTable({
 
         {imported && (
           <div className="ls-toolbar-right">
-            <a className="ls-ghost" href={`/api/admin/leads/export${exportQuery}`} title="Downloads the unsent leads and marks them as sent">
-              <Download size={14} />
+            <button
+              type="button"
+              className="ls-ghost"
+              disabled={downloading}
+              onClick={downloadCsv}
+              title="Downloads the unsent leads and marks them as sent"
+            >
+              {downloading ? <Loader2 size={14} className="ls-spin" /> : <Download size={14} />}
               CSV
-            </a>
+            </button>
           </div>
         )}
       </div>
@@ -559,6 +602,13 @@ function LeadsTable({
         </div>
       )}
 
+      {csvError && (
+        <div className="ls-receipt warn">
+          <div><b>{csvError}</b></div>
+          <button type="button" className="ls-linkbtn" onClick={() => setCsvError("")}>Dismiss</button>
+        </div>
+      )}
+
       {progress && <SendProgressBar progress={progress} />}
       {send.isError && !progress && (
         <div className="ls-receipt warn">
@@ -579,17 +629,15 @@ function LeadsTable({
             <tr>
               <th className="ls-tick"><input type="checkbox" checked={allTicked} onChange={toggleAll} aria-label="Select all" /></th>
               <th>Business</th>
-              <th>Score</th>
               <th>Rating</th>
               <th>Website</th>
               <th>Where</th>
-              <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={7} className="ls-empty">Loading...</td></tr>}
+            {loading && <tr><td colSpan={5} className="ls-empty">Loading...</td></tr>}
             {!loading && leads.length === 0 && (
-              <tr><td colSpan={7} className="ls-empty">
+              <tr><td colSpan={5} className="ls-empty">
                 Nothing here yet. Run a scrape and the results land in this table.
               </td></tr>
             )}
@@ -608,34 +656,44 @@ function LeadsTable({
       </div>
 
       {total > leads.length && (
-        <div className="ls-foot">Showing {leads.length} of {total}. Narrow it with the filters above.</div>
+        <div className="ls-foot">
+          Showing {leads.length} of {total}.
+          <button type="button" className="ls-linkbtn" onClick={() => onFilters({ ...filters, limit: total })}>
+            Show all {total}
+          </button>
+        </div>
       )}
     </div>
   );
 }
 
+// No score column and no status column, both by Jake's call on 21 August 2026.
+//
+// The score is gone from the row and from the panel underneath it. It still
+// orders the list, best first, which is the job it was actually doing.
+//
+// The status is gone because it could only ever say one thing. The list is
+// `send_status = pending` at the query, so every row on this page is a lead
+// nobody has contacted, and a column of one repeated value is a column of noise.
+// The tick box was disabled on that same dead condition, so that has gone too.
 function LeadRow({
   lead, ticked, expanded, onTick, onExpand,
 }: {
   lead: ScrapedLeadView; ticked: boolean; expanded: boolean;
   onTick: () => void; onExpand: () => void;
 }) {
-  const sent = lead.sendStatus !== "pending";
   const domain = prettyDomain(lead.website);
   return (
     <>
       <tr className={ticked ? "on" : undefined}>
         <td className="ls-tick">
-          <input type="checkbox" checked={ticked} onChange={onTick} disabled={sent} aria-label={`Select ${lead.businessName ?? lead.phoneE164}`} />
+          <input type="checkbox" checked={ticked} onChange={onTick} aria-label={`Select ${lead.businessName ?? lead.phoneE164}`} />
         </td>
         <td>
-          <button type="button" className="ls-name" onClick={onExpand} title="Why it scored what it did">
+          <button type="button" className="ls-name" onClick={onExpand} title="What the qualifier noticed">
             {lead.businessName ?? "(no name)"}
           </button>
           <div className="ls-phone">{formatPhoneDashed(lead.phoneE164)}</div>
-        </td>
-        <td>
-          <span className={`ls-score ${lead.scoreBand}`}>{formatScore(lead.icpScore)}</span>
         </td>
         <td className="ls-dim">{formatRating(lead.rating, lead.reviewCount)}</td>
         <td>
@@ -649,24 +707,17 @@ function LeadRow({
           )}
         </td>
         <td className="ls-dim">{[lead.city, lead.state].filter(Boolean).join(", ") || "-"}</td>
-        <td>
-          {sent ? (
-            <span className="ls-sent"><Check size={12} />{lead.sentTo ? channelLabel(lead.sentTo as Channel) : "Sent"}</span>
-          ) : (
-            <span className="ls-dim">Not sent</span>
-          )}
-        </td>
       </tr>
       {expanded && (
         <tr className="ls-why">
           <td />
-          <td colSpan={6}>
+          <td colSpan={4}>
             <div className="ls-why-box">
-              <b>Why {formatScore(lead.icpScore)}</b>
+              <b>What the qualifier noticed</b>
               {lead.reasons.length > 0 ? (
                 <ul>{lead.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
               ) : (
-                <span className="ls-dim"> - no reasons recorded.</span>
+                <span className="ls-dim"> - nothing recorded. Imported leads never go past the qualifier.</span>
               )}
               <div className="ls-why-meta">
                 {lead.category && <span>Category: {lead.category}</span>}
@@ -721,6 +772,17 @@ function SendReceipt({ result, onDismiss }: { result: SendResult; onDismiss: () 
           {result.taggedForDialer > 0 && `, ${result.taggedForDialer} on the power dialer`}
         </b>
         {result.notConfigured && <div>GoHighLevel is not connected, so nothing was pushed.</div>}
+        {result.stoppedEarly && (
+          <div className="ls-receipt-skipped">
+            One batch did not answer: {result.stoppedEarly} The rest were still sent.
+          </div>
+        )}
+        {result.stampFailed && (
+          <div className="ls-receipt-skipped">
+            Some of these are in GoHighLevel but could not be marked as sent here, so
+            they may be offered again. Check before you send them a second time.
+          </div>
+        )}
         {result.skipped.length > 0 && (
           <div className="ls-receipt-skipped">
             {result.skipped.length} skipped: {[...new Set(result.skipped.map((s) => s.reason))].join("; ")}
@@ -980,18 +1042,10 @@ function LeadsStyle() {
       }
       .pk-kit .ls-phone { font-size: 11.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
       .pk-kit .ls-dim { color: var(--text-faint); }
-      .pk-kit .ls-score {
-        display: inline-block; min-width: 30px; text-align: center; border-radius: 8px;
-        padding: 2px 7px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
-      }
-      .pk-kit .ls-score.high { background: rgba(16,185,129,.15); color: #059669; }
-      .pk-kit .ls-score.medium { background: var(--ls-indigo-tint); color: var(--ls-indigo); }
-      .pk-kit .ls-score.low { background: rgba(148,163,184,.18); color: var(--text-muted); }
       .pk-kit .ls-link { display: inline-flex; align-items: center; gap: 4px; color: var(--ls-indigo); text-decoration: none; font-size: 12.5px; }
       .pk-kit .ls-link:hover { text-decoration: underline; }
-      .pk-kit .ls-sent { display: inline-flex; align-items: center; gap: 4px; color: #059669; font-size: 12.5px; font-weight: 600; }
       .pk-kit .ls-empty { padding: 30px 18px; text-align: center; color: var(--text-muted); }
-      .pk-kit .ls-foot { padding: 11px 18px; font-size: 12px; color: var(--text-faint); border-top: 1px solid var(--border); }
+      .pk-kit .ls-foot { display: flex; align-items: center; gap: 8px; padding: 11px 18px; font-size: 12px; color: var(--text-faint); border-top: 1px solid var(--border); }
 
       .pk-kit .ls-why td { background: var(--ls-hover); }
       .pk-kit .ls-why-box { font-size: 12.5px; color: var(--text-muted); }

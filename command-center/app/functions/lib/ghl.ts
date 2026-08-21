@@ -8,10 +8,27 @@ export interface GhlContext {
   locationId: string;
 }
 
+// A POST this app is willing to repeat.
+//
+// ghlFetch never retries a POST, and that default is right: a retried note or SMS
+// is a second note or a second SMS. Two of GoHighLevel's POSTs are not like that.
+// /contacts/upsert keys on the phone, and applying a tag a contact already has is
+// a no-op, so running either twice lands exactly where running it once does.
+//
+// It matters because GoHighLevel rate limits per location, and a batch send is a
+// burst by nature: without this, one 429 in the middle of a batch failed that lead
+// with "GoHighLevel refused it" when waiting a second would have landed it.
+export interface GhlFetchOptions {
+  // Retry once on 429 or 5xx even though this is a POST. Only ever set on a call
+  // whose second run cannot do anything the first did not.
+  idempotentPost?: boolean;
+}
+
 export async function ghlFetch(
   ctx: GhlContext,
   path: string,
   init: RequestInit = {},
+  options: GhlFetchOptions = {},
 ): Promise<Response> {
   const url = path.startsWith("http") ? path : BASE + path;
   const headers = new Headers(init.headers);
@@ -27,7 +44,11 @@ export async function ghlFetch(
   // SMS, double note), so POSTs surface the error to the caller immediately.
   const method = (init.method ?? "GET").toUpperCase();
   const retryable =
-    method === "GET" || method === "HEAD" || method === "PUT" || method === "DELETE";
+    method === "GET" ||
+    method === "HEAD" ||
+    method === "PUT" ||
+    method === "DELETE" ||
+    options.idempotentPost === true;
 
   let res = await fetch(url, { ...init, headers });
   if (!retryable) return res;
@@ -51,8 +72,9 @@ export async function ghlJson<T>(
   ctx: GhlContext,
   path: string,
   init: RequestInit = {},
+  options: GhlFetchOptions = {},
 ): Promise<T> {
-  const res = await ghlFetch(ctx, path, init);
+  const res = await ghlFetch(ctx, path, init, options);
   if (!res.ok) {
     const body = await res.text();
     throw new Error(

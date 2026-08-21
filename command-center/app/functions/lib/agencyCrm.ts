@@ -119,10 +119,18 @@ export async function upsertAgencyContact(
     const website = (lead.website ?? "").trim();
     if (website) body.website = website;
 
-    const res = await ghlJson<ContactResponse>(ctx, "/contacts/upsert", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+    // Retried once on a 429, which the plain POST rule would refuse. The upsert
+    // keys on the phone and the email, so a second run finds the contact the
+    // first one made and updates it: there is no duplicate to create. Batch
+    // sends burst straight into GoHighLevel's per-location rate limit, and
+    // without this a lead that only needed a one second wait came back as
+    // "GoHighLevel refused it".
+    const res = await ghlJson<ContactResponse>(
+      ctx,
+      "/contacts/upsert",
+      { method: "POST", body: JSON.stringify(body) },
+      { idempotentPost: true },
+    );
     const contactId = res.contact?.id ?? null;
     if (!contactId) {
       return {

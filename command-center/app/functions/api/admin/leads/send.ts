@@ -18,11 +18,11 @@ import { LEAD_STATUSES } from "../tracker/leads";
 
 // POST /api/admin/leads/send -> hand ticked leads to Cold Call or SMS.
 //
-// Three things happen per lead, in this order, and the order is the point:
+// Three things happen, in this order, and the order is the point:
 //
 //   1. the GoHighLevel contact is created and tagged (state, city, niche, source,
-//      batch date, score band, channel)
-//   2. for Cold Call, a row is added to the prospect book so it can be dialed
+//      batch date, score band, channel, and the dialer if this is a dialer send)
+//   2. for Cold Call, rows are added to the prospect book so they can be dialed
 //   3. only then is send_status stamped
 //
 // Stamping AFTER the push is what the SOP's exporter does when it writes the CSV
@@ -30,17 +30,24 @@ import { LEAD_STATUSES } from "../tracker/leads";
 // push failed is a lead that silently never gets contacted; a lead pushed twice
 // is merely untidy, and GoHighLevel's own duplicate rule absorbs it.
 //
-// It is stamped PER LEAD, not once at the end. That distinction is not academic:
-// on 1 August 2026 a batch of 200 reached GoHighLevel and the book, and the run
-// ended before the single closing UPDATE, so all 200 stayed "pending" and were
-// offered for sending again. Two hundred sequential pushes is 400-plus
-// subrequests, and anything that ends the run mid-loop used to discard the record
-// of every lead already sent. Now the worst case is losing the stamp for the one
-// lead in flight.
+// THE BUDGET IS FIFTY OUTBOUND CALLS. Pages Functions on the free plan cut a
+// request off at fifty, and this handler is the heaviest in the app, so every
+// call it makes is counted here rather than discovered later:
 //
-// Nothing here is bulk. A batch of 200 is 200 sequential pushes because GHL rate
-// limits and because a per-lead result is what lets the page say exactly which
-// ones did not make it.
+//   3 fixed reads   the ticked rows, the book phones in this batch, the runs
+//   2 per lead      the contact upsert, and one call carrying every tag
+//   2 batch writes  the book insert, and the stamp
+//   4 tail          the run tally read and write, and the admin log
+//
+// A batch of eight is about twenty-four. It used to be six calls a lead: a second
+// tag call for the dialer, a per-lead lookup against the book, a per-lead insert
+// and a per-lead stamp. Ten leads asked for sixty-five, which is why a full batch
+// died past the eighth lead while the ones before it were already in GoHighLevel
+// (Jake, 21 August 2026). Anything added to the per-lead loop is multiplied by the
+// batch size, so add it to a fixed read or a batch write instead.
+//
+// Still sequential, because GoHighLevel rate limits per location, and because a
+// per-lead result is what lets the page say exactly which ones did not make it.
 
 const MAX_PER_SEND = 200;
 const CHANNELS = new Set<Channel>(["cold_call", "sms"]);
@@ -123,27 +130,48 @@ async function tagExistingForPowerDialer(env: Env, phoneE164: string): Promise<b
 }
 
 /**
- * Put a lead in the Cold Call prospect book.
+ * The prospect book rows for a batch, written in ONE insert.
  *
- * Keyed on the phone: the book is the list Jake dials, and the same business
- * arriving twice from two runs would be two dials at the same desk. Returns
- * whether a row was added, so "already in the book" reads differently from "added".
+ * It used to be two calls per lead, a lookup on the phone and then the insert.
+ * The lookup is gone because the caller has already read every phone in this
+ * batch that the book knows about, so asking again per lead was asking a question
+ * we had the answer to. The insert is one call for the whole batch for the same
+ * reason the stamp is: fifty outbound calls is the entire budget for one request.
+ *
+ * Postgres inserts the batch or none of it, so a failure fails the whole batch,
+ * and the caller stamps nothing. That is the safe direction: nothing is marked
+ * sent that is not in the book.
  */
 async function addToProspectBook(
   client: NonNullable<ReturnType<typeof getServiceClient>>,
-  lead: ScrapedLead,
-  adminId: string,
-  ghlContactId: string | null,
-): Promise<{ added: boolean; error: string | null }> {
-  const { data: existing } = await client
-    .from("leads")
-    .select("id")
-    .eq("phone", lead.phoneE164)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (existing) return { added: false, error: null };
+  rows: BookRow[],
+): Promise<string | null> {
+  if (rows.length === 0) return null;
+  const { error } = await client.from("leads").insert(rows);
+  if (error) {
+    console.error("[leads/send] prospect book insert failed", error.message);
+    return "Could not add it to the call list.";
+  }
+  return null;
+}
 
-  const { error } = await client.from("leads").insert({
+interface BookRow {
+  first_name: string;
+  last_name: string;
+  business_name: string;
+  phone: string;
+  website: string;
+  email: string;
+  timezone: string;
+  status: string;
+  source: string;
+  notes: string;
+  admin_id: string;
+  ghl_contact_id: string | null;
+}
+
+function bookRowFor(lead: ScrapedLead, adminId: string, ghlContactId: string | null): BookRow {
+  return {
     first_name: "",
     last_name: "",
     business_name: (lead.businessName ?? "").trim(),
@@ -162,13 +190,7 @@ async function addToProspectBook(
     notes: "",
     admin_id: adminId,
     ghl_contact_id: ghlContactId,
-  });
-
-  if (error) {
-    console.error("[leads/send] prospect book insert failed", error.message);
-    return { added: false, error: "Could not add it to the call list." };
-  }
-  return { added: true, error: null };
+  };
 }
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -223,15 +245,24 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   //
   // Matched on the phone because that is what the book is keyed on and what a
   // caller actually rings.
-  const { data: bookRows } = await client
-    .from("leads")
-    .select("phone")
-    .is("deleted_at", null);
-  const inBook = new Set(
-    ((bookRows ?? []) as { phone: string | null }[])
-      .map((r) => (r.phone ?? "").trim())
-      .filter(Boolean),
-  );
+  //
+  // Asked ONLY about the phones in this batch. It used to read the whole book on
+  // every request, which was a growing answer to a fixed question: at 444 rows it
+  // worked, and it would have started silently missing duplicates the moment the
+  // book outgrew one page of results.
+  const phonesInBatch = [...new Set(leads.map((l) => l.phoneE164).filter(Boolean))];
+  const inBook = new Set<string>();
+  if (phonesInBatch.length > 0) {
+    const { data: bookPhones } = await client
+      .from("leads")
+      .select("phone")
+      .is("deleted_at", null)
+      .in("phone", phonesInBatch);
+    for (const r of (bookPhones ?? []) as { phone: string | null }[]) {
+      const phone = (r.phone ?? "").trim();
+      if (phone) inBook.add(phone);
+    }
+  }
 
   const alreadyDialing: { id: string; reason: string }[] = [];
   const fresh = sendable.filter((lead) => {
@@ -278,9 +309,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       );
     if (error) console.error("[leads/send] could not stamp already-in-book leads", error.message);
   }
-  const sent: string[] = [];
+
+  const pushed: string[] = [];
+  const bookRows: BookRow[] = [];
   const failures: { id: string; reason: string }[] = [];
-  let addedToBook = 0;
   // How many prospects came out of this carrying the dialer's tag, pushed or
   // not. The number the page reports, because it is the one that decides how
   // long the dialer's list is.
@@ -299,56 +331,61 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       createdAt: "",
     };
 
-    const push = await pushScrapedLead(ctx.env, lead, run, channel);
+    // The dialer's tag goes on in the SAME call as the run's tags. It was a
+    // request of its own until 21 August, which spent a sixth of this handler's
+    // whole budget saying one more word to an endpoint we were already
+    // mid-sentence with.
+    const extraTags = toPowerDialer ? [POWER_DIALER_TAG] : [];
+    const push = await pushScrapedLead(ctx.env, lead, run, channel, extraTags);
     if (push.notConfigured) {
       notConfigured = true;
       failures.push({ id: lead.id, reason: "GoHighLevel is not connected." });
-      continue;
+      // Nothing later in this batch will fare any differently, and every attempt
+      // is two more outbound calls against a budget of fifty.
+      break;
     }
     if (!push.ok) {
       failures.push({ id: lead.id, reason: push.error ?? "GoHighLevel refused it." });
       continue;
     }
+    if (toPowerDialer) taggedForDialer += 1;
 
     if (channel === "cold_call") {
-      const book = await addToProspectBook(client, lead, ctx.data.admin!.id, push.contactId);
-      if (book.error) {
-        failures.push({ id: lead.id, reason: book.error });
-        continue;
-      }
-      if (book.added) addedToBook += 1;
-
-      // Onto the dialer's list. AFTER the book, so a prospect the dialer can
-      // ring is always a prospect this app can record the call against.
-      //
-      // A tag that will not go does not fail the lead: it is in GoHighLevel and
-      // in the book, which is everything except being next in the queue, and
-      // reporting it as skipped would offer to send it all over again.
-      if (toPowerDialer && push.contactId && isAgencyGhlConfigured(ctx.env)) {
-        try {
-          await ghlJson(getAgencyGhlContext(ctx.env), `/contacts/${encodeURIComponent(push.contactId)}/tags`, {
-            method: "POST",
-            body: JSON.stringify({ tags: [POWER_DIALER_TAG] }),
-          });
-          taggedForDialer += 1;
-        } catch (err) {
-          console.error("[leads/send] power dialer tag failed", lead.id, err);
-        }
-      }
+      bookRows.push(bookRowFor(lead, ctx.data.admin!.id, push.contactId));
     }
+    pushed.push(lead.id);
+  }
 
-    // Stamped NOW, not after the loop. This lead is in GoHighLevel; if the run
-    // ends on the next one, the record of this one has to survive it.
+  // The book, then the stamp, and that is every write this batch makes: two for
+  // the whole batch rather than two per lead.
+  //
+  // The old loop stamped each lead the moment it landed, so a run that died
+  // mid-batch kept what it had done. Runs died mid-batch because this handler
+  // spent six outbound calls a lead against a ceiling of fifty; at two, a batch
+  // of eight costs about twenty-four all in and has room to spare. What is left
+  // of that window is one batch, and a lead caught in it is offered again and
+  // pushed again, which GoHighLevel's upsert absorbs.
+  let sent = pushed;
+  if (bookRows.length > 0) {
+    const bookError = await addToProspectBook(client, bookRows);
+    if (bookError) {
+      // All or nothing, so nothing reached the book and nothing may be stamped.
+      // They stay on the page, which is where a lead nobody can ring belongs.
+      for (const id of pushed) failures.push({ id, reason: bookError });
+      sent = [];
+    }
+  }
+  const addedToBook = sent.length > 0 ? bookRows.length : 0;
+
+  if (sent.length > 0) {
     const { error: stampErr } = await client
       .from("cold_sms_outreach_numbers")
       .update({ send_status: label, sent_to: channel, sent_at: new Date().toISOString() })
-      .eq("id", lead.id);
+      .in("id", sent);
     if (stampErr) {
-      console.error("[leads/send] stamp failed", lead.id, stampErr.message);
+      console.error("[leads/send] stamp failed", stampErr.message);
       stampFailed = true;
     }
-
-    sent.push(lead.id);
   }
 
   // Everybody else who was ticked. A lead skipped for having been sent before,
@@ -357,8 +394,12 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   //
   // The do-not-contact list is the one refusal that survives this: it is a
   // refusal to ring them at all, which a dialer list is precisely a way of doing.
-  if (toPowerDialer) {
-    const tagged = new Set(sent);
+  if (toPowerDialer && !notConfigured) {
+    // `pushed`, not `sent`. They differ only when the book insert failed, and in
+    // that case the contacts still went to GoHighLevel carrying the tag: going
+    // round again would spend two more calls each to re-apply a tag they have
+    // and would count every one of them twice.
+    const tagged = new Set(pushed);
     const refusedDnc = new Set(
       rejected.filter((r) => r.reason === DNC_REASON).map((r) => r.id),
     );
@@ -369,7 +410,6 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   }
 
   if (sent.length > 0) {
-
     // Keep the run's tally in step so the history means something.
     const perRun = new Map<string, number>();
     for (const id of sent) {

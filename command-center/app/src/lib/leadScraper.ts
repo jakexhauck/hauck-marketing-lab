@@ -269,25 +269,31 @@ export interface SelectionSummary {
  * The same rules the server enforces, mirrored here so a lead that cannot go out
  * is greyed before it is ticked rather than rejected after. The server stays the
  * authority: this only decides what the button reads.
+ *
+ * There is no score here, and its absence is the point. The gate came out of the
+ * server on 20 August (35a4c944) and out of the Ready to send filter with it, but
+ * this copy of the rule was missed, so the button went on refusing what the server
+ * would happily have taken. Every CSV-imported lead carries no score at all, and
+ * `?? 0` read that as a zero: on 21 August all 75 imported leads waiting to go out
+ * were untickable while the server stood ready to send every one of them.
+ *
+ * Two rules, both facts rather than opinions: it has not gone out already, and it
+ * has a name to put on the contact.
  */
 export function summariseSelection(
   leads: ScrapedLeadView[],
   selectedIds: Set<string>,
-  threshold = 50,
 ): SelectionSummary {
   const chosen = leads.filter((l) => selectedIds.has(l.id));
   const sendable = chosen.filter(
-    (l) =>
-      (l.icpScore ?? 0) >= threshold &&
-      l.sendStatus === "pending" &&
-      (l.businessName ?? "").trim().length > 0,
+    (l) => l.sendStatus === "pending" && (l.businessName ?? "").trim().length > 0,
   );
   const blocked = chosen.length - sendable.length;
   return {
     ticked: chosen.length,
     sendable: sendable.length,
     blocked,
-    reason: blocked > 0 ? `${blocked} cannot be sent (already sent, or scored too low)` : null,
+    reason: blocked > 0 ? `${blocked} cannot be sent (already sent, or no business name)` : null,
   };
 }
 

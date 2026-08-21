@@ -23,7 +23,10 @@ import { IMPORT_SOURCE } from "./import";
 const SELECT =
   "id, business_name, phone_e164, city, state, website, rating, review_count, icp_score, icp_flags, send_status, sent_to, line_type, sent_at, primary_type, metro, source, source_keyword, niche_id, run_id, created_at";
 
-const PAGE_MAX = 500;
+// Raised from 500 on 21 August. The page never asked for a second page, so the
+// cap was not a page size, it was the end of the list: 249 leads were waiting and
+// 49 of them could not be reached by any control on the screen.
+const PAGE_MAX = 1000;
 
 interface LeadRow {
   id: string;
@@ -103,6 +106,13 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     .select(SELECT, { count: "exact" })
     // The duplicate rule, applied in one place.
     .eq("in_crm", false)
+    // A landline is never shown, on any tab, under any filter. It cannot be sent
+    // (partitionForSend refuses it) and it cannot be dialled, so listing one only
+    // ever offered work that could not be done and made every count read higher
+    // than the number of leads actually there. Jake's call, 21 August 2026: do
+    // not show them, delete them. scripts/purge-landline-leads.mjs does the
+    // deleting; this makes sure a re-scrape cannot put them back on screen.
+    .eq("line_type", "wireless")
     // A lead that has gone to the power dialer is finished with this screen. It
     // cannot be sent again (partitionForSend refuses it), so leaving it in the
     // table only offered work that was already done and made every count read
@@ -119,14 +129,13 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   if (imported === "1") query = query.eq("source", IMPORT_SOURCE);
   if (imported === "0") query = query.or(`source.is.null,source.neq.${IMPORT_SOURCE}`);
   if (sent === "0") {
-    // Ready to send narrows the remaining rows to the ones a send will accept:
-    // named, and on a mobile. Filtered rather than stamped because a re-scrape
-    // CAN change either (pipeline.py enriches in place and deliberately never
-    // writes send_status), so this corrects itself the moment the row does.
-    query = query
-      .not("business_name", "is", null)
-      .neq("business_name", "")
-      .eq("line_type", "wireless");
+    // Ready to send narrows the remaining rows to the ones a send will accept.
+    // The mobile half of that rule moved into the base query, because it is now
+    // true of every tab rather than of this filter. What is left is the name.
+    // Filtered rather than stamped because a re-scrape CAN change it (pipeline.py
+    // enriches in place and deliberately never writes send_status), so this
+    // corrects itself the moment the row does.
+    query = query.not("business_name", "is", null).neq("business_name", "");
   }
   if (search) {
     const safe = search.replace(/[,()*]/g, " ").trim();

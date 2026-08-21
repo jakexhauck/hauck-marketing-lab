@@ -18,3 +18,8 @@ dist-ssr
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Backups written by scripts/purge-landline-leads.mjs. Real business contact
+# data, and a hard delete means the file is the only copy, so it is kept on disk
+# and out of the repo.
+scripts/landline-leads-*.json

@@ -5,7 +5,7 @@ import { partitionForSend, toCsv } from "../../../lib/leadScraper";
 import { IMPORT_SOURCE } from "./import";
 import { toScrapedLead } from "./index";
 
-// GET /api/admin/leads/export -> the SOP's CSV, for anything Jake wants to import
+// POST /api/admin/leads/export -> the SOP's CSV, for anything Jake wants to import
 // somewhere the app does not reach.
 //
 // Deliberately identical to export_sms.py: score-qualified and not-yet-sent rows
@@ -41,7 +41,15 @@ interface ExportRow {
   line_type: string | null;
 }
 
-export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
+// A POST, not a GET, since 21 August 2026.
+//
+// This route MARKS ROWS AS SENT and then hands back the file. That is the right
+// order (a file that reached Jake without its rows being marked is how a number
+// goes out twice), but it made a GET that permanently changes data, and it was
+// wired to a plain link. A browser prefetch, a second click, a bookmark or a
+// crawler would each have burned a batch of leads with nothing pressed on
+// purpose. The button posts and saves the blob instead.
+export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
 

@@ -190,10 +190,25 @@ describe("the selection", () => {
     const summary = summariseSelection(leads, new Set(["a", "b", "c"]));
     expect(summary).toEqual({
       ticked: 3,
-      sendable: 1,
-      blocked: 2,
-      reason: "2 cannot be sent (already sent, or scored too low)",
+      sendable: 2,
+      blocked: 1,
+      reason: "1 cannot be sent (already sent, or no business name)",
     });
+    expect(canSend(summary)).toBe(true);
+  });
+
+  it("sends a low score, because the server does", () => {
+    const summary = summariseSelection([lead({ icpScore: 12 })], new Set(["1"]));
+    expect(summary.sendable).toBe(1);
+    expect(canSend(summary)).toBe(true);
+  });
+
+  // The bug this whole change exists to close. Every CSV-imported lead has no
+  // score, `?? 0` read that as a zero, and the button refused all 75 of them.
+  it("sends an unscored import, which is every row from a CSV", () => {
+    const summary = summariseSelection([lead({ icpScore: null })], new Set(["1"]));
+    expect(summary.sendable).toBe(1);
+    expect(summary.blocked).toBe(0);
     expect(canSend(summary)).toBe(true);
   });
 

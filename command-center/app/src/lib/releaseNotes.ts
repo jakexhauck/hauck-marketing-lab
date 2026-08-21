@@ -26,6 +26,22 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-21-leads-page-sends-what-you-tick",
+    date: "21 August 2026",
+    title: "Leads sends what you tick, and stops running out of Cloudflare",
+    items: [
+      "Send to power dialer no longer greys itself out. The page was still refusing anything that scored under 50 a full day after the score stopped deciding anything, and an imported lead has no score at all, so every one of the 75 leads waiting on Import leads was untickable while the send was ready to take all of them.",
+      "The Score column is gone. It still puts the best businesses at the top of the list, which is the job it was doing; you no longer have to read it.",
+      "The Status column is gone. Nobody on this page has been contacted yet, so it could only ever say the same thing on every row.",
+      "Landline numbers no longer appear anywhere on Leads, and the 126 that were sitting there have been deleted. They could never be sent and could never be dialled, so they only ever made the counts look bigger than the work.",
+      "A big send stops dying halfway through. It was asking Cloudflare for 65 things in one go against a limit of 50, so a full batch failed after about eight leads had already gone to GoHighLevel. It now asks for about 23.",
+      "A batch that does fail no longer takes the whole send with it. The rest still go, and the receipt tells you what landed instead of just saying it stopped.",
+      "If a lead reaches GoHighLevel but cannot be marked as sent here, the receipt now warns you, so you do not send it twice.",
+      "The list can show more than 200 leads. There is a Show all button when there are more.",
+      "Downloading the CSV is a button rather than a link. It marks the rows it hands over as sent, and a link is something a browser can follow on its own.",
+    ],
+  },
+  {
     id: "2026-08-21-garage-doors-is-a-trade",
     date: "21 August 2026",
     title: "Garage door companies can be scraped",

@@ -40,6 +40,9 @@ export interface LeadFilters {
   // and the same components, told apart by this and nothing else.
   imported?: "0" | "1" | null;
   q?: string;
+  // How many rows to ask for. Absent means the server's default of 200, which is
+  // what the table opens with; the footer raises it when there are more.
+  limit?: number;
 }
 
 interface LeadsResponse {
@@ -56,6 +59,7 @@ function leadsPath(filters: LeadFilters): string {
   if (filters.sent) params.set("sent", filters.sent);
   if (filters.imported) params.set("imported", filters.imported);
   if (filters.q?.trim()) params.set("q", filters.q.trim());
+  if (filters.limit) params.set("limit", String(filters.limit));
   const qs = params.toString();
   return `/api/admin/leads${qs ? `?${qs}` : ""}`;
 }
@@ -142,6 +146,15 @@ export interface SendResult {
   taggedForDialer: number;
   skipped: { id: string; reason: string }[];
   notConfigured: boolean;
+  // A lead reached GoHighLevel but could not be marked as sent here. The server
+  // has always reported it and the page used to drop it on the floor, which is
+  // the one state where saying nothing is worse than saying anything: the lead
+  // looks sendable and is already over there.
+  stampFailed: boolean;
+  // A batch that never came back. The send carries on to the next batch rather
+  // than abandoning the rest, so this is a note on the receipt and not the end
+  // of it. Null when every batch answered.
+  stoppedEarly: string | null;
 }
 
 // Where a send has got to. `etaMs` is null until the first batch has landed,
@@ -154,9 +167,15 @@ export interface SendProgress {
 
 // A batch of 200 is 200 sequential GoHighLevel pushes on the server, so it is
 // sent in slices of this many: each slice is one request, and the page counts
-// them off as they land. Small enough that the bar moves every few seconds,
-// large enough that the request overhead stays a rounding error.
-const SEND_SLICE = 10;
+// them off as they land.
+//
+// EIGHT, not ten, and the number is a budget rather than a preference. Pages
+// Functions on the free plan cut a request off at fifty outbound calls, and the
+// send spends two a lead plus about nine fixed, so eight leaves roughly half the
+// allowance unspent. Ten used to cost sixty-five and failed most of the way
+// through a full slice. Raising this without reading the budget in send.ts is how
+// that comes back.
+const SEND_SLICE = 8;
 
 export function useSendLeads() {
   const qc = useQueryClient();
@@ -180,22 +199,43 @@ export function useSendLeads() {
         taggedForDialer: 0,
         skipped: [],
         notConfigured: false,
+        stampFailed: false,
+        stoppedEarly: null,
       };
       const startedAt = Date.now();
       let done = 0;
       onProgress?.({ done, total, etaMs: null });
       for (let i = 0; i < ids.length; i += SEND_SLICE) {
         const slice = ids.slice(i, i + SEND_SLICE);
-        const res = await api<SendResult>("/api/admin/leads/send", {
-          method: "POST",
-          body: JSON.stringify({ ids: slice, channel, powerDialer: powerDialer === true }),
-        });
+        // A batch that throws is CAUGHT, and the send carries on.
+        //
+        // It used to throw straight out of the loop, which meant the mutation
+        // rejected and every count collected so far went with it: the page said
+        // "the send stopped early" and could not say that forty had already
+        // landed, or which forty. Worse, it abandoned batches that would have
+        // worked. One bad batch is one batch, so it is recorded on the receipt
+        // and the next one goes.
+        let res: SendResult;
+        try {
+          res = await api<SendResult>("/api/admin/leads/send", {
+            method: "POST",
+            body: JSON.stringify({ ids: slice, channel, powerDialer: powerDialer === true }),
+          });
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : "The send failed for these.";
+          merged.stoppedEarly ??= reason;
+          for (const id of slice) merged.skipped.push({ id, reason });
+          done += slice.length;
+          onProgress?.({ done, total, etaMs: null });
+          continue;
+        }
         merged.label = res.label || merged.label;
         merged.sent += res.sent;
         merged.addedToProspectBook += res.addedToProspectBook;
         merged.taggedForDialer += res.taggedForDialer ?? 0;
         merged.skipped.push(...res.skipped);
         merged.notConfigured = merged.notConfigured || res.notConfigured;
+        merged.stampFailed = merged.stampFailed || res.stampFailed === true;
         done += slice.length;
         const perLead = (Date.now() - startedAt) / done;
         onProgress?.({ done, total, etaMs: Math.round(perLead * (total - done)) });
