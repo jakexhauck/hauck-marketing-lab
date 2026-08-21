@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-21-dialer-hides-booked",
+    date: "21 August 2026",
+    title: "A prospect who is already booked stays off the power dialer",
+    items: [
+      "Ringing someone who is already booked no longer puts a card on the dialer. Calling a booked prospect back, from their contact record or anywhere else, used to raise a card asking what the call became, and none of the six outcomes fit a prospect who already has a meeting in the diary, so it sat there.",
+      "The call still counts as a dial. Nothing changes about your numbers; what changes is that nobody is asked to judge a call whose answer was settled days ago.",
+      "A prospect marked Not Interested is still shown. Say the word if you want them treated the same way.",
+    ],
+  },
+  {
     id: "2026-08-21-run-size-caps",
     date: "21 August 2026",
     title: "A run size says how many cities it will take",

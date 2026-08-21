@@ -4,7 +4,7 @@ import { getServiceClient } from "../../../lib/supabase";
 import { agencyTimezone, isAgencyGhlConfigured } from "../../../lib/agencyGhl";
 import { dateStringInZone } from "../../../lib/tz";
 import {
-  PENDING_OUTCOME,
+  awaitsOutcome,
   isLiveCall,
   readWindowMinutes,
   tallyDials,
@@ -113,7 +113,11 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   const leadById = new Map(leads.map((lead) => [lead.id, lead]));
   const calls: LiveCall[] = dials
-    .filter((dial) => dial.outcome === PENDING_OUTCOME)
+    // Unjudged, and not already booked. See awaitsOutcome for why the second
+    // half is a rule rather than something the caller works around.
+    .filter((dial) =>
+      awaitsOutcome(dial.outcome, dial.lead_id ? leadById.get(dial.lead_id)?.status : null),
+    )
     .sort((a, b) => Date.parse(b.dialed_at) - Date.parse(a.dialed_at))
     .map((dial) => {
       const lead = dial.lead_id ? leadById.get(dial.lead_id) : undefined;

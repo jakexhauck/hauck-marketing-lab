@@ -32,6 +32,38 @@ import { countsAsDial } from "./coldCallDials";
 // anybody presses one. Nothing the browser sends can claim it.
 export const PENDING_OUTCOME = "pending";
 
+// The one lead status that means the prospect has left the dialing operation
+// with a meeting in the diary. It is a stored status rather than a stage on the
+// Cold Calling board (a booked demo moves to the Sales pipeline), so it is
+// matched by the exact string the book stores. See src/lib/coldCallStages.ts.
+export const BOOKED_STATUS = "Booked";
+
+// Is this call still waiting on somebody to say what it became?
+//
+// Two conditions, and the second is the one Jake asked for (2026-08-21): a
+// prospect who is ALREADY BOOKED never appears on the power dialer, whoever
+// rings them.
+//
+// The dialer follows calls, not prospects, so ringing a booked prospect (to
+// confirm the meeting, say, straight from their contact record) put a card on
+// screen asking what became of a call whose answer was settled days ago. There
+// is no outcome to press: the six buttons all move a prospect through the
+// dialing operation, and this one has left it. So the card sat there.
+//
+// The dial itself is untouched and still counts. A call was placed, and a call
+// placed is a dial; what changes is only whether anybody is asked to judge it.
+//
+// A dial with no prospect behind it (the sync has seen the call but not yet
+// matched the contact) is always still waiting: an unknown status is not a
+// booked one, and hiding a call nobody can account for is the wrong direction.
+export function awaitsOutcome(
+  outcome: string,
+  leadStatus: string | null | undefined,
+): boolean {
+  if (outcome !== PENDING_OUTCOME) return false;
+  return (leadStatus ?? "").trim() !== BOOKED_STATUS;
+}
+
 // How far back a sync looks. Twenty minutes covers a coffee break mid-shift
 // without ever reaching back into a session that finished an hour ago and
 // re-opening calls somebody has already dealt with.

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  BOOKED_STATUS,
   DEFAULT_WINDOW_MINUTES,
+  awaitsOutcome,
   MATCH_AFTER_MS,
   MATCH_BEFORE_MS,
   MAX_WINDOW_MINUTES,
@@ -300,5 +302,57 @@ describe("tallyDials", () => {
       total: 0,
       callers: [],
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Who the power dialer is allowed to put on screen.
+//
+// Jake, 2026-08-21: "in the future don't show anyone who is already booked in".
+//
+// A booked prospect got rung from their own contact record to confirm the
+// meeting, and because the dialer follows CALLS rather than prospects, the card
+// appeared asking what that call became. Nothing could answer it: all six
+// outcome buttons move a prospect through the dialing operation and this one had
+// already left it with a meeting in the diary. The card simply sat there.
+
+describe("awaitsOutcome", () => {
+  it("waits on a pending call to a prospect still in the operation", () => {
+    expect(awaitsOutcome("pending", "No Answer Day 1")).toBe(true);
+    expect(awaitsOutcome("pending", "New Lead")).toBe(true);
+    expect(awaitsOutcome("pending", "Call Back")).toBe(true);
+  });
+
+  // THE RULE.
+  it("never waits on a prospect who is already booked", () => {
+    expect(awaitsOutcome("pending", BOOKED_STATUS)).toBe(false);
+  });
+
+  it("matches the stored status exactly, whitespace aside", () => {
+    expect(awaitsOutcome("pending", " Booked ")).toBe(false);
+    // Not a fuzzy match: a status that merely contains the word is not it.
+    expect(awaitsOutcome("pending", "Booked Out")).toBe(true);
+  });
+
+  it("still waits when the prospect behind the call is unknown", () => {
+    // The sync has the call but has not matched the contact yet. An unknown
+    // status is not a booked one, and hiding a call nobody can account for is
+    // the wrong direction to be wrong in.
+    expect(awaitsOutcome("pending", null)).toBe(true);
+    expect(awaitsOutcome("pending", undefined)).toBe(true);
+    expect(awaitsOutcome("pending", "")).toBe(true);
+  });
+
+  it("never waits on a call that has already been judged", () => {
+    expect(awaitsOutcome("no_answer", "No Answer Day 1")).toBe(false);
+    expect(awaitsOutcome("booked", "Booked")).toBe(false);
+    expect(awaitsOutcome("not_interested", "Not Interested")).toBe(false);
+  });
+
+  // Not Interested is the OTHER terminal status, and it is deliberately still
+  // shown: Jake asked for booked. Change this test on purpose, never by
+  // accident.
+  it("still waits on a prospect marked not interested", () => {
+    expect(awaitsOutcome("pending", "Not Interested")).toBe(true);
   });
 });
