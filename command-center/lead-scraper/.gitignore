@@ -18,3 +18,4 @@ logs/
 # One-off operational undo records (contain lead names).
 hvac_softdelete_undo.json
 data/regrade_undo.json
+data/retire_*_undo.json

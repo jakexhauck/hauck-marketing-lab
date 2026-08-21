@@ -18,6 +18,7 @@ Two rules, both from the SOP's step 7:
     python regrade.py --dry-run              every trade, report only
     python regrade.py --niche windows_doors  one trade, write
     python regrade.py                        every trade, write
+    python regrade.py --retire hvac          take a dropped trade out of circulation
 """
 
 from __future__ import annotations
@@ -173,9 +174,39 @@ def apply(rescored, disqualified, label=None):
     return changed
 
 
+def retire(niche_id, rows, dry_run=False):
+    """Take a retired trade's PENDING leads out of circulation.
+
+    Dropping a trade leaves its leads behind, scored under a rubric that no longer
+    exists and sorted above the current trade's in any pool that forgets to ask.
+    Retiring is the regrade's rule applied to a whole trade at once: stamped through
+    send_status, never deleted, and only ever a row that has not been sent.
+    """
+    pending = [r for r in rows if r.get("niche_id") == niche_id
+               and r.get("send_status") == "pending"]
+    label = f"retired_{niche_id}_{datetime.now(timezone.utc).strftime('%Y%m%d')}"
+    print(f"{niche_id}: {len(pending)} pending of "
+          f"{sum(1 for r in rows if r.get('niche_id') == niche_id)} total -> {label}")
+    if not pending or dry_run:
+        if dry_run:
+            print("dry run: nothing written")
+        return 0
+    undo_path = UNDO_PATH.with_name(f"retire_{niche_id}_undo.json")
+    write_undo([], [(r, r.get("icp_score"), []) for r in pending], undo_path)
+    print(f"undo written to {undo_path}")
+    patch([r["id"] for r in pending], {"send_status": label})
+    return len(pending)
+
+
 def main(argv):
     dry = "--dry-run" in argv
     nid = argv[argv.index("--niche") + 1] if "--niche" in argv else None
+    if "--retire" in argv:
+        trade = argv[argv.index("--retire") + 1]
+        done = retire(trade, fetch_all(trade), dry_run=dry)
+        print(f"retired {done}")
+        return 0
+
     rows = fetch_all(nid)
     rescored, disqualified, untouched = plan(rows)
     moved = sum(1 for r, s, f, v, a in rescored if s != r.get("icp_score"))

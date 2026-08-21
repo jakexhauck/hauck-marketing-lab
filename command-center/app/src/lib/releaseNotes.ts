@@ -35,6 +35,7 @@ export const RELEASES: Release[] = [
       "74 leads that no longer qualify have been taken off Leads. They are not deleted: they stay in the database, a re-scrape still enriches them, and every value the change overwrote was written down first so it can be put back. Nothing already sent or queued was touched.",
       "Downloading a CSV now asks which trade you want. The list holds every trade ever scraped, including ones no longer worked, and a download that did not ask was quietly mixing them together.",
       "A run that gets stopped part way now reads queued instead of sitting on running for ever, and picks up where it left off when a runner is started again.",
+      "The 202 leftover HVAC leads have been retired. HVAC stopped being a trade we hunt some time ago, but its leads stayed in the pool, scored above everything else and sorted to the top of any list that did not ask which trade it wanted. The ones already called are untouched.",
     ],
   },
   {

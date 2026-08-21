@@ -77,3 +77,33 @@ class TheCurrentRubricIsApplied(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RetiringATrade(unittest.TestCase):
+    """Dropping a trade leaves its leads behind. Retiring takes them out of
+    circulation the same way a regrade does: stamped, never deleted, pending only."""
+
+    def _rows(self):
+        return [row(id="a", niche_id="hvac", send_status="pending"),
+                row(id="b", niche_id="hvac", send_status="cold_call_20260818_queued"),
+                row(id="c", niche_id="windows_doors", send_status="pending")]
+
+    def test_a_dry_run_writes_nothing(self):
+        self.assertEqual(regrade.retire("hvac", self._rows(), dry_run=True), 0)
+
+    def test_only_the_named_trade_s_pending_rows_are_counted(self):
+        seen = {}
+
+        def fake_patch(ids, body):
+            seen["ids"], seen["body"] = ids, body
+
+        real_patch, real_undo = regrade.patch, regrade.write_undo
+        regrade.patch = fake_patch
+        regrade.write_undo = lambda r, d, p=None: p
+        try:
+            n = regrade.retire("hvac", self._rows())
+        finally:
+            regrade.patch, regrade.write_undo = real_patch, real_undo
+        self.assertEqual(n, 1)
+        self.assertEqual(seen["ids"], ["a"])          # not the queued one, not windows
+        self.assertTrue(seen["body"]["send_status"].startswith("retired_hvac_"))
