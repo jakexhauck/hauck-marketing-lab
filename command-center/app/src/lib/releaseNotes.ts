@@ -34,6 +34,7 @@ export const RELEASES: Release[] = [
       "Somebody asking not to be contacted is now one command instead of a hand edit of a text file. The number is refused by the CSV download and by both send buttons, it leaves Leads, and it stays refused even if it has already been sent.",
       "A lead ticked but refused for being on that list now says so, instead of claiming it had already been sent.",
       "Leads found through the directory top-up, when a city comes back thin, had no phone type recorded and so could never be sent to anything. They are now checked the same way as everything else.",
+      "A scrape that gets stopped and started again keeps the numbers it already reported. Restarting used to set every count on that run back to zero, so a run half way through read as having found nothing.",
     ],
   },
   {

@@ -78,6 +78,28 @@ class Progress:
         self.blocked = False
         self.stopped = False   # the walk ended on data/.stop, not on an empty queue
 
+    @classmethod
+    def resumed(cls, run_id, rows, prior=None):
+        """Pick up a run's tallies instead of starting it again from nothing.
+
+        Everything a run needs to resume is on disk, so a restart re-walks only the
+        pending rows. The counters did not know that: they started at 0 and the
+        first push wrote those zeroes over what the run had already reported. The
+        queue file is authoritative for how many queries are done; the run row is
+        the only record of what they found.
+        """
+        p = cls(run_id, len(rows))
+        p.done = sum(1 for r in rows if (r.get("status") if hasattr(r, "get") else None) == "done")
+        if prior:
+            p.raw = prior.get("raw_found") or 0
+            p.kept = prior.get("kept_count") or 0
+            p.passed = prior.get("passed_count") or 0
+            p.sendable = prior.get("sendable_count") or 0
+            p.new = prior.get("new_count") or 0
+            p.in_crm = prior.get("in_crm_count") or 0
+            p.excluded = prior.get("excluded_count") or 0
+        return p
+
     def as_patch(self, **extra):
         # pass_rate is kept / raw, the SOP's number, and it answers "how much of
         # what Google returned was worth STORING". Since the qualifier fix that is
@@ -130,7 +152,13 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
     batch, which is what makes the run resumable."""
     cfg = build_queue.RUN_SIZES.get(size) or build_queue.RUN_SIZES["standard"]
     depth = cfg["depth"]
-    prog = Progress(run_id, len(rows))
+    prior = None
+    if run_id:
+        try:
+            prior = store.get_run(run_id)
+        except Exception as e:  # a resume must never fail on bookkeeping
+            print(f"  (could not read the run's previous tallies: {e})", file=sys.stderr)
+    prog = Progress.resumed(run_id, rows, prior)
     prog.push()
 
     bad_metros = 0

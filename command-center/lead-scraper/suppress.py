@@ -104,6 +104,26 @@ def parse_numbers(raw_numbers, region="US"):
 # --- the database half -------------------------------------------------------
 # Imported lazily so the file half stays offline and env-free.
 
+def _load_env():
+    """.env into os.environ, the way run.sh does it for the coordinator.
+
+    Only run.sh loaded it, and run.sh only ever runs coordinator.py. This is the
+    command somebody types while a person is on the phone asking not to be called;
+    it is not allowed to die on a KeyError about an environment variable.
+    """
+    import os
+
+    env = Path(__file__).resolve().parent / ".env"
+    if not env.exists():
+        return
+    for line in env.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
 def stamp_do_not_contact(phones):
     """Mark every matching row do_not_contact. Returns how many rows were stamped.
 
@@ -114,6 +134,7 @@ def stamp_do_not_contact(phones):
     import urllib.parse
     import urllib.request
 
+    _load_env()
     import net
     from pipeline import REST, SUPABASE_KEY
 
@@ -135,6 +156,7 @@ def db_suppressed():
     import json
     import urllib.request
 
+    _load_env()
     import net
     from pipeline import REST, SUPABASE_KEY
 

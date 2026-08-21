@@ -117,5 +117,46 @@ class TheRunSummarySaysWhatCanBeSent(unittest.TestCase):
         self.assertEqual(coordinator.send_rate(p), 0.0)
 
 
+class AResumedRunKeepsWhatItAlreadyFound(unittest.TestCase):
+    """Every counter restarted at 0 on a resume, and the first push wrote those
+    zeroes over the row. Run d19dc69b sat at 40 of 100 queries done with raw_found
+    0: the work was on disk, the tally was not. A run that forgets what it found
+    cannot report what can be rung, which is the whole point of the summary."""
+
+    def rows(self, done, pending):
+        return ([{"status": "done"}] * done) + ([{"status": "pending"}] * pending)
+
+    def test_a_fresh_run_starts_at_nothing(self):
+        p = coordinator.Progress.resumed("r1", self.rows(0, 100), None)
+        self.assertEqual((p.done, p.raw, p.kept, p.sendable), (0, 0, 0, 0))
+        self.assertEqual(p.total, 100)
+
+    def test_the_queue_on_disk_is_what_says_how_many_are_done(self):
+        p = coordinator.Progress.resumed("r1", self.rows(40, 60), None)
+        self.assertEqual(p.done, 40)
+        self.assertEqual(p.total, 100)
+
+    def test_the_stored_tallies_are_carried_forward_not_overwritten(self):
+        prior = {"raw_found": 3124, "kept_count": 194, "passed_count": 41,
+                 "sendable_count": 15, "new_count": 120, "in_crm_count": 9,
+                 "excluded_count": 2930}
+        p = coordinator.Progress.resumed("r1", self.rows(40, 60), prior)
+        self.assertEqual(p.raw, 3124)
+        self.assertEqual(p.kept, 194)
+        self.assertEqual(p.passed, 41)
+        self.assertEqual(p.sendable, 15)
+        self.assertEqual(p.new, 120)
+        self.assertEqual(p.in_crm, 9)
+        self.assertEqual(p.excluded, 2930)
+
+    def test_a_null_count_on_an_older_run_reads_as_zero(self):
+        p = coordinator.Progress.resumed("r1", self.rows(1, 1), {"raw_found": None})
+        self.assertEqual(p.raw, 0)
+
+    def test_a_local_run_with_no_row_to_read_still_counts_its_queue(self):
+        p = coordinator.Progress.resumed(None, self.rows(3, 7), None)
+        self.assertEqual((p.done, p.total), (3, 10))
+
+
 if __name__ == "__main__":
     unittest.main()
