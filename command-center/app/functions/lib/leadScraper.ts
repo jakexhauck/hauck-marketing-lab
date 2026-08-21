@@ -247,6 +247,21 @@ export interface SendRejection {
 // The one refusal that outlives a send: it says do not ring them at all, so it
 // also refuses them a place on a dialer's list. Named because two places check
 // for it and a typo in either would quietly ring somebody who asked not to be.
+// What "a lead I can call" means, in ONE place. The Leads list, the counts on a
+// run and anything else that reports a number all match it against the same three
+// columns, so the number on a run is always the number of rows you get when you
+// click into it. Two copies of this rule drifting apart is how a screen starts
+// promising work that is not there.
+//
+//   in_crm      false     already in GoHighLevel: somebody may have rung them
+//   line_type   wireless  a landline cannot be dialled or texted (Jake, 21 Aug)
+//   send_status pending   anything else has been handed to a channel already
+export const CALLABLE_LEAD_FILTER = {
+  in_crm: false,
+  line_type: "wireless",
+  send_status: "pending",
+} as const;
+
 export const DNC_REASON = "On the do-not-contact list";
 
 // The send_status a lead carries once somebody has asked not to be contacted.

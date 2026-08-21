@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import {
+  CALLABLE_LEAD_FILTER,
   explainFlags,
   scoreBand,
   type ScrapedLead,
@@ -104,21 +105,20 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   let query = client
     .from("cold_sms_outreach_numbers")
     .select(SELECT, { count: "exact" })
-    // The duplicate rule, applied in one place.
-    .eq("in_crm", false)
+    // Not a duplicate, a mobile, and not yet sent. The three together are what
+    // "a lead I can call" means, and they live in CALLABLE_LEAD_FILTER so the
+    // count shown against a run is counted the same way this list is built.
+    //
     // A landline is never shown, on any tab, under any filter. It cannot be sent
     // (partitionForSend refuses it) and it cannot be dialled, so listing one only
     // ever offered work that could not be done and made every count read higher
     // than the number of leads actually there. Jake's call, 21 August 2026: do
     // not show them, delete them. scripts/purge-landline-leads.mjs does the
     // deleting; this makes sure a re-scrape cannot put them back on screen.
-    .eq("line_type", "wireless")
+    //
     // A lead that has gone to the power dialer is finished with this screen. It
-    // cannot be sent again (partitionForSend refuses it), so leaving it in the
-    // table only offered work that was already done and made every count read
-    // higher than the number of leads actually left to action. This is the base
-    // query, not a tab, because "do not show them" means nowhere.
-    .eq("send_status", "pending");
+    // cannot be sent again, so leaving it in only offered work already done.
+    .match(CALLABLE_LEAD_FILTER);
 
   if (runId) query = query.eq("run_id", runId);
   if (nicheId) query = query.eq("niche_id", nicheId);
