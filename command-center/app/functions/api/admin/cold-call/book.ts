@@ -46,6 +46,14 @@ interface Body {
   businessName?: unknown;
   phone?: unknown;
   email?: unknown;
+  // The IANA zone the time was agreed in, from the picker on the booking panel.
+  //
+  // This is not decoration. It becomes the contact's timezone in GoHighLevel,
+  // and a GHL contact with no timezone falls back to the LOCATION's, which is
+  // America/New_York. So a call where noon Pacific was agreed went out to the
+  // prospect in writing as three in the afternoon: the appointment was at the
+  // right instant, and the automation named a clock that was not theirs.
+  timezone?: unknown;
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}T/;
@@ -67,12 +75,38 @@ interface LeadRow {
 // Create or update the prospect as a contact on the agency account. GHL's
 // upsert matches on phone/email within the location, so re-booking the same
 // person does not litter the CRM with duplicates.
+// A zone we are willing to send onward, or null.
+//
+// Checked rather than trusted because it is written onto a real person's CRM
+// record and every reminder they get is rendered against it. A junk value would
+// not error anywhere: GoHighLevel would take it, and the fallback it silently
+// used instead would be the location's zone, which is the bug this fixes.
+export function cleanBookingZone(value: unknown): string | null {
+  const zone = typeof value === "string" ? value.trim() : "";
+  if (!zone) return null;
+  // A region/city name, and nothing else. Intl ALSO accepts the old
+  // abbreviations, and they are a trap worth naming: in the IANA database "PST"
+  // is a fixed UTC-8 with no daylight saving, so from March to November a
+  // contact filed under it is told an hour that is sixty minutes out. Same for
+  // EST. The picker only ever produces America/..., so requiring the slash costs
+  // nothing and closes the one shape of this bug that would look like a fix.
+  if (!zone.includes("/")) return null;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: zone });
+    return zone;
+  } catch {
+    return null;
+  }
+}
+
 async function upsertContact(
   gctx: { locationId: string; token: string },
   // The merge of what is stored and what the caller typed. Passed in rather than
   // read off the lead row, so the contact GoHighLevel gets is the person actually
   // on the call and not the thin scraped record underneath them.
   contact: CleanContact,
+  // The clock the meeting was agreed on, or null when nothing usable was sent.
+  timezone: string | null,
 ): Promise<{ ok: true; contactId: string } | { ok: false; status: number; body: string }> {
   const payload: Record<string, unknown> = {
     locationId: gctx.locationId,
@@ -92,6 +126,10 @@ async function upsertContact(
   // have one: sending "" would blank a company name already corrected in
   // GoHighLevel, which is where Jake works the board.
   if (contact.businessName) payload.companyName = contact.businessName;
+  // The whole point of the field. Only when we have one: sending "" would clear
+  // a timezone already correct in GoHighLevel and put the contact back on the
+  // location's clock, which is exactly the state being fixed.
+  if (timezone) payload.timezone = timezone;
 
   const res = await ghlFetch(gctx, "/contacts/upsert", {
     method: "POST",
@@ -217,7 +255,13 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     return Response.json({ error: resolved.error }, { status: 422 });
   }
 
-  const contact = await upsertContact(gctx, resolved.contact);
+  // The clock the caller agreed the time on, falling back to whatever is already
+  // stored against the prospect. Never the agency's: naming our own zone at
+  // somebody three timezones away is the failure being fixed, and no timezone at
+  // all leaves GoHighLevel's own fallback in place rather than asserting a wrong
+  // one.
+  const bookingZone = cleanBookingZone(body.timezone) ?? cleanBookingZone(lead.timezone);
+  const contact = await upsertContact(gctx, resolved.contact, bookingZone);
   if (!contact.ok) {
     console.error("[cold-call/book] contact upsert failed", contact.status, contact.body);
     return Response.json({ error: "could not create the contact" }, { status: 502 });
@@ -285,6 +329,11 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       }),
       ...(resolved.changed.phone !== undefined && { phone: resolved.changed.phone }),
       ...(resolved.changed.email !== undefined && { email: resolved.changed.email }),
+      // The clock the caller committed to, written back onto the book. Picking a
+      // zone on the booking panel is a person saying where this prospect is, and
+      // that beats the area-code inference the call card falls back to: 208 is
+      // filed as Mountain and northern Idaho is Pacific.
+      ...(bookingZone && bookingZone !== lead.timezone && { timezone: bookingZone }),
     })
     .eq("id", leadId)
     .select("id")
@@ -323,7 +372,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       business_name: resolved.contact.businessName,
       phone: resolved.contact.phone,
       email: resolved.contact.email,
-      timezone: lead.timezone ?? "",
+      // The clock the meeting was agreed on, which is now what the prospect has
+      // been told in writing. Stored so the meetings page reads the same hour
+      // the confirmation did.
+      timezone: bookingZone ?? lead.timezone ?? "",
       source: lead.source ?? "Cold call",
       scheduled_at: startTime,
       appointment_status: "confirmed",

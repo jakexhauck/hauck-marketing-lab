@@ -169,13 +169,33 @@ export interface ZoneOption {
 // An agency zone the list does not carry (the env var can hold any IANA name)
 // is added at the top rather than silently dropped, or the default itself would
 // be unselectable.
+// The zones the booking panel offers, and the ONLY three Jake works lists in.
+//
+// Cut down from the ten a single lead's zone can be corrected to (ZONE_CHOICES),
+// because this picker is no longer only about what Jake reads. The zone chosen
+// here is the zone the prospect is TOLD, and is now sent to GoHighLevel as the
+// contact's own timezone, so every reminder renders on their clock instead of
+// the agency's. A list of ten to pick a clock from is ten chances to pick the
+// wrong one.
+export const BOOKING_ZONES = ["America/New_York", "America/Chicago", "America/Los_Angeles"];
+
 export function bookingZoneOptions(
   agencyZone: string,
   prospectZone: string | null,
 ): ZoneOption[] {
-  const base = ZONE_CHOICES.map((c) => ({ zone: c.zone, label: c.label }));
+  const base = ZONE_CHOICES.filter((c) => BOOKING_ZONES.includes(c.zone)).map((c) => ({
+    zone: c.zone,
+    label: c.label,
+  }));
   if (agencyZone && !base.some((o) => o.zone === agencyZone)) {
     base.unshift({ zone: agencyZone, label: zoneLabel(agencyZone) });
+  }
+  // A prospect outside the three is still offered, and only then. Dropping them
+  // to keep the list at three would be the bug this picker now causes rather
+  // than prevents: a Mountain prospect booked under Central is told an hour that
+  // is not theirs, in writing, by an automation.
+  if (prospectZone && !base.some((o) => o.zone === prospectZone)) {
+    base.push({ zone: prospectZone, label: zoneLabel(prospectZone) });
   }
 
   return base.map((o) => {
@@ -186,4 +206,18 @@ export function bookingZoneOptions(
     if (theirs) return { ...o, label: `${o.label} (theirs)` };
     return o;
   });
+}
+
+// Which clock the panel opens on.
+//
+// The prospect's, whenever one can be worked out, because that is the clock the
+// time gets said out loud on: "twelve o'clock your time". It used to open on the
+// agency's, which meant the common case (never touching the picker) sent Eastern
+// to GoHighLevel for a prospect three timezones away.
+//
+// Falls back to the agency's zone, which is the honest default when nothing is
+// known about where the prospect is: a wrong guess in writing is worse than
+// naming our own clock.
+export function defaultBookingZone(agencyZone: string, prospectZone: string | null): string {
+  return prospectZone || agencyZone;
 }

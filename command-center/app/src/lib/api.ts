@@ -1732,6 +1732,11 @@ export async function bookColdCall(input: {
   businessName?: string;
   phone?: string;
   email?: string;
+  // The IANA zone the time was agreed in, from the picker on the booking panel.
+  // It becomes the contact's timezone in GoHighLevel, which is what every
+  // reminder renders against, so it decides what the prospect is TOLD rather
+  // than only what Jake reads.
+  timezone?: string;
 }): Promise<ColdCallBookResult> {
   return api("/api/admin/cold-call/book", {
     method: "POST",

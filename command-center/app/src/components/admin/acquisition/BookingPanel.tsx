@@ -9,6 +9,7 @@ import {
 } from "../../../hooks/useColdCall";
 import {
   bookingZoneOptions,
+  defaultBookingZone,
   buildBookingWeeks,
   cursorForIso,
   dayKeyInZone,
@@ -145,7 +146,11 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
   const [zone, setZone] = useState("");
   const agencyZone = slots.data?.timezone ?? "";
   const prospectZone = useMemo(() => zoneForLead(lead)?.zone ?? null, [lead]);
-  const shownZone = zone || agencyZone;
+  // The prospect's clock when one can be worked out, not the agency's. The zone
+  // on screen is now the zone GoHighLevel is told the contact is in, so the
+  // common case, never touching the picker, must not name our own clock at
+  // somebody three timezones away.
+  const shownZone = zone || defaultBookingZone(agencyZone, prospectZone);
   // False until the slots land (the agency zone comes back with them), and for
   // any zone this browser does not know. Both fall back to the machine's own
   // clock rather than throwing inside a formatter mid-render.
@@ -247,6 +252,12 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
         businessName,
         phone,
         email,
+        // The clock this time was agreed on. Sent because it decides what the
+        // prospect is TOLD: it becomes the contact's timezone in GoHighLevel,
+        // which is what every reminder and confirmation renders against. Without
+        // it GHL falls back to the location's zone, so a time agreed as noon in
+        // California went out in writing as three in the afternoon.
+        timezone: shownZone,
       });
       onBooked(res.appointmentDate);
     } catch (err) {

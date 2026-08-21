@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  BOOKING_ZONES,
   bookingZoneOptions,
+  defaultBookingZone,
   buildBookingWeeks,
   cursorForIso,
   dayKeyInZone,
@@ -189,7 +191,28 @@ describe("bookingZoneOptions", () => {
     expect(opts.find((o) => o.zone === "America/New_York")?.label).toBe("Eastern (yours)");
     expect(opts.find((o) => o.zone === "America/Los_Angeles")?.label).toBe("Pacific (theirs)");
     // Everything else reads as the plain list it came from.
-    expect(opts.find((o) => o.zone === "America/Denver")?.label).toBe("Mountain");
+    expect(opts.find((o) => o.zone === "America/Chicago")?.label).toBe("Central");
+  });
+
+  // Jake works three zones. The picker sets what the prospect is TOLD now, so
+  // every extra option is another chance to name the wrong clock in writing.
+  it("offers the three zones and nothing else", () => {
+    const opts = bookingZoneOptions("America/New_York", null);
+    expect(opts.map((o) => o.zone)).toEqual(BOOKING_ZONES);
+  });
+
+  // The exception, and the reason it exists: a 208 number is Mountain. Dropping
+  // it to keep the list at three would book that prospect under Central and tell
+  // them an hour that is not theirs.
+  it("still offers a prospect who is outside the three", () => {
+    const opts = bookingZoneOptions("America/New_York", "America/Denver");
+    expect(opts.map((o) => o.zone)).toContain("America/Denver");
+    expect(opts.find((o) => o.zone === "America/Denver")?.label).toBe("Mountain (theirs)");
+  });
+
+  it("does not list a prospect twice when they are already in the three", () => {
+    const opts = bookingZoneOptions("America/New_York", "America/Los_Angeles");
+    expect(opts.filter((o) => o.zone === "America/Los_Angeles")).toHaveLength(1);
   });
 
   it("says so once when the prospect is on the agency's own clock", () => {
@@ -208,5 +231,22 @@ describe("bookingZoneOptions", () => {
   it("adds an agency zone the list does not carry", () => {
     const opts = bookingZoneOptions("Europe/London", null);
     expect(opts[0]).toEqual({ zone: "Europe/London", label: "Europe/London (yours)" });
+  });
+});
+
+describe("defaultBookingZone", () => {
+  // The bug this fixes: the panel opened on the agency's clock, so a booking
+  // made without touching the picker sent Eastern to GoHighLevel for a prospect
+  // three timezones away, and the automation named 3pm to somebody whose own
+  // clock said 12.
+  it("opens on the prospect's clock", () => {
+    expect(defaultBookingZone("America/New_York", "America/Los_Angeles")).toBe(
+      "America/Los_Angeles",
+    );
+  });
+
+  it("falls back to the agency's when nothing is known about the prospect", () => {
+    expect(defaultBookingZone("America/New_York", null)).toBe("America/New_York");
+    expect(defaultBookingZone("America/New_York", "")).toBe("America/New_York");
   });
 });

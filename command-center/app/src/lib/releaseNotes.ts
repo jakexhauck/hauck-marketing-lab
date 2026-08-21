@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-21-booking-timezone",
+    date: "21 August 2026",
+    title: "A booking is confirmed in the prospect's timezone",
+    items: [
+      "The timezone you pick when booking is now the timezone the prospect is told. It goes to GoHighLevel as the contact's own zone, so the confirmation and every reminder read on their clock.",
+      "This was wrong before. GoHighLevel was never given a timezone for these contacts, so it fell back to the account's, which is Eastern. A meeting agreed as noon in California went out in writing as three in the afternoon. The appointment itself was always at the right moment; only the hour named in the message was wrong.",
+      "The picker opens on the prospect's own clock rather than yours, so a booking made without touching it is right by default.",
+      "The picker is down to Eastern, Central and Pacific. A prospect outside those three is still offered their own zone, marked (theirs), so they can be told the correct hour.",
+      "Picking a zone while booking also corrects it on the lead, so the clock on the call card agrees with what the prospect was sent.",
+    ],
+  },
+  {
     id: "2026-08-21-leads-timezone-filter",
     date: "21 August 2026",
     title: "Leads can be filtered to one timezone",
