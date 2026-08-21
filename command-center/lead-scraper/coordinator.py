@@ -40,6 +40,23 @@ BATCH = 40                    # queue rows per metro batch (the SOP's number)
 BLOCK_THRESHOLD = 0.20        # failure_rate above this = Google is pushing back
 BAD_METROS_BEFORE_PAUSE = 3
 
+# The off switch. `data/.stop` present means no run scrapes anything, whoever
+# starts it and however it is started. Checked at the top of a job AND before
+# every batch, because the thing that needed stopping was a run already going,
+# relaunched by a background task whose owner was not at the keyboard. Killing
+# the process only worked until something typed the command again.
+#
+# Delete the file to scrape again. Nothing else about a run changes: the queue
+# on disk still holds every done row, so a stopped run resumes where it stood.
+STOP_FILE = DATA / ".stop"
+
+
+def stopped():
+    """Why the scraper is off, or None. The reason is whatever is in the file."""
+    if not STOP_FILE.exists():
+        return None
+    return STOP_FILE.read_text(encoding="utf-8", errors="replace").strip() or "stopped by hand"
+
 
 class Progress:
     """Running totals, pushed to scrape_runs so the page's bar means something."""
@@ -55,6 +72,7 @@ class Progress:
         self.excluded = 0
         self.failure_rate = 0.0
         self.blocked = False
+        self.stopped = False   # the walk ended on data/.stop, not on an empty queue
 
     def as_patch(self, **extra):
         pass_rate = round(self.kept / self.raw, 3) if self.raw else 0.0
@@ -110,6 +128,12 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
             queue_path.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
 
     while True:
+        why = stopped()
+        if why:
+            print(f"stopping: {why}")
+            prog.stopped = True
+            save()
+            break
         pending = [r for r in rows if r["status"] == "pending"]
         if not pending:
             break
@@ -184,9 +208,36 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
     return prog
 
 
+def release_to_queue(run_id, why, **counts):
+    """Put a claimed run back on the queue rather than abandoning it at 'running'.
+
+    Everything a run needs to resume is on disk (queue_<id>.jsonl keeps every row
+    that finished), so 'queued' is both honest and useful: the page stops claiming
+    work is in progress, and the next runner picks it up where it stood.
+    """
+    if not run_id:
+        return
+    try:
+        store.update_run(run_id, {"status": "queued", **counts})
+    except Exception as e:   # never let bookkeeping mask the reason we are here
+        print(f"  (could not release run {run_id}: {e})", file=sys.stderr)
+    else:
+        print(f"  run {run_id} returned to the queue ({why})")
+
+
 def run_job(run):
     """Execute one wizard run end to end."""
     run_id = run["id"]
+
+    why = stopped()
+    if why:
+        print(f"scraper is off ({why}). Delete {STOP_FILE} to scrape again.", file=sys.stderr)
+        # The row may already be claimed (--watch stamps 'running' before it gets
+        # here, and a restarted runner re-enters with a claimed row). Returning without
+        # putting it back left it reading 'running' on the page for ever, with no
+        # process anywhere working it. 'queued' is the truth and it resumes.
+        release_to_queue(run_id, "scraper is off")
+        return
 
     # --watch claims the row (which stamps these); --run <id> does not, and a run
     # that is being worked while the page still reads "queued" tells Jake to go and
@@ -236,6 +287,11 @@ def run_job(run):
         store.finish_run(run_id, "failed", error=str(e)[:500])
         raise
 
+    if prog.stopped:
+        release_to_queue(run_id, "stopped mid-run", **prog.as_patch())
+        print(f"stopped. {prog.done}/{prog.total} queries done, back on the queue")
+        return
+
     store.finish_run(run_id, "done", **prog.as_patch())
     print(f"done. raw={prog.raw} kept={prog.kept} new={prog.new} "
           f"in_crm_skipped={prog.in_crm} pass_rate={prog.as_patch()['pass_rate']}")
@@ -245,6 +301,10 @@ def run_job(run):
 def watch(interval=10):
     print(f"watching for queued runs every {interval}s (ctrl-c to stop)")
     while True:
+        why = stopped()
+        if why:
+            print(f"scraper is off ({why}). Delete {STOP_FILE} to scrape again.", file=sys.stderr)
+            return
         try:
             run = store.claim_next_run()
         except Exception as e:
@@ -262,6 +322,9 @@ def watch(interval=10):
 
 def local():
     """The SOP's standalone mode: data/queue.jsonl over data/metros.json."""
+    why = stopped()
+    if why:
+        sys.exit(f"scraper is off ({why}). Delete {STOP_FILE} to scrape again.")
     path = build_queue.QUEUE
     if not path.exists():
         total, added = build_queue.merge_into_queue(build_queue.build_rows())

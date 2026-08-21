@@ -30,6 +30,29 @@ finds one and tells you loudly if it does not.
 job up. Runs are claimed atomically, so the Mac and the PC can both watch without
 doing the same work twice.
 
+`data/.stop` is the off switch. While that file exists no run scrapes anything,
+whoever starts it and however. What is in the file is the reason, printed on refusal.
+Delete it to scrape again; a stopped run resumes from the queue exactly where it stood.
+
+Getting numbers out:
+
+    python export_sms.py --niche windows_doors --dry-run   # see the batch, stamp nothing
+    python export_sms.py --niche windows_doors             # write it and stamp it
+
+**A trade has to be named.** The table holds every trade this has ever hunted,
+including retired ones, and an unscoped export mixes them: in August 2026 the
+best-scoring pending rows were HVAC, a trade dropped months earlier, sitting above
+the windows leads in the same CSV. `--all-niches` still exists and has to be typed.
+
+After any change to a word list or to the scoring, bring the stored rows up to date:
+
+    python regrade.py --dry-run     # what would change
+    python regrade.py               # do it, after writing data/regrade_undo.json
+
+Regrade never deletes. A row that now fails is stamped through `send_status` so it
+leaves the export pool while staying on the page, and a row that has already been
+queued or sent is never touched, because re-grading does not rewrite history.
+
 ## The pieces
 
 | File | What it is |
@@ -43,7 +66,8 @@ doing the same work twice.
 | `suppress.py` | Permanent, file-backed exclusion. |
 | `linetype.py` | Mobile or landline per NPA-NXX, from NANPA's free block data. |
 | `backfill_line_type.py` | Stamps `line_type` on leads scraped before the column existed. |
-| `export_sms.py` | Score-qualified CSV batches, best first. |
+| `export_sms.py` | Score-qualified CSV batches, best first, one trade at a time. |
+| `regrade.py` | Re-scores stored leads through the current rubric. |
 | `coordinator.py` | Walks the queue, backs off when throttled, reports progress. |
 | `store.py` | The run queue and the CRM phone snapshot. Never touches leads. |
 
@@ -57,6 +81,20 @@ at 30, a real review footprint 15, a good rating 10, a live website 10, and an
 operator with no website and no reviews loses 15. Only rows at or above 50 export.
 The numbers are set so a bare category match with nothing else cannot reach 50,
 which forces at least one independent signal before anything can be contacted.
+
+Then two gates that ask the opposite question, because a deny list can only name what
+somebody already thought of:
+
+* **To be kept at all**, a row needs a niche signal: a core category, or a trade word
+  in the name. Weak words ("home", "services", "pro") are noise every trade shares and
+  never qualify anything on their own. Without this, a dentist with a website and a
+  4.8 rating scored 35 and was stored, because nothing in any list says "dentist".
+* **To be exported**, a row needs a core category. Google has to call them the trade;
+  their own signage is not enough. Reviews, rating and website are worth 35 to any
+  business alive, so a single trade word in a name used to be worth exactly the 15
+  that tipped it over 50. That is how window tinting shops reached a windows list.
+
+Both were found on 2026-08-20, which is what `data/.stop` was about.
 
 ## The niches
 

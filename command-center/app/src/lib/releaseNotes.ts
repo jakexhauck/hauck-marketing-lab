@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-20-qualifier-requires-the-trade",
+    date: "20 August 2026",
+    title: "Leads has to look like the trade, not merely avoid looking wrong",
+    items: [
+      "The qualifier used to work by rejection alone: it knew a long list of businesses to throw away, and kept anything that list did not happen to mention. That is why dentists, opticians, a jeweller and a self-storage yard were sitting in Leads. A business now has to show a sign of the trade before it is kept at all.",
+      "To reach a calling list, the trade has to be what the business is listed AS, not just a word in its name. A window tinting shop and a stained glass studio were both reaching windows lists on the strength of the word in their sign.",
+      "74 leads that no longer qualify have been taken out of the sending pool. They are still on the page and still searchable; they simply cannot be put on a list. Nothing already sent or queued was touched.",
+      "Downloading a CSV now asks which trade you want. The list holds every trade ever scraped, including ones no longer worked, and a download that did not ask was quietly mixing them together.",
+      "A run that gets stopped part way now reads queued instead of sitting on running for ever, and picks up where it left off when a runner is started again.",
+    ],
+  },
+  {
     id: "2026-08-20-import-leads-page",
     date: "20 August 2026",
     title: "Import leads: one place for lists from other scrapers",

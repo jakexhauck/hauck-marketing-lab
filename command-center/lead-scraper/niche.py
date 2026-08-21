@@ -3,6 +3,19 @@ category, off-niche primaries, franchise-scale review counts, toll-free) are che
 first; survivors are scored; EXPORT_THRESHOLD gates the exporter. A bare category
 match can never reach the threshold by construction.
 
+Rejecting is only half of it. A deny list can only name what it has already thought
+of, so on 2026-08-20 the table was filling with dentists, opticians and self-storage:
+businesses no list happens to mention, carried in by the three signals every living
+Google listing has. Two gates at the end of classify() ask the opposite question, and
+they are deliberately separate:
+
+    kept     needs a niche signal   - a core category OR a trade word in the name
+    exported needs a core category  - GOOGLE has to call them the trade, not just
+                                      their own signage
+
+That is why "Faso Window Tinting" is stored and never texted: it carries the word
+window, and Google calls it a window tinting service, which is not a window.
+
 This is the SOP's niche.py with one change, and only one: the word lists are loaded
 from a niche definition in niches/ instead of being hardcoded at module level, so a
 new niche is data rather than code. The machine below (deny order, the name-and-every-
@@ -291,6 +304,28 @@ def classify(
     if certified:
         score += 20
         flags.append("certified_directory")
+
+    # --- THE NICHE SIGNAL GATE ---
+    # Everything above this line only ever REJECTED. Nothing asked the row to look
+    # like the trade, so on 2026-08-20 the table was filling with dentists, welders
+    # and self-storage: businesses no deny list happens to name, carried in by the
+    # three signals every living Google listing has (a review count, a rating and a
+    # website, worth 35 together). Two rules close it, and they are deliberately
+    # separate, because "worth storing" and "worth texting" are different questions.
+    core_matched = bool(core_primary or core_secondary)
+
+    # 1. To be KEPT at all, something has to say the trade: a core category, or a
+    #    trade word in the name. Weak words ("home", "services", "pro") are noise
+    #    every trade shares and can never carry a row on their own.
+    if not core_matched and not sigs:
+        return 0, flags + ["no_niche_signal"], "drop"
+
+    # 2. To be EXPORTED, GOOGLE has to say the trade. A name word is confidence, not
+    #    evidence: "Faso Window Tinting" and "Lowell's Stained Glass Studio" both
+    #    carry the word window or glass and neither one fits a window. Their rows are
+    #    still stored and still enriched; they simply cannot reach a list.
+    if score >= n.export_threshold and not core_matched:
+        return score, flags + ["no_core_category"], "low"
 
     verdict = "pass" if score >= n.export_threshold else "low"
     return score, flags, verdict

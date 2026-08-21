@@ -220,3 +220,86 @@ class TheFloorIsProvenByConstruction(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# --- The 2026-08-20 stop ------------------------------------------------------
+# `data/.stop`: "the qualifier keeps off-niche businesses (dentists, chiropractors,
+# water damage) because it only rejects, it never requires a niche signal."
+#
+# Two separate holes, so two separate sets of cases.
+
+# Nothing in a deny list covers these, and nothing about them says our trade.
+# Before the fix they scored 35-40 and were STORED, filling the table with
+# businesses nobody would ever text about a window.
+OFF_NICHE_NO_SIGNAL = [
+    ("Smith Family Dental", "dentist"),
+    ("Advanced Chiropractic Center", "chiropractor"),
+    ("Eastside Handyman Services", "handyman"),
+    ("A&I's Painting Services Co.", "painter"),
+    ("Premier Storage", "self-storage facility"),
+    ("Rosario Sound Welding", "welder"),
+    ("Toolbox Dispatch", "handyman"),
+]
+
+# A niche WORD in the name is not the trade. Reviews + rating + website are worth
+# 35 to any business alive on Google, so a single name word used to tip anything
+# over 50. Google never calls these our trade in any category.
+NAME_WORD_BUT_WRONG_TRADE = [
+    ("Faso Window Tinting", "window tinting service", ("window tinting service",)),
+    ("Envizion Window Tint", "window tinting service", ("window tinting service",)),
+    ("Enhanced Glass Window Film", "window tinting service", ("window tinting service",)),
+    ("Lowell's Stained Glass Studio", "stained glass studio", ("stained glass studio",)),
+]
+
+
+class ANicheSignalIsRequired(unittest.TestCase):
+    """A row has to look like the trade before it is kept at all."""
+
+    def test_off_niche_with_no_signal_is_dropped_not_stored(self):
+        for name, primary in OFF_NICHE_NO_SIGNAL:
+            with self.subTest(business=name):
+                score, flags, verdict = score_of(name, primary)
+                self.assertEqual(
+                    verdict, "drop",
+                    f"{name} was kept with {score}: {flags}",
+                )
+
+    def test_weak_words_alone_are_not_a_niche_signal(self):
+        # "home", "services", "pro", "solutions" are noise every trade shares.
+        _, flags, verdict = score_of("Elite Home Services", "handyman")
+        self.assertEqual(verdict, "drop", f"weak words qualified a handyman: {flags}")
+
+    def test_a_real_operator_is_still_kept(self):
+        # The rule must not cost us anybody Google actually calls our trade.
+        _, flags, verdict = score_of("Kitsap Windows", "window installation service",
+                                     niche=niche.load_niche("windows_doors"))
+        self.assertNotEqual(verdict, "drop", f"a real window installer was dropped: {flags}")
+
+
+class OnlyTheTradeExports(unittest.TestCase):
+    """Name words add confidence. They never create it."""
+
+    def test_a_name_word_alone_cannot_reach_the_export_gate(self):
+        wd = niche.load_niche("windows_doors")
+        for name, primary, cats in NAME_WORD_BUT_WRONG_TRADE:
+            with self.subTest(business=name):
+                score, flags, verdict = score_of(name, primary, cats, niche=wd)
+                self.assertNotEqual(
+                    verdict, "pass",
+                    f"{name} exported with {score}: {flags}",
+                )
+
+    def test_water_damage_restoration_does_not_export(self):
+        for name, primary in [("ServiceMaster Water Damage Restoration",
+                               "water damage restoration service"),
+                              ("Rapid Restoration Pros", "fire damage restoration service")]:
+            with self.subTest(business=name):
+                score, flags, verdict = score_of(name, primary)
+                self.assertNotEqual(verdict, "pass", f"{name} exported with {score}: {flags}")
+
+    def test_a_secondary_category_still_counts_as_the_trade(self):
+        # Google's primary is Deck builder, but it also lists our work. Still ours.
+        wd = niche.load_niche("windows_doors")
+        _, flags, verdict = score_of("Heartwood Home Exteriors", "deck builder",
+                                     ("deck builder", "window installation service"), niche=wd)
+        self.assertEqual(verdict, "pass", f"a secondary core match failed to export: {flags}")
