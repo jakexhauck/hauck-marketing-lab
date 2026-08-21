@@ -56,7 +56,7 @@ export const RELEASES: Release[] = [
     date: "21 August 2026",
     title: "A scrape run now says how many leads can actually be rung",
     items: [
-      "Leads history has a Can send column, and the line under a run's status now reads what can be rung today rather than what was kept. A run that stored 120 businesses out of 500 read as a 24% run; 15 of those 500 could actually be put on a phone. Two of every three qualified businesses are landlines, so the old number read about three times better than the run really was.",
+      "A run now says how many leads are left to call, in place of how many it kept. Kept counted writes, not businesses: one company found by three of the ten search terms was counted three times, so a run reading 78 kept had put 40 businesses in the table, 16 of them callable. The number beside a run is now counted the same way the list is, so it always matches what you see when you click into it.",
       "Somebody asking not to be contacted is now one command instead of a hand edit of a text file. The number is refused by the CSV download and by both send buttons, it leaves Leads, and it stays refused even if it has already been sent.",
       "A lead ticked but refused for being on that list now says so, instead of claiming it had already been sent.",
       "Leads found through the directory top-up, when a city comes back thin, had no phone type recorded and so could never be sent to anything. They are now checked the same way as everything else.",

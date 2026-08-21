@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { readJsonBody } from "../../../lib/body";
 import { getServiceClient } from "../../../lib/supabase";
+import { CALLABLE_LEAD_FILTER } from "../../../lib/leadScraper";
 import { logAdminAction } from "../../../lib/adminAuth";
 import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../lib/agencyGhl";
 import { fetchAllContacts } from "../../../lib/ghl";
@@ -57,8 +58,42 @@ interface RunRow {
   finished_at: string | null;
 }
 
-export function shapeRun(row: RunRow) {
+// How many of a run's leads are still there to ring, counted from the leads table
+// against CALLABLE_LEAD_FILTER rather than from the run's own tallies.
+//
+// The run counts WRITES: one company found by three of the ten keywords is counted
+// three times, so a run reporting 78 kept had put 40 businesses in the table, 16 of
+// them callable. Whatever number sits next to a run has to be the number of rows
+// you get when you click into it, or the screen is promising work that is not there.
+//
+// One query for the whole page of runs, not one per run.
+export async function callableByRun(
+  client: ReturnType<typeof getServiceClient>,
+  runIds: string[],
+): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  if (!client || runIds.length === 0) return out;
+  const { data, error } = await client
+    .from("cold_sms_outreach_numbers")
+    .select("run_id")
+    .match(CALLABLE_LEAD_FILTER)
+    .in("run_id", runIds)
+    .limit(20000);
+  if (error) {
+    // A count that cannot be read is reported as absent, never as zero: "0 to call"
+    // on a run that has fifty is worse than a blank.
+    console.error("[leads/runs] callable count failed", error.message);
+    return out;
+  }
+  for (const row of (data ?? []) as { run_id: string | null }[]) {
+    if (row.run_id) out[row.run_id] = (out[row.run_id] ?? 0) + 1;
+  }
+  return out;
+}
+
+export function shapeRun(row: RunRow, callable?: number) {
   return {
+    callable: callable ?? null,
     id: row.id,
     nicheId: row.niche_id,
     nicheLabel: row.niche_label ?? row.niche_id,
@@ -115,7 +150,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     return Response.json({ error: "could not read the run history" }, { status: 500 });
   }
 
-  return Response.json({ runs: ((data ?? []) as RunRow[]).map(shapeRun) });
+  const rows = (data ?? []) as RunRow[];
+  const callable = await callableByRun(client, rows.map((r) => r.id));
+  return Response.json({ runs: rows.map((r) => shapeRun(r, callable[r.id] ?? 0)) });
 };
 
 interface PostBody {

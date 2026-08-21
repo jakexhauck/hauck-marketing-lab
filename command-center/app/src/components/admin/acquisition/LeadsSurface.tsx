@@ -209,7 +209,7 @@ function RunBanner({ run }: { run: ScrapeRun }) {
       {run.status === "running" && run.rawFound > 0 && (
         <div className="ls-banner-stats">
           <span><b>{run.rawFound}</b> found</span>
-          <span><b>{run.kept}</b> kept</span>
+          <span><b>{run.callable ?? 0}</b> to call</span>
           <span><b>{run.added}</b> added</span>
           {run.hiddenAsDuplicates > 0 && <span><b>{run.hiddenAsDuplicates}</b> already in the CRM</span>}
         </div>
@@ -803,13 +803,13 @@ function RunHistory({ runs, loading }: { runs: ScrapeRun[]; loading: boolean }) 
         <table>
           <thead>
             <tr>
-              <th>When</th><th>Niche</th><th>Where</th><th>Found</th><th>Kept</th><th>Can send</th><th>Added</th><th>Sent</th><th>Status</th>
+              <th>When</th><th>Niche</th><th>Where</th><th>Found</th><th>To call</th><th>Added</th><th>Sent</th><th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={9} className="ls-empty">Loading...</td></tr>}
+            {loading && <tr><td colSpan={8} className="ls-empty">Loading...</td></tr>}
             {!loading && runs.length === 0 && (
-              <tr><td colSpan={9} className="ls-empty">No runs yet.</td></tr>
+              <tr><td colSpan={8} className="ls-empty">No runs yet.</td></tr>
             )}
             {runs.map((r) => (
               <tr key={r.id}>
@@ -817,8 +817,7 @@ function RunHistory({ runs, loading }: { runs: ScrapeRun[]; loading: boolean }) 
                 <td>{r.nicheLabel}</td>
                 <td className="ls-dim">{r.states.length > 0 ? r.states.join(", ") : `${r.cities.length} cities`}</td>
                 <td>{r.rawFound || "-"}</td>
-                <td>{r.kept || "-"}</td>
-                <td>{r.sendable || "-"}</td>
+                <td>{r.callable || "-"}</td>
                 <td>{r.added || "-"}</td>
                 <td>{r.sent || "-"}</td>
                 <td>
