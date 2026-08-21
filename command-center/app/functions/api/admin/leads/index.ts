@@ -7,6 +7,7 @@ import {
   type ScrapedLead,
 } from "../../../lib/leadScraper";
 import { IMPORT_SOURCE } from "./import";
+import { areaCodesForZone, isCallZone } from "../../../lib/leadZones";
 
 // GET /api/admin/leads -> the scraped leads table, best score first.
 //
@@ -99,6 +100,12 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const sent = url.searchParams.get("sent"); // "1" sent, "0" not yet, absent = both
   const imported = url.searchParams.get("imported"); // "1" CSV, "0" scraped, absent = both
   const search = (url.searchParams.get("q") ?? "").trim();
+  // An IANA zone, or absent for every timezone. Checked against the four the
+  // filter offers rather than taken as given: this becomes an IN list built from
+  // a map, and an unknown zone would silently build an empty one, which reads on
+  // screen as "there are no leads" rather than as "that is not a zone".
+  const zoneParam = url.searchParams.get("zone");
+  const zone = isCallZone(zoneParam) ? (zoneParam as string) : null;
   const limit = Math.min(Number(url.searchParams.get("limit") ?? 200) || 200, PAGE_MAX);
   const offset = Math.max(Number(url.searchParams.get("offset") ?? 0) || 0, 0);
 
@@ -137,6 +144,11 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     // corrects itself the moment the row does.
     query = query.not("business_name", "is", null).neq("business_name", "");
   }
+  // The timezone the number is in, matched on the generated area_code column
+  // (0118). Done here rather than in the browser because the browser only ever
+  // holds one page of the list: filtering there would drop the tail and report a
+  // total that did not match what it had filtered.
+  if (zone) query = query.in("area_code", areaCodesForZone(zone));
   if (search) {
     const safe = search.replace(/[,()*]/g, " ").trim();
     if (safe) query = query.or(`business_name.ilike.%${safe}%,city.ilike.%${safe}%`);

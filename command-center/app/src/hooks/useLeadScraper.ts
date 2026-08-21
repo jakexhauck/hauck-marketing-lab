@@ -40,6 +40,10 @@ export interface LeadFilters {
   // and the same components, told apart by this and nothing else.
   imported?: "0" | "1" | null;
   q?: string;
+  // An IANA zone from CALL_ZONES, or absent for every timezone. Filtered on the
+  // server (0118), not here: the browser holds one page of the list, so a zone
+  // picked in it would filter the page rather than the list.
+  zone?: string | null;
   // How many rows to ask for. Absent means the server's default of 200, which is
   // what the table opens with; the footer raises it when there are more.
   limit?: number;
@@ -59,6 +63,7 @@ function leadsPath(filters: LeadFilters): string {
   if (filters.sent) params.set("sent", filters.sent);
   if (filters.imported) params.set("imported", filters.imported);
   if (filters.q?.trim()) params.set("q", filters.q.trim());
+  if (filters.zone) params.set("zone", filters.zone);
   if (filters.limit) params.set("limit", String(filters.limit));
   const qs = params.toString();
   return `/api/admin/leads${qs ? `?${qs}` : ""}`;

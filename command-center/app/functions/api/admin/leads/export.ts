@@ -3,6 +3,7 @@ import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
 import { partitionForSend, toCsv } from "../../../lib/leadScraper";
 import { IMPORT_SOURCE } from "./import";
+import { areaCodesForZone, isCallZone } from "../../../lib/leadZones";
 import { toScrapedLead } from "./index";
 
 // POST /api/admin/leads/export -> the SOP's CSV, for anything Jake wants to import
@@ -58,6 +59,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const nicheId = url.searchParams.get("nicheId");
   const dryRun = url.searchParams.get("dryRun") === "1";
   const imported = url.searchParams.get("imported");
+  const zoneParam = url.searchParams.get("zone");
+  const zone = isCallZone(zoneParam) ? (zoneParam as string) : null;
 
   let query = client
     .from("cold_sms_outreach_numbers")
@@ -78,6 +81,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // as sent too.
   if (imported === "1") query = query.eq("source", IMPORT_SOURCE);
   if (imported === "0") query = query.or(`source.is.null,source.neq.${IMPORT_SOURCE}`);
+  // Same reason again: the file has to be the list that was on screen. Without
+  // this, filtering to Pacific and downloading would hand over the whole country
+  // and stamp all of it as sent.
+  if (zone) query = query.in("area_code", areaCodesForZone(zone));
 
   const { data, error } = await query
     .order("icp_score", { ascending: false, nullsFirst: false })

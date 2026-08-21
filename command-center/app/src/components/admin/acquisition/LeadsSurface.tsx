@@ -19,6 +19,7 @@ import { PillarTitleActions } from "../../pillars/PillarKit";
 import CitiesTable from "./CitiesTable";
 import ImportLeadsPanel from "./ImportLeadsPanel";
 import { formatPhoneDashed } from "../../../lib/phone";
+import { CALL_ZONES } from "../../../../functions/lib/leadZones";
 import {
   RUN_SIZES,
   canSend,
@@ -446,9 +447,12 @@ function LeadsTable({
     // Import leads now, so without this it would quietly hand back every scraped
     // lead as well, and stamp them all as sent.
     if (filters.imported) params.set("imported", filters.imported);
+    // Same rule as the niche filter: a file that does not match the list it was
+    // downloaded from stamps rows as sent that were never on screen.
+    if (filters.zone) params.set("zone", filters.zone);
     const qs = params.toString();
     return qs ? `?${qs}` : "";
-  }, [filters.runId, filters.nicheId, filters.imported]);
+  }, [filters.runId, filters.nicheId, filters.imported, filters.zone]);
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -529,6 +533,21 @@ function LeadsTable({
         <select className="ls-select" value={filters.sent ?? ""} onChange={(e) => onFilters({ ...filters, sent: (e.target.value || null) as LeadFilters["sent"] })}>
           <option value="0">Ready to send</option>
           <option value="">Everything</option>
+        </select>
+
+        {/* One list is never one timezone, and the hour where the prospect is
+            decides whether the number can be rung at all. Server-side (0118):
+            the table holds one page, so filtering here would filter the page. */}
+        <select
+          className="ls-select"
+          value={filters.zone ?? ""}
+          aria-label="Timezone"
+          onChange={(e) => onFilters({ ...filters, zone: e.target.value || null })}
+        >
+          <option value="">Every timezone</option>
+          {CALL_ZONES.map((z) => (
+            <option key={z.zone} value={z.zone}>{z.label}</option>
+          ))}
         </select>
 
         {niches.length > 1 && (

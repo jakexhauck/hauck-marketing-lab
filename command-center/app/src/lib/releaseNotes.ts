@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-21-leads-timezone-filter",
+    date: "21 August 2026",
+    title: "Leads can be filtered to one timezone",
+    items: [
+      "Leads has a timezone picker: Eastern, Central, Mountain, Pacific, or every timezone. It reads the area code of each number, the same way the call card works out what time it is where the prospect is.",
+      "Mountain is in the list because 32 of the leads waiting are in it. Without it they would have had no zone to be found under.",
+      "The filter runs against the whole list, not the rows on screen. The table shows 200 at a time out of 215, so a filter done in the browser would have quietly missed the tail and given you a total that did not match it.",
+      "Downloading the CSV while a timezone is picked hands over that timezone only. It marks what it gives you as sent, so a file wider than the screen would have burned leads you never saw.",
+      "A handful of numbers will be an hour out. Several states straddle a zone line, and each area code is filed under the zone most of its territory keeps.",
+    ],
+  },
+  {
     id: "2026-08-21-not-my-niche",
     date: "21 August 2026",
     title: "Not my niche is a button, and it does not count as a dial",
