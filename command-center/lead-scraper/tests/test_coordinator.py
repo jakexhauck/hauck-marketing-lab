@@ -51,6 +51,11 @@ class TheStopFile(unittest.TestCase):
         self.tmp.write_text("because the qualifier was wrong")
         self.assertEqual(coordinator.stopped(), "because the qualifier was wrong")
 
+    def test_a_byte_order_mark_is_not_part_of_the_reason(self):
+        # Notepad and PowerShell both write one, and this file gets made by hand.
+        self.tmp.write_bytes("google is angry".encode("utf-8-sig"))
+        self.assertEqual(coordinator.stopped(), "google is angry")
+
     def test_an_empty_file_still_stops_it(self):
         self.tmp.write_text("   ")
         self.assertEqual(coordinator.stopped(), "stopped by hand")
@@ -156,6 +161,61 @@ class AResumedRunKeepsWhatItAlreadyFound(unittest.TestCase):
     def test_a_local_run_with_no_row_to_read_still_counts_its_queue(self):
         p = coordinator.Progress.resumed(None, self.rows(3, 7), None)
         self.assertEqual((p.done, p.total), (3, 10))
+
+
+class TheWatcherOutlivesTheOffSwitch(unittest.TestCase):
+    """The watcher is a service now: it starts at logon so that pressing Go in the
+    app is the whole job. data/.stop used to make it RETURN, which a service would
+    answer by restarting it, forever. Idling is the honest behaviour: the switch
+    stops scraping, which is what it is for, and stopping is not the same as dying.
+    """
+
+    def setUp(self):
+        self.real_stop = coordinator.STOP_FILE
+        self.real_store = coordinator.store
+        self.real_sleep = coordinator.time.sleep
+        self.store = FakeStore()
+        self.store.claims = 0
+        self.slept = []
+        coordinator.store = self.store
+        coordinator.time.sleep = lambda s: self.slept.append(s)
+        self.tmp = Path(__file__).resolve().parent / "_watch_stop_under_test"
+        coordinator.STOP_FILE = self.tmp
+
+        def claim_next_run():
+            self.store.claims += 1
+            return None
+        self.store.claim_next_run = claim_next_run
+
+    def tearDown(self):
+        coordinator.STOP_FILE = self.real_stop
+        coordinator.store = self.real_store
+        coordinator.time.sleep = self.real_sleep
+        if self.tmp.exists():
+            self.tmp.unlink()
+
+    def test_the_off_switch_stops_it_scraping_without_killing_it(self):
+        self.tmp.write_text("hands off")
+        coordinator.watch(interval=0, polls=3)
+        self.assertEqual(self.store.claims, 0, "asked the database for work while off")
+        self.assertEqual(len(self.slept), 3, "did not keep polling")
+
+    def test_it_polls_for_work_when_the_switch_is_off_the_file(self):
+        coordinator.watch(interval=0, polls=2)
+        self.assertEqual(self.store.claims, 2)
+
+    def test_the_switch_being_dropped_in_mid_watch_is_noticed(self):
+        # Checked every poll, not once at the top: the file is how a run already
+        # going gets stopped, and a service never gets restarted to re-read it.
+        polls = {"n": 0}
+
+        def claim_next_run():
+            polls["n"] += 1
+            self.tmp.write_text("stop now")
+            return None
+        self.store.claim_next_run = claim_next_run
+        coordinator.watch(interval=0, polls=4)
+        self.assertEqual(polls["n"], 1, "kept scraping after the switch was thrown")
 
 
 if __name__ == "__main__":

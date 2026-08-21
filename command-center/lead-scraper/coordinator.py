@@ -57,7 +57,10 @@ def stopped():
     """Why the scraper is off, or None. The reason is whatever is in the file."""
     if not STOP_FILE.exists():
         return None
-    return STOP_FILE.read_text(encoding="utf-8", errors="replace").strip() or "stopped by hand"
+    # utf-8-sig, not utf-8: Notepad and PowerShell's Set-Content both write a byte
+    # order mark, and this file is meant to be created by hand in a hurry. Reading
+    # it as plain utf-8 put a literal ﻿ in front of the reason in the log.
+    return STOP_FILE.read_text(encoding="utf-8-sig", errors="replace").strip() or "stopped by hand"
 
 
 class Progress:
@@ -345,13 +348,31 @@ def run_job(run):
     print(f"table total: {pipeline.table_count()}")
 
 
-def watch(interval=10):
+def watch(interval=10, polls=None):
+    """Poll for queued runs until stopped. `polls` bounds the loop, for tests.
+
+    This is installed as a service (install-watcher.ps1), so that pressing Go in
+    the app is the whole job on Jake's side. That changes what data/.stop has to
+    do: it used to RETURN, and a service answers a process that returned by
+    starting it again, forever. It idles instead. The switch stops SCRAPING,
+    which is what it is for, and stopping is not the same as dying.
+    """
     print(f"watching for queued runs every {interval}s (ctrl-c to stop)")
-    while True:
+    said = None
+    n = 0
+    while polls is None or n < polls:
+        n += 1
         why = stopped()
         if why:
-            print(f"scraper is off ({why}). Delete {STOP_FILE} to scrape again.", file=sys.stderr)
-            return
+            if why != said:  # once per reason, not once per poll: this runs for weeks
+                print(f"scraper is off ({why}). Delete {STOP_FILE} to scrape again.",
+                      file=sys.stderr)
+                said = why
+            time.sleep(interval)
+            continue
+        if said:
+            print("off switch cleared, watching again")
+            said = None
         try:
             run = store.claim_next_run()
         except Exception as e:

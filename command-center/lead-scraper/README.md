@@ -30,6 +30,32 @@ finds one and tells you loudly if it does not.
 job up. Runs are claimed atomically, so the Mac and the PC can both watch without
 doing the same work twice.
 
+## Pressing Go is the whole job
+
+Install the watcher once and the app's Go button is enough:
+
+    .\install-watcher.ps1            install it, start it now
+    .\install-watcher.ps1 -Status    is it up, and what did it last say
+    .\install-watcher.ps1 -Uninstall remove it
+
+It registers a scheduled task that starts `run.ps1 --watch` at logon, restarts it if
+it dies, and appends everything to `logs\watcher.log`. Queue a run from Leads and it
+is claimed within 10 seconds.
+
+The app cannot do this on its own and never will: it is a Cloudflare worker in a
+datacentre and the scraper is a process on your machine. Pressing Go queues a run;
+something local has to be listening. This is that something.
+
+Two traps are already paid for, and both are load-bearing:
+
+  * **The task redirects through `cmd.exe`, not PowerShell.** `run.ps1` sets
+    `$ErrorActionPreference = "Stop"`, and PowerShell 5.1 turns anything a native
+    program writes to stderr into a terminating error when it is the one capturing
+    the stream. The first install died on its own off switch, mid-sentence. One
+    "poll failed" on a dropped connection would have done the same.
+  * **`.stop` idles the watcher, it does not stop the process.** A service that
+    exits is a service the scheduler restarts, forever.
+
 `data/.stop` is the off switch. While that file exists no run scrapes anything,
 whoever starts it and however. What is in the file is the reason, printed on refusal.
 Delete it to scrape again; a stopped run resumes from the queue exactly where it stood.
@@ -83,6 +109,7 @@ is tracked in git on purpose: losing it means texting somebody who already opted
 | `backfill_line_type.py` | Stamps `line_type` on leads scraped before the column existed. |
 | `export_sms.py` | Score-qualified CSV batches, best first, one trade at a time. |
 | `regrade.py` | Re-scores stored leads through the current rubric. |
+| `install-watcher.ps1` | Registers the runner as a logon task, so pressing Go is enough. |
 | `coordinator.py` | Walks the queue, backs off when throttled, reports progress. |
 | `store.py` | The run queue and the CRM phone snapshot. Never touches leads. |
 
