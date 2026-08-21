@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-21-garage-doors-is-a-trade",
+    date: "21 August 2026",
+    title: "Garage door companies can be scraped",
+    items: [
+      "Garage door installation is a trade you can pick in the scrape wizard. These firms install and repair the same doors, so both count.",
+      "They were being thrown away on purpose until now: garage doors sit on the exclusion list every other trade inherits, so that a windows or roofing list never fills up with them. That exclusion still holds everywhere else.",
+      "Counter shops and supply yards are still refused. The firm has to be one Google calls a garage door business, not a shop that sells the parts.",
+    ],
+  },
+  {
     id: "2026-08-21-leads-run-says-what-can-be-rung",
     date: "21 August 2026",
     title: "A scrape run now says how many leads can actually be rung",

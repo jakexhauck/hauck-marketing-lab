@@ -100,6 +100,17 @@ function resolveSpec(spec, seen = []) {
       merged[key] = [...new Set([...base, ...own])];
     }
   }
+  // Inheritance is a union, which is right for every trade but one. A trade that IS
+  // the thing the shared list excludes has to be able to say so: garage doors are
+  // denied by 'garage door' and by 'supplier' precisely so no OTHER trade collects
+  // them. Must match _resolve_spec in lead-scraper/niche.py. Two resolvers that
+  // disagree score the same niche two ways, and only the database's copy is what a
+  // run from the app actually uses.
+  const remove = new Set(spec.deny_remove ?? []);
+  if (remove.size > 0) {
+    merged.deny = (merged.deny ?? []).filter((t) => !remove.has(t));
+  }
+  delete merged.deny_remove;
   delete merged.extends;
   return merged;
 }

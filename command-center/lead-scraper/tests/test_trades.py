@@ -15,6 +15,7 @@ trade into the deny list, which would look sensible and quietly cost the best le
 
 from __future__ import annotations
 
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -24,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import niche  # noqa: E402
 
 TRADES = ("roofing", "remodeling", "siding_windows", "windows_doors",
-          "general_contracting")
+          "general_contracting", "garage_doors")
 
 # The primary category that unambiguously means each trade.
 PRIMARY = {
@@ -33,6 +34,7 @@ PRIMARY = {
     "siding_windows": "siding contractor",
     "windows_doors": "window installation service",
     "general_contracting": "general contractor",
+    "garage_doors": "garage door supplier",
 }
 
 GENEROUS = {"website": "https://example.com", "rating": 4.8, "review_count": 40,
@@ -155,6 +157,84 @@ class TradesKeepTheSharedGuards(unittest.TestCase):
                                           rating=4.8, website="https://x.com",
                                           phone_type="toll_free", niche=n)
                 self.assertEqual(tf, "drop")
+
+
+class GarageDoorsEscapesTheSharedList(unittest.TestCase):
+    """The one trade the shared list was written to throw away.
+
+    'garage door' sits in the shared deny on purpose, so no other trade picks these
+    firms up. And Google files most of them as a garage door SUPPLIER, a word that
+    everywhere else means a counter with a showroom. Both had to be escapable by
+    this trade and by nothing else, which is what deny_remove is for.
+    """
+
+    def setUp(self):
+        self.n = niche.load_niche("garage_doors")
+
+    def test_a_real_installer_reaches_a_list(self):
+        s, flags, verdict = score(self.n, "Precision Garage Door", "garage door supplier")
+        self.assertEqual(verdict, "pass", f"{s} {flags}")
+
+    def test_the_repair_half_of_the_same_business_qualifies_too(self):
+        # These firms install and repair, and Google files them under either.
+        s, flags, verdict = score(self.n, "A1 Overhead Door", "garage door repair service")
+        self.assertEqual(verdict, "pass", f"{s} {flags}")
+
+    def test_a_supply_yard_is_still_refused(self):
+        # 'supplier' is escaped; 'supply', 'store' and 'showroom' are not.
+        for name, primary in (
+            ("Garage Door Supply Co", "garage door supplier"),
+            ("Overhead Door Store", "garage door supplier"),
+            ("Puget Door Showroom", "garage door supplier"),
+        ):
+            with self.subTest(business=name):
+                _, flags, verdict = score(self.n, name, primary)
+                self.assertEqual(verdict, "drop", f"{name} survived: {flags}")
+
+    def test_the_escape_does_not_leak_into_any_other_trade(self):
+        # If this ever fails, every window and roofing list starts filling up with
+        # garage door companies, which is the thing the shared deny prevents.
+        for tid in TRADES:
+            if tid == "garage_doors":
+                continue
+            n = niche.load_niche(tid)
+            with self.subTest(trade=tid):
+                self.assertIn("garage door", n.deny)
+                self.assertIn("supplier", n.deny)
+                _, flags, verdict = score(n, "Precision Garage Door", PRIMARY[tid])
+                self.assertEqual(verdict, "drop", f"{tid} took a garage firm: {flags}")
+
+    def test_it_still_refuses_the_trades_it_is_not(self):
+        for other in ("roofing contractor", "window installation service",
+                      "siding contractor", "general contractor"):
+            with self.subTest(primary=other):
+                _, flags, verdict = score(self.n, "Valley Home Services", other)
+                self.assertEqual(verdict, "drop", f"took a {other}: {flags}")
+
+    def test_the_shared_guards_are_all_still_in_place(self):
+        for name, primary in (("Rapid Response Plumbing", "garage door supplier"),
+                              ("Shield Pest Control", "pest control service")):
+            with self.subTest(business=name):
+                _, _, verdict = score(self.n, name, primary)
+                self.assertEqual(verdict, "drop")
+
+
+class DenyRemoveIsNarrow(unittest.TestCase):
+    def test_a_trade_that_does_not_ask_keeps_every_inherited_term(self):
+        base = json.loads((niche.NICHES_DIR / "_shared.json").read_text(encoding="utf-8"))
+        for tid in TRADES:
+            if tid == "garage_doors":
+                continue
+            n = niche.load_niche(tid)
+            with self.subTest(trade=tid):
+                missing = [t for t in base["deny"] if t not in n.deny]
+                self.assertEqual(missing, [], f"{tid} lost inherited deny terms")
+
+    def test_removing_a_term_that_is_not_inherited_is_not_an_error(self):
+        spec = {"id": "t", "deny": ["alpha"], "extends": "_shared",
+                "deny_remove": ["not in any list"]}
+        n = niche.niche_from_spec(niche._resolve_spec(spec))
+        self.assertIn("alpha", n.deny)
 
 
 if __name__ == "__main__":

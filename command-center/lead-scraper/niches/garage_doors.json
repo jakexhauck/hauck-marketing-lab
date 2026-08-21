@@ -1,0 +1,90 @@
+{
+  "id": "garage_doors",
+  "label": "Garage door installation",
+  "extends": "_shared",
+  "_comment": "A single trade, and the only one that opts out of part of the shared deny list. 'garage door' is in that list precisely so no OTHER trade picks these firms up, and Google files most installers as a garage door supplier, a word that everywhere else means a showroom. deny_remove escapes exactly those two terms; supply, supplies, store, shop, showroom, wholesale and retail stay denied, so a counter is still refused. These firms install and repair the same doors, so both categories are core.",
+  "deny_remove": [
+    "garage door",
+    "supplier"
+  ],
+  "keywords": [
+    "garage door installation",
+    "garage door replacement",
+    "garage door repair",
+    "garage door company",
+    "garage door opener installation",
+    "garage door spring repair",
+    "overhead door installation",
+    "residential garage door",
+    "custom garage doors",
+    "garage door service"
+  ],
+  "allow_core": [
+    "garage door supplier",
+    "garage door repair service",
+    "garage door installer"
+  ],
+  "category_unless": [
+    {
+      "deny": "repair service",
+      "unless": [
+        "roof repair service",
+        "garage door repair service"
+      ]
+    },
+    {
+      "deny": "installation service",
+      "unless": [
+        "window installation service",
+        "insulation installation service",
+        "siding installation service",
+        "door installation service",
+        "garage door installation service"
+      ]
+    }
+  ],
+  "primary_deny": [
+    "air conditioning contractor",
+    "air conditioning repair service",
+    "bathroom remodeler",
+    "bathroom remodeling service",
+    "construction company",
+    "door installation service",
+    "furnace repair service",
+    "general contractor",
+    "gutter service",
+    "heating contractor",
+    "home builder",
+    "hvac contractor",
+    "insulation contractor",
+    "kitchen remodeler",
+    "remodeler",
+    "roof repair service",
+    "roofing contractor",
+    "roofing service",
+    "siding contractor",
+    "window installation service"
+  ],
+  "name_signals": {
+    "garage door": [
+      "garage door",
+      "garage doors"
+    ],
+    "overhead door": [
+      "overhead door",
+      "overhead doors"
+    ],
+    "opener": [
+      "opener",
+      "openers"
+    ],
+    "springs": [
+      "spring repair",
+      "torsion spring"
+    ],
+    "doors": [
+      "door",
+      "doors"
+    ]
+  }
+}

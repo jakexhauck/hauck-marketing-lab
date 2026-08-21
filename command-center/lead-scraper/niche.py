@@ -144,6 +144,17 @@ def _resolve_spec(spec: dict, seen: tuple = ()) -> dict:
             merged[key] = list(by_term.values())
         else:
             merged[key] = list(dict.fromkeys([*base, *own]))
+
+    # Inheritance is a union, which is right for every trade but one. 'garage door'
+    # is in the shared deny SO THAT no other trade picks those firms up, and Google
+    # files most of them as a garage door SUPPLIER, a word that everywhere else means
+    # a counter with a showroom. A trade that IS the excluded thing has to be able to
+    # say so. Narrow on purpose: it subtracts from deny only, and a term that was
+    # never inherited is not an error.
+    remove = set(spec.get("deny_remove") or ())
+    if remove:
+        merged["deny"] = [t for t in merged.get("deny") or [] if t not in remove]
+    merged.pop("deny_remove", None)
     merged.pop("extends", None)
     return merged
 
