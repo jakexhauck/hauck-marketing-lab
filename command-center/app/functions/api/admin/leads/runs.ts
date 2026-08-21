@@ -22,7 +22,7 @@ import { toE164 } from "../../../lib/agencyCrm";
 // One literal, not a concatenation: supabase-js infers the row type from this
 // string, and a joined expression collapses it to an error type.
 const SELECT =
-  "id, niche_id, niche_label, states, cities, size, status, host, error, total_queries, done_queries, raw_found, kept_count, new_count, in_crm_count, excluded_count, sent_count, pass_rate, failure_rate, blocked, crm_snapshot_count, crm_snapshot_partial, created_at, started_at, finished_at";
+  "id, niche_id, niche_label, states, cities, size, status, host, error, total_queries, done_queries, raw_found, kept_count, passed_count, sendable_count, new_count, in_crm_count, excluded_count, sent_count, pass_rate, failure_rate, blocked, crm_snapshot_count, crm_snapshot_partial, created_at, started_at, finished_at";
 
 const MAX_CONTACT_PAGES = 50; // 100 per page, so up to 5,000 contacts per sweep
 const SIZES = new Set(["quick", "standard", "deep"]);
@@ -41,6 +41,8 @@ interface RunRow {
   done_queries: number;
   raw_found: number;
   kept_count: number;
+  passed_count: number;
+  sendable_count: number;
   new_count: number;
   in_crm_count: number;
   excluded_count: number;
@@ -76,6 +78,10 @@ export function shapeRun(row: RunRow) {
         : 0,
     rawFound: row.raw_found,
     kept: row.kept_count,
+    // What the run stored, and what of it can actually be handed to a channel.
+    // kept is the SOP's number; sendable is the one worth reading.
+    passed: row.passed_count,
+    sendable: row.sendable_count,
     added: row.new_count,
     hiddenAsDuplicates: row.in_crm_count,
     rejected: row.excluded_count,

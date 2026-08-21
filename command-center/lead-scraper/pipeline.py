@@ -105,7 +105,11 @@ def records_from_json(
     crm_phones=frozenset(),
 ):
     out, now = {}, datetime.now(timezone.utc).isoformat()
-    stats = {"raw": 0, "no_phone": 0, "excluded": 0, "dropped_low": 0, "kept": 0, "in_crm": 0}
+    # kept   = stored. passed = above the trade's gate AND Google-confirmed.
+    # sendable = passed and on a mobile, which is the only number that answers
+    # "how many of these can I actually put on a list today".
+    stats = {"raw": 0, "no_phone": 0, "excluded": 0, "dropped_low": 0, "kept": 0,
+             "passed": 0, "sendable": 0, "in_crm": 0}
     n = active_niche or niche.ACTIVE
 
     for row in load_records(path):
@@ -133,6 +137,11 @@ def records_from_json(
             stats["excluded" if flags and flags[0].startswith("exclude") else "dropped_low"] += 1
             continue
         stats["kept"] += 1
+        line = linetype.line_type_of(e164)
+        if verdict == "pass":
+            stats["passed"] += 1
+            if line == "wireless":
+                stats["sendable"] += 1
 
         already = e164 in crm_phones
         if already:
@@ -155,7 +164,7 @@ def records_from_json(
             "source": source, "source_keyword": source_keyword,
             "primary_type": category or None, "updated_at": now,
             "niche_id": n.id, "run_id": run_id, "in_crm": already,
-            "line_type": linetype.line_type_of(e164),
+            "line_type": line,
         })
     return list(out.values()), stats
 

@@ -49,6 +49,8 @@ export interface ScrapeRun {
   percent: number;
   rawFound: number;
   kept: number;
+  passed: number;
+  sendable: number;
   added: number;
   hiddenAsDuplicates: number;
   rejected: number;
@@ -239,6 +241,17 @@ export function passRateLabel(run: ScrapeRun): string | null {
   if (run.rawFound === 0) return null;
   const rate = run.passRate ?? run.kept / run.rawFound;
   return `${Math.round(rate * 100)}% of what Google returned was worth keeping`;
+}
+
+// The number that is actually worth reading: how much of what Google returned can
+// go on a list today. Kept is what was STORED, and two of every three qualified
+// businesses are landlines, so the pass rate on its own reads about three times
+// better than the run really did. Null on an older run, which counted nothing.
+export function sendRateLabel(run: ScrapeRun): string | null {
+  if (run.rawFound === 0 || run.sendable === 0) return null;
+  const rate = run.sendable / run.rawFound;
+  const pct = rate * 100;
+  return `${pct < 1 ? pct.toFixed(1) : Math.round(pct)}% can be rung today`;
 }
 
 // --- the selection -----------------------------------------------------------

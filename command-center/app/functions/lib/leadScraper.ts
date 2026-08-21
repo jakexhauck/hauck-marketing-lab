@@ -249,6 +249,12 @@ export interface SendRejection {
 // for it and a typo in either would quietly ring somebody who asked not to be.
 export const DNC_REASON = "On the do-not-contact list";
 
+// The send_status a lead carries once somebody has asked not to be contacted.
+// Written by `python suppress.py <number>` in the scraper, over ANY previous
+// status: an opt-out outranks every other thing the table can say about a number.
+// Kept in step with suppress.py's DO_NOT_CONTACT.
+export const DO_NOT_CONTACT = "do_not_contact";
+
 // Landline is a refusal, not a demotion. A cold list is worth having because the
 // number rings in somebody's pocket, and a business's published main line rings on
 // a desk nobody is sitting at. 'unknown' fails with it deliberately: the numbers
@@ -272,7 +278,9 @@ export function partitionForSend(
   // a score is a hint about a business, not a fact about whether it can be rung.
   // It stays on the row and still sorts the list, so the best ones remain first.
   for (const lead of leads) {
-    if (lead.sendStatus !== "pending") {
+    if (lead.sendStatus === DO_NOT_CONTACT) {
+      rejected.push({ id: lead.id, reason: DNC_REASON });
+    } else if (lead.sendStatus !== "pending") {
       rejected.push({ id: lead.id, reason: "Already sent" });
     } else if (!(lead.businessName ?? "").trim()) {
       rejected.push({ id: lead.id, reason: "No business name" });

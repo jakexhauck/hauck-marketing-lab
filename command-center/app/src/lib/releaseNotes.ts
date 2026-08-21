@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-21-leads-run-says-what-can-be-rung",
+    date: "21 August 2026",
+    title: "A scrape run now says how many leads can actually be rung",
+    items: [
+      "Leads history has a Can send column, and the line under a run's status now reads what can be rung today rather than what was kept. A run that stored 120 businesses out of 500 read as a 24% run; 15 of those 500 could actually be put on a phone. Two of every three qualified businesses are landlines, so the old number read about three times better than the run really was.",
+      "Somebody asking not to be contacted is now one command instead of a hand edit of a text file. The number is refused by the CSV download and by both send buttons, it leaves Leads, and it stays refused even if it has already been sent.",
+      "A lead ticked but refused for being on that list now says so, instead of claiming it had already been sent.",
+      "Leads found through the directory top-up, when a city comes back thin, had no phone type recorded and so could never be sent to anything. They are now checked the same way as everything else.",
+    ],
+  },
+  {
     id: "2026-08-20-qualifier-requires-the-trade",
     date: "20 August 2026",
     title: "Leads has to look like the trade, not merely avoid looking wrong",

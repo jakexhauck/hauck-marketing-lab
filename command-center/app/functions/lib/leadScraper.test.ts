@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  DNC_REASON,
+  DO_NOT_CONTACT,
   EXPORT_THRESHOLD,
   batchDate,
   explainFlags,
@@ -208,6 +210,15 @@ describe("what may be sent", () => {
   it("refuses a lead that has already gone out", () => {
     const { rejected } = partitionForSend([lead({ sendStatus: "cold_sms_v2_batch_001_queued" })]);
     expect(rejected[0].reason).toBe("Already sent");
+  });
+
+  // An opt-out is stamped through send_status, because that is the one column
+  // every path already reads. Calling it "already sent" would be a lie in the one
+  // place the wording matters: this refusal is a refusal to ring them at all.
+  it("refuses an opted-out lead by name, not as one already sent", () => {
+    const { sendable, rejected } = partitionForSend([lead({ sendStatus: DO_NOT_CONTACT })]);
+    expect(sendable).toHaveLength(0);
+    expect(rejected[0].reason).toBe(DNC_REASON);
   });
 
   it("refuses a nameless row", () => {

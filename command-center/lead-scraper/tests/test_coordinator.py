@@ -87,5 +87,35 @@ class AClaimedRunIsNeverAbandoned(unittest.TestCase):
         self.assertEqual(self.fake.patches, [])
 
 
+class TheRunSummarySaysWhatCanBeSent(unittest.TestCase):
+    """pass_rate is kept / raw: how much of what Google returned was worth STORING.
+
+    Nobody wants that number. A stored lead is not a lead you can ring: on the
+    live table two of every three qualified businesses are landlines, so a run
+    that reported its pass rate alone overstated what it had found by about 3x.
+    """
+
+    def prog(self, raw=0, kept=0, passed=0, sendable=0):
+        p = coordinator.Progress("run-1", 10)
+        p.raw, p.kept, p.passed, p.sendable = raw, kept, passed, sendable
+        return p
+
+    def test_the_patch_carries_both_counts(self):
+        patch = self.prog(raw=100, kept=40, passed=12, sendable=4).as_patch()
+        self.assertEqual(patch["kept_count"], 40)
+        self.assertEqual(patch["passed_count"], 12)
+        self.assertEqual(patch["sendable_count"], 4)
+
+    def test_the_send_rate_is_sendable_over_raw_not_kept_over_raw(self):
+        p = self.prog(raw=100, kept=40, passed=12, sendable=4)
+        self.assertEqual(p.as_patch()["pass_rate"], 0.4)
+        self.assertEqual(coordinator.send_rate(p), 0.04)
+
+    def test_an_empty_run_reports_zero_rather_than_dividing_by_zero(self):
+        p = self.prog()
+        self.assertEqual(p.as_patch()["pass_rate"], 0.0)
+        self.assertEqual(coordinator.send_rate(p), 0.0)
+
+
 if __name__ == "__main__":
     unittest.main()

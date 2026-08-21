@@ -20,38 +20,19 @@ Measured, not estimated. All figures from the live table and today's run.
 | Throughput, measured | ~3.5 min per query at depth 10, concurrency 4 |
 | Yield, measured | ~0.45 dialable leads per query |
 | Google pushback | `failure_rate` 0.026 to 0.051, against a 0.20 threshold |
-| Do-not-contact list | **empty** |
+| Do-not-contact list | empty, and now one command to add to (2026-08-21) |
 
 The honest read: the scraper is precise but small. Seattle windows and doors is close to exhausted at roughly 45 leads, and at 3.5 minutes a query, volume is a time problem before it is anything else.
 
 ---
 
-## A. The landline rule is costing about two thirds of the list — 🟡 decision, then 🟢 build
+## A. The landline rule - DECIDED 2026-08-21: mobile only everywhere
 
-**What's true today:** every send path refuses anything that is not `wireless`. The rule is deliberate and the reasoning is written down in `command-center/app/functions/lib/leadScraper.ts`:
-
-> Landline is a refusal, not a demotion. A cold list is worth having because the number rings in somebody's pocket, and a business's published main line rings on a desk nobody is sitting at.
-
-That reasoning is sound for SMS. It is much weaker for the power dialer, because a business's main line is the number a business answers on purpose.
-
-**The size of it:** across the two live trades, 94 qualified leads are blocked as landlines against 48 that are dialable. The rule is throwing away roughly two out of every three qualified businesses.
-
-**A second reason to look again:** the line type comes from NANPA's free block data. It is block-level, blind to porting, and about 70 to 80% right by its own README. A number ported from a landline to somebody's mobile still reads as a landline. So the blocked pile already contains real mobiles.
-
-**Decision needed:**
-
-- **Option 1 (recommended): split the rule by channel.** SMS and the CSV export stay mobile-only, because deliverability and the regulations both care. The power dialer accepts landlines. Roughly triples the callable list overnight with no extra scraping.
-- **Option 2: leave it as it is.** Fewer, better-targeted conversations; the current constraint stands.
-- **Option 3: drop line type from the send rules entirely** and let the dialer sort it out. Cheapest to build, worst for SMS.
-
-**If Option 1, the build (🟢, about an hour):**
-
-- `functions/lib/leadScraper.ts`: give `partitionForSend` a `channel: "sms" | "voice"` parameter, defaulting to `"sms"` so nothing changes by accident. The landline branch applies only when `channel === "sms"`.
-- `functions/api/admin/cold-call/power-dialer.ts:101` and `bridge.ts:86`: pass `"voice"`, drop the `isMobile` filter.
-- `functions/api/admin/leads/index.ts:120-128`: the "Ready to send" filter's `.eq("line_type","wireless")` becomes conditional on the same channel.
-- `export_sms.py` `clean()` is unchanged. It is the SMS path and mobile-only is correct there.
-- Tests first, in `leadScraper.test.ts`: a landline is rejected on `"sms"`, accepted on `"voice"`, and `unknown` stays rejected on both (those rows are toll-free and out-of-country).
-- Release note entry in the same commit, per the standing rule.
+Jake's call, against the recommendation on this page: SMS, the CSV export and the
+power dialer all stay mobile-only. The ~94 qualified landlines stay out of
+circulation, and the reasoning in `leadScraper.ts` stands as written. Nothing was
+built; the code already behaved this way. Do not re-open without new evidence, and
+section C is the evidence that would do it.
 
 ---
 
@@ -63,7 +44,7 @@ Nothing is blocking this. The run is `queued` and resumes where it stood.
 2. It picks up run `d19dc69b` at query 41 and works Issaquah, Kirkland, Mercer Island, Redmond, Sammamish and Vancouver.
 3. Budget roughly **3.5 hours** of wall time. Leave it running; it saves after every batch and survives a stop.
 
-Expected: about **27 more dialable leads**, or about **70** if Option 1 in section A lands first.
+Expected: about **27 more dialable leads**. Section A was decided mobile-only, so that is the whole number, not a floor.
 
 When it finishes I will check the run summary, confirm `failure_rate` stayed under 0.20, and regrade.
 
@@ -101,17 +82,27 @@ So national-by-brute-force is not a plan. Two things make it tractable, and they
 
 ---
 
-## E. Guardrails to fix before volume, not after — 🟢 mine
+## E. Guardrails - BUILT 2026-08-21
 
-Small, cheap, and each one is the sort of thing that is obvious in hindsight.
+**E1, E2 and E3 are done and on main.** What shipped:
 
-**E1. The do-not-contact list is empty.** `data/suppression.txt` has four comment lines and no numbers. The moment somebody asks not to be contacted, that has to be a one-command operation and it has to be permanent. `suppress.merge_suppressed()` exists and is tested; nothing calls it from anywhere a human would reach. Build: a `python suppress.py +1555...` entry point, and wire the app's own opt-out path into the same file so the CSV export and the dialer honour one list.
+- **The do-not-contact list has a way in.** `python suppress.py +1...`, `--file`,
+  `--list`, `--sync`. It writes the file the CSV exporter reads AND stamps
+  `send_status=do_not_contact` on the row, which is what the app, both send paths
+  and the dialer read. Written over any status, including a number already sent.
+  A ticked lead refused for being on the list now says so instead of claiming it
+  had already gone out. Two bugs found on the way: the first entry ever added would
+  have deleted the file's own header, and a typo was stored rather than refused.
+- **A run reports what can be rung.** `passed_count` and `sendable_count` on
+  `scrape_runs` (mig 0116), a Can send column in Leads history, and the line under
+  a run's status now reads the send rate. Directory-fallback leads were also being
+  saved with no `line_type` at all, so every one of them was unsendable until a
+  backfill happened to run; they are checked the same way as the Maps path now.
+- **`hvac_softdelete_undo.json` is gone**, and its .gitignore line with it.
 
-**E2. The run summary reports the wrong thing.** `coordinator.Progress.pass_rate` is `kept / raw`, and since the fix `kept` is much closer to "actually qualified", so the number is now roughly honest by accident. Make it deliberate: report `passed / raw` alongside `kept / raw`, so a run says how many leads it can actually send, not how many rows it stored.
-
-**E3. `hvac_softdelete_undo.json` is a lie sitting in the repo folder.** It claims 129 leads were deleted via a `deleted_at` column that does not exist on the table. It is gitignored so it never shipped, but it is waiting to mislead the next person who reads it. Delete it once you are happy with the HVAC retirement; the real undo is `data/retire_hvac_undo.json`.
-
-**E4. Adding a trade still has the seeding trap.** Editing `niches/*.json` does not reach the wizard until `node ../app/scripts/seed-niches.mjs` runs, and the seed never prunes. Already documented in the README; it will bite on the first new trade regardless, so I will run the seed and read the table back as part of any trade change rather than trusting the file.
+**E4 (the seeding trap) is unchanged and still true:** editing `niches/*.json` does
+not reach the wizard until `node ../app/scripts/seed-niches.mjs` runs, and the seed
+never prunes. Read the table back after any trade change rather than trusting the file.
 
 ---
 
@@ -134,8 +125,9 @@ Worth deciding after section C, when you know whether those businesses answer th
 
 ## Suggested order
 
-1. **C** — call the 15 leads you already have. Everything else is better decided afterwards.
-2. **B** — start the runner tonight, so the next 27 exist by morning.
-3. **A** — decide the landline question. Highest single return of anything here.
-4. **E1** — the suppression entry point, before any volume.
-5. **D1** — measure concurrency, then **D2** with what section C taught you.
+1. **C** - call the leads you already have. Everything else is better decided afterwards.
+2. **B** - start the runner, so the next 27 exist by morning.
+3. **D1** - measure concurrency, then **D2** with what section C taught you.
+4. **F** - decide the no-website penalty, once C says whether those businesses answer.
+
+A is decided and E is built.

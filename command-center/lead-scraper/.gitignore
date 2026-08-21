@@ -15,7 +15,10 @@ logs/
 !data/metros.json
 !data/suppression.txt
 
-# One-off operational undo records (contain lead names).
-hvac_softdelete_undo.json
+# One-off operational undo records (contain lead names). They live in data/, so
+# that is the only place the rules need to cover: hvac_softdelete_undo.json used
+# to be listed here for a file that sat in the repo root describing a soft delete
+# through a deleted_at column this table has never had. Deleted 2026-08-21; the
+# real HVAC undo is data/retire_hvac_undo.json.
 data/regrade_undo.json
 data/retire_*_undo.json

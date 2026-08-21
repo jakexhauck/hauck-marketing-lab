@@ -53,6 +53,21 @@ Regrade never deletes. A row that now fails is stamped through `send_status` so 
 leaves the export pool while staying on the page, and a row that has already been
 queued or sent is never touched, because re-grading does not rewrite history.
 
+## Somebody asks not to be contacted
+
+One command. It is permanent, and it reaches both halves: the file the CSV exporter
+reads offline, and the `send_status` stamp the app, the send paths and the power
+dialer read.
+
+    python suppress.py +12065550142        add a number
+    python suppress.py --file numbers.txt  one per line
+    python suppress.py --list              what is on the list
+    python suppress.py --sync              pull the app's opt-outs into the file
+
+Unlike a regrade, this is written over ANY status, including a number already sent.
+An opt-out outranks everything else the table can say about a number. `data/suppression.txt`
+is tracked in git on purpose: losing it means texting somebody who already opted out.
+
 ## The pieces
 
 | File | What it is |
@@ -63,7 +78,7 @@ queued or sent is never touched, because re-grading does not rewrite history.
 | `run_maps.py` | The gosom wrapper, native or Docker, with block detection. |
 | `build_queue.py` | The resumable keyword x location queue. |
 | `fallback.py` | Houzz/Manta top-up when a metro comes back thin. |
-| `suppress.py` | Permanent, file-backed exclusion. |
+| `suppress.py` | The do-not-contact list, and the command that adds to it. |
 | `linetype.py` | Mobile or landline per NPA-NXX, from NANPA's free block data. |
 | `backfill_line_type.py` | Stamps `line_type` on leads scraped before the column existed. |
 | `export_sms.py` | Score-qualified CSV batches, best first, one trade at a time. |

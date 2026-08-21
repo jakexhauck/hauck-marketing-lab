@@ -10,6 +10,7 @@ import {
   parseCityLine,
   parseCityList,
   passRateLabel,
+  sendRateLabel,
   prettyDomain,
   resolveRunRequest,
   runStatusLine,
@@ -36,7 +37,8 @@ function run(over: Partial<ScrapeRun> = {}): ScrapeRun {
     states: ["TX"], cities: [], size: "standard", status: "running",
     host: "jake-mac", error: null,
     totalQueries: 100, doneQueries: 40, percent: 40,
-    rawFound: 500, kept: 120, added: 100, hiddenAsDuplicates: 12, rejected: 380,
+    rawFound: 500, kept: 120, passed: 41, sendable: 15, added: 100,
+    hiddenAsDuplicates: 12, rejected: 380,
     sent: 0, passRate: 0.24, failureRate: 0, blocked: false,
     crmSnapshotCount: 900, crmSnapshotPartial: false,
     createdAt: "2026-07-30T10:00:00Z", startedAt: null, finishedAt: null,
@@ -164,6 +166,21 @@ describe("reading a run", () => {
   it("reports the pass rate, and nothing at all before there is one", () => {
     expect(passRateLabel(run())).toBe("24% of what Google returned was worth keeping");
     expect(passRateLabel(run({ rawFound: 0 }))).toBeNull();
+  });
+
+  // 120 of 500 kept reads as a 24% run. 15 of those 500 can be rung, which is 3%.
+  // The second number is the one that decides whether a run was worth the hours.
+  it("reports what can be rung, not what was stored", () => {
+    expect(sendRateLabel(run())).toBe("3% can be rung today");
+    expect(sendRateLabel(run({ rawFound: 0 }))).toBeNull();
+  });
+
+  it("says nothing rather than 0% on a run that found nobody to ring", () => {
+    expect(sendRateLabel(run({ sendable: 0 }))).toBeNull();
+  });
+
+  it("keeps a fraction of a percent legible instead of rounding it to nothing", () => {
+    expect(sendRateLabel(run({ rawFound: 3000, sendable: 12 }))).toBe("0.4% can be rung today");
   });
 });
 

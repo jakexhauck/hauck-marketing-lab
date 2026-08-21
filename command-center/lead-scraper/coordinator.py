@@ -10,7 +10,9 @@ Carries the SOP's step 7 hardening rather than the minimal version:
                       directory fallback carry on
   * thin-metro      - under 15 qualified in a metro's first pass queues a Houzz/Manta
                       top-up for that city, insert-only
-  * run summary     - totals, new this run, and the niche pass rate (kept / raw)
+  * run summary     - totals, new this run, the niche pass rate (kept / raw) and
+                      the send rate (sendable / raw), which is the one that says
+                      how many of the leads a run found can go on a list today
 
 Three ways in:
     python3 coordinator.py --watch        poll for runs the wizard queued
@@ -67,6 +69,8 @@ class Progress:
         self.done = 0
         self.raw = 0
         self.kept = 0
+        self.passed = 0     # above the trade's gate and Google-confirmed
+        self.sendable = 0   # that, and on a mobile: what can go out today
         self.new = 0
         self.in_crm = 0
         self.excluded = 0
@@ -75,10 +79,15 @@ class Progress:
         self.stopped = False   # the walk ended on data/.stop, not on an empty queue
 
     def as_patch(self, **extra):
+        # pass_rate is kept / raw, the SOP's number, and it answers "how much of
+        # what Google returned was worth STORING". Since the qualifier fix that is
+        # close to honest by accident, but it is still not the number anyone wants:
+        # a stored lead is not a lead you can ring. sendable_count is.
         pass_rate = round(self.kept / self.raw, 3) if self.raw else 0.0
         return {
             "total_queries": self.total, "done_queries": self.done,
             "raw_found": self.raw, "kept_count": self.kept, "new_count": self.new,
+            "passed_count": self.passed, "sendable_count": self.sendable,
             "in_crm_count": self.in_crm, "excluded_count": self.excluded,
             "pass_rate": pass_rate, "failure_rate": self.failure_rate,
             "blocked": self.blocked, **extra,
@@ -91,6 +100,11 @@ class Progress:
             store.update_run(self.run_id, self.as_patch(**extra))
         except Exception as e:  # progress reporting must never kill a run
             print(f"  (progress push failed: {e})", file=sys.stderr)
+
+
+def send_rate(prog):
+    """sendable / raw. What a run is actually worth, as a fraction of what it saw."""
+    return round(prog.sendable / prog.raw, 3) if prog.raw else 0.0
 
 
 def _note_blocker(message):
@@ -163,6 +177,8 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
             prog.done += len(kw_rows)
             prog.raw += qual["raw"]
             prog.kept += qual["kept"]
+            prog.passed += qual["passed"]
+            prog.sendable += qual["sendable"]
             prog.excluded += qual["excluded"] + qual["dropped_low"]
             prog.in_crm += qual["in_crm"]
             prog.new += len(new)
@@ -170,7 +186,7 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
             metro_qualified += qual["kept"]
 
             print(f"  {head['metro']}/{kw}: raw={stats['rows']} kept={len(recs)} "
-                  f"new={len(new)} fr={stats['failure_rate']}")
+                  f"sendable={qual['sendable']} new={len(new)} fr={stats['failure_rate']}")
 
             if stats["failure_rate"] > BLOCK_THRESHOLD:
                 bad_metros += 1
@@ -196,6 +212,8 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
                 prog.new += added
                 prog.kept += fstats["kept"]
                 prog.raw += fstats["raw"]
+                prog.passed += fstats["passed"]
+                prog.sendable += fstats["sendable"]
                 print(f"  {head['metro']}: directory fallback added {added}")
             else:
                 print(f"  {head['metro']}: thin ({metro_qualified}) but {fallback_msg}")
@@ -293,8 +311,9 @@ def run_job(run):
         return
 
     store.finish_run(run_id, "done", **prog.as_patch())
-    print(f"done. raw={prog.raw} kept={prog.kept} new={prog.new} "
-          f"in_crm_skipped={prog.in_crm} pass_rate={prog.as_patch()['pass_rate']}")
+    print(f"done. raw={prog.raw} kept={prog.kept} passed={prog.passed} "
+          f"sendable={prog.sendable} new={prog.new} in_crm_skipped={prog.in_crm} "
+          f"pass_rate={prog.as_patch()['pass_rate']} send_rate={send_rate(prog)}")
     print(f"table total: {pipeline.table_count()}")
 
 
@@ -335,8 +354,9 @@ def local():
         sys.exit(msg)
     prog = execute(rows, niche_mod.ACTIVE, queue_path=path)
     print(f"done. table total: {pipeline.table_count()}")
-    print(f"raw={prog.raw} kept={prog.kept} new={prog.new} "
-          f"pass_rate={prog.as_patch()['pass_rate']}")
+    print(f"raw={prog.raw} kept={prog.kept} passed={prog.passed} "
+          f"sendable={prog.sendable} new={prog.new} "
+          f"pass_rate={prog.as_patch()['pass_rate']} send_rate={send_rate(prog)}")
 
 
 if __name__ == "__main__":

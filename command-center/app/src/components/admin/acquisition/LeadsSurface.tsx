@@ -30,7 +30,7 @@ import {
   formatScore,
   isRunActive,
   parseCityList,
-  passRateLabel,
+  sendRateLabel,
   prettyDomain,
   resolveRunRequest,
   runStatusLine,
@@ -741,13 +741,13 @@ function RunHistory({ runs, loading }: { runs: ScrapeRun[]; loading: boolean }) 
         <table>
           <thead>
             <tr>
-              <th>When</th><th>Niche</th><th>Where</th><th>Found</th><th>Kept</th><th>Added</th><th>Sent</th><th>Status</th>
+              <th>When</th><th>Niche</th><th>Where</th><th>Found</th><th>Kept</th><th>Can send</th><th>Added</th><th>Sent</th><th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={8} className="ls-empty">Loading...</td></tr>}
+            {loading && <tr><td colSpan={9} className="ls-empty">Loading...</td></tr>}
             {!loading && runs.length === 0 && (
-              <tr><td colSpan={8} className="ls-empty">No runs yet.</td></tr>
+              <tr><td colSpan={9} className="ls-empty">No runs yet.</td></tr>
             )}
             {runs.map((r) => (
               <tr key={r.id}>
@@ -756,11 +756,12 @@ function RunHistory({ runs, loading }: { runs: ScrapeRun[]; loading: boolean }) 
                 <td className="ls-dim">{r.states.length > 0 ? r.states.join(", ") : `${r.cities.length} cities`}</td>
                 <td>{r.rawFound || "-"}</td>
                 <td>{r.kept || "-"}</td>
+                <td>{r.sendable || "-"}</td>
                 <td>{r.added || "-"}</td>
                 <td>{r.sent || "-"}</td>
                 <td>
                   <span className={`ls-status ${r.status}`}>{r.status}</span>
-                  {passRateLabel(r) && <div className="ls-dim ls-rate">{passRateLabel(r)}</div>}
+                  {sendRateLabel(r) && <div className="ls-dim ls-rate">{sendRateLabel(r)}</div>}
                   {r.error && <div className="ls-err">{r.error}</div>}
                 </td>
               </tr>

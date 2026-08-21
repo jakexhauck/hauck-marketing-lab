@@ -15,6 +15,7 @@ import re
 import urllib.parse
 from datetime import datetime, timezone
 
+import linetype
 import niche
 import pipeline
 
@@ -106,7 +107,8 @@ def records_from_rows(rows, metro, state, source_keyword, active_niche=None, run
     n = active_niche or niche.ACTIVE
     now = datetime.now(timezone.utc).isoformat()
     out = {}
-    stats = {"raw": 0, "no_phone": 0, "excluded": 0, "dropped_low": 0, "kept": 0, "in_crm": 0}
+    stats = {"raw": 0, "no_phone": 0, "excluded": 0, "dropped_low": 0, "kept": 0,
+             "passed": 0, "sendable": 0, "in_crm": 0}
 
     for row in rows:
         stats["raw"] += 1
@@ -124,6 +126,14 @@ def records_from_rows(rows, metro, state, source_keyword, active_niche=None, run
             stats["excluded" if flags and flags[0].startswith("exclude") else "dropped_low"] += 1
             continue
         stats["kept"] += 1
+        # The directory path stored no line type at all, so every lead it found
+        # read as "not a mobile" to both send paths and could never be handed out
+        # until a backfill happened to run. Same lookup as the Maps path, free.
+        line = linetype.line_type_of(e164)
+        if verdict == "pass":
+            stats["passed"] += 1
+            if line == "wireless":
+                stats["sendable"] += 1
 
         already = e164 in crm_phones
         if already:
@@ -138,6 +148,7 @@ def records_from_rows(rows, metro, state, source_keyword, active_niche=None, run
             "metro": metro or None, "source": row.get("source") or "directory",
             "source_keyword": source_keyword, "updated_at": now,
             "niche_id": n.id, "run_id": run_id, "in_crm": already,
+            "line_type": line,
         })
     return list(out.values()), stats
 
