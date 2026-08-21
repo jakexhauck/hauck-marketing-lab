@@ -9,8 +9,9 @@ row up to date.
 Two rules, both from the SOP's step 7:
 
   * A row that now fails is DISQUALIFIED, never deleted. It is stamped through
-    send_status so it drops out of the export pool while staying on the page and
-    staying available for the merge-upsert to enrich on a later scrape.
+    send_status, which is what both send paths and the Leads page read, so it
+    leaves the screen as well as the export pool. The ROW stays: a later scrape
+    still enriches it in place, and write_undo() records every value first.
   * Only a 'pending' row is ever stamped. A row that has been queued or sent already
     means something to a campaign, and re-grading is not allowed to rewrite history.
 
