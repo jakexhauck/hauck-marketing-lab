@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   DIAL_OUTCOMES,
   formatObjections,
+  countsAsDial,
   isDialOutcome,
   NO_OUTCOMES,
   mergeRecordedDays,
@@ -113,6 +114,24 @@ describe("rollUpDialsByDay", () => {
   it("returns nothing for no dials, never a zero-filled day", () => {
     expect(rollUpDialsByDay([])).toEqual({});
   });
+
+  // 0117. A wrong-trade business was never a prospect, so the call measures the
+  // list, not the day: it is not a call made, not a pickup, not a pass-through.
+  it("leaves a wrong-trade call out of the day entirely", () => {
+    const counts = rollUpDialsByDay([dial(), dial({ outcome: "not_in_niche" })]);
+    expect(counts["2026-07-26"].callsMade).toBe(1);
+  });
+
+  it("does not stand a day up for wrong-trade calls alone", () => {
+    expect(rollUpDialsByDay([dial({ outcome: "not_in_niche" })])).toEqual({});
+  });
+
+  // The outcome it was being confused with. Unchanged on purpose.
+  it("still counts a not_qualified call as a call made", () => {
+    const counts = rollUpDialsByDay([dial({ outcome: "not_qualified", spoke: true })]);
+    expect(counts["2026-07-26"].callsMade).toBe(1);
+    expect(counts["2026-07-26"].pickups).toBe(1);
+  });
 });
 
 describe("mergeRecordedDays", () => {
@@ -209,5 +228,26 @@ describe("formatObjections", () => {
     expect(formatObjections({ pitch_no: 1, not_qualified: 1 })).toBe(
       "1 not qualified, 1 heard pitch, said no",
     );
+  });
+});
+
+describe("countsAsDial", () => {
+  it("counts every outcome but the wrong-trade one", () => {
+    for (const key of Object.keys(DIAL_OUTCOMES)) {
+      expect(countsAsDial(key)).toBe(key !== "not_in_niche");
+    }
+  });
+
+  // A call the phone system reported that nobody has judged yet. It provably
+  // happened, so it counts; "pending" is not in DIAL_OUTCOMES by design.
+  it("counts a pending call", () => {
+    expect(countsAsDial("pending")).toBe(true);
+  });
+
+  // The safe direction. A row nobody can explain still represents a call
+  // somebody made, and dropping it would quietly shrink the day.
+  it("counts a row whose outcome it does not recognise", () => {
+    expect(countsAsDial("something_new")).toBe(true);
+    expect(countsAsDial(null)).toBe(true);
   });
 });

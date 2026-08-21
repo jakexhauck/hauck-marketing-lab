@@ -1,4 +1,4 @@
-import { DIAL_OUTCOMES, isDialOutcome } from "./coldCallDials";
+import { DIAL_OUTCOMES, countsAsDial, isDialOutcome } from "./coldCallDials";
 
 // The cold caller's shelf: dialing script variations and everything else read
 // mid-call. Pure, so the rules a script test is judged on are unit-tested and
@@ -114,6 +114,9 @@ export function statsByScript(rows: ScriptDialRow[]): Record<string, ScriptStats
 
   for (const row of rows) {
     if (!row.script_id) continue;
+    // A wrong-trade number is not a test of the script (0117). Skipped whole:
+    // it must not sit in the denominator of a booking rate.
+    if (!countsAsDial(row.outcome)) continue;
     const stats = (out[row.script_id] ??= emptyStats());
     stats.dials += 1;
     if (!isDialOutcome(row.outcome)) continue;

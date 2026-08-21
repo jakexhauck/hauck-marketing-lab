@@ -1,4 +1,5 @@
 import { CALL_MESSAGE_TYPES, type GhlCallMessage } from "./coldCallBridge";
+import { countsAsDial } from "./coldCallDials";
 
 // Following a power dialer we do not control.
 //
@@ -254,6 +255,10 @@ export function isLiveCall(atMs: number, now: number, windowMs = LIVE_WINDOW_MS)
 // judged yet. This turns those rows into the only number a caller mid-shift
 // actually wants, which is how many calls have been made, and by whom.
 //
+// It does not count a call to a business that is not in one of our trades: that
+// is the one outcome the day's number leaves out, and coldCallDials.ts owns the
+// rule so this and the tracker cannot disagree about it.
+//
 // It counts PENDING rows too, and that is the point. A call the phone system
 // reported provably happened; whether anybody picked up is a separate question,
 // and it is the one the waiting panel exists to ask. A count that waited for the
@@ -276,12 +281,16 @@ export interface DialTally {
 }
 
 export function tallyDials(
-  rows: { caller_id: string | null }[],
+  rows: { caller_id: string | null; outcome: string | null }[],
   names: Map<string, string>,
   day: string,
 ): DialTally {
+  // Wrong-trade numbers are dropped before anything is counted (0117), so the
+  // total and every caller's line are the same number, filtered once.
+  const dials = rows.filter((row) => countsAsDial(row.outcome));
+
   const counts = new Map<string, number>();
-  for (const row of rows) {
+  for (const row of dials) {
     // A dial whose caller has since been deleted still happened, so it is in the
     // total. It has nobody to sit under, which is the honest shape.
     const id = (row.caller_id ?? "").trim();
@@ -299,5 +308,5 @@ export function tallyDials(
     // under somebody watching it between two polls.
     .sort((a, b) => b.dials - a.dials || a.name.localeCompare(b.name));
 
-  return { day, total: rows.length, callers };
+  return { day, total: dials.length, callers };
 }

@@ -245,12 +245,12 @@ describe("tallyDials", () => {
     ["b", "Caller 2"],
   ]);
 
+  // A row as the day tally reads it. The outcome only ever decides one thing
+  // here, which is whether the row is a dial at all.
+  const row = (caller_id: string | null, outcome = "no_answer") => ({ caller_id, outcome });
+
   it("counts every row and names who made them", () => {
-    const tally = tallyDials(
-      [{ caller_id: "a" }, { caller_id: "b" }, { caller_id: "b" }],
-      names,
-      "2026-08-18",
-    );
+    const tally = tallyDials([row("a"), row("b"), row("b")], names, "2026-08-18");
     expect(tally.total).toBe(3);
     expect(tally.day).toBe("2026-08-18");
     expect(tally.callers).toEqual([
@@ -260,14 +260,38 @@ describe("tallyDials", () => {
   });
 
   it("keeps a dial whose caller is gone in the total", () => {
-    const tally = tallyDials([{ caller_id: "a" }, { caller_id: null }], names, "2026-08-18");
+    const tally = tallyDials([row("a"), row(null)], names, "2026-08-18");
     expect(tally.total).toBe(2);
     expect(tally.callers).toEqual([{ callerId: "a", name: "Jake", dials: 1 }]);
   });
 
   it("names a caller it cannot find rather than dropping them", () => {
-    const tally = tallyDials([{ caller_id: "z" }], names, "2026-08-18");
+    const tally = tallyDials([row("z")], names, "2026-08-18");
     expect(tally.callers[0]).toEqual({ callerId: "z", name: "Unknown caller", dials: 1 });
+  });
+
+  // The rule this whole outcome exists for. A shift that rings thirty wrong-trade
+  // businesses has not made thirty calls, and before 0117 it read as though it
+  // had: the number went UP the worse the list was.
+  it("leaves a wrong-trade call out of the total and out of its caller's line", () => {
+    const tally = tallyDials(
+      [row("a"), row("a", "not_in_niche"), row("b", "not_in_niche")],
+      names,
+      "2026-08-18",
+    );
+    expect(tally.total).toBe(1);
+    expect(tally.callers).toEqual([{ callerId: "a", name: "Jake", dials: 1 }]);
+  });
+
+  // not_qualified is the outcome it was being confused with, and it still counts:
+  // somebody who could have bought and does not is a call that happened.
+  it("still counts a not_qualified call", () => {
+    expect(tallyDials([row("a", "not_qualified")], names, "2026-08-18").total).toBe(1);
+  });
+
+  // A call the phone system reported and nobody has judged yet.
+  it("still counts a pending call", () => {
+    expect(tallyDials([row("a", "pending")], names, "2026-08-18").total).toBe(1);
   });
 
   it("is a quiet zero before anybody has dialled", () => {

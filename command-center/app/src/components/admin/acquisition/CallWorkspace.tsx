@@ -7,6 +7,7 @@ import {
   Ban,
   UserX,
   ThumbsDown,
+  SquareSlash,
   ChevronRight,
   Moon,
   CheckCircle2,
@@ -37,12 +38,14 @@ import {
 import BookingPanel from "./BookingPanel";
 import CallbackPicker from "./CallbackPicker";
 import { stageAfterNoAnswer } from "../../../lib/coldCallStages";
-import type { NO_OUTCOMES } from "../../../../functions/lib/coldCallDials";
+import type { NO_OUTCOMES, UNCOUNTED_OUTCOMES } from "../../../../functions/lib/coldCallDials";
 import { formatPhoneDashed } from "../../../lib/phone";
 
-// One of the three ways a call ends in no. Named here rather than inlined so the
-// button handlers and sayNo cannot drift apart.
-type NoOutcome = (typeof NO_OUTCOMES)[number];
+// One of the three ways a call ends in no, plus the wrong-trade outcome, which
+// takes the same route off the board and differs only in not being counted as a
+// dial (0117). Named here rather than inlined so the button handlers and sayNo
+// cannot drift apart.
+type NoOutcome = (typeof NO_OUTCOMES)[number] | (typeof UNCOUNTED_OUTCOMES)[number];
 
 // The calling workspace: a queue on the left, the one prospect being called on
 // the right, five buttons for how it went.
@@ -528,12 +531,23 @@ export default function CallWorkspace({
 
                   They are ordered by how far the call got, so the row reads as a
                   scale: never qualified, never pitched, pitched and declined.
-                  Only the last is a pass-through. */}
+                  Only the last is a pass-through.
+
+                  Not my niche sits among them because it ends the prospect the
+                  same way, but it is not one of them: the business was never in
+                  a trade we sell to, so the call measures the list rather than
+                  the day and is left out of the dial count (0117). */}
               <OutcomeButton
                 icon={UserX}
                 label="Not qualified"
                 title="You spoke to them and they do not qualify. Not counted as a pitch."
                 onClick={() => sayNo(selected, "not_qualified")}
+              />
+              <OutcomeButton
+                icon={SquareSlash}
+                label="Not my niche"
+                title="The wrong business for us: a trade we do not sell to. Does not count as a dial."
+                onClick={() => sayNo(selected, "not_in_niche")}
               />
               <OutcomeButton
                 icon={Ban}

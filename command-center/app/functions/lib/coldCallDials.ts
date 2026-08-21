@@ -21,17 +21,28 @@
 //
 // `label` is what the caller reads on the button. Changing one is safe; changing
 // a KEY means a migration on cold_call_dials.outcome and its CHECK constraint.
+//
+// `counts` is whether the row is a DIAL. It is true for everything except
+// not_in_niche, and that exception is the whole reason the flag exists (0117):
+// a business that is not in a trade we sell to was never a prospect, so ringing
+// it measures the list, not the day's work. Counting it made a shift look busier
+// the worse its list was, which is backwards. Everything else counts, including
+// not_qualified: somebody who could have bought and does not is a call that
+// happened, and a pending row is a call the phone system provably placed.
 export const DIAL_OUTCOMES = {
-  no_answer: { spoke: false, pitched: false, label: "No answer" },
+  no_answer: { spoke: false, pitched: false, counts: true, label: "No answer" },
   // Spoke to them and they do not qualify. Never pitched: disqualifying somebody
   // is not the script being tested.
-  not_qualified: { spoke: true, pitched: false, label: "Not qualified" },
+  not_qualified: { spoke: true, pitched: false, counts: true, label: "Not qualified" },
+  // The wrong business entirely: a trade we do not sell to, on the list by
+  // mistake. Not a pickup, not a pitch, and not a dial (see `counts` above).
+  not_in_niche: { spoke: false, pitched: false, counts: false, label: "Not my niche" },
   // Said no during the opener, so the pitch never happened.
-  opener_no: { spoke: true, pitched: false, label: "Heard opener, said no" },
+  opener_no: { spoke: true, pitched: false, counts: true, label: "Heard opener, said no" },
   // Heard the whole thing and declined. The only no that is a pass-through.
-  pitch_no: { spoke: true, pitched: true, label: "Heard pitch, said no" },
-  callback: { spoke: true, pitched: true, label: "Call back" },
-  booked: { spoke: true, pitched: true, label: "Booked" },
+  pitch_no: { spoke: true, pitched: true, counts: true, label: "Heard pitch, said no" },
+  callback: { spoke: true, pitched: true, counts: true, label: "Call back" },
+  booked: { spoke: true, pitched: true, counts: true, label: "Booked" },
 } as const;
 
 export type DialOutcome = keyof typeof DIAL_OUTCOMES;
@@ -40,6 +51,27 @@ export type DialOutcome = keyof typeof DIAL_OUTCOMES;
 // All three land on the same GoHighLevel stage; what differs is how far the call
 // got, which is ours to report on rather than something the board tracks.
 export const NO_OUTCOMES = ["not_qualified", "opener_no", "pitch_no"] as const;
+
+// The outcomes that end a prospect's time on the board WITHOUT counting as a
+// call. Deliberately not in NO_OUTCOMES: those three are objections, read back
+// as "why we lose them", and "they were never in our market" is not one of them.
+export const UNCOUNTED_OUTCOMES = ["not_in_niche"] as const;
+
+export type UncountedOutcome = (typeof UNCOUNTED_OUTCOMES)[number];
+
+// Does this row count as a dial?
+//
+// The single answer to that question. Read by the day counter on the dialing
+// page, by the tracker's monthly rollup and by the per-script stats, so a call
+// cannot be in one of those totals and out of another.
+//
+// An outcome the app does not recognise counts. That is the safe direction: a
+// row we cannot explain still represents a call somebody made, and dropping it
+// would quietly shrink the day.
+export function countsAsDial(outcome: unknown): boolean {
+  if (!isDialOutcome(outcome)) return true;
+  return DIAL_OUTCOMES[outcome].counts;
+}
 
 export function isNoOutcome(value: unknown): value is (typeof NO_OUTCOMES)[number] {
   return typeof value === "string" && (NO_OUTCOMES as readonly string[]).includes(value);
@@ -88,6 +120,10 @@ export function rollUpDialsByDay(dials: DialRow[]): Record<string, RecordedCount
   for (const dial of dials) {
     const day = (dial.day ?? "").slice(0, 10);
     if (!day) continue;
+    // A row that is not a dial is not anything else either: it never reaches
+    // the day, so a day of nothing but wrong-trade numbers stays empty rather
+    // than reporting zero calls made.
+    if (!countsAsDial(dial.outcome)) continue;
     const counts = (byDay[day] ??= {
       callsMade: 0,
       pickups: 0,

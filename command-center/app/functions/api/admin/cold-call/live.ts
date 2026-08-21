@@ -129,8 +129,13 @@ async function readDayTally(
   now: number,
 ): Promise<DialTally> {
   const day = dateStringInZone(zone, now);
-  const { data } = await client.from("cold_call_dials").select("caller_id").eq("day", day);
-  const rows = (data ?? []) as { caller_id: string | null }[];
+  // The outcome comes back with the caller because the tally decides from it
+  // whether the row is a dial at all (0117).
+  const { data } = await client
+    .from("cold_call_dials")
+    .select("caller_id, outcome")
+    .eq("day", day);
+  const rows = (data ?? []) as { caller_id: string | null; outcome: string | null }[];
 
   const ids = [...new Set(rows.map((row) => row.caller_id).filter(Boolean))] as string[];
   const names = new Map<string, string>();

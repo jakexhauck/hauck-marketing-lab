@@ -128,6 +128,10 @@ function tagForOutcome(outcome: string, attempt: number): string | null | undefi
     case "not_qualified":
     case "opener_no":
     case "pitch_no":
+    // A business in the wrong trade lands here too (0117). It is not a no we
+    // report on, but the contact still has to stop being rung, and Not
+    // Interested is the only terminal column that board has.
+    case "not_in_niche":
       return CC_TAGS.notInterested;
     case "callback":
       return CC_TAGS.callBack;

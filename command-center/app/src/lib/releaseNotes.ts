@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-21-not-my-niche",
+    date: "21 August 2026",
+    title: "Not my niche is a button, and it does not count as a dial",
+    items: [
+      "The call card has a Not my niche button, next to Not qualified. Use it for a business in a trade you do not sell to. It ends the prospect exactly as the other nos do and moves you on to the next call.",
+      "A Not my niche call is left out of Dials today, out of the tracker's calls made, and out of a script's dial count. Ringing the wrong business measures the list, not the day, and counting it made the number climb the worse the list was.",
+      "Not qualified still counts as a dial. Somebody who could have bought and does not is a call that happened, so nothing about that button has changed.",
+      "Today's 56 Not qualified calls have been re-filed as Not my niche, because that is what they were: every one came off the power dialer and none lasted more than seven seconds. Dials today for 21 August drops from 104 to 48. The 19th and 20th are untouched.",
+    ],
+  },
+  {
     id: "2026-08-21-leads-page-sends-what-you-tick",
     date: "21 August 2026",
     title: "Leads sends what you tick, and stops running out of Cloudflare",
