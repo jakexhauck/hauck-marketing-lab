@@ -95,11 +95,18 @@ export interface MetroCity {
 
 // The wizard's third step. The wall-clock figures are the honest shape of a run,
 // not a promise: gosom's pace depends on how hard Google is pushing back.
-export const RUN_SIZES: { id: RunSize; label: string; blurb: string }[] = [
-  { id: "quick", label: "Quick", blurb: "One city, a few minutes. For trying a niche out." },
-  { id: "standard", label: "Standard", blurb: "Up to 40 cities, around an hour." },
-  { id: "deep", label: "Deep", blurb: "Everything you ticked. Leave it running." },
+// cap is the runner's max_locations for that size (lead-scraper/build_queue.py).
+// It is on the button because a size SILENTLY drops the cities it cannot fit:
+// picking Quick with twenty-four cities pasted in scrapes exactly one of them.
+export const RUN_SIZES: { id: RunSize; label: string; cap: number; blurb: string }[] = [
+  { id: "quick", label: "Quick", cap: 1, blurb: "A few minutes. For trying a niche out." },
+  { id: "standard", label: "Standard", cap: 40, blurb: "Around an hour." },
+  { id: "deep", label: "Deep", cap: 400, blurb: "Everything you ticked. Leave it running." },
 ];
+
+export function sizeCapLabel(cap: number): string {
+  return cap === 1 ? "1 city" : `up to ${cap} cities`;
+}
 
 // --- the wizard --------------------------------------------------------------
 

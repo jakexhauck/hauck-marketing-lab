@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-21-run-size-caps",
+    date: "21 August 2026",
+    title: "A run size says how many cities it will take",
+    items: [
+      "Quick, Standard and Deep now show their city limit on the button: one city, up to 40, up to 400. Picking a size too small for the list you pasted used to scrape the first city and drop the rest without saying so.",
+    ],
+  },
+  {
     id: "2026-08-21-dialer-stability",
     date: "21 August 2026",
     title: "The power dialer stops throwing you out mid-shift",

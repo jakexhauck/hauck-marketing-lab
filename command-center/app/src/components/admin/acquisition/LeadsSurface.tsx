@@ -22,6 +22,7 @@ import { formatPhoneDashed } from "../../../lib/phone";
 import { CALL_ZONES } from "../../../../functions/lib/leadZones";
 import {
   RUN_SIZES,
+  sizeCapLabel,
   canSend,
   channelLabel,
   cityKey,
@@ -374,7 +375,10 @@ function Wizard({ disabled, onStarted }: { disabled: boolean; onStarted: () => v
         <div className="ls-sizes">
           {RUN_SIZES.map((s) => (
             <button key={s.id} type="button" className={`ls-size${draft.size === s.id ? " on" : ""}`} onClick={() => setDraft((d) => ({ ...d, size: s.id as RunSize }))}>
-              <span className="ls-size-label">{s.label}</span>
+              <span className="ls-size-label">
+                {s.label}
+                <span className="ls-size-cap">{sizeCapLabel(s.cap)}</span>
+              </span>
               <span className="ls-size-blurb">{s.blurb}</span>
             </button>
           ))}
@@ -943,6 +947,9 @@ function LeadsStyle() {
       .pk-kit .ls-chip:hover, .pk-kit .ls-size:hover { background: var(--ls-hover); }
       .pk-kit .ls-chip.on, .pk-kit .ls-size.on { border-color: var(--ls-indigo); background: var(--ls-indigo-tint); }
       .pk-kit .ls-chip-label, .pk-kit .ls-size-label { font-weight: 600; font-size: 13.5px; }
+      .pk-kit .ls-size-label { display: flex; align-items: baseline; gap: 6px; }
+      .pk-kit .ls-size-cap { font-weight: 500; font-size: 11.5px; color: var(--text-faint); }
+      .pk-kit .ls-size.on .ls-size-cap { color: var(--ls-indigo); }
       .pk-kit .ls-chip-sub, .pk-kit .ls-size-blurb { font-size: 11.5px; color: var(--text-faint); }
 
       .pk-kit .ls-modes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
