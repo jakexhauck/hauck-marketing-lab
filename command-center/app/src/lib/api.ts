@@ -1946,7 +1946,10 @@ export interface DialTally {
 export async function getColdCallLive(): Promise<{
   configured: boolean;
   calls: LiveDialerCall[];
-  today: DialTally;
+  // Null when the day could not be counted. Deliberately not a zeroed tally: a
+  // read that failed and a day with no calls on it are different answers, and
+  // sending the second for the first dropped the counter to nothing mid-shift.
+  today: DialTally | null;
 }> {
   return api("/api/admin/cold-call/live");
 }

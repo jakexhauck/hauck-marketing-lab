@@ -7,7 +7,7 @@ import { COLD_CALL_STAGES } from "../../../lib/coldCallStages";
 import { ghlContactUrl, stageTone } from "../../../lib/setterModel";
 import { timeAgo } from "../../../lib/timeAgo";
 import { groupByStage } from "../../../../functions/lib/agencyPipelines";
-import type { AgencyPipelineCard } from "../../../lib/api";
+import { ApiError, type AgencyPipelineCard } from "../../../lib/api";
 
 // Cold Call > Pipeline: the agency's cold calling board in GoHighLevel, drawn
 // as a board.
@@ -51,9 +51,17 @@ export default function ColdCallPipeline() {
 
   if (list.isLoading) return <div className="pk-empty">Reading the board...</div>;
   if (list.isError || cards.isError) {
+    // Say which side failed. This blamed GoHighLevel for everything, including
+    // its own 401s, which is how a session being torn down by a database hiccup
+    // came to look like the CRM being down and got debugged in the wrong
+    // account. The endpoint answers 502 for a GHL failure and nothing else does.
+    const failure = list.error ?? cards.error;
+    const upstream = failure instanceof ApiError && failure.status === 502;
     return (
       <div className="pk-empty">
-        Could not read the cold calling board from GoHighLevel. Reload to try again.
+        {upstream
+          ? "GoHighLevel did not answer. Reload to try again."
+          : "The board could not be read. Reload to try again."}
       </div>
     );
   }

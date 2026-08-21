@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   api,
+  ApiError,
   bookColdCall,
   bridgeColdCallDial,
   getAgencyPipelines,
@@ -19,6 +20,13 @@ import {
   type SalesMeeting,
 } from "../lib/api";
 import { isColdCallNumericField, type ColdCallField } from "../lib/coldCall";
+import {
+  dialKey,
+  dropJudgedCalls,
+  leadKey,
+  markJudged,
+  unmarkJudged,
+} from "../lib/judgedDials";
 
 // Cold Call tracker data (Acquisition > Cold Call). Kept out of useApi.ts: this
 // surface owns its own month-scoped cache and an optimistic per-cell save, and
@@ -210,6 +218,16 @@ export function useLogColdCallDial() {
     // call comes straight back.
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: LIVE_KEY });
+      // Tombstone first, and it is the tombstone that does the real work. The
+      // cache write below is undone by the next poll, which is eight seconds
+      // away and answers with this dial still pending until the write lands;
+      // the tombstone is applied to every answer on the way in, so no poll can
+      // put this card back however the timing falls.
+      const keys = [
+        input.dialId ? dialKey(input.dialId) : null,
+        input.leadId ? leadKey(input.leadId) : null,
+      ];
+      markJudged(keys);
       const previous = qc.getQueryData<LiveResponse>(LIVE_KEY);
       if (previous) {
         qc.setQueryData<LiveResponse>(LIVE_KEY, {
@@ -223,11 +241,19 @@ export function useLogColdCallDial() {
           ),
         });
       }
-      return { previous };
+      return { previous, keys };
     },
-    onError: (_err, _input, context) => {
-      // The call is still waiting on an outcome, so it goes back on the list
-      // rather than disappearing on a write nobody knows failed.
+    onError: (err, _input, context) => {
+      // 409 already_recorded is not a failure. It means a row this browser is
+      // trying to complete has ALREADY been answered (a double press, or the
+      // other tab). Putting the card back for that would be the exact glitch
+      // this path exists to stop: the outcome is recorded, so the card stays
+      // gone and the tombstone stands.
+      if (err instanceof ApiError && err.status === 409) return;
+      // Anything else really did fail. The call is still waiting on an outcome,
+      // so it goes back on the list rather than disappearing on a write nobody
+      // knows failed.
+      if (context?.keys) unmarkJudged(context.keys);
       if (context?.previous) qc.setQueryData(LIVE_KEY, context.previous);
     },
     onSettled: () => {
@@ -322,14 +348,29 @@ const LIVE_POLL_MS = 8_000;
 // Refetches on focus and in the background, because a caller on the phone is by
 // definition not looking at this tab.
 export function useColdCallLive(enabled = true) {
+  const qc = useQueryClient();
   return useQuery({
-    queryKey: ["admin", "cold-call", "live"],
+    queryKey: LIVE_KEY,
     enabled,
     refetchInterval: LIVE_POLL_MS,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     staleTime: 0,
-    queryFn: getColdCallLive,
+    queryFn: async () => {
+      const res = await getColdCallLive();
+      return {
+        ...res,
+        // A call this browser has already judged is filtered out HERE, before
+        // the answer reaches the cache, because a poll fired mid-write answers
+        // with that dial still pending and would otherwise put the card the
+        // caller just dealt with back on screen. See lib/judgedDials.ts.
+        calls: dropJudgedCalls(res.calls),
+        // The server sends null when it could not count the day rather than
+        // sending a zero it does not mean. Hold the last real number: a counter
+        // that drops to nothing and climbs back reads as lost calls.
+        today: res.today ?? qc.getQueryData<LiveResponse>(LIVE_KEY)?.today ?? null,
+      };
+    },
   });
 }
 

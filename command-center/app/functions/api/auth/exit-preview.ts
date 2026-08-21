@@ -5,7 +5,7 @@ import {
   clearSessionCookie,
 } from "../../lib/session";
 import { getServiceClient } from "../../lib/supabase";
-import { getActiveAdmin } from "../../lib/adminAuth";
+import { AdminLookupError, getActiveAdmin } from "../../lib/adminAuth";
 
 // POST /api/auth/exit-preview  (public path: verifies its own session)
 // Leave a preview-as-client session and restore the admin session. The preview
@@ -40,7 +40,21 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   }
 
   const client = getServiceClient(ctx.env);
-  const admin = client ? await getActiveAdmin(client, session.adminId) : null;
+  // A lookup that could not RUN is not a revoked admin, and the difference
+  // matters more here than anywhere: the 401 branch below clears the cookie, so
+  // reading a database hiccup as "no such admin" would sign the admin out of
+  // the console for good rather than dropping them back into it.
+  let admin: Awaited<ReturnType<typeof getActiveAdmin>> = null;
+  try {
+    if (!client) throw new AdminLookupError("supabase not configured");
+    admin = await getActiveAdmin(client, session.adminId);
+  } catch (err) {
+    if (!(err instanceof AdminLookupError)) throw err;
+    return new Response(JSON.stringify({ ok: false, error: "auth_unavailable" }), {
+      status: 503,
+      headers: { "content-type": "application/json" },
+    });
+  }
   if (!admin) {
     return new Response(JSON.stringify({ ok: false }), {
       status: 401,

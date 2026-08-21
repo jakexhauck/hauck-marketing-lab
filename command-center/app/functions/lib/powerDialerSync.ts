@@ -60,24 +60,48 @@ export interface LeadRecord {
   no_answer: number | null;
 }
 
+// The window could not be READ. Not the same thing as a quiet window, and the
+// power dialer is where the difference shows: the pending rows this returns ARE
+// the cards on screen.
+//
+// supabase-js resolves a failed read with { data: null, error }, so reading
+// `data` alone turned a database hiccup into "nobody is on the phone" and wiped
+// every card off the dialer mid-call. An error leaves the last good answer up
+// (react-query keeps it through a failed refetch); an empty list does not.
+export class DialReadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DialReadError";
+  }
+}
+
+function failed(what: string, error: unknown): DialReadError {
+  const message = (error as { message?: string } | null)?.message ?? "unknown error";
+  return new DialReadError(`could not read ${what}: ${message}`);
+}
+
 export async function readWindowRows(
   client: SupabaseClient,
   since: number,
 ): Promise<{ dials: DialRecord[]; leads: LeadRecord[] }> {
-  const { data } = await client
+  const { data, error } = await client
     .from("cold_call_dials")
     .select(DIAL_COLUMNS)
     .gte("dialed_at", new Date(since).toISOString())
     .order("dialed_at", { ascending: false });
+  if (error) throw failed("cold_call_dials", error);
   const dials = (data ?? []) as DialRecord[];
 
   const leadIds = [...new Set(dials.map((d) => d.lead_id).filter(Boolean))] as string[];
   if (leadIds.length === 0) return { dials, leads: [] };
 
-  const { data: leadRows } = await client
+  const { data: leadRows, error: leadError } = await client
     .from("leads")
     .select("id, ghl_contact_id, business_name, first_name, last_name, phone, status, no_answer")
     .in("id", leadIds);
+  // Same rule for the join. Losing it silently draws every card as a nameless
+  // prospect, which on a dialer is worse than saying the read failed.
+  if (leadError) throw failed("leads", leadError);
   return { dials, leads: (leadRows ?? []) as LeadRecord[] };
 }
 

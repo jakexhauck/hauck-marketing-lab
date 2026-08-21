@@ -18,9 +18,14 @@ import type { Env } from "../../lib/env";
 // at once. The handler now refuses any header-borne session outright.
 //
 // SESSION_SECRET is set but Supabase is not, so a request that gets PAST the
-// guard fails later at the admin lookup with 401. The 403-vs-401 contrast is
+// guard fails later at the admin lookup with 503. The 403-vs-not-403 contrast is
 // what proves the guard is doing the work, rather than the request simply
 // failing for an unrelated reason.
+//
+// 503 rather than 401 since the dialer fix: an admin lookup that could not RUN
+// is not a revoked admin, and this route clears the session cookie on its 401
+// branch. Reading "Supabase is unconfigured" as "no such admin" would have
+// signed a real admin out of the console over an outage.
 const env = { SESSION_SECRET: "test-secret-value-for-preview-tokens" } as unknown as Env;
 
 function call(headers: Record<string, string>) {
@@ -51,8 +56,11 @@ describe("exit-preview cannot be driven by a header-borne preview token", () => 
 
     const res = await call({ cookie: `hml_session=${token}` });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(503);
     expect(res.status).not.toBe(403);
+    // And it must not take the session down on the way: an outage is not a
+    // reason to clear an admin's cookie.
+    expect(res.headers.get("set-cookie")).toBeNull();
   });
 
   it("refuses an unauthenticated request", async () => {

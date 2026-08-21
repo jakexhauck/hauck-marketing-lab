@@ -16,7 +16,16 @@ vi.mock("../lib/tenantResolve", () => ({
   tenantHasGhlCreds: () => false,
 }));
 vi.mock("../lib/identity", () => ({ resolveCaller: () => Promise.resolve({ isOwner: true }) }));
-vi.mock("../lib/adminAuth", () => ({ getActiveAdmin: () => Promise.resolve(admin) }));
+// The real AdminLookupError comes through untouched: the middleware decides
+// 503-vs-401 with an instanceof against it, so a stub class here would make the
+// gate look like it works while proving nothing.
+vi.mock("../lib/adminAuth", async () => {
+  const actual = await vi.importActual<typeof import("../lib/adminAuth")>("../lib/adminAuth");
+  return {
+    ...actual,
+    getActiveAdmin: () => (adminLookupFails ? Promise.reject(new actual.AdminLookupError("boom")) : Promise.resolve(admin)),
+  };
+});
 
 import { onRequest } from "./_middleware";
 import { HEALTH_CRON_HEADER, HEALTH_CRON_PATH } from "../lib/healthCron";
@@ -25,11 +34,13 @@ const SECRET = "b7f2c9d4e1a68350f9c2b7d4e1a68350f9c2b7d4";
 
 let session: unknown = null;
 let admin: unknown = null;
+let adminLookupFails = false;
 let reached = false;
 
 beforeEach(() => {
   session = null;
   admin = null;
+  adminLookupFails = false;
   reached = false;
 });
 
@@ -143,6 +154,46 @@ describe("api middleware: the scheduled health probe gate", () => {
     session = { adminId: "a1", preview: false };
     admin = { id: "a1", role: "owner" };
     const res = await call("/api/admin/audit", { header: null });
+    expect(res.status).toBe(200);
+    expect(reached).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The admin gate, and the one distinction it kept losing.
+//
+// 401 is not a status code here, it is an instruction: api() dispatches
+// hml:unauthorized on one, and AuthContext answers by clearing the session
+// breadcrumb, wiping every cache and dropping to /login. So the gate may only
+// say 401 about a session that is genuinely dead. A lookup that could not run
+// says 503, which the client retries and which leaves the session standing.
+//
+// The power dialer is what surfaced this: it polls an admin route every eight
+// seconds all day, so it met every database hiccup and turned each one into a
+// sign-out mid-shift.
+
+describe("api middleware: the admin gate", () => {
+  it("answers 503, NOT 401, when the admin table could not be read", async () => {
+    session = { adminId: "admin-1", mode: "live" };
+    adminLookupFails = true;
+    const res = await call("/api/admin/cold-call/live", { header: null });
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "auth_unavailable" });
+    expect(reached).toBe(false);
+  });
+
+  it("still answers 401 when the admin account is genuinely gone", async () => {
+    session = { adminId: "admin-1", mode: "live" };
+    admin = null;
+    const res = await call("/api/admin/cold-call/live", { header: null });
+    expect(res.status).toBe(401);
+    expect(reached).toBe(false);
+  });
+
+  it("lets a live admin through", async () => {
+    session = { adminId: "admin-1", mode: "live" };
+    admin = { id: "admin-1", email: "j@h.com", name: "Jake", status: "active", role: "owner" };
+    const res = await call("/api/admin/cold-call/live", { header: null });
     expect(res.status).toBe(200);
     expect(reached).toBe(true);
   });

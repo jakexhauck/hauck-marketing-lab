@@ -5,7 +5,7 @@ import { getServiceClient, resolveTenantId } from "../../lib/supabase";
 import { loadLiveTenantForHost } from "../../lib/tenantResolve";
 import { isPlaceholder } from "../../lib/tenantGhl";
 import { resolveCaller } from "../../lib/identity";
-import { getActiveAdmin } from "../../lib/adminAuth";
+import { AdminLookupError, getActiveAdmin } from "../../lib/adminAuth";
 
 // GET /api/auth/me  (public path: does its own session verification)
 // Returns the caller's session mode plus their identity and effective
@@ -60,7 +60,19 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   // Super-admin session: identity is global, not tenant-scoped. If the account
   // was disabled/deleted, the still-valid token is rejected so the UI logs out.
   if (session.adminId) {
-    const admin = client ? await getActiveAdmin(client, session.adminId) : null;
+    // 503, not 401, when the admin table could not be read. checkSession on the
+    // client treats a 5xx as "transient" and keeps the previous session alive;
+    // a 401 is taken as the server saying the session is dead and lands on the
+    // login screen. A database hiccup must not be able to say that, which is
+    // what made a reload after one ask Jake to sign in again.
+    let admin: Awaited<ReturnType<typeof getActiveAdmin>> = null;
+    try {
+      if (!client) throw new AdminLookupError("supabase not configured");
+      admin = await getActiveAdmin(client, session.adminId);
+    } catch (err) {
+      if (!(err instanceof AdminLookupError)) throw err;
+      return Response.json({ ok: false, error: "auth_unavailable" }, { status: 503 });
+    }
     if (!admin) return Response.json({ ok: false }, { status: 401 });
     return Response.json({
       ok: true,

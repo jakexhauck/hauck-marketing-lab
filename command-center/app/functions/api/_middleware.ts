@@ -10,7 +10,7 @@ import {
 } from "../lib/tenantResolve";
 import { resolveCaller } from "../lib/identity";
 import { checkStaffAccess } from "../lib/permissions";
-import { getActiveAdmin } from "../lib/adminAuth";
+import { AdminLookupError, getActiveAdmin } from "../lib/adminAuth";
 import { canAdminAccess } from "../lib/adminRoles";
 import { HEALTH_CRON_HEADER, isHealthCronRequest } from "../lib/healthCron";
 import { ADS_CRON_HEADER, isAdsCronRequest } from "../lib/adsCron";
@@ -241,7 +241,24 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         return json(403, { error: "forbidden" }, origin, ctx.env);
       }
       const client = getServiceClient(ctx.env);
-      const admin = client ? await getActiveAdmin(client, session.adminId) : null;
+      // 401 here means "your session is dead": the browser tears the session
+      // down, wipes its caches and returns to /login. So it is reserved for the
+      // one thing that actually is a dead session, an admin row that says
+      // disabled or is not there. A lookup that COULD NOT RUN answers 503,
+      // which the client retries and which leaves the session standing.
+      //
+      // This used to be one 401 for both, and the power dialer is where that
+      // showed: it polls this gate every eight seconds all day, so it met every
+      // database hiccup the app ever had and turned each one into a sign-out.
+      let admin: Awaited<ReturnType<typeof getActiveAdmin>> = null;
+      try {
+        if (!client) throw new AdminLookupError("supabase not configured");
+        admin = await getActiveAdmin(client, session.adminId);
+      } catch (err) {
+        if (!(err instanceof AdminLookupError)) throw err;
+        console.error("[api] admin lookup failed", url.pathname, err.message);
+        return json(503, { error: "auth_unavailable" }, origin, ctx.env);
+      }
       if (!admin) return json(401, { error: "unauthorized" }, origin, ctx.env);
       // Role gate (0047). Owners pass everything. A hired role reaches only the
       // paths its role names, so a new admin route is invisible to them until

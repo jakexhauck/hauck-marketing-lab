@@ -16,19 +16,44 @@ export interface AdminRecord {
   role: AdminRole;
 }
 
+// The admin table could not be READ. Not the same thing as an admin who is not
+// there, and the difference is the whole point of this class.
+//
+// A caller that cannot tell them apart answers 401 to a database hiccup, and a
+// 401 is how this app says "your session is dead": the browser tears the
+// session down, wipes every cache and returns to the login screen. That is what
+// kept throwing Jake off the power dialer mid-shift. A lookup that failed must
+// answer 503, which says "ask again", and leaves the session alone.
+export class AdminLookupError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AdminLookupError";
+  }
+}
+
 // Resolve a signed adminId to an ACTIVE admin account, or null. A disabled or
 // deleted admin returns null so the middleware rejects the session: revoking an
 // admin is immediate, even with a still-valid signed token.
+//
+// THROWS AdminLookupError if the table could not be read. supabase-js does not
+// throw on a failed read, it RESOLVES with { data: null, error }, so this used
+// to destructure `data` alone and report a database outage as a deleted admin.
+// See the class above for what that cost.
 export async function getActiveAdmin(
   client: SupabaseClient,
   adminId: string,
 ): Promise<AdminRecord | null> {
   if (!adminId) return null;
-  const { data } = await client
+  const { data, error } = await client
     .from("admin_accounts")
     .select("id, email, name, status, role")
     .eq("id", adminId)
     .maybeSingle();
+  if (error) {
+    throw new AdminLookupError(
+      `could not read admin_accounts: ${(error as { message?: string }).message ?? "unknown error"}`,
+    );
+  }
   const row = data as (Omit<AdminRecord, "role"> & { role?: unknown }) | null;
   if (!row || row.status !== "active") return null;
   // An unrecognized role in the database is treated as the most restricted one,

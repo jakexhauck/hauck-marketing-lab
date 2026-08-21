@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-21-dialer-stability",
+    date: "21 August 2026",
+    title: "The power dialer stops throwing you out mid-shift",
+    items: [
+      "Being signed out while calling is fixed. A moment where the database did not answer was being read as your account no longer existing, so the console signed you out, wiped what it held, and the reload after it asked you to log in again. A read that fails now says so and your session is left alone.",
+      "Cards no longer vanish and come back. The same failure could report a quiet moment on the phones instead of admitting it had not read anything, which cleared every call off the screen for eight seconds. Your calls stay put while it asks again.",
+      "The dials-today counter holds its number instead of dropping to zero and climbing back.",
+      "An outcome you press stays pressed. The card the poll used to put back a second or two after you marked it, so the same call sat there asking to be judged twice, is gone for good the moment you press.",
+      "A call already marked no longer bounces back onto the screen when a second press is refused. The outcome was recorded the first time.",
+      "The pipeline board says which side failed rather than blaming GoHighLevel for everything.",
+    ],
+  },
+  {
     id: "2026-08-21-booking-timezone",
     date: "21 August 2026",
     title: "A booking is confirmed in the prospect's timezone",

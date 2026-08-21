@@ -10,7 +10,12 @@ import {
   tallyDials,
   type DialTally,
 } from "../../../lib/powerDialer";
-import { readWindowRows, runPowerDialerSync, syncChanged } from "../../../lib/powerDialerSync";
+import {
+  DialReadError,
+  readWindowRows,
+  runPowerDialerSync,
+  syncChanged,
+} from "../../../lib/powerDialerSync";
 
 // GET /api/admin/cold-call/live  (admin session gated in _middleware.ts)
 //
@@ -66,7 +71,21 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   // The table first, always. It is the answer even when GoHighLevel is
   // unreachable, and it is what tells the sync which calls it has already seen.
-  let { dials, leads } = await readWindowRows(client, since);
+  //
+  // A read that FAILS is answered as a failure, never as a quiet window. These
+  // rows are the cards on the dialer, so "the database did not answer" and
+  // "nobody is on the phone" render identically, and only one of them is true:
+  // an empty list wiped the caller's cards mid-call, an error leaves the last
+  // good answer on screen and asks again in eight seconds.
+  let dials: Awaited<ReturnType<typeof readWindowRows>>["dials"];
+  let leads: Awaited<ReturnType<typeof readWindowRows>>["leads"];
+  try {
+    ({ dials, leads } = await readWindowRows(client, since));
+  } catch (err) {
+    if (!(err instanceof DialReadError)) throw err;
+    console.error("[cold-call/live]", err.message);
+    return Response.json({ error: "dials_unavailable" }, { status: 503 });
+  }
 
   if (isAgencyGhlConfigured(ctx.env)) {
     const counts = await runPowerDialerSync(ctx.env, client, {
@@ -75,7 +94,17 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       since,
       callerId: ctx.data.admin!.id,
     });
-    if (syncChanged(counts)) ({ dials, leads } = await readWindowRows(client, since));
+    // A re-read that fails leaves the rows read above standing. They are one
+    // sync behind rather than wrong, which is what this whole endpoint already
+    // is between polls, and far better than throwing away a good answer.
+    if (syncChanged(counts)) {
+      try {
+        ({ dials, leads } = await readWindowRows(client, since));
+      } catch (err) {
+        if (!(err instanceof DialReadError)) throw err;
+        console.error("[cold-call/live] re-read after sync", err.message);
+      }
+    }
   }
 
   // Read AFTER the sync, so a call the dialer placed twenty seconds ago is in
@@ -127,14 +156,18 @@ async function readDayTally(
   client: SupabaseClient,
   zone: string,
   now: number,
-): Promise<DialTally> {
+): Promise<DialTally | null> {
   const day = dateStringInZone(zone, now);
   // The outcome comes back with the caller because the tally decides from it
   // whether the row is a dial at all (0117).
-  const { data } = await client
+  const { data, error } = await client
     .from("cold_call_dials")
     .select("caller_id, outcome")
     .eq("day", day);
+  // A failed read here used to render as a day with no dials on it, so the
+  // counter on every calling page dropped to zero and climbed back eight
+  // seconds later. Null says "not known" and the counter holds its last value.
+  if (error) return null;
   const rows = (data ?? []) as { caller_id: string | null; outcome: string | null }[];
 
   const ids = [...new Set(rows.map((row) => row.caller_id).filter(Boolean))] as string[];
