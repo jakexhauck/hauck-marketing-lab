@@ -83,6 +83,39 @@ describe("cities that are not on the planning list", () => {
   });
 });
 
+describe("the curated metro grid", () => {
+  const metros = [
+    { metro: "Sacramento", state: "CA", query_anchor: "Sacramento CA", suburbs: ["Granite Bay CA", "Folsom CA"] },
+  ];
+
+  // The wizard picks cities off this list now, so a wealthy suburb nobody has
+  // scraped yet has to BE on it. Dropping the old suggest-the-suburbs mode
+  // without this would have quietly narrowed what Jake can target.
+  it("offers an affluent suburb that has never been scraped", () => {
+    const rows = buildCoverage([], [], [], "", metros);
+    const granite = find(rows, "Granite Bay", "CA")!;
+    expect(granite).toBeDefined();
+    expect(granite.totalRuns).toBe(0);
+    expect(granite.rank).toBeNull();
+  });
+
+  it("does not duplicate a suburb that is already on the planning list", () => {
+    const rows = buildCoverage([city(1, "Folsom", "CA", "California")], [], [], "", metros);
+    expect(rows.filter((r) => r.city === "Folsom")).toHaveLength(1);
+  });
+
+  it("keeps the coverage a grid city has earned", () => {
+    const rows = buildCoverage(
+      [],
+      [],
+      [run("garage_doors", [{ city: "Folsom", state: "CA" }], "2026-08-21T00:00:00Z")],
+      "",
+      metros,
+    );
+    expect(find(rows, "Folsom", "CA")!.runs).toBe(1);
+  });
+});
+
 describe("coverage is per trade", () => {
   const cities = [city(1, "Kirkland", "WA", "Washington"), city(2, "Los Gatos", "CA", "California")];
   const runs = [

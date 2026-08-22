@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { useLeadCities } from "../../../hooks/useApi";
 import { useNichePresets } from "../../../hooks/useLeadScraper";
+import { cityKey } from "../../../lib/leadScraper";
 import { nicheLabels, cityCoverage, type Coverage } from "../../../lib/cityCoverage";
 import type { LeadCity } from "../../../lib/api";
 
@@ -89,7 +90,26 @@ function StatusChip({ city }: { city: LeadCity }) {
 // Ranked cities first, in rank order; everything off the planning list after.
 const rankOf = (c: LeadCity) => c.rank ?? Number.MAX_SAFE_INTEGER;
 
-export default function CitiesTable() {
+/**
+ * Wizard mode. The same table, with a tick box on every row.
+ *
+ * It is the same component and not a copy because the coverage a city shows
+ * while you are PICKING it is the whole reason to pick it. Two tables would
+ * drift, and the one that drifted would be the one being used to spend a run.
+ */
+export interface CityPicker {
+  // Fixed by the wizard's first step, so the trade dropdown is not drawn.
+  niche: string;
+  cap: number;
+  picked: { city: string; state: string }[];
+  onToggle: (city: { city: string; state: string }) => void;
+  // Cities typed in that the coverage list has never heard of. They are real
+  // targets, they simply have no history, so they are shown and tickable rather
+  // than silently dropped.
+  extra?: LeadCity[];
+}
+
+export default function CitiesTable({ picker }: { picker?: CityPicker } = {}) {
   const [niche, setNiche] = useState("");
   const [q, setQ] = useState("");
   const [state, setState] = useState("");
@@ -97,9 +117,13 @@ export default function CitiesTable() {
   const [sort, setSort] = useState<SortKey>("rank");
   const [desc, setDesc] = useState(false);
 
-  const query = useLeadCities(niche);
+  const trade = picker ? picker.niche : niche;
+  const query = useLeadCities(trade);
   const presets = useNichePresets();
-  const cities = useMemo(() => query.data?.cities ?? [], [query.data]);
+  const cities = useMemo(() => {
+    const rows = query.data?.cities ?? [];
+    return picker?.extra?.length ? [...picker.extra, ...rows] : rows;
+  }, [query.data, picker?.extra]);
   const niches = query.data?.niches ?? [];
   const labels = useMemo(() => nicheLabels(presets.data?.presets), [presets.data]);
 
@@ -112,8 +136,14 @@ export default function CitiesTable() {
   // the trade while it is selected would otherwise leave the table empty with no
   // way to tell why.
   const statuses = (Object.keys(STATUS_LABEL) as Status[]).filter(
-    (s) => s !== "open" || niche !== "",
+    (s) => s !== "open" || trade !== "",
   );
+
+  const pickedKeys = useMemo(
+    () => new Set((picker?.picked ?? []).map((c) => cityKey(c.city, c.state))),
+    [picker?.picked],
+  );
+  const full = !!picker && pickedKeys.size >= picker.cap;
 
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -207,27 +237,32 @@ export default function CitiesTable() {
 
         {/* Narrowing to a trade re-asks the server, because "scraped for HVAC"
             is a different question from "scraped at all" and the counts behind
-            it are different rows. */}
-        <select
-          value={niche}
-          onChange={(e) => {
-            setNiche(e.target.value);
-            if (!e.target.value && status === "open") setStatus("all");
-          }}
-          aria-label="Trade"
-        >
-          <option value="">All trades</option>
-          {niches.map((n) => (
-            <option key={n} value={n}>
-              {labels(n)}
-            </option>
-          ))}
-        </select>
+            it are different rows. In the wizard the trade is already answered,
+            so there is nothing to ask. */}
+        {!picker && (
+          <select
+            value={niche}
+            onChange={(e) => {
+              setNiche(e.target.value);
+              if (!e.target.value && status === "open") setStatus("all");
+            }}
+            aria-label="Trade"
+          >
+            <option value="">All trades</option>
+            {niches.map((n) => (
+              <option key={n} value={n}>
+                {labels(n)}
+              </option>
+            ))}
+          </select>
+        )}
 
         <span className="lc-count">
           {query.isLoading
             ? "Loading..."
-            : `${visible.length.toLocaleString()} of ${cities.length.toLocaleString()} shown, ${touched.toLocaleString()} touched`}
+            : picker
+              ? `${pickedKeys.size} of ${picker.cap} picked`
+              : `${visible.length.toLocaleString()} of ${cities.length.toLocaleString()} shown, ${touched.toLocaleString()} touched`}
         </span>
       </div>
 
@@ -238,6 +273,7 @@ export default function CitiesTable() {
           <table>
             <thead>
               <tr>
+                {picker && <th className="lc-tick" aria-label="Picked" />}
                 {head("rank", "#")}
                 {head("city", "City")}
                 <th>State</th>
@@ -252,13 +288,37 @@ export default function CitiesTable() {
             <tbody>
               {visible.length === 0 && !query.isLoading && (
                 <tr>
-                  <td colSpan={9} className="lc-empty">
+                  <td colSpan={picker ? 10 : 9} className="lc-empty">
                     No cities match those filters.
                   </td>
                 </tr>
               )}
-              {visible.map((c) => (
-                <tr key={`${c.city}-${c.stateCode}`}>
+              {visible.map((c) => {
+                const key = cityKey(c.city, c.stateCode);
+                const picked = pickedKeys.has(key);
+                return (
+                <tr
+                  key={key}
+                  className={picked ? "lc-picked" : undefined}
+                  onClick={picker && (picked || !full)
+                    ? () => picker.onToggle({ city: c.city, state: c.stateCode })
+                    : undefined}
+                >
+                  {picker && (
+                    <td className="lc-tick">
+                      <input
+                        type="checkbox"
+                        checked={picked}
+                        // At the cap, the only tick you can still change is one
+                        // that is already on. Silently ignoring the click would
+                        // read as a broken table.
+                        disabled={!picked && full}
+                        onChange={() => picker.onToggle({ city: c.city, state: c.stateCode })}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`${c.city} ${c.stateCode}`}
+                      />
+                    </td>
+                  )}
                   <td className="lc-num lc-faint">{c.rank ?? "-"}</td>
                   <td className="lc-city">{c.city}</td>
                   <td className="lc-faint">{c.stateCode || "-"}</td>
@@ -274,7 +334,7 @@ export default function CitiesTable() {
                     ) : (
                       <span className="lc-trades">
                         {c.niches.map((n) => (
-                          <span key={n} className={`lc-trade${n === niche ? " on" : ""}`}>
+                          <span key={n} className={`lc-trade${n === trade ? " on" : ""}`}>
                             {labels(n)}
                           </span>
                         ))}
@@ -285,7 +345,8 @@ export default function CitiesTable() {
                     <StatusChip city={c} />
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -319,6 +380,12 @@ function CitiesStyle() {
 .lc .lc-city { font-weight: 500; }
 .lc .lc-faint { opacity: 0.6; }
 .lc-empty { padding: 28px 12px; text-align: center; font-size: 13px; opacity: 0.65; }
+
+.lc-tick { width: 34px; padding-right: 0 !important; }
+.lc-tick input { width: 14px; height: 14px; accent-color: var(--ls-indigo, #6366f1); cursor: pointer; }
+.lc-tick input:disabled { cursor: not-allowed; opacity: 0.35; }
+.lc tbody tr.lc-picked td { background: rgba(99,102,241,0.10); }
+.lc tbody tr.lc-picked:hover td { background: rgba(99,102,241,0.16); }
 
 .lc-trades { display: inline-flex; gap: 4px; flex-wrap: nowrap; }
 .lc-trade { border-radius: 6px; padding: 2px 7px; font-size: 11px; background: rgba(148,163,184,0.16); opacity: 0.8; }

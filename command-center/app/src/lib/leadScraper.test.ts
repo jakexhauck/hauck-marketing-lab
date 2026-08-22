@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   canSend,
-  cityKey,
+  addCities,
+  runCap,
   draftProblem,
   emptyDraft,
   formatRating,
@@ -15,20 +16,18 @@ import {
   resolveRunRequest,
   runStatusLine,
   summariseSelection,
-  type MetroCity,
   type RunDraft,
   type ScrapeRun,
   type ScrapedLeadView,
 } from "./leadScraper";
 
-const SUGGESTED: MetroCity[] = [
-  { city: "Dallas TX", state: "TX", metro: "Dallas", isAnchor: true },
-  { city: "Plano TX", state: "TX", metro: "Dallas", isAnchor: false },
-  { city: "Frisco TX", state: "TX", metro: "Dallas", isAnchor: false },
+const PICKED = [
+  { city: "Dallas", state: "TX" },
+  { city: "Plano", state: "TX" },
 ];
 
 function draft(over: Partial<RunDraft> = {}): RunDraft {
-  return { ...emptyDraft(), nicheId: "home_services", states: ["TX"], ...over };
+  return { ...emptyDraft(), nicheId: "home_services", cities: PICKED, ...over };
 }
 
 function run(over: Partial<ScrapeRun> = {}): ScrapeRun {
@@ -61,51 +60,61 @@ function lead(over: Partial<ScrapedLeadView> = {}): ScrapedLeadView {
 
 describe("the wizard", () => {
   it("will not start without a niche", () => {
-    expect(draftProblem(draft({ nicheId: "" }), SUGGESTED)).toBe("Pick a niche.");
+    expect(draftProblem(draft({ nicheId: "" }))).toBe("Pick a niche.");
   });
 
-  it("will not start without somewhere to look", () => {
-    expect(draftProblem(draft({ states: [] }), SUGGESTED)).toBe("Pick at least one state.");
-    expect(draftProblem(draft({ cityMode: "manual" }), [])).toBe("Add at least one city.");
+  it("will not start without a city", () => {
+    expect(draftProblem(draft({ cities: [] }))).toBe("Pick at least one city.");
   });
 
-  it("catches a list with every city struck out", () => {
-    const excluded = SUGGESTED.map((c) => cityKey(c.city, c.state));
-    expect(draftProblem(draft({ excluded }), SUGGESTED)).toBe("You have struck out every city.");
+  it("is happy once a niche and a city are chosen", () => {
+    expect(draftProblem(draft())).toBeNull();
+  });
+});
+
+describe("how many cities a size allows", () => {
+  it("is the runner's own cap, per size", () => {
+    expect(runCap("quick")).toBe(1);
+    expect(runCap("standard")).toBe(40);
+    expect(runCap("deep")).toBe(400);
   });
 
-  it("is happy once a niche and a state are chosen", () => {
-    expect(draftProblem(draft(), SUGGESTED)).toBeNull();
+  it("stops a list growing past the cap and says how many did not fit", () => {
+    const incoming = [
+      { city: "Dallas", state: "TX" },
+      { city: "Plano", state: "TX" },
+      { city: "Frisco", state: "TX" },
+    ];
+    const { cities, dropped } = addCities([], incoming, 2);
+    expect(cities).toHaveLength(2);
+    expect(dropped).toBe(1);
+  });
+
+  it("ignores a city that is already picked rather than counting it as dropped", () => {
+    const { cities, dropped } = addCities(PICKED, [{ city: "plano", state: "tx" }], 2);
+    expect(cities).toEqual(PICKED);
+    expect(dropped).toBe(0);
   });
 });
 
 describe("what the wizard actually sends", () => {
-  it("sends states when nothing was struck out, so the runner expands them", () => {
-    const req = resolveRunRequest(draft(), SUGGESTED);
-    expect(req.states).toEqual(["TX"]);
-    expect(req.cities).toEqual([]);
+  it("sends the cities that were ticked, never states", () => {
+    const req = resolveRunRequest(draft());
+    expect(req.states).toEqual([]);
+    expect(req.cities).toEqual(PICKED);
   });
 
-  it("switches to an explicit city list the moment one is struck out", () => {
-    const req = resolveRunRequest(
-      draft({ excluded: [cityKey("Frisco TX", "TX")] }),
-      SUGGESTED,
-    );
-    expect(req.states).toEqual([]);
-    expect(req.cities.map((c) => c.city)).toEqual(["Dallas TX", "Plano TX"]);
-  });
-
-  it("sends only the hand-typed cities in manual mode", () => {
-    const req = resolveRunRequest(
-      draft({ cityMode: "manual", manualCities: [{ city: "Boise", state: "ID" }] }),
-      SUGGESTED,
-    );
-    expect(req.states).toEqual([]);
-    expect(req.cities).toEqual([{ city: "Boise", state: "ID" }]);
+  // Belt and braces: the picker caps the list as it is built, and this caps it
+  // again on the way out. The runner drops what it cannot fit SILENTLY, so a
+  // Quick run that quietly scraped one city out of twenty-four is the failure
+  // both of these exist to prevent.
+  it("never sends more cities than the size will scrape", () => {
+    const req = resolveRunRequest(draft({ size: "quick" }));
+    expect(req.cities).toEqual([{ city: "Dallas", state: "TX" }]);
   });
 
   it("carries the run size through", () => {
-    expect(resolveRunRequest(draft({ size: "deep" }), SUGGESTED).size).toBe("deep");
+    expect(resolveRunRequest(draft({ size: "deep" })).size).toBe("deep");
   });
 });
 

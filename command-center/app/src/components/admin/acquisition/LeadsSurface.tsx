@@ -22,6 +22,7 @@ import { formatPhoneDashed } from "../../../lib/phone";
 import { CALL_ZONES } from "../../../../functions/lib/leadZones";
 import {
   RUN_SIZES,
+  addCities,
   sizeCapLabel,
   canSend,
   channelLabel,
@@ -31,30 +32,23 @@ import {
   formatRating,
   isRunActive,
   parseCityList,
+  runCap,
   sendRateLabel,
   prettyDomain,
   resolveRunRequest,
   runStatusLine,
   summariseSelection,
   type Channel,
-  type MetroCity,
   type RunDraft,
   type RunSize,
   type ScrapeRun,
   type ScrapedLeadView,
 } from "../../../lib/leadScraper";
 import { useLeadCities } from "../../../hooks/useApi";
+import { indexCities, lookupCity } from "../../../lib/cityCoverage";
+import type { LeadCity } from "../../../lib/api";
 import {
-  cityNote,
-  indexCities,
-  lookupCity,
-  nicheLabels,
-  type CityNote,
-} from "../../../lib/cityCoverage";
-import {
-  useAvailableStates,
   useLeads,
-  useMetroCities,
   useNichePresets,
   useScrapeRuns,
   useSendLeads,
@@ -238,13 +232,37 @@ function RunBanner({ run }: { run: ScrapeRun }) {
 
 // --- the wizard --------------------------------------------------------------
 
+// A city typed in that has never been scraped and is too small for the planning
+// list. It gets a row of its own so it can be ticked like any other; every
+// count on it is zero because that is the truth about it.
+function unknownCity(city: string, state: string): LeadCity {
+  return {
+    rank: null,
+    city,
+    stateName: state,
+    stateCode: state,
+    population: null,
+    growthPct: null,
+    runs: 0,
+    lastRunAt: null,
+    leads: 0,
+    totalRuns: 0,
+    totalLeads: 0,
+    niches: [],
+  };
+}
+
 function Wizard({ disabled, onStarted }: { disabled: boolean; onStarted: () => void }) {
   const [draft, setDraft] = useState<RunDraft>(emptyDraft);
-  const [manualText, setManualText] = useState("");
+  const [pasted, setPasted] = useState("");
+  // Cities typed in that the coverage list has never heard of. They have no
+  // history to show, which is not a reason to refuse them.
+  const [extra, setExtra] = useState<LeadCity[]>([]);
+  // How many cities the last action could not fit. Silently dropping the tail
+  // is the exact failure the cap exists to prevent, one step earlier.
+  const [dropped, setDropped] = useState(0);
 
   const presets = useNichePresets();
-  const statesQuery = useAvailableStates();
-  const metros = useMetroCities(draft.cityMode === "suggested" ? draft.states : []);
   const start = useStartRun();
 
   // What has already been done in these cities, for the trade that is selected.
@@ -252,39 +270,59 @@ function Wizard({ disabled, onStarted }: { disabled: boolean; onStarted: () => v
   // nothing: a city is never "done", it is done for something.
   const coverage = useLeadCities(draft.nicheId, !!draft.nicheId);
   const index = useMemo(() => indexCities(coverage.data?.cities ?? []), [coverage.data]);
-  const label = useMemo(() => nicheLabels(presets.data?.presets), [presets.data]);
-  const noteFor = (city: string, state: string): CityNote | null =>
-    draft.nicheId ? cityNote(lookupCity(index, city, state), label) : null;
 
-  const suggested: MetroCity[] = metros.data?.cities ?? [];
-  const manualCities = useMemo(() => parseCityList(manualText), [manualText]);
-  const effective: RunDraft = { ...draft, manualCities };
-  const problem = draftProblem(effective, suggested);
+  const cap = runCap(draft.size);
+  const problem = draftProblem(draft);
 
-  const excluded = new Set(draft.excluded);
-  const keptCount = suggested.filter((c) => !excluded.has(cityKey(c.city, c.state))).length;
+  const chooseSize = (id: RunSize) => {
+    // A smaller size cannot carry the list that was picked under a bigger one.
+    setDropped(Math.max(0, draft.cities.length - runCap(id)));
+    setDraft((d) => ({ ...d, size: id, cities: d.cities.slice(0, runCap(id)) }));
+  };
 
-  const toggleState = (state: string) =>
-    setDraft((d) => ({
-      ...d,
-      states: d.states.includes(state) ? d.states.filter((s) => s !== state) : [...d.states, state],
-      // Strike-outs belong to the city list that was on screen; changing the
-      // states rebuilds that list, so carrying them over would silently drop a
-      // city from a state Jake has only just added.
-      excluded: [],
-    }));
-
-  const toggleCity = (c: MetroCity) => {
+  const toggleCity = (c: { city: string; state: string }) => {
     const key = cityKey(c.city, c.state);
-    setDraft((d) => ({
-      ...d,
-      excluded: d.excluded.includes(key) ? d.excluded.filter((k) => k !== key) : [...d.excluded, key],
-    }));
+    setDropped(0);
+    setDraft((d) =>
+      d.cities.some((p) => cityKey(p.city, p.state) === key)
+        ? { ...d, cities: d.cities.filter((p) => cityKey(p.city, p.state) !== key) }
+        : { ...d, cities: addCities(d.cities, [c], cap).cities },
+    );
+  };
+
+  // A pasted list is resolved against the coverage table first, so "novi mi"
+  // ticks the Novi row and shows its history rather than becoming a second,
+  // historyless copy of the same city.
+  const addPasted = () => {
+    const wanted: { city: string; state: string }[] = [];
+    const unknown: LeadCity[] = [];
+    for (const c of parseCityList(pasted)) {
+      const known = lookupCity(index, c.city, c.state);
+      if (known) wanted.push({ city: known.city, state: known.stateCode });
+      else {
+        wanted.push(c);
+        unknown.push(unknownCity(c.city, c.state));
+      }
+    }
+    const next = addCities(draft.cities, wanted, cap);
+    const room = new Set(next.cities.map((p) => cityKey(p.city, p.state)));
+    setDraft((d) => ({ ...d, cities: next.cities }));
+    setExtra((rows) => {
+      const have = new Set(rows.map((r) => cityKey(r.city, r.stateCode)));
+      return [
+        ...rows,
+        ...unknown.filter(
+          (u) => !have.has(cityKey(u.city, u.stateCode)) && room.has(cityKey(u.city, u.stateCode)),
+        ),
+      ];
+    });
+    setDropped(next.dropped);
+    setPasted("");
   };
 
   const go = () => {
     if (problem || disabled) return;
-    start.mutate(resolveRunRequest(effective, suggested), { onSuccess: onStarted });
+    start.mutate(resolveRunRequest(draft), { onSuccess: onStarted });
   };
 
   return (
@@ -320,104 +358,10 @@ function Wizard({ disabled, onStarted }: { disabled: boolean; onStarted: () => v
         </div>
       </Step>
 
-      <Step n={2} title="Where?">
-        <div className="ls-modes">
-          <button type="button" className={`ls-mode${draft.cityMode === "suggested" ? " on" : ""}`} onClick={() => setDraft((d) => ({ ...d, cityMode: "suggested" }))}>
-            Pick states, I'll suggest the wealthy suburbs
-          </button>
-          <button type="button" className={`ls-mode${draft.cityMode === "manual" ? " on" : ""}`} onClick={() => setDraft((d) => ({ ...d, cityMode: "manual" }))}>
-            Name the cities myself
-          </button>
-        </div>
-
-        {draft.cityMode === "suggested" ? (
-          <>
-            <div className="ls-states">
-              {(statesQuery.data?.states ?? []).map((s) => (
-                <button
-                  key={s.state}
-                  type="button"
-                  className={`ls-state${draft.states.includes(s.state) ? " on" : ""}`}
-                  title={`${s.cities} cities`}
-                  onClick={() => toggleState(s.state)}
-                >
-                  {s.state}
-                </button>
-              ))}
-            </div>
-
-            {draft.states.length > 0 && (
-              <div className="ls-cities">
-                <div className="ls-cities-head">
-                  <span>
-                    {keptCount} of {suggested.length} cities. Click any to strike it out.
-                  </span>
-                  {draft.excluded.length > 0 && (
-                    <button type="button" className="ls-linkbtn" onClick={() => setDraft((d) => ({ ...d, excluded: [] }))}>
-                      Put them all back
-                    </button>
-                  )}
-                </div>
-                <div className="ls-citylist">
-                  {metros.isLoading && <span className="ls-muted">Loading cities...</span>}
-                  {suggested.map((c) => {
-                    const off = excluded.has(cityKey(c.city, c.state));
-                    const note = noteFor(c.city, c.state);
-                    return (
-                      <button
-                        key={cityKey(c.city, c.state)}
-                        type="button"
-                        className={`ls-city${off ? " off" : ""}${c.isAnchor ? " anchor" : ""}${note ? ` mark-${note.tone}` : ""}`}
-                        title={note ? `${c.city}: ${note.text}` : undefined}
-                        onClick={() => toggleCity(c)}
-                      >
-                        {c.city}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            <textarea
-              className="ls-textarea"
-              rows={6}
-              placeholder={"One city per line, with its state:\nPlano TX\nBoise ID\nNaperville IL"}
-              value={manualText}
-              onChange={(e) => setManualText(e.target.value)}
-            />
-            <div className="ls-muted">
-              {manualCities.length} {manualCities.length === 1 ? "city" : "cities"} recognised.
-            </div>
-            {/* Every city read back, carrying what has already been done there
-                for the trade above. A city we have never touched says nothing:
-                the marker exists for the two answers that change the decision,
-                which are "already done for this trade" and "worked for another
-                one and still open for this". */}
-            {manualCities.length > 0 && (
-              <div className="ls-manual">
-                {manualCities.map((c) => {
-                  const note = noteFor(c.city, c.state);
-                  return (
-                    <span key={cityKey(c.city, c.state)} className={`ls-mc${note ? ` mark-${note.tone}` : ""}`}>
-                      {c.city}
-                      {c.state ? ` ${c.state}` : ""}
-                      {note && <span className="ls-mc-note">{note.text}</span>}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
-      </Step>
-
-      <Step n={3} title="How big a run?">
+      <Step n={2} title="How big a run?">
         <div className="ls-sizes">
           {RUN_SIZES.map((s) => (
-            <button key={s.id} type="button" className={`ls-size${draft.size === s.id ? " on" : ""}`} onClick={() => setDraft((d) => ({ ...d, size: s.id as RunSize }))}>
+            <button key={s.id} type="button" className={`ls-size${draft.size === s.id ? " on" : ""}`} onClick={() => chooseSize(s.id)}>
               <span className="ls-size-label">
                 {s.label}
                 <span className="ls-size-cap">{sizeCapLabel(s.cap)}</span>
@@ -426,6 +370,47 @@ function Wizard({ disabled, onStarted }: { disabled: boolean; onStarted: () => v
             </button>
           ))}
         </div>
+      </Step>
+
+      <Step n={3} title="Which cities?">
+        {!draft.nicheId ? (
+          <div className="ls-muted">Pick a niche first.</div>
+        ) : (
+          <>
+            <div className="ls-paste">
+              <textarea
+                className="ls-textarea"
+                rows={3}
+                placeholder={"Paste a list to tick it:\nPlano TX\nBoise ID\nFrisco / Southlake TX"}
+                value={pasted}
+                onChange={(e) => setPasted(e.target.value)}
+              />
+              <button type="button" className="ls-secondary" disabled={!pasted.trim()} onClick={addPasted}>
+                Add to the run
+              </button>
+            </div>
+
+            {dropped > 0 && (
+              <div className="ls-note warn">
+                <AlertTriangle size={13} />
+                {dropped} {dropped === 1 ? "city" : "cities"} over the {cap}
+                {cap === 1 ? " city" : " cities"} this size scrapes.
+              </div>
+            )}
+
+            <div className="ls-picktable">
+              <CitiesTable
+                picker={{
+                  niche: draft.nicheId,
+                  cap,
+                  picked: draft.cities,
+                  onToggle: toggleCity,
+                  extra,
+                }}
+              />
+            </div>
+          </>
+        )}
       </Step>
 
       <div className="ls-go">
@@ -995,59 +980,21 @@ function LeadsStyle() {
       .pk-kit .ls-size.on .ls-size-cap { color: var(--ls-indigo); }
       .pk-kit .ls-chip-sub, .pk-kit .ls-size-blurb { font-size: 11.5px; color: var(--text-faint); }
 
-      .pk-kit .ls-modes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-      .pk-kit .ls-mode {
-        border: 1px solid var(--border); background: var(--surface); color: var(--text-muted);
-        border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 12.5px; cursor: pointer;
-      }
-      .pk-kit .ls-mode.on { border-color: var(--ls-indigo); color: var(--ls-indigo); background: var(--ls-indigo-tint); font-weight: 600; }
-
-      .pk-kit .ls-states { display: flex; flex-wrap: wrap; gap: 6px; }
-      .pk-kit .ls-state {
-        min-width: 40px; border: 1px solid var(--border); background: var(--surface);
-        color: var(--text-muted); border-radius: 9px; padding: 6px 9px; cursor: pointer;
-        font: inherit; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
-      }
-      .pk-kit .ls-state:hover { background: var(--ls-hover); }
-      .pk-kit .ls-state.on { border-color: var(--ls-indigo); background: var(--ls-indigo); color: #fff; }
-
-      .pk-kit .ls-cities { margin-top: 16px; }
-      .pk-kit .ls-cities-head {
-        display: flex; justify-content: space-between; align-items: center; gap: 10px;
-        font-size: 12px; color: var(--text-faint); margin-bottom: 8px; flex-wrap: wrap;
-      }
-      .pk-kit .ls-citylist { display: flex; flex-wrap: wrap; gap: 6px; max-height: 260px; overflow: auto; }
-      .pk-kit .ls-city {
-        border: 1px solid var(--border); background: var(--surface); color: var(--text);
-        border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12px; cursor: pointer;
-      }
-      .pk-kit .ls-city.anchor { font-weight: 600; }
-      .pk-kit .ls-city.off { text-decoration: line-through; color: var(--text-faint); opacity: .55; }
-      /* Already worked for the trade selected above. Amber, not struck out: it
-         is a warning, and re-running a city is sometimes exactly the intent. */
-      .pk-kit .ls-city.mark-leads, .pk-kit .ls-city.mark-empty {
-        border-color: rgba(245,158,11,.55); background: rgba(245,158,11,.12);
-      }
-      /* Worked for another trade, still open for this one. */
-      .pk-kit .ls-city.mark-open { border-color: rgba(99,102,241,.5); background: rgba(99,102,241,.10); }
-
-      .pk-kit .ls-manual { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; max-height: 220px; overflow: auto; }
-      .pk-kit .ls-mc {
-        display: inline-flex; align-items: center; gap: 6px;
-        border: 1px solid var(--border); background: var(--surface); color: var(--text);
-        border-radius: 999px; padding: 4px 11px; font-size: 12px;
-      }
-      .pk-kit .ls-mc-note { font-size: 11px; opacity: .8; }
-      .pk-kit .ls-mc.mark-leads, .pk-kit .ls-mc.mark-empty {
-        border-color: rgba(245,158,11,.55); background: rgba(245,158,11,.12);
-      }
-      .pk-kit .ls-mc.mark-open { border-color: rgba(99,102,241,.5); background: rgba(99,102,241,.10); }
-
       .pk-kit .ls-textarea {
         width: 100%; border: 1px solid var(--border); background: var(--surface); color: var(--text);
         border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 13px; resize: vertical;
       }
       .pk-kit .ls-textarea:focus { outline: 0; box-shadow: 0 0 0 2px var(--ls-indigo); }
+
+      .pk-kit .ls-paste { display: flex; align-items: flex-start; gap: 10px; }
+      .pk-kit .ls-paste .ls-textarea { flex: 1; }
+      .pk-kit .ls-secondary {
+        border: 1px solid var(--border); background: var(--surface); color: var(--text);
+        border-radius: 10px; padding: 9px 14px; font: inherit; font-size: 13px; font-weight: 600;
+        cursor: pointer; white-space: nowrap;
+      }
+      .pk-kit .ls-secondary:disabled { opacity: .45; cursor: not-allowed; }
+      .pk-kit .ls-picktable { margin-top: 12px; }
 
       .pk-kit .ls-go { display: flex; align-items: center; gap: 12px; padding: 18px 22px 0; flex-wrap: wrap; }
       .pk-kit .ls-primary {

@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   cityCoverage,
-  cityNote,
   indexCities,
   lookupCity,
   nicheLabels,
@@ -31,7 +30,7 @@ function city(over: Partial<LeadCity> = {}): LeadCity {
   };
 }
 
-const label = nicheLabels([
+const trade = nicheLabels([
   {
     id: "1",
     nicheId: "garage_doors",
@@ -58,33 +57,15 @@ describe("reading one city's coverage", () => {
   });
 });
 
-describe("the marker beside a city in the wizard", () => {
-  it("says nothing about a city nobody has ever worked", () => {
-    expect(cityNote(city(), label)).toBeNull();
-    expect(cityNote(null, label)).toBeNull();
+describe("naming a trade", () => {
+  it("prefers the preset's own label", () => {
+    expect(trade("garage_doors")).toBe("Garage doors");
   });
 
-  it("names the other trades when the city is still open for this one", () => {
-    const note = cityNote(city({ totalRuns: 1, niches: ["garage_doors"] }), label)!;
-    expect(note.tone).toBe("open");
-    expect(note.text).toBe("Garage doors");
-  });
-
-  // Midday, not midnight: the date is rendered in Jake's own timezone, so a UTC
-  // midnight stamp is honestly the evening before and would make this test read
-  // as a bug on a machine set to anywhere west of London.
-  it("says what was found and when, for a city already done for this trade", () => {
-    const note = cityNote(
-      city({ leads: 12, totalLeads: 12, lastRunAt: "2026-08-21T12:00:00Z" }),
-      label,
-    )!;
-    expect(note.tone).toBe("leads");
-    expect(note.text).toBe("12 leads, 21 Aug");
-  });
-
-  it("still reads a trade that no preset knows about", () => {
-    const note = cityNote(city({ totalRuns: 1, niches: ["windows_doors"] }), label)!;
-    expect(note.text).toBe("Windows doors");
+  // A niche that was renamed or deleted still has runs in the history, so it
+  // still has to render as something a person can read.
+  it("tidies an id no preset knows about", () => {
+    expect(trade("windows_doors")).toBe("Windows doors");
   });
 });
 

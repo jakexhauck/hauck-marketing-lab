@@ -7,7 +7,6 @@
 
 export type RunSize = "quick" | "standard" | "deep";
 export type Channel = "cold_call" | "sms";
-export type CityMode = "suggested" | "manual";
 
 export interface ScrapedLeadView {
   id: string;
@@ -84,16 +83,9 @@ export interface NichePreset {
   updatedAt: string;
 }
 
-export interface MetroCity {
-  city: string;
-  state: string;
-  metro: string;
-  isAnchor: boolean;
-}
-
 // --- run sizes ---------------------------------------------------------------
 
-// The wizard's third step. The wall-clock figures are the honest shape of a run,
+// The wizard's second step. The wall-clock figures are the honest shape of a run,
 // not a promise: gosom's pace depends on how hard Google is pushing back.
 // cap is the runner's max_locations for that size (lead-scraper/build_queue.py).
 // It is on the button because a size SILENTLY drops the cities it cannot fit:
@@ -110,77 +102,77 @@ export function sizeCapLabel(cap: number): string {
 
 // --- the wizard --------------------------------------------------------------
 
+// Three questions in the order the answers depend on each other. The trade
+// decides what "already done" means for a city, and the size decides how many
+// cities you are allowed to pick, so both are asked before the city list is.
 export interface RunDraft {
   nicheId: string;
-  states: string[];
-  cityMode: CityMode;
-  // Cities struck out of the suggested list, keyed by cityKey.
-  excluded: string[];
-  // Hand-typed cities, used when cityMode is "manual".
-  manualCities: { city: string; state: string }[];
   size: RunSize;
+  // Every city picked, in the order they were picked. The API takes states or
+  // cities; the wizard now only ever sends cities, so what you ticked is
+  // exactly what gets scraped.
+  cities: { city: string; state: string }[];
 }
 
 export function emptyDraft(): RunDraft {
-  return {
-    nicheId: "",
-    states: [],
-    cityMode: "suggested",
-    excluded: [],
-    manualCities: [],
-    size: "standard",
-  };
+  return { nicheId: "", size: "standard", cities: [] };
 }
 
 export function cityKey(city: string, state: string): string {
   return `${city.trim().toLowerCase()}|${state.trim().toUpperCase()}`;
 }
 
+// How many cities a size will actually scrape. The runner caps by DISTINCT
+// LOCATION and silently drops the rest (lead-scraper/build_queue.py), which is
+// why the wizard refuses to let a list grow past it rather than letting the
+// runner throw the tail away in the dark.
+export function runCap(size: RunSize): number {
+  return RUN_SIZES.find((s) => s.id === size)?.cap ?? 40;
+}
+
 /**
- * What the wizard will actually send.
+ * Add cities to the pick list, never past the cap.
  *
- * In suggested mode the states go over as states and the runner expands them
- * from the same metro grid the page just showed, minus anything struck out. A
- * struck-out city has to travel as an exclusion, and the API only takes states or
- * explicit cities, so striking anything out converts the whole thing to an
- * explicit city list. That keeps one rule: what you saw is what gets scraped.
+ * Returns the new list and how many were turned away, because a paste of sixty
+ * cities into a Standard run has to say that twenty of them did not fit. The
+ * alternative is the bug this cap exists to prevent, one step earlier.
  */
+export function addCities(
+  picked: { city: string; state: string }[],
+  incoming: { city: string; state: string }[],
+  cap: number,
+): { cities: { city: string; state: string }[]; dropped: number } {
+  const out = [...picked];
+  const seen = new Set(out.map((c) => cityKey(c.city, c.state)));
+  let dropped = 0;
+  for (const c of incoming) {
+    const key = cityKey(c.city, c.state);
+    if (seen.has(key)) continue;
+    if (out.length >= cap) {
+      dropped += 1;
+      continue;
+    }
+    seen.add(key);
+    out.push(c);
+  }
+  return { cities: out, dropped };
+}
+
+/** What the wizard will actually send. */
 export function resolveRunRequest(
   draft: RunDraft,
-  suggested: MetroCity[],
 ): { nicheId: string; states: string[]; cities: { city: string; state: string }[]; size: RunSize } {
-  if (draft.cityMode === "manual") {
-    return { nicheId: draft.nicheId, states: [], cities: draft.manualCities, size: draft.size };
-  }
-
-  const excluded = new Set(draft.excluded);
-  const kept = suggested.filter((c) => !excluded.has(cityKey(c.city, c.state)));
-
-  // Nothing struck out: send states and let the runner expand them, which is the
-  // SOP's own two-pass metro-then-suburb order.
-  if (kept.length === suggested.length) {
-    return { nicheId: draft.nicheId, states: draft.states, cities: [], size: draft.size };
-  }
-
   return {
     nicheId: draft.nicheId,
     states: [],
-    cities: kept.map((c) => ({ city: c.city, state: c.state })),
+    cities: draft.cities.slice(0, runCap(draft.size)),
     size: draft.size,
   };
 }
 
-export function draftProblem(draft: RunDraft, suggested: MetroCity[]): string | null {
+export function draftProblem(draft: RunDraft): string | null {
   if (!draft.nicheId) return "Pick a niche.";
-  if (draft.cityMode === "manual") {
-    if (draft.manualCities.length === 0) return "Add at least one city.";
-    return null;
-  }
-  if (draft.states.length === 0) return "Pick at least one state.";
-  const excluded = new Set(draft.excluded);
-  if (suggested.length > 0 && suggested.every((c) => excluded.has(cityKey(c.city, c.state)))) {
-    return "You have struck out every city.";
-  }
+  if (draft.cities.length === 0) return "Pick at least one city.";
   return null;
 }
 

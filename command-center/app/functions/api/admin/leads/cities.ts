@@ -20,9 +20,10 @@ import { STATE_CODE, stateCode } from "../../../lib/usStates";
 // city it found them in), which is worth knowing before assuming the list is
 // complete.
 //
-// The list is a UNION of three sources, not lead_cities alone:
+// The list is a UNION of four sources, not lead_cities alone:
 //
 //   lead_cities        the 999 biggest cities: the planning list
+//   lead_metros        the curated affluent suburb grid, 69 metros and their rings
 //   scrape_runs.cities every city a run has ever named
 //   lead_city_counts   every city a lead carries
 //
@@ -66,6 +67,13 @@ interface RunRow {
   cities: unknown;
   states: unknown;
   created_at: string;
+}
+
+interface MetroRow {
+  metro: string;
+  state: string;
+  query_anchor: string;
+  suburbs: string[] | null;
 }
 
 export interface CoverageCity {
@@ -213,6 +221,7 @@ export function buildCoverage(
   counts: CountRow[],
   runs: RunRow[],
   niche: string,
+  metros: MetroRow[] = [],
 ): CoverageCity[] {
   // Keyed on city AND state wherever it is known. That distinction matters:
   // there is a Portland in Oregon and one in Maine, both on the list, so a
@@ -252,6 +261,17 @@ export function buildCoverage(
         // Runs arrive newest first, so the first sighting is the latest one.
         if (!cover.lastRunAt) cover.lastRunAt = r.created_at;
       }
+    }
+  }
+
+  // The curated grid. These carry no coverage of their own; they are here so a
+  // wealthy suburb nobody has scraped yet can still be found and ticked. Losing
+  // them is how dropping the old "pick states, I'll suggest the suburbs" mode
+  // would have quietly narrowed what Jake is able to target.
+  for (const m of metros) {
+    for (const name of [m.query_anchor || m.metro, ...(m.suburbs ?? [])]) {
+      const city = stripTrailingState(name ?? "");
+      if (city) bucket(city, m.state);
     }
   }
 
@@ -330,7 +350,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const url = new URL(ctx.request.url);
   const niche = (url.searchParams.get("niche") ?? "").trim();
 
-  const [cityRes, countRes, runRes] = await Promise.all([
+  const [cityRes, countRes, runRes, metroRes] = await Promise.all([
     client
       .from("lead_cities")
       .select("rank, city, state_name, state_code, population, growth_pct")
@@ -343,6 +363,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       .from("scrape_runs")
       .select("niche_id, cities, states, created_at")
       .order("created_at", { ascending: false }),
+    client.from("lead_metros").select("metro, state, query_anchor, suburbs"),
   ]);
 
   if (cityRes.error) {
@@ -358,12 +379,18 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     return Response.json({ error: "could not read scrape runs" }, { status: 500 });
   }
 
+  // The metro grid is the one source allowed to fail quietly. It adds cities
+  // that have no history, so losing it costs reach, not truth, and it must
+  // never take the page down with it.
+  if (metroRes.error) console.error("[leads/cities] metro read failed", metroRes.error.message);
+
   const runs = (runRes.data ?? []) as RunRow[];
   const rows = buildCoverage(
     (cityRes.data ?? []) as CityRow[],
     (countRes.data ?? []) as CountRow[],
     runs,
     niche,
+    (metroRes.data ?? []) as MetroRow[],
   );
 
   // The niches actually present in the run history, for the filter. Read from

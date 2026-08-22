@@ -3,7 +3,6 @@ import { api } from "../lib/api";
 import {
   isRunActive,
   type Channel,
-  type MetroCity,
   type NichePreset,
   type RunSize,
   type ScrapeRun,
@@ -21,7 +20,6 @@ import {
 const LEADS_KEY = ["admin", "leads"] as const;
 const RUNS_KEY = ["admin", "leads", "runs"] as const;
 const PRESETS_KEY = ["admin", "leads", "presets"] as const;
-const METROS_KEY = ["admin", "leads", "metros"] as const;
 
 const POLL_MS = 4000;
 
@@ -29,7 +27,6 @@ export const leadScraperKeys = {
   leads: (filters: LeadFilters) => [...LEADS_KEY, filters] as const,
   runs: () => RUNS_KEY,
   presets: () => PRESETS_KEY,
-  metros: (states: string[]) => [...METROS_KEY, [...states].sort().join(",")] as const,
 };
 
 export interface LeadFilters {
@@ -95,28 +92,9 @@ export function useNichePresets() {
   });
 }
 
-// The cities a set of states would be scraped as. Empty states means the caller is
-// drawing the state picker, which is a different shape, so it is not fetched here.
-export function useMetroCities(states: string[]) {
-  return useQuery({
-    queryKey: leadScraperKeys.metros(states),
-    queryFn: () =>
-      api<{ cities: MetroCity[] }>(
-        `/api/admin/leads/metros?states=${encodeURIComponent(states.join(","))}`,
-      ),
-    enabled: states.length > 0,
-  });
-}
-
-export function useAvailableStates() {
-  return useQuery({
-    queryKey: [...METROS_KEY, "states"] as const,
-    queryFn: () =>
-      api<{ states: { state: string; metros: number; cities: number }[] }>(
-        "/api/admin/leads/metros",
-      ),
-  });
-}
+// The metro grid is now read only by the Cities coverage endpoint, which folds
+// it into one list with everything else. Nothing on the client asks for it
+// directly since the wizard started picking cities off that one table.
 
 export interface StartRunInput {
   nicheId: string;

@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-22-scrape-wizard-cities",
+    date: "22 August 2026",
+    title: "New scrape asks the niche, then the size, then hands you the city list",
+    items: [
+      "Three steps in the order the answers depend on each other. The trade decides what 'already done' means for a city, and the size decides how many cities you are allowed, so both are asked before you pick a single one.",
+      "Step three is the Cities table itself, with a tick box on every row. You are picking cities while looking at what has already been done in each one, for the trade you just chose, rather than typing names and hoping.",
+      "The counter reads 12 of 40. At the cap the remaining boxes go dead instead of letting you build a list the runner will silently cut: Quick takes 1 city, Standard 40, Deep 400. Dropping to a smaller size trims the list and says how many it dropped.",
+      "The paste box still works and now ticks rows instead of replacing them. Paste a list and each city is matched to its row, history and all. A city we have never seen gets a row of its own so it can still be ticked.",
+      "Picking states and letting it guess the suburbs is gone. Those curated suburbs are all in the table now, so you can see and tick them yourself.",
+    ],
+  },
+  {
     id: "2026-08-22-city-coverage-per-trade",
     date: "22 August 2026",
     title: "Cities remembers what you scraped, and which trade you scraped it for",
