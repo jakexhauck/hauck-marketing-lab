@@ -196,16 +196,31 @@ export function parseCityLine(line: string): { city: string; state: string } | n
   return { city: raw, state: "" };
 }
 
+/**
+ * One line per city, except when it is two.
+ *
+ * "Frisco / Southlake TX" is how Jake writes a pair of neighbouring towns, and
+ * it used to survive whole: the runner searched Google for the literal string
+ * "garage door repair Frisco / Southlake TX", and no coverage screen could ever
+ * match it back to a city. Split, it is two ordinary cities sharing the state
+ * written on the end of the line, which is what was meant.
+ */
 export function parseCityList(text: string): { city: string; state: string }[] {
   const out: { city: string; state: string }[] = [];
   const seen = new Set<string>();
   for (const line of (text ?? "").split(/[\n;]/)) {
     const parsed = parseCityLine(line);
     if (!parsed) continue;
-    const key = cityKey(parsed.city, parsed.state);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(parsed);
+    // The state is written once, at the end of the line, so it is read once and
+    // handed to every city on it.
+    for (const part of parsed.city.split("/")) {
+      const city = part.trim();
+      if (!city) continue;
+      const key = cityKey(city, parsed.state);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ city, state: parsed.state });
+    }
   }
   return out;
 }

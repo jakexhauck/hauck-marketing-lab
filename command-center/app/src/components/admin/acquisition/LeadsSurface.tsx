@@ -43,6 +43,14 @@ import {
   type ScrapeRun,
   type ScrapedLeadView,
 } from "../../../lib/leadScraper";
+import { useLeadCities } from "../../../hooks/useApi";
+import {
+  cityNote,
+  indexCities,
+  lookupCity,
+  nicheLabels,
+  type CityNote,
+} from "../../../lib/cityCoverage";
 import {
   useAvailableStates,
   useLeads,
@@ -239,6 +247,15 @@ function Wizard({ disabled, onStarted }: { disabled: boolean; onStarted: () => v
   const metros = useMetroCities(draft.cityMode === "suggested" ? draft.states : []);
   const start = useStartRun();
 
+  // What has already been done in these cities, for the trade that is selected.
+  // Asked for only once a trade is picked, because until then the answer means
+  // nothing: a city is never "done", it is done for something.
+  const coverage = useLeadCities(draft.nicheId, !!draft.nicheId);
+  const index = useMemo(() => indexCities(coverage.data?.cities ?? []), [coverage.data]);
+  const label = useMemo(() => nicheLabels(presets.data?.presets), [presets.data]);
+  const noteFor = (city: string, state: string): CityNote | null =>
+    draft.nicheId ? cityNote(lookupCity(index, city, state), label) : null;
+
   const suggested: MetroCity[] = metros.data?.cities ?? [];
   const manualCities = useMemo(() => parseCityList(manualText), [manualText]);
   const effective: RunDraft = { ...draft, manualCities };
@@ -345,8 +362,15 @@ function Wizard({ disabled, onStarted }: { disabled: boolean; onStarted: () => v
                   {metros.isLoading && <span className="ls-muted">Loading cities...</span>}
                   {suggested.map((c) => {
                     const off = excluded.has(cityKey(c.city, c.state));
+                    const note = noteFor(c.city, c.state);
                     return (
-                      <button key={cityKey(c.city, c.state)} type="button" className={`ls-city${off ? " off" : ""}${c.isAnchor ? " anchor" : ""}`} onClick={() => toggleCity(c)}>
+                      <button
+                        key={cityKey(c.city, c.state)}
+                        type="button"
+                        className={`ls-city${off ? " off" : ""}${c.isAnchor ? " anchor" : ""}${note ? ` mark-${note.tone}` : ""}`}
+                        title={note ? `${c.city}: ${note.text}` : undefined}
+                        onClick={() => toggleCity(c)}
+                      >
                         {c.city}
                       </button>
                     );
@@ -367,6 +391,25 @@ function Wizard({ disabled, onStarted }: { disabled: boolean; onStarted: () => v
             <div className="ls-muted">
               {manualCities.length} {manualCities.length === 1 ? "city" : "cities"} recognised.
             </div>
+            {/* Every city read back, carrying what has already been done there
+                for the trade above. A city we have never touched says nothing:
+                the marker exists for the two answers that change the decision,
+                which are "already done for this trade" and "worked for another
+                one and still open for this". */}
+            {manualCities.length > 0 && (
+              <div className="ls-manual">
+                {manualCities.map((c) => {
+                  const note = noteFor(c.city, c.state);
+                  return (
+                    <span key={cityKey(c.city, c.state)} className={`ls-mc${note ? ` mark-${note.tone}` : ""}`}>
+                      {c.city}
+                      {c.state ? ` ${c.state}` : ""}
+                      {note && <span className="ls-mc-note">{note.text}</span>}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
       </Step>
@@ -980,6 +1023,25 @@ function LeadsStyle() {
       }
       .pk-kit .ls-city.anchor { font-weight: 600; }
       .pk-kit .ls-city.off { text-decoration: line-through; color: var(--text-faint); opacity: .55; }
+      /* Already worked for the trade selected above. Amber, not struck out: it
+         is a warning, and re-running a city is sometimes exactly the intent. */
+      .pk-kit .ls-city.mark-leads, .pk-kit .ls-city.mark-empty {
+        border-color: rgba(245,158,11,.55); background: rgba(245,158,11,.12);
+      }
+      /* Worked for another trade, still open for this one. */
+      .pk-kit .ls-city.mark-open { border-color: rgba(99,102,241,.5); background: rgba(99,102,241,.10); }
+
+      .pk-kit .ls-manual { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; max-height: 220px; overflow: auto; }
+      .pk-kit .ls-mc {
+        display: inline-flex; align-items: center; gap: 6px;
+        border: 1px solid var(--border); background: var(--surface); color: var(--text);
+        border-radius: 999px; padding: 4px 11px; font-size: 12px;
+      }
+      .pk-kit .ls-mc-note { font-size: 11px; opacity: .8; }
+      .pk-kit .ls-mc.mark-leads, .pk-kit .ls-mc.mark-empty {
+        border-color: rgba(245,158,11,.55); background: rgba(245,158,11,.12);
+      }
+      .pk-kit .ls-mc.mark-open { border-color: rgba(99,102,241,.5); background: rgba(99,102,241,.10); }
 
       .pk-kit .ls-textarea {
         width: 100%; border: 1px solid var(--border); background: var(--surface); color: var(--text);

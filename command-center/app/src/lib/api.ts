@@ -848,17 +848,26 @@ export interface CreativeFile {
 // nothing, or hold leads that arrived without a run naming it, and one merged
 // "scraped" flag would hide both.
 export interface LeadCity {
-  rank: number;
+  // Null for a city that is not on the 999-city planning list. It was still
+  // scraped: the hand-typed suburbs mostly live here.
+  rank: number | null;
   city: string;
   stateName: string;
   stateCode: string;
   population: number | null;
   growthPct: number | null;
-  // How many scrape runs named this city.
+  // How many scrape runs named this city, scoped to the niche filter when one
+  // is set.
   runs: number;
   lastRunAt: string | null;
-  // How many leads in the book carry it.
+  // How many leads in the book carry it, scoped the same way.
   leads: number;
+  // Never scoped. What separates a cold city from one that is worked, but not
+  // for the trade being planned.
+  totalRuns: number;
+  totalLeads: number;
+  // Every trade this city has been worked for.
+  niches: string[];
 }
 
 export interface LeadCitiesResponse {

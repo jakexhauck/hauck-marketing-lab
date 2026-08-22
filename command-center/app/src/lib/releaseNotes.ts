@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-22-city-coverage-per-trade",
+    date: "22 August 2026",
+    title: "Cities remembers what you scraped, and which trade you scraped it for",
+    items: [
+      "The Cities tab now lists every city you have ever worked, not just the 999 biggest. The cities you type in yourself are wealthy suburbs (Mercer Island, Los Gatos, Gig Harbor, Bloomfield Hills), almost none of which are big enough for a population list, so 409 cities you had already scraped were showing up nowhere at all. They now carry their runs, their leads and their date. An off-list city has no rank and no population; it has everything else.",
+      "Every row says which trades it has been worked for, and picking a trade scopes the counts to it. Los Gatos has been run for garage doors and never for windows, so it now reads as open for windows instead of a plain green tick.",
+      "A new filter, Open for this trade: cities that have been worked before, for something else. That is the shortlist worth taking to the next niche.",
+      "The wizard marks a city before you spend the run on it. Paste your list, pick the trade, and each city says what is already there: amber for done, indigo for worked under another trade.",
+      "A line like 'Frisco / Southlake TX' now counts as two cities. It used to be searched literally, one query with a slash in it, matching no city anywhere.",
+    ],
+  },
+  {
     id: "2026-08-21-dialer-hides-booked",
     date: "21 August 2026",
     title: "A prospect who is already booked stays off the power dialer",

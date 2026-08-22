@@ -1659,9 +1659,10 @@ export function useAdminCreativesFolderQuery(tenantId: string) {
 // The city list with its coverage. Re-fetched per niche, because "scraped for
 // HVAC" is a different question from "scraped at all" and the counts behind it
 // are different rows.
-export function useLeadCities(niche: string) {
+export function useLeadCities(niche: string, enabled = true) {
   return useQuery({
     queryKey: ["admin", "lead-cities", niche],
+    enabled,
     staleTime: 60_000,
     placeholderData: (prev) => prev,
     queryFn: () =>

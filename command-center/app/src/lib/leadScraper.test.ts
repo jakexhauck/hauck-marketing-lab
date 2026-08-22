@@ -131,6 +131,19 @@ describe("typing cities by hand", () => {
   it("de-duplicates the same city typed twice", () => {
     expect(parseCityList("Plano TX\nplano tx")).toEqual([{ city: "Plano", state: "TX" }]);
   });
+
+  // A live run searched Google for the literal string "Frisco / Southlake TX"
+  // and no screen could ever match that back to a city.
+  it("reads two cities off one slashed line, sharing the state", () => {
+    expect(parseCityList("Frisco / Southlake TX")).toEqual([
+      { city: "Frisco", state: "TX" },
+      { city: "Southlake", state: "TX" },
+    ]);
+    expect(parseCityList("Leawood/Overland Park KS")).toEqual([
+      { city: "Leawood", state: "KS" },
+      { city: "Overland Park", state: "KS" },
+    ]);
+  });
 });
 
 describe("reading a run", () => {

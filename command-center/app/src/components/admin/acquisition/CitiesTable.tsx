@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { useLeadCities } from "../../../hooks/useApi";
+import { useNichePresets } from "../../../hooks/useLeadScraper";
+import { nicheLabels, cityCoverage, type Coverage } from "../../../lib/cityCoverage";
 import type { LeadCity } from "../../../lib/api";
 
-// Leads > Cities. The 1000 biggest US cities and what we have already done in
-// each, so picking the next scrape is a decision rather than a memory test.
+// Leads > Cities. Every city we have touched, and what we did there, so picking
+// the next scrape is a decision rather than a memory test.
 //
 // Two counts, never merged into one "scraped" flag, because they disagree in
 // both directions and each disagreement means something:
@@ -15,27 +17,46 @@ import type { LeadCity } from "../../../lib/api";
 // A city with runs and no leads was worked and came up empty. A city with leads
 // and no runs arrived some other way. One flag would have hidden both.
 //
-// Everything is filtered and sorted in the browser: the whole list is 999 rows,
-// so a keystroke costs nothing, where paging would cost a round trip.
+// The list is not the 999 biggest cities. It is the union of those with every
+// city a run has ever named and every city a lead carries, because the cities
+// Jake types in himself are wealthy suburbs that are far too small for a
+// population list: Mercer Island, Los Gatos, Gig Harbor. Those rows have no rank
+// and no population.
+//
+// Coverage is read per TRADE. Pick one and the counts scope to it, while the
+// Trades column keeps showing everything the city has been worked for. That is
+// the whole question: a city scraped for garage doors is still open for windows,
+// and merged counts made the two look identical.
+//
+// Everything is filtered and sorted in the browser: the whole list is a couple
+// of thousand rows, so a keystroke costs nothing, where paging would cost a
+// round trip.
 
-type Status = "all" | "untouched" | "worked" | "empty" | "leads";
+type Status = "all" | "untouched" | "worked" | "open" | "empty" | "leads";
 type SortKey = "rank" | "city" | "population" | "growth" | "runs" | "leads";
 
 const STATUS_LABEL: Record<Status, string> = {
   all: "All cities",
   untouched: "Never touched",
-  worked: "Worked (any)",
+  worked: "Worked (any trade)",
+  open: "Open for this trade",
   empty: "Ran, no leads",
   leads: "Has leads",
 };
 
 function matchesStatus(c: LeadCity, status: Status): boolean {
+  const cover = cityCoverage(c);
   switch (status) {
     case "untouched":
-      return c.runs === 0 && c.leads === 0;
+      return cover === "cold";
     case "worked":
-      return c.runs > 0 || c.leads > 0;
-    // The row worth acting on: we spent a run there and it produced nothing.
+      return cover !== "cold";
+    // The row worth acting on when a trade is picked: worked before, never for
+    // this one.
+    case "open":
+      return cover === "open";
+    // The other row worth acting on: we spent a run there and it produced
+    // nothing.
     case "empty":
       return c.runs > 0 && c.leads === 0;
     case "leads":
@@ -45,17 +66,28 @@ function matchesStatus(c: LeadCity, status: Status): boolean {
   }
 }
 
+const CHIP: Record<Coverage, string> = {
+  leads: "lc-chip-on",
+  empty: "lc-chip-warn",
+  open: "lc-chip-open",
+  cold: "lc-chip-off",
+};
+
 function StatusChip({ city }: { city: LeadCity }) {
-  if (city.leads > 0) {
-    return (
-      <span className="lc-chip lc-chip-on">
-        {city.leads.toLocaleString()} lead{city.leads === 1 ? "" : "s"}
-      </span>
-    );
-  }
-  if (city.runs > 0) return <span className="lc-chip lc-chip-warn">Ran, nothing found</span>;
-  return <span className="lc-chip lc-chip-off">Never touched</span>;
+  const cover = cityCoverage(city);
+  const text =
+    cover === "leads"
+      ? `${city.leads.toLocaleString()} lead${city.leads === 1 ? "" : "s"}`
+      : cover === "empty"
+        ? "Ran, nothing found"
+        : cover === "open"
+          ? "Open for this trade"
+          : "Never touched";
+  return <span className={`lc-chip ${CHIP[cover]}`}>{text}</span>;
 }
+
+// Ranked cities first, in rank order; everything off the planning list after.
+const rankOf = (c: LeadCity) => c.rank ?? Number.MAX_SAFE_INTEGER;
 
 export default function CitiesTable() {
   const [niche, setNiche] = useState("");
@@ -66,12 +98,21 @@ export default function CitiesTable() {
   const [desc, setDesc] = useState(false);
 
   const query = useLeadCities(niche);
+  const presets = useNichePresets();
   const cities = useMemo(() => query.data?.cities ?? [], [query.data]);
   const niches = query.data?.niches ?? [];
+  const labels = useMemo(() => nicheLabels(presets.data?.presets), [presets.data]);
 
   const states = useMemo(
-    () => [...new Set(cities.map((c) => c.stateCode))].sort(),
+    () => [...new Set(cities.map((c) => c.stateCode).filter(Boolean))].sort(),
     [cities],
+  );
+
+  // "Open for this trade" is only a question once a trade is chosen. Clearing
+  // the trade while it is selected would otherwise leave the table empty with no
+  // way to tell why.
+  const statuses = (Object.keys(STATUS_LABEL) as Status[]).filter(
+    (s) => s !== "open" || niche !== "",
   );
 
   const visible = useMemo(() => {
@@ -98,12 +139,12 @@ export default function CitiesTable() {
         case "leads":
           return dir * (a.leads - b.leads);
         default:
-          return dir * (a.rank - b.rank);
+          return dir * (rankOf(a) - rankOf(b));
       }
     });
   }, [cities, q, state, status, sort, desc]);
 
-  const touched = cities.filter((c) => c.runs > 0 || c.leads > 0).length;
+  const touched = cities.filter((c) => cityCoverage(c) !== "cold").length;
 
   const head = (key: SortKey, label: string, right = false) => (
     <th
@@ -157,21 +198,28 @@ export default function CitiesTable() {
           onChange={(e) => setStatus(e.target.value as Status)}
           aria-label="Coverage"
         >
-          {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (
+          {statuses.map((s) => (
             <option key={s} value={s}>
               {STATUS_LABEL[s]}
             </option>
           ))}
         </select>
 
-        {/* Narrowing to a niche re-asks the server, because "scraped for HVAC"
+        {/* Narrowing to a trade re-asks the server, because "scraped for HVAC"
             is a different question from "scraped at all" and the counts behind
             it are different rows. */}
-        <select value={niche} onChange={(e) => setNiche(e.target.value)} aria-label="Niche">
-          <option value="">All niches</option>
+        <select
+          value={niche}
+          onChange={(e) => {
+            setNiche(e.target.value);
+            if (!e.target.value && status === "open") setStatus("all");
+          }}
+          aria-label="Trade"
+        >
+          <option value="">All trades</option>
           {niches.map((n) => (
             <option key={n} value={n}>
-              {n}
+              {labels(n)}
             </option>
           ))}
         </select>
@@ -197,28 +245,42 @@ export default function CitiesTable() {
                 {head("growth", "Growth", true)}
                 {head("runs", "Runs", true)}
                 {head("leads", "Leads", true)}
+                <th>Trades</th>
                 <th>Coverage</th>
               </tr>
             </thead>
             <tbody>
               {visible.length === 0 && !query.isLoading && (
                 <tr>
-                  <td colSpan={8} className="lc-empty">
+                  <td colSpan={9} className="lc-empty">
                     No cities match those filters.
                   </td>
                 </tr>
               )}
               {visible.map((c) => (
                 <tr key={`${c.city}-${c.stateCode}`}>
-                  <td className="lc-num lc-faint">{c.rank}</td>
+                  <td className="lc-num lc-faint">{c.rank ?? "-"}</td>
                   <td className="lc-city">{c.city}</td>
-                  <td className="lc-faint">{c.stateCode}</td>
+                  <td className="lc-faint">{c.stateCode || "-"}</td>
                   <td className="lc-num">{c.population?.toLocaleString() ?? "-"}</td>
                   <td className="lc-num lc-faint">
                     {c.growthPct == null ? "-" : `${c.growthPct}%`}
                   </td>
                   <td className="lc-num">{c.runs || "-"}</td>
                   <td className="lc-num">{c.leads ? c.leads.toLocaleString() : "-"}</td>
+                  <td>
+                    {c.niches.length === 0 ? (
+                      <span className="lc-faint">-</span>
+                    ) : (
+                      <span className="lc-trades">
+                        {c.niches.map((n) => (
+                          <span key={n} className={`lc-trade${n === niche ? " on" : ""}`}>
+                            {labels(n)}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                  </td>
                   <td>
                     <StatusChip city={c} />
                   </td>
@@ -247,7 +309,7 @@ function CitiesStyle() {
 .lc-count { margin-left: auto; font-size: 12px; opacity: 0.6; font-variant-numeric: tabular-nums; }
 
 .lc-scroll { overflow-x: auto; border: 1px solid var(--pk-line, rgba(148,163,184,0.22)); border-radius: 11px; max-height: 68vh; overflow-y: auto; }
-.lc table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 820px; }
+.lc table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 940px; }
 .lc thead th { position: sticky; top: 0; z-index: 1; background: var(--pk-bg, #fff); text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; opacity: 0.7; padding: 9px 12px; border-bottom: 1px solid var(--pk-line, rgba(148,163,184,0.22)); white-space: nowrap; }
 .lc thead th button { appearance: none; background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: inherit; cursor: pointer; }
 .lc thead th button:hover { color: var(--ls-indigo, #6366f1); }
@@ -258,9 +320,14 @@ function CitiesStyle() {
 .lc .lc-faint { opacity: 0.6; }
 .lc-empty { padding: 28px 12px; text-align: center; font-size: 13px; opacity: 0.65; }
 
+.lc-trades { display: inline-flex; gap: 4px; flex-wrap: nowrap; }
+.lc-trade { border-radius: 6px; padding: 2px 7px; font-size: 11px; background: rgba(148,163,184,0.16); opacity: 0.8; }
+.lc-trade.on { background: rgba(99,102,241,0.16); color: var(--ls-indigo, #6366f1); opacity: 1; font-weight: 600; }
+
 .lc-chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .lc-chip-on { background: rgba(22,163,74,0.14); color: #15803d; }
 .lc-chip-warn { background: rgba(245,158,11,0.16); color: #b45309; }
+.lc-chip-open { background: rgba(99,102,241,0.14); color: #4f46e5; }
 .lc-chip-off { background: rgba(148,163,184,0.16); opacity: 0.75; }
 `}</style>
   );
