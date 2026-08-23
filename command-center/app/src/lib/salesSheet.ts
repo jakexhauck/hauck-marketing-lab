@@ -68,15 +68,23 @@ export interface SheetColumn {
   // White header text on the two black columns.
   headerInk?: string;
   align?: "left" | "right";
-  width: number;
+  // How much of the table's width this column takes, RELATIVE to its
+  // neighbours, not in pixels. The whole sheet has to be readable without
+  // scrolling sideways, so the table is fluid: the component turns these into
+  // percentages that always sum to 100. A pixel width here would be a promise
+  // about a screen size nobody made.
+  weight: number;
 }
 
 // Table order is the sheet's order, minus the columns Jake struck off: Setter
 // Pay, Closer Pay, Creator Pay, Cash Collected After Fees, and the Avg Close
 // rate column that was already hidden in the sheet.
+// The date carries the longest string on the sheet by far ("Monday, March 9,
+// 2026 11:30 AM - EDT"), so it takes roughly twice a plain column. Everything
+// else is weighted by how much its longest real value needs.
 export const SHEET_COLUMNS: SheetColumn[] = [
-  { key: "apptDate", label: "Appointment Date", headerFill: ROSE, bodyFill: ROSE, width: 260 },
-  { key: "postCallForm", label: "Post Call Form", headerFill: ROSE, bodyFill: ROSE, width: 175 },
+  { key: "apptDate", label: "Appointment Date", headerFill: ROSE, bodyFill: ROSE, weight: 195 },
+  { key: "postCallForm", label: "Post Call Form", headerFill: ROSE, bodyFill: ROSE, weight: 88 },
   // "DON'T TOUCH" is the sheet's own wording, kept because it is what Jake
   // reads. Black column, white header text, exactly as the sheet has it.
   {
@@ -85,20 +93,20 @@ export const SHEET_COLUMNS: SheetColumn[] = [
     headerFill: BLACK,
     bodyFill: BLACK,
     headerInk: "#ffffff",
-    width: 175,
+    weight: 100,
   },
-  { key: "setBy", label: "Set By", headerFill: BLACK, bodyFill: BLACK, headerInk: "#ffffff", width: 175 },
-  { key: "name", label: "Name", headerFill: PURPLE, bodyFill: PURPLE, width: 185 },
-  { key: "closed", label: "Closed", headerFill: PEACH, bodyFill: PEACH, width: 185 },
-  { key: "calls", label: "Calls", headerFill: WHITE, bodyFill: WHITE, width: 190 },
-  { key: "revenue", label: "Revenue", headerFill: YELLOW, bodyFill: YELLOW, width: 125 },
-  { key: "paymentType", label: "Payment Type", headerFill: BLUE, bodyFill: BLUE, width: 140 },
-  { key: "cashCollected", label: "Cash Collected", headerFill: BLUE, bodyFill: BLUE, width: 140 },
-  { key: "paymentsComplete", label: "Payments Complete", headerFill: BLUE, bodyFill: BLUE, width: 150 },
-  { key: "objection", label: "Objection", headerFill: BLUE, bodyFill: BLUE, width: 140 },
-  { key: "needsFollowUp", label: "Needs Follow-up", headerFill: PINK, bodyFill: PINK, width: 150 },
-  { key: "callNotes", label: "Call Notes", headerFill: MAUVE, bodyFill: MAUVE, width: 160 },
-  { key: "recordingLink", label: "Call Recording Link", headerFill: STEEL, bodyFill: STEEL, width: 160 },
+  { key: "setBy", label: "Set By", headerFill: BLACK, bodyFill: BLACK, headerInk: "#ffffff", weight: 82 },
+  { key: "name", label: "Name", headerFill: PURPLE, bodyFill: PURPLE, weight: 112 },
+  { key: "closed", label: "Closed", headerFill: PEACH, bodyFill: PEACH, weight: 92 },
+  { key: "calls", label: "Calls", headerFill: WHITE, bodyFill: WHITE, weight: 94 },
+  { key: "revenue", label: "Revenue", headerFill: YELLOW, bodyFill: YELLOW, weight: 92 },
+  { key: "paymentType", label: "Payment Type", headerFill: BLUE, bodyFill: BLUE, weight: 88 },
+  { key: "cashCollected", label: "Cash Collected", headerFill: BLUE, bodyFill: BLUE, weight: 95 },
+  { key: "paymentsComplete", label: "Payments Complete", headerFill: BLUE, bodyFill: BLUE, weight: 96 },
+  { key: "objection", label: "Objection", headerFill: BLUE, bodyFill: BLUE, weight: 96 },
+  { key: "needsFollowUp", label: "Needs Follow-up", headerFill: PINK, bodyFill: PINK, weight: 92 },
+  { key: "callNotes", label: "Call Notes", headerFill: MAUVE, bodyFill: MAUVE, weight: 110 },
+  { key: "recordingLink", label: "Call Recording Link", headerFill: STEEL, bodyFill: STEEL, weight: 96 },
   // The one pay column left. Header takes the blue band, body the pale green,
   // as every pay column in the sheet does.
   {
@@ -107,10 +115,18 @@ export const SHEET_COLUMNS: SheetColumn[] = [
     headerFill: BLUE,
     bodyFill: PALE_GREEN,
     align: "right",
-    width: 135,
+    weight: 92,
   },
-  { key: "paymentStatus", label: "Payment Status", headerFill: GREY, bodyFill: GREY, width: 180 },
+  { key: "paymentStatus", label: "Payment Status", headerFill: GREY, bodyFill: GREY, weight: 96 },
 ];
+
+// Each column's share of the table, as a CSS percentage. The table is fluid, so
+// the seventeen columns always add up to the width available and the whole
+// sheet is readable without scrolling sideways.
+export function columnWidths(): string[] {
+  const total = SHEET_COLUMNS.reduce((sum, c) => sum + c.weight, 0);
+  return SHEET_COLUMNS.map((c) => `${((c.weight / total) * 100).toFixed(4)}%`);
+}
 
 // ===== the summary band =====
 

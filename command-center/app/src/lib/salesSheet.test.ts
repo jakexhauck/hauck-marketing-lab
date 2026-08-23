@@ -3,6 +3,7 @@ import {
   SHEET_COLUMNS,
   BAND_CELLS,
   AGENCY_PAY_RATE,
+  columnWidths,
   bandTotals,
   bandValues,
   sheetRow,
@@ -251,5 +252,25 @@ describe("the schema Jake asked for", () => {
   it("puts at most one band cell over each column", () => {
     const seen = new Set(BAND_CELLS.map((c) => c.key));
     expect(seen.size).toBe(BAND_CELLS.length);
+  });
+});
+
+// Jake has to be able to read the whole sheet without scrolling sideways, which
+// is only true while the columns add up to exactly the width available. A
+// column added later with a pixel width, or one that pushes the total past
+// 100%, brings the sideways scrollbar back.
+describe("columnWidths", () => {
+  it("gives one width per column", () => {
+    expect(columnWidths()).toHaveLength(SHEET_COLUMNS.length);
+  });
+
+  it("adds up to the full width of the table, and no more", () => {
+    const total = columnWidths().reduce((sum, w) => sum + Number.parseFloat(w), 0);
+    expect(total).toBeCloseTo(100, 2);
+  });
+
+  it("gives the appointment date the widest column, because it holds the longest value", () => {
+    const widths = columnWidths().map((w) => Number.parseFloat(w));
+    expect(Math.max(...widths)).toBe(widths[0]);
   });
 });

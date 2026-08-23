@@ -5,6 +5,7 @@ import {
   BAND_CELLS,
   SHEET_RULE,
   CHIP_EMPTY,
+  columnWidths,
   bandTotals,
   bandValues,
   sheetRow,
@@ -38,14 +39,15 @@ export default function SalesSheet({
   const band = useMemo(() => bandValues(bandTotals(calls)), [calls]);
   const rows = useMemo(() => calls.map((c) => sheetRow(c, timeZone)), [calls, timeZone]);
   const padding = Math.max(0, MIN_ROWS - rows.length);
+  const widths = useMemo(() => columnWidths(), []);
 
   return (
     <div className="shs-wrap">
       <SheetStyle />
       <table className="shs">
         <colgroup>
-          {SHEET_COLUMNS.map((c) => (
-            <col key={c.key} style={{ width: c.width }} />
+          {SHEET_COLUMNS.map((c, i) => (
+            <col key={c.key} style={{ width: widths[i] }} />
           ))}
         </colgroup>
 
@@ -95,15 +97,21 @@ export default function SalesSheet({
 
           {rows.map((row, i) => (
             <tr key={i}>
-              {SHEET_COLUMNS.map((c) => (
-                <td
-                  key={c.key}
-                  className={c.align === "right" ? "shs-right" : undefined}
-                  style={{ background: c.bodyFill }}
-                >
-                  <Cell value={row[c.key]} />
-                </td>
-              ))}
+              {SHEET_COLUMNS.map((c) => {
+                const value = row[c.key];
+                return (
+                  <td
+                    key={c.key}
+                    className={c.align === "right" ? "shs-right" : undefined}
+                    style={{ background: c.bodyFill }}
+                    // So a value the column is too narrow to show whole is still
+                    // readable, rather than lost behind an ellipsis.
+                    title={value?.kind === "text" ? value.text || undefined : undefined}
+                  >
+                    <Cell value={value} />
+                  </td>
+                );
+              })}
             </tr>
           ))}
 
@@ -144,29 +152,40 @@ function Cell({ value }: { value: SheetCellValue | undefined }) {
 function SheetStyle() {
   return (
     <style>{`
+      /* The whole sheet has to be readable at once, so the table is fluid and
+         fills whatever the page gives it. The wrapper still scrolls, but only
+         below the min-width, which is narrower than any desktop: it is there so
+         the sheet degrades on a phone rather than crushing itself to nothing. */
       .shs-wrap { overflow-x: auto; overflow-y: visible; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
-      .shs { border-collapse: collapse; table-layout: fixed; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; }
-      .shs td, .shs th { border: 1px solid #d0d7de; padding: 4px 6px; height: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .shs { width: 100%; min-width: 1020px; border-collapse: collapse; table-layout: fixed; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; }
+      .shs td, .shs th { border: 1px solid #d0d7de; padding: 3px 5px; height: 21px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-      /* The band. Its labels are bold and centred, its values sit under them. */
-      .shs-band-label { font-weight: 700; text-align: center; height: 30px; }
-      .shs-band-value { font-weight: 700; text-align: center; height: 30px; font-size: 15px; }
+      /* The band. Its labels are bold and centred, its values sit under them.
+         Labels wrap, because "Total No Show Rate (%)" over a narrow column is
+         two lines in the sheet as well. */
+      .shs-band-label { font-weight: 700; text-align: center; height: 32px; white-space: normal; line-height: 1.15; vertical-align: middle; }
+      .shs-band-value { font-weight: 700; text-align: center; height: 30px; font-size: 13px; }
       /* The four rate cells are the loudest thing on the sheet, on purpose. */
-      .shs-band .shs-em { font-size: 11px; }
-      .shs-band-value.shs-em { font-size: 19px; letter-spacing: .02em; }
+      .shs-band-label.shs-em { font-size: 10px; }
+      .shs-band-value.shs-em { font-size: 16px; letter-spacing: .01em; }
 
       .shs-rule td { height: 6px; padding: 0; border: 0; }
 
-      .shs-head th { font-weight: 700; text-align: left; height: 34px; white-space: normal; vertical-align: middle; line-height: 1.15; }
+      /* Headers wrap rather than truncate: a column whose name is cut in half
+         is a column you have to guess at, and there are seventeen of them. */
+      .shs-head th { font-weight: 700; text-align: left; height: 38px; white-space: normal; vertical-align: middle; line-height: 1.15; }
 
       .shs-right { text-align: right; }
 
-      /* The sheet's dropdown pills. */
-      .shs-chip { display: inline-block; min-width: 62px; max-width: 100%; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .shs-chip-empty { background: ${CHIP_EMPTY}; min-height: 16px; }
+      /* The one cell with a genuinely long value. It wraps instead of ending in
+         an ellipsis, because a date you cannot read is not a date. */
+      .shs td:first-child { white-space: normal; line-height: 1.25; }
 
-      /* The date column stays put while the rest of the month scrolls under it,
-         which is the one concession to this being a screen and not paper. */
+      /* The sheet's dropdown pills. */
+      .shs-chip { display: inline-block; min-width: 54px; max-width: 100%; padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; line-height: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+      .shs-chip-empty { background: ${CHIP_EMPTY}; min-height: 15px; }
+
+      /* Sticky only matters below the min-width, where the sheet does scroll. */
       .shs td:first-child, .shs th:first-child { position: sticky; left: 0; z-index: 1; }
       .shs-rule td:first-child { position: static; }
     `}</style>
