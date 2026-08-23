@@ -149,10 +149,10 @@ with. Audited live on 2026-08-23.
 | --- | --- | --- |
 | `quote.js` → `POST /api/capi/lead` | `Lead`, server-side, on survey submit | ✅ correct |
 | GHL pixel on `/survey` | `PageView` | ✅ correct |
-| GHL pixel on `/book` | `PageView` **and `Lead`, on page load** | ❌ **the bug** |
+| GHL pixel on `/book` | `PageView` only | ✅ fixed 2026-08-23 |
 | GHL calendar widget | `Schedule` on a completed booking | ✅ correct |
 
-### The `/book` Lead is fired by loading the page, not by booking
+### The `/book` Lead was fired by loading the page, not by booking (fixed)
 
 Navigating a fresh browser to `https://williswindows.com/book` and touching
 nothing sends `ev=Lead` to the pixel four milliseconds after `ev=PageView`. No
@@ -173,10 +173,19 @@ Two consequences, and the second is the worse one:
 The measured gap: 41 `Lead` events on the pixel in the seven days to 2026-08-23
 against 13 rows in `capi_identity`, which is one row per real survey submission.
 
-**Not yet fixed.** The change belongs in GHL's page settings for `/book`, not in
-this repo, and it is Jake's call to make. Until then read Willis's Ads Manager
-lead count as roughly three times the real figure, and remember the ad set is
-optimising against the inflated number.
+**Fixed 2026-08-23.** Jake turned the `Lead` event off on that funnel step in
+GHL. Re-verified in a clean browser: `/book` fires `PageView` only, and the pixel
+is still live on the page (`fbevents.js` and the config for the pixel both load,
+so this is the event removed rather than the pixel broken).
+
+The change was GHL page settings, never this repo. Worth remembering why it is
+correct, because the objection is a fair one: somebody who reaches `/book` **has**
+given their contact details, and they stay a lead in the CRM. But that Lead was
+already reported server-side at submit, and this event fired on **page load** for
+anyone holding the URL. It was a second copy plus phantoms, not a second lead.
+
+If the survey-to-calendar step is ever worth measuring, give it a different event
+name. Never `Lead`: that is what the ad set optimises against.
 
 ### Why GHL's two `Conversions API` workflows are not the answer
 
