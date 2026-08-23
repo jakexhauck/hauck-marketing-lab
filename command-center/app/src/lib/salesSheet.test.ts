@@ -21,6 +21,8 @@ function call(over: Partial<SheetCall> = {}): SheetCall {
     showed: false,
     noShow: false,
     cancelled: false,
+    unqualified: false,
+    noClose: false,
     revenue: null,
     cashCollected: null,
     objection: "",
@@ -72,9 +74,11 @@ describe("bandTotals", () => {
   it("gives an empty month zeroes, never a division by zero", () => {
     const t = bandTotals([]);
     expect(t.totalCalls).toBe(0);
+    expect(t.cancelled).toBe(0);
+    expect(t.unqualified).toBe(0);
+    expect(t.followUp).toBe(0);
     expect(t.closingRate).toBe(0);
     expect(t.noShowRate).toBe(0);
-    expect(t.totalNoShowRate).toBe(0);
     expect(Number.isFinite(t.closingRate)).toBe(true);
   });
 
@@ -98,33 +102,45 @@ describe("bandTotals", () => {
     expect(t.liveCalls).toBe(0);
     expect(t.noShows).toBe(1);
     expect(t.noShowRate).toBe(1);
-    expect(t.totalNoShowRate).toBe(1);
     // Nobody turned up, so there was nothing to close. A close rate of 0% over
     // zero live calls would read as a failed pitch that never happened.
     expect(t.closingRate).toBe(0);
   });
 
-  it("counts a live call that did not close as a no-close", () => {
-    const t = bandTotals([call({ showed: true })]);
-    expect(t.liveCalls).toBe(1);
-    expect(t.noClose).toBe(1);
-    expect(t.closed).toBe(0);
-    expect(t.closingRate).toBe(0);
-  });
-
   // A meeting called off in advance was never a call. Counting it would make
   // every rate on the band read low for a reason nobody can see.
-  it("leaves a cancelled meeting out of Total Calls", () => {
+  it("counts a cancelled meeting on its own, and not as a call", () => {
     const t = bandTotals([call({ cancelled: true }), CLOSED]);
+    expect(t.cancelled).toBe(1);
     expect(t.totalCalls).toBe(1);
+    expect(t.liveCalls).toBe(1);
+    expect(t.noShowRate).toBe(0);
   });
 
-  // Nothing in the app records whether a prospect stayed the hour, so the
-  // column stays at zero until something does. Jake asked for it to stay.
-  it("reports no 1hr intent as zero, because nothing records it yet", () => {
-    const t = bandTotals([CLOSED]);
-    expect(t.noIntent).toBe(0);
-    expect(t.noIntentRate).toBe(0);
+  it("counts the four things a live call becomes, each in one place", () => {
+    const t = bandTotals([
+      CLOSED,
+      call({ showed: true, needsFollowUp: true }),
+      call({ showed: true, noClose: true }),
+      call({ showed: true, unqualified: true }),
+    ]);
+    expect(t.liveCalls).toBe(4);
+    expect(t.closed).toBe(1);
+    expect(t.followUp).toBe(1);
+    expect(t.noClose).toBe(1);
+    expect(t.unqualified).toBe(1);
+    // The invariant that makes the band trustworthy: the four buckets add up to
+    // every call that happened, so nothing is counted twice and nothing is lost.
+    expect(t.closed + t.followUp + t.noClose + t.unqualified).toBe(t.liveCalls);
+    expect(t.closingRate).toBe(0.25);
+  });
+
+  // Unqualified is a fact about the list and No-Close is a fact about the
+  // pitch. The old reading of No-Close was "showed and did not close", which
+  // swallowed both of the others.
+  it("does not count an unqualified call or a follow up as a no-close", () => {
+    expect(bandTotals([call({ showed: true, unqualified: true })]).noClose).toBe(0);
+    expect(bandTotals([call({ showed: true, needsFollowUp: true })]).noClose).toBe(0);
   });
 });
 
@@ -143,9 +159,11 @@ describe("bandValues", () => {
     expect(cell(v, "Revenue")).toBe("$24,000.00");
     expect(cell(v, "Cash Collected")).toBe("$2,000.00");
     expect(cell(v, "Total Calls")).toBe("1");
+    expect(cell(v, "Calls Cancelled")).toBe("0");
+    expect(cell(v, "Unqualified")).toBe("0");
+    expect(cell(v, "Follow-Up")).toBe("0");
     expect(cell(v, "Closing Rate (%)")).toBe("100.00%");
     expect(cell(v, "No Show Rate (%)")).toBe("0.00%");
-    expect(cell(v, "Total No Show Rate (%)")).toBe("0.00%");
     expect(cell(v, "name (operator)")).toBe("$400.00");
   });
 
@@ -236,12 +254,30 @@ describe("the schema Jake asked for", () => {
     expect(labels).toContain("name (operator)");
   });
 
-  // Jake kept these three when he could have dropped them.
-  it("keeps the three intent cells the sheet has", () => {
+  // Struck off: nothing in the app records whether a prospect stayed the hour,
+  // so both cells read zero for ever. Total No Show Rate went with them: it was
+  // no-shows plus intent, which without intent is No Show Rate twice.
+  it("carries no 1hr intent cell", () => {
     const labels = BAND_CELLS.map((c) => c.label);
-    expect(labels).toContain("No 1hr Intent");
-    expect(labels).toContain("No 1hr Intent (%)");
-    expect(labels).toContain("Total No Show Rate (%)");
+    expect(labels).not.toContain("No 1hr Intent");
+    expect(labels).not.toContain("No 1hr Intent (%)");
+    expect(labels).not.toContain("Total No Show Rate (%)");
+  });
+
+  it("tracks everything Jake asked to see", () => {
+    const labels = BAND_CELLS.map((c) => c.label);
+    for (const wanted of [
+      "Calls Cancelled",
+      "Unqualified",
+      "No Shows",
+      "No-Close",
+      "Follow-Up",
+      "Closed",
+      "Closing Rate (%)",
+      "No Show Rate (%)",
+    ]) {
+      expect(labels).toContain(wanted);
+    }
   });
 
   it("puts every band cell over a real column", () => {

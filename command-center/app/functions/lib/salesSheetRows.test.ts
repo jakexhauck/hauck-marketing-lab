@@ -55,6 +55,34 @@ describe("toSheetCall", () => {
     expect(row.showed).toBe(false);
   });
 
+  // The two flavours of no. One is a fact about the pitch, the other about the
+  // list, and merging them hides which of the two needs fixing.
+  it("keeps the two kinds of no apart", () => {
+    const no = toSheetCall(call({ outcome: "not_interested" }));
+    expect(no.noClose).toBe(true);
+    expect(no.unqualified).toBe(false);
+
+    const junk = toSheetCall(call({ outcome: "not_qualified" }));
+    expect(junk.unqualified).toBe(true);
+    expect(junk.noClose).toBe(false);
+  });
+
+  // The invariant the band's counts rest on: every live call is exactly one of
+  // closed, follow up, no close, unqualified. Overlap here would double-count.
+  it("puts every live call in exactly one bucket", () => {
+    for (const outcome of ["closed", "follow_up", "not_interested", "not_qualified"]) {
+      const r = toSheetCall(call({ outcome }));
+      const buckets = [r.closed, r.needsFollowUp, r.noClose, r.unqualified].filter(Boolean);
+      expect(r.showed).toBe(true);
+      expect(buckets).toHaveLength(1);
+    }
+  });
+
+  it("puts a no-show in none of the live buckets", () => {
+    const r = toSheetCall(call({ outcome: "no_show" }));
+    expect([r.closed, r.needsFollowUp, r.noClose, r.unqualified].filter(Boolean)).toHaveLength(0);
+  });
+
   it("says a follow up needs one", () => {
     expect(toSheetCall(call({ outcome: "follow_up" })).needsFollowUp).toBe(true);
     expect(toSheetCall(call({ outcome: "closed" })).needsFollowUp).toBe(false);

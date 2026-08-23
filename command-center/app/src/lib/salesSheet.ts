@@ -46,7 +46,6 @@ const BLACK = "#000000";
 // The four rate cells sit on a grey label and a loud value.
 const RATE_LABEL = "#cccccc";
 const RATE_GOOD = "#00ff00";
-const RATE_WARN = "#e69138";
 const RATE_BAD = "#e06666";
 // The divider between the summary band and the table.
 export const SHEET_RULE = "#980000";
@@ -133,17 +132,22 @@ export function columnWidths(): string[] {
 export interface BandTotals {
   revenue: number;
   cashCollected: number;
+  // Everything booked that was not called off.
   totalCalls: number;
+  // Called off on the calendar before it happened. Counted apart from
+  // totalCalls, not inside it: a meeting that never ran is a booking fact, and
+  // letting it into the denominator drags every rate down invisibly.
+  cancelled: number;
+  // They turned up. The four buckets below partition this exactly once each.
   liveCalls: number;
   noShows: number;
-  noIntent: number;
+  unqualified: number;
   noClose: number;
+  followUp: number;
   closed: number;
   agencyPay: number;
   closingRate: number;
   noShowRate: number;
-  noIntentRate: number;
-  totalNoShowRate: number;
 }
 
 export interface BandCell {
@@ -199,34 +203,51 @@ export const BAND_CELLS: BandCell[] = [
   },
   {
     key: "calls",
-    label: "No Shows",
-    value: (t) => String(t.noShows),
+    label: "Calls Cancelled",
+    value: (t) => String(t.cancelled),
     labelFill: YELLOW,
     valueFill: YELLOW,
   },
   {
     key: "revenue",
-    label: "No 1hr Intent",
-    value: (t) => String(t.noIntent),
+    label: "No Shows",
+    value: (t) => String(t.noShows),
+    labelFill: YELLOW,
+    valueFill: YELLOW,
+  },
+  // The four things a live call becomes, in the order they get worse to best.
+  // Together they add up to Live Calls exactly, so nothing is double-counted
+  // and nothing falls through a gap.
+  {
+    key: "paymentType",
+    label: "Unqualified",
+    value: (t) => String(t.unqualified),
     labelFill: BLUE,
     valueFill: BLUE,
   },
   {
-    key: "paymentType",
+    key: "cashCollected",
     label: "No-Close",
     value: (t) => String(t.noClose),
     labelFill: BLUE,
     valueFill: BLUE,
   },
   {
-    key: "cashCollected",
+    key: "paymentsComplete",
+    label: "Follow-Up",
+    value: (t) => String(t.followUp),
+    labelFill: BLUE,
+    valueFill: BLUE,
+  },
+  {
+    key: "objection",
     label: "Closed",
     value: (t) => String(t.closed),
     labelFill: BLUE,
     valueFill: BLUE,
   },
   {
-    key: "paymentsComplete",
+    key: "needsFollowUp",
     label: "Closing Rate (%)",
     value: (t) => formatSheetPct(t.closingRate),
     labelFill: RATE_LABEL,
@@ -234,25 +255,9 @@ export const BAND_CELLS: BandCell[] = [
     emphasis: true,
   },
   {
-    key: "objection",
+    key: "callNotes",
     label: "No Show Rate (%)",
     value: (t) => formatSheetPct(t.noShowRate),
-    labelFill: RATE_LABEL,
-    valueFill: RATE_WARN,
-    emphasis: true,
-  },
-  {
-    key: "needsFollowUp",
-    label: "No 1hr Intent (%)",
-    value: (t) => formatSheetPct(t.noIntentRate),
-    labelFill: RATE_LABEL,
-    valueFill: RATE_WARN,
-    emphasis: true,
-  },
-  {
-    key: "callNotes",
-    label: "Total No Show Rate (%)",
-    value: (t) => formatSheetPct(t.totalNoShowRate),
     labelFill: RATE_LABEL,
     valueFill: RATE_BAD,
     emphasis: true,
@@ -281,48 +286,54 @@ function rate(top: number, bottom: number): number {
 export function bandTotals(calls: SheetCall[]): BandTotals {
   let revenue = 0;
   let cashCollected = 0;
+  let cancelled = 0;
   let totalCalls = 0;
   let liveCalls = 0;
   let noShows = 0;
+  let unqualified = 0;
   let noClose = 0;
+  let followUp = 0;
   let closed = 0;
 
   for (const c of calls) {
     revenue += c.revenue ?? 0;
     cashCollected += c.cashCollected ?? 0;
-    // A meeting called off in advance was never a call. Counting it would drag
-    // every rate on the band down for a reason nobody reading it can see.
-    if (c.cancelled) continue;
-    totalCalls += 1;
-    if (c.showed) {
-      liveCalls += 1;
-      if (c.closed) closed += 1;
-      else noClose += 1;
-    }
-    if (c.noShow) noShows += 1;
-  }
 
-  // Nothing in the app records whether a prospect stayed the hour. The cell and
-  // its two rates stay on the band at Jake's call, and read zero honestly
-  // rather than borrowing a number from a column that means something else.
-  const noIntent = 0;
+    // A meeting called off in advance was never a call. It gets its own count
+    // rather than joining the others: counting it as a call would drag every
+    // rate on the band down for a reason nobody reading it can see.
+    if (c.cancelled) {
+      cancelled += 1;
+      continue;
+    }
+
+    totalCalls += 1;
+    if (c.noShow) noShows += 1;
+    if (!c.showed) continue;
+
+    liveCalls += 1;
+    if (c.closed) closed += 1;
+    if (c.needsFollowUp) followUp += 1;
+    if (c.noClose) noClose += 1;
+    if (c.unqualified) unqualified += 1;
+  }
 
   return {
     revenue,
     cashCollected,
+    cancelled,
     totalCalls,
     liveCalls,
     noShows,
-    noIntent,
+    unqualified,
     noClose,
+    followUp,
     closed,
     agencyPay: cashCollected * AGENCY_PAY_RATE,
     // Over the calls that HAPPENED, not over the calendar: a month of no-shows
     // is a booking problem, and charging it to the close rate hides which.
     closingRate: rate(closed, liveCalls),
     noShowRate: rate(noShows, totalCalls),
-    noIntentRate: rate(noIntent, totalCalls),
-    totalNoShowRate: rate(noShows + noIntent, totalCalls),
   };
 }
 

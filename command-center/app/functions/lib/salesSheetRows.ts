@@ -64,6 +64,16 @@ export interface SheetCall {
   noShow: boolean;
   // Called off on the calendar before it happened.
   cancelled: boolean;
+  // Never a prospect. A fact about the LIST, which is why it is counted apart
+  // from a no: fixing it means changing who gets booked, not what gets said.
+  unqualified: boolean;
+  // Heard the pitch and said no. A fact about the PITCH.
+  //
+  // Strictly not_interested, so the five outcomes partition every live call
+  // exactly once: closed + follow up + no close + unqualified = showed. The
+  // old reading was "showed and did not close", which swallowed the follow ups
+  // and the unqualified and made three counts that overlap.
+  noClose: boolean;
   // The whole contract, where the term is known. Null on month-to-month and on
   // a close where nobody filled the figures in.
   revenue: number | null;
@@ -92,6 +102,8 @@ export function toSheetCall(row: SalesCallRow): SheetCall {
     showed: meta?.showed ?? false,
     noShow: outcome === "no_show",
     cancelled: isDeadStatus(row.appointmentStatus ?? ""),
+    unqualified: outcome === "not_qualified",
+    noClose: outcome === "not_interested",
     // Only on a close, unlike cash: a retainer recorded against a meeting that
     // did not sell is a mistake upstream, and printing it in the Revenue column
     // would report revenue from a lost deal. Same rule as salesCalls.ts.
