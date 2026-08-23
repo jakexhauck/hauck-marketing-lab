@@ -2,8 +2,7 @@ import { demoMode } from "../demo/demoMode";
 import { handleDemoRequest } from "../demo/handler";
 import { previewHeaders } from "./previewFrame";
 import type { BusinessHealthInputs, PeriodType } from "./businessHealth";
-import type { DerivedSalesDay } from "../../functions/lib/salesDataRollup";
-import type { OfferSplitRow, SourceSplitRow } from "../../functions/lib/salesCalls";
+import type { SheetCall } from "../../functions/lib/salesSheetRows";
 
 // What one reconciliation against the agency's GoHighLevel calendars did.
 // Shared by the two pages that trigger one: Sales Calls and Sales Data.
@@ -1086,34 +1085,28 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   return api<AdminOverview>("/api/admin/overview");
 }
 
-// One day of the agency's own sales-call funnel (Sales pillar > Sales Data).
+// The agency's own sales calls for a month (Sales pillar > Sales Data), one per
+// line of the sheet the page clones.
 //
-// DERIVED, never typed. Each field is counted from the meetings themselves
-// (public.sales_calls) by functions/lib/salesDataRollup.ts, so this page and
-// the Sales Calls page can never disagree about a month. There is no save: the
-// endpoint has no PATCH any more.
-export interface SalesDataDay extends DerivedSalesDay {
-  day: string; // "YYYY-MM-DD", the row's identity
-}
-
+// DERIVED, never typed. Every field is read off a meeting already recorded in
+// public.sales_calls, so this page and the Sales Calls page can never disagree
+// about a month. There is no save: the endpoint has no PATCH.
+//
+// The band totals across the top of the sheet are NOT on the wire. They are
+// added up from these calls in src/lib/salesSheet.ts, where they are unit-tested.
 export interface SalesDataResponse {
-  // Only the days a meeting sat on. The client generates the empty ones, so a
-  // month with no selling in it stays visibly empty rather than arriving as a
-  // run of fabricated zero rows.
-  days: SalesDataDay[];
+  // The month's meetings, earliest first. Empty on a month with no selling in
+  // it, which the sheet draws as empty rows rather than as fabricated zeroes.
+  calls: SheetCall[];
+  // The agency's timezone, so each appointment date is written in the zone the
+  // business runs on rather than in whichever one the reader sits in.
+  timeZone: string;
   // False when the agency GoHighLevel account is not connected at all.
   configured: boolean;
   // What the calendar read did on the way through, or null when it was skipped.
   sync: (SalesCallSyncResult & { ok: true }) | { ok: false; error: string } | null;
-  // Meetings the calendar gave no time, so they belong to no day.
+  // Meetings the calendar gave no time, so they belong to no month.
   undated: number;
-  // The month split by where the meetings came from, busiest first.
-  sources: SourceSplitRow[];
-  // The month split by which offer was pitched (0086), best close rate first.
-  // Only meetings somebody turned up to.
-  offers: OfferSplitRow[];
-  // How many of the month's nos gave each reason, keyed by SALES_NO_REASONS.
-  reasons: Record<string, number>;
 }
 
 // `sync: false` reads what is stored without re-reading the calendars.

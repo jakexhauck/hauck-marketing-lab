@@ -4,20 +4,11 @@ import { monthWindow } from "../../../lib/tracker";
 import { agencyTimezone, getAgencyGhlContext, AgencyGhlError } from "../../../lib/agencyGhl";
 import { syncAgencyMeetings, type SyncResult } from "../../lib/salesCallSync";
 import {
-  daysInMonth,
-  rollUpSalesCalls,
-  rowsInMonth,
-  toCountable,
-  type DerivedSalesDay,
+  callsInMonth,
+  toSheetCall,
   type SalesCallRow,
-} from "../../../lib/salesDataRollup";
-import {
-  byOffer,
-  bySource,
-  reasonCounts,
-  type OfferSplitRow,
-  type SourceSplitRow,
-} from "../../../lib/salesCalls";
+  type SheetCall,
+} from "../../../lib/salesSheetRows";
 
 // GET /api/admin/tracker/sales-data?month=YYYY-MM
 //
@@ -26,17 +17,23 @@ import {
 // this file at all means _middleware.ts already proved an active super-admin
 // session, so there is no per-handler auth beyond that.
 //
-// DERIVED, NOT TYPED. Until now this read public.sales_data, a grid somebody
-// filled in by hand, and had a PATCH beside it to write cells. Every one of
-// those counts is already recorded a meeting at a time in public.sales_calls:
-// the calendar says what was booked and cancelled, and the outcome recorded on
-// Sales Calls says what turned up, qualified and closed. Two answers to one
-// question only agree until somebody is busy, so the typed grid is gone and
-// this reads the meetings. There is no PATCH any more: nothing here is a number
-// a person can assert.
+// ONE ROW PER MEETING. This used to group the month into days, because the page
+// above it was a day grid. The page is now a clone of the sales tracking sheet
+// Jake works from, and that sheet has one line per call, so the days are gone
+// and the meetings themselves go over the wire.
 //
-// The rollup itself is pure and lives in lib/salesDataRollup.ts. This file is
-// only the I/O around it: sync, read, group, answer.
+// DERIVED, NOT TYPED. Every field is read off a meeting already recorded in
+// public.sales_calls: the calendar says what was booked and cancelled, and the
+// outcome recorded on Sales Calls says what turned up and closed. There is no
+// PATCH: nothing on this page is a number a person can assert.
+//
+// The band totals across the top of the sheet are NOT computed here. The client
+// already holds every call it would add up, and the arithmetic a commission is
+// argued over belongs in one unit-tested place (src/lib/salesSheet.ts) rather
+// than in two that agree until one of them is edited.
+//
+// The month trim and the wire shape are pure and live in lib/salesSheetRows.ts.
+// This file is only the I/O around them: sync, read, trim, answer.
 //
 // public.sales_data (migration 0030) is left in place and no longer read or
 // written. It holds nothing; dropping a table is a migration and a decision of
@@ -48,22 +45,21 @@ interface SalesCallDbRow {
   outcome: string | null;
   qualified: boolean | null;
   cash_collected: number | string | null;
-  // What was sold, why they said no, and where the meeting came from. All three
-  // have been on the table for months and were read by nothing until the source
-  // table, the reason list and New MRR needed them.
+  // What was sold, why they said no, and the notes taken on the call: the three
+  // the sheet has columns for.
   deal: unknown;
   not_a_fit_reason: string | null;
-  source: string | null;
-  // Which offer was on the table (0086). Only the variant: the terms inside it
-  // are what was quoted on one call, and this page counts calls.
-  offer_variant: string | null;
+  scratchpad: string | null;
   prospect_name: string | null;
   business_name: string | null;
 }
 
+// qualified, source and offer_variant are deliberately not selected: the sheet
+// has no column for any of them, and a query that reads what no page renders is
+// how a select grows without anybody noticing.
 const SELECT =
-  "scheduled_at, appointment_status, outcome, qualified, cash_collected," +
-  " deal, not_a_fit_reason, source, offer_variant, prospect_name, business_name";
+  "scheduled_at, appointment_status, outcome, cash_collected," +
+  " deal, not_a_fit_reason, scratchpad, prospect_name, business_name";
 
 // numeric arrives as a string on some drivers, so cash is normalised to a
 // number exactly once, here at the boundary.
@@ -78,41 +74,30 @@ function toRow(row: SalesCallDbRow): SalesCallRow {
     scheduledAt: row.scheduled_at,
     appointmentStatus: row.appointment_status ?? "",
     outcome: row.outcome,
-    qualified: row.qualified,
     cashCollected: toMoney(row.cash_collected),
     deal: row.deal,
     reason: row.not_a_fit_reason,
-    source: row.source,
-    offerVariant: row.offer_variant,
+    scratchpad: row.scratchpad,
     prospectName: row.prospect_name ?? "",
     businessName: row.business_name ?? "",
   };
 }
 
-// A day of the response. The counts, plus the names behind them.
-interface WireDay extends DerivedSalesDay {
-  day: string;
-}
-
 interface GetResponse {
-  days: WireDay[];
+  // The month's meetings, earliest first. One per line of the sheet.
+  calls: SheetCall[];
+  // The agency's timezone, so the client writes each appointment date in the
+  // zone the business runs on rather than in whichever one the reader sits in.
+  timeZone: string;
   // Whether the agency GoHighLevel account is connected at all. False makes
   // every count on the page a statement about our own database rather than
   // about the business.
   configured: boolean;
   sync: (SyncResult & { ok: true }) | { ok: false; error: string } | null;
-  // Meetings with no time on them, so they belong to no day. Reported rather
-  // than dropped.
+  // Meetings with no time on them, so they belong to no month. Reported rather
+  // than dropped: a meeting missing from a month should be visible as a meeting
+  // missing from a month.
   undated: number;
-  // The month split by where the meetings came from, busiest first. Counted per
-  // MEETING rather than per day, which is why it is sent whole rather than
-  // summed by the client off the day rows.
-  sources: SourceSplitRow[];
-  // The month split by which OFFER was pitched, best close rate first. Only
-  // meetings somebody turned up to: an offer cannot be pitched to a no-show.
-  offers: OfferSplitRow[];
-  // How many of the month's nos gave each reason, keyed by SALES_NO_REASONS.
-  reasons: Record<string, number>;
 }
 
 // A New York day reaches into two UTC days, so the window queried is widened by
@@ -177,36 +162,24 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   const timeZone = agencyTimezone(ctx.env);
   const rows = ((data ?? []) as unknown as SalesCallDbRow[]).map(toRow);
-  const rolled = rollUpSalesCalls(rows, timeZone);
+
   // From the validated window rather than the raw query string, so the trim can
-  // never be asked to match a month the read did not cover.
+  // never be asked to match a month the read did not cover. The query window is
+  // widened by a day at each end, so this is what keeps a neighbouring month's
+  // meetings off the sheet.
   const monthKey = window.first.slice(0, 7);
-  const inMonth = daysInMonth(rolled.days, monthKey);
-
-  // The two per-meeting breakdowns. Trimmed to the month by the same timezone
-  // rule the grid uses, then counted by the same functions the Sales Calls page
-  // counts with, so no reader can hold this table against that funnel and find
-  // them disagreeing.
-  const monthRows = rowsInMonth(rows, timeZone, monthKey).map(toCountable);
-
-  // No cold_call_dials read here any more. This page used to open with the
-  // month's dialing so the strip could run Dials through to cash, but the same
-  // month is already reported on Acquisition > Cold Call > Tracker and a number
-  // with two homes drifts. Sales counts meetings; Cold Call counts dials.
 
   const body: GetResponse = {
-    // Only the days that have a meeting on them. The client generates the empty
-    // ones, so a month with no selling in it stays visibly empty rather than
-    // arriving as a run of fabricated zero rows.
-    days: Object.entries(inMonth)
-      .map(([day, counts]) => ({ day, ...counts }))
-      .sort((a, b) => a.day.localeCompare(b.day)),
+    calls: callsInMonth(rows, timeZone, monthKey)
+      .map(toSheetCall)
+      // Earliest first, so the sheet reads down the month the way a diary does.
+      .sort((a, b) => (a.scheduledAt ?? "").localeCompare(b.scheduledAt ?? "")),
+    timeZone,
     configured: Boolean(gctx),
     sync,
-    undated: rolled.undated,
-    sources: bySource(monthRows),
-    offers: byOffer(monthRows),
-    reasons: reasonCounts(monthRows),
+    // Counted off the whole read rather than off the trimmed month: a meeting
+    // with no time belongs to no month, so it can never survive the trim.
+    undated: rows.filter((r) => !r.scheduledAt || Number.isNaN(Date.parse(r.scheduledAt))).length,
   };
   return Response.json(body);
 };

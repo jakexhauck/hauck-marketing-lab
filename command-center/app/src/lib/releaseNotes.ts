@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-23-sales-data-sheet",
+    date: "23 August 2026",
+    title: "Sales Data is now your sales tracking sheet",
+    items: [
+      "One line per call, not one per day. The page used to count your month into a row per calendar day, which is not how you read a month. It is now the sheet: Appointment Date, Name, Closed, Calls, Revenue, Cash Collected, Objection, Notes, Agency Pay, in that order and in the sheet's own colours.",
+      "The summary band across the top is the sheet's: Revenue and Cash Collected in green, then Total Calls, Live Calls, No Shows, No 1hr Intent, No-Close and Closed, then Closing Rate, No Show Rate, No 1hr Intent Rate and Total No Show Rate in the big green, orange and red cells.",
+      "Setter Pay, Closer Pay, Creator Pay and Cash Collected After Fees are not here. You set and close every call yourself, and the processing fee is not known yet, so those four columns and the five per-person totals above them were left out rather than filled with a guess. Agency Pay is the one that stayed, at the sheet's 20% of cash.",
+      "Seven columns have nothing to read from yet and are deliberately blank: Post Call Form, Assigned Closer, Set By, Payment Type, Payments Complete, Call Recording Link and Payment Status. No 1hr Intent reads zero for the same reason. Nothing on this page is typed, so an empty cell means the app has not been told, not that the month was quiet.",
+      "The month stepper is where it was, and the sheet still reconciles itself against the GoHighLevel calendar on load, on focus and on a timer.",
+    ],
+  },
+  {
     id: "2026-08-22-scrape-wizard-cities",
     date: "22 August 2026",
     title: "New scrape asks the niche, then the size, then hands you the city list",

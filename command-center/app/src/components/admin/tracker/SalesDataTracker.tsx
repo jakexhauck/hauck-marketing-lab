@@ -1,34 +1,23 @@
-import { useCallback, useMemo, useState } from "react";
-import DailyTracker, { TrackerMonthNav, type TrackerRow } from "./DailyTracker";
-import FullFunnel from "../sales/FullFunnel";
-import { NoReasons, OfferSplit, SourceSplit } from "../sales/monthBreakdown";
+import { useState } from "react";
+import { TrackerMonthNav } from "./DailyTracker";
+import SalesSheet from "./SalesSheet";
 import { PillarTitleActions } from "../../pillars/PillarKit";
 import { useSalesDataQuery } from "../../../hooks/useApi";
 import type { SalesDataResponse } from "../../../lib/api";
-import type { DerivedSalesDay } from "../../../../functions/lib/salesDataRollup";
-import {
-  buildMonthDays,
-  monthKey,
-  cursorForToday,
-  type MonthCursor,
-  type TodayRef,
-} from "../../../lib/trackerMonth";
-import { SALES_COLUMNS, computeSalesRow, computeSalesRollup } from "../../../lib/salesTracker";
+import { monthKey, cursorForToday, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
 
-// The Sales pillar's Sales Data tab: the agency's daily sales-call funnel.
+// The Sales pillar's Sales Data tab: the agency's sales calls, month by month.
 //
-// This page used to be a form. Somebody counted their own month and typed it
-// into a grid, which meant the same question had two answers: the one typed
-// here and the one the outcomes recorded on Sales Calls already knew. It is now
-// a REPORT, and it has no editing loop at all: opening it reconciles the
-// GoHighLevel calendars, the meetings are counted a day at a time
-// (functions/lib/salesDataRollup.ts), and every cell is read-only.
+// This page is a CLONE of the sales tracking sheet Jake works from, down to the
+// fills. It used to be a day grid, one row per calendar day with the month's
+// meetings counted into it, and before that it was a form somebody typed. Both
+// are gone: Jake reads his month a call at a time, so the page shows calls.
 //
-// What that buys, beyond one less thing to remember: the funnel on this page
-// and the funnel on Sales Calls are now the same arithmetic over the same rows,
-// so they cannot drift. What it costs is that selling done entirely outside the
-// app is invisible here, which is the honest trade: a number nobody measured
-// should not appear beside numbers that were measured.
+// It is still a REPORT and it still has no editing loop. Opening it reconciles
+// the GoHighLevel calendars, every cell is read-only, and the seven columns the
+// app has nowhere to read from yet render blank rather than inviting a number
+// nobody can check. What that buys is that this page and the Sales Calls funnel
+// are the same rows counted the same way, so they cannot drift.
 
 export default function SalesDataTracker() {
   // "Today" is read once on mount and then injected everywhere, so the month
@@ -40,51 +29,12 @@ export default function SalesDataTracker() {
   });
   const [cursor, setCursor] = useState<MonthCursor>(() => cursorForToday(today));
 
-  const month = monthKey(cursor);
-  const { data, isPending, isError } = useSalesDataQuery(month);
+  const { data, isError } = useSalesDataQuery(monthKey(cursor));
 
-  const byDay = useMemo(() => {
-    const map = new Map<string, DerivedSalesDay>();
-    for (const row of data?.days ?? []) map.set(row.day, row);
-    return map;
-  }, [data]);
-
-  // The table's row identity. Nothing on this grid is typed, so a row carries
-  // only the day it is; the counts are looked up from it in computeRow.
-  const getRow = useCallback((iso: string): TrackerRow => ({ day: iso }), []);
-
-  const computeRow = useCallback(
-    (row: TrackerRow) => computeSalesRow(byDay.get(row.day) ?? null),
-    [byDay],
-  );
-
-  // The footer and the tiles read the same days the table renders, over the
-  // whole month rather than only the days that came back, so an average is per
-  // worked day and never per row-that-happens-to-exist.
-  const monthDays = useMemo(
-    () => buildMonthDays(cursor, today).map((d) => byDay.get(d.iso) ?? null),
-    [cursor, today, byDay],
-  );
-  const rollup = useMemo(
-    () => computeSalesRollup(monthDays.filter((d): d is DerivedSalesDay => d !== null)),
-    [monthDays],
-  );
-
-  // Said only while the month is still arriving. Once it has, the table used to
-  // caption itself ("one row per day, counted from the meetings themselves,
-  // nothing here is typed"), which is a table saying what it plainly is.
-  const subtitle = isPending && !data ? "Reading the calendar" : undefined;
-
-  // The tile row is gone: the funnel strip below says everything those four
-  // tiles said and three steps more, and a page carrying both would be stating
-  // the same month twice in two shapes.
   return (
     <div className="sdt">
-      <SalesDataLayoutStyle />
-
       {/* The month stepper rides on the page's title line rather than taking a
-          band of its own above the tiles, which is what lets the tiles sit
-          straight under the title and the table take the height that frees. */}
+          band of its own, which is what lets the sheet start at the top. */}
       <PillarTitleActions>
         <TrackerMonthNav cursor={cursor} today={today} onMonthChange={setCursor} />
       </PillarTitleActions>
@@ -97,35 +47,7 @@ export default function SalesDataTracker() {
 
       <StatusLine data={data ?? null} />
 
-      {/* The month, calendar through to cash. Above the grid, because the grid
-          is the detail behind it. */}
-      <FullFunnel totals={rollup.totals} rates={rollup.rates} />
-
-      <DailyTracker
-        title="Daily sales funnel"
-        subtitle={subtitle}
-        columns={SALES_COLUMNS}
-        cursor={cursor}
-        today={today}
-        statTiles={[]}
-        getRow={getRow}
-        computeRow={computeRow}
-        rollup={{ average: rollup.average, total: rollup.total }}
-        // Nothing is editable, so no edit can arrive. Required by the shared
-        // tracker's contract; kept as an explicit no-op rather than a cast.
-        onEdit={() => {}}
-        onMonthChange={setCursor}
-        hideMonthNav
-        readOnly
-      />
-
-      {/* The three breakdowns the grid cannot show: a grid has one row per day,
-          and all three of these are counted per meeting. Under the table because
-          they are the month read a different way, not a detail of it. Each hides
-          itself when it has nothing to say. */}
-      <SourceSplit sources={data?.sources ?? []} />
-      <OfferSplit offers={data?.offers ?? []} />
-      <NoReasons reasons={data?.reasons ?? {}} />
+      <SalesSheet calls={data?.calls ?? []} timeZone={data?.timeZone ?? "UTC"} />
     </div>
   );
 }
@@ -159,12 +81,14 @@ function StatusLine({ data }: { data: SalesDataResponse | null }) {
     );
   }
 
-  // Nothing here about meetings with no outcome yet, or meetings with no time
-  // on them. Both were true, both were amber, and both were a note about work
-  // in progress rather than a fault: this page is a month read back, and a
-  // month read back should not open by telling you what you have not finished.
-  // The meetings needing an answer are on Sales Calls, in a block called Needs
-  // an answer, which is where answering them happens.
+  // Meetings the calendar gave no time belong to no month, so they appear on no
+  // sheet. Said out loud rather than silently dropped: a meeting missing from a
+  // month should be visible as a meeting missing from a month.
+  if (data && data.undated > 0) {
+    warnings.push(
+      `${data.undated} meeting has no time on it, so it is on no month's sheet.`,
+    );
+  }
 
   const changed =
     sync && sync.ok && (sync.added > 0 || sync.updated > 0)
@@ -176,9 +100,7 @@ function StatusLine({ data }: { data: SalesDataResponse | null }) {
           .join(", ")
       : null;
 
-  // Nothing new and nothing wrong means nothing on the page. "Counted from your
-  // meetings, nothing on this page is typed" used to sit here whenever all was
-  // well, which is to say almost always, which is to say it was furniture.
+  // Nothing new and nothing wrong means nothing on the page.
   if (!changed && warnings.length === 0) return null;
 
   return (
@@ -191,22 +113,5 @@ function StatusLine({ data }: { data: SalesDataResponse | null }) {
         </span>
       ))}
     </div>
-  );
-}
-
-// Scoped to this surface so the shared tracker engine is unchanged everywhere
-// else it is mounted.
-function SalesDataLayoutStyle() {
-  return (
-    <style>{`
-      /* No month band above them any more, so the tiles start at the top. */
-      .pk-kit .sdt .adt-stats { margin-top: 0; }
-      /* And the table takes the height that frees up. */
-      .pk-kit .sdt .adt-scroll { max-height: min(72vh, 880px); }
-      /* The Meetings column is the only text cell on a numeric grid; left-align
-         it and let it be the one column that gets the room. */
-      .pk-kit .sdt .adt-card td:last-child,
-      .pk-kit .sdt .adt-card th:last-child { text-align: left; min-width: 150px; }
-    `}</style>
   );
 }
