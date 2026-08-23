@@ -52,10 +52,10 @@ export interface PushResult {
   notConfigured?: boolean;
 }
 
-// What the contact is called in GoHighLevel. The person if we know them, then
-// the business, then the number. A bought list often has a company and no
-// contact name at all, and "Unnamed prospect" on a board full of them is a board
-// nobody can read.
+// What the prospect is called in our own UI: the person if we know them, then
+// the business, then the number. Task titles and error reports read this, but
+// the contact's name fields in GoHighLevel no longer do (see upsertAgencyContact):
+// a business sent as a name gets split across First and Last over there.
 export function displayName(lead: LeadForPush): string {
   const name = `${lead.firstName} ${lead.lastName}`.trim();
   return name || (lead.businessName ?? "").trim() || lead.phone || "Unnamed prospect";
@@ -106,9 +106,15 @@ export async function upsertAgencyContact(
       locationId: ctx.locationId,
       firstName: lead.firstName || undefined,
       lastName: lead.lastName || undefined,
-      name: displayName(lead),
       source: lead.source || "Cold call list",
     };
+    // A name only when there is a person to name. GoHighLevel splits whatever
+    // arrives as `name` across First Name and Last Name, so sending the
+    // business-name fallback from displayName used to land every scraped lead
+    // as "Summit" / "Roofing" in the two fields Jake wants blank. A business
+    // carries its identity in companyName below; no person means no name key.
+    const personName = `${lead.firstName} ${lead.lastName}`.trim();
+    if (personName) body.name = personName;
     if (phone) body.phone = phone;
     if (email) body.email = email;
     // Only sent when we have something. Sending "" would blank a company name

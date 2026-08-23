@@ -151,6 +151,32 @@ describe("upsertAgencyContact", () => {
     });
   });
 
+  // A scraped lead is a company, never a person. GoHighLevel splits the `name`
+  // field across First and Last, so the business must ride in companyName with
+  // both name fields left out of the body entirely.
+  it("sends a scraped business with no names and the company carrying the identity", async () => {
+    mockGhl();
+    const result = await upsertAgencyContact(
+      env,
+      lead({ firstName: "", lastName: "", businessName: "Summit Roofing" }),
+    );
+    expect(result.ok).toBe(true);
+    expect(calls[0].body).toMatchObject({ companyName: "Summit Roofing" });
+    expect(calls[0].body.name).toBeUndefined();
+    expect(calls[0].body.firstName).toBeUndefined();
+    expect(calls[0].body.lastName).toBeUndefined();
+  });
+
+  it("still names a contact when it knows a person for the prospect", async () => {
+    mockGhl();
+    await upsertAgencyContact(env, lead({ businessName: "Bell Roofing" }));
+    expect(calls[0].body).toMatchObject({
+      firstName: "Marcus",
+      lastName: "Bell",
+      companyName: "Bell Roofing",
+    });
+  });
+
   it("refuses a prospect with nothing to key on, rather than creating a duplicate every call", async () => {
     mockGhl();
     const result = await upsertAgencyContact(env, lead({ phone: "", email: "" }));
