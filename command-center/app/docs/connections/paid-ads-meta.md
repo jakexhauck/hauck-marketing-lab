@@ -199,7 +199,14 @@ funnel leads:
 
 `quote.js` keeps the `fbclid` in `localStorage` under `wwq_click` alongside the
 time it was **first seen**, and falls back to it when the URL no longer has one.
-Two reasons, both measured:
+
+**`attribution()` runs on page load for this, not only at submit.** That is the
+whole mechanism and it is easy to undo by accident: writing the stored click at
+submit time stores it at the one moment the URL still had it, which is worth
+nothing. The live smoke test caught exactly that between `201f14dd` and
+`e099eeca`.
+
+Two reasons it matters, both measured:
 
 1. A homeowner who reloads, opens the page from a bookmark, or comes back from
    another tab has lost the parameter but still arrived from the ad. One of the
