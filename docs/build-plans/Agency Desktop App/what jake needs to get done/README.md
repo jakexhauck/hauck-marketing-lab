@@ -453,3 +453,32 @@ bug, it is the work that only you can do.
 - [ ] **Bin or finish the Made Better draft.** There is one row left over from
       the old wizard. It migrated into their Recent Work slot and is otherwise
       empty.
+
+## Sales Data is the sales sheet, shipped 23 August 2026
+
+The page is now one row per call, in the app's own design. Nothing here is a
+bug, it is the work that only you can do.
+
+- [ ] **Decide how PIF and Deposit get tracked.** These were two of the seven
+      you asked for and the only two I could not build: nothing distinguishes a
+      close paid in full from one taken on a deposit. Deriving it from cash
+      against contract value breaks on every month-to-month close and on any
+      close where the figures were not filled in, so the two would not add up
+      to Closed. The honest fix is a PIF / Deposit choice on the record-a-call
+      panel, which needs a column on `sales_calls`.
+
+- [ ] **Confirm Agency Pay is 20%.** That is the sheet's own agency share, kept
+      because you did not say otherwise. With the setter, closer and creator
+      shares gone, 80% of every payment now has no line anywhere on the page.
+      It is one constant, `AGENCY_PAY_RATE` in `src/lib/salesSheet.ts`, and it
+      moves into a settings panel when the rest is wired.
+
+- [ ] **Wire the seven blank columns.** Post Call Form, Set By, Closer, Payment
+      Type, Payments, Recording and Payment Status render a faint dash because
+      the app has nowhere to read them from. They are deliberately empty rather
+      than invented, and each needs either a column on `sales_calls` or a field
+      on the record-a-call panel.
+
+- [ ] **Check a real month against what you remember.** The counts are derived
+      from meetings already in the app, so a month that looks light means the
+      outcomes were never recorded, not that the month was quiet.
