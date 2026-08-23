@@ -1300,6 +1300,14 @@
       });
     }
 
+    // Record the ad click the moment the page opens, not when the survey is
+    // submitted. Called for its side effect: attribution() is what writes
+    // `wwq_click`, and it used to run only at submit time, which stored the
+    // fbclid at the one moment the URL still had it and so bought nothing. A
+    // homeowner who arrives from the ad and finishes tomorrow, or who reloads
+    // onto a URL stripped of its parameters, needs it saved on arrival.
+    attribution();
+
     render();
   }
 
