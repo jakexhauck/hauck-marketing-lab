@@ -804,6 +804,34 @@
       "fbclid", "gclid", "ad_id", "adset_id", "campaign_id", "ref"
     ];
 
+    // The fbclid, kept. Meta weighs `fbc` above every hashed contact detail put
+    // together, and the URL loses it the moment the homeowner reloads, opens
+    // the page from a bookmark, or comes back from another tab. Held with the
+    // time it was FIRST seen, because Meta reads that timestamp as the moment
+    // of the CLICK and this survey takes minutes to finish.
+    var CLICK_KEY = "wwq_click";
+
+    function storedClick() {
+      try {
+        var raw = localStorage.getItem(CLICK_KEY);
+        if (!raw) return null;
+        var v = JSON.parse(raw);
+        return v && v.id ? v : null;
+      } catch (e) { return null; }
+    }
+
+    function rememberClick(fbclid) {
+      if (!fbclid) return;
+      try {
+        var kept = storedClick();
+        // A new click replaces an old one. The SAME click never restamps
+        // itself, or every reload would drag the recorded click time further
+        // from the ad that earned it.
+        if (kept && kept.id === fbclid) return;
+        localStorage.setItem(CLICK_KEY, JSON.stringify({ id: fbclid, ts: Date.now() }));
+      } catch (e) {}
+    }
+
     function attribution() {
       var out = {};
       try {
@@ -813,6 +841,14 @@
           if (v) out[k] = v;
         });
       } catch (e) {}
+      rememberClick(out.fbclid || "");
+      // Only ever fills a gap: an fbclid on the URL belongs to THIS visit and
+      // always wins. This is the homeowner who still arrived from the ad but
+      // no longer has the parameter to prove it.
+      if (!out.fbclid) {
+        var kept = storedClick();
+        if (kept) out.fbclid = kept.id;
+      }
       return out;
     }
 
@@ -844,13 +880,19 @@
       } catch (e) { return ""; }
     }
 
-    // fb.1.<created-ms>.<fbclid>. A real _fbc cookie wins whenever one exists,
-    // so we can never disagree with the browser about the same click.
+    // fb.1.<click-ms>.<fbclid>. A real _fbc cookie wins whenever one exists, so
+    // we can never disagree with the browser about the same click.
+    //
+    // The timestamp is when the click was FIRST SEEN, not now. Meta reads it as
+    // the moment the homeowner clicked the ad, and stamping it at submission
+    // time reports every lead as having clicked minutes later than they did.
     function fbcValue(fbclid) {
       var real = cookie("_fbc");
       if (real) return real;
       if (!fbclid) return "";
-      return "fb.1." + Date.now() + "." + fbclid;
+      var kept = storedClick();
+      var at = kept && kept.id === fbclid ? kept.ts : Date.now();
+      return "fb.1." + at + "." + fbclid;
     }
 
     // fb.1.<created-ms>.<random>. Persisted on purpose: Meta reads this as the

@@ -136,3 +136,80 @@ POST /api/admin/ads/capi-schedule?tenantId=<id>&days=7&test=<TEST_CODE>
 Routes to Events Manager → Test Events instead of the live stream. Verified this
 way on 2026-08-13: 8 of Willis's real bookings accepted, 0 refused, `matched` 0
 (expected, `capi_identity` was still empty). Drop `&test=` to send live.
+
+---
+
+## What reports a Willis conversion today — 2026-08-23 audit
+
+Four things can write into Willis's pixel `982737334630926`. Three should, one
+should not, and the count in Ads Manager is wrong until the fourth is dealt
+with. Audited live on 2026-08-23.
+
+| Where | Fires | Verdict |
+| --- | --- | --- |
+| `quote.js` → `POST /api/capi/lead` | `Lead`, server-side, on survey submit | ✅ correct |
+| GHL pixel on `/survey` | `PageView` | ✅ correct |
+| GHL pixel on `/book` | `PageView` **and `Lead`, on page load** | ❌ **the bug** |
+| GHL calendar widget | `Schedule` on a completed booking | ✅ correct |
+
+### The `/book` Lead is fired by loading the page, not by booking
+
+Navigating a fresh browser to `https://williswindows.com/book` and touching
+nothing sends `ev=Lead` to the pixel four milliseconds after `ev=PageView`. No
+form, no booking, no contact. GHL has `Lead` configured as a page-level event on
+that funnel step, which the `eid=ob3_plugin-set_…` on the request identifies as
+GHL's own pixel plugin rather than anything we wrote.
+
+Two consequences, and the second is the worse one:
+
+1. **Every funnel lead is counted twice.** The survey submit reports `Lead`
+   server-side with a UUID `event_id`, then the redirect to `/book` fires GHL's
+   browser `Lead` under a different id. Meta deduplicates only on a matching
+   event name *and* event id, so it cannot collapse them.
+2. **A `Lead` is recorded for anyone who merely opens `/book`** — a refresh, a
+   bot, a bookmarked link, a stray click. These are conversions with no person
+   attached at all.
+
+The measured gap: 41 `Lead` events on the pixel in the seven days to 2026-08-23
+against 13 rows in `capi_identity`, which is one row per real survey submission.
+
+**Not yet fixed.** The change belongs in GHL's page settings for `/book`, not in
+this repo, and it is Jake's call to make. Until then read Willis's Ads Manager
+lead count as roughly three times the real figure, and remember the ad set is
+optimising against the inflated number.
+
+### Why GHL's two `Conversions API` workflows are not the answer
+
+Both exist in Willis's sub-account and neither should be reconfigured to report
+funnel leads:
+
+- **`Conversions API (Lead Form)`** (`7706f1c2`) triggers on *Facebook Lead Form
+  Submitted*, a Meta Instant Form. Willis runs none, so it never fires. Its
+  `lead_event` action is correct for that trigger and wrong for everything else:
+  `lead_id` exists only for Instant Forms. Switching it to a funnel event would
+  start a third `Lead` stream on the same pixel.
+- **`Conversions API (Schedules)`** (`c72a297a`) triggers on a booking in
+  calendar `Jlr88qZDp0Sth1H5Sjzf` and still carries **`test_event_code:
+  "TEST7647"`**, so every booking it has reported since 2026-08-13 went to Test
+  Events and counted for nothing. Removing that test code does not switch GHL
+  on: GHL's calendar widget already fires `Schedule` from the browser, so it
+  would double-count bookings instead. Leave it test-coded or unpublish it.
+
+### `fbclid` is persisted, so a returning homeowner still carries `fbc`
+
+`quote.js` keeps the `fbclid` in `localStorage` under `wwq_click` alongside the
+time it was **first seen**, and falls back to it when the URL no longer has one.
+Two reasons, both measured:
+
+1. A homeowner who reloads, opens the page from a bookmark, or comes back from
+   another tab has lost the parameter but still arrived from the ad. One of the
+   two blank-`fbc` rows in `capi_identity` was exactly this, landing on
+   `/survey-page` with no query string.
+2. `fbc` is `fb.1.<ms>.<fbclid>` and Meta reads that timestamp as the moment of
+   the **click**. Stamping it at submit time reported every lead as having
+   clicked several minutes later than they did, because the survey takes that
+   long to finish.
+
+A `fbclid` on the URL always wins: it belongs to this visit. The same click
+never restamps itself, or every reload would drag the recorded click time
+further from the ad that earned it.
