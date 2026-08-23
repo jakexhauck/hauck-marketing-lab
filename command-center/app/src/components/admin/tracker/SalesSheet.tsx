@@ -1,33 +1,32 @@
 import { useMemo } from "react";
+import { DollarSign, Wallet, Target, UserX } from "lucide-react";
 import type { SheetCall } from "../../../../functions/lib/salesSheetRows";
 import {
   SHEET_COLUMNS,
-  BAND_CELLS,
-  SHEET_RULE,
-  CHIP_EMPTY,
+  HEADLINE_TILES,
+  FUNNEL_CELLS,
   columnWidths,
   bandTotals,
-  bandValues,
   sheetRow,
-  type SheetCellValue,
+  zoneLabel,
 } from "../../../lib/salesSheet";
 
-// The Sales Data sheet.
+// Sales Data, in the Command Center's own design.
 //
-// ONE table, because the thing being cloned is one grid: rows 1 and 2 are the
-// summary band, row 3 is the red rule, row 4 is the column headers, and every
-// row under it is a call. Splitting the band into its own table would let the
-// two fall out of alignment the first time a column width changed, which is the
-// one thing a spreadsheet clone cannot afford.
+// Three things, in the order they answer a question. The four tiles say how the
+// month went. The strip under them says what happened to the calls that made
+// it. The table is the detail behind both, one row per call.
 //
-// Everything this renders comes from ../../../lib/salesSheet: the columns, the
-// fills, the chips, and the band arithmetic. Nothing is decided here. That is
-// what keeps the numbers unit-tested and this file a view.
+// Everything rendered here comes from ../../../lib/salesSheet: the columns, the
+// tones, the totals. Nothing is decided in this file, which is what keeps the
+// numbers unit-tested and this a view.
 
-// The sheet is drawn out to thirty rows whether or not there are thirty calls,
-// because an empty month in the sheet is thirty empty coloured rows and a page
-// that collapsed to a header would not read as the same object.
-const MIN_ROWS = 30;
+const TILE_ICONS: Record<string, typeof DollarSign> = {
+  revenue: DollarSign,
+  cash: Wallet,
+  closingRate: Target,
+  noShowRate: UserX,
+};
 
 export default function SalesSheet({
   calls,
@@ -36,158 +35,209 @@ export default function SalesSheet({
   calls: SheetCall[];
   timeZone: string;
 }) {
-  const band = useMemo(() => bandValues(bandTotals(calls)), [calls]);
+  const totals = useMemo(() => bandTotals(calls), [calls]);
   const rows = useMemo(() => calls.map((c) => sheetRow(c, timeZone)), [calls, timeZone]);
-  const padding = Math.max(0, MIN_ROWS - rows.length);
   const widths = useMemo(() => columnWidths(), []);
+  // Read off a call in the month rather than off today, so a month viewed in
+  // winter does not get labelled with summer's abbreviation.
+  const zone = useMemo(
+    () => zoneLabel(timeZone, calls.find((c) => c.scheduledAt)?.scheduledAt),
+    [timeZone, calls],
+  );
 
   return (
-    <div className="shs-wrap">
+    <div className="ssh">
       <SheetStyle />
-      <table className="shs">
-        <colgroup>
-          {SHEET_COLUMNS.map((c, i) => (
-            <col key={c.key} style={{ width: widths[i] }} />
-          ))}
-        </colgroup>
 
-        <tbody>
-          {/* Rows 1 and 2: the band, riding the table's own column grid. */}
-          <tr className="shs-band">
-            {BAND_CELLS.map((cell) => (
-              <td
-                key={cell.key}
-                className={`shs-band-label${cell.emphasis ? " shs-em" : ""}`}
-                style={{ background: cell.labelFill }}
-              >
-                {cell.label}
-              </td>
-            ))}
-          </tr>
-          <tr className="shs-band">
-            {BAND_CELLS.map((cell) => (
-              <td
-                key={cell.key}
-                className={`shs-band-value${cell.emphasis ? " shs-em" : ""}`}
-                style={{ background: cell.valueFill }}
-              >
-                {band[cell.key]}
-              </td>
-            ))}
-          </tr>
+      <div className="ssh-tiles">
+        {HEADLINE_TILES.map((tile) => {
+          const Icon = TILE_ICONS[tile.key] ?? DollarSign;
+          const sub = tile.sub(totals);
+          return (
+            <div key={tile.key} className={`ssh-tile ${tile.tone}`}>
+              <div className="ssh-ico" aria-hidden>
+                <Icon />
+              </div>
+              <div className="ssh-tlabel">{tile.label}</div>
+              <div className="ssh-tval">{tile.value(totals)}</div>
+              {sub && <div className="ssh-tsub">{sub}</div>}
+            </div>
+          );
+        })}
+      </div>
 
-          {/* Row 3: the divider. It is what makes the clone read as the sheet
-              at a glance, so it spans the whole grid exactly as it does there. */}
-          <tr className="shs-rule">
-            <td colSpan={SHEET_COLUMNS.length} style={{ background: SHEET_RULE }} />
-          </tr>
+      <div className="ssh-funnel">
+        {FUNNEL_CELLS.map((cell) => (
+          <div key={cell.key} className={`ssh-fcell${cell.tone ? ` t-${cell.tone}` : ""}`}>
+            <div className="ssh-fval">{cell.value(totals)}</div>
+            <div className="ssh-flabel">{cell.label}</div>
+          </div>
+        ))}
+      </div>
 
-          {/* Row 4: the column headers. */}
-          <tr className="shs-head">
-            {SHEET_COLUMNS.map((c) => (
-              <th
-                key={c.key}
-                scope="col"
-                style={{ background: c.headerFill, color: c.headerInk ?? "#000000" }}
-              >
-                {c.label}
-              </th>
-            ))}
-          </tr>
-
-          {rows.map((row, i) => (
-            <tr key={i}>
-              {SHEET_COLUMNS.map((c) => {
-                const value = row[c.key];
-                return (
-                  <td
-                    key={c.key}
-                    className={c.align === "right" ? "shs-right" : undefined}
-                    style={{ background: c.bodyFill }}
-                    // So a value the column is too narrow to show whole is still
-                    // readable, rather than lost behind an ellipsis.
-                    title={value?.kind === "text" ? value.text || undefined : undefined}
-                  >
-                    <Cell value={value} />
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-
-          {Array.from({ length: padding }, (_, i) => (
-            <tr key={`pad-${i}`}>
-              {SHEET_COLUMNS.map((c) => (
-                <td key={c.key} style={{ background: c.bodyFill }}>
-                  {/* The two black dropdown columns keep their unset chip on
-                      every row, filled or not, exactly as the sheet does. */}
-                  {c.key === "closer" || c.key === "setBy" || c.key === "paymentsComplete" ? (
-                    <Cell value={{ kind: "empty-chip" }} />
-                  ) : null}
-                </td>
+      <div className="ssh-card">
+        <div className="ssh-scroll">
+          <table>
+            <colgroup>
+              {SHEET_COLUMNS.map((c, i) => (
+                <col key={c.key} style={{ width: widths[i] }} />
               ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </colgroup>
+            <thead>
+              <tr>
+                {SHEET_COLUMNS.map((c) => (
+                  <th
+                    key={c.key}
+                    scope="col"
+                    className={c.numeric ? "num" : undefined}
+                  >
+                    {/* The zone is named once, on the column whose values are
+                        in it, rather than repeated on every row. */}
+                    {c.key === "date" && zone ? `${c.label} · ${zone}` : c.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={i}>
+                  <td className="ssh-date">{row.date}</td>
+                  <td className="ssh-name">{row.name}</td>
+                  <td>
+                    <span className={`ssh-pill t-${row.outcome.tone}`}>{row.outcome.label}</span>
+                  </td>
+                  {SHEET_COLUMNS.slice(3).map((c) => {
+                    const value = row.cells[c.key] ?? "";
+                    return (
+                      <td
+                        key={c.key}
+                        className={c.numeric ? "num" : undefined}
+                        // So a value the column is too narrow to show whole is
+                        // still readable, rather than lost behind an ellipsis.
+                        title={value || undefined}
+                      >
+                        {value || <span className="ssh-none">-</span>}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {rows.length === 0 && (
+            <div className="ssh-empty">No sales calls were booked this month.</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-function Cell({ value }: { value: SheetCellValue | undefined }) {
-  if (!value) return null;
-  if (value.kind === "empty-chip") return <span className="shs-chip shs-chip-empty" />;
-  if (value.kind === "chip") {
-    return (
-      <span className="shs-chip" style={{ background: value.fill, color: value.ink }}>
-        {value.text}
-      </span>
-    );
-  }
-  return <>{value.text}</>;
-}
-
-// Scoped to .shs. The sheet's own look, which is deliberately not the app's:
-// Arial, hairline grey gridlines, tight rows, black text on the sampled fills.
+// Scoped to .ssh, built from the app's own tokens and the tracker's accent set,
+// so this page reads as part of the Command Center in both themes.
 function SheetStyle() {
   return (
     <style>{`
-      /* The whole sheet has to be readable at once, so the table is fluid and
-         fills whatever the page gives it. The wrapper still scrolls, but only
-         below the min-width, which is narrower than any desktop: it is there so
-         the sheet degrades on a phone rather than crushing itself to nothing. */
-      .shs-wrap { overflow-x: auto; overflow-y: visible; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
-      .shs { width: 100%; min-width: 1020px; border-collapse: collapse; table-layout: fixed; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; }
-      .shs td, .shs th { border: 1px solid #d0d7de; padding: 3px 5px; height: 21px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .pk-kit .ssh {
+        --ssh-indigo: #6366f1; --ssh-green: #10b981; --ssh-sky: #0ea5e9; --ssh-amber: #f59e0b;
+        --ssh-red: #ef4444;
+        --ssh-indigo-tint: #eef0ff; --ssh-green-tint: #e7f7f0;
+        --ssh-sky-tint: #e6f5fd; --ssh-amber-tint: #fdf3e2;
+        --ssh-head-bg: #fafbfc; --ssh-hover: #fbfbfd;
+      }
+      [data-theme="dark"] .pk-kit .ssh {
+        --ssh-indigo-tint: rgba(99,102,241,.18); --ssh-green-tint: rgba(16,185,129,.15);
+        --ssh-sky-tint: rgba(14,165,233,.15); --ssh-amber-tint: rgba(245,158,11,.15);
+        --ssh-head-bg: color-mix(in srgb, var(--surface) 80%, transparent);
+        --ssh-hover: rgba(255,255,255,.03);
+      }
 
-      /* The band. Its labels are bold and centred, its values sit under them.
-         Labels wrap, because "Total No Show Rate (%)" over a narrow column is
-         two lines in the sheet as well. */
-      .shs-band-label { font-weight: 700; text-align: center; height: 32px; white-space: normal; line-height: 1.15; vertical-align: middle; }
-      .shs-band-value { font-weight: 700; text-align: center; height: 30px; font-size: 13px; }
-      /* The four rate cells are the loudest thing on the sheet, on purpose. */
-      .shs-band-label.shs-em { font-size: 10px; }
-      .shs-band-value.shs-em { font-size: 16px; letter-spacing: .01em; }
+      /* ===== the four headline tiles ===== */
+      .pk-kit .ssh-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+      .pk-kit .ssh-tile { border-radius: 22px; padding: 16px 18px; }
+      .pk-kit .ssh-tile.indigo { background: var(--ssh-indigo-tint); }
+      .pk-kit .ssh-tile.green { background: var(--ssh-green-tint); }
+      .pk-kit .ssh-tile.sky { background: var(--ssh-sky-tint); }
+      .pk-kit .ssh-tile.amber { background: var(--ssh-amber-tint); }
+      .pk-kit .ssh-ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: #fff; margin-bottom: 10px; }
+      .pk-kit .ssh-ico svg { width: 18px; height: 18px; }
+      .pk-kit .ssh-tile.indigo .ssh-ico { background: var(--ssh-indigo); }
+      .pk-kit .ssh-tile.green .ssh-ico { background: var(--ssh-green); }
+      .pk-kit .ssh-tile.sky .ssh-ico { background: var(--ssh-sky); }
+      .pk-kit .ssh-tile.amber .ssh-ico { background: var(--ssh-amber); }
+      .pk-kit .ssh-tlabel { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+      .pk-kit .ssh-tval { font-family: var(--font-display); font-weight: 700; font-size: 30px; letter-spacing: -.02em; margin-top: 2px; color: var(--text); font-variant-numeric: tabular-nums; }
+      .pk-kit .ssh-tsub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
 
-      .shs-rule td { height: 6px; padding: 0; border: 0; }
+      /* ===== the funnel strip ===== */
+      .pk-kit .ssh-funnel {
+        display: grid; grid-template-columns: repeat(8, 1fr); gap: 1px; margin-top: 14px;
+        background: var(--border); border: 1px solid var(--border); border-radius: 18px;
+        overflow: hidden; box-shadow: var(--shadow-sm);
+      }
+      .pk-kit .ssh-fcell { background: var(--surface); padding: 13px 14px; }
+      .pk-kit .ssh-fval { font-family: var(--font-display); font-weight: 700; font-size: 21px; letter-spacing: -.01em; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.1; }
+      .pk-kit .ssh-flabel { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-faint); margin-top: 3px; }
+      .pk-kit .ssh-fcell.t-good .ssh-fval { color: var(--ssh-green); }
+      .pk-kit .ssh-fcell.t-info .ssh-fval { color: var(--ssh-indigo); }
+      .pk-kit .ssh-fcell.t-warn .ssh-fval { color: var(--ssh-amber); }
+      .pk-kit .ssh-fcell.t-bad .ssh-fval { color: var(--ssh-red); }
+      .pk-kit .ssh-fcell.t-muted .ssh-fval { color: var(--text-faint); }
 
-      /* Headers wrap rather than truncate: a column whose name is cut in half
-         is a column you have to guess at, and there are seventeen of them. */
-      .shs-head th { font-weight: 700; text-align: left; height: 38px; white-space: normal; vertical-align: middle; line-height: 1.15; }
+      /* ===== the table ===== */
+      .pk-kit .ssh-card {
+        background: var(--surface); border: 1px solid var(--border); border-radius: 22px;
+        margin-top: 16px; box-shadow: var(--shadow-md); overflow: hidden;
+      }
+      /* Fluid, so the month fits the page. It only scrolls below a width no
+         desktop has, which is there so the table degrades on a phone rather
+         than crushing itself to nothing. */
+      .pk-kit .ssh-scroll { overflow: auto; max-height: min(64vh, 760px); }
+      .pk-kit .ssh-card table { width: 100%; min-width: 1150px; border-collapse: collapse; table-layout: fixed; }
+      .pk-kit .ssh-card thead th {
+        position: sticky; top: 0; z-index: 2; background: var(--ssh-head-bg);
+        font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+        color: var(--text-faint); text-align: left; padding: 11px 12px; white-space: nowrap;
+        border-bottom: 1px solid var(--border);
+      }
+      .pk-kit .ssh-card thead th:first-child { padding-left: 18px; }
+      .pk-kit .ssh-card thead th.num { text-align: right; }
+      .pk-kit .ssh-card tbody td {
+        padding: 9px 12px; font-size: 13px; color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .pk-kit .ssh-card tbody tr:last-child td { border-bottom: 0; }
+      .pk-kit .ssh-card tbody td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+      .pk-kit .ssh-card tbody tr:hover td { background: var(--ssh-hover); }
+      .pk-kit .ssh-card td.ssh-date { padding-left: 18px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+      .pk-kit .ssh-card td.ssh-name { font-weight: 600; color: var(--text); }
+      /* A column with nothing in it yet. Faint enough to read as waiting. */
+      .pk-kit .ssh-none { color: var(--text-faint); opacity: .55; }
 
-      .shs-right { text-align: right; }
+      /* ===== the outcome pill ===== */
+      .pk-kit .ssh-pill { display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+      .pk-kit .ssh-pill.t-good { background: rgba(16,185,129,.16); color: #0a7d58; }
+      .pk-kit .ssh-pill.t-info { background: rgba(99,102,241,.16); color: #4649c4; }
+      .pk-kit .ssh-pill.t-warn { background: rgba(245,158,11,.18); color: #a86a06; }
+      .pk-kit .ssh-pill.t-bad { background: rgba(239,68,68,.14); color: #c23434; }
+      .pk-kit .ssh-pill.t-muted { background: color-mix(in srgb, var(--text-faint) 16%, transparent); color: var(--text-faint); }
+      [data-theme="dark"] .pk-kit .ssh-pill.t-good { color: #34d399; }
+      [data-theme="dark"] .pk-kit .ssh-pill.t-info { color: #a5b4fc; }
+      [data-theme="dark"] .pk-kit .ssh-pill.t-warn { color: #fbbf24; }
+      [data-theme="dark"] .pk-kit .ssh-pill.t-bad { color: #f87171; }
 
-      /* The one cell with a genuinely long value. It wraps instead of ending in
-         an ellipsis, because a date you cannot read is not a date. */
-      .shs td:first-child { white-space: normal; line-height: 1.25; }
+      .pk-kit .ssh-empty { padding: 44px 20px; text-align: center; font-size: 13.5px; color: var(--text-faint); }
 
-      /* The sheet's dropdown pills. */
-      .shs-chip { display: inline-block; min-width: 54px; max-width: 100%; padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; line-height: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
-      .shs-chip-empty { background: ${CHIP_EMPTY}; min-height: 15px; }
-
-      /* Sticky only matters below the min-width, where the sheet does scroll. */
-      .shs td:first-child, .shs th:first-child { position: sticky; left: 0; z-index: 1; }
-      .shs-rule td:first-child { position: static; }
+      @media (max-width: 1100px) {
+        .pk-kit .ssh-tiles { grid-template-columns: repeat(2, 1fr); }
+        .pk-kit .ssh-funnel { grid-template-columns: repeat(4, 1fr); }
+      }
+      @media (max-width: 620px) {
+        .pk-kit .ssh-tiles { grid-template-columns: 1fr; }
+        .pk-kit .ssh-funnel { grid-template-columns: repeat(2, 1fr); }
+      }
     `}</style>
   );
 }

@@ -1,15 +1,17 @@
 import { describe, it, expect } from "vitest";
 import {
   SHEET_COLUMNS,
-  BAND_CELLS,
+  HEADLINE_TILES,
+  FUNNEL_CELLS,
   AGENCY_PAY_RATE,
   columnWidths,
   bandTotals,
-  bandValues,
+  outcomeFor,
   sheetRow,
-  formatSheetMoney,
-  formatSheetPct,
+  formatMoney,
+  formatPct,
   formatApptDate,
+  zoneLabel,
 } from "./salesSheet";
 import type { SheetCall } from "../../functions/lib/salesSheetRows";
 
@@ -39,50 +41,60 @@ const CLOSED = call({
   cashCollected: 2000,
 });
 
-describe("formatting, as the sheet does it", () => {
-  // The sheet prints $2,000.00, never $2,000. This is a deliberate departure
-  // from the old salesTracker.ts, which dropped the .00 on whole dollars.
-  it("always prints two decimals on money", () => {
-    expect(formatSheetMoney(2000)).toBe("$2,000.00");
-    expect(formatSheetMoney(1935.5)).toBe("$1,935.50");
-    expect(formatSheetMoney(0)).toBe("$0.00");
+describe("formatting, in the app's own conventions", () => {
+  // A column of "$4,500.00" is noise. This is the convention every other table
+  // in the Command Center uses, and following it is most of what makes the page
+  // look like it belongs here.
+  it("keeps whole dollars whole and cents where there are any", () => {
+    expect(formatMoney(2000)).toBe("$2,000");
+    expect(formatMoney(1935.5)).toBe("$1,935.50");
+    expect(formatMoney(0)).toBe("$0");
   });
 
   it("prints nothing for money nobody recorded", () => {
-    expect(formatSheetMoney(null)).toBe("");
+    expect(formatMoney(null)).toBe("");
   });
 
-  // The sheet shows 0.00% on an empty month rather than a dash. It is the spec
-  // here, so a rate with no denominator reads 0.00% and not "-".
-  it("prints two decimals and a percent sign on rates", () => {
-    expect(formatSheetPct(1)).toBe("100.00%");
-    expect(formatSheetPct(0)).toBe("0.00%");
-    expect(formatSheetPct(0.3333)).toBe("33.33%");
+  it("prints a rate without trailing zeroes", () => {
+    expect(formatPct(1)).toBe("100%");
+    expect(formatPct(0)).toBe("0%");
+    expect(formatPct(0.3333)).toBe("33.3%");
   });
 
-  it("writes the appointment date the way the sheet writes it", () => {
-    const out = formatApptDate("2026-03-09T15:30:00Z", "America/New_York");
-    expect(out).toBe("Monday, March 9, 2026 11:30 AM - EDT");
+  // A month with no calls in it did not close 0% of them. There was nothing to
+  // close, and printing 0% would report a failure that never happened.
+  it("prints a dash for a rate with no denominator", () => {
+    expect(formatPct(null)).toBe("-");
+  });
+
+  it("writes the appointment date short, without the year or the zone", () => {
+    expect(formatApptDate("2026-03-09T15:30:00Z", "America/New_York")).toBe("Mon 9 Mar, 11:30 AM");
   });
 
   it("leaves the date cell empty when the calendar gave no time", () => {
     expect(formatApptDate(null, "America/New_York")).toBe("");
   });
+
+  // Read off a call in the month, so a month viewed in winter is not labelled
+  // with summer's abbreviation.
+  it("names the zone from the month being read", () => {
+    expect(zoneLabel("America/New_York", "2026-03-09T15:30:00Z")).toBe("EDT");
+    expect(zoneLabel("America/New_York", "2026-01-09T15:30:00Z")).toBe("EST");
+  });
 });
 
 describe("bandTotals", () => {
-  it("gives an empty month zeroes, never a division by zero", () => {
+  it("gives an empty month zeroes, and no rate at all", () => {
     const t = bandTotals([]);
     expect(t.totalCalls).toBe(0);
     expect(t.cancelled).toBe(0);
     expect(t.unqualified).toBe(0);
     expect(t.followUp).toBe(0);
-    expect(t.closingRate).toBe(0);
-    expect(t.noShowRate).toBe(0);
-    expect(Number.isFinite(t.closingRate)).toBe(true);
+    expect(t.closingRate).toBeNull();
+    expect(t.noShowRate).toBeNull();
   });
 
-  it("counts one closed live call the way the sheet does", () => {
+  it("counts one closed live call", () => {
     const t = bandTotals([CLOSED]);
     expect(t.revenue).toBe(24000);
     expect(t.cashCollected).toBe(2000);
@@ -90,7 +102,6 @@ describe("bandTotals", () => {
     expect(t.liveCalls).toBe(1);
     expect(t.closed).toBe(1);
     expect(t.noClose).toBe(0);
-    expect(t.noShows).toBe(0);
     expect(t.closingRate).toBe(1);
     expect(t.noShowRate).toBe(0);
     expect(t.agencyPay).toBe(2000 * AGENCY_PAY_RATE);
@@ -102,13 +113,12 @@ describe("bandTotals", () => {
     expect(t.liveCalls).toBe(0);
     expect(t.noShows).toBe(1);
     expect(t.noShowRate).toBe(1);
-    // Nobody turned up, so there was nothing to close. A close rate of 0% over
-    // zero live calls would read as a failed pitch that never happened.
-    expect(t.closingRate).toBe(0);
+    // Nobody turned up, so there was nothing to close.
+    expect(t.closingRate).toBeNull();
   });
 
   // A meeting called off in advance was never a call. Counting it would make
-  // every rate on the band read low for a reason nobody can see.
+  // every rate read low for a reason nobody can see.
   it("counts a cancelled meeting on its own, and not as a call", () => {
     const t = bandTotals([call({ cancelled: true }), CLOSED]);
     expect(t.cancelled).toBe(1);
@@ -129,87 +139,60 @@ describe("bandTotals", () => {
     expect(t.followUp).toBe(1);
     expect(t.noClose).toBe(1);
     expect(t.unqualified).toBe(1);
-    // The invariant that makes the band trustworthy: the four buckets add up to
-    // every call that happened, so nothing is counted twice and nothing is lost.
+    // The invariant the strip rests on: the four buckets add up to every call
+    // that happened, so nothing is counted twice and nothing is lost.
     expect(t.closed + t.followUp + t.noClose + t.unqualified).toBe(t.liveCalls);
     expect(t.closingRate).toBe(0.25);
   });
 
   // Unqualified is a fact about the list and No-Close is a fact about the
-  // pitch. The old reading of No-Close was "showed and did not close", which
-  // swallowed both of the others.
+  // pitch. Merging them hides which of the two needs fixing.
   it("does not count an unqualified call or a follow up as a no-close", () => {
     expect(bandTotals([call({ showed: true, unqualified: true })]).noClose).toBe(0);
     expect(bandTotals([call({ showed: true, needsFollowUp: true })]).noClose).toBe(0);
   });
 });
 
-describe("bandValues", () => {
-  // Keyed by the COLUMN each cell sits over, not by the metric, because the
-  // band rides the table's grid. Looked up by label here so the assertion reads
-  // as the thing a person sees on the page.
-  function cell(values: Record<string, string>, label: string): string {
-    const found = BAND_CELLS.find((c) => c.label === label);
-    if (!found) throw new Error(`no band cell labelled ${label}`);
-    return values[found.key];
-  }
-
-  it("renders every band cell the sheet has, formatted", () => {
-    const v = bandValues(bandTotals([CLOSED]));
-    expect(cell(v, "Revenue")).toBe("$24,000.00");
-    expect(cell(v, "Cash Collected")).toBe("$2,000.00");
-    expect(cell(v, "Total Calls")).toBe("1");
-    expect(cell(v, "Calls Cancelled")).toBe("0");
-    expect(cell(v, "Unqualified")).toBe("0");
-    expect(cell(v, "Follow-Up")).toBe("0");
-    expect(cell(v, "Closing Rate (%)")).toBe("100.00%");
-    expect(cell(v, "No Show Rate (%)")).toBe("0.00%");
-    expect(cell(v, "name (operator)")).toBe("$400.00");
+describe("outcomeFor", () => {
+  it("names each outcome once, in its own tone", () => {
+    expect(outcomeFor(CLOSED)).toEqual({ label: "Closed", tone: "good" });
+    expect(outcomeFor(call({ showed: true, needsFollowUp: true }))).toEqual({
+      label: "Follow-Up",
+      tone: "info",
+    });
+    expect(outcomeFor(call({ showed: true, noClose: true }))).toEqual({
+      label: "No-Close",
+      tone: "warn",
+    });
+    expect(outcomeFor(call({ showed: true, unqualified: true }))).toEqual({
+      label: "Unqualified",
+      tone: "muted",
+    });
+    expect(outcomeFor(call({ noShow: true }))).toEqual({ label: "No Show", tone: "bad" });
   });
 
-  it("keeps the sheet's two-word label column", () => {
-    const v = bandValues(bandTotals([]));
-    expect(cell(v, "Calls:")).toBe("Calls Booked:");
+  // Both outrank anything recorded against the meeting: they are facts about
+  // whether it happened at all.
+  it("puts cancelled ahead of everything, and no-show ahead of the rest", () => {
+    expect(outcomeFor(call({ cancelled: true, closed: true, showed: true })).label).toBe(
+      "Cancelled",
+    );
+    expect(outcomeFor(call({ noShow: true, unqualified: true })).label).toBe("No Show");
+  });
+
+  // A meeting nobody has recorded is not a no-show, and showing it as one would
+  // invent a failure that has not happened yet.
+  it("calls an unrecorded meeting awaiting, not a no-show", () => {
+    expect(outcomeFor(call())).toEqual({ label: "Awaiting", tone: "muted" });
   });
 });
 
 describe("sheetRow", () => {
-  it("chips the closed call in both of the sheet's chip columns", () => {
+  it("carries the date, the name and the outcome", () => {
     const r = sheetRow(CLOSED, "America/New_York");
-    expect(r.closed).toEqual({ kind: "chip", text: "Closed", fill: "#d4edbc", ink: "#11734b" });
-    expect(r.calls).toEqual({ kind: "chip", text: "Live Call", fill: "#11734b", ink: "#ffffff" });
-  });
-
-  it("chips a no-show in the Calls column and leaves Closed empty", () => {
-    const r = sheetRow(call({ noShow: true }), "America/New_York");
-    expect(r.calls).toMatchObject({ kind: "chip", text: "No Show" });
-    expect(r.closed).toEqual({ kind: "text", text: "" });
-  });
-
-  it("chips a follow up as Yes", () => {
-    const r = sheetRow(call({ needsFollowUp: true }), "America/New_York");
-    expect(r.needsFollowUp).toMatchObject({ kind: "chip", text: "Yes" });
-  });
-
-  // The columns with nowhere to read from yet render an unset dropdown, exactly
-  // as they look in the sheet, rather than a blank that reads as a bug.
-  it("renders an empty chip in the columns nothing feeds yet", () => {
-    const r = sheetRow(CLOSED, "America/New_York");
-    expect(r.closer).toEqual({ kind: "empty-chip" });
-    expect(r.setBy).toEqual({ kind: "empty-chip" });
-    expect(r.paymentsComplete).toEqual({ kind: "empty-chip" });
-  });
-
-  it("leaves the free-text columns nothing feeds yet blank", () => {
-    const r = sheetRow(CLOSED, "America/New_York");
-    for (const key of ["postCallForm", "paymentType", "recordingLink", "paymentStatus"]) {
-      expect(r[key]).toEqual({ kind: "text", text: "" });
-    }
-  });
-
-  it("fills every column the schema declares", () => {
-    const r = sheetRow(CLOSED, "America/New_York");
-    for (const col of SHEET_COLUMNS) expect(r[col.key]).toBeDefined();
+    expect(r.date).toBe("Mon 9 Mar, 11:30 AM");
+    expect(r.name).toBe("Jake Hauck");
+    expect(r.outcome.label).toBe("Closed");
   });
 
   it("carries money, notes and the objection through", () => {
@@ -217,26 +200,45 @@ describe("sheetRow", () => {
       call({ cashCollected: 2000, revenue: 24000, notes: "partner call", objection: "Bad timing" }),
       "America/New_York",
     );
-    expect(r.cashCollected).toEqual({ kind: "text", text: "$2,000.00" });
-    expect(r.revenue).toEqual({ kind: "text", text: "$24,000.00" });
-    expect(r.callNotes).toEqual({ kind: "text", text: "partner call" });
-    expect(r.objection).toEqual({ kind: "text", text: "Bad timing" });
+    expect(r.cells.cashCollected).toBe("$2,000");
+    expect(r.cells.revenue).toBe("$24,000");
+    expect(r.cells.notes).toBe("partner call");
+    expect(r.cells.objection).toBe("Bad timing");
   });
 
   it("pays the agency its share of the cash, and nothing on a call with none", () => {
-    expect(sheetRow(CLOSED, "UTC").agencyPay).toEqual({ kind: "text", text: "$400.00" });
-    expect(sheetRow(call(), "UTC").agencyPay).toEqual({ kind: "text", text: "" });
+    expect(sheetRow(CLOSED, "UTC").cells.agencyPay).toBe("$400");
+    expect(sheetRow(call(), "UTC").cells.agencyPay).toBe("");
+  });
+
+  // Empty rather than invented. The table draws a faint dash so the column
+  // reads as waiting, not as broken.
+  it("leaves the columns nothing feeds yet empty", () => {
+    const r = sheetRow(CLOSED, "America/New_York");
+    for (const key of [
+      "setBy",
+      "closer",
+      "paymentType",
+      "paymentsComplete",
+      "postCallForm",
+      "recordingLink",
+      "paymentStatus",
+    ]) {
+      expect(r.cells[key]).toBe("");
+    }
+  });
+
+  it("fills every column the table renders from cells", () => {
+    const r = sheetRow(CLOSED, "America/New_York");
+    // The first three are drawn from date, name and outcome directly.
+    for (const col of SHEET_COLUMNS.slice(3)) expect(r.cells[col.key]).toBeDefined();
   });
 });
 
 describe("the schema Jake asked for", () => {
-  it("has seventeen columns", () => {
-    expect(SHEET_COLUMNS).toHaveLength(17);
-  });
-
-  // The four Jake struck off. A column quietly surviving a decision is exactly
+  // The four he struck off. A column quietly surviving a decision is exactly
   // what this test exists to catch.
-  it("carries no setter, closer, creator or after-fees column", () => {
+  it("carries no setter, closer, creator or after-fees pay column", () => {
     const keys = SHEET_COLUMNS.map((c) => c.key);
     expect(keys).not.toContain("setterPay");
     expect(keys).not.toContain("closerPay");
@@ -245,53 +247,34 @@ describe("the schema Jake asked for", () => {
     expect(keys).toContain("agencyPay");
   });
 
-  it("carries no per-person pay total but the operator's", () => {
-    const labels = BAND_CELLS.map((c) => c.label);
-    expect(labels).not.toContain("name (setter)");
-    expect(labels).not.toContain("name (closer)");
-    expect(labels).not.toContain("name (creator/coach)");
-    expect(labels).not.toContain("CC After Fees");
-    expect(labels).toContain("name (operator)");
-  });
-
-  // Struck off: nothing in the app records whether a prospect stayed the hour,
-  // so both cells read zero for ever. Total No Show Rate went with them: it was
-  // no-shows plus intent, which without intent is No Show Rate twice.
-  it("carries no 1hr intent cell", () => {
-    const labels = BAND_CELLS.map((c) => c.label);
+  // Nothing records whether a prospect stayed the hour, so both cells read zero
+  // for ever. Total No Show Rate went with them: it was no-shows plus intent,
+  // which without intent is No Show Rate printed twice.
+  it("carries no 1hr intent metric", () => {
+    const labels = [...HEADLINE_TILES, ...FUNNEL_CELLS].map((c) => c.label);
     expect(labels).not.toContain("No 1hr Intent");
     expect(labels).not.toContain("No 1hr Intent (%)");
     expect(labels).not.toContain("Total No Show Rate (%)");
   });
 
-  it("tracks everything Jake asked to see", () => {
-    const labels = BAND_CELLS.map((c) => c.label);
+  it("shows everything Jake asked to track", () => {
+    const labels = [...HEADLINE_TILES, ...FUNNEL_CELLS].map((c) => c.label);
     for (const wanted of [
-      "Calls Cancelled",
+      "Cancelled",
       "Unqualified",
       "No Shows",
       "No-Close",
       "Follow-Up",
       "Closed",
-      "Closing Rate (%)",
-      "No Show Rate (%)",
+      "Closing Rate",
+      "No Show Rate",
     ]) {
       expect(labels).toContain(wanted);
     }
   });
-
-  it("puts every band cell over a real column", () => {
-    const keys = new Set(SHEET_COLUMNS.map((c) => c.key));
-    for (const cell of BAND_CELLS) expect(keys.has(cell.key)).toBe(true);
-  });
-
-  it("puts at most one band cell over each column", () => {
-    const seen = new Set(BAND_CELLS.map((c) => c.key));
-    expect(seen.size).toBe(BAND_CELLS.length);
-  });
 });
 
-// Jake has to be able to read the whole sheet without scrolling sideways, which
+// Jake has to be able to read the whole month without scrolling sideways, which
 // is only true while the columns add up to exactly the width available. A
 // column added later with a pixel width, or one that pushes the total past
 // 100%, brings the sideways scrollbar back.
@@ -305,7 +288,7 @@ describe("columnWidths", () => {
     expect(total).toBeCloseTo(100, 2);
   });
 
-  it("gives the appointment date the widest column, because it holds the longest value", () => {
+  it("gives the date the widest column, because it holds the longest value", () => {
     const widths = columnWidths().map((w) => Number.parseFloat(w));
     expect(Math.max(...widths)).toBe(widths[0]);
   });
