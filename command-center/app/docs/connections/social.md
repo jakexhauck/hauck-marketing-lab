@@ -38,7 +38,7 @@ Re-probe to confirm the fix: `GET /social-media-posting/{loc}/accounts` returns 
 - ✅ Session model exists (live/test cookie). The Worker injects the active mode's GHL location + token per request — extend the same pattern to the social endpoints.
 
 ## Secrets / env vars (Cloudflare Pages)
-- ❌ `ANTHROPIC_API_KEY` — new, for AI.
+- Removed: `ANTHROPIC_API_KEY` was never used; the agency decided against Anthropic API usage (2026-08-22).
 - ✅ `GHL_LOCATION_ID` / `GHL_TOKEN` (+ `TEST_*`) — exist; confirm the GHL token scope covers Social Planner.
 - ❌ Per-platform OAuth credentials for account connect (handled through GHL).
 

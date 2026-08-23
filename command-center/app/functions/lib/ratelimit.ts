@@ -1,5 +1,6 @@
 import { getServiceClient } from "./supabase";
 import type { Env } from "./env";
+import { logErrorBestEffort } from "./errorLog";
 
 // Login rate limiting: a sliding window of failed attempts per client IP.
 //
@@ -9,8 +10,12 @@ import type { Env } from "./env";
 //    every isolate and PoP. The real limiter when Supabase is configured.
 //  - In-memory per-isolate map: free, instant, and still slows a single-source
 //    brute force when Supabase is unconfigured or unreachable.
-// Fail open on infrastructure errors: a Supabase outage must not lock every
-// client out of the app.
+//
+// Fail open on infrastructure errors, ON PURPOSE: a Supabase outage must not
+// lock every client out of the app. What changed is that the degraded state is
+// now LOUD: each durable-layer failure drops an error_log receipt, so a limiter
+// running on memory alone for hours shows up in the admin errors surface and
+// the health probe instead of passing unnoticed.
 
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILURES = 10;
@@ -48,9 +53,13 @@ export async function isLoginRateLimited(
       .select("id", { count: "exact", head: true })
       .eq("ip", ip)
       .gt("created_at", new Date(now - WINDOW_MS).toISOString());
-    if (error) return false;
+    if (error) {
+      logErrorBestEffort(env, "ratelimit", `durable check refused: ${error.message}`);
+      return false;
+    }
     return (count ?? 0) >= MAX_FAILURES;
-  } catch {
+  } catch (err) {
+    logErrorBestEffort(env, "ratelimit", `durable check failed: ${(err as Error)?.message ?? err}`);
     return false;
   }
 }

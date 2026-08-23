@@ -1306,6 +1306,32 @@ export function useAdminAuditQuery(
   });
 }
 
+// Background failure receipts (GET /api/admin/errors), the readable end of
+// error_log: what broke while nobody was watching, with burst counts for the
+// last hour and day. Fresh on every mount; this is a diagnostic surface.
+export interface AdminErrorRow {
+  id: string;
+  created_at: string;
+  source: string;
+  message: string;
+}
+
+export interface AdminErrorsResponse {
+  windowHours: number;
+  counts: { hour: number; day: number };
+  latest: AdminErrorRow[];
+}
+
+export function useAdminErrorsQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "errors"],
+    enabled,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    queryFn: () => api<AdminErrorsResponse>("/api/admin/errors"),
+  });
+}
+
 // One client's full admin detail (business info, entitlements, staff,
 // GHL-identified members, recent activity) for the Service Delivery cockpit.
 // Keyed by tenantId so the header and the Overview tab (Task 3.3) mounting

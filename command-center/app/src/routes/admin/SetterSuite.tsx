@@ -38,7 +38,7 @@ import {
   type AutomationLock,
 } from "../../lib/setterAutomationLock";
 import { dialCheckKey, orderByNumberPrefix } from "../../lib/setterModel";
-import AdminPage from "../../components/admin/AdminPage";
+import { TAB_TRACK, TabButton } from "../../components/PageTabs";
 import {
   appointmentFor,
   isApptTracked,
@@ -135,6 +135,8 @@ export default function SetterSuite() {
   // Results at their desk should find it on Results when they sit back down,
   // not reset because they glanced at their phone in between.
   const view = isMobile && !PHONE_VIEWS.includes(storedView) ? "board" : storedView;
+  // The views on offer: the full set at a desk, trimmed to the phone set there.
+  const views = SETTER_VIEWS.filter((v) => !isMobile || PHONE_VIEWS.includes(v.value));
   const selectView = (v: SetterView) => {
     setView(v);
     try {
@@ -297,40 +299,43 @@ export default function SetterSuite() {
 
   return (
     <div className="pk-root">
-      {/* Top row: the title with the dialing-script button and the client
-          picker inline on the right. The view tabs sit on their own row below,
-          so on a phone the title and client picker read as one clean header and
-          the tabs get the full width to scroll. */}
-      {/* Title, views and controls were three stacked rows; they are one panel
-          now, the same one every other admin page opens with. The view icons are
-          dropped with the old strip: the segmented control is a compact object
-          already, and icons inside it fought the sliding pill for space. */}
-      <AdminPage
-        section="Setter Suite"
-        tabs={SETTER_VIEWS.filter(
-          (v) => !isMobile || PHONE_VIEWS.includes(v.value),
-        ).map((v) => ({ id: v.value, label: v.label }))}
-        active={view}
-        onSelect={(id) => selectView(id as (typeof SETTER_VIEWS)[number]["value"])}
-        actions={
-          <>
-            <button
-              type="button"
-              onClick={() => setScriptOpen(true)}
-              disabled={!activeTenantId}
-              className="setter-scriptbtn inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-muted transition-colors hover:border-brand/40 hover:text-brand-text disabled:opacity-50"
-              aria-label="Dialing script"
-            >
-              <ScrollText size={14} aria-hidden />
-              <span className="setter-scriptlabel">Dialing script</span>
-            </button>
+      {/* No header panel (Jake, 2026-08-23): the rail row is the title. One slim
+          row instead: the suite's views on the left (they are views INSIDE this
+          one page, not rail rows, so their switcher stays), and the dialing
+          script button plus client picker pinned right. */}
+      <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-3">
+        {views.length > 1 && (
+          <nav
+            aria-label="Setter Suite views"
+            className="flex shrink-0 overflow-x-auto"
+            style={{ scrollbarWidth: "none" }}
+          >
+            <div className={TAB_TRACK}>
+              {views.map((v) => (
+                <TabButton key={v.value} active={v.value === view} onClick={() => selectView(v.value)}>
+                  {v.label}
+                </TabButton>
+              ))}
+            </div>
+          </nav>
+        )}
+        <div className="ml-auto flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setScriptOpen(true)}
+            disabled={!activeTenantId}
+            className="setter-scriptbtn inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-muted transition-colors hover:border-brand/40 hover:text-brand-text disabled:opacity-50"
+            aria-label="Dialing script"
+          >
+            <ScrollText size={14} aria-hidden />
+            <span className="setter-scriptlabel">Dialing script</span>
+          </button>
 
-            {clients.length > 0 && (
-              <ClientPicker clients={clients} activeId={activeTenantId} onSelect={selectClient} />
-            )}
-          </>
-        }
-      />
+          {clients.length > 0 && (
+            <ClientPicker clients={clients} activeId={activeTenantId} onSelect={selectClient} />
+          )}
+        </div>
+      </div>
 
       {clientsQuery.isLoading ? (
         <div className="pk-empty">Loading clients...</div>

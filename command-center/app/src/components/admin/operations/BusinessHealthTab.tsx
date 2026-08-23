@@ -11,11 +11,16 @@ import {
   Percent,
   TrendingDown,
   TrendingUp,
+  TriangleAlert,
   UserCheck,
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useBusinessHealthQuery, useSaveBusinessHealthMutation } from "../../../hooks/useApi";
+import {
+  useAdminErrorsQuery,
+  useBusinessHealthQuery,
+  useSaveBusinessHealthMutation,
+} from "../../../hooks/useApi";
 import { formatMoney } from "../../../lib/format";
 import {
   EMPTY_INPUTS,
@@ -483,7 +488,86 @@ export default function BusinessHealthTab() {
                 ? "Saved. Every tinted tile is hand-entered; the Auto tiles compute from them."
                 : "Empty period. Type into any tinted tile to start it."}
       </div>
+
+      <BackgroundErrors />
     </div>
+  );
+}
+
+// The readable end of error_log (0119): what broke in the background while
+// nobody was watching. Burst counts answer "is something systemic wrong";
+// the list answers "what exactly". Deliberately plain: this is a receipt
+// reader, not a dashboard.
+function BackgroundErrors() {
+  const query = useAdminErrorsQuery(true);
+
+  if (query.isLoading) {
+    return (
+      <div className="bh-foot" role="status">
+        Loading background failures...
+      </div>
+    );
+  }
+  if (query.isError || !query.data) {
+    return (
+      <div className="bh-foot" role="status">
+        Background failure receipts did not load.
+      </div>
+    );
+  }
+
+  const { counts, latest } = query.data;
+  return (
+    <section
+      className="bh-panel"
+      aria-label="Background failures"
+      style={{ marginTop: "var(--space-4, 16px)" }}
+    >
+      <div className="bh-phead">
+        <span className="bh-phico" style={{ background: "var(--danger-tint, #fee2e2)", color: "var(--danger)" }} aria-hidden>
+          <TriangleAlert size={17} />
+        </span>
+        <div>
+          <div className="bh-pht">Background failures</div>
+          <div className="bh-phs">
+            {counts.hour} in the last hour, {counts.day} in the last 24. A burst means something systemic.
+          </div>
+        </div>
+      </div>
+      {latest.length === 0 ? (
+        <div className="bh-foot">None recorded. Quiet is the goal.</div>
+      ) : (
+        <div className="bh-grid" style={{ gridTemplateColumns: "1fr", gap: 0 }}>
+          {latest.slice(0, 10).map((row) => (
+            <div
+              key={row.id}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "150px 110px 1fr",
+                gap: "12px",
+                padding: "8px 12px",
+                borderBottom: "1px solid var(--divider)",
+                fontSize: "12.5px",
+                alignItems: "baseline",
+              }}
+            >
+              <span className="tnum text-faint">
+                {new Date(row.created_at).toLocaleString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </span>
+              <span className="font-semibold text-text">{row.source}</span>
+              <span className="text-muted" style={{ overflowWrap: "anywhere" }}>
+                {row.message}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

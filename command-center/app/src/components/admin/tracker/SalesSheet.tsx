@@ -52,7 +52,7 @@ export default function SalesSheet({
       <div className="ssh-tiles">
         {HEADLINE_TILES.map((tile) => {
           const Icon = TILE_ICONS[tile.key] ?? DollarSign;
-          const sub = tile.sub(totals);
+          const sub = tile.sub?.(totals);
           return (
             <div key={tile.key} className={`ssh-tile ${tile.tone}`}>
               <div className="ssh-ico" aria-hidden>

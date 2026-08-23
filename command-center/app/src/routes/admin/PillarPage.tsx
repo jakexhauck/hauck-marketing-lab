@@ -1,6 +1,5 @@
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import { PILLAR_TITLE_ACTIONS_ID } from "../../components/pillars/PillarKit";
-import AdminPage from "../../components/admin/AdminPage";
 import { useAuth } from "../../context/AuthContext";
 import { effectiveAdminRole } from "../../lib/adminRoles";
 import {
@@ -30,15 +29,17 @@ import LeadsSurface from "../../components/admin/acquisition/LeadsSurface";
 // once by AdminLayout, so this page only renders .pk-root and the shared pk-*
 // classes.
 //
-// The header is the shared <AdminPage> panel: the pillar name, its pages as a
-// segmented switcher, and a slot for the surface's own controls. A page with
-// sub-pages of its own (Cold Call has several) renders those as a second,
-// nested strip inside its body via <AdminPage bare>.
+// There is no header here, and no switcher (Jake, 2026-08-23): the rail carries
+// every pillar page as its own inline row, so a segmented strip over the body
+// would be a second copy of the same list. The page renders its body straight
+// away. The one thing the old header held that still matters is the
+// PILLAR_TITLE_ACTIONS slot: a surface's own controls (Data's month stepper)
+// portal up into it, so the empty slot stays mounted above the body and costs
+// nothing while no surface is using it.
 //
 // A tab body is an honest placeholder until its surface plan swaps in the real
-// one (Leads, Cold Call, SMS and Sales Data are built; Calculator, Time Audit
-// and Tasks are not yet). Service Delivery has its own cockpit; a direct hit on
-// that id redirects there and anything unknown drops back to Command.
+// one. Service Delivery has its own cockpit; a direct hit on that id redirects
+// there and anything unknown drops back to Command.
 
 // What each non-owner role may open on a pillar page. A cold caller reaches
 // Acquisition for exactly one tab; everything else on the pillar is not theirs.
@@ -48,7 +49,7 @@ const ROLE_TABS: Record<string, { pillar: string; tabs: string[] }> = {
 
 export default function PillarPage() {
   const { pillarId } = useParams<{ pillarId: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { admin } = useAuth();
   const role = effectiveAdminRole(admin?.role);
 
@@ -56,17 +57,6 @@ export default function PillarPage() {
   // order stays stable if the route param changes while this stays mounted
   // (e.g. switching pillars via the spine nav).
   const pillar = getPillar(pillarId);
-
-  const setTab = (tab: string) => {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        next.set("tab", tab);
-        return next;
-      },
-      { replace: true },
-    );
-  };
 
   // Service Delivery has its own dedicated cockpit route; keep this as a
   // defensive redirect in case the page is reached directly rather than through
@@ -93,36 +83,24 @@ export default function PillarPage() {
 
   return (
     <div className="pk-root">
-      {/* The floating header panel, identical to the client app's: pillar name
-          on the left, its pages as a segmented sliding switcher beside it, and
-          the page's own controls (Sales Data's month stepper) pinned right
-          through the PillarTitleActions portal.
-
-          This replaced a 26px display title with the pillar as a kicker above it
-          and a bottom-ruled tab row underneath. The switcher now carries the
-          siblings at EVERY width, so the separate lg:hidden strip is gone: the
-          sidebar dropdown and this control say the same thing, and the phone no
-          longer gets a second, differently-styled copy of the same list. */}
-      <AdminPage
-        section={pillar.label}
-        tabs={visibleTabs.map((t) => ({ id: t.id, label: t.label }))}
-        active={activeTab}
-        onSelect={setTab}
-        actions={<div id={PILLAR_TITLE_ACTIONS_ID} className="flex items-center gap-3" />}
-      >
-        <div className="pk-section">
-          <PillarTabBody tab={active} />
-        </div>
-      </AdminPage>
+      {/* The surface-controls slot, alone where the header used to be: pinned
+          right, and zero-height while nothing is portalled into it. */}
+      <div className="flex items-center justify-end">
+        <div id={PILLAR_TITLE_ACTIONS_ID} className="flex items-center gap-3" />
+      </div>
+      <div className="pk-section">
+        <PillarTabBody tab={active} />
+      </div>
     </div>
   );
 }
 
 // The real body for a built tab, an honest placeholder for one that is not.
 // Each surface plan adds its own case here as it lands. Every surface renders
-// only its own body: the kicker, title, tagline and pk-tabs strip above it
-// belong to PillarPage, and their CSS is scoped to the .pk-kit theme mounted
-// once by AdminLayout.
+// only its own body: there is no header above it, the rail row is the title.
+// Cases whose tabs are out of the config (calls, playbook, and the retired
+// Operations pages) stay wired deliberately: nothing renders them, and putting
+// a row back in lib/adminPillars is the whole of restoring one.
 function PillarTabBody({ tab }: { tab: PillarTabDef }) {
   if (!tab.ready) return <div className="pk-empty">{placeholderCopy(tab.label)}</div>;
 
@@ -136,19 +114,21 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     // Sourcing: the scraper's results, and the hand-off into the two above.
     case "leads":
       return <LeadsSurface />;
-    // The meetings themselves, read from the agency calendars, with the outcome
-    // routed onto the Sales Pipeline. The half hour between booking a meeting
-    // and recording its outcome had its own tab here; it is now a panel opened
-    // by clicking a call on this one, so an old ?tab=on-call link falls through
-    // resolvePillarTab and lands right here, still carrying its ?meeting=.
+    // Retired from the nav (Jake, 2026-08-23). The meetings themselves, read
+    // from the agency calendars, with the outcome routed onto the Pipeline:
+    // Data reads the same reconciliation, so no numbers were lost with the
+    // page. An old ?tab=calls or ?tab=on-call link falls through
+    // resolvePillarTab to Pipeline; this case only fires if a row comes back.
     case "calls":
       return <SalesCallsSection />;
-    // Where the words on that call are written.
+    // Retired with it: where the words on that call are written. The playbook
+    // data itself is untouched and the call cockpit still reads it.
     case "playbook":
       return <PlaybookSection />;
     // The board those outcomes land on, read live and read only.
     case "pipeline":
       return <SalesPipelineBoard />;
+    // The month in aggregate.
     case "sales-data":
       return <SalesDataTracker />;
     case "business-health":

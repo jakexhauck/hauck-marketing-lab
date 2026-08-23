@@ -17,6 +17,7 @@ import { ADS_CRON_HEADER, isAdsCronRequest } from "../lib/adsCron";
 import { CALENDAR_CRON_HEADER, isCalendarCronRequest } from "../lib/calendarCron";
 import { COLD_CALL_CRON_HEADER, isColdCallCronRequest } from "../lib/coldCallCron";
 import { funnelOrigin } from "../lib/funnelUrl";
+import { logError } from "../lib/errorLog";
 
 const allowedOrigins = new Set([
   "http://localhost:5173", // vite dev server
@@ -88,40 +89,7 @@ const PUBLIC_PATHS = new Set([
   // no session of ours. Guarded by its own shared secret (SHEETS_SYNC_TOKEN),
   // read-only, and it names its tenant explicitly. See api/sheets/leads.ts.
   "/api/sheets/leads",
-  // The sales coach's two doors (0110), neither of which can carry a session.
-  //
-  // /api/coach/ingest receives Google Meet's live captions, read off the page
-  // by the Chrome extension and posted as plain text. Guarded by a shared token
-  // in the URL. Fails closed: no token configured, no requests accepted.
-  //
-  // /api/coach/live is read by the Chrome overlay INSIDE the Google Meet
-  // window, which runs on meet.google.com. Its own shared secret
-  // (COACH_OVERLAY_TOKEN), read-only, and it can reach exactly one thing: the
-  // cards for whichever call is live right now.
-  "/api/coach/ingest",
-  "/api/coach/live",
 ]);
-
-// The overlay's origin. Deliberately NOT in allowedOrigins above, because that
-// set is credentialed: adding meet.google.com there would let anything running
-// on a Google Meet page make cookie-bearing calls to every admin route in this
-// app. It gets its own headers instead, on its own path, with no credentials,
-// so the only thing it can ever read is what its token buys.
-const OVERLAY_ORIGIN = "https://meet.google.com";
-
-const OVERLAY_PATHS = new Set(["/api/coach/live", "/api/coach/ingest"]);
-
-function overlayCors(origin: string | null, pathname: string): HeadersInit | null {
-  if (origin !== OVERLAY_ORIGIN) return null;
-  if (!OVERLAY_PATHS.has(pathname)) return null;
-  return {
-    "access-control-allow-origin": OVERLAY_ORIGIN,
-    "access-control-allow-methods": "GET,POST,OPTIONS",
-    "access-control-allow-headers": "content-type",
-    "access-control-max-age": "86400",
-    vary: "origin",
-  };
-}
 
 // Public paths with a dynamic segment, matched by prefix. Kept separate from the
 // exact-match set so no path can be made public by accident.
@@ -149,7 +117,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
   if (ctx.request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
-      headers: overlayCors(origin, url.pathname) ?? corsHeaders(origin, ctx.env),
+      headers: corsHeaders(origin, ctx.env),
     });
   }
 
@@ -303,6 +271,17 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         tenant = await loadTenantById(svc, session.tenantId);
         // The session names a client that no longer exists: reject (log out).
         if (!tenant) return json(401, { error: "unauthorized" }, origin, ctx.env);
+        // Session eviction (0121). The token's v claim was stamped at login;
+        // a smaller number than the row's current version means somebody
+        // bumped session_version under it. Sign that session out. Legacy
+        // tokens carry no claim and keep working until their own expiry.
+        if (
+          session.version !== undefined &&
+          typeof tenant.session_version === "number" &&
+          session.version < tenant.session_version
+        ) {
+          return json(401, { error: "unauthorized" }, origin, ctx.env);
+        }
       } else {
         tenant = svc ? await loadLiveTenantForHost(svc, ctx.env, host) : null;
         // A subdomain that matches no client is a real misconfiguration: refuse
@@ -422,10 +401,7 @@ async function runNext(
   try {
     const response = await ctx.next();
     const headers = new Headers(response.headers);
-    // The Meet overlay's own uncredentialed headers take the place of the
-    // normal ones on its one path; everything else gets the usual set.
-    const cors = overlayCors(origin, url.pathname) ?? corsHeaders(origin, ctx.env);
-    for (const [key, value] of Object.entries(cors)) {
+    for (const [key, value] of Object.entries(corsHeaders(origin, ctx.env))) {
       headers.set(key, value as string);
     }
     return new Response(response.body, {
@@ -436,8 +412,11 @@ async function runNext(
   } catch (err) {
     // Log the full upstream detail server-side, but never reflect it to the
     // client: GHL error bodies can contain internal URLs and request detail.
+    // The same detail becomes an error_log receipt (0119) so the admin errors
+    // surface and the health probe can see failure patterns without log tailing.
     const message = err instanceof Error ? err.message : "unknown error";
     console.error("[api]", url.pathname, message);
+    await logError(ctx.env, "api", message, { path: url.pathname }).catch(() => {});
     return json(500, { error: "internal_error" }, origin, ctx.env);
   }
 }

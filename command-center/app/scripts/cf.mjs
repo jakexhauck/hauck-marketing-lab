@@ -172,6 +172,22 @@ async function main() {
       if (!key) die("usage: env:unset KEY");
       const vars = await getProductionEnv(acct);
       if (!(key in vars)) return console.log(`${key} not set`);
+      // Same footgun as env:set above, and worse: this used to read-modify-write
+      // the WHOLE env_vars map, and Cloudflare's GET never returns secret
+      // values, so removing one variable blanked every other secret_text var
+      // (the recurring "login unavailable" outage, one command wide). Guarded
+      // identically to env:set: refuse while other secrets exist and send the
+      // operator to cf-rebind, which holds every value.
+      const otherSecrets = Object.entries(vars).filter(
+        ([k, c]) => k !== key && c?.type === "secret_text",
+      );
+      if (otherSecrets.length) {
+        die(
+          `refusing: this would blank ${otherSecrets.length} other secret(s) ` +
+            `(${otherSecrets.map(([k]) => k).join(", ")}).\n` +
+            `  Remove secrets via the Cloudflare dashboard instead, or rotate everything at once with node scripts/cf-rebind.mjs`,
+        );
+      }
       vars[key] = null; // CF removes a var set to null on PATCH
       await patchProductionEnv(acct, vars);
       ok(`removed ${key}. Redeploy to apply.`);

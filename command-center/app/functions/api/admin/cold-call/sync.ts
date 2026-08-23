@@ -7,6 +7,7 @@ import {
   resolveCronCaller,
   runPowerDialerSync,
 } from "../../../lib/powerDialerSync";
+import { bumpCronHeartbeat } from "../../../lib/cronHeartbeat";
 
 // POST /api/admin/cold-call/sync  (cron gated in _middleware.ts, no session)
 //
@@ -55,6 +56,11 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
   const { dials, leads } = await readWindowRows(client, since);
   const counts = await runPowerDialerSync(ctx.env, client, { dials, leads, since, callerId });
+
+  // Receipt for the watchdog. The dialer feeds live calling, so a stopped
+  // worker must be loud within minutes, not days: the health probe fails this
+  // heartbeat after ten quiet ones.
+  await bumpCronHeartbeat(client, "cold-call-sync", `${counts.created ?? 0} dials recorded`);
 
   return Response.json({ configured: true, ...counts, caller: callerId });
 };

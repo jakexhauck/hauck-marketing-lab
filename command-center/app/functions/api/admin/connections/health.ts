@@ -7,6 +7,11 @@ import { isPlaceholder } from "../../../lib/tenantGhl";
 import { CONNECTIONS } from "../../../../src/lib/connectionRegistry";
 import { HEALTH_CRON_HEADER, isHealthCronRequest } from "../../../lib/healthCron";
 import { recordAndAlert } from "../../../lib/healthWatch";
+import {
+  judgeHeartbeat,
+  type CronJob,
+  type HeartbeatRow,
+} from "../../../lib/cronHeartbeat";
 import type {
   Probe,
   CredentialState,
@@ -186,6 +191,60 @@ async function probeHealthCron(env: Env): Promise<Probe> {
   return { state: "ok", detail: `Last scheduled check ${mins} minute${mins === 1 ? "" : "s"} ago` };
 }
 
+// Freshness of any cron-called job, read off its heartbeat receipt (0120).
+// Each sync handler stamps cron_heartbeats after success; a worker that stops
+// firing leaves its row stale and this probe goes red, which flows into the
+// same snapshot-diff push that already announces a dead token.
+async function probeCronHeartbeat(env: Env, job: CronJob, secretSet: boolean): Promise<Probe> {
+  if (!secretSet) {
+    return { state: "skipped", detail: "No secret set, so the scheduled job is off" };
+  }
+  const client = getServiceClient(env);
+  if (!client) return { state: "skipped", detail: "Supabase not configured" };
+  const { data, error } = await client
+    .from("cron_heartbeats")
+    .select("job, last_ok_at")
+    .eq("job", job)
+    .maybeSingle();
+  if (error) return { state: "failed", detail: error.message };
+  return judgeHeartbeat(job, data as HeartbeatRow | null);
+}
+
+// A burst of background failures (0119) is itself a health signal: receipts
+// are written by the webhook side effects, cron handlers and middleware catch,
+// so five in an hour means something systemic is wrong somewhere. Below that,
+// they are noise for the errors surface, not an outage.
+const ERROR_BURST_THRESHOLD = 5;
+
+async function probeErrorLog(env: Env): Promise<Probe> {
+  const client = getServiceClient(env);
+  if (!client) return { state: "skipped", detail: "Supabase not configured" };
+  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count, error } = await client
+    .from("error_log")
+    .select("id", { count: "exact", head: true })
+    .gt("created_at", since);
+  if (error) return { state: "failed", detail: error.message };
+  const n = count ?? 0;
+  if (n >= ERROR_BURST_THRESHOLD) {
+    const { data: latest } = await client
+      .from("error_log")
+      .select("source, message")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const row = latest as { source?: string; message?: string } | null;
+    return {
+      state: "failed",
+      detail: `${n} background failures in the last hour. Latest (${row?.source ?? "?"}): ${(row?.message ?? "").slice(0, 120)}`,
+    };
+  }
+  return {
+    state: "ok",
+    detail: `${n} background failure${n === 1 ? "" : "s"} in the last hour`,
+  };
+}
+
 async function agencyHealth(env: Env): Promise<ConnectionHealth[]> {
   const probes: Record<string, () => Promise<Probe>> = {
     supabase: () => probeSupabase(env),
@@ -195,6 +254,16 @@ async function agencyHealth(env: Env): Promise<ConnectionHealth[]> {
     ga4: async () => probeGa4(env),
     "web-push": () => probePushSubscriptions(env),
     "health-cron": () => probeHealthCron(env),
+    // Cron freshness, read off the heartbeat receipts (0120). Each worker's
+    // secret being set is what turns its probe from "off" to "judged".
+    "ads-cron": () =>
+      probeCronHeartbeat(env, "ads-sync", Boolean(env.ADS_CRON_SECRET)),
+    "calendar-sync": () =>
+      probeCronHeartbeat(env, "calendar-sync", Boolean(env.CALENDAR_CRON_SECRET)),
+    "dialer-cron": () =>
+      probeCronHeartbeat(env, "cold-call-sync", Boolean(env.COLD_CALL_CRON_SECRET)),
+    // Background failure receipts (0119): a burst is a health signal.
+    "error-log": () => probeErrorLog(env),
   };
 
   return Promise.all(

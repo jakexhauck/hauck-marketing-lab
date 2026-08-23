@@ -34,7 +34,6 @@ import { ConnectionsStyle } from "../../components/admin/settings/ConnectionsSty
 import { SecretsTab } from "../../components/admin/settings/SecretsTab";
 import { ActionBoard } from "../../components/admin/settings/ActionBoard";
 import { buildActionBoard, type ActionItem } from "../../lib/settingsActions";
-import AdminPage from "../../components/admin/AdminPage";
 
 // /admin/settings: the connection control room.
 //
@@ -127,20 +126,19 @@ export default function AdminSettings() {
 
   return (
     <div className="pk-root">
-      <AdminPage
-        section="Agency Settings"
-        actions={
-          <button
-            type="button"
-            className="cx-refresh"
-            onClick={() => void refetch()}
-            disabled={isFetching}
-          >
-            <RefreshCw size={14} className={isFetching ? "cx-spin" : ""} aria-hidden />
-            {isFetching ? "Checking" : "Re-check"}
-          </button>
-        }
-      />
+      {/* No header panel (Jake, 2026-08-23): the rail row is the title. The
+          re-check control the panel carried sits in a slim row pinned right. */}
+      <div className="mb-5 flex items-center justify-end">
+        <button
+          type="button"
+          className="cx-refresh"
+          onClick={() => void refetch()}
+          disabled={isFetching}
+        >
+          <RefreshCw size={14} className={isFetching ? "cx-spin" : ""} aria-hidden />
+          {isFetching ? "Checking" : "Re-check"}
+        </button>
+      </div>
 
       {data?.environment === "local" && (
         <div className="cx-note cx-note-warn">

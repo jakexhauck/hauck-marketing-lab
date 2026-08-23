@@ -3,7 +3,6 @@ import {
   SHEET_COLUMNS,
   HEADLINE_TILES,
   FUNNEL_CELLS,
-  AGENCY_PAY_RATE,
   columnWidths,
   bandTotals,
   outcomeFor,
@@ -104,7 +103,6 @@ describe("bandTotals", () => {
     expect(t.noClose).toBe(0);
     expect(t.closingRate).toBe(1);
     expect(t.noShowRate).toBe(0);
-    expect(t.agencyPay).toBe(2000 * AGENCY_PAY_RATE);
   });
 
   it("counts a no-show against the calendar, not against the close rate", () => {
@@ -206,24 +204,11 @@ describe("sheetRow", () => {
     expect(r.cells.objection).toBe("Bad timing");
   });
 
-  it("pays the agency its share of the cash, and nothing on a call with none", () => {
-    expect(sheetRow(CLOSED, "UTC").cells.agencyPay).toBe("$400");
-    expect(sheetRow(call(), "UTC").cells.agencyPay).toBe("");
-  });
-
   // Empty rather than invented. The table draws a faint dash so the column
   // reads as waiting, not as broken.
   it("leaves the columns nothing feeds yet empty", () => {
     const r = sheetRow(CLOSED, "America/New_York");
-    for (const key of [
-      "setBy",
-      "closer",
-      "paymentType",
-      "paymentsComplete",
-      "postCallForm",
-      "recordingLink",
-      "paymentStatus",
-    ]) {
+    for (const key of ["paymentType", "postCallForm", "recordingLink"]) {
       expect(r.cells[key]).toBe("");
     }
   });
@@ -236,15 +221,23 @@ describe("sheetRow", () => {
 });
 
 describe("the schema Jake asked for", () => {
-  // The four he struck off. A column quietly surviving a decision is exactly
-  // what this test exists to catch.
-  it("carries no setter, closer, creator or after-fees pay column", () => {
+  // Every column he has struck off, by key. A column quietly surviving a
+  // decision is exactly what this test exists to catch.
+  it("carries no struck-off column", () => {
     const keys = SHEET_COLUMNS.map((c) => c.key);
-    expect(keys).not.toContain("setterPay");
-    expect(keys).not.toContain("closerPay");
-    expect(keys).not.toContain("creatorPay");
-    expect(keys).not.toContain("ccAfterFees");
-    expect(keys).toContain("agencyPay");
+    for (const gone of [
+      "setterPay",
+      "closerPay",
+      "creatorPay",
+      "ccAfterFees",
+      "setBy",
+      "closer",
+      "agencyPay",
+      "paymentsComplete",
+      "paymentStatus",
+    ]) {
+      expect(keys).not.toContain(gone);
+    }
   });
 
   // Nothing records whether a prospect stayed the hour, so both cells read zero

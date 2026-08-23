@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import AdminPage from "../../components/admin/AdminPage";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
 import { useAdminAuditQuery, useAdminClientsQuery } from "../../hooks/useApi";
 import {
@@ -73,18 +72,14 @@ export default function AdminAudit() {
 
   return (
     <div className="pk-root">
-      {/* Back to Settings sits in the header's action slot rather than as a
-          loose link under the title: it is chrome, and it belongs with the
-          chrome. */}
-      <AdminPage
-        section="Admin Audit Log"
-        actions={
-          <Link to="/admin/settings" className="pk-link font-[inherit]">
-            <ArrowLeft size={14} aria-hidden />
-            Back to Settings
-          </Link>
-        }
-      />
+      {/* No header panel (Jake, 2026-08-23): the rail row is the title. The back
+          link the panel carried sits in a slim row pinned right instead. */}
+      <div className="mb-5 flex items-center justify-end">
+        <Link to="/admin/settings" className="pk-link font-[inherit]">
+          <ArrowLeft size={14} aria-hidden />
+          Back to Settings
+        </Link>
+      </div>
 
       {/* The honesty notice. Do not soften this: a reader who assumes the
           Account column names a person will draw the wrong conclusion from

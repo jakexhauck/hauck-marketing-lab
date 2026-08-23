@@ -15,7 +15,8 @@ export default function DemoBanner() {
     clearDemoMode();
     window.close();
     // window.close() is a no-op for tabs the script did not open; fall back.
-    window.location.href = "/admin/build";
+    // The old /admin/build target is a retired route and dead-ended here.
+    window.location.href = "/admin";
   };
 
   return (

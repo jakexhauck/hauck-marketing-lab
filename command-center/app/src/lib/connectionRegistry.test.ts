@@ -57,11 +57,17 @@ describe("connection registry", () => {
   });
 
   it("gives every connection a probe id, a purpose, and a way out", () => {
+    // Self-hosted data surfaces hold no credential to reissue; their whole
+    // body is a table this app owns. Everything else must name at least one
+    // required credential, or the control room cannot answer "what do I set".
+    const ZERO_CREDENTIAL_OK = new Set(["error-log"]);
     for (const def of CONNECTIONS) {
       expect(def.id, `${def.label} needs an id`).toMatch(/^[a-z0-9-]+$/);
       expect(def.purpose.length, `${def.label} needs a purpose`).toBeGreaterThan(20);
       expect(def.remediation.length, `${def.label} needs remediation`).toBeGreaterThan(20);
-      expect(requiredCredentials(def).length, `${def.label} needs a credential`).toBeGreaterThan(0);
+      if (!ZERO_CREDENTIAL_OK.has(def.id)) {
+        expect(requiredCredentials(def).length, `${def.label} needs a credential`).toBeGreaterThan(0);
+      }
       expect(def.surfaces.length, `${def.label} needs at least one surface`).toBeGreaterThan(0);
     }
   });

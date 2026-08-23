@@ -570,7 +570,13 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              <Route path="/admin/clients" element={<Navigate to="/admin" replace />} />
+              {/* Clients is a top-level rail row again (2026-08-23), so this old
+                  path lands on it rather than on Command, which no longer has a
+                  row to come back from. */}
+              <Route
+                path="/admin/clients"
+                element={<Navigate to="/admin/pillar/operations?tab=clients" replace />}
+              />
               {/* Declared above /admin/clients/:id or React Router hands "new"
                   to the detail page as a tenant id. The launchpad is the page
                   Jake opens when someone signs; the three-step form behind

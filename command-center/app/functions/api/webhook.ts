@@ -19,6 +19,7 @@ import {
 } from "../lib/ghlEvents";
 import { bumpEventSeen, eventSourceForTenant } from "../lib/ghlEventHealth";
 import { insertActivityOnce } from "../lib/activityLog";
+import { logErrorBestEffort } from "../lib/errorLog";
 import { mirrorFromWebhook } from "../lib/appointmentMirror";
 import { reportBookingFromWebhook } from "../lib/capiScheduleWebhook";
 
@@ -395,9 +396,16 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     // too, not just the app one, so a client still on the workflow source gets
     // the same behaviour as one already cut over.
     ctx.waitUntil(
-      mirrorFromWebhook(ctx.env, client, tenantId, event).catch((err) =>
-        console.error("[webhook] calendar mirror failed", err),
-      ),
+      // Every side-effect failure below leaves an error_log receipt as well as
+      // a console line, so a broken night shows up in Operations > Business
+      // Health instead of vanishing with the isolate.
+      mirrorFromWebhook(ctx.env, client, tenantId, event).catch((err) => {
+        console.error("[webhook] calendar mirror failed", err);
+        logErrorBestEffort(ctx.env, "webhook", `calendar mirror failed: ${(err as Error)?.message ?? err}`, {
+          tenantId,
+          eventType: event.type ?? null,
+        });
+      }),
     );
 
     // Tell Meta the lead booked, so the campaign can optimise for booked jobs
@@ -430,9 +438,13 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       );
       if (gctx) {
         ctx.waitUntil(
-          confirmIntroCallStage(gctx, event).catch((err) =>
-            console.error("[webhook] confirmation flip failed", err),
-          ),
+          confirmIntroCallStage(gctx, event).catch((err) => {
+            console.error("[webhook] confirmation flip failed", err);
+            logErrorBestEffort(ctx.env, "webhook", `confirmation flip failed: ${(err as Error)?.message ?? err}`, {
+              tenantId,
+              eventType: event.type ?? null,
+            });
+          }),
         );
       } else {
         console.warn(
@@ -481,11 +493,21 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
           opportunity_id: activity.opportunity_id,
           contact_id: activity.contact_id,
           assigned_user_id: activity.assigned_user_id,
-        }).catch((err) => console.error("[webhook] push failed", err)),
+        }).catch((err) => {
+          console.error("[webhook] push failed", err);
+          logErrorBestEffort(ctx.env, "webhook", `push failed: ${(err as Error)?.message ?? err}`, {
+            tenantId,
+            kind: activity.kind,
+          });
+        }),
       );
     }
   } catch (err) {
     console.error("[webhook] side-effect failed", err);
+    logErrorBestEffort(ctx.env, "webhook", `side-effect failed: ${(err as Error)?.message ?? err}`, {
+      eventType: event?.type ?? null,
+      locationId: event?.locationId ?? null,
+    });
   }
 
   return new Response("ok", { status: 200 });

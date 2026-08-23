@@ -76,10 +76,14 @@ export interface TenantRow {
   // been selected on Fulfillment > GHL > Calendars (0101). NULL matches by name
   // instead. See functions/lib/calendarSync.ts.
   estimate_calendar_id?: string | null;
+  // Bumped to evict every live owner shared-password session for this client
+  // (0121). Compared against the v claim each owner token carries; optional so
+  // a pre-0121 database still types.
+  session_version?: number;
 }
 
 const TENANT_COLS =
-  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, ghl_token, meta_ad_account_id, google_place_id, ga4_property_id, owner_password_hash, monthly_spend, website_pages, internal_recipients, client_inbox_pipeline_id, manual_lead_status, inbox_visible_tag, inbox_show_ad_leads, onboarding_status, estimate_calendar_id";
+  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, ghl_token, meta_ad_account_id, google_place_id, ga4_property_id, owner_password_hash, monthly_spend, website_pages, internal_recipients, client_inbox_pipeline_id, manual_lead_status, inbox_visible_tag, inbox_show_ad_leads, onboarding_status, estimate_calendar_id, session_version";
 
 // Normalize an admin-entered subdomain label: lowercase, hyphen-separated, the
 // charset valid in a DNS label. Shared by the admin create/update endpoints.

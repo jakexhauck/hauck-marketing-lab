@@ -51,59 +51,54 @@ export const ADMIN_PILLARS: PillarDef[] = [
   {
     id: "sales",
     label: "Sales",
-    // Sales Calls leads the pillar. Sales Data is the month in aggregate, and
-    // it is read; Sales Calls is the meetings themselves, and it is worked.
-    // The page with a job on it comes first.
+    // Two pages (Jake, 2026-08-23): Pipeline first, then Data.
     //
-    // Sales Pipeline sits between them: it is where the outcomes recorded on
-    // Sales Calls land, so it reads as the next step from that page rather than
-    // as a third unrelated view. Read only.
+    // Pipeline is the board outcomes land on, read live and read only. Data is
+    // the month in aggregate, also read only. Both are rail rows now (the rail
+    // carries every page inline), so the labels are short enough to scan there:
+    // "Pipeline" and "Data", not "Sales Pipeline" and "Sales Data", because the
+    // pillar name would be said twice in every row.
     //
-    // A Cold Call Data tab used to sit here as a "channel" page, the dialing
-    // half of the funnel this pillar reads the other end of. It is gone: the
-    // same month, agency-wide, was already on Acquisition > Cold Call > Tracker
-    // with the caller selector on "Agency", and one number with two pages is one
-    // page too many. Sales is the selling now, calendar through to cash.
+    // Sales Calls was a tab here and is gone. The meetings are still counted,
+    // unchanged, by lib/salesCalls.ts: Data reads the same reconciliation the
+    // calls page used to, so removing the page removed no numbers. An old
+    // ?tab=calls or ?tab=on-call link falls through resolvePillarTab and lands
+    // on Pipeline.
     //
-    // On Call was a tab here, second, straight after the list it was opened
-    // from. It is gone, and nothing was lost with it: it was never a page you
-    // browsed to, and the picker on the front of it existed only to ask which
-    // call you were on, which is a question you had already answered by
-    // clicking a row on Sales Calls. Clicking a call now opens the same cockpit
-    // as a panel over that list. An old ?tab=on-call link is not special-cased:
-    // resolvePillarTab does not know the id, so it lands on Sales Calls, which
-    // is where its ?meeting= is read anyway.
+    // Playbook is gone from the nav too. The words live on
+    // (functions/lib/salesPlaybook.ts) and the call cockpit still reads them;
+    // only the editing page is out of the chrome.
     //
-    // Playbook is last, and is deliberately not called Settings: it is one
-    // thing (the words said on a call), named for what it is, in the same way
-    // Cold Call's Management pages are. It sits at the end because writing the
-    // call is a thing you sit down to do, not a thing you open daily.
+    // A Cold Call Data tab used to sit here as a "channel" page. It is gone:
+    // that month lives on Acquisition > Cold Call > Tracker with the caller
+    // selector on "Agency".
     tabs: [
-      { id: "calls", label: "Sales Calls", ready: true },
-      { id: "pipeline", label: "Sales Pipeline", ready: true },
-      { id: "sales-data", label: "Sales Data", ready: true },
-      { id: "playbook", label: "Playbook", ready: true },
+      { id: "pipeline", label: "Pipeline", ready: true },
+      { id: "sales-data", label: "Data", ready: true },
     ],
   },
   {
     id: "operations",
     label: "Operations",
-    // Business Health leads the pillar: it was the Command home until Command
-    // became the shortcut launcher, and it is the page you open Operations for.
-    // Inbox is second: Hauck Marketing's own GoHighLevel sub-account, the one
-    // the cold call texts from. Every other inbox in this app belongs to a
-    // client, so this was the only conversation the console could not show.
+    // Operations is no longer a rail group (Jake, 2026-08-23). It stays here as
+    // the ROUTE that hosts these three pages, because each one is a tab body on
+    // /admin/pillar/operations and none has a standalone route of its own. The
+    // rail promotes all three to top-level rows instead, so the pillar is gone
+    // from the chrome without moving a single page.
+    //
+    // Business Health, Calculator, Time Audit and SOPs came out of the nav in
+    // the same pass. Their tab bodies and components are deliberately LEFT in
+    // PillarPage: nothing renders them now, and putting a row back here is the
+    // whole of restoring one.
+    //
+    // Tasks leads, then Inbox (Hauck Marketing's own GoHighLevel sub-account,
+    // the one the cold call texts from), then Clients (everyone already
+    // running, and what they told us on the intake form). This order is the
+    // rail's order, so the tab strip and the rail cannot disagree.
     tabs: [
-      { id: "business-health", label: "Business Health", ready: true },
-      { id: "inbox", label: "Inbox", ready: true },
-      // Everyone already running, and what they told us on the intake form.
-      // The same list and the same sheet as Onboarding, which only holds the
-      // ones still being stood up.
-      { id: "clients", label: "Clients", ready: true },
-      { id: "calculator", label: "Calculator", ready: true },
-      { id: "time-audit", label: "Time Audit", ready: true },
       { id: "tasks", label: "Tasks", ready: true },
-      { id: "sops", label: "SOPs", ready: true },
+      { id: "inbox", label: "Inbox", ready: true },
+      { id: "clients", label: "Clients", ready: true },
     ],
   },
 ];

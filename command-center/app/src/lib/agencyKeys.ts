@@ -276,6 +276,14 @@ export const AGENCY_KEYS: AgencyKeyDef[] = [
     help: "Triggers the nightly ad spend refresh. A write, unlike the health one.",
     warning: "Also paste it into workers/ads-cron. It must NOT match HEALTH_CRON_SECRET: that one buys a read, this one triggers a write.",
   },
+  {
+    name: "COLD_CALL_CRON_SECRET",
+    group: "crons",
+    entry: "generate",
+    generator: "hex32",
+    help: "Triggers the every-minute power dialer sync, which records calls with no browser open.",
+    warning: "Also paste it into workers/dialer-cron. Set in only one place and dials silently stop being recorded.",
+  },
 
   // --- Build Lab ------------------------------------------------------------
   {

@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
-import AdminPage from "../../components/admin/AdminPage";
 import { useToast } from "../../context/ToastContext";
 import {
   suggestUsername,
@@ -172,7 +171,6 @@ export default function AdminTeam() {
   if (myRole !== "owner") {
     return (
       <div className="pk-root">
-        <AdminPage section="Team" />
         <div className="pk-empty">Only an owner can manage logins.</div>
       </div>
     );
@@ -180,25 +178,18 @@ export default function AdminTeam() {
 
   return (
     <div className="pk-root">
-      {/* The icon, the goal paragraph and the standalone title are gone: the
-          header panel is the same object on every admin page now, and an
-          explanatory paragraph under a header is banned across the product. The
-          count moves into the panel beside the section name, where a number
-          belongs, and Add team member becomes the page's action. */}
-      <AdminPage
-        section="Team"
-        actions={
-          <>
-            <span className="font-data text-[12px] text-faint tnum">
-              {active.length} active {active.length === 1 ? "login" : "logins"}
-            </span>
-            <button type="button" className="pk-btn-save" onClick={openAdd}>
-              <UserPlus size={15} aria-hidden style={{ marginRight: 7, verticalAlign: -3 }} />
-              Add team member
-            </button>
-          </>
-        }
-      />
+      {/* No header panel (Jake, 2026-08-23): the rail row is the title. The two
+          controls the panel carried, the active count and the add button, sit in
+          a slim row pinned right instead. */}
+      <div className="mb-5 flex items-center justify-end gap-2.5">
+        <span className="font-data text-[12px] text-faint tnum">
+          {active.length} active {active.length === 1 ? "login" : "logins"}
+        </span>
+        <button type="button" className="pk-btn-save" onClick={openAdd}>
+          <UserPlus size={15} aria-hidden style={{ marginRight: 7, verticalAlign: -3 }} />
+          Add team member
+        </button>
+      </div>
 
       {handoff && (
         <HandoffCard handoff={handoff} onDismiss={() => setHandoff(null)} />

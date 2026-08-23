@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPlainHttpLocalRequest } from "./session";
+import { isPlainHttpLocalRequest, mintSessionToken, verifySession } from "./session";
 
 // The one exception to the Secure flag on session cookies. Production must never
 // match this, so the negative cases matter more than the positive ones.
@@ -49,5 +49,40 @@ describe("isPlainHttpLocalRequest", () => {
   it("keeps HTTPS secure even on a local address", () => {
     expect(isPlainHttpLocalRequest(req("https://localhost:5173/x"))).toBe(false);
     expect(isPlainHttpLocalRequest(req("https://10.0.0.198/x"))).toBe(false);
+  });
+});
+
+// The owner-session revocation claim (0121): login stamps tenants.session_version
+// as `v`; the middleware signs a session out when its claim is older than the row.
+const SECRET_ENV = { SESSION_SECRET: "unit-test-secret" } as never;
+
+function bearer(token: string): Request {
+  return new Request("https://app.hauckmarketing.com/api/anything", {
+    headers: { authorization: `Bearer ${token}` },
+  });
+}
+
+describe("session version claim", () => {
+  it("round-trips the version through sign and verify", async () => {
+    const token = await mintSessionToken(SECRET_ENV, "live", {
+      tenantId: "tenant-1",
+      version: 4,
+    });
+    const data = await verifySession(bearer(token), SECRET_ENV);
+    expect(data?.tenantId).toBe("tenant-1");
+    expect(data?.version).toBe(4);
+  });
+
+  it("leaves version absent on legacy tokens that never carried one", async () => {
+    const token = await mintSessionToken(SECRET_ENV, "live", { tenantId: "tenant-1" });
+    const data = await verifySession(bearer(token), SECRET_ENV);
+    expect(data?.version).toBeUndefined();
+  });
+
+  it("does not mint a v claim for admin or preview tokens", async () => {
+    const admin = await mintSessionToken(SECRET_ENV, "live", {});
+    const data = await verifySession(bearer(admin), SECRET_ENV);
+    expect(data?.version).toBeUndefined();
+    expect(data?.mode).toBe("live");
   });
 });

@@ -2,6 +2,7 @@ import type { Env } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { isPlaceholder } from "../../../lib/tenantGhl";
 import { syncTenantCalendar, type SyncResult } from "../../../lib/calendarSync";
+import { bumpCronHeartbeat } from "../../../lib/cronHeartbeat";
 
 // POST /api/admin/calendar/sync            every eligible client
 // POST /api/admin/calendar/sync?tenantId=  one client
@@ -77,6 +78,15 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       });
     }
   }
+
+  // Receipt for the watchdog: the probe judges freshness off this heartbeat,
+  // and a stopped worker surfaces as a failed health check (and pushes).
+  const errors = results.filter((r) => r.status === "error").length;
+  await bumpCronHeartbeat(
+    client,
+    "calendar-sync",
+    `${results.length} client${results.length === 1 ? "" : "s"}, ${errors} error${errors === 1 ? "" : "s"}`,
+  );
 
   return Response.json({
     ran: results.length,

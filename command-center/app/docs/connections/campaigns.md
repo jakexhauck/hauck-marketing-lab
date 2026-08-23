@@ -49,7 +49,7 @@ What the Campaigns section (SMS + email the client sends to their own customers)
 - ✅ Session model exists (live/test cookie). The Worker injects the active mode's GHL location + token per request — extend the same pattern to the campaigns endpoints.
 
 ## Secrets / env vars (Cloudflare Pages)
-- ❌ `ANTHROPIC_API_KEY` — new, for AI (shared with the other sections once added).
+- Removed: `ANTHROPIC_API_KEY` was never used; the agency decided against Anthropic API usage (2026-08-22).
 - ✅ `GHL_LOCATION_ID` / `GHL_TOKEN` (+ `TEST_*`) — exist; confirm the token scope covers conversations / bulk SMS + email.
 - ❌ Registered SMS sender (A2P 10DLC) + verified email sending domain — through GHL.
 

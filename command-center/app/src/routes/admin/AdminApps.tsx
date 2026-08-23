@@ -1,6 +1,5 @@
 import { NavLink } from "react-router-dom";
 import { Gauge, PhoneCall, type LucideIcon } from "lucide-react";
-import AdminPage from "../../components/admin/AdminPage";
 
 // The Command hub: the phone's app launcher, reached from the raised center
 // button in the admin bottom bar. It lists the agency's "apps" as tiles, so
@@ -44,11 +43,7 @@ const APPS: AppTile[] = [
 export default function AdminApps() {
   return (
     <div className="pk-root">
-      {/* The subtitle that used to sit here is gone: header paragraphs are
-          banned across the product, and a grid of labelled app tiles does not
-          need a sentence telling you it is a grid of app tiles. */}
-      <AdminPage section="Command" />
-
+      {/* No header panel (Jake, 2026-08-23): the rail row is the title. */}
       <div className="grid grid-cols-2 gap-3">
         {APPS.map((app) => (
           <NavLink key={app.to} to={app.to} end={app.end} className="adm-apptile">

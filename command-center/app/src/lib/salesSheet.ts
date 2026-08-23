@@ -11,23 +11,10 @@ import type { SheetCall } from "../../functions/lib/salesSheetRows";
 // Kept pure and out of the component so the arithmetic a commission is argued
 // over is unit-tested directly.
 //
-// WHAT THIS PAGE DOES NOT DO IS INVENT. Six columns have nowhere to read from
-// yet (who set the call, who closed it, how it was paid, the recording). They
-// render as a faint dash rather than as plausible-looking values, and they get
-// their sources when Jake wires them.
-
-// The agency's share of the cash taken on a call.
-//
-// The sheet split cash four ways: setter 5%, closer 10%, agency 20%, creator
-// 65%, all of it after a 3.25% processing fee. Jake sets and closes every call
-// himself and does not know the processing fee, so the other three shares and
-// the after-fees column are gone and this is the only rate left. It keeps the
-// sheet's own 20% until Jake says otherwise.
-//
-// ONE constant, on purpose: it moves into a settings panel when the rest is
-// wired, and a rate copied into two files is a rate that will disagree with
-// itself.
-export const AGENCY_PAY_RATE = 0.2;
+// WHAT THIS PAGE DOES NOT DO IS INVENT. Three columns have nowhere to read
+// from yet (how it was paid, the post-call form, the recording). They render as
+// a faint dash rather than as plausible-looking values, and they get their
+// sources when Jake wires them.
 
 // ===== the table =====
 
@@ -50,18 +37,13 @@ export const SHEET_COLUMNS: SheetColumn[] = [
   { key: "date", label: "Date", weight: 130 },
   { key: "name", label: "Name", weight: 120 },
   { key: "outcome", label: "Outcome", weight: 100 },
-  { key: "setBy", label: "Set By", weight: 85 },
-  { key: "closer", label: "Closer", weight: 90 },
   { key: "revenue", label: "Revenue", numeric: true, weight: 90 },
   { key: "cashCollected", label: "Cash", numeric: true, weight: 90 },
-  { key: "agencyPay", label: "Agency Pay", numeric: true, weight: 95 },
   { key: "paymentType", label: "Payment Type", weight: 95 },
-  { key: "paymentsComplete", label: "Payments", weight: 85 },
   { key: "objection", label: "Objection", weight: 100 },
   { key: "notes", label: "Notes", weight: 130 },
   { key: "postCallForm", label: "Post Call Form", weight: 95 },
   { key: "recordingLink", label: "Recording", weight: 85 },
-  { key: "paymentStatus", label: "Payment Status", weight: 95 },
 ];
 
 // Each column's share of the table, as a CSS percentage, always summing to 100
@@ -114,7 +96,6 @@ export interface BandTotals {
   noClose: number;
   followUp: number;
   closed: number;
-  agencyPay: number;
   // Null means "no denominator yet", not zero. A month with no calls in it did
   // not close 0% of them: there was nothing to close, and the two are different
   // facts. Rendered as a dash.
@@ -176,7 +157,6 @@ export function bandTotals(calls: SheetCall[]): BandTotals {
     noClose,
     followUp,
     closed,
-    agencyPay: cashCollected * AGENCY_PAY_RATE,
     // Over the calls that HAPPENED, not over the calendar: a month of no-shows
     // is a booking problem, and charging it to the close rate hides which.
     closingRate: rate(closed, liveCalls),
@@ -193,7 +173,7 @@ export interface HeadlineTile {
   value: (t: BandTotals) => string;
   // The line under the figure that says what it is out of. A rate with no
   // denominator has nothing to say, so it says nothing.
-  sub: (t: BandTotals) => string;
+  sub?: (t: BandTotals) => string;
 }
 
 // The four figures worth reading before anything else.
@@ -210,7 +190,6 @@ export const HEADLINE_TILES: HeadlineTile[] = [
     label: "Cash Collected",
     tone: "green",
     value: (t) => formatMoney(t.cashCollected),
-    sub: (t) => `${formatMoney(t.agencyPay)} agency pay`,
   },
   {
     key: "closingRate",
@@ -266,19 +245,13 @@ export function sheetRow(call: SheetCall, timeZone: string): SheetRow {
     cells: {
       revenue: formatMoney(call.revenue),
       cashCollected: formatMoney(call.cashCollected),
-      agencyPay:
-        call.cashCollected === null ? "" : formatMoney(call.cashCollected * AGENCY_PAY_RATE),
       objection: call.objection,
       notes: call.notes,
       // Nothing feeds these yet. Empty rather than invented, and the table
       // draws a faint dash so the column reads as waiting, not as broken.
-      setBy: "",
-      closer: "",
       paymentType: "",
-      paymentsComplete: "",
       postCallForm: "",
       recordingLink: "",
-      paymentStatus: "",
     },
   };
 }

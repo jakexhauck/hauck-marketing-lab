@@ -214,8 +214,10 @@ export const CONNECTIONS: ConnectionDef[] = [
       // one-line consequence the control room prints without adding a fact.
       { label: "Cold Call dials, pipelines and the Call button", audience: "admin" },
       {
-        label: "Sales Calls",
-        to: "/admin/pillar/sales?tab=calls",
+        // Was "Sales Calls", which came out of the chrome (2026-08-23); the
+        // month read-back lives on Data now.
+        label: "Sales Data",
+        to: "/admin/pillar/sales?tab=sales-data",
         audience: "admin",
       },
     ],
@@ -453,6 +455,41 @@ export const CONNECTIONS: ConnectionDef[] = [
     ],
     remediation:
       "Set the same value in this app's Cloudflare env and the Worker's own secret, or every run comes back 401 and blocked slots silently stop updating. Nothing breaks visibly: the calendar simply stops learning that the owner is busy.",
+  },
+  {
+    id: "dialer-cron",
+    label: "Power dialer sync",
+    vendor: "Cloudflare Workers",
+    scope: "agency",
+    purpose:
+      "Records every GoHighLevel power-dialer call once a minute, with no browser open. The dial table feeds the tracker, the funnel and the script numbers, so a stopped worker quietly rewrites the day's numbers.",
+    credentials: [
+      {
+        name: "COLD_CALL_CRON_SECRET",
+        home: "cloudflare",
+        inDoppler: true,
+        note: "Shared with workers/dialer-cron, a separate deploy because Pages projects cannot carry a cron trigger. At least 32 chars or the gate refuses it.",
+      },
+    ],
+    surfaces: [
+      { label: "Cold Call dials and daily funnel", to: "/admin/pillar/acquisition?tab=cold-call", audience: "admin" },
+    ],
+    remediation:
+      "Set the same value in this app's Cloudflare env and the Worker's own secret (`wrangler secret put COLD_CALL_CRON_SECRET` in workers/dialer-cron). The probe fails after ten quiet minutes; it lost three real calls once before this watchdog existed.",
+  },
+  {
+    id: "error-log",
+    label: "Background error receipts",
+    vendor: "self-hosted",
+    scope: "agency",
+    purpose:
+      "Every fire-and-forget failure (webhook side effects, cron handlers, uncaught API errors) lands in error_log instead of vanishing into console output. A burst is itself a health signal.",
+    credentials: [],
+    surfaces: [
+      { label: "Operations > Business Health", to: "/admin/pillar/operations?tab=health", audience: "admin" },
+    ],
+    remediation:
+      "Nothing to configure: the table exists (0119) and writers are best-effort. A red probe means five or more failures in an hour; read the latest ones under Operations > Business Health.",
   },
   {
     id: "resend",

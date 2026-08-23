@@ -36,12 +36,22 @@ export interface SessionData {
   // Never signed into the token: it describes how the request arrived, so it is
   // derived per request and cannot be spoofed by the token itself.
   viaPreviewHeader?: boolean;
+  // The tenants.session_version this owner token was minted against (0121).
+  // Present only when the login knew the version, i.e. live-mode owner sessions
+  // with a tenant row. The middleware signs the session out when this is older
+  // than the row's current value.
+  version?: number;
 }
 
 // Options carried into a tenant-scoped (non-admin) session.
 export interface SessionClaims {
   tenantId?: string;
   staffId?: string;
+  // The tenant's session_version at mint time (0121). Owner shared-password
+  // sessions are otherwise unrevocable; the middleware compares this against
+  // the tenant row it already loads and signs the session out on a mismatch.
+  // Absent on legacy tokens, which keep working until their own expiry.
+  version?: number;
 }
 
 const COOKIE_NAME = "hml_session";
@@ -124,6 +134,7 @@ export async function mintSessionToken(
     m: mode,
     t: claims.tenantId,
     s: claims.staffId,
+    v: claims.version,
   });
   const payload = b64urlEncode(new TextEncoder().encode(inner));
   const sig = await hmac(secret, payload);
@@ -347,6 +358,9 @@ export async function verifySession(
     const data: SessionData = { mode };
     if (fields.t) data.tenantId = String(fields.t);
     if (fields.s) data.staffId = String(fields.s);
+    if (fields.v !== undefined && Number.isFinite(Number(fields.v))) {
+      data.version = Number(fields.v);
+    }
     return data;
   } catch {
     return null;
@@ -359,7 +373,7 @@ export async function verifySession(
 // if neither shape parses.
 function parseInner(
   decoded: string,
-): { e: unknown; m?: unknown; t?: unknown; s?: unknown; a?: unknown; p?: unknown } | null {
+): { e: unknown; m?: unknown; t?: unknown; s?: unknown; a?: unknown; p?: unknown; v?: unknown } | null {
   if (decoded.startsWith("{")) {
     try {
       const obj = JSON.parse(decoded);

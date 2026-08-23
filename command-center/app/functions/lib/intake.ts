@@ -46,8 +46,10 @@ export interface SubmissionRow {
    *
    * Never authenticates anything: password_hash does that, here and at approve.
    * Only GET /api/admin/intake/:id returns it, and resumeView() below must
-   * never carry it, because that is what the PUBLIC funnel gets back. See
-   * migration 0081.
+   * never carry it, because that is what the PUBLIC funnel gets back. Jake
+   * reviewed the tradeoff on 2026-08-22 and kept the read-back deliberately
+   * (migration 0081): getting a client signed in over the phone beats the
+   * exposure of one column, in his judgement.
    */
   password_plain?: string | null;
   tenant_id: string | null;

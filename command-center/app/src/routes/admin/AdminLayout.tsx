@@ -1,24 +1,29 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Fragment, createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { NavLink, useLocation, useSearchParams } from "react-router-dom";
 import {
-  LayoutDashboard,
   LayoutGrid,
   Megaphone,
-  Handshake,
-  HeartHandshake,
-  Wrench,
+  ClipboardList,
+  MessageSquare,
   PhoneCall,
   Settings,
   LogOut,
   Sun,
   Moon,
   Users,
-  ChevronDown,
   PanelLeftClose,
   PanelLeftOpen,
+  Target,
+  SquareKanban,
+  ChartColumn,
+  MessageSquareText,
+  AppWindow,
+  Workflow,
+  UserPlus,
+  Briefcase,
   type LucideIcon,
 } from "lucide-react";
-import { getPillar, resolvePillarTab, type PillarId } from "../../lib/adminPillars";
+import { resolvePillarTab, type PillarId } from "../../lib/adminPillars";
 import { FULFILLMENT_HOME, FULFILLMENT_NAV } from "../../lib/fulfillmentPages";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -26,97 +31,129 @@ import { PillarStyle } from "../../components/pillars/PillarKit";
 import { effectiveAdminRole, type AdminRole } from "../../lib/adminRoles";
 import UpdateDialog from "../../components/admin/UpdateDialog";
 
-// The admin console chrome: a labelled sidebar (the same shape and row
-// treatment as the client app's rail, so the two consoles read as one product)
-// plus each page's own body. The upper zone is the org chart: a Command home,
-// then the value chain Acquisition -> Sales -> Fulfillment, with Operations as
-// the foundation. All five are AGENCY-level surfaces: they describe how Hauck
-// Marketing itself is running.
+// The admin console chrome: a sidebar (the same shape and row treatment as the
+// client app's rail, so the two consoles read as one product) plus each page's
+// own body. Every agency page is an inline row, top of rail to bottom in
+// org-chart order under four DEAD pillar captions (Operations, Acquisition,
+// Sales, Fulfillment): labels only, nothing clickable or expandable. All of
+// them are AGENCY-level surfaces: they describe how Hauck Marketing itself is
+// running.
 //
-// Below a divider sits the client-work zone. The Setter Suite is not a pillar:
-// it is where our setters work a *client's* leads, so it deliberately sits
-// outside the agency org chart rather than under Sales.
+// Below a divider sits the client-work zone. The Setter Suite is not agency
+// work: it is where our setters work a *client's* leads, so for a setter role
+// it sits alone below the rule.
 //
 // The Modern Motion theme is scoped to .pk-kit so it themes the whole admin
 // without touching the client app, and PillarStyle is mounted once here.
 
-// A page inside a pillar. Pillar tabs live on the pillar route behind ?tab=, so
-// `to` carries the query and the pillar/tab pair is kept alongside it: the
-// default tab renders with no ?tab= in the URL, and matching on the string alone
-// would leave the first child looking inactive on arrival.
-interface NavChild {
-  to: string;
-  label: string;
-  pillar?: PillarId;
-  tab?: string;
-}
-
+// One rail row: one page. Since 2026-08-23 the rail carries every page INLINE,
+// so a row is a destination and nothing more.
 interface NavRow {
   to: string;
   label: string;
   icon: LucideIcon;
-  // Command matches only its exact path; every other item matches its subtree
-  // (e.g. Fulfillment is active for any /admin/delivery/:tenantId).
+  // A row that IS a pillar tab (Tasks, Inbox, Clients, Cold Call, Pipeline all
+  // live on /admin/pillar/:pillar). Carried because NavLink's own isActive
+  // ignores the query string, so rows sharing one path would all light up at
+  // once without it.
+  pillar?: PillarId;
+  tab?: string;
+  // A row matches its subtree unless this says otherwise.
   end?: boolean;
-  // Compact label for the phone bottom bar, where seven tabs share one row and
-  // the full label ("Fulfillment", "Setter Suite") will not fit. Falls back to
-  // `label` when unset.
+  // Compact label for the phone bottom bar, where four tabs share one row and
+  // the full label ("Onboarding") will not fit. Falls back to `label`.
   short?: string;
-  // Sub-pages. A row with children expands in the desktop rail; the parent is
-  // still a real page, so clicking it opens the group and navigates.
-  children?: NavChild[];
 }
 
-// A pillar as a rail group: every tab the pillar page offers becomes a child, so
-// the rail is generated from lib/adminPillars rather than a second hand-kept
-// list that quietly drifts when a tab is added.
-function pillarGroup(id: PillarId, icon: LucideIcon, short?: string): NavRow {
-  const pillar = getPillar(id);
-  const to = `/admin/pillar/${id}`;
+// A pillar tab as its own inline rail row. The rail is generated from
+// lib/adminPillars (and lib/fulfillmentPages below), not hand-kept, so adding a
+// tab is one line in the config and the chrome follows.
+function pillarRow(
+  label: string,
+  pillar: PillarId,
+  tab: string,
+  icon: LucideIcon,
+  short?: string,
+): NavRow {
   return {
-    to,
-    label: pillar?.label ?? id,
+    to: `/admin/pillar/${pillar}?tab=${tab}`,
+    label,
     icon,
+    pillar,
+    tab,
     short,
-    children: (pillar?.tabs ?? []).map((t) => ({
-      to: `${to}?tab=${t.id}`,
-      label: t.label,
-      pillar: id,
-      tab: t.id,
-    })),
   };
 }
 
-// Fulfillment's rail group. The order comes from lib/fulfillmentPages, which
-// interleaves the picker-driven service pages with Onboarding and the Setter
-// Suite: they all read as one list because they are one job, even though those
-// two carry their own client lists rather than the page picker.
-function fulfillmentGroup(): NavRow {
-  return {
-    to: FULFILLMENT_HOME,
-    label: "Fulfillment",
-    icon: HeartHandshake,
-    short: "Fulfill",
-    children: FULFILLMENT_NAV.map((row) => ({ to: row.to, label: row.label })),
-  };
-}
+// Icons for Fulfillment's rows, keyed by route. FULFILLMENT_NAV carries only
+// {to,label}; the icon is presentation, so it lives here beside the rest of the
+// chrome rather than in the shared config.
+const FULFILLMENT_ROW_ICONS: Record<string, LucideIcon> = {
+  "/admin/onboarding": UserPlus,
+  "/admin/fulfillment/software": AppWindow,
+  "/admin/fulfillment/paid-ads": Megaphone,
+  "/admin/fulfillment/ghl": Workflow,
+  "/admin/setter": PhoneCall,
+  "/admin/fulfillment/management": Briefcase,
+};
 
-// The agency pillars. Sales is the agency's own sales performance (the Sales
-// Data pillar), NOT the per-client lead-working board.
+// The agency's pages, top of rail to bottom, in org-chart order, with the
+// pillar names back as CAPTIONS (Jake, 2026-08-23). A caption is a label and
+// nothing else: not a link, not a toggle, no chevron and no hover state, so
+// there is nothing to click into and nothing to expand. The pages under each
+// one stay the same inline rows the flattened rail introduced.
 //
-// Fulfillment is the exception to the generated pillar groups: its pages are
-// real routes rather than tabs on one page. The Setter Suite sits inside it
-// because that is what it is, the work of delivering for a client.
-const PILLAR_NAV: NavRow[] = [
-  { to: "/admin", label: "Command", icon: LayoutDashboard, end: true },
-  pillarGroup("acquisition", Megaphone, "Acq"),
-  pillarGroup("sales", Handshake),
-  fulfillmentGroup(),
-  pillarGroup("operations", Wrench, "Ops"),
+// Kept as groups even though every consumer outside the desktop rail wants the
+// flat list, because the grouping IS the org chart; PILLAR_NAV below is the
+// flatten of these, and it is what everything else reads.
+interface RailGroup {
+  caption: string;
+  rows: NavRow[];
+}
+
+const PILLAR_GROUPS: RailGroup[] = [
+  {
+    caption: "Operations",
+    rows: [
+      pillarRow("Tasks", "operations", "tasks", ClipboardList),
+      pillarRow("Inbox", "operations", "inbox", MessageSquare),
+      pillarRow("Clients", "operations", "clients", Users),
+    ],
+  },
+  {
+    // Acquisition: the daily work first (Cold Call), then SMS, then sourcing.
+    caption: "Acquisition",
+    rows: [
+      pillarRow("Cold Call", "acquisition", "cold-call", PhoneCall, "Calling"),
+      pillarRow("SMS", "acquisition", "sms", MessageSquareText),
+      pillarRow("Leads", "acquisition", "leads", Target),
+    ],
+  },
+  {
+    // Sales: two pages. Short names because each stands alone as a rail row.
+    caption: "Sales",
+    rows: [
+      pillarRow("Pipeline", "sales", "pipeline", SquareKanban),
+      pillarRow("Data", "sales", "sales-data", ChartColumn),
+    ],
+  },
+  {
+    // Fulfillment: real routes, same order lib/fulfillmentPages keeps them in
+    // (Onboarding leads; Setter Suite sits inside the list, not below a rule).
+    caption: "Fulfillment",
+    rows: FULFILLMENT_NAV.map<NavRow>((row) => ({
+      to: row.to,
+      label: row.label,
+      icon: FULFILLMENT_ROW_ICONS[row.to] ?? Megaphone,
+    })),
+  },
 ];
 
+const PILLAR_NAV: NavRow[] = PILLAR_GROUPS.flatMap((group) => group.rows);
+
 // Client-work surfaces, below the divider. Empty for an owner now that the
-// Setter Suite lives inside Fulfillment; a setter's whole rail is this one row.
+// Setter Suite sits inline inside Fulfillment; a setter's whole rail is this
+// one row.
 const CLIENT_NAV: NavRow[] = [
   { to: "/admin/setter", label: "Setter Suite", icon: PhoneCall, short: "Setter" },
 ];
@@ -133,7 +170,9 @@ interface RoleNav {
 }
 
 const ROLE_NAV: Record<AdminRole, RoleNav> = {
-  owner: { pillars: PILLAR_NAV, client: [], home: "/admin" },
+  // Home follows the rail: Command is no longer a row, so landing an owner on it
+  // would open a page the chrome does not show. Tasks is the new top row.
+  owner: { pillars: PILLAR_NAV, client: [], home: "/admin/pillar/operations?tab=tasks" },
   cold_caller: {
     // One item, pointed at the real section rather than a landing page of its
     // own: what he needs IS Cold Call, and a second front door would only be a
@@ -157,14 +196,22 @@ export function adminHomeFor(role: AdminRole): string {
   return ROLE_NAV[role].home;
 }
 
-// The phone bottom bar is the four pillars split around a raised center button
-// (Command). Acquisition + Sales sit left of it, Fulfillment + Operations
-// right, matching the desktop rail's pillar order. The center button is not a
-// pillar: it opens the Command hub (the app launcher at /admin/apps), which is
-// where the Setter Suite and every future app live. Settings moves to the
-// header gear rather than taking a bottom slot.
-const BOTTOM_LEFT: NavRow[] = [PILLAR_NAV[1], PILLAR_NAV[2]]; // Acquisition, Sales
-const BOTTOM_RIGHT: NavRow[] = [PILLAR_NAV[3], PILLAR_NAV[4]]; // Fulfillment, Operations
+// The phone bottom bar is four pages split around a raised center button
+// (Command). The center button is not a page: it opens the Command hub (the
+// app launcher at /admin/apps), which is where everything else lives. Settings
+// moves to the header gear rather than taking a bottom slot.
+// Tasks and Inbox sit left because they are the two opened without thinking
+// about it; Clients and Onboarding right, Onboarding being where Fulfillment
+// always opened. Everything else is one tap away through the hub launcher, so
+// the bar stays four tabs no matter how long the rail grows.
+const BOTTOM_LEFT: NavRow[] = [
+  pillarRow("Tasks", "operations", "tasks", ClipboardList),
+  pillarRow("Inbox", "operations", "inbox", MessageSquare),
+];
+const BOTTOM_RIGHT: NavRow[] = [
+  pillarRow("Clients", "operations", "clients", Users),
+  { to: FULFILLMENT_HOME, label: "Onboarding", icon: UserPlus, short: "Onboard" },
+];
 
 // Collapsed rail. The whole desktop rail can shrink to an icon column so a wide
 // page (a board, the cockpit) gets the width back. Read through a context rather
@@ -192,7 +239,7 @@ const COLLAPSED_ROW = "justify-center !px-0 hover:!translate-x-0";
 // Is this child the page currently on screen? A pillar tab is matched through
 // the pillar's own resolver so the default tab reads as active on arrival, when
 // the URL still carries no ?tab=. Everything else matches its route subtree.
-function useChildActive(child: NavChild): boolean {
+function useChildActive(child: { to: string; pillar?: PillarId; tab?: string }): boolean {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   if (child.pillar && child.tab) {
@@ -203,96 +250,16 @@ function useChildActive(child: NavChild): boolean {
   return location.pathname === path || location.pathname.startsWith(`${path}/`);
 }
 
-// One sub-page row inside an expanded group. Indented under the guide rule, and
-// smaller than a parent row so the hierarchy is legible at a glance.
-function NavChildLink({ child }: { child: NavChild }) {
-  const active = useChildActive(child);
-  return (
-    <NavLink
-      to={child.to}
-      className={[
-        "mb-0.5 flex items-center rounded-[9px] px-3 py-2 text-[13px] font-medium transition-[color,background,transform] duration-200",
-        active
-          ? "text-white shadow-[var(--shadow-brand)]"
-          : "text-[var(--text-muted)] hover:translate-x-0.5 hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] hover:text-[var(--text)]",
-      ].join(" ")}
-      style={active ? { backgroundImage: "var(--grad-brand)" } : undefined}
-    >
-      {child.label}
-    </NavLink>
-  );
-}
-
-// A pillar row that owns sub-pages. The parent is itself a real page (the pillar
-// opens on its first tab), so clicking it both expands the group and navigates.
-// The group stays open whenever the route is inside it, so a deep link or the
-// back button never lands on a collapsed section.
-function NavRowGroup({ item }: { item: NavRow }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const collapsed = useRailCollapsed();
-  const children = item.children ?? [];
-  const parentPath = item.to.split("?")[0];
-  const within =
-    location.pathname === parentPath ||
-    location.pathname.startsWith(`${parentPath}/`) ||
-    children.some((c) => {
-      const p = c.to.split("?")[0];
-      return location.pathname === p || location.pathname.startsWith(`${p}/`);
-    });
-  const [open, setOpen] = useState(within);
-
-  useEffect(() => {
-    if (within) setOpen(true);
-  }, [within]);
-
-  // Collapsed there is nowhere to put a sub-list, so the group becomes the plain
-  // icon row its parent page already is: clicking it opens the pillar on its
-  // first tab, exactly as clicking the header does when expanded.
-  if (collapsed) return <NavRowLink item={item} />;
-
-  const Icon = item.icon;
-  return (
-    <div className="mb-0.5">
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => {
-          setOpen(true);
-          if (location.pathname !== item.to) navigate(item.to);
-        }}
-        className={[
-          "group relative flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-[color,background,transform] duration-200",
-          within
-            ? "bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] text-[var(--brand-text)]"
-            : "text-[var(--text)] hover:translate-x-0.5 hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)]",
-        ].join(" ")}
-      >
-        <Icon size={17} className="shrink-0 opacity-80" />
-        <span className="flex-1 text-left">{item.label}</span>
-        <ChevronDown
-          size={15}
-          className={[
-            "shrink-0 opacity-60 transition-transform duration-200",
-            open ? "rotate-180" : "",
-          ].join(" ")}
-        />
-      </button>
-      {open && (
-        <div className="ml-[22px] mt-0.5 flex flex-col border-l border-[var(--divider)] pl-2.5">
-          {children.map((child) => (
-            <NavChildLink key={child.to} child={child} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // One sidebar row. Active is the brand gradient pill; hover nudges right by a
 // half-pixel, matching the client rail exactly so the two never drift apart.
 function NavRowLink({ item }: { item: NavRow }) {
   const collapsed = useRailCollapsed();
+  // Tasks, Inbox and Clients share one path and differ only by ?tab=, which
+  // NavLink's own isActive cannot see. Resolve those through the pillar's
+  // resolver (the same one the child rows use) and let every other row keep
+  // NavLink's subtree matching.
+  const tabActive = useChildActive(item);
+  const isTabRow = !!(item.pillar && item.tab);
   return (
     <NavLink
       to={item.to}
@@ -302,13 +269,15 @@ function NavRowLink({ item }: { item: NavRow }) {
       className={({ isActive }) =>
         [
           "group relative mb-0.5 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-[color,background,transform] duration-200",
-          isActive
+          (isTabRow ? tabActive : isActive)
             ? "text-white shadow-[var(--shadow-brand)]"
             : "text-[var(--text)] hover:translate-x-0.5 hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)]",
           collapsed ? COLLAPSED_ROW : "",
         ].join(" ")
       }
-      style={({ isActive }) => (isActive ? { backgroundImage: "var(--grad-brand)" } : undefined)}
+      style={({ isActive }) =>
+        (isTabRow ? tabActive : isActive) ? { backgroundImage: "var(--grad-brand)" } : undefined
+      }
     >
       <item.icon size={17} className="shrink-0 opacity-80" />
       {!collapsed && item.label}
@@ -349,6 +318,26 @@ function FooterButton({
   );
 }
 
+// One phone bottom-bar tab. Exists so the bar shares NavRowLink's ?tab=
+// awareness: three of the rows sit on /admin/pillar/operations and NavLink's
+// own isActive would light all three at once.
+function BottomTab({ item }: { item: NavRow }) {
+  const tabActive = useChildActive(item);
+  const isTabRow = !!(item.pillar && item.tab);
+  return (
+    <NavLink
+      to={item.to}
+      end={item.end}
+      className={({ isActive }) =>
+        `adm-bottomtab${(isTabRow ? tabActive : isActive) ? " on" : ""}`
+      }
+    >
+      <item.icon size={18} className="shrink-0" aria-hidden />
+      <span>{item.short ?? item.label}</span>
+    </NavLink>
+  );
+}
+
 // A footer link (Team, Settings). Same geometry as FooterButton so the account
 // zone reads as one column whether the row navigates or acts.
 function FooterLink({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) {
@@ -375,6 +364,20 @@ function FooterLink({ to, icon: Icon, label }: { to: string; icon: LucideIcon; l
   );
 }
 
+// A caption above its run of rows. A div, deliberately: it navigates nowhere,
+// expands nothing and carries no hover state, so a click lands on nothing.
+// When the rail collapses to an icon column the label has nowhere to sit, so
+// each group reads through a hairline rule instead.
+function RailGroupCaption({ caption }: { caption: string }) {
+  const collapsed = useRailCollapsed();
+  if (collapsed) return <div aria-hidden className="mx-3 my-2 border-t border-[var(--border)]" />;
+  return (
+    <div className="select-none px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-faint)]">
+      {caption}
+    </div>
+  );
+}
+
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { admin, signOut } = useAuth();
   const { resolved, toggle } = useTheme();
@@ -393,7 +396,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const role = effectiveAdminRole(admin?.role);
   const isOwnerAdmin = role === "owner";
   const nav = ROLE_NAV[role];
-  // The phone's split-around-hub bar is the owner's five-surface layout. A role
+  // The phone's split-around-hub bar is the owner's four-page layout. A role
   // with one surface gets a plain row instead: a raised center button leading to
   // an app launcher they cannot use is worse than no launcher.
   const bottomLeft = isOwnerAdmin ? BOTTOM_LEFT : [];
@@ -451,18 +454,26 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
 
-        {/* Agency pillars, then the client-work zone behind a divider. Both
+        {/* Agency pages, then the client-work zone behind a divider. Both
             lists come from the role, so a hired role sees only its own. */}
-        {/* Bottom padding, not just py: Fulfillment expanded is ten rows, so
-            the column now scrolls on a short window and the last row needs
+        {/* Bottom padding, not just py: fourteen inline rows now, so the
+            column can scroll on a short window and the last row needs
             somewhere to land clear of the pinned footer. */}
         <nav className="flex-1 overflow-y-auto px-3 pb-4 pt-1">
-          {nav.pillars.map((item) =>
-            item.children?.length ? (
-              <NavRowGroup key={item.to} item={item} />
-            ) : (
-              <NavRowLink key={item.to} item={item} />
-            ),
+          {isOwnerAdmin ? (
+            // The owner's rail reads in pillar groups: a caption, then its
+            // rows. Captions are dead labels (RailGroupCaption), so the only
+            // things that navigate are the page rows themselves.
+            PILLAR_GROUPS.map((group) => (
+              <Fragment key={group.caption}>
+                <RailGroupCaption caption={group.caption} />
+                {group.rows.map((item) => (
+                  <NavRowLink key={item.to} item={item} />
+                ))}
+              </Fragment>
+            ))
+          ) : (
+            nav.pillars.map((item) => <NavRowLink key={item.to} item={item} />)
           )}
           {nav.pillars.length > 0 && nav.client.length > 0 && (
             <div className="my-3 border-t border-[var(--border)]" />
@@ -564,7 +575,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      {/* Phone bottom tab bar (below lg). For an owner: the four pillars split
+      {/* Phone bottom tab bar (below lg). For an owner: four pages split
           around the raised Command hub button, in the same order as the desktop
           rail. For a hired role: a plain row of the one or two surfaces they
           have, with no hub button, since the launcher only holds owner apps. */}
@@ -572,30 +583,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {!isOwnerAdmin && (
           <div className="adm-bottomside" style={{ flex: 1, justifyContent: "center" }}>
             {[...nav.pillars, ...nav.client].map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) => `adm-bottomtab${isActive ? " on" : ""}`}
-              >
-                <item.icon size={18} className="shrink-0" aria-hidden />
-                <span>{item.short ?? item.label}</span>
-              </NavLink>
+              <BottomTab key={item.to} item={item} />
             ))}
           </div>
         )}
         {isOwnerAdmin && (
         <div className="adm-bottomside">
           {bottomLeft.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => `adm-bottomtab${isActive ? " on" : ""}`}
-            >
-              <item.icon size={18} className="shrink-0" aria-hidden />
-              <span>{item.short ?? item.label}</span>
-            </NavLink>
+            <BottomTab key={item.to} item={item} />
           ))}
         </div>
 
@@ -617,15 +612,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {isOwnerAdmin && (
         <div className="adm-bottomside">
           {bottomRight.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => `adm-bottomtab${isActive ? " on" : ""}`}
-            >
-              <item.icon size={18} className="shrink-0" aria-hidden />
-              <span>{item.short ?? item.label}</span>
-            </NavLink>
+            <BottomTab key={item.to} item={item} />
           ))}
         </div>
         )}
@@ -691,7 +678,7 @@ function AdminSpineStyle() {
       }
 
       /* Phone bottom tab bar. Hidden on desktop (the rail is the nav there);
-         on phones, the four pillars split around a raised center Command hub.
+          on phones, four pages split around a raised center Command hub.
          Scoped to .pk-kit so it reads the Modern Motion tokens light and dark. */
       .pk-kit .adm-bottombar { display: none; }
       @media (max-width: 1023.98px) {

@@ -9,7 +9,7 @@ import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
 import SoftwareTab from "../../components/admin/cockpit/software/SoftwareTab";
 import { useAuth } from "../../context/AuthContext";
 import { useSelectedClient } from "../../hooks/useSelectedClient";
-import AdminPage from "../../components/admin/AdminPage";
+import { TAB_TRACK, TabButton } from "../../components/PageTabs";
 import { CLIENT_HOME } from "../../lib/nav";
 import {
   ADS_SETUP_SUB,
@@ -101,42 +101,57 @@ export default function FulfillmentPage() {
 
   return (
     <div className="pk-root">
-      {/* Section name is the PAGE, not "Fulfillment": the pages here are chosen
-          by route from the sidebar, so they cannot also be this panel's switcher.
-          What switches in place is the page's own sections, which is exactly the
-          shape the client app's Sales page has. The "Fulfillment" kicker is gone
-          for the same reason PillarPage dropped its own: the rail already says
-          where you are. */}
-      <AdminPage
-        section={page.label}
-        tabs={subs.map((sub) => ({ id: sub.id, label: sub.label }))}
-        active={activeSub ?? undefined}
-        onSelect={setSub}
-        actions={
-          <>
-            <ClientPicker
-              clients={clients}
-              selected={selected}
-              loading={isLoading}
-              error={isError}
-              onSelect={setClient}
-            />
-            {tenantId && (
-              <div className="flex flex-col items-end gap-1">
-                <button
-                  type="button"
-                  onClick={() => void enterLiveApp()}
-                  disabled={previewBusy}
-                  className="inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-surface px-3 py-2 text-[12.5px] font-semibold text-text transition-colors hover:border-brand disabled:opacity-60"
+      {/* No header panel (Jake, 2026-08-23): the rail row is the title. What is
+          left of the old header is the page's own controls in one slim row: the
+          sub-pages on the left (Paid Ads' Dashboard / Lead Tracker / ... and
+          GHL's pair; they are the second level INSIDE this page, not rail rows,
+          so their switcher stays), and the client picker plus live-app entry
+          pinned right. The client choice carries across every Fulfillment page. */}
+      <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-3">
+        {subs.length > 1 && (
+          // shrink-0 + overflow-x-auto: inside a flex row the scroller would
+          // otherwise be squashed to a clip rather than scroll (see AdminPage).
+          <nav
+            aria-label={`${page.label} sections`}
+            className="flex shrink-0 overflow-x-auto"
+            style={{ scrollbarWidth: "none" }}
+          >
+            <div className={TAB_TRACK}>
+              {subs.map((sub) => (
+                <TabButton
+                  key={sub.id}
+                  active={sub.id === activeSub}
+                  onClick={() => setSub(sub.id)}
                 >
-                  <Eye size={15} /> {previewBusy ? "Opening..." : "Enter live app"}
-                </button>
-                {previewErr && <span className="text-[12px] text-danger">{previewErr}</span>}
-              </div>
-            )}
-          </>
-        }
-      />
+                  {sub.label}
+                </TabButton>
+              ))}
+            </div>
+          </nav>
+        )}
+        <div className="ml-auto flex items-center gap-2.5">
+          <ClientPicker
+            clients={clients}
+            selected={selected}
+            loading={isLoading}
+            error={isError}
+            onSelect={setClient}
+          />
+          {tenantId && (
+            <div className="flex flex-col items-end gap-1">
+              <button
+                type="button"
+                onClick={() => void enterLiveApp()}
+                disabled={previewBusy}
+                className="inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-surface px-3 py-2 text-[12.5px] font-semibold text-text transition-colors hover:border-brand disabled:opacity-60"
+              >
+                <Eye size={15} /> {previewBusy ? "Opening..." : "Enter live app"}
+              </button>
+              {previewErr && <span className="text-[12px] text-danger">{previewErr}</span>}
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="pk-section">
         <PageBody

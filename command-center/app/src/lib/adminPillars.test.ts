@@ -37,17 +37,11 @@ describe("adminPillars config", () => {
       "cold-call",
       "sms",
       "leads",
-      "calls",
       "pipeline",
       "sales-data",
-      "playbook",
-      "business-health",
+      "tasks",
       "inbox",
       "clients",
-      "calculator",
-      "time-audit",
-      "tasks",
-      "sops",
     ]);
   });
 
@@ -57,25 +51,18 @@ describe("adminPillars config", () => {
     // being sent to one of the two tabs before it. It sits last on purpose, so
     // the pillar still lands on Cold Call.
     expect(tabsFor("acquisition").map((t) => t.id)).toEqual(["cold-call", "sms", "leads"]);
-    // Sales Calls leads: it is the page with work on it, and the live call
-    // cockpit is now a panel opened from a row on it rather than the On Call
-    // tab that used to sit here second. Sales Pipeline is the board those
-    // outcomes land on, Sales Data is the month read back, and Playbook is
-    // where the words said on the call are written.
-    expect(tabsFor("sales").map((t) => t.id)).toEqual([
-      "calls",
-      "pipeline",
-      "sales-data",
-      "playbook",
-    ]);
+    // Two pages since 2026-08-23: Pipeline (the board outcomes land on) then
+    // Data (the month read back). Sales Calls and Playbook are out of the
+    // chrome; the labels are short because each is a rail row on its own.
+    expect(tabsFor("sales").map((t) => t.id)).toEqual(["pipeline", "sales-data"]);
+    // Operations is no longer a rail group: Tasks, Inbox and Clients are
+    // top-level rows and this pillar is only the route that hosts them. Business
+    // Health, Calculator, Time Audit and SOPs came out of the nav with it.
+    // The order is the rail's order, so the two cannot disagree.
     expect(tabsFor("operations").map((t) => t.id)).toEqual([
-      "business-health",
+      "tasks",
       "inbox",
       "clients",
-      "calculator",
-      "time-audit",
-      "tasks",
-      "sops",
     ]);
   });
 });
@@ -114,13 +101,14 @@ describe("resolvePillarTab", () => {
     expect(resolvePillarTab("acquisition", "bogus")).toBe("cold-call");
     // 'tasks' is an operations tab, not an acquisition tab -> default.
     expect(resolvePillarTab("acquisition", "tasks")).toBe("cold-call");
-    expect(resolvePillarTab("sales", "leads")).toBe("calls");
+    expect(resolvePillarTab("sales", "leads")).toBe("pipeline");
     // A link written before Sales Calls existed still lands on Sales Data.
     expect(resolvePillarTab("sales", "sales-data")).toBe("sales-data");
-    // Cold Call Data was removed from this pillar (its month lives on
-    // Acquisition > Cold Call > Tracker). A bookmark to it lands on Sales
-    // Calls rather than on a blank tab.
-    expect(resolvePillarTab("sales", "cold-call-data")).toBe("calls");
+    // Sales Calls, On Call and Playbook are all out of the pillar now. Their
+    // old links land on Pipeline (the first tab) rather than a blank page.
+    expect(resolvePillarTab("sales", "calls")).toBe("pipeline");
+    expect(resolvePillarTab("sales", "on-call")).toBe("pipeline");
+    expect(resolvePillarTab("sales", "playbook")).toBe("pipeline");
   });
 
   it("defaults to the first declared tab for every pillar", () => {

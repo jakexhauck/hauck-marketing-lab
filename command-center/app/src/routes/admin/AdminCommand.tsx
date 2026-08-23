@@ -1,5 +1,4 @@
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
-import AdminPage from "../../components/admin/AdminPage";
 
 // Command home: the agency task list, and nothing else.
 //
@@ -10,7 +9,8 @@ import AdminPage from "../../components/admin/AdminPage";
 //
 // The page is a flex column and the list runs in fill mode, so the checklist
 // takes the whole window and scrolls inside its own card rather than sitting
-// in a 62vh box with dead space under it.
+// in a 62vh box with dead space under it. There is no header panel: the rail
+// row is the title.
 //
 // PillarStyle is mounted once by AdminLayout, so this page renders .pk-root.
 
@@ -18,9 +18,7 @@ export default function AdminCommand() {
   return (
     <div className="pk-root cmd-root">
       <CommandStyle />
-      <AdminPage section="Tasks">
-        <OperationsTasksTab fill />
-      </AdminPage>
+      <OperationsTasksTab fill />
     </div>
   );
 }
@@ -32,9 +30,6 @@ function CommandStyle() {
         display: flex; flex-direction: column; gap: 14px;
         flex: 1 1 auto; min-height: 0; padding-bottom: 24px;
       }
-      /* The header panel is fixed height; the task card below does the
-         stretching, so nothing else in this column may grow. */
-      .pk-kit .cmd-root > div:not(.otk-card) { flex: 0 0 auto; }
       /* The controls row keeps its own margin; the card below it does the
          stretching, so nothing else in the column may grow. */
       .pk-kit .cmd-root .otk-controls { flex: 0 0 auto; }

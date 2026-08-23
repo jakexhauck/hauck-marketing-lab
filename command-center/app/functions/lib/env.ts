@@ -181,26 +181,6 @@ export interface Env {
   // means the nightly sync is off and spend goes stale. See
   // functions/lib/adsCron.ts.
   ADS_CRON_SECRET?: string;
-  // Claude. One agency key for every AI surface in the app; the sales coach
-  // (0110) is the first to use it, and docs/connections/social.md and
-  // campaigns.md have both been listing it as pending. Absent => nothing that
-  // needs Claude is offered, rather than offered and failing. See
-  // functions/lib/anthropic.ts.
-  ANTHROPIC_API_KEY?: string;
-  // The sales coach's Chrome extension, which reads Google Meet's own live
-  // captions off the page and posts them to /api/coach/ingest. It runs on
-  // meet.google.com and can carry no session of ours, so it holds one shared
-  // secret. Unset => the ingest route is closed and no session can be started.
-  COACH_INGEST_TOKEN?: string;
-  // Jake's display name in Google Meet, matched against each caption's speaker
-  // label to work out which side said it. One answer configured once, rather
-  // than a setting on whichever laptop he opened. Unset => every line is filed
-  // as the prospect, which still coaches but reads the call wrong.
-  COACH_HOST_NAME?: string;
-  // Read-only secret held by the same extension for the overlay it draws inside
-  // the Meet window. Separate from the ingest token on purpose: one buys a
-  // write, this one buys a read. See functions/api/coach/live.ts.
-  COACH_OVERLAY_TOKEN?: string;
   KV_CACHE?: KVNamespace;
 }
 

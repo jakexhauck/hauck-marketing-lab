@@ -36,7 +36,7 @@ export const onRequestGet: PagesFunction<Env, "tenantId", ApiData> = async (ctx)
   // migration 0081: admin-gated in _middleware.ts, never on a list endpoint,
   // and never anywhere the client's own app can reach. Null for anyone who
   // signed up before 0081, and for a client created by hand rather than through
-  // the funnel.
+  // the funnel. Jake reaffirmed this tradeoff on 2026-08-22.
   const { data: submission } = await client
     .from("intake_submissions")
     .select("login_email, password_plain")

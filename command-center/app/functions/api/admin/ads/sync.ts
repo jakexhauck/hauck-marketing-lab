@@ -5,6 +5,8 @@ import { resolveAdAccount } from "../../../lib/metaGraph";
 import { buildAdDayUpserts, fetchAccountTimezone, fetchAdDays } from "../../../lib/metaAdDays";
 import { buildEntityUpserts, fetchAdEntities } from "../../../lib/metaAdEntities";
 import { resolveMetaToken } from "../../../lib/metaToken";
+import { bumpCronHeartbeat } from "../../../lib/cronHeartbeat";
+import { logError } from "../../../lib/errorLog";
 
 // Refresh the per-ad, per-day Meta spend snapshot that backs the Ad Tracker.
 // Replaces the Make scenario "AC: (Local Ads School) Client Meta Data Feed".
@@ -168,6 +170,25 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
   const synced = results.reduce((sum, r) => sum + (r.rows ?? 0), 0);
   const failed = results.filter((r) => r.error).length;
+
+  // Per-client failures become receipts, not console noise: the admin errors
+  // surface and the health probe both read error_log.
+  for (const r of results) {
+    if (r.error) {
+      await logError(ctx.env, "ads-sync", `Client "${r.name}" failed: ${r.error}`, {
+        tenantId: r.tenantId,
+      });
+    }
+  }
+
+  // Receipt for the watchdog: the nightly spend snapshot going silent is how
+  // ROAS quietly goes stale. The probe fails this heartbeat after one
+  // missed night and the existing health-diff push makes it loud.
+  await bumpCronHeartbeat(
+    client,
+    "ads-sync",
+    `${results.length} client${results.length === 1 ? "" : "s"}, ${synced} rows, ${failed} failed`,
+  );
 
   // The scheduler reaches this handler without an admin session (see the
   // SCHEDULING note above), so there is no admin id to attribute the row to.
