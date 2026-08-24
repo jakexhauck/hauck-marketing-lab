@@ -34,6 +34,36 @@ STRIP_KEYS = frozenset([
 ])
 
 
+def _persist_refresh_token(new_token: str) -> None:
+    """Write the rotated refresh token back into the CLI .env (best effort).
+
+    The .env lives three directories above this file: utils -> gohighlevel ->
+    cli_anything -> gohighlevel-cli/. Never touches the file on failure; the
+    in-memory token is already updated by the caller.
+    """
+    try:
+        env_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+            ".env",
+        )
+        if not os.path.isfile(env_path):
+            return
+        with open(env_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        replaced = False
+        for i, line in enumerate(lines):
+            if line.strip().startswith("GHL_FIREBASE_REFRESH_TOKEN="):
+                if new_token not in line:
+                    lines[i] = f"GHL_FIREBASE_REFRESH_TOKEN={new_token}\n"
+                    replaced = True
+                break
+        if replaced:
+            with open(env_path, "w", encoding="utf-8") as f:
+                f.writelines(lines)
+    except Exception:
+        pass
+
+
 class TokenManager:
     """Firebase refresh token management with auto-refresh.
 
@@ -41,6 +71,10 @@ class TokenManager:
     1. Cached token (if < 50 minutes old)
     2. Firebase refresh token (from GHL_FIREBASE_REFRESH_TOKEN env var)
     3. Direct Firebase token (from GHL_FIREBASE_TOKEN env var)
+
+    Firebase rotates the refresh token on every exchange. The new one is
+    persisted back to .env so the original browser-derived token never goes
+    stale on disk.
     """
 
     def __init__(self):
@@ -56,10 +90,14 @@ class TokenManager:
         # 2. Try Firebase refresh token
         refresh_token = os.environ.get("GHL_FIREBASE_REFRESH_TOKEN", "").strip()
         if refresh_token:
-            token = self._refresh_firebase(refresh_token)
-            if token:
+            result = self._refresh_firebase(refresh_token)
+            if result:
+                token, new_refresh = result
                 self._token = token
                 self._token_time = time.time()
+                if new_refresh and new_refresh != refresh_token:
+                    _persist_refresh_token(new_refresh)
+                    os.environ["GHL_FIREBASE_REFRESH_TOKEN"] = new_refresh
                 return token
             print(
                 "Error: Firebase refresh token is set but token refresh failed.\n"
@@ -90,8 +128,8 @@ class TokenManager:
         self._token_time = 0
         return self.get_token()
 
-    def _refresh_firebase(self, refresh_token: str) -> Optional[str]:
-        """Exchange Firebase refresh token for a fresh ID token."""
+    def _refresh_firebase(self, refresh_token: str) -> Optional[tuple]:
+        """Exchange Firebase refresh token for (id_token, new_refresh_token)."""
         try:
             body = f"grant_type=refresh_token&refresh_token={refresh_token}"
             req = urllib.request.Request(
@@ -102,7 +140,7 @@ class TokenManager:
             )
             with urllib.request.urlopen(req, context=CTX, timeout=10) as r:
                 data = json.loads(r.read())
-                return data.get("id_token", "")
+                return data.get("id_token", ""), data.get("refresh_token", "")
         except Exception:
             return None
 

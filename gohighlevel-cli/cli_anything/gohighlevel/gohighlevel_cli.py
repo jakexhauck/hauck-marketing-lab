@@ -750,6 +750,63 @@ def workflows_create_n8n(ctx, name, webhook_url, tag, folder):
         _handle_error(e)
 
 
+@workflows.command("drafts")
+@click.option("--limit", default=50, help="Max workflows to return")
+@click.pass_context
+def workflows_drafts(ctx, limit):
+    """List workflows with status and version (internal API, experimental).
+
+    Unlike the public list, this shows drafts, published state, and version
+    for every workflow including empty ones.
+    """
+    _require_experimental(ctx)
+    try:
+        client = _get_internal_client(ctx)
+        data = client.request("GET", f"/workflow/{_loc(ctx)}?type=workflow&offset=0&limit={limit}")
+        if data is None:
+            raise RuntimeError("internal API auth failed (refresh token may be revoked)")
+        if ctx.obj["json"]:
+            click.echo(json.dumps(data, indent=2, default=str))
+        else:
+            items = data if isinstance(data, list) else data.get("workflows", [])
+            for wf in items:
+                status = wf.get("status", "?")
+                ver = wf.get("version", "?")
+                click.echo(f"{wf.get('_id', wf.get('id', '?'))}  [{status} v{ver}]  {wf.get('name', '(unnamed)')}")
+            click.echo(f"\nTotal: {len(items)}")
+    except Exception as e:
+        _handle_error(e)
+
+
+@workflows.command("show")
+@click.option("--workflow-id", required=True, help="Workflow ID (internal API, experimental)")
+@click.pass_context
+def workflows_show(ctx, workflow_id):
+    """Dump full workflow detail: steps, triggers, settings (experimental)."""
+    _require_experimental(ctx)
+    try:
+        client = _get_internal_client(ctx)
+        data = client.request("GET", f"/workflow/{_loc(ctx)}/{workflow_id}")
+        if data is None:
+            raise RuntimeError("internal API auth failed (refresh token may be revoked)")
+        if ctx.obj["json"]:
+            click.echo(json.dumps(data, indent=2, default=str))
+        else:
+            templates = ((data.get("workflowData") or {}).get("templates")) or []
+            triggers = data.get("triggers") or []
+            click.echo(f"Name:     {data.get('name', '(unnamed)')}")
+            click.echo(f"Status:   {data.get('status', '?')}")
+            click.echo(f"Version:  {data.get('version', '?')}")
+            click.echo(f"Steps:    {len(templates)}")
+            for s in templates:
+                click.echo(f"  {s.get('order', '?')}. {s.get('name', s.get('type', '?'))} ({s.get('type')})")
+            click.echo(f"Triggers: {len(triggers)}")
+            for t in triggers:
+                click.echo(f"  {t.get('type', '?')} - {t.get('name', '')}")
+    except Exception as e:
+        _handle_error(e)
+
+
 # ===========================================================================
 # DOCUMENTS / CONTRACTS
 # ===========================================================================
@@ -1250,10 +1307,98 @@ def locations_custom_values(ctx):
 
 
 # ===========================================================================
+# MEDIA STORAGE
+# ===========================================================================
+
+def _get_media_client(ctx: click.Context):
+    """Get a MediaClient using the PIT key from the environment."""
+    import os
+    from cli_anything.gohighlevel.utils.media_client import MediaClient
+
+    key = os.environ.get("GHL_API_KEY", "").strip()
+    if not key:
+        click.echo("Error: GHL_API_KEY not set.", err=True)
+        sys.exit(1)
+    return MediaClient(key, _loc(ctx))
+
+
+@cli.group()
+@click.pass_context
+def media(ctx):
+    """Media storage: list, upload, delete files."""
+    pass
+
+
+@media.command("list")
+@click.option("--limit", default=50, help="Max files to return")
+@click.option("--offset", default=0)
+@click.option("--type", "type_filter", default="file",
+              type=click.Choice(["all", "image", "video", "audio", "file"]),
+              help="Filter by file type (note: the API returns nothing for 'all')")
+@click.pass_context
+def media_list(ctx, limit, offset, type_filter):
+    """List files in the location's media library."""
+    try:
+        client = _get_media_client(ctx)
+        data = client.list_files(num_results=limit, offset=offset, type_filter=type_filter)
+        if ctx.obj["json"]:
+            click.echo(json.dumps(data, indent=2, default=str))
+        else:
+            files = data.get("files", [])
+            for f in files:
+                size_kb = (f.get("size") or 0) / 1024
+                fid = f.get("_id") or f.get("id") or "?"
+                click.echo(f"{fid}  [{f.get('type', '?')}]  {f.get('name', '?')}  ({size_kb:.0f} KB)")
+            click.echo(f"\nTotal returned: {len(files)} (library count: {data.get('count', '?')})")
+    except Exception as e:
+        _handle_error(e)
+
+
+@media.command("upload")
+@click.option("--path", required=True, type=click.Path(exists=True), help="Local file path")
+@click.option("--name", default=None, help="Name in library (defaults to filename)")
+@click.pass_context
+def media_upload(ctx, path, name):
+    """Upload a local file to the location's media library."""
+    try:
+        client = _get_media_client(ctx)
+        data = client.upload_file(path, name)
+        if ctx.obj["json"]:
+            click.echo(json.dumps(data, indent=2, default=str))
+        else:
+            click.echo(f"Uploaded: {data.get('name', name or path)}")
+            click.echo(f"ID: {data.get('id', '(unknown)')}")
+    except Exception as e:
+        _handle_error(e)
+
+
+@media.command("delete")
+@click.option("--file-id", required=True, help="Media file ID")
+@click.pass_context
+def media_delete(ctx, file_id):
+    """Delete a media file by ID."""
+    try:
+        client = _get_media_client(ctx)
+        data = client.delete_file(file_id)
+        if ctx.obj["json"]:
+            click.echo(json.dumps(data, indent=2, default=str))
+        else:
+            click.echo(f"Deleted: {file_id}")
+    except Exception as e:
+        _handle_error(e)
+
+
+# ===========================================================================
 # Entry point
 # ===========================================================================
 
 def main():
+    # GHL data is full of emoji and unicode; Windows consoles default to cp1252
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     cli(obj={})
 
 

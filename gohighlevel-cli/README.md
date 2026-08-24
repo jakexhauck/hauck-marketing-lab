@@ -57,6 +57,15 @@ You should see 5 contacts (or an empty list, depending on the account). Done.
 ./ghl --json workflows list
 ./ghl workflows enroll --contact-id <id> --workflow-id <id>
 
+# Workflow internals (need --experimental: internal API)
+./ghl --experimental workflows drafts          # status + version for every workflow, incl. drafts
+./ghl --experimental workflows show --workflow-id <id>   # full step/trigger dump
+
+# Media storage
+./ghl media list --limit 50
+./ghl media upload --path ./flyer.pdf --name "Summer Flyer"
+./ghl media delete --file-id <id>
+
 # Opportunities
 ./ghl opportunities list --pipeline-id <id>
 
@@ -183,6 +192,14 @@ The CLI talks to two APIs:
 | **Internal** (`backend.leadconnectorhq.com`) | Everything the GHL UI can do — including **creating workflows**. Hidden behind a `--experimental` flag on commands that use it. | Firebase JWT, refreshed from `GHL_FIREBASE_REFRESH_TOKEN` |
 
 You only need the Firebase token if you want to **build** workflows. Everything else works with just the API key.
+
+### Internal-API gotchas (learned the hard way)
+
+- **Firebase rotates the refresh token on every exchange.** The CLI writes each rotated token back to `.env` automatically. If you copy `.env` elsewhere mid-session, re-sync it; an old token keeps working for a grace period, then dies.
+- **Internal routes want a `version` header.** The client sends `2021-07-28`; without it, valid routes return a misleading `401 version header was not found`.
+- **`services.leadconnectorhq.com` sits behind Cloudflare bot protection.** Plain urllib gets error 1010. Use `requests` (or any client that sends a browser User-Agent over a real TLS stack); PowerShell's `Invoke-WebRequest` also passes.
+- **Media listing quirk:** `/medias/files` requires `altId`, `altType`, `sortBy`, and `type`. It accepts `type=all` but returns zero rows: use a concrete type (`file`, `image`, `video`, `audio`). Upload is multipart-only; JSON bodies get `UPLOAD_UNSUPPORTED_CONTENT_TYPE`.
+- **Still closed, even internally:** funnel/website listing and appointment listing have no working route on either host as of 2026-08-23 (funnels list is a Firestore proxy that returns schema templates; appointments GET 404s). If you need these, capture the real request from DevTools on the GHL tab and extend from there.
 
 ---
 
