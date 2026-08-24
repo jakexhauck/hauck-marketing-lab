@@ -121,12 +121,12 @@ const PILLAR_GROUPS: RailGroup[] = [
     ],
   },
   {
-    // Acquisition: the daily work first (Cold Call), then SMS, then sourcing.
+    // Acquisition: sourcing first (Leads), then the daily work (Cold Call), then SMS.
     caption: "Acquisition",
     rows: [
+      pillarRow("Leads", "acquisition", "leads", Target),
       pillarRow("Cold Call", "acquisition", "cold-call", PhoneCall, "Calling"),
       pillarRow("SMS", "acquisition", "sms", MessageSquareText),
-      pillarRow("Leads", "acquisition", "leads", Target),
     ],
   },
   {

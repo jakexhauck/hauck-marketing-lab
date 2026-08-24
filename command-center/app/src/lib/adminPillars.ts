@@ -39,13 +39,14 @@ export const ADMIN_PILLARS: PillarDef[] = [
     // becomes a GoHighLevel contact and, for the call channel, a row in the Cold
     // Call book, which remains the only list anyone works.
     //
-    // It sits LAST rather than first despite being first in the funnel, because
-    // the first tab is the pillar's landing page and Cold Call is the one opened
-    // daily. Sourcing is a thing you go to deliberately.
+    // It sits FIRST (Jake, 2026-08-24): Leads above Cold Call and SMS, in the
+    // funnel's own order. Cold Call remains what the hired roles land on: their
+    // home URLs carry ?tab=cold-call explicitly, so the default only moves for
+    // an owner typing the bare pillar URL.
     tabs: [
+      { id: "leads", label: "Leads", ready: true },
       { id: "cold-call", label: "Cold Call", ready: true },
       { id: "sms", label: "SMS", ready: true },
-      { id: "leads", label: "Leads", ready: true },
     ],
   },
   {
