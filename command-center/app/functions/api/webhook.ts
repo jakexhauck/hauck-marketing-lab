@@ -364,6 +364,38 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const tenantId = event.locationId
       ? await tenantIdForLocation(client, ctx.env, event.locationId)
       : null;
+
+    // The disposition form's two workflows (docs/build-plans/sales-disposition-form.md).
+    // They post from the AGENCY sub-account, which is nobody's client and so
+    // resolves to no tenant below. That is honest here rather than fatal: both
+    // handlers find their meeting row by contact id or phone and never touch
+    // tenant-scoped data, so a null tenant just means the health board is not
+    // told about agency events (it keys on tenant). Handled BEFORE the
+    // unroutable early return and off the response path: GHL gets its 200
+    // immediately, failures leave an error_log receipt, never a non-200.
+    if (
+      (event.type === "PostCallForm" || event.type === "SalesDisposition") &&
+      event.locationId
+    ) {
+      if (tenantId) {
+        ctx.waitUntil(
+          bumpEventSeen(client, tenantId, event.type, "workflow"),
+        );
+      }
+      const handler =
+        event.type === "PostCallForm" ? stampPostCallForm : applyDisposition;
+      ctx.waitUntil(
+        handler(client, event).catch((err) => {
+          console.error("[webhook] disposition handler failed", err);
+          logErrorBestEffort(ctx.env, "webhook", `disposition failed: ${(err as Error)?.message ?? err}`, {
+            tenantId,
+            eventType: event.type ?? null,
+          });
+        }),
+      );
+      return new Response("ok", { status: 200 });
+    }
+
     if (!tenantId) {
       // Authenticated but not for a location we serve (or locationId missing
       // from a workflow payload). Ack with 200 so GHL does not retry forever.
@@ -453,32 +485,6 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
           event.locationId,
         );
       }
-    }
-
-    // The disposition form's two workflows (docs/build-plans/sales-disposition-form.md).
-    // PostCallForm stamps the prefilled form URL when a meeting confirms;
-    // SalesDisposition lands the submitted answers on the contact's open
-    // meeting. Both run BEFORE the unmapped-type early return, beside the
-    // confirmation flip, best-effort and off the response path: GHL gets its
-    // 200 immediately and a Supabase round trip can never delay the ack. A
-    // failure is logged with a receipt, never a non-200, because retrying a
-    // webhook we already acked would double-stamp nothing (both handlers no-op
-    // on rows that are already recorded) while hammering the endpoint.
-    if (
-      (event.type === "PostCallForm" || event.type === "SalesDisposition") &&
-      event.locationId
-    ) {
-      const handler =
-        event.type === "PostCallForm" ? stampPostCallForm : applyDisposition;
-      ctx.waitUntil(
-        handler(client, event).catch((err) => {
-          console.error("[webhook] disposition handler failed", err);
-          logErrorBestEffort(ctx.env, "webhook", `disposition failed: ${(err as Error)?.message ?? err}`, {
-            tenantId,
-            eventType: event.type ?? null,
-          });
-        }),
-      );
     }
 
     const activity = toActivity(tenantId, event);
