@@ -6,7 +6,6 @@ import {
   nameFromLead,
   needsUpdate,
   pickSalesCalendars,
-  shouldAdoptEvent,
   type BookableLead,
 } from "./salesCallSync";
 import type { CalendarEvent } from "./appointments";
@@ -56,59 +55,6 @@ describe("pickSalesCalendars", () => {
     const calendars = [{ id: "x", name: "Personal" }];
     expect(pickSalesCalendars(calendars)).toEqual([]);
     expect(pickSalesCalendars([])).toEqual([]);
-  });
-});
-
-describe("shouldAdoptEvent", () => {
-  // The per-event half of the rule (2026-08-24): discovery calls were booked
-  // onto the Onboarding calendar, whose name hides them. Contact plus a title
-  // that does not announce itself as personal life is what gets an event in.
-  const SALES = new Set(["cal-demo"]);
-
-  it("adopts any event on a sales calendar, whatever it is called", () => {
-    expect(
-      shouldAdoptEvent({ calendarId: "cal-demo", contactId: null }, SALES),
-    ).toBe(true);
-    expect(
-      shouldAdoptEvent({ calendarId: "cal-demo", title: "Flight to Dallas" }, SALES),
-    ).toBe(true);
-  });
-
-  it("adopts a real call off a calendar whose name hides it", () => {
-    // A discovery call Jake booked onto Onboarding is still a call.
-    expect(
-      shouldAdoptEvent(
-        { calendarId: "cal-onboarding", contactId: "c-1", title: "Discovery call - Mohamad Heating" },
-        SALES,
-      ),
-    ).toBe(true);
-    expect(
-      shouldAdoptEvent(
-        { calendarId: "cal-onboarding", contactId: "c-1", title: "Seamus Geoghegan" },
-        SALES,
-      ),
-    ).toBe(true);
-  });
-
-  it("leaves personal life out of the funnel", () => {
-    // The flights carry a contact (Google sync hangs them all off one record),
-    // so the title is what keeps them out.
-    expect(
-      shouldAdoptEvent(
-        { calendarId: "cal-onboarding", contactId: "c-1", title: "Flight to Atlanta (F9 1263)" },
-        SALES,
-      ),
-    ).toBe(false);
-    expect(
-      shouldAdoptEvent(
-        { calendarId: "cal-onboarding", contactId: "c-1", title: "APHS Prom 2026" },
-        SALES,
-      ),
-    ).toBe(false);
-  });
-
-  it("leaves a contact-less event on any other calendar out", () => {
-    expect(shouldAdoptEvent({ calendarId: "cal-personal" }, SALES)).toBe(false);
   });
 });
 

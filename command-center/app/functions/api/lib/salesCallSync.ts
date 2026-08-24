@@ -90,31 +90,17 @@ export function needsUpdate(row: ExistingRow, event: CalendarEvent): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Which meetings belong in Sales Data.
+// Which calendars hold sales meetings.
 //
-// This used to be decided per CALENDAR, and twice that was the wrong shape.
-// First lesson: the agency account's Onboarding calendar is linked to a
-// personal Google account, so reading everything put four flights and a school
-// prom on the sales page. The answer then was a name test
-// (/demo|discovery|sales/), which kept the flights out.
+// This is not "all of them", and finding that out the hard way is why the rule
+// is written down here. The agency account has two calendars, and the
+// Onboarding one is linked to a personal Google account: reading everything
+// produced a sales meetings page listing four flights and a school prom.
 //
-// Second lesson, Jake, 2026-08-24: real discovery calls were being booked onto
-// that same Onboarding calendar, and the name test hid every one of them. So
-// the rule moved down to the EVENT:
-//
-//   a meeting comes into Sales Data when its calendar says sales, OR the event
-//   is attached to a CRM contact and its title does not announce itself as
-//   personal life.
-//
-// The contact half alone proved not to be enough: the flights turned out to
-// carry a contact too (everything Google-synced lands under one record), so
-// PERSONAL_TITLE keeps the known offenders out by name. The list grows by one
-// word the day some other personal entry leaks through; that is a cheaper
-// failure than hiding a real call.
-//
-// An explicit AGENCY_SALES_CALENDAR_IDS list still wins outright: those
-// calendars are read alone and adopted whole, which is how you say "this
-// entire calendar is calls" without renaming it.
+// The test is the one BookingPanel already uses to decide where a discovery
+// call goes, deliberately, so the calendar the app books into is the calendar
+// the app reads back. Two different answers to "which one is the sales
+// calendar" is how a booking lands somewhere the page will never show it.
 
 export interface NamedCalendar {
   id: string;
@@ -123,11 +109,7 @@ export interface NamedCalendar {
   name?: string;
 }
 
-export const SALES_CALENDAR = /demo|discovery|sales/i;
-
-// Titles that mean "this was never a sales call", matched loosely on word
-// boundaries. Grown once each, on evidence, never speculatively.
-export const PERSONAL_TITLE = /\b(flight|prom)\b/i;
+const SALES_CALENDAR = /demo|discovery|sales/i;
 
 // An explicit list always wins, so a calendar that is a sales calendar without
 // saying so in its name can be named in AGENCY_SALES_CALENDAR_IDS rather than
@@ -136,7 +118,10 @@ export function pickSalesCalendars(
   calendars: NamedCalendar[],
   configuredIds?: string | null,
 ): string[] {
-  const configured = splitCalendarIds(configuredIds);
+  const configured = (configuredIds ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (configured.length) {
     // Only ids that actually exist. A stale id in the config would otherwise
     // read as "this calendar had no meetings" forever.
@@ -144,33 +129,6 @@ export function pickSalesCalendars(
     return configured.filter((id) => known.has(id));
   }
   return calendars.filter((c) => SALES_CALENDAR.test(c.name ?? "")).map((c) => c.id);
-}
-
-function splitCalendarIds(configuredIds?: string | null): string[] {
-  return (configuredIds ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-export interface AdoptableEvent {
-  calendarId: string;
-  title?: string | null;
-  // Null on a personal entry: nobody in the CRM is attending it.
-  contactId?: string | null;
-}
-
-// The per-event half of the rule above.
-export function shouldAdoptEvent(
-  event: AdoptableEvent,
-  salesCalendarIds: ReadonlySet<string>,
-): boolean {
-  if (salesCalendarIds.has(event.calendarId)) return true;
-  // No contact means nobody in the CRM is attending: flights, proms, blocks.
-  if (!event.contactId) return false;
-  // A contact is not proof either (Google sync hangs everything off one
-  // record), so a self-declared personal entry stays out by its own title.
-  return !PERSONAL_TITLE.test(event.title ?? "");
 }
 
 // ---------------------------------------------------------------------------
@@ -275,9 +233,8 @@ export interface SyncOptions {
   fromMs?: number;
   toMs?: number;
   nowMs?: number;
-  // AGENCY_SALES_CALENDAR_IDS. When set, those calendars alone are read and
-  // adopted whole; when not, every calendar is read and shouldAdoptEvent
-  // decides per event.
+  // AGENCY_SALES_CALENDAR_IDS, when the account has a sales calendar whose name
+  // does not say so.
   calendarIds?: string | null;
 }
 
@@ -294,15 +251,8 @@ export async function syncAgencyMeetings(
   const fromMs = options.fromMs ?? now - 90 * DAY;
   const toMs = options.toMs ?? now + 90 * DAY;
 
-  const allCalendars = await listCalendars(gctx);
-  const configuredIds = splitCalendarIds(options.calendarIds);
-  const salesCalendarIds = new Set(pickSalesCalendars(allCalendars, options.calendarIds));
-  // Explicit list: read only those, adopt everything on them. Otherwise read
-  // everything and let the contact test sort meetings from personal life.
-  const readIds = configuredIds.length
-    ? [...salesCalendarIds]
-    : allCalendars.map((c) => c.id);
-  if (readIds.length === 0) {
+  const calendarIds = pickSalesCalendars(await listCalendars(gctx), options.calendarIds);
+  if (calendarIds.length === 0) {
     // Nothing to read is not the same as nothing booked, and the page has to be
     // able to tell the difference rather than showing a confident empty week.
     return {
@@ -316,21 +266,18 @@ export async function syncAgencyMeetings(
     };
   }
 
-  const { events: rawEvents, failedCalendarIds } = await listCalendarEvents(
+  const { events, failedCalendarIds } = await listCalendarEvents(
     gctx,
     fromMs,
     toMs,
-    readIds,
+    calendarIds,
   );
-  const events = configuredIds.length
-    ? rawEvents
-    : rawEvents.filter((e) => shouldAdoptEvent(e, salesCalendarIds));
   const result: SyncResult = {
     added: 0,
     updated: 0,
     unchanged: 0,
     failedCalendarIds,
-    calendarsRead: readIds.length,
+    calendarsRead: calendarIds.length,
     linked: 0,
     booked: 0,
   };
