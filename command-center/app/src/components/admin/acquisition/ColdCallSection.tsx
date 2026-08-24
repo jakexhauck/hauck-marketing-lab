@@ -162,25 +162,16 @@ export default function ColdCallSection() {
     () => shelfAssets.filter((a) => a.kind === "script" && !a.archivedAt),
     [shelfAssets],
   );
-  // Objection handling. Its own kind since 0077, so it is found by what it IS
-  // rather than by a name matching /objection/i, which was how a document got
-  // promoted to "the objections document" by being named well.
-  //
-  // It renders inside the script panel underneath the pitch rather than behind a
-  // button of its own: it is reached for mid-sentence, while somebody is talking,
-  // and a click at that moment is a click too many.
-  const objections = useMemo(
-    () => shelfAssets.find((a) => a.kind === "objections" && !a.archivedAt) ?? null,
-    [shelfAssets],
-  );
+  // The objection handling document is NOT shown here any more (Jake,
+  // 2026-08-24). It used to render under the pitch in the same scroll; the
+  // dialing script is now the script and nothing else. The asset kind and
+  // everything that manages it under Management > Scripts are untouched, so
+  // this is one prop away from coming back.
 
-  // Every document these panels might show, resolved against Drive in one go.
-  // A script and the objections document are pointers now; a row not yet pointed
-  // anywhere still renders the text it already had. assetHtml owns that rule.
-  const driveDocs = useDriveDocs([
-    ...scripts.map((s) => s.driveFileId),
-    objections?.driveFileId ?? null,
-  ]);
+  // Every document this panel might show, resolved against Drive in one go. A
+  // script is a pointer now; a row not yet pointed anywhere still renders the
+  // text it already had. assetHtml owns that rule.
+  const driveDocs = useDriveDocs(scripts.map((s) => s.driveFileId));
 
   // What the caller picked, corrected against what still exists.
   const picked = useSelectedScriptId();
@@ -237,15 +228,6 @@ export default function ColdCallSection() {
         })),
         selectedId: selectedScriptId,
         onSelect: setSelectedScriptId,
-        objections: objections
-          ? {
-              name: objections.name,
-              html: assetHtml(objections, driveDocs).html,
-              empty: isOwner
-                ? "Point this at a document under Management > Scripts."
-                : "Not written yet. Jake writes this one.",
-            }
-          : null,
       }}
     />
   );
