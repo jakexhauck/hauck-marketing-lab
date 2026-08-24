@@ -102,14 +102,19 @@ export function needsUpdate(row: ExistingRow, event: CalendarEvent): boolean {
 // that same Onboarding calendar, and the name test hid every one of them. So
 // the rule moved down to the EVENT:
 //
-//   a meeting comes into Sales Data when its calendar says sales OR the event
-//   is attached to a CRM contact.
+//   a meeting comes into Sales Data when its calendar says sales, OR the event
+//   is attached to a CRM contact and its title does not announce itself as
+//   personal life.
 //
-// Personal entries (flights, proms, haircuts) carry no contact, whatever
-// calendar somebody typed them into, so they stay out without the page ever
-// having to know which calendar is sacred. An explicit AGENCY_SALES_CALENDAR_IDS
-// list still wins outright: those calendars are read alone and adopted whole,
-// which is how you say "this entire calendar is calls" without renaming it.
+// The contact half alone proved not to be enough: the flights turned out to
+// carry a contact too (everything Google-synced lands under one record), so
+// PERSONAL_TITLE keeps the known offenders out by name. The list grows by one
+// word the day some other personal entry leaks through; that is a cheaper
+// failure than hiding a real call.
+//
+// An explicit AGENCY_SALES_CALENDAR_IDS list still wins outright: those
+// calendars are read alone and adopted whole, which is how you say "this
+// entire calendar is calls" without renaming it.
 
 export interface NamedCalendar {
   id: string;
@@ -119,6 +124,10 @@ export interface NamedCalendar {
 }
 
 export const SALES_CALENDAR = /demo|discovery|sales/i;
+
+// Titles that mean "this was never a sales call", matched loosely on word
+// boundaries. Grown once each, on evidence, never speculatively.
+export const PERSONAL_TITLE = /\b(flight|prom)\b/i;
 
 // An explicit list always wins, so a calendar that is a sales calendar without
 // saying so in its name can be named in AGENCY_SALES_CALENDAR_IDS rather than
@@ -146,6 +155,7 @@ function splitCalendarIds(configuredIds?: string | null): string[] {
 
 export interface AdoptableEvent {
   calendarId: string;
+  title?: string | null;
   // Null on a personal entry: nobody in the CRM is attending it.
   contactId?: string | null;
 }
@@ -155,7 +165,12 @@ export function shouldAdoptEvent(
   event: AdoptableEvent,
   salesCalendarIds: ReadonlySet<string>,
 ): boolean {
-  return salesCalendarIds.has(event.calendarId) || Boolean(event.contactId);
+  if (salesCalendarIds.has(event.calendarId)) return true;
+  // No contact means nobody in the CRM is attending: flights, proms, blocks.
+  if (!event.contactId) return false;
+  // A contact is not proof either (Google sync hangs everything off one
+  // record), so a self-declared personal entry stays out by its own title.
+  return !PERSONAL_TITLE.test(event.title ?? "");
 }
 
 // ---------------------------------------------------------------------------

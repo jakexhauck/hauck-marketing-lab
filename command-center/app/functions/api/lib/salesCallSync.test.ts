@@ -61,28 +61,53 @@ describe("pickSalesCalendars", () => {
 
 describe("shouldAdoptEvent", () => {
   // The per-event half of the rule (2026-08-24): discovery calls were booked
-  // onto the Onboarding calendar, whose name hides them, while the flights that
-  // got the calendar hidden carry no contact. Contact or sales calendar,
-  // otherwise out.
+  // onto the Onboarding calendar, whose name hides them. Contact plus a title
+  // that does not announce itself as personal life is what gets an event in.
   const SALES = new Set(["cal-demo"]);
 
-  it("adopts a contact-less event on a sales calendar", () => {
-    expect(shouldAdoptEvent({ calendarId: "cal-demo", contactId: null }, SALES)).toBe(true);
-    expect(shouldAdoptEvent({ calendarId: "cal-demo" }, SALES)).toBe(true);
-  });
-
-  it("adopts an event with a contact whatever calendar it sits on", () => {
-    // A discovery call Jake booked onto Onboarding is still a call.
+  it("adopts any event on a sales calendar, whatever it is called", () => {
     expect(
-      shouldAdoptEvent({ calendarId: "cal-onboarding", contactId: "c-1" }, SALES),
+      shouldAdoptEvent({ calendarId: "cal-demo", contactId: null }, SALES),
+    ).toBe(true);
+    expect(
+      shouldAdoptEvent({ calendarId: "cal-demo", title: "Flight to Dallas" }, SALES),
     ).toBe(true);
   });
 
-  it("leaves a personal entry on any other calendar out", () => {
-    // Flights and proms carry no contact; that is what makes them personal.
+  it("adopts a real call off a calendar whose name hides it", () => {
+    // A discovery call Jake booked onto Onboarding is still a call.
     expect(
-      shouldAdoptEvent({ calendarId: "cal-onboarding", contactId: null }, SALES),
+      shouldAdoptEvent(
+        { calendarId: "cal-onboarding", contactId: "c-1", title: "Discovery call - Mohamad Heating" },
+        SALES,
+      ),
+    ).toBe(true);
+    expect(
+      shouldAdoptEvent(
+        { calendarId: "cal-onboarding", contactId: "c-1", title: "Seamus Geoghegan" },
+        SALES,
+      ),
+    ).toBe(true);
+  });
+
+  it("leaves personal life out of the funnel", () => {
+    // The flights carry a contact (Google sync hangs them all off one record),
+    // so the title is what keeps them out.
+    expect(
+      shouldAdoptEvent(
+        { calendarId: "cal-onboarding", contactId: "c-1", title: "Flight to Atlanta (F9 1263)" },
+        SALES,
+      ),
     ).toBe(false);
+    expect(
+      shouldAdoptEvent(
+        { calendarId: "cal-onboarding", contactId: "c-1", title: "APHS Prom 2026" },
+        SALES,
+      ),
+    ).toBe(false);
+  });
+
+  it("leaves a contact-less event on any other calendar out", () => {
     expect(shouldAdoptEvent({ calendarId: "cal-personal" }, SALES)).toBe(false);
   });
 });
