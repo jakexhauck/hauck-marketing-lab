@@ -6,6 +6,7 @@ import {
   nameFromLead,
   needsUpdate,
   pickSalesCalendars,
+  shouldAdoptEvent,
   type BookableLead,
 } from "./salesCallSync";
 import type { CalendarEvent } from "./appointments";
@@ -55,6 +56,34 @@ describe("pickSalesCalendars", () => {
     const calendars = [{ id: "x", name: "Personal" }];
     expect(pickSalesCalendars(calendars)).toEqual([]);
     expect(pickSalesCalendars([])).toEqual([]);
+  });
+});
+
+describe("shouldAdoptEvent", () => {
+  // The per-event half of the rule (2026-08-24): discovery calls were booked
+  // onto the Onboarding calendar, whose name hides them, while the flights that
+  // got the calendar hidden carry no contact. Contact or sales calendar,
+  // otherwise out.
+  const SALES = new Set(["cal-demo"]);
+
+  it("adopts a contact-less event on a sales calendar", () => {
+    expect(shouldAdoptEvent({ calendarId: "cal-demo", contactId: null }, SALES)).toBe(true);
+    expect(shouldAdoptEvent({ calendarId: "cal-demo" }, SALES)).toBe(true);
+  });
+
+  it("adopts an event with a contact whatever calendar it sits on", () => {
+    // A discovery call Jake booked onto Onboarding is still a call.
+    expect(
+      shouldAdoptEvent({ calendarId: "cal-onboarding", contactId: "c-1" }, SALES),
+    ).toBe(true);
+  });
+
+  it("leaves a personal entry on any other calendar out", () => {
+    // Flights and proms carry no contact; that is what makes them personal.
+    expect(
+      shouldAdoptEvent({ calendarId: "cal-onboarding", contactId: null }, SALES),
+    ).toBe(false);
+    expect(shouldAdoptEvent({ calendarId: "cal-personal" }, SALES)).toBe(false);
   });
 });
 
