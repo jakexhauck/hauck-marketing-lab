@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from "react";
-import { useAdminLeadsQuery } from "../../../hooks/useAdminLeads";
+import { useAdminLeadsByIds } from "../../../hooks/useAdminLeads";
 import { useColdCallLive } from "../../../hooks/useColdCall";
 import CallWorkspace from "./CallWorkspace";
 
@@ -35,11 +35,30 @@ export default function ColdCallDialing({
   // opinion about it beyond where it goes.
   scriptSlot?: ReactNode;
 }) {
-  const leadsQuery = useAdminLeadsQuery();
   const live = useColdCallLive();
-
-  const all = leadsQuery.data?.leads ?? [];
   const calls = useMemo(() => live.data?.calls ?? [], [live.data]);
+
+  // Only the prospects the phone has actually been on get fetched.
+  //
+  // This page used to read the whole lead book and keep the two or three rows
+  // it needed. At 746 leads that request stopped completing: Cloudflare killed
+  // the Worker for exceeding its CPU budget (error 1102) before the handler ran,
+  // and the page reported it as "Could not load the book". Asking for the ids it
+  // wants makes the request small enough to always answer, and it gets smaller
+  // as the scraper grows the book rather than larger.
+  const wantedIds = useMemo(() => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const call of calls) {
+      if (!call.leadId || seen.has(call.leadId)) continue;
+      seen.add(call.leadId);
+      out.push(call.leadId);
+    }
+    return out;
+  }, [calls]);
+
+  const leadsQuery = useAdminLeadsByIds(wantedIds);
+  const all = leadsQuery.data?.leads ?? [];
 
   // The prospects behind the calls waiting on an outcome, newest call first, so
   // the card starts on the one that just happened.
@@ -61,9 +80,14 @@ export default function ColdCallDialing({
     return out;
   }, [all, calls, callerId]);
 
-  if (leadsQuery.isLoading) return <div className="pk-empty">Loading...</div>;
-  if (leadsQuery.isError) {
-    return <div className="pk-empty">Could not load the book. Reload to try again.</div>;
+  // Nobody on the phone is the ordinary state of this page between calls, and
+  // the query is disabled then. Neither "Loading..." nor an error belongs there:
+  // CallWorkspace's own empty state says what to do next.
+  if (wantedIds.length > 0) {
+    if (leadsQuery.isPending) return <div className="pk-empty">Loading...</div>;
+    if (leadsQuery.isError) {
+      return <div className="pk-empty">Could not load the book. Reload to try again.</div>;
+    }
   }
 
   return (

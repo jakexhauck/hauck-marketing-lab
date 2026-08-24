@@ -28,8 +28,11 @@ export const RELEASES: Release[] = [
   {
     id: "2026-08-24-inline-dialing-script",
     date: "24 August 2026",
-    title: "The dialing script reads inline on the Power dialer",
+    title: "The Power dialer loads again, and the script reads inline",
     items: [
+      "\"Could not load the book. Reload to try again.\" is fixed. The Power dialer was downloading all 746 leads every few seconds to show the two or three people you had just rung. That request grew past what Cloudflare allows one request to do, so it was being killed before it ever reached the app, and reloading only bought a few minutes.",
+      "It now asks for the prospects on the phone by name. The request no longer grows as the scraper adds leads, so this cannot come back as the book fills up.",
+      "Between calls it asks for nothing at all, so the page sits idle instead of hammering the same failing request every eight seconds.",
       "Dialing script on the Power dialer no longer opens a floating box over the page. It opens in the page, directly above the card of the business you are calling, so the script and the prospect read as one column top to bottom.",
       "Everything in it is what it was: the same variation buttons, the same script, the same objection handling underneath, the same button in the header to show and hide it.",
       "A long script scrolls inside its own block instead of pushing the card down, so the number, the notes and the six outcome buttons stay where they are while you read.",

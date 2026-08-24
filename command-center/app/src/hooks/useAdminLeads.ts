@@ -30,6 +30,32 @@ export function useAdminLeadsQuery(enabled = true) {
   });
 }
 
+// Just these prospects, by id.
+//
+// For the Power dialer, which wants the two or three people the phone has been
+// on and nothing else. It used to read the whole book and throw all but a
+// handful of it away; at 746 leads that request stopped completing at all,
+// because Cloudflare killed the Worker for exceeding its CPU budget before the
+// handler could answer. The page reported that as "Could not load the book",
+// which was true and told nobody why.
+//
+// The key sits UNDER the book's key on purpose. React Query matches by prefix,
+// so every invalidateQueries(KEY) the mutations below already fire refreshes
+// this too, and nothing has to remember it exists.
+export function useAdminLeadsByIds(ids: string[]) {
+  // Sorted so the same set of prospects is the same cache entry whatever order
+  // the calls came back in.
+  const key = [...ids].sort().join(",");
+  return useQuery({
+    queryKey: [...KEY, "by-ids", key],
+    // Nobody on the phone is not an error and not a loading state. Asking for
+    // no ids would also be a pointless round trip.
+    enabled: ids.length > 0,
+    staleTime: 30_000,
+    queryFn: () => api<LeadsResponse>(`${PATH}?ids=${encodeURIComponent(key)}`),
+  });
+}
+
 // What a sync did, in the words the section reports it with.
 export interface LeadSyncResult {
   // False when the agency GoHighLevel account is not connected at all.
@@ -88,6 +114,8 @@ export function useAddAdminLead() {
       });
     },
     onError: (_err, _vars, context) => {
+      // Add writes the book's own cache only: a brand new row belongs to no
+      // by-ids subset, because nothing has called that prospect yet.
       if (context?.previous) qc.setQueryData(KEY, context.previous);
     },
     onSettled: () => {
@@ -108,16 +136,19 @@ export function useUpdateAdminLead() {
       api<{ lead: AdminLead }>(PATH, { method: "PATCH", body: JSON.stringify(input) }),
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: KEY });
-      const previous = qc.getQueryData<LeadsResponse>(KEY);
-      if (previous) {
-        qc.setQueryData<LeadsResponse>(KEY, {
-          leads: previous.leads.map((l) => (l.id === input.id ? { ...l, ...input } : l)),
-        });
-      }
+      // setQueriesData, not setQueryData: the Power dialer reads a by-ids
+      // subset under this same key prefix, and an edit made on its card has to
+      // land in the cache actually being rendered.
+      const previous = qc.getQueriesData<LeadsResponse>({ queryKey: KEY });
+      qc.setQueriesData<LeadsResponse>({ queryKey: KEY }, (old) =>
+        old
+          ? { leads: old.leads.map((l) => (l.id === input.id ? { ...l, ...input } : l)) }
+          : old,
+      );
       return { previous };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) qc.setQueryData(KEY, context.previous);
+      for (const [key, data] of context?.previous ?? []) qc.setQueryData(key, data);
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: KEY });
@@ -134,16 +165,14 @@ export function useDeleteAdminLead() {
       api<{ ok: true }>(PATH, { method: "DELETE", body: JSON.stringify(input) }),
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: KEY });
-      const previous = qc.getQueryData<LeadsResponse>(KEY);
-      if (previous) {
-        qc.setQueryData<LeadsResponse>(KEY, {
-          leads: previous.leads.filter((l) => l.id !== input.id),
-        });
-      }
+      const previous = qc.getQueriesData<LeadsResponse>({ queryKey: KEY });
+      qc.setQueriesData<LeadsResponse>({ queryKey: KEY }, (old) =>
+        old ? { leads: old.leads.filter((l) => l.id !== input.id) } : old,
+      );
       return { previous };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) qc.setQueryData(KEY, context.previous);
+      for (const [key, data] of context?.previous ?? []) qc.setQueryData(key, data);
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: KEY });

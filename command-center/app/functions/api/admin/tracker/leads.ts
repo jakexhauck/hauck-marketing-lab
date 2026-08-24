@@ -285,13 +285,42 @@ async function readBody(request: Request): Promise<Record<string, unknown> | nul
 // Scoped by role (0049). An owner sees the whole book. Anyone else sees only the
 // rows assigned to them, filtered HERE rather than in the browser: a caller must
 // not be one devtools request away from the entire prospect list.
+// The ids a caller may ask for by name, from ?ids=a,b,c.
+//
+// The Power dialer wants the two or three prospects the phone has just been on,
+// not the book. Reading the whole book to find them is what broke it: at 746
+// rows this handler builds and serialises about 450KB per request, and
+// Cloudflare kills the Worker for exceeding its CPU budget (error 1102) before a
+// line of this file runs. The page then says "Could not load the book" for a
+// list it was going to throw away.
+//
+// Capped, because an unbounded id list is the same request wearing a hat.
+export const MAX_IDS = 60;
+
+export function parseIds(raw: string | null): string[] | null {
+  if (raw === null) return null;
+  const ids = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  // Deduped: the live-calls list can name the same prospect twice, and asking
+  // for them twice would cost twice.
+  return [...new Set(ids)].slice(0, MAX_IDS);
+}
+
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
 
+  const ids = parseIds(new URL(ctx.request.url).searchParams.get("ids"));
+  // Asked for nothing by name: answer without touching the database. The Power
+  // dialer sits here most of the day, between calls.
+  if (ids?.length === 0) return Response.json({ leads: [] });
+
   const admin = ctx.data.admin!;
   const { data, error } = await withGhlFallback((select) => {
     let query = client.from("leads").select(select).is("deleted_at", null);
+    if (ids) query = query.in("id", ids);
     if (admin.role !== "owner") query = query.eq("assigned_to", admin.id);
     return query.order("created_at", { ascending: false });
   });
