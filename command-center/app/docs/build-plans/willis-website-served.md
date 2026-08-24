@@ -69,13 +69,16 @@ webhook and redirects to /thank-you (contact only).
 1. Fetch all seven live pages, extract the block from each. **Done.**
 2. Extract the ten unique images, dedupe by content hash, write to `img/`.
 3. Re-encode Jake's gutter photo to match the slots it lands in (4:3 on
-   Services, 16:10 on Home) and point both at it.
+   Services, 16:10 on Home) and point both at it. **Done 2026-08-24** (IMG_1539
+   at 1000x750, same `img/gutters.webp` filename so both slots pick it up).
 4. Generate the seven page files.
 5. Serve locally, walk every page in a browser at three widths, diff against the
    live page. Prove the nav opens, the form validates, and the links go
    somewhere.
 6. Deploy to Cloudflare Pages, confirm each file is reachable.
-7. Hand Jake the seven stubs.
+7. Hand Jake the seven stubs. **Only `terms` is pasted as of 2026-08-24**, so
+   the other six pages, Home and Services among them, still render the old
+   inlined blocks and do not show anything changed in this repo.
 
 ## Known trade-off
 
