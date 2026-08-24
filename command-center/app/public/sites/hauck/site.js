@@ -1031,8 +1031,6 @@ body{ margin:0 !important; padding:0 !important; }
             '<div class="ans">Good. We start by reading what is already there, because months of spend is months of data. Anything working keeps running. The gap is almost never the ads on their own, it is what happens in the four hours after the lead comes in.</div></details>' +
           "<details><summary>How fast does it go live?</summary>" +
             '<div class="ans">The follow up and the software go in first, because those work on the leads you are already getting. Ads follow once the creative is shot and approved. We will give you real dates on the call rather than a number on a website.</div></details>' +
-          "<details><summary>Does the AI pretend to be me?</summary>" +
-            '<div class="ans">No. It is upfront about what it is. Its only job is to get an estimate on the calendar, and the moment a homeowner asks something real it hands the conversation to you.</div></details>' +
           "<details><summary>What do I actually have to do?</summary>" +
             '<div class="ans">Run the estimates, and click won or lost afterwards. That is genuinely it. If you want to be more involved than that you can be, but the Engine does not need you to be.</div></details>' +
           "<details><summary>Am I locked into a long contract?</summary>" +
