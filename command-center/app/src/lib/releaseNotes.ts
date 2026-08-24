@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-24-inline-dialing-script",
+    date: "24 August 2026",
+    title: "The dialing script reads inline on the Power dialer",
+    items: [
+      "Dialing script on the Power dialer no longer opens a floating box over the page. It opens in the page, directly above the card of the business you are calling, so the script and the prospect read as one column top to bottom.",
+      "Everything in it is what it was: the same variation buttons, the same script, the same objection handling underneath, the same button in the header to show and hide it.",
+      "A long script scrolls inside its own block instead of pushing the card down, so the number, the notes and the six outcome buttons stay where they are while you read.",
+      "Every other Cold Call page keeps the floating panel you can drag and resize. Only the Power dialer has a card for it to sit above.",
+    ],
+  },
+  {
     id: "2026-08-23-sales-data-sheet",
     date: "23 August 2026",
     title: "Sales Data is now your sales tracking sheet",

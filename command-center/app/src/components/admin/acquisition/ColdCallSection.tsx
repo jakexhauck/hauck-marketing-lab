@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ScrollText, Tags } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
@@ -64,6 +64,10 @@ export default function ColdCallSection() {
 
   const { left, right } = coldCallSides(isOwner);
   const view = resolveColdCallView(searchParams.get("view"), isOwner);
+  // The Power dialer reads the script inline, above the card of the business
+  // being called. Every other page has no card to sit above, so the script
+  // stays the floating panel there.
+  const inlineScript = view === "dialing";
 
   // Bring in anything sitting in the GoHighLevel board that the book has never
   // seen: a prospect created over there (a form, an import, by hand) used to
@@ -193,6 +197,59 @@ export default function ColdCallSection() {
     );
   };
 
+  // The dialing script, built once and rendered in one of two places.
+  //
+  // On the Power dialer it goes INLINE, above the prospect's card (Jake,
+  // 2026-08-24): one column, read top to bottom, nothing floating over the card
+  // being worked. Everywhere else it stays the panel it has always been, parked
+  // wherever the caller dragged it.
+  //
+  // One element either way. The variations, the selection and the documents are
+  // the same shelf wherever it is drawn, and the header's Dialing script button
+  // is the same toggle: only the wrapper changes.
+  const script = (
+    <ScriptPanel
+      inline={inlineScript}
+      // The shelf supplies the body now; this stays for the Setter Suite,
+      // which passes a single document and no shelf.
+      html=""
+      subtitle="Agency cold calling"
+      isLoading={shelfQuery.isLoading}
+      isError={shelfQuery.isError}
+      // Three different nothings, and telling them apart is the difference
+      // between a useful hint and one that sends somebody to add a variation
+      // they already added.
+      emptyHint={
+        scripts.length === 0
+          ? isOwner
+            ? "No scripts yet. Add a variation under Management > Scripts and it will show here."
+            : "No script yet. Jake writes this one."
+          : isOwner
+            ? `"${scripts.find((s) => s.id === selectedScriptId)?.name ?? "This variation"}" has nothing in it yet. Write it under Management > Scripts.`
+            : "This variation has not been written yet. Jake writes these."
+      }
+      onClose={() => setScriptOpen(false)}
+      shelf={{
+        scripts: scripts.map((s) => ({
+          id: s.id,
+          name: s.name,
+          html: assetHtml(s, driveDocs).html,
+        })),
+        selectedId: selectedScriptId,
+        onSelect: setSelectedScriptId,
+        objections: objections
+          ? {
+              name: objections.name,
+              html: assetHtml(objections, driveDocs).html,
+              empty: isOwner
+                ? "Point this at a document under Management > Scripts."
+                : "Not written yet. Jake writes this one.",
+            }
+          : null,
+      }}
+    />
+  );
+
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -300,50 +357,10 @@ export default function ColdCallSection() {
         onCursorChange={setCursor}
         callerId={scope}
         isOwner={isOwner}
+        scriptSlot={inlineScript && scriptOpen ? script : null}
       />
 
-      {scriptOpen && (
-        <ScriptPanel
-          // The shelf supplies the body now; this stays for the Setter Suite,
-          // which passes a single document and no shelf.
-          html=""
-          subtitle="Agency cold calling"
-          isLoading={shelfQuery.isLoading}
-          isError={shelfQuery.isError}
-          // Three different nothings, and telling them apart is the difference
-          // between a useful hint and one that sends somebody to add a variation
-          // they already added.
-          emptyHint={
-            scripts.length === 0
-              ? isOwner
-                ? "No scripts yet. Add a variation under Management > Scripts and it will show here."
-                : "No script yet. Jake writes this one."
-              : isOwner
-                ? `"${scripts.find((s) => s.id === selectedScriptId)?.name ?? "This variation"}" has nothing in it yet. Write it under Management > Scripts.`
-                : "This variation has not been written yet. Jake writes these."
-          }
-          onClose={() => setScriptOpen(false)}
-          shelf={{
-            scripts: scripts.map((s) => ({
-              id: s.id,
-              name: s.name,
-              html: assetHtml(s, driveDocs).html,
-            })),
-            selectedId: selectedScriptId,
-            onSelect: setSelectedScriptId,
-            objections: objections
-              ? {
-                  name: objections.name,
-                  html: assetHtml(objections, driveDocs).html,
-                  empty: isOwner
-                    ? "Point this at a document under Management > Scripts."
-                    : "Not written yet. Jake writes this one.",
-                }
-              : null,
-          }}
-        />
-      )}
-
+      {scriptOpen && !inlineScript && script}
     </>
   );
 }
@@ -354,6 +371,7 @@ function ColdCallBody({
   onCursorChange,
   callerId,
   isOwner,
+  scriptSlot,
 }: {
   view: string;
   cursor: MonthCursor;
@@ -361,12 +379,16 @@ function ColdCallBody({
   // "" means everyone (owner viewing the whole operation).
   callerId: string;
   isOwner: boolean;
+  // The dialing script for the Power dialer, or null. Passed through rather
+  // than built here: only that page renders it, and only ColdCallSection knows
+  // whether the header's toggle is on.
+  scriptSlot?: ReactNode;
 }) {
   switch (view) {
     // The page open beside the GoHighLevel power dialer: the calling workspace
     // with no queue on it, because the phone decides who is on it.
     case "dialing":
-      return <ColdCallDialing callerId={callerId} />;
+      return <ColdCallDialing callerId={callerId} scriptSlot={scriptSlot} />;
     // The cold calling board, live from GoHighLevel. Agency-wide by nature: a
     // board is where every prospect stands, not one caller's share of them.
     case "pipeline":

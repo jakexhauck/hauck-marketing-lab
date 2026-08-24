@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Phone,
   PhoneOff,
@@ -121,6 +121,16 @@ interface Props {
   // the part nobody may fork: two copies of "what a pitch_no counts as" is how
   // a commission ends up argued over two different numbers.
   hideQueue?: boolean;
+  // The dialing script, rendered directly above the prospect's card (Jake,
+  // 2026-08-24). Only the Power dialer passes one; everywhere else the script
+  // is still the floating panel it has always been.
+  //
+  // A SLOT rather than the script itself. Which variations exist, which one is
+  // selected and what each document says all belong to ColdCallSection, which
+  // owns the toggle that opens it; asking for that a second time down here
+  // would be a second copy of the shelf and a second answer to which script the
+  // caller is on. This component only decides WHERE it goes.
+  scriptSlot?: ReactNode;
 }
 
 // The prospect's own clock, re-read every half minute. Their time is the one
@@ -142,6 +152,7 @@ export default function CallWorkspace({
   badgeFor,
   onLogged,
   hideQueue = false,
+  scriptSlot,
 }: Props) {
   const updateLead = useUpdateAdminLead();
   const logDial = useLogColdCallDial();
@@ -344,6 +355,11 @@ export default function CallWorkspace({
   return (
     <div className="grid gap-4">
       {dialTally && <DialCounter tally={dialTally} callerId={me} />}
+
+      {/* The script, above the business being called and below the day's count.
+          In the outer grid rather than beside the card, so it spans the full
+          column and the card underneath keeps its own width. */}
+      {scriptSlot}
 
       <div
         className={

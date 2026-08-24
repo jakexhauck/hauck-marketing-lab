@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useAdminLeadsQuery } from "../../../hooks/useAdminLeads";
 import { useColdCallLive } from "../../../hooks/useColdCall";
 import CallWorkspace from "./CallWorkspace";
@@ -24,7 +24,17 @@ import CallWorkspace from "./CallWorkspace";
 // six outcomes, the same script attribution, the same callback picker, the same
 // booking panel, the same writes. Nothing about how a call is recorded forks
 // here, because two ways of recording a pitch_no is two numbers to argue over.
-export default function ColdCallDialing({ callerId = "" }: { callerId?: string }) {
+export default function ColdCallDialing({
+  callerId = "",
+  scriptSlot,
+}: {
+  callerId?: string;
+  // The dialing script, which this page reads inline above the card rather than
+  // out of a floating panel. Built by ColdCallSection, which owns the toggle in
+  // the header; passed straight through, because nothing on this page has an
+  // opinion about it beyond where it goes.
+  scriptSlot?: ReactNode;
+}) {
   const leadsQuery = useAdminLeadsQuery();
   const live = useColdCallLive();
 
@@ -60,6 +70,7 @@ export default function ColdCallDialing({ callerId = "" }: { callerId?: string }
     <CallWorkspace
       leads={queue}
       hideQueue
+      scriptSlot={scriptSlot}
       queueTitle="On the phone"
       emptyTitle="No calls waiting"
       emptyHint="Dial from GoHighLevel and the call appears here within a few seconds."

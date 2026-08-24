@@ -54,6 +54,20 @@ interface Props {
   // Heading text. Defaults to the dialing script, since that is what this panel
   // was built for and what every existing caller passes.
   title?: string;
+  // Render as a block in the page instead of a floating panel (Jake,
+  // 2026-08-24). The Power dialer reads the script above the prospect's card
+  // rather than out of a box parked over it: one column, one scroll, nothing
+  // covering the thing being worked on.
+  //
+  // A variant of this component rather than a component of its own, because the
+  // script BODY (which variation is selected, the document, the objections
+  // under it) must be the same in both places. Two renderers for one document
+  // is how the panel and the page end up disagreeing about what the caller is
+  // reading.
+  //
+  // What the variant drops is only the floating: no fixed position, no drag, no
+  // resize handle. What it keeps is everything the caller reads.
+  inline?: boolean;
 }
 
 // 440px wide (the w-[440px] below) plus a 16px margin.
@@ -70,6 +84,7 @@ export default function ScriptPanel({
   shelf,
   dock = "left",
   title = "Dialing script",
+  inline = false,
 }: Props) {
   const selectedScript = shelf?.scripts.find((s) => s.id === shelf.selectedId) ?? null;
 
@@ -89,6 +104,8 @@ export default function ScriptPanel({
   const dragRef = useRef<{ dx: number; dy: number } | null>(null);
 
   const onDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    // An inline block sits in the page flow and has nowhere to be dragged to.
+    if (inline) return;
     // Only the header drags; its buttons still need to click.
     if ((e.target as HTMLElement).closest("button")) return;
     dragRef.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y };
@@ -109,20 +126,31 @@ export default function ScriptPanel({
 
   return (
     <section
-      role="dialog"
+      // Inline it is part of the page, not something layered over it, so it is
+      // not a dialog and nothing about it is dismissible-by-escape.
+      role={inline ? undefined : "dialog"}
       aria-label={title}
       // resize: the browser's native corner handle (bottom-right). It writes
       // inline width/height as the user drags, which is exactly what we want;
       // the min/max classes bound it so it can neither vanish nor swallow the
-      // viewport.
-      style={{ left: pos.x, top: pos.y, resize: "both" }}
-      className="fixed z-[60] flex h-[min(560px,80dvh)] max-h-[92dvh] min-h-[200px] w-[440px] min-w-[320px] max-w-[92vw] flex-col overflow-hidden rounded-[var(--radius-xl)] border border-border bg-surface shadow-[var(--shadow-lg)]"
+      // viewport. Neither applies to a block in the page: it is as wide as the
+      // column it sits in and as tall as the script needs.
+      style={inline ? undefined : { left: pos.x, top: pos.y, resize: "both" }}
+      className={
+        inline
+          ? "pk-card flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border"
+          : "fixed z-[60] flex h-[min(560px,80dvh)] max-h-[92dvh] min-h-[200px] w-[440px] min-w-[320px] max-w-[92vw] flex-col overflow-hidden rounded-[var(--radius-xl)] border border-border bg-surface shadow-[var(--shadow-lg)]"
+      }
     >
       <div
         onPointerDown={onDragStart}
         onPointerMove={onDragMove}
         onPointerUp={onDragEnd}
-        className="flex cursor-grab touch-none items-center gap-2.5 border-b border-border px-4 py-3 active:cursor-grabbing"
+        className={
+          inline
+            ? "flex items-center gap-2.5 border-b border-border px-4 py-3"
+            : "flex cursor-grab touch-none items-center gap-2.5 border-b border-border px-4 py-3 active:cursor-grabbing"
+        }
       >
         <div className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-brand/10 text-brand">
           <ScrollText size={16} />
@@ -133,7 +161,8 @@ export default function ScriptPanel({
           </h2>
           <p className="truncate text-[11.5px] text-muted">{subtitle}</p>
         </div>
-        <GripHorizontal size={15} className="shrink-0 text-faint" aria-hidden />
+        {/* The drag handle, and only where there is dragging to do. */}
+        {!inline && <GripHorizontal size={15} className="shrink-0 text-faint" aria-hidden />}
         <button
           type="button"
           onClick={onClose}
@@ -181,7 +210,19 @@ export default function ScriptPanel({
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+      {/* The document. Floating, it fills the panel. Inline, it is capped and
+          scrolls inside itself: a script long enough to fill the screen would
+          otherwise push the prospect's card and the six outcome buttons off the
+          bottom, and those have to be reachable without scrolling away from the
+          words being read. Capped rather than fixed, so a short script leaves a
+          short block instead of a box of empty space. */}
+      <div
+        className={
+          inline
+            ? "min-h-0 max-h-[40dvh] overflow-y-auto px-5 py-4"
+            : "min-h-0 flex-1 overflow-y-auto px-5 py-4"
+        }
+      >
         {isLoading ? (
           <p className="text-[13px] text-muted">Loading script...</p>
         ) : isError ? (
