@@ -107,6 +107,26 @@ export default function SalesSheet({
                     <span className={`ssh-pill t-${row.outcome.tone}`}>{row.outcome.label}</span>
                   </td>
                   {SHEET_COLUMNS.slice(3).map((c) => {
+                    // The form link is a control, not a value: it opens the
+                    // prospect's prefilled disposition form in a new tab.
+                    if (c.key === "postCallForm") {
+                      return (
+                        <td key={c.key}>
+                          {row.formUrl ? (
+                            <a
+                              className="ssh-formlink"
+                              href={row.formUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Open form
+                            </a>
+                          ) : (
+                            <span className="ssh-none">-</span>
+                          )}
+                        </td>
+                      );
+                    }
                     const value = row.cells[c.key] ?? "";
                     return (
                       <td
@@ -215,6 +235,15 @@ function SheetStyle() {
       .pk-kit .ssh-card td.ssh-name { font-weight: 600; color: var(--text); }
       /* A column with nothing in it yet. Faint enough to read as waiting. */
       .pk-kit .ssh-none { color: var(--text-faint); opacity: .55; }
+      /* The disposition form link, styled like a quiet control so ten of them
+         down the sheet do not turn into a wall of buttons. */
+      .pk-kit .ssh-formlink {
+        display: inline-flex; align-items: center;
+        font-size: 12px; font-weight: 600; color: var(--brand);
+        background: var(--brand-tint);
+        padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+      }
+      .pk-kit .ssh-formlink:hover { background: var(--brand-tint-strong); }
 
       /* ===== the outcome pill ===== */
       .pk-kit .ssh-pill { display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }

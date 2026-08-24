@@ -14,6 +14,10 @@ function call(over: Partial<SalesCallRow> = {}): SalesCallRow {
     scratchpad: "",
     prospectName: "Jake Hauck",
     businessName: "Hauck Marketing",
+    postCallFormUrl: "",
+    paymentPlatform: "",
+    recordingLink: "",
+    revenueGenerated: null,
     ...over,
   };
 }
@@ -38,6 +42,31 @@ describe("toSheetCall", () => {
 
   it("leaves Revenue empty on a close where nobody filled the figures in", () => {
     expect(toSheetCall(call({ outcome: "closed", deal: null })).revenue).toBeNull();
+  });
+
+  // The disposition form's flat answer wins when the form gave one: "How Much
+  // Revenue Generated" is a number somebody typed about THIS deal, and deal
+  // arithmetic only covers rows recorded before the form existed.
+  it("prefers the form's flat revenue over deal arithmetic on a close", () => {
+    const row = toSheetCall(
+      call({ outcome: "closed", deal: { monthly: 2000, months: 12 }, revenueGenerated: 6000 }),
+    );
+    expect(row.revenue).toBe(6000);
+  });
+
+  it("carries the form's payment and recording stamps, and its link", () => {
+    const row = toSheetCall(
+      call({
+        paymentPlatform: "Stripe",
+        recordingLink: "https://drive.example/rec/1",
+        postCallFormUrl: "https://link.hauckmarketing.com/widget/form/RaoIfnclY5sytH5ndisi",
+      }),
+    );
+    expect(row.paymentType).toBe("Stripe");
+    expect(row.recordingLink).toBe("https://drive.example/rec/1");
+    expect(row.postCallFormUrl).toBe(
+      "https://link.hauckmarketing.com/widget/form/RaoIfnclY5sytH5ndisi",
+    );
   });
 
   // A no-show reached its slot and nobody came, which is not the same fact as a

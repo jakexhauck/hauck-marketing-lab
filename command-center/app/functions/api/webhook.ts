@@ -22,6 +22,7 @@ import { insertActivityOnce } from "../lib/activityLog";
 import { logErrorBestEffort } from "../lib/errorLog";
 import { mirrorFromWebhook } from "../lib/appointmentMirror";
 import { reportBookingFromWebhook } from "../lib/capiScheduleWebhook";
+import { applyDisposition, stampPostCallForm } from "../lib/salesDispositionApply";
 
 // Auth model: GHL cannot produce a signature we can verify here (marketplace
 // webhooks sign with an RSA key under x-wh-signature; workflow webhook actions
@@ -452,6 +453,32 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
           event.locationId,
         );
       }
+    }
+
+    // The disposition form's two workflows (docs/build-plans/sales-disposition-form.md).
+    // PostCallForm stamps the prefilled form URL when a meeting confirms;
+    // SalesDisposition lands the submitted answers on the contact's open
+    // meeting. Both run BEFORE the unmapped-type early return, beside the
+    // confirmation flip, best-effort and off the response path: GHL gets its
+    // 200 immediately and a Supabase round trip can never delay the ack. A
+    // failure is logged with a receipt, never a non-200, because retrying a
+    // webhook we already acked would double-stamp nothing (both handlers no-op
+    // on rows that are already recorded) while hammering the endpoint.
+    if (
+      (event.type === "PostCallForm" || event.type === "SalesDisposition") &&
+      event.locationId
+    ) {
+      const handler =
+        event.type === "PostCallForm" ? stampPostCallForm : applyDisposition;
+      ctx.waitUntil(
+        handler(client, event).catch((err) => {
+          console.error("[webhook] disposition handler failed", err);
+          logErrorBestEffort(ctx.env, "webhook", `disposition failed: ${(err as Error)?.message ?? err}`, {
+            tenantId,
+            eventType: event.type ?? null,
+          });
+        }),
+      );
     }
 
     const activity = toActivity(tenantId, event);

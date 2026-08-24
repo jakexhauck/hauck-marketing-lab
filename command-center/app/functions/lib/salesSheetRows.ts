@@ -46,6 +46,14 @@ export interface SalesCallRow {
   scratchpad?: string | null;
   prospectName: string;
   businessName: string;
+  // The GHL disposition form's answers (sales-disposition-form.md). The URL is
+  // stamped when the meeting confirms; the rest arrive with the submission.
+  postCallFormUrl: string;
+  paymentPlatform: string;
+  recordingLink: string;
+  // The form's flat "How Much Revenue Generated". Preferred over deal
+  // arithmetic on a close; null leaves the sheet to contractValue(parseDeal).
+  revenueGenerated: number | null;
 }
 
 // One line of the sheet, as it goes over the wire.
@@ -82,6 +90,12 @@ export interface SheetCall {
   objection: string;
   needsFollowUp: boolean;
   notes: string;
+  // The disposition form's stamps (sales-disposition-form.md). postCallFormUrl
+  // is rendered as an Open form link by the sheet, suppressed on a cancelled
+  // row; the other two are plain text straight from the answers.
+  postCallFormUrl: string;
+  paymentType: string;
+  recordingLink: string;
 }
 
 // What a meeting is called on the sheet. The prospect, falling back to the
@@ -106,13 +120,21 @@ export function toSheetCall(row: SalesCallRow): SheetCall {
     noClose: outcome === "not_interested",
     // Only on a close, unlike cash: a retainer recorded against a meeting that
     // did not sell is a mistake upstream, and printing it in the Revenue column
-    // would report revenue from a lost deal. Same rule as salesCalls.ts.
-    revenue: outcome === "closed" ? contractValue(parseDeal(row.deal)) : null,
+    // would report revenue from a lost deal. Same rule as salesCalls.ts. The
+    // form's flat figure wins when the form gave one; deal arithmetic covers
+    // rows the old in-app panel recorded with monthly x months.
+    revenue:
+      outcome === "closed"
+        ? (row.revenueGenerated ?? contractValue(parseDeal(row.deal)))
+        : null,
     // Cash is counted wherever it was taken, close or not.
     cashCollected: row.cashCollected,
     objection: isSalesNoReason(row.reason) ? SALES_NO_REASONS[row.reason].label : "",
     needsFollowUp: meta?.needsFollowUp ?? false,
     notes: row.scratchpad ?? "",
+    postCallFormUrl: row.postCallFormUrl,
+    paymentType: row.paymentPlatform,
+    recordingLink: row.recordingLink,
   };
 }
 

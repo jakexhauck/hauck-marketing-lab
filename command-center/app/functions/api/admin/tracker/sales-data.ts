@@ -52,14 +52,21 @@ interface SalesCallDbRow {
   scratchpad: string | null;
   prospect_name: string | null;
   business_name: string | null;
+  // The GHL disposition form's answers (sales-disposition-form.md). Flat
+  // revenue is numeric, so it goes through toMoney like cash does.
+  post_call_form_url: string | null;
+  payment_platform: string | null;
+  recording_link: string | null;
+  revenue_generated: number | string | null;
 }
 
-// qualified, source and offer_variant are deliberately not selected: the sheet
-// has no column for any of them, and a query that reads what no page renders is
+// qualified and offer_variant are deliberately not selected: the sheet
+// has no column for them, and a query that reads what no page renders is
 // how a select grows without anybody noticing.
 const SELECT =
   "scheduled_at, appointment_status, outcome, cash_collected," +
-  " deal, not_a_fit_reason, scratchpad, prospect_name, business_name";
+  " deal, not_a_fit_reason, scratchpad, prospect_name, business_name," +
+  " post_call_form_url, payment_platform, recording_link, revenue_generated";
 
 // numeric arrives as a string on some drivers, so cash is normalised to a
 // number exactly once, here at the boundary.
@@ -80,6 +87,10 @@ function toRow(row: SalesCallDbRow): SalesCallRow {
     scratchpad: row.scratchpad,
     prospectName: row.prospect_name ?? "",
     businessName: row.business_name ?? "",
+    postCallFormUrl: row.post_call_form_url ?? "",
+    paymentPlatform: row.payment_platform ?? "",
+    recordingLink: row.recording_link ?? "",
+    revenueGenerated: toMoney(row.revenue_generated),
   };
 }
 

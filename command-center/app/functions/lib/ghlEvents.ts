@@ -18,6 +18,18 @@ export interface GhlWebhookEvent {
   // GHL user id the opportunity is assigned to. Drives "assigned rep only"
   // push routing; absent on events with no assignee (e.g. inbound messages).
   assignedTo?: string;
+  // The disposition form's workflows (sales-disposition-form.md). Typed here so
+  // the handlers in api/webhook.ts read fields rather than casting out of the
+  // index signature; every one is optional because GHL sends whatever the
+  // workflow mapped.
+  phone?: string;
+  status?: string;
+  cashCollected?: string;
+  revenueGenerated?: string;
+  paymentPlatform?: string;
+  recordingLink?: string;
+  feedback?: string;
+  formUrl?: string;
   [k: string]: unknown;
 }
 

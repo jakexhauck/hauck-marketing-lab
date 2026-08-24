@@ -29,6 +29,9 @@ function call(over: Partial<SheetCall> = {}): SheetCall {
     objection: "",
     needsFollowUp: false,
     notes: "",
+    postCallFormUrl: "",
+    paymentType: "",
+    recordingLink: "",
     ...over,
   };
 }
@@ -204,13 +207,39 @@ describe("sheetRow", () => {
     expect(r.cells.objection).toBe("Bad timing");
   });
 
-  // Empty rather than invented. The table draws a faint dash so the column
+  // A row nobody has dispositioned yet. Empty cells and no link, so the column
   // reads as waiting, not as broken.
-  it("leaves the columns nothing feeds yet empty", () => {
+  it("renders dashes until the form's answers arrive", () => {
     const r = sheetRow(CLOSED, "America/New_York");
-    for (const key of ["paymentType", "postCallForm", "recordingLink"]) {
-      expect(r.cells[key]).toBe("");
-    }
+    expect(r.cells.paymentType).toBe("");
+    expect(r.cells.recordingLink).toBe("");
+    expect(r.formUrl).toBeUndefined();
+  });
+
+  // The disposition form feeds all three (sales-disposition-form.md). The link
+  // is carried on the row rather than in a cell: it renders as an Open form
+  // control, not as text.
+  it("carries the form's stamps through to the cells", () => {
+    const stamped = call({
+      paymentType: "Stripe",
+      recordingLink: "https://drive.example/rec/1",
+      postCallFormUrl:
+        "https://link.hauckmarketing.com/widget/form/RaoIfnclY5sytH5ndisi?phone=%2B17343010570",
+    });
+    const r = sheetRow(stamped, "America/New_York");
+    expect(r.cells.paymentType).toBe("Stripe");
+    expect(r.cells.recordingLink).toBe("https://drive.example/rec/1");
+    expect(r.formUrl).toBe(stamped.postCallFormUrl);
+  });
+
+  // A cancelled meeting needs no form worked, so its link goes quiet even when
+  // one is stamped; the pill already says what happened to the slot.
+  it("suppresses the form link on a cancelled row", () => {
+    const r = sheetRow(
+      call({ cancelled: true, postCallFormUrl: "https://link.hauckmarketing.com/widget/form/x" }),
+      "America/New_York",
+    );
+    expect(r.formUrl).toBeUndefined();
   });
 
   it("fills every column the table renders from cells", () => {

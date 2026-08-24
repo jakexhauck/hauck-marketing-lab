@@ -11,10 +11,10 @@ import type { SheetCall } from "../../functions/lib/salesSheetRows";
 // Kept pure and out of the component so the arithmetic a commission is argued
 // over is unit-tested directly.
 //
-// WHAT THIS PAGE DOES NOT DO IS INVENT. Three columns have nowhere to read
-// from yet (how it was paid, the post-call form, the recording). They render as
-// a faint dash rather than as plausible-looking values, and they get their
-// sources when Jake wires them.
+// Every column now has a source. Payment Type and Recording are read off the
+// GHL disposition form's answers, Post Call Form renders the prefilled link
+// stamped onto the meeting when it confirmed (sales-disposition-form.md). What
+// has no answer yet still shows a faint dash rather than an invention.
 
 // ===== the table =====
 
@@ -234,6 +234,10 @@ export interface SheetRow {
   date: string;
   name: string;
   outcome: OutcomePill;
+  // The prefilled disposition form for this meeting, when one is stamped and
+  // the meeting was not cancelled. The component renders it as an Open form
+  // link; it is kept off `cells` because a URL is not a cell of text.
+  formUrl?: string;
   cells: Record<string, string>;
 }
 
@@ -242,16 +246,17 @@ export function sheetRow(call: SheetCall, timeZone: string): SheetRow {
     date: formatApptDate(call.scheduledAt, timeZone),
     name: call.name,
     outcome: outcomeFor(call),
+    // A cancelled meeting needs no form worked, so the link goes quiet on one:
+    // the row's pill already says what happened to the slot.
+    formUrl: call.cancelled ? undefined : call.postCallFormUrl || undefined,
     cells: {
       revenue: formatMoney(call.revenue),
       cashCollected: formatMoney(call.cashCollected),
       objection: call.objection,
       notes: call.notes,
-      // Nothing feeds these yet. Empty rather than invented, and the table
-      // draws a faint dash so the column reads as waiting, not as broken.
-      paymentType: "",
+      paymentType: call.paymentType,
+      recordingLink: call.recordingLink,
       postCallForm: "",
-      recordingLink: "",
     },
   };
 }
