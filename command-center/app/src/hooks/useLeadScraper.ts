@@ -44,6 +44,10 @@ export interface LeadFilters {
   // How many rows to ask for. Absent means the server's default of 200, which is
   // what the table opens with; the footer raises it when there are more.
   limit?: number;
+  // "1" = the Sent to dialer list: companies queued in GoHighLevel's manual
+  // actions that nobody has rung yet. It replaces the pending filter rather than
+  // narrowing it, so it is its own flag and not a value of `sent`.
+  dialer?: "1" | null;
 }
 
 interface LeadsResponse {
@@ -62,6 +66,7 @@ function leadsPath(filters: LeadFilters): string {
   if (filters.q?.trim()) params.set("q", filters.q.trim());
   if (filters.zone) params.set("zone", filters.zone);
   if (filters.limit) params.set("limit", String(filters.limit));
+  if (filters.dialer) params.set("dialer", filters.dialer);
   const qs = params.toString();
   return `/api/admin/leads${qs ? `?${qs}` : ""}`;
 }
@@ -303,6 +308,74 @@ export function useImportScrapedLeads() {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: LEADS_KEY });
+    },
+  });
+}
+
+export interface ReturnRejection {
+  id: string;
+  businessName: string | null;
+  reason: string;
+}
+
+export interface ReturnResult {
+  returned: number;
+  resetFailed: boolean;
+  rejected: ReturnRejection[];
+  notConfigured: boolean;
+}
+
+// Fifteen at a press, which is the server's own ceiling (MAX_PER_RETURN in
+// functions/lib/leadReturn.ts) and a budget rather than a preference: two
+// GoHighLevel calls per company against a fifty call limit on the request. A
+// bigger tick is sent in slices, the same way a send is.
+const RETURN_SLICE = 15;
+
+/**
+ * Take companies off GoHighLevel's power dialer and put them back on the Leads
+ * page: out of the workflow, untagged, out of the call list, `pending` again.
+ *
+ * Sliced and merged like the send, and for the same reason: one slice that fails
+ * is one slice, so the rest still go and the receipt says which did not.
+ */
+export function useReturnFromDialer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]): Promise<ReturnResult> => {
+      const merged: ReturnResult = {
+        returned: 0,
+        resetFailed: false,
+        rejected: [],
+        notConfigured: false,
+      };
+      for (let i = 0; i < ids.length; i += RETURN_SLICE) {
+        const slice = ids.slice(i, i + RETURN_SLICE);
+        let res: ReturnResult;
+        try {
+          res = await api<ReturnResult>("/api/admin/leads/return", {
+            method: "POST",
+            body: JSON.stringify({ ids: slice }),
+          });
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : "That one could not be returned.";
+          for (const id of slice) merged.rejected.push({ id, businessName: null, reason });
+          continue;
+        }
+        merged.returned += res.returned;
+        merged.resetFailed = merged.resetFailed || res.resetFailed;
+        merged.rejected.push(...res.rejected);
+        merged.notConfigured = merged.notConfigured || res.notConfigured;
+        // Nothing further will go if GoHighLevel is not connected; stop rather
+        // than fail the same way for every remaining slice.
+        if (res.notConfigured) break;
+      }
+      return merged;
+    },
+    // On settle, not success: a run that throws halfway has still returned the
+    // slices before it, and both lists it moved rows between are now stale.
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: LEADS_KEY });
+      void qc.invalidateQueries({ queryKey: RUNS_KEY });
     },
   });
 }

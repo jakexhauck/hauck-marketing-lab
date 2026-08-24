@@ -206,6 +206,13 @@ export const CONNECTIONS: ConnectionDef[] = [
         optional: true,
         note: 'The workflow the Call button drops a prospect into to place a call, matched by name. Defaults to "CC Bridge Dial". It must be PUBLISHED: a draft accepts the contact and never rings.',
       },
+      {
+        name: "AGENCY_GHL_POWER_DIALER_WORKFLOW",
+        home: "cloudflare",
+        inDoppler: true,
+        optional: true,
+        note: 'The workflow that turns the "Power Dialer" tag into a manual action, matched by name. Defaults to "1. | Power Dialer". Return to leads removes the contact from it, which is what clears the manual action; the tag alone does not.',
+      },
     ],
     surfaces: [
       { label: "Cold Call booking", audience: "admin" },

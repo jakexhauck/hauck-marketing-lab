@@ -60,6 +60,24 @@ export const OWNED_TAGS: string[] = [...BOOK_TAGS, ...RETIRED_CC_TAGS];
 // once the dialer has worked it is decided over there.
 export const POWER_DIALER_TAG = "Power Dialer";
 
+// The workflow the tag above hands a prospect to, by the name it carries in the
+// agency sub-account (confirmed live, published, 2026-08-24).
+//
+// Needed because taking a company back OFF the dialer means removing it from
+// this workflow: the tag is only the trigger, and a manual action the workflow
+// has already created outlives the tag that caused it. See leadReturn.ts.
+//
+// Found by name rather than held as an id for the same reason the dial bridge
+// does it: an id in the source is an id nobody can see is wrong until a button
+// stops working. Overridable by env for the same reason that one is.
+export const POWER_DIALER_WORKFLOW_NAME = "1. | Power Dialer";
+
+export function powerDialerWorkflowName(env: {
+  AGENCY_GHL_POWER_DIALER_WORKFLOW?: string;
+}): string {
+  return (env.AGENCY_GHL_POWER_DIALER_WORKFLOW ?? "").trim() || POWER_DIALER_WORKFLOW_NAME;
+}
+
 // undefined means a status with no place in the cold call book at all, which is
 // a lead the reconcile should skip rather than guess about.
 export function tagForStatus(status: string): string | null | undefined {

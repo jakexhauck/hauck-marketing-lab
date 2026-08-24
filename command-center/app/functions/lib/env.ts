@@ -44,6 +44,10 @@ export interface Env {
   // The workflow the call card drops a prospect into to place a call, matched by
   // NAME. Defaults to "CC Bridge Dial"; see functions/lib/coldCallBridge.ts.
   AGENCY_GHL_BRIDGE_WORKFLOW?: string;
+  // The workflow that turns the "Power Dialer" tag into a manual action, matched
+  // by NAME. Defaults to "1. | Power Dialer"; removing a contact from it is what
+  // takes them out of manual actions. See functions/lib/leadReturn.ts.
+  AGENCY_GHL_POWER_DIALER_WORKFLOW?: string;
   // Which calendars the Sales Calls page reads, comma separated. Absent means
   // the ones whose NAME says demo / discovery / sales, which is the same test
   // the booking panel uses. Set this only when a sales calendar is named

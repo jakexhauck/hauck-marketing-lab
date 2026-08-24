@@ -14,6 +14,7 @@ import {
   Search,
   MessageSquare,
   Table2,
+  Undo2,
 } from "lucide-react";
 import { PillarTitleActions } from "../../pillars/PillarKit";
 import CitiesTable from "./CitiesTable";
@@ -52,11 +53,13 @@ import {
   useNichePresets,
   useScrapeRuns,
   useSendLeads,
+  useReturnFromDialer,
   useStartRun,
   leadScraperKeys,
   type LeadFilters,
   type SendResult,
   type SendProgress,
+  type ReturnResult,
 } from "../../../hooks/useLeadScraper";
 
 // Acquisition > Leads.
@@ -74,7 +77,7 @@ import {
 // Nothing here fabricates a number. Every score, reason, rating and count is read
 // from what the qualifier actually wrote.
 
-type View = "leads" | "import" | "new" | "runs" | "cities";
+type View = "leads" | "import" | "dialer" | "new" | "runs" | "cities";
 
 export default function LeadsSurface() {
   const [view, setView] = useState<View>("leads");
@@ -82,6 +85,10 @@ export default function LeadsSurface() {
   // that a niche or search typed on one page does not follow you to the other.
   const [filters, setFilters] = useState<LeadFilters>({ sent: "0", imported: "0" });
   const [importFilters, setImportFilters] = useState<LeadFilters>({ sent: "0", imported: "1" });
+  // The companies queued on GoHighLevel's power dialer that nobody has rung yet.
+  // `dialer` replaces the pending filter on the server rather than narrowing it,
+  // so `sent` has no meaning here and is deliberately absent.
+  const [dialerFilters, setDialerFilters] = useState<LeadFilters>({ dialer: "1" });
 
   const runsQuery = useScrapeRuns();
   const runs = runsQuery.data?.runs ?? [];
@@ -92,6 +99,9 @@ export default function LeadsSurface() {
 
   const importQuery = useLeads(importFilters);
   const importedLeads = importQuery.data?.leads ?? [];
+
+  const dialerQuery = useLeads(dialerFilters);
+  const dialerLeads = dialerQuery.data?.leads ?? [];
 
   // The niches worth offering as a filter are the ones that have actually been
   // scraped, read from the run history rather than the preset list: a niche
@@ -118,6 +128,9 @@ export default function LeadsSurface() {
           <SubTab id="leads" view={view} onSelect={setView} icon={<Table2 size={15} />} label="Leads" count={leadsQuery.data?.total} />
           {/* Next to Leads, because it is the same list arriving a different way. */}
           <SubTab id="import" view={view} onSelect={setView} icon={<Upload size={15} />} label="Import leads" count={importQuery.data?.total} />
+          {/* Where a lead goes when it leaves this page, so the way back sits
+              beside the way out. */}
+          <SubTab id="dialer" view={view} onSelect={setView} icon={<PhoneForwarded size={15} />} label="Sent to dialer" count={dialerQuery.data?.total} />
           <SubTab id="new" view={view} onSelect={setView} icon={<Radar size={15} />} label="New scrape" />
           <SubTab id="runs" view={view} onSelect={setView} icon={<History size={15} />} label="Runs" count={runs.length || undefined} />
           {/* Cities sits last: it is the planning view, read before starting a
@@ -153,6 +166,18 @@ export default function LeadsSurface() {
             imported
           />
         </>
+      )}
+      {view === "dialer" && (
+        <LeadsTable
+          leads={dialerLeads}
+          total={dialerQuery.data?.total ?? 0}
+          loading={dialerQuery.isLoading}
+          filters={dialerFilters}
+          onFilters={setDialerFilters}
+          runs={runs}
+          niches={niches}
+          dialer
+        />
       )}
       {view === "new" && (
         <Wizard
@@ -448,7 +473,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 // --- the table ---------------------------------------------------------------
 
 function LeadsTable({
-  leads, total, loading, filters, onFilters, runs, niches, imported = false,
+  leads, total, loading, filters, onFilters, runs, niches, imported = false, dialer = false,
 }: {
   leads: ScrapedLeadView[]; total: number; loading: boolean;
   filters: LeadFilters; onFilters: (f: LeadFilters) => void; runs: ScrapeRun[];
@@ -456,6 +481,10 @@ function LeadsTable({
   // The imported list. Same table, minus the controls that only mean something
   // for a scrape: an imported row belongs to no run, and the CSV lives here now.
   imported?: boolean;
+  // The Sent to dialer list. Same table read backwards: every row on it has
+  // already been sent, so the send buttons become one Return to leads button and
+  // the sent filter, which could only say one thing here, is gone.
+  dialer?: boolean;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -464,6 +493,8 @@ function LeadsTable({
   const [downloading, setDownloading] = useState(false);
   const [csvError, setCsvError] = useState("");
   const send = useSendLeads();
+  const back = useReturnFromDialer();
+  const [returned, setReturned] = useState<ReturnResult | null>(null);
   const qc = useQueryClient();
 
   const summary = summariseSelection(leads, selected);
@@ -550,6 +581,22 @@ function LeadsTable({
     );
   };
 
+  // Off the workflow, untagged, out of the call list and `pending` again. Four
+  // writes behind one button, because doing three of them is worse than doing
+  // none: a company reset here but left enrolled over there is dialled anyway
+  // and offered to be sent a second time.
+  const doReturn = () => {
+    const ids = leads.filter((l) => selected.has(l.id)).map((l) => l.id);
+    if (ids.length === 0) return;
+    setReturned(null);
+    back.mutate(ids, {
+      onSuccess: (res) => {
+        setReturned(res);
+        setSelected(new Set());
+      },
+    });
+  };
+
   return (
     <div className="ls-card">
       <div className="ls-toolbar">
@@ -562,10 +609,14 @@ function LeadsTable({
           />
         </div>
 
-        <select className="ls-select" value={filters.sent ?? ""} onChange={(e) => onFilters({ ...filters, sent: (e.target.value || null) as LeadFilters["sent"] })}>
-          <option value="0">Ready to send</option>
-          <option value="">Everything</option>
-        </select>
+        {/* Every row here is already sent, so the filter could only ever say
+            one thing, which is the same reason the status column went. */}
+        {!dialer && (
+          <select className="ls-select" value={filters.sent ?? ""} onChange={(e) => onFilters({ ...filters, sent: (e.target.value || null) as LeadFilters["sent"] })}>
+            <option value="0">Ready to send</option>
+            <option value="">Everything</option>
+          </select>
+        )}
 
         {/* One list is never one timezone, and the hour where the prospect is
             decides whether the number can be rung at all. Server-side (0118):
@@ -634,7 +685,7 @@ function LeadsTable({
         )}
       </div>
 
-      {summary.ticked > 0 && (
+      {summary.ticked > 0 && !dialer && (
         <div className="ls-actionbar">
           <span className="ls-actionbar-count">
             <b>{summary.sendable}</b> ready to send
@@ -652,6 +703,22 @@ function LeadsTable({
           </div>
         </div>
       )}
+
+      {summary.ticked > 0 && dialer && (
+        <div className="ls-actionbar">
+          <span className="ls-actionbar-count">
+            <b>{summary.ticked}</b> ticked
+          </span>
+          <div className="ls-actionbar-btns">
+            <button type="button" className="ls-primary sm" disabled={back.isPending} onClick={doReturn}>
+              {back.isPending ? <Loader2 size={14} className="ls-spin" /> : <Undo2 size={14} />}
+              Return to leads
+            </button>
+          </div>
+        </div>
+      )}
+
+      {returned && <ReturnReceipt result={returned} onDismiss={() => setReturned(null)} />}
 
       {csvError && (
         <div className="ls-receipt warn">
@@ -689,7 +756,9 @@ function LeadsTable({
             {loading && <tr><td colSpan={5} className="ls-empty">Loading...</td></tr>}
             {!loading && leads.length === 0 && (
               <tr><td colSpan={5} className="ls-empty">
-                Nothing here yet. Run a scrape and the results land in this table.
+                {dialer
+                  ? "Nothing waiting on the dialer. Companies already called stay where they are."
+                  : "Nothing here yet. Run a scrape and the results land in this table."}
               </td></tr>
             )}
             {leads.map((lead) => (
@@ -837,6 +906,32 @@ function SendReceipt({ result, onDismiss }: { result: SendResult; onDismiss: () 
         {result.skipped.length > 0 && (
           <div className="ls-receipt-skipped">
             {result.skipped.length} skipped: {[...new Set(result.skipped.map((s) => s.reason))].join("; ")}
+          </div>
+        )}
+      </div>
+      <button type="button" className="ls-linkbtn" onClick={onDismiss}>Dismiss</button>
+    </div>
+  );
+}
+
+// The receipt for a return. Says what came off the dialer and, more usefully,
+// what did not and why: "already called" is the common one and it is not a
+// failure, it is the rule.
+function ReturnReceipt({ result, onDismiss }: { result: ReturnResult; onDismiss: () => void }) {
+  return (
+    <div className={`ls-receipt${result.returned === 0 ? " warn" : ""}`}>
+      <div>
+        <b>{result.returned} back on the leads list</b>
+        {result.notConfigured && <div>GoHighLevel is not connected, so nothing was taken off the dialer.</div>}
+        {result.resetFailed && (
+          <div className="ls-receipt-skipped">
+            Some of these came off the dialer but could not be reset here, so they still
+            read as sent. Press again and they will come back.
+          </div>
+        )}
+        {result.rejected.length > 0 && (
+          <div className="ls-receipt-skipped">
+            {result.rejected.length} left where they were: {[...new Set(result.rejected.map((r) => r.reason))].join("; ")}
           </div>
         )}
       </div>

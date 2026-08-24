@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-24-return-from-dialer",
+    date: "24 August 2026",
+    title: "Take a company back off the power dialer",
+    items: [
+      "Leads has a new tab, Sent to dialer: the companies waiting in GoHighLevel's manual actions that nobody has rung yet. Tick any of them and press Return to leads and they come back to the Leads list, ready to be sent again.",
+      "It undoes the whole send, not part of it. The company comes out of the Power Dialer workflow, which is what clears its manual action, loses the Power Dialer tag so nothing puts it straight back, drops out of the call list, and reads as an unsent lead again.",
+      "Companies you have already called never appear on the tab. A call that has happened is a fact, and offering the business back to the pool would put it up to be rung a second time as though the first had not happened.",
+      "Fifteen at a press. Anything more is sent in batches, and the receipt says how many came back and what was left where it was.",
+    ],
+  },
+  {
     id: "2026-08-24-inline-dialing-script",
     date: "24 August 2026",
     title: "The Power dialer loads again, and the script reads inline",

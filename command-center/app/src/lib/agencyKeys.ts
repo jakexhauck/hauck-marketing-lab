@@ -186,6 +186,14 @@ export const AGENCY_KEYS: AgencyKeyDef[] = [
     help: 'The workflow the Call button uses to place a call, by name. Defaults to "CC Bridge Dial".',
     warning: "It has to be published in GoHighLevel. A draft accepts the prospect and never rings.",
   },
+  {
+    name: "AGENCY_GHL_POWER_DIALER_WORKFLOW",
+    group: "coldcall",
+    entry: "paste",
+    help: 'The workflow that turns the "Power Dialer" tag into a manual action, by name. Defaults to "1. | Power Dialer".',
+    warning:
+      "Return to leads takes a company out of THIS workflow, which is what clears its manual action. Name it wrong and companies stay in the queue.",
+  },
 
   // --- Calendars ------------------------------------------------------------
   { name: "COMPOSIO_API_KEY", group: "calendars", entry: "paste", help: "From the Composio dashboard." },

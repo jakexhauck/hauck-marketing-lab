@@ -30,6 +30,16 @@ const SELECT =
 // 49 of them could not be reached by any control on the screen.
 const PAGE_MAX = 1000;
 
+// The Sent to dialer tab, and the exact inverse of the last condition in
+// CALLABLE_LEAD_FILTER: not a duplicate, a mobile, and handed to Cold Call.
+// `send_status` is a pattern rather than a value here, so it is applied as a
+// LIKE below rather than living in this match.
+const ON_THE_DIALER_FILTER = {
+  in_crm: false,
+  line_type: "wireless",
+  sent_to: "cold_call",
+} as const;
+
 interface LeadRow {
   id: string;
   business_name: string | null;
@@ -106,6 +116,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // screen as "there are no leads" rather than as "that is not a zone".
   const zoneParam = url.searchParams.get("zone");
   const zone = isCallZone(zoneParam) ? (zoneParam as string) : null;
+  // "1" = the Sent to dialer tab: the companies sitting in GoHighLevel's manual
+  // actions queue that nobody has rung yet, so they can be taken back off.
+  const dialer = url.searchParams.get("dialer") === "1";
   const limit = Math.min(Number(url.searchParams.get("limit") ?? 200) || 200, PAGE_MAX);
   const offset = Math.max(Number(url.searchParams.get("offset") ?? 0) || 0, 0);
 
@@ -125,7 +138,16 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     //
     // A lead that has gone to the power dialer is finished with this screen. It
     // cannot be sent again, so leaving it in only offered work already done.
-    .match(CALLABLE_LEAD_FILTER);
+    //
+    // Unless this is the Sent to dialer tab, which is the one view that exists
+    // to show exactly those: the companies queued over there, so they can be
+    // taken back off. See ON_THE_DIALER_FILTER.
+    .match(dialer ? ON_THE_DIALER_FILTER : CALLABLE_LEAD_FILTER);
+
+  // The stamp itself, which the filter above cannot carry because it is a
+  // pattern rather than a value. `_` is a single-character wildcard in LIKE, so
+  // this is deliberately loose; wentToTheDialer() checks it exactly below.
+  if (dialer) query = query.like("send_status", "cold_call_%queued%");
 
   if (runId) query = query.eq("run_id", runId);
   if (nicheId) query = query.eq("niche_id", nicheId);
@@ -164,10 +186,92 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     return Response.json({ error: "could not read the leads" }, { status: 500 });
   }
 
+  const rows = (data ?? []) as LeadRow[];
+
+  if (dialer) {
+    // Only the ones nobody has rung (Jake, 2026-08-24). A company that has been
+    // called is a fact, and offering it back to the pool would put it up to be
+    // sent and dialled a second time as though the first had not happened.
+    //
+    // Filtered here rather than in the query because the two facts live in
+    // unrelated tables with no key between them: the book is joined to this one
+    // on the PHONE NUMBER, which is the only thing send.ts ever wrote into both.
+    // So `total` is the count AFTER this filter and not the count the database
+    // reported, because the number under the tab has to be the number of rows
+    // above it.
+    const undialed = await onlyUndialed(client, rows);
+    if (!undialed) {
+      return Response.json(
+        { error: "could not check which of these have been called" },
+        { status: 503 },
+      );
+    }
+    return Response.json({
+      leads: undialed.map(shape),
+      total: undialed.length,
+      offset,
+      limit,
+    });
+  }
+
   return Response.json({
-    leads: ((data ?? []) as LeadRow[]).map(shape),
+    leads: rows.map(shape),
     total: count ?? 0,
     offset,
     limit,
   });
 };
+
+/**
+ * The rows whose company has no call logged against it.
+ *
+ * Two reads: the book rows for these phone numbers, and the dials against those
+ * book rows. Null when either could not run, because supabase-js RESOLVES a
+ * failed read with `{ data: null, error }` and reading `data` alone would turn a
+ * database blip into "nobody has been called", which is the direction that gets
+ * a company rung twice.
+ *
+ * A company with no book row at all is kept: it is stamped as sent to the dialer
+ * and has no dial against it, which is exactly the state this tab is for.
+ */
+async function onlyUndialed(
+  client: NonNullable<ReturnType<typeof getServiceClient>>,
+  rows: LeadRow[],
+): Promise<LeadRow[] | null> {
+  if (rows.length === 0) return rows;
+
+  const phones = [...new Set(rows.map((r) => r.phone_e164).filter(Boolean))];
+  const { data: bookRows, error: bookError } = await client
+    .from("leads")
+    .select("id, phone")
+    .is("deleted_at", null)
+    .in("phone", phones.length > 0 ? phones : ["-"]);
+  if (bookError) {
+    console.error("[leads] book read failed", bookError.message);
+    return null;
+  }
+
+  const book = (bookRows ?? []) as { id: string; phone: string | null }[];
+  if (book.length === 0) return rows;
+
+  const { data: dialRows, error: dialError } = await client
+    .from("cold_call_dials")
+    .select("lead_id")
+    .in(
+      "lead_id",
+      book.map((b) => b.id),
+    );
+  if (dialError) {
+    console.error("[leads] dial read failed", dialError.message);
+    return null;
+  }
+
+  const dialedBookIds = new Set(
+    ((dialRows ?? []) as { lead_id: string | null }[]).map((d) => d.lead_id).filter(Boolean),
+  );
+  const dialedPhones = new Set(
+    book.filter((b) => dialedBookIds.has(b.id)).map((b) => (b.phone ?? "").trim()),
+  );
+
+  return rows.filter((r) => !dialedPhones.has(r.phone_e164));
+}
