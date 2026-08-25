@@ -26,13 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
-    id: "2026-08-25-sales-data-business-name",
+    id: "2026-08-25-sales-data-company-name",
     date: "25 August 2026",
-    title: "Sales Data names the company, not the person",
+    title: "Sales Data names the company, and the column fits it",
     items: [
-      "The Name column on Sales Data is now the business. It was showing whoever the meeting was booked against, which on a scraped cold call lead is a person split out of the company name and belongs to nobody.",
-      "Every meeting whose prospect is in the Leads book gets the book's own business name, including the ones already on the sheet: they are filled in the next time the page loads.",
-      "A meeting with nobody in the book behind it still shows the name off the calendar, because a blank line is worse than a first name.",
+      "The Name column is the business the meeting is with. It was showing whatever the calendar called the event, so half the month read \"Hauck Marketing X Nathan\" or just \"Hauck Marketing Demo Call\", which names nobody.",
+      "The rest were mixed up rather than missing. A meeting with Good Helpers Today Heating Cooling and Labor Services LLC was filed under \"Deniya Helpers Today\", and BM Heating & Cooling under \"Mohamad Heating & Cooling\": the first and last name on the old scraped leads are a company cut in half, and the page was reading the halves.",
+      "It now reads the company off the contact in GoHighLevel, which has had it right all along. Meetings already on the sheet are corrected the next few times you open the page, a handful at a time.",
+      "Where the meeting really is with a person and no company (an onboarding call, an internal one), it shows that person's actual name instead of the calendar's title.",
+      "The column is more than twice as wide, and a long company name now wraps onto a second line instead of being cut off mid-word.",
     ],
   },
   {

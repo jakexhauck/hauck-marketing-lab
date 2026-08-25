@@ -321,6 +321,11 @@ export interface GhlContactRecord {
   contactName?: string;
   firstName?: string;
   lastName?: string;
+  // The business. On a scraped cold call lead this is the only field that
+  // reliably holds the company: firstName/lastName are whatever the scrape
+  // split them into ("Mohamad" + "Heating & Cooling" for BM Heating &
+  // Cooling), which is why the Sales Data sheet reads this one.
+  companyName?: string;
   email?: string;
   phone?: string;
   dateAdded?: string;

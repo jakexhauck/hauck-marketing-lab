@@ -214,7 +214,10 @@ function SheetStyle() {
          desktop has, which is there so the table degrades on a phone rather
          than crushing itself to nothing. */
       .pk-kit .ssh-scroll { overflow: auto; max-height: min(64vh, 760px); }
-      .pk-kit .ssh-card table { width: 100%; min-width: 1150px; border-collapse: collapse; table-layout: fixed; }
+      /* 1150 -> 1300 when the Name column took the width a company name needs.
+         The share each column gets is relative, so without this the extra came
+         out of Date and the timestamps started clipping instead. */
+      .pk-kit .ssh-card table { width: 100%; min-width: 1300px; border-collapse: collapse; table-layout: fixed; }
       .pk-kit .ssh-card thead th {
         position: sticky; top: 0; z-index: 2; background: var(--ssh-head-bg);
         font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
@@ -232,7 +235,13 @@ function SheetStyle() {
       .pk-kit .ssh-card tbody td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
       .pk-kit .ssh-card tbody tr:hover td { background: var(--ssh-hover); }
       .pk-kit .ssh-card td.ssh-date { padding-left: 18px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
-      .pk-kit .ssh-card td.ssh-name { font-weight: 600; color: var(--text); }
+      /* The one cell allowed to wrap. Everything else on the sheet is short
+         enough to clip safely; a company name is not, and half of one is no
+         use to anybody reading down the month. */
+      .pk-kit .ssh-card td.ssh-name {
+        font-weight: 600; color: var(--text);
+        white-space: normal; overflow-wrap: anywhere; line-height: 1.35;
+      }
       /* A column with nothing in it yet. Faint enough to read as waiting. */
       .pk-kit .ssh-none { color: var(--text-faint); opacity: .55; }
       /* The disposition form link, styled like a quiet control so ten of them

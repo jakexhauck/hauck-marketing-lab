@@ -35,7 +35,11 @@ export interface SheetColumn {
 // mostly blank.
 export const SHEET_COLUMNS: SheetColumn[] = [
   { key: "date", label: "Date", weight: 130 },
-  { key: "name", label: "Name", weight: 120 },
+  // The widest column on the sheet, and deliberately. It holds a company name,
+  // and a company name is long: "Good Helpers Today Heating Cooling and Labor
+  // Services LLC" is a real prospect. At 120 it was clipped to "Good Helper...",
+  // which tells nobody who the meeting was with.
+  { key: "name", label: "Name", weight: 260 },
   { key: "outcome", label: "Outcome", weight: 100 },
   { key: "revenue", label: "Revenue", numeric: true, weight: 90 },
   { key: "cashCollected", label: "Cash", numeric: true, weight: 90 },

@@ -310,8 +310,11 @@ describe("columnWidths", () => {
     expect(total).toBeCloseTo(100, 2);
   });
 
-  it("gives the date the widest column, because it holds the longest value", () => {
+  // The Name column, not the Date one. It holds a company name, and companies
+  // are called things like "Good Helpers Today Heating Cooling and Labor
+  // Services LLC". The date is a fixed-length stamp and cannot grow.
+  it("gives the name the widest column, because it holds the longest value", () => {
     const widths = columnWidths().map((w) => Number.parseFloat(w));
-    expect(Math.max(...widths)).toBe(widths[0]);
+    expect(Math.max(...widths)).toBe(widths[1]);
   });
 });

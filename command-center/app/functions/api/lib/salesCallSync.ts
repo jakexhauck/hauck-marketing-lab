@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { GhlContext } from "../../lib/ghl";
+import { fetchContact, type GhlContactRecord, type GhlContext } from "../../lib/ghl";
 import { isColdCallCalendar } from "../../lib/coldCallCalendar";
 import { isDeadStatus as isDead } from "../../lib/salesCalls";
 import { listCalendarEvents, listCalendars, type CalendarEvent } from "./appointments";
@@ -182,6 +182,50 @@ export function businessFromLead(lead: BookableLead | undefined): string {
   return (lead?.business_name ?? "").trim();
 }
 
+// ---------------------------------------------------------------------------
+// The contact record, which is where the business name actually lives.
+//
+// The lead book was the obvious place to read a company from and it is not
+// enough. Its older rows (the HVAC scrape, before business_name existed) carry
+// an EMPTY business_name and the company split across first + last by whatever
+// the scrape found: "Deniya" + "Helpers Today Heating Cooling and Labor
+// Services LLC" for a company called Good Helpers Today, "Mohamad" + "Heating
+// & Cooling" for BM Heating & Cooling. Read either half and the sheet prints a
+// business that does not exist.
+//
+// GoHighLevel's contact has carried companyName correctly the whole time
+// (verified against all nine live meetings, 2026-08-25), so that is what the
+// Name column is now built on.
+
+export function businessFromContact(contact: GhlContactRecord | null | undefined): string {
+  return (contact?.companyName ?? "").trim();
+}
+
+// The person, for a contact that is a person and not a business: Dom Crowe,
+// Seamus Geoghegan, Jake himself. Used only where there is no company at all,
+// and it beats what the calendar was giving by a mile.
+export function nameFromContact(contact: GhlContactRecord | null | undefined): string {
+  if (!contact) return "";
+  return `${contact.firstName ?? ""} ${contact.lastName ?? ""}`.replace(/\s+/g, " ").trim();
+}
+
+// Is this stored name the calendar talking, rather than a person?
+//
+// The agency calendars title their own events, so an adopted row's name was
+// whatever the template produced: "Hauck Marketing Demo Call", "Hauck Marketing
+// X Nathan", "Hauck Marketing X  Dom Crowe Dom", "Jake Hauck x Hauck
+// Marketing". None of them is anybody's name.
+//
+// Deliberately narrow. It decides ONE thing: whether the sync may replace a
+// stored name with the contact's own, and whether it is worth asking
+// GoHighLevel for that contact again. A name it does not recognise is left
+// alone, which is the safe direction.
+export function isCalendarFurniture(name: string): boolean {
+  const n = name.trim();
+  if (!n) return true;
+  return /hauck\s*marketing/i.test(n);
+}
+
 export interface LeadBooking {
   leadId: string;
   appointmentDate: string;
@@ -256,6 +300,10 @@ export interface SyncOptions {
 
 const DAY = 24 * 60 * 60 * 1000;
 
+// How many contacts one sync may ask GoHighLevel about. See the note at the
+// lookup itself: the Worker's outbound-call budget is 50 for the whole request.
+const MAX_CONTACT_LOOKUPS = 15;
+
 // Reconcile the agency calendars into sales_calls. Additive and idempotent:
 // running it twice in a row changes nothing the second time.
 export async function syncAgencyMeetings(
@@ -328,6 +376,32 @@ export async function syncAgencyMeetings(
   }
   const leadByContact = new Map(leads.filter((l) => l.ghl_contact_id).map((l) => [l.ghl_contact_id, l]));
 
+  // The contacts whose company we still do not know. One GoHighLevel read each,
+  // and only for the meetings that need one: a row that already has a business
+  // name is never asked about again, and neither is one whose stored name is a
+  // real person's (the contact has no company, and asking again every sync
+  // would buy the same empty answer for ever).
+  const wantContact = new Set<string>();
+  for (const event of events) {
+    if (!event.contactId) continue;
+    if (businessFromLead(leadByContact.get(event.contactId))) continue;
+    const row = existing.get(event.id);
+    if (row && ((row.business_name ?? "").trim() || !isCalendarFurniture(row.prospect_name ?? ""))) {
+      continue;
+    }
+    wantContact.add(event.contactId);
+  }
+  // Hard ceiling. This runs inside a Cloudflare Worker, which allows 50
+  // outbound calls per request and has already spent some on the calendars and
+  // on Supabase. Anything past the cap is simply left for the next page load,
+  // which is why the names fill in rather than failing.
+  const lookups = [...wantContact].slice(0, MAX_CONTACT_LOOKUPS);
+  const contacts = new Map<string, GhlContactRecord | null>(
+    await Promise.all(
+      lookups.map(async (id) => [id, await fetchContact(gctx, id)] as const),
+    ),
+  );
+
   const inserts: Record<string, unknown>[] = [];
   const updates: { id: string; fields: Record<string, unknown> }[] = [];
 
@@ -340,6 +414,7 @@ export async function syncAgencyMeetings(
     // scopes by the lead's assignee.
     const lead = event.contactId ? leadByContact.get(event.contactId) : undefined;
     const leadId = lead?.id ?? null;
+    const contact = event.contactId ? (contacts.get(event.contactId) ?? null) : null;
 
     if (!row) {
       if (leadId) result.linked += 1;
@@ -347,11 +422,14 @@ export async function syncAgencyMeetings(
         ghl_appointment_id: event.id,
         ghl_contact_id: event.contactId || null,
         lead_id: leadId,
-        prospect_name: nameFromLead(lead) || nameFromEvent(event),
-        // What the sheet's Name column reads. Empty when the meeting is with
-        // somebody who is not in the cold call book: the calendar knows no
-        // company, and the title is not one.
-        business_name: businessFromLead(lead),
+        // The person. The contact beats the lead book here for the same
+        // reason it does below: the book's older rows hold half a company in
+        // first_name. The calendar title is the last resort it always was.
+        prospect_name: nameFromContact(contact) || nameFromLead(lead) || nameFromEvent(event),
+        // What the sheet's Name column reads. Empty only when the contact is a
+        // person with no company on them, which is a real answer: the calendar
+        // title is not a business name and will not be used as one.
+        business_name: businessFromLead(lead) || businessFromContact(contact),
         scheduled_at: event.startTime,
         appointment_status: event.status,
         calendar_id: event.calendarId,
@@ -377,9 +455,14 @@ export async function syncAgencyMeetings(
     // the business the caller confirmed on the phone, and that beats anything
     // read back here. This is also what puts a name on every row adopted
     // before the sync knew to look one up.
-    const business = businessFromLead(lead);
+    const business = businessFromLead(lead) || businessFromContact(contact);
     if (business && !(row.business_name ?? "").trim()) backfill.business_name = business;
-    const link = Object.keys(backfill).length ? backfill : null;
+    // And the person, where what is stored is not one. A row adopted off the
+    // calendar was named after the event ("Hauck Marketing X  Dom Crowe Dom"),
+    // and the contact's own first and last are what that should have said.
+    // A name that is already somebody's is never touched, here or anywhere.
+    const person = nameFromContact(contact);
+    if (person && isCalendarFurniture(row.prospect_name ?? "")) backfill.prospect_name = person;
 
     if (!needsUpdate(row, event)) {
       result.unchanged += 1;
@@ -395,7 +478,7 @@ export async function syncAgencyMeetings(
           synced_at: syncedAt,
           calendar_id: event.calendarId,
           calendar_name: event.calendarName,
-          ...link,
+          ...backfill,
         },
       });
       continue;
@@ -409,7 +492,7 @@ export async function syncAgencyMeetings(
         synced_at: syncedAt,
         calendar_id: event.calendarId,
         calendar_name: event.calendarName,
-        ...link,
+        ...backfill,
         // Deliberately NOT touched: outcome, cash_collected, follow_up_at,
         // qualified, logged_by. The calendar has no opinion about what
         // happened in the room.

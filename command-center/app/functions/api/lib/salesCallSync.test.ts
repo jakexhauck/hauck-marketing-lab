@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  businessFromContact,
   businessFromLead,
+  isCalendarFurniture,
   isDeadStatus,
+  nameFromContact,
   leadBookings,
   nameFromEvent,
   nameFromLead,
@@ -149,6 +152,54 @@ describe("businessFromLead", () => {
     expect(businessFromLead({ ...lead, business_name: "  " })).toBe("");
     expect(businessFromLead({ ...lead, business_name: null })).toBe("");
     expect(businessFromLead(undefined)).toBe("");
+  });
+});
+
+describe("the contact record behind the meeting", () => {
+  // Live, 2026-08-25. The lead book's older HVAC rows carry no business_name at
+  // all and have the company mangled across first + last ("Deniya" + "Helpers
+  // Today Heating Cooling and Labor Services LLC"). GoHighLevel's contact has
+  // held the real one the whole time.
+  it("takes the company off the contact", () => {
+    expect(
+      businessFromContact({
+        id: "c-1",
+        firstName: "Deniya",
+        lastName: "Helpers Today Heating Cooling and Labor Services LLC",
+        companyName: "Good Helpers Today Heating Cooling and Labor Services LLC",
+      }),
+    ).toBe("Good Helpers Today Heating Cooling and Labor Services LLC");
+  });
+
+  it("is empty for a contact that is a person, not a business", () => {
+    // Dom Crowe, Seamus Geoghegan, Jake himself: real contacts with no company
+    // on them. Nothing is invented out of their names.
+    expect(businessFromContact({ id: "c-2", firstName: "Dom", lastName: "Crowe" })).toBe("");
+    expect(businessFromContact({ id: "c-3", companyName: "  " })).toBe("");
+    expect(businessFromContact(null)).toBe("");
+  });
+
+  it("gives the person's own name, properly", () => {
+    expect(nameFromContact({ id: "c-2", firstName: "Dom", lastName: "Crowe" })).toBe("Dom Crowe");
+    expect(nameFromContact({ id: "c-4", firstName: "", lastName: "" })).toBe("");
+    expect(nameFromContact(null)).toBe("");
+  });
+});
+
+describe("isCalendarFurniture", () => {
+  // What the sheet was showing instead of a name. All four are the agency
+  // calendar's own event title leaking into the Name column.
+  it("knows the calendar's own words when it sees them", () => {
+    expect(isCalendarFurniture("Hauck Marketing Demo Call")).toBe(true);
+    expect(isCalendarFurniture("Hauck Marketing X Nathan")).toBe(true);
+    expect(isCalendarFurniture("Hauck Marketing X  Dom Crowe Dom")).toBe(true);
+    expect(isCalendarFurniture("Jake Hauck x Hauck Marketing")).toBe(true);
+    expect(isCalendarFurniture("   ")).toBe(true);
+  });
+
+  it("leaves a real name alone", () => {
+    expect(isCalendarFurniture("Dom Crowe")).toBe(false);
+    expect(isCalendarFurniture("Honeycutt Heating & Cooling")).toBe(false);
   });
 });
 
