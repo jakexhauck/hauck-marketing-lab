@@ -1817,15 +1817,17 @@ export async function getAgencyPipelines(
 // decides the caller (always the session), the day and what the outcome counts
 // as, so this carries only what it alone knows: which prospect, and how it went.
 // Mirrors DIAL_OUTCOMES in functions/lib/coldCallDials.ts and the CHECK
-// constraint in migration 0117. The three nos differ by how far the call got:
+// constraint in migration 0123. The three nos differ by how far the call got:
 // only "pitch_no" reached the pitch, and only it counts toward pass-through.
-// "not_in_niche" is the one outcome that is not counted as a dial at all.
+// "not_in_niche" is the one outcome that is not counted as a dial at all, and
+// "gatekeeper" is a dial that is neither a pickup nor a pass-through.
 export type ColdCallDialOutcome =
   | "no_answer"
   | "not_qualified"
   | "not_in_niche"
   | "opener_no"
   | "pitch_no"
+  | "gatekeeper"
   | "callback"
   | "booked";
 

@@ -64,6 +64,54 @@ export function awaitsOutcome(
   return (leadStatus ?? "").trim() !== BOOKED_STATUS;
 }
 
+// ---------------------------------------------------------------------------
+// Two calls, one attempt.
+//
+// GoHighLevel's power dialer sometimes places a SECOND call to the same
+// prospect seconds after the first. They are separate calls with separate
+// CallSids, both outbound, both on that prospect's conversation: Airflow AC &
+// Heating was rung at 18:36:09 for 13 seconds and again at 18:36:26 for 47
+// (verified against the live account, 2026-08-25). Ten such pairs sit in the
+// table across one week, every one of them inside 27 seconds.
+//
+// Each call becomes its own dial row, so the caller who judged the first was
+// asked about the second the moment the sync noticed it, and the card they had
+// just cleared came back on the next poll. That is the bug Jake reported.
+//
+// The row is NOT deleted and its call still counts as a dial, because the call
+// was really placed. What stops is asking a human to judge the same
+// conversation twice: an answer given about this prospect seconds either side
+// of this call is the answer to this call too.
+//
+// 60 seconds. Every duplicate observed was inside 27s, and the closest genuine
+// second call to a prospect (judged separately, and differently) was 99s, so
+// the window has room at both ends.
+export const SAME_ATTEMPT_MS = 60_000;
+
+export interface DialMoment {
+  leadId: string | null;
+  dialedAtMs: number;
+}
+
+// Has this prospect already been judged, either side of this call, close enough
+// that it was the same attempt?
+//
+// A dial with no prospect behind it is never covered: nobody can have answered
+// for a call that is not yet attached to anybody, and hiding one is the wrong
+// direction to be wrong in.
+export function judgedNearby(
+  dial: DialMoment,
+  judged: DialMoment[],
+  windowMs = SAME_ATTEMPT_MS,
+): boolean {
+  if (!dial.leadId) return false;
+  return judged.some(
+    (other) =>
+      other.leadId === dial.leadId &&
+      Math.abs(other.dialedAtMs - dial.dialedAtMs) <= windowMs,
+  );
+}
+
 // How far back a sync looks. Twenty minutes covers a coffee break mid-shift
 // without ever reaching back into a session that finished an hour ago and
 // re-opening calls somebody has already dealt with.

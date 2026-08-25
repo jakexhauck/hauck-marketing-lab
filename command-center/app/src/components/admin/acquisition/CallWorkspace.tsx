@@ -8,6 +8,7 @@ import {
   UserX,
   ThumbsDown,
   SquareSlash,
+  ShieldX,
   ChevronRight,
   Moon,
   CheckCircle2,
@@ -38,14 +39,14 @@ import {
 import BookingPanel from "./BookingPanel";
 import CallbackPicker from "./CallbackPicker";
 import { stageAfterNoAnswer } from "../../../lib/coldCallStages";
-import type { NO_OUTCOMES, UNCOUNTED_OUTCOMES } from "../../../../functions/lib/coldCallDials";
+import type { EndingOutcome } from "../../../../functions/lib/coldCallDials";
 import { formatPhoneDashed } from "../../../lib/phone";
 
-// One of the three ways a call ends in no, plus the wrong-trade outcome, which
-// takes the same route off the board and differs only in not being counted as a
-// dial (0117). Named here rather than inlined so the button handlers and sayNo
-// cannot drift apart.
-type NoOutcome = (typeof NO_OUTCOMES)[number] | (typeof UNCOUNTED_OUTCOMES)[number];
+// Every press that takes the prospect off the board in one go: the three nos,
+// the wrong trade (0117), and the gatekeeper (0123). They differ in what they
+// COUNT as, which coldCallDials.ts owns; they are identical in what they write,
+// which is why one handler serves them all.
+type NoOutcome = EndingOutcome;
 
 // The calling workspace: a queue on the left, the one prospect being called on
 // the right, five buttons for how it went.
@@ -596,6 +597,17 @@ export default function CallWorkspace({
                   setPending(pending === "booked" ? null : "booked");
                   setPendingDate("");
                 }}
+              />
+              {/* Last, on its own end of the row, because it is the one press
+                  that is not about what the prospect said. Nobody we rang for
+                  came to the phone (Jake, 2026-08-25). It counts as a dial and
+                  as neither a pickup nor a pass-through, and it takes the
+                  business off the board like the nos do. */}
+              <OutcomeButton
+                icon={ShieldX}
+                label="Gatekeeper"
+                title="The front desk would not put you through. Counts as a dial, not as a pickup."
+                onClick={() => sayNo(selected, "gatekeeper")}
               />
             </div>
 

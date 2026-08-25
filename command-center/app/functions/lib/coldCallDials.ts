@@ -41,6 +41,11 @@ export const DIAL_OUTCOMES = {
   opener_no: { spoke: true, pitched: false, counts: true, label: "Heard opener, said no" },
   // Heard the whole thing and declined. The only no that is a pass-through.
   pitch_no: { spoke: true, pitched: true, counts: true, label: "Heard pitch, said no" },
+  // The front desk would not put us through. A real prospect, really rung, so
+  // it is a call made; not a pickup, because the person we rang to speak to
+  // never came to the phone (Jake, 2026-08-25). It is not one of the three nos
+  // either: nobody has told us anything about the offer yet.
+  gatekeeper: { spoke: false, pitched: false, counts: true, label: "Gatekeeper" },
   callback: { spoke: true, pitched: true, counts: true, label: "Call back" },
   booked: { spoke: true, pitched: true, counts: true, label: "Booked" },
 } as const;
@@ -58,6 +63,28 @@ export const NO_OUTCOMES = ["not_qualified", "opener_no", "pitch_no"] as const;
 export const UNCOUNTED_OUTCOMES = ["not_in_niche"] as const;
 
 export type UncountedOutcome = (typeof UNCOUNTED_OUTCOMES)[number];
+
+// Every press that ends the prospect's time on the board there and then.
+//
+// The three nos, the wrong trade, and the gatekeeper. What they have in common
+// is the WRITE, not the meaning: one press, the prospect leaves the dialing
+// operation, and nothing is scheduled. Call back and Booked are deliberately
+// not here, because both leave a next step behind.
+export const ENDING_OUTCOMES = [...NO_OUTCOMES, ...UNCOUNTED_OUTCOMES, "gatekeeper"] as const;
+
+export type EndingOutcome = (typeof ENDING_OUTCOMES)[number];
+
+// The outcomes the day's breakdown counts, which is what the tracker's
+// Objections column is written from.
+//
+// The three nos say why we lost them. The gatekeeper says we never got to find
+// out, and Jake asked for that number on 2026-08-25: it is the difference
+// between a script that is not working and a list we cannot get past.
+export const REPORTED_REASONS = [...NO_OUTCOMES, "gatekeeper"] as const;
+
+export function isReportedReason(value: unknown): value is (typeof REPORTED_REASONS)[number] {
+  return typeof value === "string" && (REPORTED_REASONS as readonly string[]).includes(value);
+}
 
 // Does this row count as a dial?
 //
@@ -136,7 +163,7 @@ export function rollUpDialsByDay(dials: DialRow[]): Record<string, RecordedCount
     if (dial.pitched) counts.passThrough += 1;
     if (dial.outcome === "booked") counts.meetingsBooked += 1;
     // Keyed by outcome, not by the retired `reason` column (0078).
-    if (isNoOutcome(dial.outcome)) {
+    if (isReportedReason(dial.outcome)) {
       counts.reasons[dial.outcome] = (counts.reasons[dial.outcome] ?? 0) + 1;
     }
   }
@@ -207,9 +234,9 @@ export function mergeRecordedDays(
 // rather than as "0 objections".
 export function formatObjections(counts: Record<string, number> | null | undefined): string {
   if (!counts) return "";
-  const order = NO_OUTCOMES as readonly string[];
+  const order = REPORTED_REASONS as readonly string[];
   return Object.entries(counts)
-    .filter(([key, n]) => n > 0 && isNoOutcome(key))
+    .filter(([key, n]) => n > 0 && isReportedReason(key))
     .sort(([aKey, a], [bKey, b]) => b - a || order.indexOf(aKey) - order.indexOf(bKey))
     .map(([key, n]) => `${n} ${DIAL_OUTCOMES[key as DialOutcome].label.toLowerCase()}`)
     .join(", ");

@@ -3,6 +3,7 @@ import {
   BOOKED_STATUS,
   DEFAULT_WINDOW_MINUTES,
   awaitsOutcome,
+  judgedNearby,
   MATCH_AFTER_MS,
   MATCH_BEFORE_MS,
   MAX_WINDOW_MINUTES,
@@ -315,6 +316,50 @@ describe("tallyDials", () => {
 // appeared asking what that call became. Nothing could answer it: all six
 // outcome buttons move a prospect through the dialing operation and this one had
 // already left it with a meeting in the diary. The card simply sat there.
+
+describe("judgedNearby", () => {
+  // Live evidence, 2026-08-25. GoHighLevel's power dialer places a SECOND call
+  // to the same prospect seconds after the first, with its own CallSid: Airflow
+  // AC & Heating was rung at 18:36:09 for 13 seconds and again at 18:36:26 for
+  // 47. Both are real calls and both become dial rows, so a caller who judged
+  // the first was asked about the second the instant the sync noticed it, and
+  // the card they had just cleared came back.
+  const AT = Date.parse("2026-08-19T18:36:26.000Z");
+  const judged = [
+    { leadId: "lead-1", dialedAtMs: Date.parse("2026-08-19T18:36:09.000Z") },
+  ];
+
+  it("hides a pending call judged seconds earlier on the same prospect", () => {
+    expect(judgedNearby({ leadId: "lead-1", dialedAtMs: AT }, judged)).toBe(true);
+  });
+
+  it("hides one that arrived just BEFORE the judged call", () => {
+    // The press completes the newest pending row, so the leftover can be the
+    // older one just as easily.
+    const after = [{ leadId: "lead-1", dialedAtMs: AT }];
+    expect(judgedNearby({ leadId: "lead-1", dialedAtMs: judged[0].dialedAtMs }, after)).toBe(true);
+  });
+
+  it("still asks about a genuine second call later in the shift", () => {
+    // The closest real redial seen in the table was 99 seconds, and it was
+    // judged separately and differently. Anything that far out is a call of its
+    // own and the caller must be asked.
+    const later = AT + 5 * 60_000;
+    expect(judgedNearby({ leadId: "lead-1", dialedAtMs: later }, judged)).toBe(false);
+  });
+
+  it("never borrows another prospect's answer", () => {
+    expect(judgedNearby({ leadId: "lead-2", dialedAtMs: AT }, judged)).toBe(false);
+  });
+
+  it("asks about a call whose prospect is not known", () => {
+    // A dial the sync has not matched to anybody cannot be covered by somebody
+    // else's judgement, and hiding a call nobody can account for is the wrong
+    // direction.
+    expect(judgedNearby({ leadId: null, dialedAtMs: AT }, judged)).toBe(false);
+    expect(judgedNearby({ leadId: "lead-1", dialedAtMs: AT }, [])).toBe(false);
+  });
+});
 
 describe("awaitsOutcome", () => {
   it("waits on a pending call to a prospect still in the operation", () => {

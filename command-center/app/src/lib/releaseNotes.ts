@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-25-gatekeeper-and-repeat-cards",
+    date: "25 August 2026",
+    title: "Gatekeeper button, and the card stops coming back",
+    items: [
+      "New outcome on the call card: Gatekeeper. The front desk would not put you through. It counts as a dial and as nothing else: not a pickup, because the person you rang for never came to the phone, and not a pitch.",
+      "It disqualifies the business the same way the nos do, here and in GoHighLevel, so nothing rings them again.",
+      "How many you are hitting reads in the Cold Call tracker's Objections column beside the nos, so a list you cannot get past looks different from a script that is not working.",
+      "The card that came back after you had already marked it is fixed. GoHighLevel's dialer sometimes places a second call to the same prospect seconds after the first, and each one was asking to be judged, so clearing one left the next behind it.",
+      "An answer you have given now covers the calls either side of it within a minute. Both calls still count as dials, because both were really placed; you are simply not asked about the same conversation twice.",
+      "A genuine second call later in the shift still asks, as it should.",
+    ],
+  },
+  {
     id: "2026-08-25-lead-book-streamed",
     date: "25 August 2026",
     title: "\"Could not load the book\" is gone from Assign leads too",

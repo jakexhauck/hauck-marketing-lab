@@ -5,6 +5,7 @@ import {
   countsAsDial,
   isDialOutcome,
   NO_OUTCOMES,
+  ENDING_OUTCOMES,
   mergeRecordedDays,
   rollUpDialsByDay,
   type DialRow,
@@ -126,6 +127,27 @@ describe("rollUpDialsByDay", () => {
     expect(rollUpDialsByDay([dial({ outcome: "not_in_niche" })])).toEqual({});
   });
 
+  // Gatekeeper (Jake, 2026-08-25). A real prospect in a trade we sell to, rung,
+  // and the front desk would not put us through. That is a call made, unlike a
+  // wrong-trade number, and it is not a pickup: the person we rang to speak to
+  // never came to the phone.
+  it("counts a gatekeeper as a call made and nothing else", () => {
+    const counts = rollUpDialsByDay([dial({ outcome: "gatekeeper" })]);
+    expect(counts["2026-07-26"].callsMade).toBe(1);
+    expect(counts["2026-07-26"].pickups).toBe(0);
+    expect(counts["2026-07-26"].passThrough).toBe(0);
+  });
+
+  // Where Jake reads "how many gatekeepers are we hitting".
+  it("counts gatekeepers into the day's breakdown", () => {
+    const counts = rollUpDialsByDay([
+      dial({ outcome: "gatekeeper" }),
+      dial({ outcome: "gatekeeper" }),
+      dial({ outcome: "opener_no", spoke: true }),
+    ]);
+    expect(counts["2026-07-26"].reasons).toEqual({ gatekeeper: 2, opener_no: 1 });
+  });
+
   // The outcome it was being confused with. Unchanged on purpose.
   it("still counts a not_qualified call as a call made", () => {
     const counts = rollUpDialsByDay([dial({ outcome: "not_qualified", spoke: true })]);
@@ -207,6 +229,12 @@ describe("formatObjections", () => {
     );
   });
 
+  it("reads the gatekeepers out with the objections", () => {
+    expect(formatObjections({ gatekeeper: 4, pitch_no: 1 })).toBe(
+      "4 gatekeeper, 1 heard pitch, said no",
+    );
+  });
+
   it("is blank when nothing was recorded", () => {
     expect(formatObjections({})).toBe("");
     expect(formatObjections(null)).toBe("");
@@ -249,5 +277,19 @@ describe("countsAsDial", () => {
   it("counts a row whose outcome it does not recognise", () => {
     expect(countsAsDial("something_new")).toBe(true);
     expect(countsAsDial(null)).toBe(true);
+  });
+});
+
+describe("ENDING_OUTCOMES", () => {
+  // Every outcome that takes the prospect off the board in one press. The
+  // callback and the booking do not: they leave a next step behind.
+  it("names the presses that end the prospect", () => {
+    expect([...ENDING_OUTCOMES]).toEqual([
+      "not_qualified",
+      "opener_no",
+      "pitch_no",
+      "not_in_niche",
+      "gatekeeper",
+    ]);
   });
 });

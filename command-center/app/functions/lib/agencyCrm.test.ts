@@ -88,6 +88,14 @@ describe("tagsForOutcome", () => {
     expect(tagsForOutcome("callback")?.tag).toBe(CC_TAGS.callBack);
   });
 
+  // 0123. Jake's call: a gatekeeper disqualifies the business. Not Interested
+  // is the only terminal column that board has, and without this the press
+  // left the contact untagged, still sitting where the dialer could ring it
+  // again while our own book said it was done.
+  it("takes a gatekeeper off the board too", () => {
+    expect(tagsForOutcome("gatekeeper")?.tag).toBe(CC_TAGS.notInterested);
+  });
+
   it("refuses an outcome it does not know rather than leaving no tag", () => {
     // The dangerous shape: tagsForOutcome returning null makes pushDialOutcome
     // report a failure, which is right. Returning a tag of null would look like

@@ -6,6 +6,8 @@ import { dateStringInZone } from "../../../lib/tz";
 import {
   awaitsOutcome,
   isLiveCall,
+  judgedNearby,
+  PENDING_OUTCOME,
   readWindowMinutes,
   tallyDials,
   type DialTally,
@@ -112,11 +114,26 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const today = await readDayTally(client, agencyTimezone(ctx.env), now);
 
   const leadById = new Map(leads.map((lead) => [lead.id, lead]));
+
+  // The calls somebody has already answered for, as moments on the clock. What
+  // they cover is the SECOND call GoHighLevel's dialer places to the same
+  // prospect seconds later: see judgedNearby, and the card that kept coming
+  // back after it had been cleared.
+  const judged = dials
+    .filter((dial) => dial.outcome !== PENDING_OUTCOME)
+    .map((dial) => ({ leadId: dial.lead_id, dialedAtMs: Date.parse(dial.dialed_at) }));
+
   const calls: LiveCall[] = dials
     // Unjudged, and not already booked. See awaitsOutcome for why the second
     // half is a rule rather than something the caller works around.
     .filter((dial) =>
       awaitsOutcome(dial.outcome, dial.lead_id ? leadById.get(dial.lead_id)?.status : null),
+    )
+    // And not already answered for. The row stays in the table and still counts
+    // as a dial; it just stops asking a question that has been answered.
+    .filter(
+      (dial) =>
+        !judgedNearby({ leadId: dial.lead_id, dialedAtMs: Date.parse(dial.dialed_at) }, judged),
     )
     .sort((a, b) => Date.parse(b.dialed_at) - Date.parse(a.dialed_at))
     .map((dial) => {

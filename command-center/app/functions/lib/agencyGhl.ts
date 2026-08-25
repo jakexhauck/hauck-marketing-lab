@@ -132,6 +132,12 @@ function tagForOutcome(outcome: string, attempt: number): string | null | undefi
     // report on, but the contact still has to stop being rung, and Not
     // Interested is the only terminal column that board has.
     case "not_in_niche":
+    // And a gatekeeper (0123), for the same reason and by Jake's own call: the
+    // front desk blocking us disqualifies the business, so the contact must
+    // stop being rung. Left out of this switch it would fall to `undefined`,
+    // and the prospect would sit in GoHighLevel untagged, ready for the dialer
+    // to ring again, while our own book said it was finished with.
+    case "gatekeeper":
       return CC_TAGS.notInterested;
     case "callback":
       return CC_TAGS.callBack;
