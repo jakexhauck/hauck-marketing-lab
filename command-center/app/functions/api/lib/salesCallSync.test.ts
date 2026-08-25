@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   businessFromContact,
+  contactsToLookUp,
   businessFromLead,
   isCalendarFurniture,
   isDeadStatus,
@@ -183,6 +184,63 @@ describe("the contact record behind the meeting", () => {
     expect(nameFromContact({ id: "c-2", firstName: "Dom", lastName: "Crowe" })).toBe("Dom Crowe");
     expect(nameFromContact({ id: "c-4", firstName: "", lastName: "" })).toBe("");
     expect(nameFromContact(null)).toBe("");
+  });
+});
+
+describe("contactsToLookUp", () => {
+  const leads = new Map<string, BookableLead>([
+    [
+      "c-book",
+      {
+        id: "lead-1",
+        ghl_contact_id: "c-book",
+        status: "New Lead",
+        appointment_date: null,
+        business_name: "Becker Windows LLC",
+      },
+    ],
+  ]);
+
+  it("asks about a meeting whose company nobody knows", () => {
+    const events = [event({ id: "a-1", contactId: "c-new" })];
+    expect(contactsToLookUp(events, new Map(), leads, 15)).toEqual(["c-new"]);
+  });
+
+  it("does not ask when the lead book already has the company", () => {
+    const events = [event({ id: "a-1", contactId: "c-book" })];
+    expect(contactsToLookUp(events, new Map(), leads, 15)).toEqual([]);
+  });
+
+  it("does not ask again once the row has a business name", () => {
+    const events = [event({ id: "a-1", contactId: "c-new" })];
+    const existing = new Map([["a-1", { business_name: "Honeycutt Heating & Cooling" }]]);
+    expect(contactsToLookUp(events, existing, leads, 15)).toEqual([]);
+  });
+
+  // The bug this function was extracted to fix. The gate used to skip any row
+  // whose stored name already read like a name, which is every row that needed
+  // fixing: "Mohamad Heating & Cooling" reads like a name and is half of BM
+  // Heating & Cooling.
+  it("still asks about a row whose stored name merely looks like one", () => {
+    const events = [event({ id: "a-1", contactId: "c-new" })];
+    const existing = new Map([["a-1", { business_name: "" }]]);
+    expect(contactsToLookUp(events, existing, leads, 15)).toEqual(["c-new"]);
+  });
+
+  it("spends the cap on the most recent meetings", () => {
+    const events = [
+      event({ id: "a-old", contactId: "c-old", startTime: "2026-06-01T15:00:00.000Z" }),
+      event({ id: "a-new", contactId: "c-newest", startTime: "2026-08-20T15:00:00.000Z" }),
+    ];
+    expect(contactsToLookUp(events, new Map(), leads, 1)).toEqual(["c-newest"]);
+  });
+
+  it("asks about one contact once, however many meetings it has", () => {
+    const events = [
+      event({ id: "a-1", contactId: "c-twice" }),
+      event({ id: "a-2", contactId: "c-twice", startTime: "2026-08-04T15:00:00.000Z" }),
+    ];
+    expect(contactsToLookUp(events, new Map(), leads, 15)).toEqual(["c-twice"]);
   });
 });
 

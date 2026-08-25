@@ -220,6 +220,41 @@ export function nameFromContact(contact: GhlContactRecord | null | undefined): s
 // stored name with the contact's own, and whether it is worth asking
 // GoHighLevel for that contact again. A name it does not recognise is left
 // alone, which is the safe direction.
+// Which contacts this pass has to ask GoHighLevel about.
+//
+// One read each, so the gate is simply: we do not already know this meeting's
+// company. The lead book answers for free where it has one, and a business name
+// already stored is never looked up again.
+//
+// A contact that turns out to have NO company (a person: an onboarding call, an
+// internal one) is therefore asked about on every pass, and that is the deal
+// being taken deliberately. The gate tried being cleverer than this and skipped
+// any row whose stored name already read like a name, which quietly excluded
+// every row the fix was FOR: "Mohamad Heating & Cooling" looks like a name and
+// is half a company. The alternative is a column recording that we looked and
+// found nothing, and a schema change to store a negative is the worse trade on
+// a calendar this size.
+//
+// Most recent first, so when there are more than the cap allows, the meetings
+// somebody is actually looking at are the ones that get named.
+export function contactsToLookUp(
+  events: CalendarEvent[],
+  existing: Map<string, { business_name: string | null }>,
+  leadByContact: Map<string, BookableLead>,
+  cap: number,
+): string[] {
+  const wanted = new Set<string>();
+  const ordered = [...events].sort((a, b) => (b.startTime ?? "").localeCompare(a.startTime ?? ""));
+  for (const event of ordered) {
+    if (wanted.size >= cap) break;
+    if (!event.contactId) continue;
+    if (businessFromLead(leadByContact.get(event.contactId))) continue;
+    if ((existing.get(event.id)?.business_name ?? "").trim()) continue;
+    wanted.add(event.contactId);
+  }
+  return [...wanted];
+}
+
 export function isCalendarFurniture(name: string): boolean {
   const n = name.trim();
   if (!n) return true;
@@ -376,29 +411,11 @@ export async function syncAgencyMeetings(
   }
   const leadByContact = new Map(leads.filter((l) => l.ghl_contact_id).map((l) => [l.ghl_contact_id, l]));
 
-  // The contacts whose company we still do not know. One GoHighLevel read each,
-  // and only for the meetings that need one: a row that already has a business
-  // name is never asked about again, and neither is one whose stored name is a
-  // real person's (the contact has no company, and asking again every sync
-  // would buy the same empty answer for ever).
-  const wantContact = new Set<string>();
-  for (const event of events) {
-    if (!event.contactId) continue;
-    if (businessFromLead(leadByContact.get(event.contactId))) continue;
-    const row = existing.get(event.id);
-    if (row && ((row.business_name ?? "").trim() || !isCalendarFurniture(row.prospect_name ?? ""))) {
-      continue;
-    }
-    wantContact.add(event.contactId);
-  }
-  // Hard ceiling. This runs inside a Cloudflare Worker, which allows 50
-  // outbound calls per request and has already spent some on the calendars and
-  // on Supabase. Anything past the cap is simply left for the next page load,
-  // which is why the names fill in rather than failing.
-  const lookups = [...wantContact].slice(0, MAX_CONTACT_LOOKUPS);
   const contacts = new Map<string, GhlContactRecord | null>(
     await Promise.all(
-      lookups.map(async (id) => [id, await fetchContact(gctx, id)] as const),
+      contactsToLookUp(events, existing, leadByContact, MAX_CONTACT_LOOKUPS).map(
+        async (id) => [id, await fetchContact(gctx, id)] as const,
+      ),
     ),
   );
 
