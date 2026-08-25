@@ -16,14 +16,17 @@ import { useEffect, useRef, useState } from "react";
 // finish without reaching for the mouse.
 
 export default function EditableCell({
-  value,
+  value: rawValue,
   onSave,
   placeholder = "·",
   align = "left",
   mono = false,
   ariaLabel,
 }: {
-  value: string;
+  // Null accepted, and flattened once here rather than at each of the columns
+  // that pass one: a lead's niche or city is null in the book when nobody has
+  // filled it in, and an input handed null silently stops being controlled.
+  value: string | null;
   // Called only when the value actually changed, so tabbing across a row does
   // not fire a write per column.
   onSave: (next: string) => void;
@@ -32,6 +35,7 @@ export default function EditableCell({
   mono?: boolean;
   ariaLabel: string;
 }) {
+  const value = rawValue ?? "";
   const [draft, setDraft] = useState(value);
   const dirtyRef = useRef(false);
   const inputRef = useRef<HTMLInputElement | null>(null);

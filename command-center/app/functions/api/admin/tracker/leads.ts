@@ -70,43 +70,97 @@ export interface LeadRow {
   ghl_error?: string | null;
 }
 
-// The columns that have always been here. Kept separate from the GHL link
-// columns below because the two can be out of step: code deploys and database
-// migrations are separate steps, so there is a window where this file wants
-// columns the table does not have yet.
-const SELECT_BASE =
-  "id, first_name, last_name, phone, timezone, status, first_contact_date, source," +
-  " appointment_date, no_answer, last_contact, follow_up_date, email, notes, assigned_to," +
-  " created_at";
+// The one place the table's columns and the browser's field names are paired.
+//
+// Everything that needs either reads it from here: the aliased select the list
+// is streamed to the browser with, the snake_case select the GoHighLevel sync
+// reads rows into, and toLead below. Two copies of this pairing would be two
+// things to keep in step, and a column added to one and not the other would
+// send the list one shape and a written row another.
+//
+// Grouped because code deploys and database migrations are separate steps, so
+// there is a window where this file wants columns the table does not have yet.
+// The groups are dropped newest-first when that happens.
 
-const SELECT_GHL = "ghl_contact_id, ghl_synced_at, ghl_error";
+// The columns that have always been here.
+const BASE_COLUMNS = {
+  id: "id",
+  firstName: "first_name",
+  lastName: "last_name",
+  phone: "phone",
+  timezone: "timezone",
+  status: "status",
+  firstContactDate: "first_contact_date",
+  source: "source",
+  appointmentDate: "appointment_date",
+  noAnswer: "no_answer",
+  lastContact: "last_contact",
+  followUpDate: "follow_up_date",
+  email: "email",
+  notes: "notes",
+  assignedTo: "assigned_to",
+  createdAt: "created_at",
+} as const;
 
-// The time of day agreed for a callback (0064). Its own group for the same
-// reason as the two below: this file will want it before the migration that
-// adds it has necessarily run.
-const SELECT_TIME = "follow_up_time";
+// The link into the agency's own GHL account (0053).
+const GHL_COLUMNS = {
+  ghlContactId: "ghl_contact_id",
+  ghlSyncedAt: "ghl_synced_at",
+  ghlError: "ghl_error",
+} as const;
 
-// Who the prospect is (0059). A third group rather than folded into the base,
-// for the same reason the GHL columns are separate: this file will want them
-// before the migration that adds them has necessarily run.
-const SELECT_BUSINESS = "business_name, niche, website, city, state";
+// Who the prospect is (0059).
+const BUSINESS_COLUMNS = {
+  businessName: "business_name",
+  niche: "niche",
+  website: "website",
+  city: "city",
+  state: "state",
+} as const;
 
-export const SELECT = `${SELECT_BASE}, ${SELECT_GHL}, ${SELECT_BUSINESS}, ${SELECT_TIME}`;
+// The time of day agreed for a callback (0064).
+const TIME_COLUMNS = { followUpTime: "follow_up_time" } as const;
+
+// Everything, then the optional groups dropped one at a time, newest first. The
+// lead book is the surface a caller works all day: loading it without a sync
+// marker or without a niche is a small loss, and not loading it at all is the
+// whole job stopped.
+const COLUMN_LADDER: Record<string, string>[] = [
+  { ...BASE_COLUMNS, ...GHL_COLUMNS, ...BUSINESS_COLUMNS, ...TIME_COLUMNS },
+  { ...BASE_COLUMNS, ...GHL_COLUMNS, ...BUSINESS_COLUMNS },
+  { ...BASE_COLUMNS, ...GHL_COLUMNS },
+  { ...BASE_COLUMNS },
+];
+
+// PostgREST renames a column on the way out with `alias:column`. That one piece
+// of syntax is what lets the list reach the browser without this Worker reading
+// a row of it: what Postgres sends back is already the shape the client wants,
+// so it can be piped through untouched. See onRequestGet.
+function aliased(columns: Record<string, string>): string {
+  return Object.entries(columns)
+    .map(([field, column]) => (field === column ? column : `${field}:${column}`))
+    .join(",");
+}
+
+export const LIST_SELECT = aliased(COLUMN_LADDER[0]);
+const LIST_FALLBACKS = COLUMN_LADDER.map(aliased);
+
+// The client-side names an aliased select asks for. Exported for the test that
+// holds this and toLead to the same shape; nothing at runtime needs it.
+export function listSelectKeys(select: string): string[] {
+  return select.split(",").map((part) => part.split(":")[0]);
+}
+
+// The same columns under their real names, for the callers that read rows into
+// JavaScript rather than streaming them (./leads/sync-ghl.ts, and the writes
+// below, which return one row).
+export const SELECT = Object.values(COLUMN_LADDER[0]).join(", ");
 
 // Postgres "undefined_column". Seen exactly once per migration: between this
 // code shipping and the migration running.
 const UNDEFINED_COLUMN = "42703";
 
-// Try everything, then drop the optional groups one at a time, newest first.
-// The lead book is the surface a caller works all day: loading it without a
-// sync marker or without a niche is a small loss, and not loading it at all is
-// the whole job stopped.
-const FALLBACKS = [
-  `${SELECT_BASE}, ${SELECT_GHL}, ${SELECT_BUSINESS}, ${SELECT_TIME}`,
-  `${SELECT_BASE}, ${SELECT_GHL}, ${SELECT_BUSINESS}`,
-  `${SELECT_BASE}, ${SELECT_GHL}`,
-  SELECT_BASE,
-];
+const FALLBACKS = COLUMN_LADDER.map((columns) => Object.values(columns).join(", "));
 
 async function withGhlFallback<T>(
   run: (select: string) => PromiseLike<{ data: T; error: { code?: string } | null }>,
@@ -308,9 +362,62 @@ export function parseIds(raw: string | null): string[] | null {
   return [...new Set(ids)].slice(0, MAX_IDS);
 }
 
+// PostgREST answers with a bare array; the browser has always been given
+// {leads:[...]}. Wrapping it is two writes around the upstream chunks rather
+// than a re-serialisation, so the envelope costs nothing per row.
+export function leadsEnvelope(rows: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  const reader = rows.getReader();
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(encoder.encode('{"leads":'));
+    },
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) {
+        controller.enqueue(encoder.encode("}"));
+        controller.close();
+        return;
+      }
+      controller.enqueue(value);
+    },
+    cancel(reason) {
+      return reader.cancel(reason);
+    },
+  });
+}
+
+// A PostgREST value used inside `in.(...)`. Quoted, because an id carrying a
+// comma or a bracket would otherwise be read as more filter syntax.
+function quoted(id: string): string {
+  return `"${id.replace(/["\\]/g, "")}"`;
+}
+
+// GET /api/admin/tracker/leads, streamed.
+//
+// This handler does NOT read the rows it returns. Postgres is asked for the
+// camelCase field names the client already wants (LIST_SELECT), and its answer
+// is piped to the browser a chunk at a time.
+//
+// That is the whole point of it, and it is worth stating plainly because the
+// obvious version of this code is what broke. Reading the book into JavaScript
+// costs three full passes over it: supabase-js parses the JSON, .map(toLead)
+// allocates a second object per row, and Response.json serialises it all again.
+// At 746 rows that is ~460KB three times over, which lands on the far side of
+// the CPU budget Cloudflare allows one request on this plan. The Worker was
+// killed before a line of this file ran (error 1102), and the page reported it
+// as "Could not load the book" for a request that never reached the app. It was
+// intermittent rather than dead, which is what made it look like anything else:
+// the same request passes on a warm isolate and fails on a busy one.
+//
+// Streaming makes the cost of this endpoint independent of how many leads there
+// are, which matters because the scraper adds rows every day and any fix that
+// merely made the book smaller would have been a fix with an expiry date.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
-  const client = getServiceClient(ctx.env);
-  if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
+  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = ctx.env;
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return Response.json({ error: "supabase not configured" }, { status: 503 });
+  }
 
   const ids = parseIds(new URL(ctx.request.url).searchParams.get("ids"));
   // Asked for nothing by name: answer without touching the database. The Power
@@ -318,18 +425,42 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   if (ids?.length === 0) return Response.json({ leads: [] });
 
   const admin = ctx.data.admin!;
-  const { data, error } = await withGhlFallback((select) => {
-    let query = client.from("leads").select(select).is("deleted_at", null);
-    if (ids) query = query.in("id", ids);
-    if (admin.role !== "owner") query = query.eq("assigned_to", admin.id);
-    return query.order("created_at", { ascending: false });
-  });
-  if (error) {
-    return Response.json({ error: (error as { message?: string }).message ?? "could not load leads" }, { status: 500 });
+  let last: Response | null = null;
+  // Same ladder as the writes below, for the same reason: a database that has
+  // not run the newest migration yet answers 42703 rather than the book.
+  for (const select of LIST_FALLBACKS) {
+    const params = new URLSearchParams();
+    params.set("select", select);
+    params.set("deleted_at", "is.null");
+    if (ids) params.set("id", `in.(${ids.map(quoted).join(",")})`);
+    // Scoped by role (0049). A caller sees only the rows assigned to them,
+    // filtered HERE rather than in the browser: a caller must not be one
+    // devtools request away from the entire prospect list.
+    if (admin.role !== "owner") params.set("assigned_to", `eq.${admin.id}`);
+    params.set("order", "created_at.desc");
+
+    last = await fetch(`${SUPABASE_URL}/rest/v1/leads?${params}`, {
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        Accept: "application/json",
+      },
+    });
+    if (last.ok && last.body) {
+      return new Response(leadsEnvelope(last.body), {
+        headers: { "content-type": "application/json; charset=utf-8" },
+      });
+    }
+    // Only a missing column is worth asking again for. Anything else is the
+    // same answer however many times it is requested.
+    const body = await last.text();
+    if (!body.includes(UNDEFINED_COLUMN)) {
+      return Response.json({ error: "could not load leads" }, { status: 500 });
+    }
   }
 
-  const leads = ((data ?? []) as unknown as LeadRow[]).map(toLead);
-  return Response.json({ leads });
+  console.error("[tracker/leads] no column set the database accepted", last?.status);
+  return Response.json({ error: "could not load leads" }, { status: 500 });
 };
 
 // POST /api/admin/tracker/leads: add a row. A bare {} creates the blank New

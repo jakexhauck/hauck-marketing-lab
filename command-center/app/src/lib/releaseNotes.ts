@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-25-lead-book-streamed",
+    date: "25 August 2026",
+    title: "\"Could not load the book\" is gone from Assign leads too",
+    items: [
+      "Assign leads was the last page still downloading the whole book in one piece, and it was failing the same way the Power dialer used to: killed by Cloudflare before it reached the app, so the page said it could not load the book for a request nobody here ever saw.",
+      "It was intermittent rather than broken, which is what made it hard to pin down. The same press worked at nine and failed at ten, and reloading sometimes fixed it, which is exactly what a request sitting a hair over the limit looks like.",
+      "The list is now passed straight from the database to your browser instead of being unpacked and repacked on the way. The work the server does no longer depends on how many leads there are, so this cannot come back as the scraper fills the book up.",
+      "Nothing about the page changes. Same 746 rows, same columns, same filters, same drag to select.",
+    ],
+  },
+  {
     id: "2026-08-25-sales-data-company-name",
     date: "25 August 2026",
     title: "Sales Data names the company, and the column fits it",

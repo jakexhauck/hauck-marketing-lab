@@ -870,7 +870,7 @@ function ProspectFacts({ lead }: { lead: AdminLead }) {
           className="inline-flex items-center gap-1 text-brand hover:underline"
         >
           <Globe size={12} aria-hidden />
-          {lead.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+          {href.replace(/^https?:\/\//, "").replace(/\/$/, "")}
         </a>
       )}
     </div>
@@ -880,7 +880,7 @@ function ProspectFacts({ lead }: { lead: AdminLead }) {
 // Bought lists write a website every way there is. Anything with a dot is
 // treated as a domain and given a scheme; anything else is not a link and is
 // not rendered as one.
-function websiteHref(website: string): string | null {
+function websiteHref(website: string | null): string | null {
   const raw = (website ?? "").trim();
   if (!raw || !raw.includes(".")) return null;
   return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;

@@ -1285,11 +1285,15 @@ export interface AdminLead {
   notes: string;
   // Who the business is (0059). The book calls businesses, not people: before
   // these existed the company name was buried in notes and the niche in source.
-  businessName: string;
-  niche: string;
-  website: string;
-  city: string;
-  state: string;
+  //
+  // Nullable because the list is streamed straight out of Postgres now (see
+  // functions/api/admin/tracker/leads.ts): nothing rewrites a NULL into "" on
+  // the way past any more, so the type says what the column says.
+  businessName: string | null;
+  niche: string | null;
+  website: string | null;
+  city: string | null;
+  state: string | null;
   // Whose queue this lead sits in (0049). Null = in the book, on nobody's list.
   assignedTo: string | null;
   createdAt: string;
