@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { BOOK_TAGS, OWNED_TAGS, planContactTags, tagForStatus } from "./coldCallTags";
+import {
+  BOOK_TAGS,
+  leavesTheDialer,
+  OWNED_TAGS,
+  planContactTags,
+  tagForStatus,
+} from "./coldCallTags";
 import { ALL_CC_TAGS, CC_TAGS } from "./agencyGhl";
 import { NEW_LEAD_TAG } from "./leadScraper";
 
@@ -99,5 +105,43 @@ describe("planContactTags", () => {
       apply: [CC_TAGS.callBack],
       remove: [],
     });
+  });
+});
+
+describe("leavesTheDialer", () => {
+  // Live evidence, 2026-08-25. The dialer's list is a filter on the `Power
+  // Dialer` tag and nothing ever took that tag off again, so every company ever
+  // sent stayed on it for ever: of the 685 companies on the list, 559 had
+  // already been rung. 302 of those were a flat no, 15 had agreed a callback
+  // and 5 had booked. Jake was being handed the same businesses over and over.
+  it("takes a company off the list once the call is finished with", () => {
+    expect(leavesTheDialer("not_qualified")).toBe(true);
+    expect(leavesTheDialer("opener_no")).toBe(true);
+    expect(leavesTheDialer("pitch_no")).toBe(true);
+    expect(leavesTheDialer("not_in_niche")).toBe(true);
+    expect(leavesTheDialer("gatekeeper")).toBe(true);
+    expect(leavesTheDialer("booked")).toBe(true);
+  });
+
+  it("takes a company off the list when a callback is agreed", () => {
+    // The callback is a task in GoHighLevel at the agreed hour. Leaving them on
+    // the dialer as well would ring them at some other time instead, which is
+    // the one thing a caller has just promised not to do.
+    expect(leavesTheDialer("callback")).toBe(true);
+  });
+
+  it("LEAVES a no answer on the list, because they are still owed a call", () => {
+    // Nobody picked up, so the conversation has not happened. 233 of the 559
+    // were exactly this, and taking them off would end the second attempt
+    // rather than end the duplicates.
+    expect(leavesTheDialer("no_answer")).toBe(false);
+  });
+
+  it("leaves a company alone when the outcome means nothing here", () => {
+    // A new button, or a typo. Neither is a reason to quietly clear somebody
+    // out of a queue Jake is working.
+    expect(leavesTheDialer("pending")).toBe(false);
+    expect(leavesTheDialer("")).toBe(false);
+    expect(leavesTheDialer("brush_off")).toBe(false);
   });
 });

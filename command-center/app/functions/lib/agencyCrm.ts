@@ -8,6 +8,8 @@ import {
   tagsForOutcome,
 } from "./agencyGhl";
 import { zonedTimeToUtcMs } from "./tz";
+import { leavesTheDialer, POWER_DIALER_TAG, powerDialerWorkflowName } from "./coldCallTags";
+import { pickBridgeWorkflow, type GhlWorkflowSummary } from "./coldCallBridge";
 
 // Pushing the agency's own cold calling into its GoHighLevel account.
 //
@@ -218,9 +220,62 @@ export async function pushColdCallOutcome(
       );
     }
 
+    // And out of the dialer's queue, for an outcome that finishes the call.
+    // Never throws, so a queue that cannot be cleared does not turn a recorded
+    // outcome into an error somebody reads mid-shift. See clearFromDialer.
+    if (leavesTheDialer(outcome)) await clearFromDialer(env, ctx, contactId);
+
     return { ok: true, contactId, error: null };
   } catch (err) {
     return { ok: false, contactId, error: readableError(err) };
+  }
+}
+
+// Take a company out of GoHighLevel's power dialer, now that the call is over.
+//
+// The mirror image of send.ts, and the same two steps Return to leads runs for a
+// company nobody has rung (leadReturn.ts). Until this existed nothing ever undid
+// a send: the dialer's list is a filter on POWER_DIALER_TAG, so every company
+// ever sent stayed on it, and 559 of the 685 companies on it had already been
+// called (live count, 2026-08-25).
+//
+// The WORKFLOW first, then the tag. The tag is only the trigger; a manual action
+// the workflow has already created outlives it, so untagging alone leaves the
+// company sitting in the queue while looking as though it had left.
+//
+// Silent on failure, and deliberately. The call has already happened by the time
+// this runs, so the worst a rename or a rate limit may do is leave the company
+// on the list for somebody to take off by hand. Failing the outcome instead
+// would lose the record of a conversation that really took place, which is the
+// one thing this module exists to keep.
+//
+// Three outbound calls, and only for an outcome that ends the call. A no answer
+// does not even ask for the workflow list.
+async function clearFromDialer(
+  env: Env,
+  ctx: ReturnType<typeof getAgencyGhlContext>,
+  contactId: string,
+): Promise<void> {
+  const name = powerDialerWorkflowName(env);
+  try {
+    const res = await ghlJson<{ workflows?: GhlWorkflowSummary[] }>(
+      ctx,
+      `/workflows/?locationId=${encodeURIComponent(ctx.locationId)}`,
+    );
+    const pick = pickBridgeWorkflow(res.workflows ?? [], name);
+    if (!pick.ok) {
+      console.error(`[agencyCrm] "${name}" workflow ${pick.error}, so ${contactId} stays on the dialer`);
+      return;
+    }
+    await ghlJson(ctx, `/contacts/${encodeURIComponent(contactId)}/workflow/${encodeURIComponent(pick.id)}`, {
+      method: "DELETE",
+    });
+    await ghlJson(ctx, `/contacts/${encodeURIComponent(contactId)}/tags`, {
+      method: "DELETE",
+      body: JSON.stringify({ tags: [POWER_DIALER_TAG] }),
+    });
+  } catch (err) {
+    console.error("[agencyCrm] could not take the company off the dialer", contactId, err);
   }
 }
 

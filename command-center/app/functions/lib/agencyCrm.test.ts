@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { pushColdCallOutcome, readableError, toE164, upsertAgencyContact } from "./agencyCrm";
 import { ALL_CC_TAGS, CC_TAGS, tagsForOutcome } from "./agencyGhl";
+import { POWER_DIALER_TAG } from "./coldCallTags";
 import type { Env } from "./env";
 
 const env = {
@@ -356,5 +357,72 @@ describe("readableError", () => {
 
   it("truncates anything else so the console can show it", () => {
     expect(readableError(new Error("x".repeat(400)))).toHaveLength(160);
+  });
+});
+
+describe("pushColdCallOutcome and the dialer's list", () => {
+  // The list is a filter on the `Power Dialer` tag and nothing ever took it off
+  // again, so of the 685 companies on it on 2026-08-25, 559 had already been
+  // rung: 302 flat nos, 15 agreed callbacks, 5 booked meetings, all still being
+  // handed back to the caller. See coldCallTags.leavesTheDialer.
+  const WORKFLOWS = {
+    workflows: [{ id: "wf_pd", name: "1. | Power Dialer", status: "published" }],
+  };
+  const withWorkflows = (url: string) =>
+    url.includes("/workflows/") ? { body: WORKFLOWS } : {};
+
+  const workflowDelete = () =>
+    calls.find((c) => c.method === "DELETE" && c.url.includes("/workflow/"));
+  const dialerUntag = () =>
+    calls.find(
+      (c) =>
+        c.method === "DELETE" &&
+        c.url.endsWith("/tags") &&
+        (c.body.tags as string[] | undefined)?.includes(POWER_DIALER_TAG),
+    );
+
+  it("takes a company off the dialer once the call is finished with", async () => {
+    mockGhl(withWorkflows);
+    await pushColdCallOutcome(env, {
+      lead: lead({ ghlContactId: "c" }),
+      outcome: "not_qualified",
+    });
+    // The workflow first: a manual action already created outlives the tag that
+    // caused it, so untagging alone would leave the company in the queue.
+    expect(workflowDelete()?.url).toContain("/contacts/c/workflow/wf_pd");
+    expect(dialerUntag()).toBeTruthy();
+    expect(calls.indexOf(workflowDelete()!)).toBeLessThan(calls.indexOf(dialerUntag()!));
+  });
+
+  it("takes a company off the dialer when it books", async () => {
+    mockGhl(withWorkflows);
+    await pushColdCallOutcome(env, { lead: lead({ ghlContactId: "c" }), outcome: "booked" });
+    expect(workflowDelete()).toBeTruthy();
+    expect(dialerUntag()).toBeTruthy();
+  });
+
+  it("LEAVES a no answer on the dialer, because they are still owed a call", async () => {
+    mockGhl(withWorkflows);
+    await pushColdCallOutcome(env, { lead: lead({ ghlContactId: "c" }), outcome: "no_answer" });
+    expect(workflowDelete()).toBeUndefined();
+    expect(dialerUntag()).toBeUndefined();
+    // And it does not even ask for the workflow list, which is an outbound call
+    // spent on a question whose answer changes nothing.
+    expect(calls.some((c) => c.url.includes("/workflows/"))).toBe(false);
+  });
+
+  it("still records the outcome when the list cannot be cleared", async () => {
+    // The call has already happened by the time this runs. A workflow somebody
+    // has renamed must not turn a recorded outcome into an error the caller
+    // reads mid-shift; the company simply stays on the list.
+    mockGhl((url) => (url.includes("/workflows/") ? { status: 500 } : {}));
+    const result = await pushColdCallOutcome(env, {
+      lead: lead({ ghlContactId: "c" }),
+      outcome: "pitch_no",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.error).toBeNull();
+    // The outcome tag still landed, which is the part that matters.
+    expect(tagCall("POST")?.body.tags).toEqual([CC_TAGS.notInterested]);
   });
 });

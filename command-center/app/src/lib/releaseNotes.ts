@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-25-off-the-dialer-when-called",
+    date: "25 August 2026",
+    title: "A company you have called comes off the power dialer",
+    items: [
+      "The duplicates are fixed. Sending a company to the dialer put a tag on it and nothing ever took that tag off again, so every company you had ever sent stayed on the list for good and came round to be rung again.",
+      "It had built up: of the 685 companies on the list, 559 had already been called. 302 of them had said no, 15 had agreed a callback and 5 had already booked a meeting with you.",
+      "From now on, pressing any outcome that ends the call takes that company off the list: the nos, Gatekeeper, a booked meeting and a callback. A callback comes off because it is already a task in your diary at the hour you agreed, and leaving it on the dialer would ring it at some other time instead.",
+      "No answer is the one that stays on, on purpose. Nobody picked up, so that company is still owed a call and the list is what gets it one.",
+      "The 559 already on the list are not touched. Clear those in GoHighLevel when you are ready, and nothing new will pile up behind them.",
+    ],
+  },
+  {
     id: "2026-08-25-gatekeeper-and-repeat-cards",
     date: "25 August 2026",
     title: "Gatekeeper button, and the card stops coming back",

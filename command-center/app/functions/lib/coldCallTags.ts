@@ -1,4 +1,4 @@
-import { CC_TAGS, RETIRED_CC_TAGS } from "./agencyGhl";
+import { CC_TAGS, RETIRED_CC_TAGS, tagsForOutcome } from "./agencyGhl";
 import { NEW_LEAD_TAG } from "./leadScraper";
 
 // Making a GoHighLevel list mean the same thing as a page of the Cold Call
@@ -56,8 +56,10 @@ export const OWNED_TAGS: string[] = [...BOOK_TAGS, ...RETIRED_CC_TAGS];
 // can still be one filter on this tag alone.
 //
 // A hand-off rather than a state the app maintains: a workflow on Jake's side
-// watches for it, and nothing here removes it, because what happens to the list
-// once the dialer has worked it is decided over there.
+// watches for it. It used to be applied and never removed, on the understanding
+// that GoHighLevel decided what became of the list afterwards; it did not, and
+// the list grew for ever. An answered call now takes the company back off it.
+// See leavesTheDialer at the foot of this file.
 export const POWER_DIALER_TAG = "Power Dialer";
 
 // The workflow the tag above hands a prospect to, by the name it carries in the
@@ -111,4 +113,41 @@ export function planContactTags(status: string, currentTags: string[]): TagPlan 
   );
 
   return { apply, remove };
+}
+
+// ---------------------------------------------------------------------------
+// Coming back OFF the dialer's list.
+//
+// The list is a filter on POWER_DIALER_TAG, and until now nothing ever took
+// that tag off again: send.ts put it on and said so in as many words ("Nothing
+// here removes the tag"), on the understanding that GoHighLevel would decide
+// what became of the list afterwards. It never did.
+//
+// So the list only ever grew. Measured against the live account on 2026-08-25:
+// of the 685 companies carrying the tag, 559 had ALREADY been rung. 302 of them
+// had said no, 15 had agreed a callback and 5 had booked a meeting. Every one
+// was still being handed back to the caller, which is the duplicates Jake
+// reported.
+//
+// A finished call therefore ends the company's place in the queue, exactly as
+// Return to leads already does for one nobody has rung: out of the workflow
+// first, because a manual action already created outlives the tag that caused
+// it, and only then the tag (see leadReturn.ts, and agencyCrm.ts for the calls).
+//
+// A NO ANSWER is the deliberate exception. The conversation has not happened,
+// so the company is still owed a call, and 233 of those 559 were exactly this:
+// taking them off would have ended the second attempt rather than ended the
+// duplicates.
+//
+// Unknown outcomes stay on. A button this file has not heard of is a reason to
+// leave a queue alone, not to quietly empty somebody out of it.
+const STAYS_ON_THE_DIALER = new Set(["no_answer"]);
+
+// Which outcomes are real is asked of tagsForOutcome rather than answered again
+// here. It already owns that switch, and a second list of the buttons would be
+// a list that drifts the first time one is added.
+export function leavesTheDialer(outcome: string): boolean {
+  const key = (outcome ?? "").trim();
+  if (!key || STAYS_ON_THE_DIALER.has(key)) return false;
+  return tagsForOutcome(key) !== null;
 }

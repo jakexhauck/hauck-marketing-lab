@@ -21,10 +21,12 @@ import { isMobile } from "../../../lib/leadScraper";
 // list, because the two answer different questions: the stage says where they
 // are in the book, this says they are next on the phone.
 //
-// Nothing here removes the tag. What becomes of the list after the dialer has
-// worked through it is decided in GoHighLevel, and a second system quietly
-// taking people off a list somebody is dialling is how a dialer ends up ringing
-// half of what it was given.
+// Nothing HERE removes the tag, and a second system quietly taking people off a
+// list somebody is dialling is still how a dialer ends up ringing half of what
+// it was given. What removes it is the outcome: when a caller has spoken to the
+// company and pressed a button, the conversation is over and its place in the
+// queue ends with it (agencyCrm.clearFromDialer). A no answer stays on the list,
+// because that company is still owed a call.
 //
 // BY HAND ONLY, like the reconcile: it writes to live contact records, so the
 // moment it happens is a moment somebody chose.
