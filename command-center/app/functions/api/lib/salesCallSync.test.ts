@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  businessFromLead,
   isDeadStatus,
   leadBookings,
   nameFromEvent,
@@ -125,6 +126,32 @@ describe("nameFromLead", () => {
   });
 });
 
+describe("businessFromLead", () => {
+  const lead: BookableLead = {
+    id: "lead-1",
+    ghl_contact_id: "c-1",
+    status: "New Lead",
+    appointment_date: null,
+    first_name: "Mohamad",
+    last_name: "Heating & Cooling",
+    business_name: "BM Heating & Cooling",
+  };
+
+  // The Sales Data sheet's Name column reads this and nothing else, so it is
+  // the book's own business_name or it is empty. Guessing a company out of a
+  // person's name is how "Mohamad Heating & Cooling" got printed for a company
+  // called BM Heating & Cooling.
+  it("takes the book's business name", () => {
+    expect(businessFromLead(lead)).toBe("BM Heating & Cooling");
+  });
+
+  it("stays empty rather than guessing one out of the person", () => {
+    expect(businessFromLead({ ...lead, business_name: "  " })).toBe("");
+    expect(businessFromLead({ ...lead, business_name: null })).toBe("");
+    expect(businessFromLead(undefined)).toBe("");
+  });
+});
+
 describe("needsUpdate", () => {
   const row = {
     id: "row-1",
@@ -132,6 +159,7 @@ describe("needsUpdate", () => {
     scheduled_at: "2026-08-03T15:00:00.000Z",
     appointment_status: "confirmed",
     prospect_name: "Tom Hale",
+    business_name: "Hale Roofing",
     ghl_contact_id: "c-1",
     lead_id: null,
   };

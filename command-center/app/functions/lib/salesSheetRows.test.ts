@@ -127,8 +127,23 @@ describe("toSheetCall", () => {
     expect(toSheetCall(call({ reason: "made up" })).objection).toBe("");
   });
 
-  it("falls back to the business when the prospect has no name", () => {
-    expect(toSheetCall(call({ prospectName: "  " })).name).toBe("Hauck Marketing");
+  // The Name column is the COMPANY, and only the company. Jake reads the sheet
+  // by business, and on a cold call row the prospect name is a person split out
+  // of a scraped company anyway ("Mohamad" of BM Heating & Cooling), so a page
+  // of first names is a page nobody can match to a deal.
+  it("names the call after the business, not the person", () => {
+    expect(toSheetCall(call()).name).toBe("Hauck Marketing");
+  });
+
+  // Last resort only. A blank Name column is worse than a person's name, and a
+  // meeting adopted off a calendar with no prospect in the book has nothing
+  // else to offer.
+  it("falls back to the person when no business was recorded", () => {
+    expect(toSheetCall(call({ businessName: "  " })).name).toBe("Jake Hauck");
+  });
+
+  it("says so plainly when it has neither", () => {
+    expect(toSheetCall(call({ businessName: "", prospectName: "" })).name).toBe("Unnamed");
   });
 
   it("carries the notes taken on the call", () => {

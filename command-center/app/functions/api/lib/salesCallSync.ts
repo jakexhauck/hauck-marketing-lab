@@ -53,6 +53,7 @@ interface ExistingRow {
   scheduled_at: string | null;
   appointment_status: string;
   prospect_name: string;
+  business_name: string | null;
   ghl_contact_id: string | null;
   lead_id: string | null;
 }
@@ -151,6 +152,7 @@ export interface BookableLead {
   appointment_date: string | null;
   first_name?: string | null;
   last_name?: string | null;
+  business_name?: string | null;
 }
 
 // What to call an adopted meeting whose prospect is in the book.
@@ -164,6 +166,20 @@ export interface BookableLead {
 export function nameFromLead(lead: BookableLead | undefined): string {
   if (!lead) return "";
   return `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.replace(/\s+/g, " ").trim();
+}
+
+// The company the meeting is with, which is what the Sales Data sheet prints in
+// its Name column (see salesSheetRows.ts:callLabel).
+//
+// The book's own business_name or nothing. There is no falling back to first +
+// last here even though a scraped lead carries its company split across those
+// two: that split is unreliable in exactly the way the Name column cannot
+// afford, and it produced "Mohamad Heating & Cooling" for a company called BM
+// Heating & Cooling. An empty business name leaves the sheet to fall back to
+// the prospect, which is honest; a guessed one is a company that does not
+// exist.
+export function businessFromLead(lead: BookableLead | undefined): string {
+  return (lead?.business_name ?? "").trim();
 }
 
 export interface LeadBooking {
@@ -287,7 +303,7 @@ export async function syncAgencyMeetings(
   const { data, error } = await client
     .from("sales_calls")
     .select(
-      "id, ghl_appointment_id, scheduled_at, appointment_status, prospect_name, ghl_contact_id, lead_id",
+      "id, ghl_appointment_id, scheduled_at, appointment_status, prospect_name, business_name, ghl_contact_id, lead_id",
     )
     .in("ghl_appointment_id", ids);
   if (error) throw new Error(`could not read the existing meetings: ${error.message}`);
@@ -304,7 +320,7 @@ export async function syncAgencyMeetings(
   if (contactIds.length > 0) {
     const { data: leadRows, error: leadError } = await client
       .from("leads")
-      .select("id, ghl_contact_id, status, appointment_date, first_name, last_name")
+      .select("id, ghl_contact_id, status, appointment_date, first_name, last_name, business_name")
       .in("ghl_contact_id", contactIds)
       .is("deleted_at", null);
     if (leadError) throw new Error(`could not read the prospects: ${leadError.message}`);
@@ -332,6 +348,10 @@ export async function syncAgencyMeetings(
         ghl_contact_id: event.contactId || null,
         lead_id: leadId,
         prospect_name: nameFromLead(lead) || nameFromEvent(event),
+        // What the sheet's Name column reads. Empty when the meeting is with
+        // somebody who is not in the cold call book: the calendar knows no
+        // company, and the title is not one.
+        business_name: businessFromLead(lead),
         scheduled_at: event.startTime,
         appointment_status: event.status,
         calendar_id: event.calendarId,
@@ -347,8 +367,19 @@ export async function syncAgencyMeetings(
     // A row adopted before the sync knew how to look the prospect up. Filled in
     // once and never overwritten: a lead_id already on the row was put there by
     // cold-call/book.ts, which knew exactly whose booking it was.
-    const link = !row.lead_id && leadId ? { lead_id: leadId } : null;
-    if (link) result.linked += 1;
+    const backfill: Record<string, unknown> = {};
+    if (!row.lead_id && leadId) {
+      backfill.lead_id = leadId;
+      result.linked += 1;
+    }
+    // And the company, on the same one-way rule: filled in when the row has
+    // none, never overwritten. A row cold-call/book.ts wrote already carries
+    // the business the caller confirmed on the phone, and that beats anything
+    // read back here. This is also what puts a name on every row adopted
+    // before the sync knew to look one up.
+    const business = businessFromLead(lead);
+    if (business && !(row.business_name ?? "").trim()) backfill.business_name = business;
+    const link = Object.keys(backfill).length ? backfill : null;
 
     if (!needsUpdate(row, event)) {
       result.unchanged += 1;

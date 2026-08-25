@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-25-sales-data-business-name",
+    date: "25 August 2026",
+    title: "Sales Data names the company, not the person",
+    items: [
+      "The Name column on Sales Data is now the business. It was showing whoever the meeting was booked against, which on a scraped cold call lead is a person split out of the company name and belongs to nobody.",
+      "Every meeting whose prospect is in the Leads book gets the book's own business name, including the ones already on the sheet: they are filled in the next time the page loads.",
+      "A meeting with nobody in the book behind it still shows the name off the calendar, because a blank line is worse than a first name.",
+    ],
+  },
+  {
     id: "2026-08-24-return-from-dialer",
     date: "24 August 2026",
     title: "Take a company back off the power dialer",

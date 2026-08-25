@@ -98,11 +98,20 @@ export interface SheetCall {
   recordingLink: string;
 }
 
-// What a meeting is called on the sheet. The prospect, falling back to the
-// business, because a line reading "Unnamed" is worse than one reading the
-// company somebody at least typed.
+// What a meeting is called on the sheet: THE BUSINESS.
+//
+// Jake reads this sheet by company, and the prospect name is the wrong fact for
+// it twice over. A cold call lead arrives scraped, with the company split
+// across first_name and last_name, so the "person" on the row is often a
+// fragment of a business that belongs to nobody ("Mohamad" of BM Heating &
+// Cooling). And where it is a real person, a column of first names cannot be
+// matched back to a deal, an invoice or an ad account.
+//
+// The prospect is kept as a last resort and nothing more: a meeting adopted off
+// the calendar with no prospect in the cold call book has no business name to
+// print, and a blank Name column is worse than a person's name.
 export function callLabel(row: SalesCallRow): string {
-  return row.prospectName.trim() || row.businessName.trim() || "Unnamed";
+  return row.businessName.trim() || row.prospectName.trim() || "Unnamed";
 }
 
 export function toSheetCall(row: SalesCallRow): SheetCall {
