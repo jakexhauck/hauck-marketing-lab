@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { US_MAP_VIEWBOX, US_STATE_SHAPES } from "../../../lib/usStatePaths";
 import { regionOf, REGION_LABEL, type Region } from "../../../lib/usRegions";
 import type { CoverageLevel, StateCoverage } from "../../../lib/stateCoverage";
@@ -28,12 +28,19 @@ import type { CoverageLevel, StateCoverage } from "../../../lib/stateCoverage";
 // Below this many square viewBox units a state has no room for two characters
 // inside it without the text spilling across its borders.
 //
-// Measured against the generated areas, not guessed. It falls between
-// Massachusetts (799) and New Hampshire (920), which silences exactly the seven
-// that were unreadable in the northeast pile-up: DC, RI, DE, CT, HI, NJ, MA.
-// Those states are still hoverable, clickable and named in their tooltip; they
-// simply do not carry two characters wider than the shape underneath them.
-const LABEL_MIN_AREA = 900;
+// Measured against the generated areas at the size the map is actually drawn,
+// which is the part that matters: the map is capped at 560px against a 975-unit
+// viewBox, so every label is rendered at roughly 0.57 of its nominal size and
+// the shapes shrink with it. An earlier 900 was calibrated against the full-
+// width map and let Vermont (959) and New Hampshire (920) through, where they
+// overprinted each other into "VTNH", and let Maryland (1055) place its label
+// half outside its own coastline.
+//
+// 2000 sits between Maryland and West Virginia (2412). It silences ten: DC, RI,
+// DE, CT, HI, NJ, MA, NH, VT, MD. Every one of them is still hoverable,
+// clickable, focusable and named in its tooltip; none of them carries two
+// characters wider than the shape underneath.
+const LABEL_MIN_AREA = 2000;
 
 // Depth is fill opacity, so the floor is not a style choice: at 0.08 a cold
 // state on a light background had no fill and, with a white border, no edge
@@ -83,7 +90,12 @@ function tooltip(code: string, name: string, row: StateCoverage | undefined): st
 }
 
 export default function UsStateMap({ coverage, picked, onToggle, onClear }: UsStateMapProps) {
-  const [hover, setHover] = useState<string | null>(null);
+  // There is deliberately NO hover state here. An earlier cut kept the hovered
+  // code in React purely to brighten that state's label, which meant two
+  // setState calls every time the pointer crossed a border, each re-rendering
+  // all fifty-one paths and every label. Sweeping the mouse over the country was
+  // hundreds of full re-renders of a ninety-node SVG, and it was as slow as that
+  // sounds. Hover is a CSS concern; nothing about it belongs in a render.
 
   // Picked states are drawn last so their outline sits above a neighbour's fill.
   // Without this the ring around Utah is cut in half by Nevada wherever they
@@ -152,8 +164,6 @@ export default function UsStateMap({ coverage, picked, onToggle, onClear }: UsSt
                   onToggle(s.code);
                 }
               }}
-              onMouseEnter={() => setHover(s.code)}
-              onMouseLeave={() => setHover((h) => (h === s.code ? null : h))}
             >
               <title>{tooltip(s.code, s.name, row)}</title>
             </path>
@@ -166,7 +176,7 @@ export default function UsStateMap({ coverage, picked, onToggle, onClear }: UsSt
         {US_STATE_SHAPES.filter((s) => s.area >= LABEL_MIN_AREA).map((s) => (
           <text
             key={s.code}
-            className={`um-label${picked.has(s.code) ? " on" : ""}${hover === s.code ? " hot" : ""}`}
+            className={`um-label${picked.has(s.code) ? " on" : ""}`}
             x={s.cx}
             y={s.cy}
             textAnchor="middle"
@@ -193,12 +203,16 @@ function MapStyle() {
 .um-clear { margin-left: auto; appearance: none; border: 1px solid var(--pk-line, rgba(148,163,184,0.28)); border-radius: 9px; background: transparent; color: inherit; font: inherit; font-size: 12px; padding: 5px 11px; cursor: pointer; }
 .um-clear:hover { border-color: var(--ls-indigo, #6366f1); color: var(--ls-indigo, #6366f1); }
 
-.um-svg { width: 100%; height: auto; display: block; border: 1px solid var(--pk-line, rgba(148,163,184,0.22)); border-radius: 11px; background: var(--pk-surface, rgba(148,163,184,0.05)); }
+/* Capped rather than full width. At the width of this surface the map was
+   nearly six hundred pixels tall and pushed the city list under the fold, which
+   is the wrong way round: the map is how you narrow the list, not the thing you
+   came to read. A smaller SVG also repaints a smaller area on hover. */
+.um-svg { width: 100%; max-width: 560px; height: auto; display: block; border: 1px solid var(--pk-line, rgba(148,163,184,0.22)); border-radius: 11px; background: var(--pk-surface, rgba(148,163,184,0.05)); }
 
 /* A real line, not the page background. Borders drawn in --pk-bg vanish the
    moment the fill behind them is pale, which took the whole Mountain West off
    the map on a light theme. */
-.um-state { stroke: rgba(100,116,139,0.5); stroke-width: 0.75; cursor: pointer; transition: fill-opacity 120ms ease, stroke 120ms ease; outline: none; }
+.um-state { stroke: rgba(100,116,139,0.5); stroke-width: 0.75; cursor: pointer; transition: fill-opacity 120ms ease; outline: none; }
 .um-state:hover { fill-opacity: 0.75; stroke: var(--ls-indigo, #6366f1); stroke-width: 1.5; }
 .um-state:focus-visible { stroke: var(--ls-indigo, #6366f1); stroke-width: 2.5; }
 /* Worked for another trade, never for this one. Cold by the numbers, and the
@@ -206,9 +220,8 @@ function MapStyle() {
 .um-state.open { stroke: var(--ls-indigo, #6366f1); stroke-width: 1.25; stroke-dasharray: 4 3; }
 .um-state.on { stroke: var(--ls-indigo, #6366f1); stroke-width: 2.5; stroke-dasharray: none; }
 
-.um-label { font-size: 12px; font-weight: 600; fill: #0f172a; opacity: 0.55; pointer-events: none; paint-order: stroke; stroke: var(--pk-bg, #fff); stroke-width: 2.5px; stroke-linejoin: round; }
+.um-label { font-size: 16px; font-weight: 600; fill: #0f172a; opacity: 0.55; pointer-events: none; paint-order: stroke; stroke: var(--pk-bg, #fff); stroke-width: 2.5px; stroke-linejoin: round; }
 .um-label.on { opacity: 1; fill: var(--ls-indigo, #4338ca); }
-.um-label.hot { opacity: 1; }
 `}</style>
   );
 }
