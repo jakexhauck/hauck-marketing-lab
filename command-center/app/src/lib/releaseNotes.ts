@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-26-pick-cities-off-a-map",
+    date: "26 August 2026",
+    title: "Pick the cities to scrape off a map",
+    items: [
+      "Leads > Cities and step 3 of a new scrape now open on a map of the United States. Click a state and the city list underneath narrows to it. Click as many states as you want, and click them again to drop them.",
+      "The states are shaded by how hard the trade you have selected has already been worked there. Pale is open ground, solid has been picked over. Switch trades and the whole map redraws, so a state worked to death for garage doors shows up empty again for windows.",
+      "The colour tells you when you can ring them: blue is the West, amber is Central, green is the East.",
+      "A state with a dashed outline is the one worth taking. It means we have scraped it before, but never for the trade you have picked.",
+      "Hover any state for its numbers: runs, leads, and how many of its cities carry any.",
+      "The State dropdown is gone. The map does that job now.",
+    ],
+  },
+  {
     id: "2026-08-25-off-the-dialer-when-called",
     date: "25 August 2026",
     title: "A company you have called comes off the power dialer",

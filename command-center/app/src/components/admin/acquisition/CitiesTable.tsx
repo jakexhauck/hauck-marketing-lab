@@ -4,6 +4,8 @@ import { useLeadCities } from "../../../hooks/useApi";
 import { useNichePresets } from "../../../hooks/useLeadScraper";
 import { cityKey } from "../../../lib/leadScraper";
 import { nicheLabels, cityCoverage, type Coverage } from "../../../lib/cityCoverage";
+import { rollUpStates } from "../../../lib/stateCoverage";
+import UsStateMap from "./UsStateMap";
 import type { LeadCity } from "../../../lib/api";
 
 // Leads > Cities. Every city we have touched, and what we did there, so picking
@@ -112,7 +114,14 @@ export interface CityPicker {
 export default function CitiesTable({ picker }: { picker?: CityPicker } = {}) {
   const [niche, setNiche] = useState("");
   const [q, setQ] = useState("");
-  const [state, setState] = useState("");
+  // Which states the map has selected. A Set and not a single code, because the
+  // question the map is there to answer is "these four states", and picking them
+  // one at a time through a dropdown was the thing it replaced.
+  //
+  // Empty means no narrowing at all rather than nothing shown. The map is a
+  // filter over the list, not a gate in front of it, so the Cities view still
+  // opens on everything we have.
+  const [states, setStates] = useState<Set<string>>(() => new Set());
   const [status, setStatus] = useState<Status>("all");
   const [sort, setSort] = useState<SortKey>("rank");
   const [desc, setDesc] = useState(false);
@@ -127,10 +136,17 @@ export default function CitiesTable({ picker }: { picker?: CityPicker } = {}) {
   const niches = query.data?.niches ?? [];
   const labels = useMemo(() => nicheLabels(presets.data?.presets), [presets.data]);
 
-  const states = useMemo(
-    () => [...new Set(cities.map((c) => c.stateCode).filter(Boolean))].sort(),
-    [cities],
-  );
+  // What the map paints. Rolled up from the same rows the table below renders,
+  // so the shading and the list can never tell different stories about a state.
+  const stateCoverage = useMemo(() => rollUpStates(cities), [cities]);
+
+  const toggleState = (code: string) =>
+    setStates((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
 
   // "Open for this trade" is only a question once a trade is chosen. Clearing
   // the trade while it is selected would otherwise leave the table empty with no
@@ -148,7 +164,7 @@ export default function CitiesTable({ picker }: { picker?: CityPicker } = {}) {
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const rows = cities.filter((c) => {
-      if (state && c.stateCode !== state) return false;
+      if (states.size > 0 && !states.has(c.stateCode)) return false;
       if (!matchesStatus(c, status)) return false;
       if (needle && !c.city.toLowerCase().includes(needle) && !c.stateName.toLowerCase().includes(needle))
         return false;
@@ -172,7 +188,7 @@ export default function CitiesTable({ picker }: { picker?: CityPicker } = {}) {
           return dir * (rankOf(a) - rankOf(b));
       }
     });
-  }, [cities, q, state, status, sort, desc]);
+  }, [cities, q, states, status, sort, desc]);
 
   const touched = cities.filter((c) => cityCoverage(c) !== "cold").length;
 
@@ -202,6 +218,13 @@ export default function CitiesTable({ picker }: { picker?: CityPicker } = {}) {
     <div className="lc">
       <CitiesStyle />
 
+      <UsStateMap
+        coverage={stateCoverage}
+        picked={states}
+        onToggle={toggleState}
+        onClear={() => setStates(new Set())}
+      />
+
       <div className="lc-bar">
         <label className="lc-search">
           <Search size={15} aria-hidden />
@@ -214,14 +237,9 @@ export default function CitiesTable({ picker }: { picker?: CityPicker } = {}) {
           />
         </label>
 
-        <select value={state} onChange={(e) => setState(e.target.value)} aria-label="State">
-          <option value="">All states</option>
-          {states.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+        {/* The State dropdown that used to sit here is the map now. Leaving both
+            would have meant two controls answering one question, and the one you
+            could not see would silently be narrowing the other. */}
 
         <select
           value={status}
