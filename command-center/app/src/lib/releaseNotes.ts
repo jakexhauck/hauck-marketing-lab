@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-27-stop-a-scrape",
+    date: "27 August 2026",
+    title: "Stop a scrape",
+    items: [
+      "A scrape that is running now has a Stop button on it, in Leads. Press it once to arm it and again to stop the run.",
+      "It stops straight away, so you can start the next scrape immediately, and the machine doing the scraping notices within a minute or so and puts its tools down.",
+      "Everything the run had already found stays where it is: the leads it collected are on the Leads page as usual.",
+      "This also clears a scrape that says it is running when nothing is actually working on it, which used to need somebody in the database.",
+    ],
+  },
+  {
     id: "2026-08-26-pick-cities-off-a-map",
     date: "26 August 2026",
     title: "Pick the cities to scrape off a map",

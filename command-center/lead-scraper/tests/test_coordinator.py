@@ -220,3 +220,89 @@ class TheWatcherOutlivesTheOffSwitch(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class StopPressedOnThePage(unittest.TestCase):
+    """The other off switch, and why it is not the same one.
+
+    data/.stop pauses: the run returns to 'queued' and the next poll resumes it.
+    Stop in the app ends the run, and it says so by writing 'cancelled' on the
+    row. The runner reads the row rather than any second switch, which is what
+    makes a run stranded at 'running' by a killed runner stop the same way a live
+    one does.
+    """
+
+    class Store:
+        def __init__(self, row):
+            self.row = row
+            self.patches = []
+            self.raises = False
+
+        def get_run(self, run_id):
+            if self.raises:
+                raise RuntimeError("supabase said no")
+            return self.row
+
+        def update_run(self, run_id, patch):
+            self.patches.append((run_id, patch))
+            return patch
+
+    def setUp(self):
+        self.real_store = coordinator.store
+
+    def tearDown(self):
+        coordinator.store = self.real_store
+
+    def use(self, row):
+        coordinator.store = self.Store(row)
+        return coordinator.store
+
+    def test_a_run_still_running_carries_on(self):
+        self.use({"id": "r1", "status": "running"})
+        self.assertFalse(coordinator.cancelled_in_app("r1"))
+
+    def test_a_row_flipped_to_cancelled_stops_it(self):
+        self.use({"id": "r1", "status": "cancelled"})
+        self.assertTrue(coordinator.cancelled_in_app("r1"))
+
+    def test_a_run_row_that_is_gone_stops_it(self):
+        # Scraping into a run that no longer exists writes leads keyed to nothing.
+        self.use(None)
+        self.assertTrue(coordinator.cancelled_in_app("r1"))
+
+    def test_a_database_blip_never_ends_an_hour_long_run(self):
+        store = self.use({"id": "r1", "status": "running"})
+        store.raises = True
+        self.assertFalse(coordinator.cancelled_in_app("r1"))
+
+    def test_a_local_run_with_no_id_asks_nothing(self):
+        self.use({"id": "r1", "status": "cancelled"})
+        self.assertFalse(coordinator.cancelled_in_app(None))
+
+    # The whole point of the second function: a run stopped on the page must not
+    # come back. release_to_queue would have the next poll start it again.
+    def test_a_stopped_run_keeps_its_status_and_is_not_re_queued(self):
+        store = self.use({"id": "r1", "status": "cancelled"})
+        coordinator.keep_cancelled("r1", raw_found=120, kept_count=9)
+        self.assertEqual(len(store.patches), 1)
+        _, patch = store.patches[0]
+        self.assertNotIn("status", patch)
+        self.assertEqual(patch["kept_count"], 9)
+
+    def test_it_keeps_what_the_run_found(self):
+        store = self.use({"id": "r1", "status": "cancelled"})
+        prog = coordinator.Progress("r1", 400)
+        prog.done, prog.raw, prog.kept = 295, 22826, 2021
+        coordinator.keep_cancelled("r1", **prog.as_patch())
+        _, patch = store.patches[0]
+        self.assertEqual(patch["done_queries"], 295)
+        self.assertEqual(patch["raw_found"], 22826)
+
+    def test_a_bookkeeping_failure_never_raises(self):
+        class Broken(self.Store):
+            def update_run(self, run_id, patch):
+                raise RuntimeError("no")
+        coordinator.store = Broken({"id": "r1", "status": "cancelled"})
+        coordinator.keep_cancelled("r1", raw_found=1)   # must not raise
+
+    def test_a_fresh_run_is_not_cancelled(self):
+        self.assertFalse(coordinator.Progress("r1", 10).cancelled)

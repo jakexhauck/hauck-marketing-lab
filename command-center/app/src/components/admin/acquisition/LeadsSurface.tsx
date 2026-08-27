@@ -13,6 +13,7 @@ import {
   Radar,
   Search,
   MessageSquare,
+  Square,
   Table2,
   Undo2,
 } from "lucide-react";
@@ -55,6 +56,7 @@ import {
   useSendLeads,
   useReturnFromDialer,
   useStartRun,
+  useStopRun,
   leadScraperKeys,
   type LeadFilters,
   type SendResult,
@@ -214,6 +216,10 @@ function SubTab({
 
 function RunBanner({ run }: { run: ScrapeRun }) {
   const pending = run.status === "preparing" || run.status === "queued";
+  const stop = useStopRun();
+  // Armed on the first press, done on the second. An hour of scraping is too
+  // much to lose to a mis-click, and the button sits next to nothing else.
+  const [armed, setArmed] = useState(false);
   return (
     <div className={`ls-banner${run.blocked ? " warn" : ""}`}>
       <div className="ls-banner-top">
@@ -224,8 +230,26 @@ function RunBanner({ run }: { run: ScrapeRun }) {
             {run.states.length > 0 ? run.states.join(", ") : `${run.cities.length} cities`}
           </span>
         </div>
-        {run.host && <span className="ls-banner-host">on {run.host}</span>}
+        <div className="ls-banner-right">
+          {run.host && <span className="ls-banner-host">on {run.host}</span>}
+          <button
+            type="button"
+            className={`ls-stop${armed ? " armed" : ""}`}
+            disabled={stop.isPending}
+            onClick={() => (armed ? stop.mutate(run.id) : setArmed(true))}
+            onBlur={() => setArmed(false)}
+          >
+            {stop.isPending ? <Loader2 size={13} className="ls-spin" /> : <Square size={13} />}
+            {armed ? "Stop the run?" : "Stop"}
+          </button>
+        </div>
       </div>
+
+      {stop.isError && (
+        <div className="ls-err">
+          {(stop.error as { body?: { error?: string } })?.body?.error ?? "Could not stop that run."}
+        </div>
+      )}
 
       <div className="ls-bar" role="progressbar" aria-valuenow={run.percent} aria-valuemin={0} aria-valuemax={100}>
         {/* Indeterminate until there is a real denominator: a bar sitting at 0%
@@ -1027,6 +1051,17 @@ function LeadsStyle() {
       }
       .pk-kit .ls-banner-where { font-size: 12px; font-weight: 500; color: var(--text-faint); }
       .pk-kit .ls-banner-host { font-size: 11.5px; color: var(--text-faint); }
+      .pk-kit .ls-banner-right { display: flex; align-items: center; gap: 10px; }
+      .pk-kit .ls-stop {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
+        color: var(--text-muted); background: transparent;
+        border: 1px solid var(--border); cursor: pointer;
+        transition: color .12s ease, border-color .12s ease, background .12s ease;
+      }
+      .pk-kit .ls-stop:hover { color: #dc2626; border-color: #dc2626; }
+      .pk-kit .ls-stop.armed { color: #fff; background: #dc2626; border-color: #dc2626; }
+      .pk-kit .ls-stop:disabled { opacity: .6; cursor: default; }
       .pk-kit .ls-bar { height: 6px; background: var(--ls-indigo-tint); border-radius: 999px; overflow: hidden; margin: 10px 0 8px; }
       .pk-kit .ls-bar-fill { height: 100%; background: var(--ls-indigo); border-radius: 999px; transition: width .4s ease; }
       .pk-kit .ls-bar-fill.indet { width: 34%; animation: ls-slide 1.4s ease-in-out infinite; }

@@ -63,6 +63,35 @@ def stopped():
     return STOP_FILE.read_text(encoding="utf-8-sig", errors="replace").strip() or "stopped by hand"
 
 
+def cancelled_in_app(run_id):
+    """True when Stop was pressed on the page. The run row is the authority.
+
+    There is no second switch to read and no new column: the app ends a run by
+    writing 'cancelled' on the row, so a row that is no longer 'running' is a run
+    somebody stopped. A row that has vanished counts too, since scraping into a
+    run that no longer exists writes leads keyed to nothing.
+
+    This is NOT data/.stop and the difference matters. That file is Jake's own
+    switch on this machine and it PAUSES: the run goes back on the queue and
+    resumes when the file is deleted. Stop on the page ends the run, and the row
+    must be left exactly as the app wrote it.
+
+    A database that cannot be reached answers "not cancelled" and the next
+    keyword asks again. A blip must never end an hour-long run.
+    """
+    if not run_id:
+        return False
+    try:
+        row = store.get_run(run_id)
+    except Exception as e:
+        print(f"  (could not check whether the run was stopped: {e})", file=sys.stderr)
+        return False
+    if row is None:
+        print("  the run row is gone; stopping")
+        return True
+    return row.get("status") != "running"
+
+
 class Progress:
     """Running totals, pushed to scrape_runs so the page's bar means something."""
 
@@ -80,6 +109,7 @@ class Progress:
         self.failure_rate = 0.0
         self.blocked = False
         self.stopped = False   # the walk ended on data/.stop, not on an empty queue
+        self.cancelled = False  # ended by Stop on the page: do NOT re-queue it
 
     @classmethod
     def resumed(cls, run_id, rows, prior=None):
@@ -179,6 +209,11 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
             prog.stopped = True
             save()
             break
+        if cancelled_in_app(run_id):
+            print("stopped from the app")
+            prog.cancelled = True
+            save()
+            break
         pending = [r for r in rows if r["status"] == "pending"]
         if not pending:
             break
@@ -189,6 +224,13 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
         metro_qualified = 0
 
         for kw in sorted({r["keyword"] for r in batch}):        # one run per keyword
+            # Asked once per keyword, not once per batch. A batch is forty
+            # queries across ten keywords and takes the better part of an hour,
+            # and a Stop that waits that long is not a stop.
+            if cancelled_in_app(run_id):
+                print("stopped from the app")
+                prog.cancelled = True
+                break
             kw_rows = [r for r in batch if r["keyword"] == kw]
             queries = sorted({f'{r["keyword"]} {r["location"]}' for r in kw_rows})
 
@@ -233,6 +275,10 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
 
             prog.push()
 
+        if prog.cancelled:
+            save()
+            break
+
         # Thin metro: top up from the directories rather than accept a dud market.
         if head["pass"] == 1 and metro_qualified < fallback.MIN_QUALIFIED:
             if fallback_ok:
@@ -272,6 +318,27 @@ def release_to_queue(run_id, why, **counts):
         print(f"  (could not release run {run_id}: {e})", file=sys.stderr)
     else:
         print(f"  run {run_id} returned to the queue ({why})")
+
+
+def keep_cancelled(run_id, **counts):
+    """Write what a stopped run found, and leave its status alone.
+
+    The opposite of release_to_queue, and the reason both exist. data/.stop
+    PAUSES: the run goes back to 'queued' and the next poll resumes it. Stop on
+    the page ENDS it, and the row already says so, so re-queueing here would have
+    the run start again seconds after Jake stopped it.
+
+    What it found stays: the leads are in the table, the tallies go on the row,
+    and data/queue_<id>.jsonl still holds every finished query, so putting the
+    row back to 'queued' by hand resumes it where it stood rather than from the
+    start.
+    """
+    if not run_id:
+        return
+    try:
+        store.update_run(run_id, counts)
+    except Exception as e:   # never let bookkeeping mask the reason we are here
+        print(f"  (could not write the final tallies for {run_id}: {e})", file=sys.stderr)
 
 
 def run_job(run):
@@ -335,6 +402,11 @@ def run_job(run):
     except Exception as e:
         store.finish_run(run_id, "failed", error=str(e)[:500])
         raise
+
+    if prog.cancelled:
+        keep_cancelled(run_id, **prog.as_patch())
+        print(f"stopped from the app. {prog.done}/{prog.total} queries done")
+        return
 
     if prog.stopped:
         release_to_queue(run_id, "stopped mid-run", **prog.as_patch())

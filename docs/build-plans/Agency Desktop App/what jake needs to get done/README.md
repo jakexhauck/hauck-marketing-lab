@@ -482,3 +482,16 @@ bug, it is the work that only you can do.
 - [ ] **Check a real month against what you remember.** The counts are derived
       from meetings already in the app, so a month that looks light means the
       outcomes were never recorded, not that the month was quiet.
+
+## Stop a scrape (27 August 2026)
+
+- [ ] **Press Stop on a live run once and watch what the runner does.** The row
+      goes 'cancelled' instantly, which is the half you can see. The half you
+      cannot is the runner reading that row between keywords and putting its
+      tools down, which should show in the console as `stopped from the app`
+      within a keyword (about a minute, up to four).
+
+- [ ] **Decide whether a stopped run should be resumable from the page.**
+      Everything it needs is still on disk, so putting the row back to 'queued'
+      resumes it where it stood. Right now that is a database edit; there is no
+      button for it because you have never once asked for one.

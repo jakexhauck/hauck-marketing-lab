@@ -22,7 +22,7 @@ import { toE164 } from "../../../lib/agencyCrm";
 
 // One literal, not a concatenation: supabase-js infers the row type from this
 // string, and a joined expression collapses it to an error type.
-const SELECT =
+export const SELECT =
   "id, niche_id, niche_label, states, cities, size, status, host, error, total_queries, done_queries, raw_found, kept_count, passed_count, sendable_count, new_count, in_crm_count, excluded_count, sent_count, pass_rate, failure_rate, blocked, crm_snapshot_count, crm_snapshot_partial, created_at, started_at, finished_at";
 
 const MAX_CONTACT_PAGES = 50; // 100 per page, so up to 5,000 contacts per sweep

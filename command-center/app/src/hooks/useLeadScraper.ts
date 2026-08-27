@@ -122,6 +122,28 @@ export function useStartRun() {
   });
 }
 
+/**
+ * End a run that is in flight.
+ *
+ * The run row is the authority, so this returns the moment the row is written
+ * rather than waiting on the runner: the banner clears and the wizard unblocks
+ * whether or not a process on Jake's PC is still alive. A runner that IS alive
+ * reads the row between keywords and stops itself.
+ */
+export function useStopRun() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ run: ScrapeRun }>("/api/admin/leads/stop", {
+        method: "POST",
+        body: JSON.stringify({ id }),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: RUNS_KEY });
+    },
+  });
+}
+
 export interface SendResult {
   channel: Channel;
   label: string;
