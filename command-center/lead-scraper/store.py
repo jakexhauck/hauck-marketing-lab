@@ -12,7 +12,7 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import net
 
@@ -74,6 +74,44 @@ def claim_next_run():
         prefer="return=representation",
     )
     return claimed[0] if claimed else None
+
+
+def stranded_runs(host, stale_after_s):
+    """Runs this machine left at 'running' and has not touched since.
+
+    A run pushes its tallies after every keyword, and 0124's trigger stamps
+    updated_at on every write, so "has not moved in a quarter of an hour" is the
+    difference between a run being worked and a run whose runner died.
+
+    Scoped to this host on purpose. A run being worked on the Mac is the Mac's
+    business, and reclaiming it from here would have two machines scraping the
+    same queue.
+    """
+    cutoff = (datetime.now(timezone.utc) - timedelta(seconds=stale_after_s)).isoformat()
+    return _request(
+        "GET",
+        f"/scrape_runs?status=eq.running"
+        f"&host=eq.{urllib.parse.quote(host, safe='')}"
+        f"&updated_at=lt.{urllib.parse.quote(cutoff, safe='')}"
+        f"&select=id,niche_label,done_queries,total_queries,updated_at",
+    )
+
+
+def requeue_if_running(run_id):
+    """Put a run back on the queue, only while it still reads 'running'.
+
+    The status filter travels with the write. Between deciding a run is stranded
+    and saying so, its runner may have come back to life, or Jake may have
+    pressed Stop: either way the row no longer matches and nothing happens, which
+    is the whole point of doing it in one statement.
+    """
+    rows = _request(
+        "PATCH",
+        f"/scrape_runs?id=eq.{urllib.parse.quote(str(run_id), safe='')}&status=eq.running",
+        {"status": "queued"},
+        prefer="return=representation",
+    )
+    return bool(rows)
 
 
 def get_run(run_id):

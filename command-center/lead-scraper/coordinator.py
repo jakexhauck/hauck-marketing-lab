@@ -42,6 +42,45 @@ BATCH = 40                    # queue rows per metro batch (the SOP's number)
 BLOCK_THRESHOLD = 0.20        # failure_rate above this = Google is pushing back
 BAD_METROS_BEFORE_PAUSE = 3
 
+# How hard to push Google, and how long to wait for it to go quiet.
+#
+# Both were measured on 27 August rather than guessed. The scraper is network
+# bound, not compute bound: the machine sits at 3% CPU with four workers going,
+# so four was leaving the line half empty. Against that, observed failure rates
+# across a week of runs were 0.0 to 0.05 with BLOCK_THRESHOLD at 0.20, and the
+# maps-paused guard has never once fired, which is the headroom that makes eight
+# defensible.
+#
+# The inactivity timer is the tail. Per-call time is bimodal: a median of 54s
+# and a p90 of 240s, and 240 is exactly two of the old two-minute windows. Those
+# are calls that finished and then sat waiting for a result that was never
+# coming. A minute is still four times the median call.
+#
+# If Google does start pushing back, the backoff below catches it and the run
+# pauses rather than being blocked outright. Turn these back down before
+# reaching for proxies.
+CONCURRENCY = 8
+INACTIVITY = "60s"
+
+# Picking a run back up after the runner died under it.
+#
+# The watcher is a Windows LOGON task, so it dies whenever the PC restarts or
+# Jake logs out. The run it was working is left reading 'running', and
+# claim_next_run only ever takes 'queued': the watcher comes back at logon, sees
+# an empty queue, and idles for the rest of the day while the Leads page shows a
+# scrape in progress and the wizard refuses to start another one. On 26 August
+# that cost 9.5 hours out of a 16.7 hour run, and it is where nearly all the
+# scraper's missing time has gone.
+#
+# STALE_AFTER has to clear the slowest honest keyword, with room to spare. A
+# keyword that trips the block backoff costs its own call, then 30s, then a retry
+# that can sit on a five minute inactivity timer: about eight minutes at worst.
+# Twenty is two and a half times that. Erring long is nearly free, because the
+# hole this fills is measured in hours; erring short would yank a run out from
+# under a runner that is still working, and put two of them on the same queue.
+REAP_STALE_AFTER = 20 * 60
+REAP_EVERY = 60
+
 # The off switch. `data/.stop` present means no run scrapes anything, whoever
 # starts it and however it is started. Checked at the top of a job AND before
 # every batch, because the thing that needed stopping was a run already going,
@@ -170,7 +209,8 @@ def _note_blocker(message):
 
 def _scrape_with_backoff(queries, out_name, depth, proxies=None):
     """One gosom call, with the SOP's single retry when Google starts throttling."""
-    stats = run_maps.run_gmaps(queries, out_name, depth=depth, concurrency=4, proxies=proxies)
+    stats = run_maps.run_gmaps(queries, out_name, depth=depth, concurrency=CONCURRENCY,
+                               inactivity=INACTIVITY, proxies=proxies)
     if stats["failure_rate"] > BLOCK_THRESHOLD:
         print(f"    failure_rate {stats['failure_rate']} - backing off, one retry")
         time.sleep(30)
@@ -320,6 +360,34 @@ def release_to_queue(run_id, why, **counts):
         print(f"  run {run_id} returned to the queue ({why})")
 
 
+def reap_stranded():
+    """Put back on the queue any run this machine abandoned at 'running'.
+
+    Everything a run needs to resume is on disk, so this costs the batch that was
+    in flight when the runner died and nothing else. Nobody has to notice, and
+    the page stops claiming work is in progress that nothing is doing.
+
+    Never raises: a sweep that cannot run is a poll that reclaims nothing, and
+    the next one is a minute away.
+    """
+    try:
+        rows = store.stranded_runs(store.hostname(), REAP_STALE_AFTER)
+    except Exception as e:
+        print(f"  (could not look for stranded runs: {e})", file=sys.stderr)
+        return 0
+    reclaimed = 0
+    for row in rows:
+        try:
+            if store.requeue_if_running(row["id"]):
+                reclaimed += 1
+                print(f"run {row['id']} was left at 'running' with nothing working it "
+                      f"({row.get('done_queries')}/{row.get('total_queries')} done, "
+                      f"last moved {row.get('updated_at')}); back on the queue")
+        except Exception as e:
+            print(f"  (could not reclaim {row['id']}: {e})", file=sys.stderr)
+    return reclaimed
+
+
 def keep_cancelled(run_id, **counts):
     """Write what a stopped run found, and leave its status alone.
 
@@ -432,6 +500,7 @@ def watch(interval=10, polls=None):
     print(f"watching for queued runs every {interval}s (ctrl-c to stop)")
     said = None
     n = 0
+    last_reap = 0.0
     while polls is None or n < polls:
         n += 1
         why = stopped()
@@ -445,6 +514,13 @@ def watch(interval=10, polls=None):
         if said:
             print("off switch cleared, watching again")
             said = None
+        # Swept before the claim, so a run reclaimed here is picked up on this
+        # same pass. last_reap starts at zero deliberately: the first sweep is
+        # the one that matters, because logon is exactly when the runner that
+        # died is being replaced.
+        if time.monotonic() - last_reap >= REAP_EVERY:
+            last_reap = time.monotonic()
+            reap_stranded()
         try:
             run = store.claim_next_run()
         except Exception as e:

@@ -306,3 +306,95 @@ class StopPressedOnThePage(unittest.TestCase):
 
     def test_a_fresh_run_is_not_cancelled(self):
         self.assertFalse(coordinator.Progress("r1", 10).cancelled)
+
+
+class PickingUpAStrandedRun(unittest.TestCase):
+    """Where nearly all the scraper's missing time went.
+
+    The watcher is a logon task. The PC restarts, the runner dies mid-run, and
+    the row is left at 'running'. claim_next_run only takes 'queued', so the
+    watcher comes back at logon, sees an empty queue and idles all day while the
+    page shows a scrape in progress. On 26 August that cost 9.5 hours out of a
+    16.7 hour run.
+    """
+
+    class Store:
+        def __init__(self, rows):
+            self.rows = rows
+            self.asked = None
+            self.requeued = []
+            self.raises = False
+            self.matched = True
+
+        def hostname(self):
+            return "jake-pc"
+
+        def stranded_runs(self, host, stale_after_s):
+            if self.raises:
+                raise RuntimeError("supabase said no")
+            self.asked = (host, stale_after_s)
+            return self.rows
+
+        def requeue_if_running(self, run_id):
+            self.requeued.append(run_id)
+            return self.matched
+
+    def setUp(self):
+        self.real_store = coordinator.store
+
+    def tearDown(self):
+        coordinator.store = self.real_store
+
+    def use(self, rows):
+        coordinator.store = self.Store(rows)
+        return coordinator.store
+
+    def row(self, run_id="r1"):
+        return {"id": run_id, "niche_label": "Windows and doors installation",
+                "done_queries": 295, "total_queries": 400,
+                "updated_at": "2026-08-27T00:29:00+00:00"}
+
+    def test_it_puts_an_abandoned_run_back_on_the_queue(self):
+        store = self.use([self.row()])
+        self.assertEqual(coordinator.reap_stranded(), 1)
+        self.assertEqual(store.requeued, ["r1"])
+
+    def test_it_asks_only_about_this_machine(self):
+        # A run being worked on the Mac is the Mac's business. Reclaiming it from
+        # here would put two machines on the same queue.
+        store = self.use([])
+        coordinator.reap_stranded()
+        self.assertEqual(store.asked, ("jake-pc", coordinator.REAP_STALE_AFTER))
+
+    def test_the_window_clears_the_slowest_honest_keyword(self):
+        # A keyword that trips the block backoff costs its call, then 30s, then a
+        # retry on a five minute inactivity timer: about eight minutes at worst.
+        self.assertGreaterEqual(coordinator.REAP_STALE_AFTER, 2 * 8 * 60)
+
+    def test_a_run_whose_runner_came_back_is_left_alone(self):
+        # The status filter travels with the write, so a row that no longer reads
+        # 'running' simply does not match.
+        store = self.use([self.row()])
+        store.matched = False
+        self.assertEqual(coordinator.reap_stranded(), 0)
+
+    def test_nothing_stranded_is_the_ordinary_case(self):
+        self.use([])
+        self.assertEqual(coordinator.reap_stranded(), 0)
+
+    def test_a_sweep_that_cannot_run_is_not_a_crash(self):
+        store = self.use([self.row()])
+        store.raises = True
+        self.assertEqual(coordinator.reap_stranded(), 0)   # must not raise
+
+    def test_one_bad_row_does_not_stop_the_rest(self):
+        store = self.use([self.row("r1"), self.row("r2")])
+        calls = []
+        def flaky(run_id):
+            calls.append(run_id)
+            if run_id == "r1":
+                raise RuntimeError("no")
+            return True
+        store.requeue_if_running = flaky
+        self.assertEqual(coordinator.reap_stranded(), 1)
+        self.assertEqual(calls, ["r1", "r2"])

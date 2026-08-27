@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-27-scrapes-pick-themselves-back-up",
+    date: "27 August 2026",
+    title: "Scrapes pick themselves back up, and run faster",
+    items: [
+      "A scrape whose machine restarts or gets logged out no longer sits there dead. It goes back on the queue by itself and carries on from where it stood, within twenty minutes.",
+      "That was where nearly all the missing time went. One run lost nine and a half hours overnight doing nothing, and the page still said it was scraping.",
+      "The scraper now runs eight searches at once instead of four, and stops waiting two minutes for results that are never coming.",
+      "Measured on a live run: the slowest one call in ten went from four minutes to under ninety seconds, with the same results coming back and no sign of Google pushing back.",
+    ],
+  },
+  {
     id: "2026-08-27-stop-a-scrape",
     date: "27 August 2026",
     title: "Stop a scrape",
