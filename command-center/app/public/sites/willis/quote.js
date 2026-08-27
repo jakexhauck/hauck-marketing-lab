@@ -9,7 +9,7 @@
 //     1. Do you live in Metro Detroit?      Yes / No   -> No ENDS IT.
 //     2. What best describes your home?     stories
 //     3. What is your timeline?             ASAP .. 3 months+
-//     4. Address: street, city, ZIP, with the reason we want it said out loud.
+//     4. ZIP code.
 //     5. Name, phone, email -> POST to GHL -> the booking page.
 //   The booking page (booking.js) and the thank-you (thanks.js) are their own
 //   GHL steps. The lead is POSTed here, BEFORE the calendar, so somebody who
@@ -156,17 +156,13 @@
       ]
     },
     {
-      key: "address",
-      kind: "address",
-      q: "What is the address we would be cleaning?",
-      // Jake asked for the reason to be said out loud before the field. People
-      // hand over an address far more readily when they are told it buys them a
-      // price on the phone instead of a salesman on the doorstep.
-      // Three fields rather than one line (Jake, 2026-08-05). One box invites
-      // "Royal Oak" with no number, and it lands in GHL as a single blob that
-      // has to go in a custom field. Split, it maps onto GHL's own contact
-      // address fields, so the crew sees a real address on the contact record.
-      why: "We look up your home before we call, so you get a real price on the phone instead of a rough range. Nobody turns up at your door to guess."
+      key: "zip",
+      kind: "zip",
+      // ZIP only (Jake, 2026-08-27). Street and city were three fields and a
+      // paragraph of justification on the step that costs the most drop-off,
+      // and the ZIP alone answers the only question this funnel has to ask of
+      // an address: can Willis drive to it. The rest is asked on the call.
+      q: "What is your ZIP code?"
     },
     {
       key: "contact",
@@ -397,25 +393,6 @@
   margin:0 0 clamp(14px,2.6vw,20px) !important;
   padding:0 !important;
 }
-#wwq .wq-why {
-  font-family:var(--body) !important;
-  font-size:.94rem !important; font-weight:400 !important;
-  line-height:1.55 !important;
-  color:var(--slate) !important;
-  background:var(--wash) !important;
-  border-left:3px solid var(--sky) !important;
-  border-radius:0 10px 10px 0 !important;
-  padding:12px 14px !important;
-  margin:0 0 16px !important;
-  /* Left, not centred: this is four lines of reasoning, and centred ragged
-     text is measurably slower to read. */
-  text-align:left !important;
-}
-#wwq .wq-why b {
-  font-family:var(--display) !important; font-weight:700 !important;
-  color:var(--navy) !important;
-}
-
 /* ----------------------------------------------------------------- choices */
 #wwq .wq-opts { display:grid !important; gap:10px !important; margin:0 !important; padding:0 !important; }
 #wwq .wq-opt {
@@ -445,20 +422,6 @@
 
 /* ------------------------------------------------------------------ fields */
 #wwq .wq-field { margin:0 0 13px !important; padding:0 !important; }
-
-/* City and ZIP share a line. A ZIP is five characters, and a full-width box
-   for it reads as a field that wants more than it does. */
-#wwq .wq-row {
-  display:grid !important;
-  grid-template-columns:1fr 118px !important;
-  gap:10px !important;
-  margin:0 !important; padding:0 !important;
-}
-/* Below this the two boxes are narrower than a thumb and the ZIP label wraps.
-   Stacked is slower to fill in but it can actually be filled in. */
-@media (max-width:379px) {
-  #wwq .wq-row { grid-template-columns:1fr !important; }
-}
 #wwq .wq-label {
   display:block !important;
   font-family:var(--display) !important;
@@ -501,6 +464,10 @@
   border-color:#C0392B !important;
   box-shadow:0 0 0 4px rgba(192,57,43,.12) !important;
 }
+/* A ZIP is five characters, and a full-width box for it reads as a field that
+   wants more than it does. AFTER .wq-input on purpose: same specificity, both
+   !important, so the one written last is the one that holds. */
+#wwq .wq-zip { max-width:150px !important; }
 
 /* ----------------------------------------------------------------- buttons */
 #wwq .wq-btn {
@@ -704,30 +671,17 @@
       "</div>";
   }
 
-  function addressView(step) {
+  function zipView(step) {
     return '<div class="wq-slot">' +
       '<h2 class="wq-q">' + esc(step.q) + "</h2>" +
-      '<p class="wq-why"><b>Why we ask:</b> ' + esc(step.why) + "</p>" +
       '<form novalidate>' +
         '<div class="wq-field">' +
-          '<label class="wq-label" for="wwqStreet">Street address</label>' +
-          '<input class="wq-input" id="wwqStreet" name="address1" type="text" autocomplete="address-line1" ' +
-            'placeholder="1234 Maple St" enterkeyhint="next">' +
-        "</div>" +
-        '<div class="wq-row">' +
-          '<div class="wq-field">' +
-            '<label class="wq-label" for="wwqCity">City</label>' +
-            '<input class="wq-input" id="wwqCity" name="city" type="text" autocomplete="address-level2" ' +
-              'placeholder="Royal Oak" enterkeyhint="next">' +
-          "</div>" +
-          '<div class="wq-field">' +
-            '<label class="wq-label" for="wwqZip">ZIP code</label>' +
-            // type="text" rather than type="number": a number input shows
-            // spinner arrows, and on desktop a stray scroll over it silently
-            // changes the value. inputmode gets the phone keypad anyway.
-            '<input class="wq-input" id="wwqZip" name="postal_code" type="text" autocomplete="postal-code" ' +
-              'inputmode="numeric" maxlength="5" placeholder="48067" enterkeyhint="next">' +
-          "</div>" +
+          '<label class="wq-label" for="wwqZip">ZIP code</label>' +
+          // type="text" rather than type="number": a number input shows
+          // spinner arrows, and on desktop a stray scroll over it silently
+          // changes the value. inputmode gets the phone keypad anyway.
+          '<input class="wq-input wq-zip" id="wwqZip" name="postal_code" type="text" autocomplete="postal-code" ' +
+            'inputmode="numeric" maxlength="5" placeholder="48067" enterkeyhint="next">' +
         "</div>" +
         '<button type="submit" class="wq-btn">Continue</button>' +
       "</form>" +
@@ -939,7 +893,7 @@
       if (stepTxt) stepTxt.textContent = "Step " + (at + 1) + " of " + TOTAL;
 
       if (step.kind === "choice") slot.innerHTML = choiceView(step, at);
-      else if (step.kind === "address") slot.innerHTML = addressView(step);
+      else if (step.kind === "zip") slot.innerHTML = zipView(step);
       else slot.innerHTML = contactView(step);
 
       bind();
@@ -1022,16 +976,12 @@
         name: String(name).trim(),
         phone: phone,
         email: email,
-        // Split AND combined. The split three map straight onto GHL's own
-        // contact address fields, which is the whole reason the step asks for
-        // them separately; `address` stays because a workflow action or a
-        // notification template that wants one readable line should not have
-        // to concatenate.
-        address: answers.address || "",
-        address1: answers.street || "",
-        city: answers.city || "",
-        // Not asked. Step 1 already turned away everyone outside Metro
-        // Detroit, so a state field could only ever hold one value, and a
+        // Street and city are not asked any more and so are not sent: an
+        // empty address1 would only write a blank over the contact record.
+        // The crew gets the street on the call.
+        //
+        // The state is not asked either. Step 1 already turned away everyone
+        // outside Metro Detroit, so it could only ever hold one value, and a
         // field that cannot vary is friction on a page that costs per click.
         state: "MI",
         postal_code: answers.zip || "",
@@ -1122,7 +1072,8 @@
         b.append("phone", phone);
         b.append("first_name", who.first);
         b.append("last_name", who.last);
-        b.append("city", answers.city || "");
+        // No city: the funnel asks for the ZIP alone, and an empty match
+        // field is dropped rather than hashed (see buildUserData).
         // Same constant the GHL payload sends, and for the same reason: step 1
         // already turned away everyone outside Metro Detroit.
         b.append("state", "MI");
@@ -1176,13 +1127,9 @@
         el.addEventListener("input", function () { el.classList.remove("is-bad"); });
       });
 
-      if (step.kind === "address") {
-        var streetEl = form.querySelector("#wwqStreet");
-        var cityEl = form.querySelector("#wwqCity");
+      if (step.kind === "zip") {
         var zipEl = form.querySelector("#wwqZip");
 
-        if (answers.street) streetEl.value = answers.street;
-        if (answers.city) cityEl.value = answers.city;
         if (answers.zip) zipEl.value = answers.zip;
 
         // Digits only, five of them. A pasted "48067-1234" keeps its first
@@ -1194,25 +1141,11 @@
 
         form.addEventListener("submit", function (e) {
           e.preventDefault();
-          var street = (streetEl.value || "").trim();
-          var city = (cityEl.value || "").trim();
           var zip = (zipEl.value || "").trim();
 
-          // A street number is the one thing that separates an address from a
-          // city name, and a city name cannot be quoted from.
-          if (street.length < 4 || !/\d/.test(street)) {
-            return reject(form, streetEl, "Please add the street address, including the house number.");
-          }
-          if (city.length < 2) return reject(form, cityEl, "Please add your city.");
           if (zip.length !== 5) return reject(form, zipEl, "Please add your 5-digit ZIP code.");
 
-          answers.street = street;
-          answers.city = city;
           answers.zip = zip;
-          // Composed as well as split. Whoever picks up the contact record
-          // wants one line they can read or paste into a map, not three
-          // fields to reassemble in their head.
-          answers.address = street + ", " + city + ", MI " + zip;
 
           at++;
           render();

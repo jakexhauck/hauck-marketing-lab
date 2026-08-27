@@ -64,8 +64,11 @@ around it rather than inventing a value.
    Detroit?" and "No" ends the funnel dead, posting nothing. Ask which question
    DQs, and what the sorry-card should say.
 9. **The service area**, for that card ("about 30 miles of Metro Detroit").
-10. **Do we need the address?** If yes it is three fields (street / city / ZIP),
-    never one box, and it needs a one-line "why we ask" said out loud above it.
+10. **Do we need the address?** Default is the ZIP alone (Jake, 2026-08-27):
+    it answers the only question the survey has to ask, can the client drive
+    there, and the street is asked on the call. Ask for the street and city
+    only if the client genuinely quotes off the property before ringing, and
+    then it is three fields, never one box.
 
 **The appointment**
 11. **The calendar embed code** from GHL.
