@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-10-script-test-counts-every-dial",
+    date: "10 September 2026",
+    title: "The script test counts every dial again",
+    items: [
+      "Variation 5 and Variation 6 said \"Not dialed yet\" while they were being dialed. They now show their real numbers, and so does every other variation.",
+      "The test was reading the dials one at a time and only ever got the first thousand of them, so the newest calls fell off the end of the answer without saying so. Variation 2 was showing 168 of its 234 dials.",
+      "The counting now happens in the database, so the answer stays the same size however many calls get made.",
+      "Nothing was lost: every dial was recorded correctly all along, only the reading of them was short.",
+    ],
+  },
+  {
     id: "2026-08-27-scrapes-pick-themselves-back-up",
     date: "27 August 2026",
     title: "Scrapes pick themselves back up, and run faster",

@@ -76,10 +76,18 @@ export function sameCategory(a: string, b: string): boolean {
   return cleanCategory(a).toLowerCase() === cleanCategory(b).toLowerCase();
 }
 
-// One dial, reduced to what a script test needs to know about it.
-export interface ScriptDialRow {
+// The dials against one script that ended one way, already counted.
+//
+// Grouped rather than one row per dial, and that grouping is the whole point of
+// 0126: this used to read every dial ever recorded, PostgREST caps a response at
+// 1000 rows, and the cap arrived silently. Past 1000 dials the newest variations
+// fell off the end of the answer and reported "Not dialed yet" while somebody
+// was actively dialing them. Grouped, the answer is one row per script per
+// outcome, so it cannot outgrow the cap.
+export interface ScriptDialCount {
   script_id: string | null;
   outcome: string;
+  dials: number;
 }
 
 export interface ScriptStats {
@@ -92,8 +100,8 @@ export interface ScriptStats {
 
 // Below this, a variation reports counts and no percentage.
 //
-// Jake picks the script rather than the app rotating them, so the four will
-// never get equal numbers, and one meeting booked out of four dials is 25% in
+// Jake picks the script rather than the app rotating them, so the variations
+// will never get equal numbers, and one meeting booked out of four dials is 25% in
 // exactly the way that means nothing. Withholding the number under a floor is
 // the difference between a dashboard that informs and one that launders a hunch
 // into the typography of a result.
@@ -103,13 +111,17 @@ export function emptyStats(): ScriptStats {
   return { dials: 0, pickups: 0, booked: 0, bookingRate: null };
 }
 
-// Roll dials up per script.
+// Roll the counted dials up per script.
 //
 // Counting rules are imported from coldCallDials rather than restated, so a
 // "pickup" cannot come to mean one thing on the tracker and another here. A row
 // whose outcome is not one the app knows is counted as a dial and nothing else:
 // it happened, but we will not guess what it was.
-export function statsByScript(rows: ScriptDialRow[]): Record<string, ScriptStats> {
+//
+// The counts come off a database view, so `dials` is trusted only as far as it
+// is a positive number. A null or a negative would otherwise reach a booking
+// rate as arithmetic nobody can explain.
+export function statsByScript(rows: ScriptDialCount[]): Record<string, ScriptStats> {
   const out: Record<string, ScriptStats> = {};
 
   for (const row of rows) {
@@ -117,11 +129,13 @@ export function statsByScript(rows: ScriptDialRow[]): Record<string, ScriptStats
     // A wrong-trade number is not a test of the script (0117). Skipped whole:
     // it must not sit in the denominator of a booking rate.
     if (!countsAsDial(row.outcome)) continue;
+    const n = Number(row.dials);
+    if (!Number.isFinite(n) || n <= 0) continue;
     const stats = (out[row.script_id] ??= emptyStats());
-    stats.dials += 1;
+    stats.dials += n;
     if (!isDialOutcome(row.outcome)) continue;
-    if (DIAL_OUTCOMES[row.outcome].spoke) stats.pickups += 1;
-    if (row.outcome === "booked") stats.booked += 1;
+    if (DIAL_OUTCOMES[row.outcome].spoke) stats.pickups += n;
+    if (row.outcome === "booked") stats.booked += n;
   }
 
   for (const stats of Object.values(out)) {

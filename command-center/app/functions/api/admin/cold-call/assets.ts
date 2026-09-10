@@ -11,7 +11,7 @@ import {
   isDriveFileId,
   statsByScript,
   usesCategory,
-  type ScriptDialRow,
+  type ScriptDialCount,
 } from "../../../lib/coldCallAssets";
 
 // GET    /api/admin/cold-call/assets   -> every live script and asset, with the
@@ -21,7 +21,7 @@ import {
 //                                         (owner)
 // DELETE /api/admin/cold-call/assets   -> remove one            (owner)
 //
-// The shelf a cold caller reads from: four variations of the pitch, plus
+// The shelf a cold caller reads from: the variations of the pitch, plus
 // whatever else Jake files under his own headings. Migration 0058.
 //
 // A caller may GET (they read these while dialing) and nothing else. The role
@@ -35,7 +35,8 @@ import {
 //
 // The numbers on the GET are DERIVED from cold_call_dials on every read, never
 // stored. That is the whole reason the script test is worth having: nobody can
-// type a number next to their favourite script.
+// type a number next to their favourite script. They are read off the grouped
+// view (0126) rather than counted here; see the read itself for why.
 
 const SELECT =
   "id, kind, category, name, html, drive_file_id, drive_title, sort_order, archived_at, updated_at";
@@ -106,16 +107,27 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     return Response.json({ error: "could not read the shelf" }, { status: 500 });
   }
 
-  // Two small columns for the whole history of the test. Fine at this volume; if
-  // the dial table ever grows past comfort, window this by date rather than
-  // sampling it, because a script test with half its dials missing is worse than
-  // no script test.
-  const { data: dialRows } = await client
-    .from("cold_call_dials")
-    .select("script_id, outcome")
-    .not("script_id", "is", null);
+  // The whole history of the test, already counted (0126). One row per script
+  // per outcome, about seventy of them, so the answer stays the same size as the
+  // test rather than the same size as the dialing.
+  //
+  // This read used to be one row per dial. PostgREST caps a response at 1000
+  // rows and reports the cap in a header nothing was reading, so once the table
+  // passed 1000 attributed dials the newest ones stopped arriving and the two
+  // newest variations reported "Not dialed yet" while they were being dialed.
+  // Never count by fetching rows here.
+  const { data: dialRows, error: dialError } = await client
+    .from("cold_call_script_dial_counts")
+    .select("script_id, outcome, dials");
+  if (dialError) {
+    // The shelf still renders, and every variation reads as zero dials, which is
+    // wrong but is the same wrong it has always been here. It is logged so the
+    // next person looking at a page of zeroes has something to find, rather than
+    // spending an afternoon on it the way this bug cost one.
+    console.error("[cold-call/assets] dial counts read failed", dialError.message);
+  }
 
-  const stats = statsByScript((dialRows ?? []) as ScriptDialRow[]);
+  const stats = statsByScript((dialRows ?? []) as ScriptDialCount[]);
   const assets = ((data ?? []) as AssetRow[]).map((r) => shape(r, stats));
 
   return Response.json({ assets });

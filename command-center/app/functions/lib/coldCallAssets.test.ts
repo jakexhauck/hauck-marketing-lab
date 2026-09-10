@@ -10,15 +10,13 @@ import {
   leadingScript,
   sameCategory,
   statsByScript,
-  type ScriptDialRow,
+  type ScriptDialCount,
 } from "./coldCallAssets";
 
-function dials(scriptId: string | null, spec: Record<string, number>): ScriptDialRow[] {
-  const out: ScriptDialRow[] = [];
-  for (const [outcome, n] of Object.entries(spec)) {
-    for (let i = 0; i < n; i++) out.push({ script_id: scriptId, outcome });
-  }
-  return out;
+// Dials arrive pre-grouped, one row per script and outcome, which is the shape
+// the database view hands over.
+function dials(scriptId: string | null, spec: Record<string, number>): ScriptDialCount[] {
+  return Object.entries(spec).map(([outcome, dials]) => ({ script_id: scriptId, outcome, dials }));
 }
 
 describe("kinds", () => {
@@ -66,6 +64,19 @@ describe("statsByScript", () => {
     expect(stats.v1.pickups).toBe(10);
     expect(stats.v1.booked).toBe(5);
     expect(stats.v2).toEqual({ dials: 10, pickups: 0, booked: 0, bookingRate: null });
+  });
+
+  // The reason the rows are grouped at all: the endpoint used to read one row
+  // per dial and PostgREST capped the answer at 1000, so the newest variations
+  // reported nothing. A variation with 234 dials must arrive as one row of 234.
+  it("sums the count on each row rather than counting the rows", () => {
+    const stats = statsByScript([
+      { script_id: "v1", outcome: "no_answer", dials: 900 },
+      { script_id: "v1", outcome: "booked", dials: 100 },
+    ]);
+    expect(stats.v1.dials).toBe(1000);
+    expect(stats.v1.booked).toBe(100);
+    expect(stats.v1.bookingRate).toBeCloseTo(0.1);
   });
 
   it("ignores dials that name no script", () => {

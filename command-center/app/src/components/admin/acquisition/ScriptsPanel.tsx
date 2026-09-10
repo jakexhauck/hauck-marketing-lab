@@ -13,14 +13,14 @@ import ScriptEditor from "../script/ScriptEditor";
 // Cold Call > Management > Scripts: the dialing scripts, how each one is doing,
 // and the objection handling read alongside them.
 //
-// Four variations of one pitch running against each other. Every number on this
+// The variations of one pitch running against each other. Every number on this
 // page is derived from recorded dials (0052 + 0058), so there is deliberately
 // nothing on it anybody can type a count into. That is the whole reason the test
 // is worth running: the script somebody likes and the script that books meetings
 // are allowed to be different, and only one of them can be measured.
 //
 // The one judgement call worth stating: Jake picks the script rather than the
-// app rotating it, so the four will never get equal numbers. A variation under
+// app rotating it, so they will never get equal numbers. A variation under
 // MIN_DIALS_FOR_RATE dials therefore shows how far off it is instead of a
 // percentage. One booking in four calls is 25% in exactly the way that means
 // nothing, and rendering it beside a real rate would let a hunch borrow the
