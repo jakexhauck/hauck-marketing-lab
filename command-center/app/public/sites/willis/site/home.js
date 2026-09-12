@@ -425,7 +425,7 @@
       </div>
       <div class="ww-hero__badges">
         <span class="ww-chip">Licensed &amp; insured</span>
-        <span class="ww-chip">4.9★ from 11 Google reviews</span>
+        <span class="ww-chip">4.9★ from 14 Google reviews</span>
         <span class="ww-chip">0 PPM pure water</span>
         <span class="ww-chip">No ladders</span>
       </div>
@@ -444,8 +444,8 @@
   </div>
   <div class="ww-marquee">
     <div class="ww-marquee__track">
-      <div class="ww-marquee__set"><img src="https://ramshornrestaurants.com/wp-content/uploads/2023/04/logo.png" alt="Ram's Horn Restaurants" loading="lazy" decoding="async"><img src="https://static.showit.co/400/eNzX2eIqSlKKhn0jTkDV6A/shared/labo-completed.png" alt="LaBo Chiropractic" loading="lazy" decoding="async"><img src="https://www.henryford.com/-/media/project/hfhs/henryford/header-logo/hfh-logo-main-(1).svg?iar=0&amp;hash=F6049510E33E4E6D8196C26CCC0A64A4" alt="Henry Ford Health" loading="lazy" decoding="async"><img src="https://cdn.prod.website-files.com/645e0584fe80bc64fc128dd4/692887670bd9d9386811ca00_Asset%206%404x.avif" alt="Brome Modern Eatery" loading="lazy" decoding="async"><img src="https://doc.vortala.com/childsites/uploads/455/files/logo@2x.png" alt="Cousineau Chiropractic" loading="lazy" decoding="async"><img src="https://bc.gmg.io/image/upload/e_trim/f_png/q_auto/c_scale,w_440/v1/media/fourgrounds/fourgrounds-primary" alt="Fourgrounds Coffee" loading="lazy" decoding="async"></div>
-      <div class="ww-marquee__set" aria-hidden="true"><img src="https://ramshornrestaurants.com/wp-content/uploads/2023/04/logo.png" alt="Ram's Horn Restaurants" loading="lazy" decoding="async"><img src="https://static.showit.co/400/eNzX2eIqSlKKhn0jTkDV6A/shared/labo-completed.png" alt="LaBo Chiropractic" loading="lazy" decoding="async"><img src="https://www.henryford.com/-/media/project/hfhs/henryford/header-logo/hfh-logo-main-(1).svg?iar=0&amp;hash=F6049510E33E4E6D8196C26CCC0A64A4" alt="Henry Ford Health" loading="lazy" decoding="async"><img src="https://cdn.prod.website-files.com/645e0584fe80bc64fc128dd4/692887670bd9d9386811ca00_Asset%206%404x.avif" alt="Brome Modern Eatery" loading="lazy" decoding="async"><img src="https://doc.vortala.com/childsites/uploads/455/files/logo@2x.png" alt="Cousineau Chiropractic" loading="lazy" decoding="async"><img src="https://bc.gmg.io/image/upload/e_trim/f_png/q_auto/c_scale,w_440/v1/media/fourgrounds/fourgrounds-primary" alt="Fourgrounds Coffee" loading="lazy" decoding="async"></div>
+      <div class="ww-marquee__set"><img src="https://ramshornrestaurants.com/wp-content/uploads/2023/04/logo.png" alt="Ram's Horn Restaurants" loading="lazy" decoding="async"><img src="https://static.showit.co/400/eNzX2eIqSlKKhn0jTkDV6A/shared/labo-completed.png" alt="LaBo Chiropractic" loading="lazy" decoding="async"><img src="https://www.henryford.com/-/media/project/hfhs/henryford/header-logo/hfh-logo-main-(1).svg?iar=0&amp;hash=F6049510E33E4E6D8196C26CCC0A64A4" alt="Henry Ford Health" loading="lazy" decoding="async"><img src="https://cdn.prod.website-files.com/645e0584fe80bc64fc128dd4/692887670bd9d9386811ca00_Asset%206%404x.avif" alt="Brome Modern Eatery" loading="lazy" decoding="async"><img src="https://doc.vortala.com/childsites/uploads/455/files/logo@2x.png" alt="Cousineau Chiropractic" loading="lazy" decoding="async"><img src="https://bc.gmg.io/image/upload/e_trim/f_png/q_auto/c_scale,w_440/v1/media/fourgrounds/fourgrounds-primary" alt="Fourgrounds Coffee" loading="lazy" decoding="async"><img src="https://thegreekdetroit.com/wp-content/themes/thegreek/img/logo.png" alt="The Greek" style="filter:brightness(0)" loading="lazy" decoding="async"></div>
+      <div class="ww-marquee__set" aria-hidden="true"><img src="https://ramshornrestaurants.com/wp-content/uploads/2023/04/logo.png" alt="Ram's Horn Restaurants" loading="lazy" decoding="async"><img src="https://static.showit.co/400/eNzX2eIqSlKKhn0jTkDV6A/shared/labo-completed.png" alt="LaBo Chiropractic" loading="lazy" decoding="async"><img src="https://www.henryford.com/-/media/project/hfhs/henryford/header-logo/hfh-logo-main-(1).svg?iar=0&amp;hash=F6049510E33E4E6D8196C26CCC0A64A4" alt="Henry Ford Health" loading="lazy" decoding="async"><img src="https://cdn.prod.website-files.com/645e0584fe80bc64fc128dd4/692887670bd9d9386811ca00_Asset%206%404x.avif" alt="Brome Modern Eatery" loading="lazy" decoding="async"><img src="https://doc.vortala.com/childsites/uploads/455/files/logo@2x.png" alt="Cousineau Chiropractic" loading="lazy" decoding="async"><img src="https://bc.gmg.io/image/upload/e_trim/f_png/q_auto/c_scale,w_440/v1/media/fourgrounds/fourgrounds-primary" alt="Fourgrounds Coffee" loading="lazy" decoding="async"><img src="https://thegreekdetroit.com/wp-content/themes/thegreek/img/logo.png" alt="The Greek" style="filter:brightness(0)" loading="lazy" decoding="async"></div>
     </div>
   </div>
 </section>
@@ -572,7 +572,7 @@
     <div class="ww-eyebrow">Reviews</div>
     <h2>What Metro Detroit homeowners say</h2>
     <div class="ww-rating">
-      <span class="ww-stars">★★★★★</span> <b>4.9</b> <span>from 11 Google reviews</span>
+      <span class="ww-stars">★★★★★</span> <b>4.9</b> <span>from 14 Google reviews</span>
     </div>
     <div class="ww-reviews">
   <article class="ww-review">

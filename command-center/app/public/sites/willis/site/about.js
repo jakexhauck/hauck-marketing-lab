@@ -493,7 +493,7 @@
     <div class="ww-eyebrow">Reviews</div>
     <h2>What our customers say</h2>
     <div class="ww-rating">
-      <span class="ww-stars">★★★★★</span> <b>4.9</b> <span>from 11 Google reviews</span>
+      <span class="ww-stars">★★★★★</span> <b>4.9</b> <span>from 14 Google reviews</span>
     </div>
     <div class="ww-reviews">
   <article class="ww-review">
