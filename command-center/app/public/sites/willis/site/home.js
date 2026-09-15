@@ -411,8 +411,8 @@
 <!-- ============ HERO ============ -->
 <section class="ww-hero">
   <div class="ww-hero__media">
-    <!-- PHOTO_HERO = IMG_0907.JPG (landscape) -->
-    <img src="__IMG__hero-pure-water.webp" alt="Willis Windows cleaning a window with a pure-water brush head">
+    <!-- VIDEO_HERO = willis 3.mp4, 720p H.264, no audio; the poster is its first frame -->
+    <video id="wwHeroVideo" src="__IMG__hero.mp4" poster="__IMG__hero-poster.webp" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
   </div>
   <div class="ww-wrap">
     <div class="ww-hero__in">
@@ -732,6 +732,18 @@
         b.setAttribute('aria-expanded',open?'true':'false');
         b.setAttribute('aria-label',open?'Close menu':'Open menu');
       });}
+    })();
+    // Hero video. A <video> set through innerHTML does not reliably honour its
+    // muted attribute, and iOS refuses autoplay unless the PROPERTY is set, so
+    // both are forced here. Reduced motion keeps the still poster instead.
+    (function(){
+      var v=document.getElementById('wwHeroVideo');
+      if(!v) return;
+      v.muted=true;
+      if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+        v.removeAttribute('autoplay'); v.pause(); return;
+      }
+      var p=v.play(); if(p&&p.catch) p.catch(function(){});
     })();
   }
 
