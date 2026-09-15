@@ -31,12 +31,11 @@ const SELECT =
 const PAGE_MAX = 1000;
 
 // The Sent to dialer tab, and the exact inverse of the last condition in
-// CALLABLE_LEAD_FILTER: not a duplicate, a mobile, and handed to Cold Call.
+// CALLABLE_LEAD_FILTER: not a duplicate, and handed to Cold Call.
 // `send_status` is a pattern rather than a value here, so it is applied as a
 // LIKE below rather than living in this match.
 const ON_THE_DIALER_FILTER = {
   in_crm: false,
-  line_type: "wireless",
   sent_to: "cold_call",
 } as const;
 
@@ -125,16 +124,13 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   let query = client
     .from("cold_sms_outreach_numbers")
     .select(SELECT, { count: "exact" })
-    // Not a duplicate, a mobile, and not yet sent. The three together are what
-    // "a lead I can call" means, and they live in CALLABLE_LEAD_FILTER so the
-    // count shown against a run is counted the same way this list is built.
+    // Not a duplicate, and not yet sent. The two together are what "a lead I can
+    // call" means, and they live in CALLABLE_LEAD_FILTER so the count shown
+    // against a run is counted the same way this list is built.
     //
-    // A landline is never shown, on any tab, under any filter. It cannot be sent
-    // (partitionForSend refuses it) and it cannot be dialled, so listing one only
-    // ever offered work that could not be done and made every count read higher
-    // than the number of leads actually there. Jake's call, 21 August 2026: do
-    // not show them, delete them. scripts/purge-landline-leads.mjs does the
-    // deleting; this makes sure a re-scrape cannot put them back on screen.
+    // Landlines are listed. From 21 August to 15 September 2026 they were hidden
+    // on every tab, which kept 4,973 businesses off a list of 6,288. Jake's call:
+    // every business shows.
     //
     // A lead that has gone to the power dialer is finished with this screen. It
     // cannot be sent again, so leaving it in only offered work already done.
@@ -158,9 +154,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   if (imported === "1") query = query.eq("source", IMPORT_SOURCE);
   if (imported === "0") query = query.or(`source.is.null,source.neq.${IMPORT_SOURCE}`);
   if (sent === "0") {
-    // Ready to send narrows the remaining rows to the ones a send will accept.
-    // The mobile half of that rule moved into the base query, because it is now
-    // true of every tab rather than of this filter. What is left is the name.
+    // Ready to send narrows the remaining rows to the ones a send will accept,
+    // which comes down to the name.
     // Filtered rather than stamped because a re-scrape CAN change it (pipeline.py
     // enriches in place and deliberately never writes send_status), so this
     // corrects itself the moment the row does.

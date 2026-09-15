@@ -37,7 +37,7 @@ describe("counting what is left to call on a run", () => {
     await callableByRun(c, ["a"]);
     expect(calls.from).toBe("cold_sms_outreach_numbers");
     expect(calls.match).toEqual(CALLABLE_LEAD_FILTER);
-    expect(calls.match).toEqual({ in_crm: false, line_type: "wireless", send_status: "pending" });
+    expect(calls.match).toEqual({ in_crm: false, send_status: "pending" });
   });
 
   it("asks only about the runs on the page", async () => {

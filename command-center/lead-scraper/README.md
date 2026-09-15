@@ -194,12 +194,12 @@ maximum favourable signals (live website, 5.0 rating, healthy review count) and
 asserts every single one still fails to export. This is what stops a future
 word-list edit from quietly re-opening the junk gate. Keep it green.
 
-## Mobiles only
+## Line type
 
-Every lead is stamped `wireless`, `landline` or `unknown` at scrape time, and both
-send paths (the CSV export and the Leads page's send) refuse anything that is not a
-mobile. A landline is still stored and still visible under the "Everything" filter;
-it simply cannot be put on a list.
+Every lead is stamped `wireless`, `landline` or `unknown` at scrape time. Since
+15 September 2026 that stamp only matters to a text: SMS sends and the CSV export
+refuse anything that is not a mobile. Leads, Cold Call, the power dialer and the Call
+button take every business, landlines included.
 
 The answer comes from NANPA's free public file of who owns each six-digit NPA-NXX
 block. NANPA does not publish a wireless flag, so `linetype.py` derives one from the

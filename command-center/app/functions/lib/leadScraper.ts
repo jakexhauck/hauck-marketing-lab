@@ -242,7 +242,7 @@ export interface SendRejection {
  * The same rules the SOP's exporter enforces, applied here so the in-app send
  * cannot hand out a number the CSV path would have refused: it must be qualified,
  * it must not already have been sent, it must have a business name (a nameless row
- * is a row nobody can open a conversation with), and it must be a mobile.
+ * is a row nobody can open a conversation with), and a text must go to a mobile.
  */
 // The one refusal that outlives a send: it says do not ring them at all, so it
 // also refuses them a place on a dialer's list. Named because two places check
@@ -254,11 +254,14 @@ export interface SendRejection {
 // promising work that is not there.
 //
 //   in_crm      false     already in GoHighLevel: somebody may have rung them
-//   line_type   wireless  a landline cannot be dialled or texted (Jake, 21 Aug)
 //   send_status pending   anything else has been handed to a channel already
+//
+// There was a third, line_type = wireless, from 21 August to 15 September 2026.
+// It hid 4,973 landline businesses against 1,305 mobiles, and a landline is a
+// business that answers the phone. Jake's call: show every business. Only a text
+// still needs a mobile, and partitionForSend keeps that rule for SMS alone.
 export const CALLABLE_LEAD_FILTER = {
   in_crm: false,
-  line_type: "wireless",
   send_status: "pending",
 } as const;
 
@@ -270,10 +273,9 @@ export const DNC_REASON = "On the do-not-contact list";
 // Kept in step with suppress.py's DO_NOT_CONTACT.
 export const DO_NOT_CONTACT = "do_not_contact";
 
-// Landline is a refusal, not a demotion. A cold list is worth having because the
-// number rings in somebody's pocket, and a business's published main line rings on
-// a desk nobody is sitting at. 'unknown' fails with it deliberately: the numbers
-// that land there are toll-free and out-of-country ones, which were never mobiles.
+// A text cannot land on a landline, so SMS still refuses one. 'unknown' fails with
+// it deliberately: the numbers that land there are toll-free and out-of-country
+// ones, which were never mobiles. A call has no such rule: a landline rings.
 export const LANDLINE_REASON = "Not a mobile number";
 
 export function isMobile(lineType: string | null | undefined): boolean {
@@ -283,6 +285,7 @@ export function isMobile(lineType: string | null | undefined): boolean {
 export function partitionForSend(
   leads: ScrapedLead[],
   suppressed: Set<string> = new Set(),
+  { mobileOnly = false }: { mobileOnly?: boolean } = {},
 ): { sendable: ScrapedLead[]; rejected: SendRejection[] } {
   const sendable: ScrapedLead[] = [];
   const rejected: SendRejection[] = [];
@@ -299,7 +302,7 @@ export function partitionForSend(
       rejected.push({ id: lead.id, reason: "Already sent" });
     } else if (!(lead.businessName ?? "").trim()) {
       rejected.push({ id: lead.id, reason: "No business name" });
-    } else if (!isMobile(lead.lineType)) {
+    } else if (mobileOnly && !isMobile(lead.lineType)) {
       rejected.push({ id: lead.id, reason: LANDLINE_REASON });
     } else if (suppressed.has(lead.phoneE164)) {
       rejected.push({ id: lead.id, reason: DNC_REASON });

@@ -47,8 +47,7 @@ export interface ScrapeRun {
   doneQueries: number;
   percent: number;
   rawFound: number;
-  // What is still there to ring on this run: not a duplicate, a mobile, not yet
-  // sent. Counted from the leads table, so it always equals the list you get when
+  // What is still there to ring on this run: not a duplicate, not yet sent. Counted from the leads table, so it always equals the list you get when
   // you click into the run. Null when the count could not be read.
   callable: number | null;
   kept: number;
@@ -262,9 +261,9 @@ export function passRateLabel(run: ScrapeRun): string | null {
 }
 
 // The number that is actually worth reading: how much of what Google returned is
-// left to ring. Kept is what was STORED, counted per write, and two of every three
-// qualified businesses are landlines, so the kept figure reads several times better
-// than the run really did. Null when there is nothing to compare yet.
+// left to ring. Kept is what was STORED, counted per write, so one company found by
+// three keywords counts three times and the kept figure reads better than the run
+// really did. Null when there is nothing to compare yet.
 export function sendRateLabel(run: ScrapeRun): string | null {
   if (run.rawFound === 0 || !run.callable) return null;
   const pct = (run.callable / run.rawFound) * 100;

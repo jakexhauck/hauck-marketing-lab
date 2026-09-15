@@ -16,7 +16,6 @@ import {
   type BridgeFailure,
   type GhlWorkflowSummary,
 } from "../../../lib/coldCallBridge";
-import { isMobile } from "../../../lib/leadScraper";
 
 // POST /api/admin/cold-call/bridge (admin session gated in _middleware.ts).
 //
@@ -80,10 +79,6 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
   const row = data as Record<string, string | null>;
   if (!toE164(row.phone ?? "")) return failed("no_phone", workflowName);
-  // The last gate before the phone actually rings. The book is filtered and the
-  // send refuses a landline on the way in, but this is the one that cannot be
-  // routed around: whatever put the row here, it is not dialled from this button.
-  if (!isMobile(row.line_type)) return failed("not_mobile", workflowName);
 
   const lead: LeadForPush = {
     id: row.id as string,

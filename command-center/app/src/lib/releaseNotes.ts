@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-15-leads-show-landlines",
+    date: "15 September 2026",
+    title: "Leads shows every business, landlines included",
+    items: [
+      "The Leads list used to hide any business whose number was not a mobile. That was 4,973 businesses out of 6,288. They are all on the list now.",
+      "A landline can be sent to Cold Call, the power dialer and the Call button like any other lead.",
+      "SMS still skips landlines, because a text cannot reach one.",
+    ],
+  },
+  {
     id: "2026-09-10-script-test-counts-every-dial",
     date: "10 September 2026",
     title: "The script test counts every dial again",

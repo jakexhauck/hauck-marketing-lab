@@ -232,18 +232,22 @@ describe("what may be sent", () => {
     expect(rejected[0].reason).toBe("On the do-not-contact list");
   });
 
-  it("refuses a landline", () => {
-    const { sendable, rejected } = partitionForSend([lead({ lineType: "landline" })]);
-    expect(sendable).toHaveLength(0);
-    expect(rejected[0].reason).toBe("Not a mobile number");
+  // A landline rings, so a call takes every business (Jake, 15 September 2026).
+  it("sends a landline to a call", () => {
+    for (const lineType of ["landline", "unknown", null]) {
+      const { sendable, rejected } = partitionForSend([lead({ lineType })]);
+      expect(sendable).toHaveLength(1);
+      expect(rejected).toHaveLength(0);
+    }
   });
 
-  // The block map answers "unknown" for toll-free and out-of-country numbers, and
-  // for a row scraped before the column existed it is null. Neither is evidence of
-  // a mobile, and the whole point of the filter is that the burden runs that way.
-  it("refuses a number it cannot prove is a mobile", () => {
-    for (const lineType of ["unknown", null]) {
-      const { sendable, rejected } = partitionForSend([lead({ lineType })]);
+  // A text cannot land on a landline. "unknown" and null are not evidence of a
+  // mobile either, so a text refuses them too.
+  it("refuses a text to a number it cannot prove is a mobile", () => {
+    for (const lineType of ["landline", "unknown", null]) {
+      const { sendable, rejected } = partitionForSend([lead({ lineType })], undefined, {
+        mobileOnly: true,
+      });
       expect(sendable).toHaveLength(0);
       expect(rejected[0].reason).toBe("Not a mobile number");
     }
@@ -263,7 +267,7 @@ describe("what may be sent", () => {
       lead({ id: "b", sendStatus: "sent" }),
       lead({ id: "c", businessName: "" }),
       lead({ id: "d", lineType: "landline" }),
-    ]);
+    ], undefined, { mobileOnly: true });
     expect(rejected.map((r) => r.id)).toEqual(["b", "c", "d"]);
   });
 

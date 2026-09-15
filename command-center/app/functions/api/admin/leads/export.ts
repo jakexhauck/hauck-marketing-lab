@@ -97,7 +97,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   }
 
   const leads = ((data ?? []) as ExportRow[]).map((r) => toScrapedLead(r as never));
-  const { sendable } = partitionForSend(leads);
+  const { sendable } = partitionForSend(leads, undefined, { mobileOnly: true });
 
   if (sendable.length === 0) {
     return Response.json(

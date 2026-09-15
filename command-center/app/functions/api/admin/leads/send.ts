@@ -237,7 +237,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
   // The same three rules the SOP's exporter enforces, so the in-app send can never
   // hand out a number the CSV path would have refused.
-  const { sendable, rejected } = partitionForSend(leads);
+  // A call rings a landline; a text cannot land on one.
+  const { sendable, rejected } = partitionForSend(leads, undefined, {
+    mobileOnly: channel === "sms",
+  });
 
   // Belt and braces on top of send_status: a business already in the call book
   // is one somebody may already have dialled, and send_status is a flag that can
