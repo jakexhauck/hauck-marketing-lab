@@ -35,7 +35,6 @@ import {
   isRunActive,
   parseCityList,
   runCap,
-  sendRateLabel,
   prettyDomain,
   resolveRunRequest,
   runStatusLine,
@@ -262,7 +261,6 @@ function RunBanner({ run }: { run: ScrapeRun }) {
       {run.status === "running" && run.rawFound > 0 && (
         <div className="ls-banner-stats">
           <span><b>{run.rawFound}</b> found</span>
-          <span><b>{run.callable ?? 0}</b> to call</span>
           <span><b>{run.added}</b> added</span>
           {run.hiddenAsDuplicates > 0 && <span><b>{run.hiddenAsDuplicates}</b> already in the CRM</span>}
         </div>
@@ -973,13 +971,13 @@ function RunHistory({ runs, loading }: { runs: ScrapeRun[]; loading: boolean }) 
         <table>
           <thead>
             <tr>
-              <th>When</th><th>Niche</th><th>Where</th><th>Found</th><th>To call</th><th>Added</th><th>Sent</th><th>Status</th>
+              <th>When</th><th>Niche</th><th>Where</th><th>Found</th><th>Added</th><th>Sent</th><th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={8} className="ls-empty">Loading...</td></tr>}
+            {loading && <tr><td colSpan={7} className="ls-empty">Loading...</td></tr>}
             {!loading && runs.length === 0 && (
-              <tr><td colSpan={8} className="ls-empty">No runs yet.</td></tr>
+              <tr><td colSpan={7} className="ls-empty">No runs yet.</td></tr>
             )}
             {runs.map((r) => (
               <tr key={r.id}>
@@ -987,12 +985,10 @@ function RunHistory({ runs, loading }: { runs: ScrapeRun[]; loading: boolean }) 
                 <td>{r.nicheLabel}</td>
                 <td className="ls-dim">{r.states.length > 0 ? r.states.join(", ") : `${r.cities.length} cities`}</td>
                 <td>{r.rawFound || "-"}</td>
-                <td>{r.callable || "-"}</td>
                 <td>{r.added || "-"}</td>
                 <td>{r.sent || "-"}</td>
                 <td>
                   <span className={`ls-status ${r.status}`}>{r.status}</span>
-                  {sendRateLabel(r) && <div className="ls-dim ls-rate">{sendRateLabel(r)}</div>}
                   {r.error && <div className="ls-err">{r.error}</div>}
                 </td>
               </tr>
@@ -1221,7 +1217,6 @@ function LeadsStyle() {
       .pk-kit .ls-status.done { color: #059669; }
       .pk-kit .ls-status.failed { color: #dc2626; }
       .pk-kit .ls-status.running, .pk-kit .ls-status.queued, .pk-kit .ls-status.preparing { color: var(--ls-indigo); }
-      .pk-kit .ls-rate { font-size: 11px; }
       .pk-kit .ls-err { color: #dc2626; font-size: 12px; }
       .pk-kit .ls-muted { color: var(--text-faint); font-size: 12.5px; }
       .pk-kit .ls-linkbtn { border: 0; background: transparent; color: var(--ls-indigo); cursor: pointer; font: inherit; font-size: 12px; }

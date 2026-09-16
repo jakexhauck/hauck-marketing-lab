@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-16-no-more-to-call-count",
+    date: "16 September 2026",
+    title: "A run no longer says how many are left to call",
+    items: [
+      "The \"to call\" figure beside a run, the To call column in the run history and the \"worth a call\" rate under Status have all been taken off the screen. They were wrong.",
+      "The number was counted by fetching the rows and adding them up, and only ever got the first thousand of them however many there were. On 6,048 rows it read a thousand, so every run's figure was short and the newest run, whose rows sat outside that thousand, read 0.",
+      "Nothing was being filtered out and nothing was missing from the list: only the count was wrong. A run's Found, Added and Sent figures were never affected, and neither was the Leads list itself.",
+    ],
+  },
+  {
     id: "2026-09-16-flooring-trade",
     date: "16 September 2026",
     title: "Flooring is a trade you can scrape",

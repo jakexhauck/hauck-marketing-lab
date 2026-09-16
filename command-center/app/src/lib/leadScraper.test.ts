@@ -11,7 +11,6 @@ import {
   parseCityLine,
   parseCityList,
   passRateLabel,
-  sendRateLabel,
   prettyDomain,
   resolveRunRequest,
   runStatusLine,
@@ -36,7 +35,7 @@ function run(over: Partial<ScrapeRun> = {}): ScrapeRun {
     states: ["TX"], cities: [], size: "standard", status: "running",
     host: "jake-mac", error: null,
     totalQueries: 100, doneQueries: 40, percent: 40,
-    rawFound: 500, kept: 120, passed: 41, sendable: 15, callable: 15, added: 100,
+    rawFound: 500, kept: 120, passed: 41, sendable: 15, added: 100,
     hiddenAsDuplicates: 12, rejected: 380,
     sent: 0, passRate: 0.24, failureRate: 0, blocked: false,
     crmSnapshotCount: 900, crmSnapshotPartial: false,
@@ -190,27 +189,6 @@ describe("reading a run", () => {
     expect(passRateLabel(run({ rawFound: 0 }))).toBeNull();
   });
 
-  // 120 of 500 kept reads as a 24% run. 15 of those 500 are worth a call, which is
-  // 3%. The second number is the one that decides whether a run was worth the hours.
-  it("reports what is left to call, not what was stored", () => {
-    expect(sendRateLabel(run())).toBe("3% of what Google returned is worth a call");
-    expect(sendRateLabel(run({ rawFound: 0 }))).toBeNull();
-  });
-
-  it("says nothing rather than 0% on a run with nobody left to ring", () => {
-    expect(sendRateLabel(run({ callable: 0 }))).toBeNull();
-  });
-
-  // A count that could not be read is absent, never zero. "0 to call" on a run
-  // holding fifty is worse than a blank.
-  it("says nothing when the count could not be read at all", () => {
-    expect(sendRateLabel(run({ callable: null }))).toBeNull();
-  });
-
-  it("keeps a fraction of a percent legible instead of rounding it to nothing", () => {
-    expect(sendRateLabel(run({ rawFound: 3000, callable: 12 })))
-      .toBe("0.4% of what Google returned is worth a call");
-  });
 });
 
 describe("the selection", () => {
