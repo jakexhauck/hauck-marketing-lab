@@ -24,8 +24,12 @@
   "primary_deny": [
     "air conditioning contractor",
     "air conditioning repair service",
+    "carpet installer",
     "construction company",
     "door installation service",
+    "floor refinishing service",
+    "floor sanding and polishing service",
+    "flooring contractor",
     "furnace repair service",
     "general contractor",
     "gutter service",
@@ -37,7 +41,9 @@
     "roofing contractor",
     "roofing service",
     "siding contractor",
-    "window installation service"
+    "tile contractor",
+    "window installation service",
+    "wood floor installation service"
   ],
   "name_signals": {
     "remodel": [

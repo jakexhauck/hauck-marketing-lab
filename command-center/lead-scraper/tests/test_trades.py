@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import niche  # noqa: E402
 
 TRADES = ("roofing", "remodeling", "siding_windows", "windows_doors",
-          "general_contracting", "garage_doors")
+          "general_contracting", "garage_doors", "flooring")
 
 # The primary category that unambiguously means each trade.
 PRIMARY = {
@@ -35,6 +35,7 @@ PRIMARY = {
     "windows_doors": "window installation service",
     "general_contracting": "general contractor",
     "garage_doors": "garage door supplier",
+    "flooring": "flooring contractor",
 }
 
 GENEROUS = {"website": "https://example.com", "rating": 4.8, "review_count": 40,
@@ -85,6 +86,23 @@ class TradesRejectTheirSiblings(unittest.TestCase):
                             verdict, "drop",
                             f"{tid} accepted a {other} business ({primary!r}): {flags}",
                         )
+
+    def test_the_separation_holds_when_the_name_says_another_trade(self):
+        # The neutral name above drops out of every trade anyway, on the catch-all
+        # niche-signal gate, so on its own it cannot show the separation is real.
+        # A firm whose NAME reads like the trade being scraped can only be refused
+        # by its primary category, which is where a missing primary_deny shows up.
+        for tid in TRADES:
+            if tid == "flooring":
+                continue
+            n = niche.load_niche(tid)
+            with self.subTest(trade=tid):
+                _, flags, verdict = score(n, "Elite Roofing & Flooring", "flooring contractor")
+                self.assertEqual(verdict, "drop", f"{tid} took a flooring firm: {flags}")
+                self.assertTrue(
+                    any(f.startswith("primary_off_niche") for f in flags),
+                    f"{tid} refused it for the wrong reason: {flags}",
+                )
 
     def test_the_rejection_is_by_primary_category_not_by_name(self):
         roofing = niche.load_niche("roofing")
@@ -219,11 +237,80 @@ class GarageDoorsEscapesTheSharedList(unittest.TestCase):
                 self.assertEqual(verdict, "drop")
 
 
+class FlooringEscapesTheStoreDeny(unittest.TestCase):
+    """The second trade Google files under a retail word.
+
+    'store' sits in the shared deny because everywhere else it means a counter with
+    stock on it. Flooring is the trade where it is also Google's ordinary word for a
+    firm that installs: a large share of real installers are filed as a flooring,
+    carpet or tile STORE. This trade escapes that one term and nothing else, so shop,
+    showroom, supply, supplier, wholesale and retail still throw a retailer away.
+    """
+
+    def setUp(self):
+        self.n = niche.load_niche("flooring")
+
+    def test_an_installer_google_calls_a_store_reaches_a_list(self):
+        s, flags, verdict = score(self.n, "Summit Hardwood Flooring", "flooring store")
+        self.assertEqual(verdict, "pass", f"{s} {flags}")
+
+    def test_a_contractor_filed_the_ordinary_way_qualifies_too(self):
+        s, flags, verdict = score(self.n, "Cascade Floor Co", "flooring contractor")
+        self.assertEqual(verdict, "pass", f"{s} {flags}")
+
+    def test_a_wood_floor_installer_survives_the_installation_service_rule(self):
+        # 'installation service' is a broad category the shared list denies unless it
+        # carries a narrower form, and the shared list only names windows, doors,
+        # siding and insulation. Without flooring's own exception every hardwood
+        # installer Google files this way is thrown away before it is ever scored.
+        s, flags, verdict = score(self.n, "Northwest Hardwood", "wood floor installation service")
+        self.assertEqual(verdict, "pass", f"{s} {flags}")
+
+    def test_a_refinisher_qualifies(self):
+        s, flags, verdict = score(self.n, "Old Growth Floor Refinishing", "floor refinishing service")
+        self.assertEqual(verdict, "pass", f"{s} {flags}")
+
+    def test_a_carpet_cleaner_is_still_refused(self):
+        # The recurring-service look-alike this trade would otherwise swallow whole.
+        _, flags, verdict = score(self.n, "Zerorez Carpet Cleaning", "carpet cleaning service")
+        self.assertEqual(verdict, "drop", f"{flags}")
+
+    def test_a_showroom_or_supply_yard_is_still_refused(self):
+        # 'store' is escaped; shop, showroom and supply are not.
+        for name, primary in (
+            ("Bedrosians Tile Showroom", "tile store"),
+            ("Carpet Supply Warehouse", "flooring store"),
+            ("Foothill Flooring Outlet Shop", "flooring store"),
+        ):
+            with self.subTest(business=name):
+                _, flags, verdict = score(self.n, name, primary)
+                self.assertEqual(verdict, "drop", f"{name} survived: {flags}")
+
+    def test_the_escape_does_not_leak_into_any_other_trade(self):
+        # If this ever fails, every roofing and window list starts filling up with
+        # carpet stores, which is the thing the shared deny prevents.
+        for tid in TRADES:
+            if tid == "flooring":
+                continue
+            n = niche.load_niche(tid)
+            with self.subTest(trade=tid):
+                self.assertIn("store", n.deny)
+                _, flags, verdict = score(n, "Summit Hardwood Flooring", "flooring store")
+                self.assertEqual(verdict, "drop", f"{tid} took a flooring firm: {flags}")
+
+    def test_it_still_refuses_the_trades_it_is_not(self):
+        for other in ("roofing contractor", "window installation service",
+                      "siding contractor", "general contractor"):
+            with self.subTest(primary=other):
+                _, flags, verdict = score(self.n, "Valley Home Services", other)
+                self.assertEqual(verdict, "drop", f"took a {other}: {flags}")
+
+
 class DenyRemoveIsNarrow(unittest.TestCase):
     def test_a_trade_that_does_not_ask_keeps_every_inherited_term(self):
         base = json.loads((niche.NICHES_DIR / "_shared.json").read_text(encoding="utf-8"))
         for tid in TRADES:
-            if tid == "garage_doors":
+            if tid in ("garage_doors", "flooring"):
                 continue
             n = niche.load_niche(tid)
             with self.subTest(trade=tid):

@@ -25,7 +25,11 @@
     "air conditioning repair service",
     "bathroom remodeler",
     "bathroom remodeling service",
+    "carpet installer",
     "door installation service",
+    "floor refinishing service",
+    "floor sanding and polishing service",
+    "flooring contractor",
     "furnace repair service",
     "gutter service",
     "heating contractor",
@@ -37,7 +41,9 @@
     "roofing contractor",
     "roofing service",
     "siding contractor",
-    "window installation service"
+    "tile contractor",
+    "window installation service",
+    "wood floor installation service"
   ],
   "name_signals": {
     "construction": [

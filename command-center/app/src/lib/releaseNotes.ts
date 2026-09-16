@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-16-flooring-trade",
+    date: "16 September 2026",
+    title: "Flooring is a trade you can scrape",
+    items: [
+      "Starting a scrape now offers Flooring alongside roofing, remodeling, siding, windows and doors, general contracting and garage doors.",
+      "It collects flooring, hardwood, carpet and tile installers, including the many Google files as a \"store\" rather than a contractor, which is how most of them are listed.",
+      "Carpet cleaners, showrooms and supply yards are still thrown away, and flooring firms stay out of every other trade's list.",
+    ],
+  },
+  {
     id: "2026-09-15-leads-show-landlines",
     date: "15 September 2026",
     title: "Leads shows every business, landlines included",
