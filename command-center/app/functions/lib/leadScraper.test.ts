@@ -190,6 +190,21 @@ describe("CSV", () => {
   it("renders a missing city as empty, not as the word null", () => {
     expect(toCsv([lead({ city: null, state: null })])).toContain("+12145550147,Summit Roofing,,");
   });
+
+  it("adds a line type column only when asked for one", () => {
+    const csv = toCsv([lead()], { lineType: true });
+    expect(csv.split("\r\n")[0]).toBe("Phone,Company Name,City,State,Line Type");
+    expect(csv.split("\r\n")[1]).toBe("+12145550147,Summit Roofing,Plano,TX,Mobile");
+  });
+
+  it("names every line type a human way, including the ones that are neither", () => {
+    const csv = toCsv(
+      [lead({ lineType: "landline" }), lead({ lineType: "unknown" }), lead({ lineType: null })],
+      { lineType: true },
+    );
+    const rows = csv.trimEnd().split("\r\n").slice(1);
+    expect(rows.map((r) => r.split(",")[4])).toEqual(["Landline", "Unknown", "Unknown"]);
+  });
 });
 
 describe("what may be sent", () => {

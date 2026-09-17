@@ -22,6 +22,9 @@ import CitiesTable from "./CitiesTable";
 import ImportLeadsPanel from "./ImportLeadsPanel";
 import { formatPhoneDashed } from "../../../lib/phone";
 import { CALL_ZONES } from "../../../../functions/lib/leadZones";
+// The same writer the SOP's export uses, so a file saved here and a file built by
+// the server quote a company name with a comma in it identically.
+import { DO_NOT_CONTACT, toCsv } from "../../../../functions/lib/leadScraper";
 import {
   RUN_SIZES,
   addCities,
@@ -584,6 +587,34 @@ function LeadsTable({
     }
   };
 
+  // The plain export, and the reason there are two CSV buttons on this page.
+  //
+  // The one on Import leads posts to /api/admin/leads/export, which stamps every
+  // row it hands over as sent: that file is the SOP's batch, and a batch that
+  // reaches Jake unstamped is how a number goes out twice. This one is a file to
+  // read. It never leaves the browser, so it cannot stamp anything, cannot burn a
+  // batch and can be pressed as often as Jake likes.
+  //
+  // It writes what is on screen: the ticked rows, or the whole page when nothing
+  // is ticked. The table holds one page, same as the send buttons, so this is the
+  // list you can see rather than every row behind the filters.
+  const exportCsv = () => {
+    const ticked = leads.filter((l) => selected.has(l.id));
+    // The one row that never goes in a file: somebody on it asked not to be
+    // contacted, and a CSV is exactly how that number gets rung anyway.
+    const rows = (ticked.length > 0 ? ticked : leads).filter((l) => l.sendStatus !== DO_NOT_CONTACT);
+    if (rows.length === 0) return;
+    const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const url = URL.createObjectURL(
+      new Blob([toCsv(rows, { lineType: true })], { type: "text/csv;charset=utf-8" }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads_${stamp}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // powerDialer is Cold Call plus the tag that puts them on GoHighLevel's dialer
   // list. Same send, same book row, same stamp: the only difference is that they
   // are next on the phone rather than waiting to be picked.
@@ -701,6 +732,21 @@ function LeadsTable({
               title="Downloads the unsent leads and marks them as sent"
             >
               {downloading ? <Loader2 size={14} className="ls-spin" /> : <Download size={14} />}
+              CSV
+            </button>
+          </div>
+        )}
+
+        {!imported && (
+          <div className="ls-toolbar-right">
+            <button
+              type="button"
+              className="ls-ghost"
+              disabled={leads.length === 0}
+              onClick={exportCsv}
+              title="Downloads the ticked leads, or the whole page. Marks nothing."
+            >
+              <Download size={14} />
               CSV
             </button>
           </div>

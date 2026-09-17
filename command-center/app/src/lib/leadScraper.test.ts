@@ -49,7 +49,7 @@ function lead(over: Partial<ScrapedLeadView> = {}): ScrapedLeadView {
     id: "1", businessName: "Summit Roofing", phoneE164: "+12145550147",
     city: "Plano", state: "TX", website: "https://www.summit.example/contact",
     rating: 4.8, reviewCount: 42, icpScore: 95, icpFlags: [],
-    sendStatus: "pending", sentTo: null, sentAt: null,
+    sendStatus: "pending", sentTo: null, sentAt: null, lineType: "wireless",
     scoreBand: "high", reasons: [], category: "roofing contractor",
     metro: "Dallas", source: "gmaps", sourceKeyword: "roofing contractor",
     nicheId: "home_services", runId: "r1", createdAt: "2026-07-30T10:00:00Z",

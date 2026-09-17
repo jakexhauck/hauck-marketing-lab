@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-17-leads-csv-export",
+    date: "17 September 2026",
+    title: "Take a CSV off the Leads list",
+    items: [
+      "Leads and Sent to dialer have a CSV button. It hands you the leads you have ticked, or the whole page when you have ticked nothing.",
+      "The file carries the phone, company, city, state and whether the number is a mobile or a landline.",
+      "It marks nothing. The leads stay on the list and you can take the same file again. The CSV button on Import leads is the other one: that file is the SMS batch, and it still marks every row it gives you as sent.",
+      "Anyone who has asked not to be contacted is left out of the file.",
+    ],
+  },
+  {
     id: "2026-09-16-no-more-to-call-count",
     date: "16 September 2026",
     title: "A run no longer says how many are left to call",

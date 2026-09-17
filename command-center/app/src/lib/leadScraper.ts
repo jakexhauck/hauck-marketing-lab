@@ -22,6 +22,9 @@ export interface ScrapedLeadView {
   sendStatus: string;
   sentTo: string | null;
   sentAt: string | null;
+  // Mobile, landline or neither. The list holds all three since 15 September
+  // 2026, and the CSV taken off it says which is which.
+  lineType: string | null;
   scoreBand: "high" | "medium" | "low";
   reasons: string[];
   category: string | null;

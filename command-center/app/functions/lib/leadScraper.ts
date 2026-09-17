@@ -211,20 +211,41 @@ export function zoneForState(state: string | null | undefined): string {
 // a file written by export_sms.py import into the same SMS platform identically.
 export const CSV_HEADER = ["Phone", "Company Name", "City", "State"];
 
+// The fifth column, for the plain export off the Leads tab only. That list holds
+// landlines and mobiles side by side, so a file taken off it without this cannot
+// be told apart afterwards. The SOP's file must NOT carry it: export_sms.py writes
+// four columns, and the SMS platform reads the file by position.
+export const CSV_LINE_TYPE_HEADER = "Line Type";
+
+// wireless/landline are what cold_sms_set_line_type writes. Everything else, the
+// toll-free and out-of-country numbers included, is genuinely unknown rather than
+// one of the two, so it says so instead of guessing.
+function lineTypeLabel(lineType: string | null | undefined): string {
+  if (lineType === "wireless") return "Mobile";
+  if (lineType === "landline") return "Landline";
+  return "Unknown";
+}
+
 function csvCell(value: string): string {
   const v = value ?? "";
   return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }
 
-export function toCsv(leads: ScrapedLead[]): string {
-  const lines = [CSV_HEADER.join(",")];
+export function toCsv(
+  leads: ScrapedLead[],
+  { lineType = false }: { lineType?: boolean } = {},
+): string {
+  const header = lineType ? [...CSV_HEADER, CSV_LINE_TYPE_HEADER] : CSV_HEADER;
+  const lines = [header.join(",")];
   for (const lead of leads) {
-    lines.push([
+    const cells = [
       csvCell(lead.phoneE164),
       csvCell(lead.businessName ?? ""),
       csvCell(lead.city ?? ""),
       csvCell(lead.state ?? ""),
-    ].join(","));
+    ];
+    if (lineType) cells.push(csvCell(lineTypeLabel(lead.lineType)));
+    lines.push(cells.join(","));
   }
   return `${lines.join("\r\n")}\r\n`;
 }
