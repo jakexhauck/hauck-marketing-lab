@@ -36,7 +36,6 @@ describe("adminPillars config", () => {
     expect(ready).toEqual([
       "leads",
       "cold-call",
-      "sms",
       "pipeline",
       "sales-data",
       "tasks",
@@ -50,7 +49,7 @@ describe("adminPillars config", () => {
     // is not a second one: it is the scraper's output, and a row leaves it by
     // being sent to one of the two tabs after it. Leads first since
     // 2026-08-24 (Jake): the funnel's own order, rail and config together.
-    expect(tabsFor("acquisition").map((t) => t.id)).toEqual(["leads", "cold-call", "sms"]);
+    expect(tabsFor("acquisition").map((t) => t.id)).toEqual(["leads", "cold-call"]);
     // Two pages since 2026-08-23: Pipeline (the board outcomes land on) then
     // Data (the month read back). Sales Calls and Playbook are out of the
     // chrome; the labels are short because each is a rail row on its own.

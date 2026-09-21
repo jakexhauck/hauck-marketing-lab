@@ -16,7 +16,6 @@ import {
   Target,
   SquareKanban,
   ChartColumn,
-  MessageSquareText,
   AppWindow,
   Workflow,
   UserPlus,
@@ -121,12 +120,11 @@ const PILLAR_GROUPS: RailGroup[] = [
     ],
   },
   {
-    // Acquisition: sourcing first (Leads), then the daily work (Cold Call), then SMS.
+    // Acquisition: sourcing first (Leads), then the daily work (Cold Call).
     caption: "Acquisition",
     rows: [
       pillarRow("Leads", "acquisition", "leads", Target),
       pillarRow("Cold Call", "acquisition", "cold-call", PhoneCall, "Calling"),
-      pillarRow("SMS", "acquisition", "sms", MessageSquareText),
     ],
   },
   {
