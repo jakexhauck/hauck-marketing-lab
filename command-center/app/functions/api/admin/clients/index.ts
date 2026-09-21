@@ -1,5 +1,6 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
+import { isRetiredTenant } from "../../../lib/retiredTenant";
 import { hashPassword } from "../../../lib/password";
 import { normalizeEmail } from "../../../lib/staff";
 import { logAdminAction } from "../../../lib/adminAuth";
@@ -34,14 +35,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     .order("created_at", { ascending: true });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  // A tenant renamed "RETIRED ..." is a shut-down account kept only so its old
-  // rows still resolve. It is not a client, so it is not offered as one: left
-  // in, it sits in every client picker in the console waiting to be chosen by
-  // mistake. Renaming is how the retirement is recorded (there is no archived
-  // column), so the name is what this reads.
-  const live = (tenantRows ?? []).filter(
-    (t) => !/^retired\b/i.test(((t as { name?: string }).name ?? "").trim()),
-  );
+  const live = (tenantRows ?? []).filter((t) => !isRetiredTenant(t as { name?: string }));
 
   const tenants = live as {
     id: string;

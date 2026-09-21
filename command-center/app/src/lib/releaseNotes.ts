@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-21-retired-client-hidden",
+    date: "21 September 2026",
+    title: "Retired accounts are off the Clients list",
+    items: [
+      "The old RETIRED test account no longer shows on Clients or Onboarding.",
+    ],
+  },
+  {
     id: "2026-09-21-sms-page-removed",
     date: "21 September 2026",
     title: "The SMS page is gone from Acquisition",
