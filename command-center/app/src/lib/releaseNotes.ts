@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-21-csv-keep-or-remove",
+    date: "21 September 2026",
+    title: "The Leads CSV asks whether to keep the leads",
+    items: [
+      "Pressing CSV on the Leads list now asks: Keep on list or Remove from list.",
+      "Keep on list downloads the file and changes nothing, as before.",
+      "Remove from list takes those leads off the list first, then downloads the file, so the same leads are not worked twice.",
+    ],
+  },
+  {
     id: "2026-09-21-hvac-trade",
     date: "21 September 2026",
     title: "HVAC is a trade you can scrape again",

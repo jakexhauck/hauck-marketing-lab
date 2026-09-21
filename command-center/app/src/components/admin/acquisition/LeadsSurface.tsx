@@ -57,6 +57,7 @@ import {
   useScrapeRuns,
   useSendLeads,
   useReturnFromDialer,
+  useMarkExported,
   useStartRun,
   useStopRun,
   leadScraperKeys,
@@ -519,6 +520,11 @@ function LeadsTable({
   const [csvError, setCsvError] = useState("");
   const send = useSendLeads();
   const back = useReturnFromDialer();
+  const markExported = useMarkExported();
+  // The rows the Leads CSV is about to write, held while Jake picks keep or
+  // remove. Frozen at the press so a list that refreshes underneath the question
+  // cannot change which leads go in the file or come off the list.
+  const [exportAsk, setExportAsk] = useState<ScrapedLeadView[] | null>(null);
   const [returned, setReturned] = useState<ReturnResult | null>(null);
   const qc = useQueryClient();
 
@@ -598,12 +604,44 @@ function LeadsTable({
   // It writes what is on screen: the ticked rows, or the whole page when nothing
   // is ticked. The table holds one page, same as the send buttons, so this is the
   // list you can see rather than every row behind the filters.
-  const exportCsv = () => {
+  //
+  // Since 21 September 2026 the Leads list asks first: keep the leads on the list
+  // (the file only, as before) or remove them (stamped csv_<date>_exported by
+  // /api/admin/leads/exported, THEN the file). The Sent to dialer list does not
+  // ask, because every row on it has already left the Leads list.
+  const exportRows = () => {
     const ticked = leads.filter((l) => selected.has(l.id));
     // The one row that never goes in a file: somebody on it asked not to be
     // contacted, and a CSV is exactly how that number gets rung anyway.
-    const rows = (ticked.length > 0 ? ticked : leads).filter((l) => l.sendStatus !== DO_NOT_CONTACT);
+    return (ticked.length > 0 ? ticked : leads).filter((l) => l.sendStatus !== DO_NOT_CONTACT);
+  };
+
+  const pressCsv = () => {
+    const rows = exportRows();
     if (rows.length === 0) return;
+    setCsvError("");
+    if (dialer) writeCsv(rows);
+    else setExportAsk(rows);
+  };
+
+  // Stamped first, file second, the same order the Import leads batch keeps: if
+  // the leads cannot be taken off the list, no file goes out that looks as if
+  // they were.
+  const removeAndExport = (rows: ScrapedLeadView[]) => {
+    markExported.mutate(rows.map((l) => l.id), {
+      onSuccess: () => {
+        writeCsv(rows);
+        setExportAsk(null);
+        setSelected(new Set());
+      },
+      onError: (err) => {
+        setExportAsk(null);
+        setCsvError(err instanceof Error ? err.message : "Could not take those leads off the list.");
+      },
+    });
+  };
+
+  const writeCsv = (rows: ScrapedLeadView[]) => {
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     const url = URL.createObjectURL(
       new Blob([toCsv(rows, { lineType: true })], { type: "text/csv;charset=utf-8" }),
@@ -742,9 +780,9 @@ function LeadsTable({
             <button
               type="button"
               className="ls-ghost"
-              disabled={leads.length === 0}
-              onClick={exportCsv}
-              title="Downloads the ticked leads, or the whole page. Marks nothing."
+              disabled={leads.length === 0 || markExported.isPending}
+              onClick={pressCsv}
+              title="Downloads the ticked leads, or the whole page"
             >
               <Download size={14} />
               CSV
@@ -781,6 +819,32 @@ function LeadsTable({
             <button type="button" className="ls-primary sm" disabled={back.isPending} onClick={doReturn}>
               {back.isPending ? <Loader2 size={14} className="ls-spin" /> : <Undo2 size={14} />}
               Return to leads
+            </button>
+          </div>
+        </div>
+      )}
+
+      {exportAsk && (
+        <div className="ls-actionbar">
+          <span className="ls-actionbar-count">
+            <b>{exportAsk.length}</b> {exportAsk.length === 1 ? "lead" : "leads"} to export
+          </span>
+          <div className="ls-actionbar-btns">
+            <button type="button" className="ls-linkbtn" disabled={markExported.isPending} onClick={() => setExportAsk(null)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="ls-primary sm alt"
+              disabled={markExported.isPending}
+              onClick={() => { writeCsv(exportAsk); setExportAsk(null); }}
+            >
+              <Download size={14} />
+              Keep on list
+            </button>
+            <button type="button" className="ls-primary sm" disabled={markExported.isPending} onClick={() => removeAndExport(exportAsk)}>
+              {markExported.isPending ? <Loader2 size={14} className="ls-spin" /> : <Download size={14} />}
+              Remove from list
             </button>
           </div>
         </div>

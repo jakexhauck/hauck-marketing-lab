@@ -401,3 +401,32 @@ export function useReturnFromDialer() {
     },
   });
 }
+
+// The route takes at most 200 ids a call; the Leads page can hold up to 1000.
+const EXPORTED_SLICE = 200;
+
+/**
+ * "Remove from list" on the Leads CSV: stamps the exported leads so they leave
+ * the list. Resolves only once every slice is written, so the caller hands over
+ * the file after the leads are off the list, never before.
+ */
+export function useMarkExported() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]): Promise<{ marked: number }> => {
+      let marked = 0;
+      for (let i = 0; i < ids.length; i += EXPORTED_SLICE) {
+        const res = await api<{ marked: number }>("/api/admin/leads/exported", {
+          method: "POST",
+          body: JSON.stringify({ ids: ids.slice(i, i + EXPORTED_SLICE) }),
+        });
+        marked += res.marked;
+      }
+      return { marked };
+    },
+    // Settled, not success: a later slice failing still moved the earlier ones.
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: LEADS_KEY });
+    },
+  });
+}
