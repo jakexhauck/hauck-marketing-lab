@@ -112,6 +112,9 @@ INHERITED_LISTS = (
     "primary_deny", "category_unless",
 )
 
+# The inherited lists a trade may take terms back out of, via "<list>_remove".
+REMOVABLE_LISTS = ("deny", "recurring_deny", "primary_deny")
+
 
 def _resolve_spec(spec: dict, seen: tuple = ()) -> dict:
     """Fold a niche's `extends` parent into it.
@@ -149,12 +152,15 @@ def _resolve_spec(spec: dict, seen: tuple = ()) -> dict:
     # is in the shared deny SO THAT no other trade picks those firms up, and Google
     # files most of them as a garage door SUPPLIER, a word that everywhere else means
     # a counter with a showroom. A trade that IS the excluded thing has to be able to
-    # say so. Narrow on purpose: it subtracts from deny only, and a term that was
-    # never inherited is not an error.
-    remove = set(spec.get("deny_remove") or ())
-    if remove:
-        merged["deny"] = [t for t in merged.get("deny") or [] if t not in remove]
-    merged.pop("deny_remove", None)
+    # say so. Narrow on purpose: each <list>_remove subtracts from that one list
+    # only, and a term that was never inherited is not an error. Landscaping needs
+    # all three: the shared list refuses its words, its primary and the lawn care
+    # and snow removal categories every real landscaper also carries.
+    for key in REMOVABLE_LISTS:
+        remove = set(spec.get(f"{key}_remove") or ())
+        if remove:
+            merged[key] = [t for t in merged.get(key) or [] if t not in remove]
+        merged.pop(f"{key}_remove", None)
     merged.pop("extends", None)
     return merged
 

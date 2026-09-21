@@ -67,6 +67,8 @@ const INHERITED_LISTS = [
   "deny", "recurring_deny", "category_only", "whole_word",
   "primary_deny", "category_unless",
 ];
+// Must match REMOVABLE_LISTS in lead-scraper/niche.py.
+const REMOVABLE_LISTS = ["deny", "recurring_deny", "primary_deny"];
 
 // Fold a niche's `extends` base into it, so the database always holds a complete
 // spec. The run freezes that spec, and a frozen spec that still says "extends"
@@ -106,11 +108,14 @@ function resolveSpec(spec, seen = []) {
   // them. Must match _resolve_spec in lead-scraper/niche.py. Two resolvers that
   // disagree score the same niche two ways, and only the database's copy is what a
   // run from the app actually uses.
-  const remove = new Set(spec.deny_remove ?? []);
-  if (remove.size > 0) {
-    merged.deny = (merged.deny ?? []).filter((t) => !remove.has(t));
+  // Each <list>_remove subtracts from that one list only (landscaping uses all three).
+  for (const key of REMOVABLE_LISTS) {
+    const remove = new Set(spec[`${key}_remove`] ?? []);
+    if (remove.size > 0) {
+      merged[key] = (merged[key] ?? []).filter((t) => !remove.has(t));
+    }
+    delete merged[`${key}_remove`];
   }
-  delete merged.deny_remove;
   delete merged.extends;
   return merged;
 }

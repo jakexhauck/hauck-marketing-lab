@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import niche  # noqa: E402
 
 TRADES = ("roofing", "remodeling", "siding_windows", "windows_doors",
-          "general_contracting", "garage_doors", "flooring")
+          "general_contracting", "garage_doors", "flooring", "landscaping")
 
 # The primary category that unambiguously means each trade.
 PRIMARY = {
@@ -36,6 +36,7 @@ PRIMARY = {
     "general_contracting": "general contractor",
     "garage_doors": "garage door supplier",
     "flooring": "flooring contractor",
+    "landscaping": "landscaper",
 }
 
 GENEROUS = {"website": "https://example.com", "rating": 4.8, "review_count": 40,
@@ -306,11 +307,80 @@ class FlooringEscapesTheStoreDeny(unittest.TestCase):
                 self.assertEqual(verdict, "drop", f"took a {other}: {flags}")
 
 
+class LandscapingEscapesTheSharedList(unittest.TestCase):
+    """The trade the shared list was written to keep out.
+
+    landscap, lawn, irrigation and sprinkler are denied on every name and category,
+    and 'landscaper' as a primary, so no OTHER trade collects these firms. Real
+    landscapers also carry lawn care and snow removal as secondary categories and in
+    their names, so those move from a hard drop to a PRIMARY-only refusal here: a
+    crew Google files first as lawn care is still a recurring-service business.
+    """
+
+    def setUp(self):
+        self.n = niche.load_niche("landscaping")
+
+    def test_a_landscaper_qualifies(self):
+        s, flags, verdict = score(self.n, "Summit Landscaping", "landscaper")
+        self.assertEqual(verdict, "pass", f"{s} {flags}")
+
+    def test_a_designer_who_also_mows_and_plows_qualifies(self):
+        s, flags, verdict = score(
+            self.n, "Green Acres Lawn Care & Landscaping", "landscape designer",
+            ("lawn care service", "snow removal service", "lawn sprinkler system contractor"),
+        )
+        self.assertEqual(verdict, "pass", f"{s} {flags}")
+
+    def test_a_mowing_crew_is_still_refused(self):
+        for name, primary in (
+            ("Green Acres Lawn Care", "lawn care service"),
+            ("Frontier Snow & Ice", "snow removal service"),
+            ("Joe's Lawn Mowing", "landscaper"),
+        ):
+            with self.subTest(business=name):
+                _, flags, verdict = score(self.n, name, primary)
+                self.assertEqual(verdict, "drop", f"{name} survived: {flags}")
+
+    def test_supply_yards_nurseries_and_tree_crews_are_still_refused(self):
+        for name, primary in (
+            ("Rocky Mountain Landscape Supply", "landscaping supply store"),
+            ("Valley Garden Center", "garden center"),
+            ("Evergreen Nursery", "plant nursery"),
+            ("Tall Pines Tree Service", "tree service"),
+        ):
+            with self.subTest(business=name):
+                _, flags, verdict = score(self.n, name, primary)
+                self.assertEqual(verdict, "drop", f"{name} survived: {flags}")
+
+    def test_the_escape_does_not_leak_into_any_other_trade(self):
+        base = json.loads((niche.NICHES_DIR / "_shared.json").read_text(encoding="utf-8"))
+        for tid in TRADES:
+            if tid == "landscaping":
+                continue
+            n = niche.load_niche(tid)
+            with self.subTest(trade=tid):
+                self.assertIn("landscap", n.deny)
+                self.assertIn("landscaper", n.primary_deny)
+                self.assertEqual(
+                    [t for t in base["recurring_deny"] if t not in n.recurring_deny], [],
+                    f"{tid} lost recurring-service exclusions",
+                )
+                _, flags, verdict = score(n, "Summit Roofing & Landscaping", "landscaper")
+                self.assertEqual(verdict, "drop", f"{tid} took a landscaper: {flags}")
+
+    def test_it_still_refuses_the_trades_it_is_not(self):
+        for other in ("roofing contractor", "general contractor", "flooring contractor",
+                      "siding contractor", "plumber"):
+            with self.subTest(primary=other):
+                _, flags, verdict = score(self.n, "Summit Landscaping", other)
+                self.assertEqual(verdict, "drop", f"took a {other}: {flags}")
+
+
 class DenyRemoveIsNarrow(unittest.TestCase):
     def test_a_trade_that_does_not_ask_keeps_every_inherited_term(self):
         base = json.loads((niche.NICHES_DIR / "_shared.json").read_text(encoding="utf-8"))
         for tid in TRADES:
-            if tid in ("garage_doors", "flooring"):
+            if tid in ("garage_doors", "flooring", "landscaping"):
                 continue
             n = niche.load_niche(tid)
             with self.subTest(trade=tid):
@@ -323,6 +393,16 @@ class DenyRemoveIsNarrow(unittest.TestCase):
         n = niche.niche_from_spec(niche._resolve_spec(spec))
         self.assertIn("alpha", n.deny)
 
+
+    def test_every_list_remove_key_is_consumed_by_the_resolver(self):
+        spec = {"id": "t", "extends": "_shared", "deny_remove": ["store"],
+                "recurring_deny_remove": ["lawn care"], "primary_deny_remove": ["plumber"]}
+        resolved = niche._resolve_spec(spec)
+        self.assertNotIn("store", resolved["deny"])
+        self.assertNotIn("lawn care", resolved["recurring_deny"])
+        self.assertNotIn("plumber", resolved["primary_deny"])
+        for key in ("deny_remove", "recurring_deny_remove", "primary_deny_remove"):
+            self.assertNotIn(key, resolved)
 
 if __name__ == "__main__":
     unittest.main()

@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-21-landscaping-trade",
+    date: "21 September 2026",
+    title: "Landscaping is a trade you can scrape",
+    items: [
+      "Starting a scrape now offers Landscaping alongside the other trades.",
+      "It collects landscapers, landscape designers and sprinkler system installers, including the ones who also list lawn care or snow removal.",
+      "Mowing crews, tree services, nurseries and landscape supply yards are still thrown away, and every other trade still keeps landscapers out of its list.",
+    ],
+  },
+  {
     id: "2026-09-17-leads-csv-export",
     date: "17 September 2026",
     title: "Take a CSV off the Leads list",
