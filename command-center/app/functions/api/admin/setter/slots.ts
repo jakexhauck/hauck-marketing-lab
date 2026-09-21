@@ -2,6 +2,7 @@ import type { Env, ApiData } from "../../../lib/env";
 import { tenantTimezone } from "../../../lib/env";
 import { getGhlContextForTenant, TenantGhlError } from "../../../lib/tenantGhl";
 import { getFreeSlots, isCalendarNotFound } from "../../lib/appointments";
+import { cleanBookingZone } from "../../../lib/bookingZone";
 
 // GET /api/admin/setter/slots?tenantId=&calendarId=&days= (admin-only,
 // gated in _middleware.ts). Live free-slot lookup for the booking panel: a
@@ -35,6 +36,10 @@ export interface SlotsQuery {
   tenantId: string;
   calendarId: string;
   days: number;
+  // The client's own zone when the caller knows it (Quick Book reads it off
+  // the GHL location). Null means the env default. Only real IANA names with a
+  // "/" pass: "PST" is a fixed UTC-8 with no daylight saving.
+  tz: string | null;
 }
 
 export type ParsedSlotsQuery =
@@ -56,7 +61,7 @@ export function parseSlotsQuery(params: URLSearchParams): ParsedSlotsQuery {
   const days = Math.min(Math.max(Number(params.get("days")) || 14, 1), 31);
   return {
     ok: true,
-    query: { tenantId: tenantId.trim(), calendarId: calendarId.trim(), days },
+    query: { tenantId: tenantId.trim(), calendarId: calendarId.trim(), days, tz: cleanBookingZone(params.get("tz")) },
   };
 }
 
@@ -64,14 +69,14 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const url = new URL(ctx.request.url);
   const parsed = parseSlotsQuery(url.searchParams);
   if (!parsed.ok) return Response.json({ error: parsed.code }, { status: 400 });
-  const { tenantId, calendarId, days } = parsed.query;
+  const { tenantId, calendarId, days, tz } = parsed.query;
 
   try {
     const gctx = await getGhlContextForTenant(ctx.env, tenantId);
 
     const now = Date.now();
     const endMs = now + days * 24 * 60 * 60_000;
-    const timezone = tenantTimezone(ctx.env);
+    const timezone = tz ?? tenantTimezone(ctx.env);
 
     const result = await getFreeSlots(gctx, calendarId, now, endMs, timezone);
     if (!result.ok) {

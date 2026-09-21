@@ -106,3 +106,17 @@ describe("isCalendarNotFound", () => {
     expect(isCalendarNotFound(undefined, undefined)).toBe(false);
   });
 });
+
+describe("parseSlotsQuery tz", () => {
+  const base = { tenantId: "t1", calendarId: "cal_1" };
+  it("passes a real IANA zone through", () => {
+    const r = parseSlotsQuery(qs({ ...base, tz: "America/Detroit" }));
+    expect(r.ok && r.query.tz).toBe("America/Detroit");
+  });
+  it("drops an abbreviation or junk to the env default", () => {
+    const a = parseSlotsQuery(qs({ ...base, tz: "EST" }));
+    const b = parseSlotsQuery(qs(base));
+    expect(a.ok && a.query.tz).toBeNull();
+    expect(b.ok && b.query.tz).toBeNull();
+  });
+});

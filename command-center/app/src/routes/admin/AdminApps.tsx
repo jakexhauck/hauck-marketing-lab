@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Gauge, PhoneCall, type LucideIcon } from "lucide-react";
+import { CalendarPlus, Gauge, PhoneCall, type LucideIcon } from "lucide-react";
 
 // The Command hub: the phone's app launcher, reached from the raised center
 // button in the admin bottom bar. It lists the agency's "apps" as tiles, so
@@ -37,6 +37,12 @@ const APPS: AppTile[] = [
     label: "Setter Suite",
     blurb: "Work a client's leads across every pipeline",
     icon: PhoneCall,
+  },
+  {
+    to: "/admin/book",
+    label: "Quick Book",
+    blurb: "Book a caller onto a client's calendar",
+    icon: CalendarPlus,
   },
 ];
 

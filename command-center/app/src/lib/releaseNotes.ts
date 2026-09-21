@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-21-quick-book",
+    date: "21 September 2026",
+    title: "Quick Book: book a caller from your phone",
+    items: [
+      "New Quick Book app at /admin/book, also on the Apps screen.",
+      "Four steps: Who, When, Details, Confirm. Pick the client and calendar at the top; each client remembers its calendar.",
+      "Search the prospect or add a new one. Name, phone and email carry over.",
+      "Details asks the same questions as that calendar's GHL booking form.",
+      "Times show in the client's own timezone, with their Google busy time already blocked.",
+      "Add it to your home screen from the page and the icon opens straight to Quick Book.",
+    ],
+  },
+  {
     id: "2026-09-21-cold-call-trimmed",
     date: "21 September 2026",
     title: "Cold Call is down to three pages",

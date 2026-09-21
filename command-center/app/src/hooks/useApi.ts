@@ -947,15 +947,18 @@ export function useSetterSlotsQuery(
   calendarId: string,
   days: number,
   enabled: boolean,
+  // The client's own zone (Quick Book). Omitted, the server uses its default.
+  tz?: string,
 ) {
   return useQuery({
-    queryKey: ["admin", "setter", "slots", tenantId, calendarId, days],
+    queryKey: ["admin", "setter", "slots", tenantId, calendarId, days, tz ?? ""],
     enabled: enabled && !!tenantId && !!calendarId.trim(),
     staleTime: 30_000,
     retry: false,
     queryFn: () =>
       api<SetterSlotsResponse>(
-        `/api/admin/setter/slots?tenantId=${encodeURIComponent(tenantId)}&calendarId=${encodeURIComponent(calendarId)}&days=${days}`,
+        `/api/admin/setter/slots?tenantId=${encodeURIComponent(tenantId)}&calendarId=${encodeURIComponent(calendarId)}&days=${days}` +
+          (tz ? `&tz=${encodeURIComponent(tz)}` : ""),
       ),
   });
 }
@@ -988,6 +991,86 @@ export function useSetterBookMutation() {
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: ["admin", "setter", "leads", input.tenantId] });
       qc.invalidateQueries({ queryKey: ["calendar", "events"] });
+    },
+  });
+}
+
+// --- Quick Book (/admin/book) -----------------------------------------------
+
+export interface QuickBookField {
+  key: string;
+  label: string;
+  custom: boolean;
+  multiline: boolean;
+  options?: string[];
+}
+export interface QuickBookForm {
+  timezone: string;
+  slotMinutes: number;
+  fields: QuickBookField[];
+}
+
+// The calendar's own GHL form questions, the client's zone and slot length.
+export function useQuickBookFormQuery(tenantId: string, calendarId: string) {
+  return useQuery({
+    queryKey: ["admin", "quick-book", "form", tenantId, calendarId],
+    enabled: !!tenantId && !!calendarId,
+    staleTime: 5 * 60_000,
+    retry: false,
+    queryFn: () =>
+      api<QuickBookForm>(
+        `/api/admin/quick-book/form?tenantId=${encodeURIComponent(tenantId)}&calendarId=${encodeURIComponent(calendarId)}`,
+      ),
+  });
+}
+
+export interface SetterContactHit {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+}
+
+// Contact search on one client's sub-account (GET /api/admin/setter/contacts).
+// The endpoint 400s under two characters, so the query waits for them.
+export function useSetterContactSearch(tenantId: string, q: string) {
+  const term = q.trim();
+  return useQuery({
+    queryKey: ["admin", "setter", "contacts", tenantId, term],
+    enabled: !!tenantId && term.length >= 2,
+    staleTime: 30_000,
+    retry: false,
+    placeholderData: (prev) => prev,
+    queryFn: () =>
+      api<{ contacts: SetterContactHit[] }>(
+        `/api/admin/setter/contacts?tenantId=${encodeURIComponent(tenantId)}&q=${encodeURIComponent(term)}`,
+      ),
+  });
+}
+
+export interface QuickBookInput {
+  tenantId: string;
+  calendarId: string;
+  contactId?: string;
+  contact: { firstName: string; lastName: string; phone: string; email: string };
+  answers: Record<string, string>;
+  startTime: string;
+  endTime: string;
+}
+
+// Never retried: the appointment write is terminal (double-book risk). The
+// screen also disables Book while this is pending.
+export function useQuickBookMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: QuickBookInput) =>
+      api<{ ok: boolean; id: string; contactId: string }>("/api/admin/quick-book/book", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSettled: (_d, _e, input) => {
+      qc.invalidateQueries({ queryKey: ["admin", "setter", "slots", input.tenantId] });
     },
   });
 }

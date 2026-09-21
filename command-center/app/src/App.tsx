@@ -77,6 +77,7 @@ import {
   legacyFulfillmentPage,
 } from "./lib/fulfillmentPages";
 import SetterSuite from "./routes/admin/SetterSuite";
+import QuickBook from "./routes/admin/QuickBook";
 import PillarPage from "./routes/admin/PillarPage";
 import AdminSettings from "./routes/admin/AdminSettings";
 import AdminAudit from "./routes/admin/AdminAudit";
@@ -151,9 +152,13 @@ function SocialGateGuard({ children }: { children: ReactNode }) {
 function AdminRoute({
   children,
   roles,
+  bare,
 }: {
   children: ReactNode;
   roles?: AdminRole[];
+  // Skip AdminLayout's chrome. For a page that opens from its own home screen
+  // icon and should read as its own app (Quick Book).
+  bare?: boolean;
 }) {
   const { status, isAdmin, preview, admin } = useAuth();
   if (status === "loading") return null;
@@ -169,6 +174,7 @@ function AdminRoute({
   if (roles && !roles.includes(role)) {
     return <Navigate to={adminHomeFor(role)} replace />;
   }
+  if (bare) return <>{children}</>;
   return <AdminLayout>{children}</AdminLayout>;
 }
 
@@ -712,6 +718,15 @@ export default function App() {
                 element={
                   <AdminRoute roles={["owner", "setter"]}>
                     <SetterSuite />
+                  </AdminRoute>
+                }
+              />
+              {/* Quick Book: Jake books a client's caller from his phone. */}
+              <Route
+                path="/admin/book"
+                element={
+                  <AdminRoute roles={["owner"]} bare>
+                    <QuickBook />
                   </AdminRoute>
                 }
               />

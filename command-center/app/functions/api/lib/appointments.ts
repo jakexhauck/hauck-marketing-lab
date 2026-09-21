@@ -61,6 +61,26 @@ export async function listCalendars(gctx: GhlContext): Promise<Calendar[]> {
   return (data.calendars ?? []).filter((c) => c.isActive !== false);
 }
 
+// One calendar's settings: the form it collects and how long a slot runs.
+// Null on any failure, so a caller treats "unknown" as "no form" rather than
+// guessing. Goes through calFetch: the single-calendar read wants 2021-04-15.
+export interface CalendarDetail {
+  id: string;
+  name?: string;
+  formId?: string;
+  slotDuration?: number;
+  slotDurationUnit?: string;
+}
+export async function getCalendar(
+  gctx: GhlContext,
+  calendarId: string,
+): Promise<CalendarDetail | null> {
+  const res = await calFetch(gctx, `/calendars/${encodeURIComponent(calendarId)}`);
+  if (!res.ok) return null;
+  const data = (await res.json()) as { calendar?: CalendarDetail };
+  return data.calendar ?? null;
+}
+
 // GHL does not use a stable error code for "that calendar id is not real": a
 // bad id comes back as a 404, or as a 4xx whose body names the calendar. Both
 // callers (admin slots + book) need the same judgement, so it lives here with

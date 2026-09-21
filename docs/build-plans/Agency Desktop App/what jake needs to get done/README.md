@@ -495,3 +495,17 @@ bug, it is the work that only you can do.
       Everything it needs is still on disk, so putting the row back to 'queued'
       resumes it where it stood. Right now that is a database edit; there is no
       button for it because you have never once asked for one.
+
+## Quick Book (21 September 2026)
+
+What's in the app now: `/admin/book` (also on Apps). Book a client's caller in four steps: Who, When, Details, Confirm.
+
+Your action items:
+1. On your phone, open `app.hauckmarketing.com/admin/book` and log in.
+2. Tap Share, then Add to Home Screen. The icon is named "Book".
+3. Book one real caller (or a test contact of your own) onto Willis's Home Estimate calendar.
+4. In GHL, check that the appointment is there and the contact got the address, Services and notes answers.
+5. Check that it also landed in the client's Google Calendar.
+
+Still parked:
+- The Setter Suite's own slot list still uses the Chicago default zone; Willis is Detroit. Quick Book uses each client's real zone.
