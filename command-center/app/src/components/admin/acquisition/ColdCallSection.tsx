@@ -225,8 +225,8 @@ export default function ColdCallSection() {
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         {/* The section's own pages, in the same segmented track the header
-            panel above uses. Two groups in ONE track, split by a divider: the
-            work on the left, the running of it on the right.
+            panel above uses. One track, no divider (Jake, 2026-09-21): the
+            owner's Scripts tab sits straight after the caller's pages.
 
             Deliberately not the sliding-indicator variant. A track whose pill
             slides across a seam reads as broken rather than smooth, which is
@@ -243,16 +243,11 @@ export default function ColdCallSection() {
               </TabButton>
             ))}
 
-            {right.length > 0 && (
-              <>
-                <span aria-hidden className="mx-1.5 my-1 w-px shrink-0 bg-border" />
-                {right.map((p) => (
-                  <TabButton key={p.id} active={view === p.id} onClick={() => setView(p.id)}>
-                    {p.label}
-                  </TabButton>
-                ))}
-              </>
-            )}
+            {right.map((p) => (
+              <TabButton key={p.id} active={view === p.id} onClick={() => setView(p.id)}>
+                {p.label}
+              </TabButton>
+            ))}
           </div>
         </nav>
 

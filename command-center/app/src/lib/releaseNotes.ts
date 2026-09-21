@@ -32,6 +32,7 @@ export const RELEASES: Release[] = [
     items: [
       "Cold Call now shows Power dialer, Tracker and Scripts.",
       "Pipeline, Availability, SOPs and the Management tab are gone. Scripts moved up out of Management.",
+      "No divider line between Tracker and Scripts.",
     ],
   },
   {
