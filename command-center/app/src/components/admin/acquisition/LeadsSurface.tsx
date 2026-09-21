@@ -10,14 +10,19 @@ import {
   PhoneForwarded,
   Play,
   MapPin,
+  Pause,
   Radar,
   Search,
-  MessageSquare,
   Square,
   Table2,
   Undo2,
+  Clock,
+  CircleDot,
+  Layers,
+  Filter,
 } from "lucide-react";
 import { PillarTitleActions } from "../../pillars/PillarKit";
+import FilterPicker from "../FilterPicker";
 import CitiesTable from "./CitiesTable";
 import ImportLeadsPanel from "./ImportLeadsPanel";
 import { formatPhoneDashed } from "../../../lib/phone";
@@ -27,6 +32,7 @@ import { CALL_ZONES } from "../../../../functions/lib/leadZones";
 import { DO_NOT_CONTACT, toCsv } from "../../../../functions/lib/leadScraper";
 import {
   RUN_SIZES,
+  CAP_PRESETS,
   addCities,
   sizeCapLabel,
   canSend,
@@ -36,6 +42,8 @@ import {
   emptyDraft,
   formatRating,
   isRunActive,
+  isRunHeld,
+  parseCapInput,
   parseCityList,
   runCap,
   prettyDomain,
@@ -60,6 +68,8 @@ import {
   useMarkExported,
   useStartRun,
   useStopRun,
+  useHoldRun,
+  useResumeRun,
   leadScraperKeys,
   type LeadFilters,
   type SendResult,
@@ -98,6 +108,9 @@ export default function LeadsSurface() {
   const runsQuery = useScrapeRuns();
   const runs = runsQuery.data?.runs ?? [];
   const activeRun = runs.find(isRunActive) ?? null;
+  // Parked runs, by Hold or by their cap. They scrape nothing and block nothing,
+  // so they sit under the active one with Continue rather than in its place.
+  const heldRuns = runs.filter(isRunHeld);
 
   const leadsQuery = useLeads(filters);
   const leads = leadsQuery.data?.leads ?? [];
@@ -145,6 +158,7 @@ export default function LeadsSurface() {
       </PillarTitleActions>
 
       {activeRun && <RunBanner run={activeRun} />}
+      {heldRuns.map((r) => <HeldBanner key={r.id} run={r} />)}
 
       {view === "leads" && (
         <LeadsTable
@@ -220,9 +234,14 @@ function SubTab({
 function RunBanner({ run }: { run: ScrapeRun }) {
   const pending = run.status === "preparing" || run.status === "queued";
   const stop = useStopRun();
+  const hold = useHoldRun();
   // Armed on the first press, done on the second. An hour of scraping is too
   // much to lose to a mis-click, and the button sits next to nothing else.
   const [armed, setArmed] = useState(false);
+  // 'preparing' cannot be held: the CRM sweep flips it to 'queued' when it
+  // lands, which would quietly undo the hold (hold.ts).
+  const holdable = run.status === "queued" || run.status === "running";
+  const failed = stop.error ?? hold.error;
   return (
     <div className={`ls-banner${run.blocked ? " warn" : ""}`}>
       <div className="ls-banner-top">
@@ -235,6 +254,20 @@ function RunBanner({ run }: { run: ScrapeRun }) {
         </div>
         <div className="ls-banner-right">
           {run.host && <span className="ls-banner-host">on {run.host}</span>}
+          {run.holdAt !== null && (
+            <span className="ls-banner-host">holds at {run.holdAt}</span>
+          )}
+          {holdable && (
+            <button
+              type="button"
+              className="ls-hold"
+              disabled={hold.isPending || stop.isPending}
+              onClick={() => hold.mutate(run.id)}
+            >
+              {hold.isPending ? <Loader2 size={13} className="ls-spin" /> : <Pause size={13} />}
+              Hold
+            </button>
+          )}
           <button
             type="button"
             className={`ls-stop${armed ? " armed" : ""}`}
@@ -248,9 +281,10 @@ function RunBanner({ run }: { run: ScrapeRun }) {
         </div>
       </div>
 
-      {stop.isError && (
+      {failed && (
         <div className="ls-err">
-          {(stop.error as { body?: { error?: string } })?.body?.error ?? "Could not stop that run."}
+          {(failed as { body?: { error?: string } })?.body?.error ??
+            (stop.error ? "Could not stop that run." : "Could not hold that run.")}
         </div>
       )}
 
@@ -277,6 +311,69 @@ function RunBanner({ run }: { run: ScrapeRun }) {
           finish, so some businesses you already have may still appear.
         </div>
       )}
+    </div>
+  );
+}
+
+// A run parked by Hold or by its cap. Continue puts it back on the queue with
+// the next hold point up by the cap; Stop ends it, same two presses as the
+// running banner. It resumes only on the machine that started it, because its
+// place is saved on that machine's disk, so the button says which one.
+function HeldBanner({ run }: { run: ScrapeRun }) {
+  const resume = useResumeRun();
+  const stop = useStopRun();
+  const [armed, setArmed] = useState(false);
+  const failed = resume.error ?? stop.error;
+  return (
+    <div className="ls-banner held">
+      <div className="ls-banner-top">
+        <div className="ls-banner-title">
+          <Pause size={15} />
+          {run.nicheLabel}
+          <span className="ls-banner-where">
+            {run.states.length > 0 ? run.states.join(", ") : `${run.cities.length} cities`}
+          </span>
+        </div>
+        <div className="ls-banner-right">
+          <button
+            type="button"
+            className="ls-primary sm"
+            disabled={resume.isPending || stop.isPending}
+            onClick={() => resume.mutate(run.id)}
+          >
+            {resume.isPending ? <Loader2 size={13} className="ls-spin" /> : <Play size={13} />}
+            {run.host ? `Continue on ${run.host}` : "Continue"}
+          </button>
+          <button
+            type="button"
+            className={`ls-stop${armed ? " armed" : ""}`}
+            disabled={stop.isPending || resume.isPending}
+            onClick={() => (armed ? stop.mutate(run.id) : setArmed(true))}
+            onBlur={() => setArmed(false)}
+          >
+            {stop.isPending ? <Loader2 size={13} className="ls-spin" /> : <Square size={13} />}
+            {armed ? "Stop the run?" : "Stop"}
+          </button>
+        </div>
+      </div>
+
+      {failed && (
+        <div className="ls-err">
+          {(failed as { body?: { error?: string } })?.body?.error ??
+            (resume.error ? "Could not continue that run." : "Could not stop that run.")}
+        </div>
+      )}
+
+      <div className="ls-bar" role="progressbar" aria-valuenow={run.percent} aria-valuemin={0} aria-valuemax={100}>
+        <div className="ls-bar-fill held" style={{ width: `${run.percent}%` }} />
+      </div>
+
+      <div className="ls-banner-line">{runStatusLine(run)}</div>
+
+      <div className="ls-banner-stats">
+        <span><b>{run.doneQueries}</b> of {run.totalQueries} searches</span>
+        {run.leadCap !== null && <span><b>{run.leadCap}</b> per stretch</span>}
+      </div>
     </div>
   );
 }
@@ -312,6 +409,8 @@ function Wizard({ disabled, onStarted }: { disabled: boolean; onStarted: () => v
   // How many cities the last action could not fit. Silently dropping the tail
   // is the exact failure the cap exists to prevent, one step earlier.
   const [dropped, setDropped] = useState(0);
+  // The typed cap, kept as text so a half-typed number is not thrown away.
+  const [capText, setCapText] = useState("");
 
   const presets = useNichePresets();
   const start = useStartRun();
@@ -462,6 +561,51 @@ function Wizard({ disabled, onStarted }: { disabled: boolean; onStarted: () => v
             </div>
           </>
         )}
+      </Step>
+
+      <Step n={4} title="Cap">
+        <div className="ls-sizes">
+          <button
+            type="button"
+            className={`ls-size${draft.cap === null ? " on" : ""}`}
+            onClick={() => {
+              setCapText("");
+              setDraft((d) => ({ ...d, cap: null }));
+            }}
+          >
+            <span className="ls-size-label">No cap</span>
+          </button>
+          {CAP_PRESETS.map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={`ls-size${draft.cap === n && !capText ? " on" : ""}`}
+              onClick={() => {
+                setCapText("");
+                setDraft((d) => ({ ...d, cap: n }));
+              }}
+            >
+              <span className="ls-size-label">
+                {n}
+                <span className="ls-size-cap">leads</span>
+              </span>
+            </button>
+          ))}
+          <label className={`ls-size ls-cap-own${capText && draft.cap !== null ? " on" : ""}`}>
+            <input
+              className="ls-cap-input"
+              inputMode="numeric"
+              placeholder="Own number"
+              aria-label="Own cap"
+              value={capText}
+              onChange={(e) => {
+                setCapText(e.target.value);
+                const n = parseCapInput(e.target.value);
+                setDraft((d) => ({ ...d, cap: n }));
+              }}
+            />
+          </label>
+        </div>
       </Step>
 
       <div className="ls-go">
@@ -703,34 +847,40 @@ function LeadsTable({
         {/* Every row here is already sent, so the filter could only ever say
             one thing, which is the same reason the status column went. */}
         {!dialer && (
-          <select className="ls-select" value={filters.sent ?? ""} onChange={(e) => onFilters({ ...filters, sent: (e.target.value || null) as LeadFilters["sent"] })}>
-            <option value="0">Ready to send</option>
-            <option value="">Everything</option>
-          </select>
+          <FilterPicker
+            kicker="Status"
+            icon={<CircleDot size={14} />}
+            value={filters.sent ?? ""}
+            options={[
+              { value: "0", label: "Ready to send" },
+              { value: "", label: "Everything" },
+            ]}
+            onChange={(v) => onFilters({ ...filters, sent: (v || null) as LeadFilters["sent"] })}
+          />
         )}
 
         {/* One list is never one timezone, and the hour where the prospect is
             decides whether the number can be rung at all. Server-side (0118):
             the table holds one page, so filtering here would filter the page. */}
-        <select
-          className="ls-select"
+        <FilterPicker
+          kicker="Timezone"
+          icon={<Clock size={14} />}
           value={filters.zone ?? ""}
-          aria-label="Timezone"
-          onChange={(e) => onFilters({ ...filters, zone: e.target.value || null })}
-        >
-          <option value="">Every timezone</option>
-          {CALL_ZONES.map((z) => (
-            <option key={z.zone} value={z.zone}>{z.label}</option>
-          ))}
-        </select>
+          options={[
+            { value: "", label: "Every timezone" },
+            ...CALL_ZONES.map((z) => ({ value: z.zone, label: z.label })),
+          ]}
+          onChange={(v) => onFilters({ ...filters, zone: v || null })}
+        />
 
         {niches.length > 1 && (
-          <select
-            className="ls-select"
+          <FilterPicker
+            kicker="Niche"
+            icon={<Filter size={14} />}
             value={filters.nicheId ?? ""}
-            aria-label="Niche"
-            onChange={(e) => {
-              const nicheId = e.target.value || null;
+            options={[{ value: "", label: "Every niche" }, ...niches.map((n) => ({ value: n.id, label: n.label }))]}
+            onChange={(v) => {
+              const nicheId = v || null;
               // A run belongs to one niche, so keeping a run picked from another
               // one would filter to an empty table with two controls both looking
               // set. Dropping it is the only reading that can be right.
@@ -739,25 +889,26 @@ function LeadsTable({
                 : filters.runId ?? null;
               onFilters({ ...filters, nicheId, runId });
             }}
-          >
-            <option value="">Every niche</option>
-            {niches.map((n) => (
-              <option key={n.id} value={n.id}>{n.label}</option>
-            ))}
-          </select>
+          />
         )}
 
         {/* An imported row belongs to no scrape, so the run picker would list
             runs none of these leads came from. */}
         {!imported && (
-          <select className="ls-select" value={filters.runId ?? ""} onChange={(e) => onFilters({ ...filters, runId: e.target.value || null })}>
-            <option value="">Every run</option>
-            {runsForNiche.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.nicheLabel} - {new Date(r.createdAt).toLocaleDateString()}
-              </option>
-            ))}
-          </select>
+          <FilterPicker
+            kicker="Run"
+            icon={<Layers size={14} />}
+            value={filters.runId ?? ""}
+            options={[
+              { value: "", label: "Every run" },
+              ...runsForNiche.map((r) => ({
+                value: r.id,
+                label: r.nicheLabel,
+                sub: `${new Date(r.createdAt).toLocaleDateString()}, ${r.added} added`,
+              })),
+            ]}
+            onChange={(v) => onFilters({ ...filters, runId: v || null })}
+          />
         )}
 
         {imported && (
@@ -798,13 +949,11 @@ function LeadsTable({
             {summary.reason && <em>{summary.reason}</em>}
           </span>
           <div className="ls-actionbar-btns">
+            {/* Send to SMS came off here on 21 September 2026, Jake's call.
+                The route still takes channel "sms"; nothing on this page asks. */}
             <button type="button" className="ls-primary sm" disabled={!canSend(summary) || send.isPending} onClick={() => doSend("cold_call", true)}>
               <PhoneForwarded size={14} />
               Send to power dialer
-            </button>
-            <button type="button" className="ls-primary sm alt" disabled={!canSend(summary) || send.isPending} onClick={() => doSend("sms")}>
-              <MessageSquare size={14} />
-              Send to SMS
             </button>
           </div>
         </div>
@@ -1168,6 +1317,17 @@ function LeadsStyle() {
       .pk-kit .ls-stop:hover { color: #dc2626; border-color: #dc2626; }
       .pk-kit .ls-stop.armed { color: #fff; background: #dc2626; border-color: #dc2626; }
       .pk-kit .ls-stop:disabled { opacity: .6; cursor: default; }
+      .pk-kit .ls-hold {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
+        color: var(--text-muted); background: transparent;
+        border: 1px solid var(--border); cursor: pointer;
+        transition: color .12s ease, border-color .12s ease;
+      }
+      .pk-kit .ls-hold:hover:not(:disabled) { color: #d97706; border-color: #d97706; }
+      .pk-kit .ls-hold:disabled { opacity: .6; cursor: default; }
+      .pk-kit .ls-banner.held { border-color: #d97706; }
+      .pk-kit .ls-bar-fill.held { background: #d97706; }
       .pk-kit .ls-bar { height: 6px; background: var(--ls-indigo-tint); border-radius: 999px; overflow: hidden; margin: 10px 0 8px; }
       .pk-kit .ls-bar-fill { height: 100%; background: var(--ls-indigo); border-radius: 999px; transition: width .4s ease; }
       .pk-kit .ls-bar-fill.indet { width: 34%; animation: ls-slide 1.4s ease-in-out infinite; }
@@ -1205,15 +1365,22 @@ function LeadsStyle() {
       .pk-kit .ls-chips, .pk-kit .ls-sizes { display: flex; gap: 10px; flex-wrap: wrap; }
       .pk-kit .ls-chip, .pk-kit .ls-size {
         display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer;
-        border: 1px solid var(--border); background: var(--surface); border-radius: 14px;
-        padding: 10px 14px; font-family: inherit; color: var(--text); transition: .15s; min-width: 180px;
+        border: 1px solid var(--border); background: var(--surface); border-radius: 15px;
+        padding: 10px 14px; font-family: inherit; color: var(--text); min-width: 180px;
+        box-shadow: var(--shadow-sm); transition: border-color .15s, box-shadow .15s, background .15s;
       }
-      .pk-kit .ls-chip:hover, .pk-kit .ls-size:hover { background: var(--ls-hover); }
-      .pk-kit .ls-chip.on, .pk-kit .ls-size.on { border-color: var(--ls-indigo); background: var(--ls-indigo-tint); }
-      .pk-kit .ls-chip-label, .pk-kit .ls-size-label { font-weight: 600; font-size: 13.5px; }
+      .pk-kit .ls-chip:hover, .pk-kit .ls-size:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
+      .pk-kit .ls-chip.on, .pk-kit .ls-size.on { border-color: var(--brand); background: var(--brand-tint); }
+      .pk-kit .ls-chip-label, .pk-kit .ls-size-label { font-family: var(--font-display); font-weight: 600; font-size: 13.5px; }
       .pk-kit .ls-size-label { display: flex; align-items: baseline; gap: 6px; }
-      .pk-kit .ls-size-cap { font-weight: 500; font-size: 11.5px; color: var(--text-faint); }
-      .pk-kit .ls-size.on .ls-size-cap { color: var(--ls-indigo); }
+      .pk-kit .ls-size-cap { font-family: var(--font-body, inherit); font-weight: 500; font-size: 11.5px; color: var(--text-faint); }
+      .pk-kit .ls-size.on .ls-size-cap { color: var(--brand-text); }
+      .pk-kit .ls-cap-own { min-width: 150px; justify-content: center; cursor: text; }
+      .pk-kit .ls-cap-input {
+        border: 0; background: transparent; outline: 0; font: inherit; width: 100%;
+        font-family: var(--font-display); font-weight: 600; font-size: 13.5px; color: var(--text);
+      }
+      .pk-kit .ls-cap-input::placeholder { color: var(--text-faint); font-weight: 500; }
       .pk-kit .ls-chip-sub, .pk-kit .ls-size-blurb { font-size: 11.5px; color: var(--text-faint); }
 
       .pk-kit .ls-textarea {

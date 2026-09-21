@@ -102,8 +102,32 @@ def stopped():
     return STOP_FILE.read_text(encoding="utf-8-sig", errors="replace").strip() or "stopped by hand"
 
 
+def app_interrupt(run_id):
+    """Why the page wants this walk to end: None, "held" or "cancelled".
+
+    Held is Hold on the page. It ends the walk like Stop does, but the run is
+    parked rather than finished: the row already reads 'held', the runner leaves
+    it that way, and Continue on the page puts it back on the queue. Anything
+    else that is not 'running' (cancelled, or a row that has gone) is a stop.
+    """
+    if not run_id:
+        return None
+    try:
+        row = store.get_run(run_id)
+    except Exception as e:
+        print(f"  (could not check whether the run was stopped: {e})", file=sys.stderr)
+        return None
+    if row is None:
+        print("  the run row is gone; stopping")
+        return "cancelled"
+    status = row.get("status")
+    if status == "running":
+        return None
+    return "held" if status == "held" else "cancelled"
+
+
 def cancelled_in_app(run_id):
-    """True when Stop was pressed on the page. The run row is the authority.
+    """True when Stop (or Hold) was pressed on the page. The run row is the authority.
 
     There is no second switch to read and no new column: the app ends a run by
     writing 'cancelled' on the row, so a row that is no longer 'running' is a run
@@ -118,17 +142,7 @@ def cancelled_in_app(run_id):
     A database that cannot be reached answers "not cancelled" and the next
     keyword asks again. A blip must never end an hour-long run.
     """
-    if not run_id:
-        return False
-    try:
-        row = store.get_run(run_id)
-    except Exception as e:
-        print(f"  (could not check whether the run was stopped: {e})", file=sys.stderr)
-        return False
-    if row is None:
-        print("  the run row is gone; stopping")
-        return True
-    return row.get("status") != "running"
+    return app_interrupt(run_id) is not None
 
 
 class Progress:
@@ -149,6 +163,7 @@ class Progress:
         self.blocked = False
         self.stopped = False   # the walk ended on data/.stop, not on an empty queue
         self.cancelled = False  # ended by Stop on the page: do NOT re-queue it
+        self.held = False       # parked by Hold or by the cap: leave it 'held'
 
     @classmethod
     def resumed(cls, run_id, rows, prior=None):
@@ -196,6 +211,34 @@ class Progress:
             print(f"  (progress push failed: {e})", file=sys.stderr)
 
 
+def reached_cap(prog, hold_at):
+    """True once this run has added as many new leads as it was allowed.
+
+    hold_at is the running total to stop at, not the cap itself: Continue moves
+    it up by the cap each time (new_count + lead_cap), so a run capped at 200
+    holds near 200, then near 400. None means no cap. Checked after each keyword,
+    which is as fine-grained as a walk can stop, so it overshoots by up to one
+    keyword's worth of leads.
+    """
+    return hold_at is not None and prog.new >= hold_at
+
+
+def park_at_cap(prog):
+    """Write 'held' and the tallies, only while the row still reads 'running'.
+
+    False when the row had already moved on (Stop pressed that same minute), in
+    which case the walk ends however the page said. Never raises: a hold that
+    cannot be written leaves the run going, which spends leads but loses nothing.
+    """
+    if not prog.run_id:
+        return False
+    try:
+        return store.hold_if_running(prog.run_id, prog.as_patch(status="held"))
+    except Exception as e:
+        print(f"  (could not hold the run at its cap: {e})", file=sys.stderr)
+        return False
+
+
 def send_rate(prog):
     """sendable / raw. What a run is actually worth, as a fraction of what it saw."""
     return round(prog.sendable / prog.raw, 3) if prog.raw else 0.0
@@ -220,7 +263,7 @@ def _scrape_with_backoff(queries, out_name, depth, proxies=None):
 
 
 def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
-            queue_path=None, crm_phones=frozenset()):
+            queue_path=None, crm_phones=frozenset(), hold_at=None):
     """Walk a queue to completion. `rows` is mutated in place and saved after every
     batch, which is what makes the run resumable."""
     cfg = build_queue.RUN_SIZES.get(size) or build_queue.RUN_SIZES["standard"]
@@ -249,9 +292,11 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
             prog.stopped = True
             save()
             break
-        if cancelled_in_app(run_id):
-            print("stopped from the app")
-            prog.cancelled = True
+        interrupt = app_interrupt(run_id)
+        if interrupt:
+            print(f"{interrupt} from the app")
+            prog.held = interrupt == "held"
+            prog.cancelled = not prog.held
             save()
             break
         pending = [r for r in rows if r["status"] == "pending"]
@@ -267,9 +312,11 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
             # Asked once per keyword, not once per batch. A batch is forty
             # queries across ten keywords and takes the better part of an hour,
             # and a Stop that waits that long is not a stop.
-            if cancelled_in_app(run_id):
-                print("stopped from the app")
-                prog.cancelled = True
+            interrupt = app_interrupt(run_id)
+            if interrupt:
+                print(f"{interrupt} from the app")
+                prog.held = interrupt == "held"
+                prog.cancelled = not prog.held
                 break
             kw_rows = [r for r in batch if r["keyword"] == kw]
             queries = sorted({f'{r["keyword"]} {r["location"]}' for r in kw_rows})
@@ -277,6 +324,8 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
             if maps_paused:
                 print(f"  {head['metro']}/{kw}: maps paused, skipping")
                 prog.done += len(kw_rows)
+                for r in kw_rows:
+                    r["status"] = "done"
                 continue
 
             stats = _scrape_with_backoff(queries, f"b_{kw_rows[0]['id']}.json", depth, proxies)
@@ -313,9 +362,25 @@ def execute(rows, active_niche, run_id=None, size="standard", proxies=None,
             else:
                 bad_metros = 0
 
+            # Done per keyword, not per batch. A batch is ten keywords and most
+            # of an hour; a run held halfway through one used to redo every
+            # keyword in it on Continue.
+            for r in kw_rows:
+                r["status"] = "done"
+            save()
             prog.push()
 
-        if prog.cancelled:
+            if reached_cap(prog, hold_at):
+                if park_at_cap(prog):
+                    print(f"  held at {prog.new} new leads (cap reached)")
+                    prog.held = True
+                else:
+                    interrupt = app_interrupt(run_id) or "cancelled"
+                    prog.held = interrupt == "held"
+                    prog.cancelled = not prog.held
+                break
+
+        if prog.cancelled or prog.held:
             save()
             break
 
@@ -466,7 +531,7 @@ def run_job(run):
     try:
         prog = execute(rows, active, run_id=run_id, size=size,
                        proxies=run.get("proxies"), queue_path=queue_path,
-                       crm_phones=crm_phones)
+                       crm_phones=crm_phones, hold_at=run.get("hold_at"))
     except Exception as e:
         store.finish_run(run_id, "failed", error=str(e)[:500])
         raise
@@ -474,6 +539,14 @@ def run_job(run):
     if prog.cancelled:
         keep_cancelled(run_id, **prog.as_patch())
         print(f"stopped from the app. {prog.done}/{prog.total} queries done")
+        return
+
+    # Held: the row already reads 'held' (the page wrote it, or park_at_cap did).
+    # Tallies only, status untouched, exactly as for a stop. Continue on the page
+    # re-queues it and this machine resumes it from data/queue_<id>.jsonl.
+    if prog.held:
+        keep_cancelled(run_id, **prog.as_patch())
+        print(f"held. {prog.new} new leads, {prog.done}/{prog.total} queries done")
         return
 
     if prog.stopped:

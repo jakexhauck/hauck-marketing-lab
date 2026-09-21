@@ -398,3 +398,103 @@ class PickingUpAStrandedRun(unittest.TestCase):
         store.requeue_if_running = flaky
         self.assertEqual(coordinator.reap_stranded(), 1)
         self.assertEqual(calls, ["r1", "r2"])
+
+
+class HoldingARun(unittest.TestCase):
+    """A run can be parked, by Hold on the page or by reaching its cap.
+
+    Parked is 'held', and held is neither ended nor queued: the watcher must not
+    pick it straight back up (that is 'queued') and the page must be able to
+    carry on from it (that is not 'cancelled'). Continue on the page flips it to
+    'queued' and moves hold_at up by the cap.
+    """
+
+    class Store:
+        def __init__(self, row=None, matched=True):
+            self.row = row
+            self.matched = matched
+            self.holds = []
+            self.patches = []
+
+        def get_run(self, run_id):
+            return self.row
+
+        def hold_if_running(self, run_id, patch):
+            self.holds.append((run_id, patch))
+            return self.matched
+
+        def update_run(self, run_id, patch):
+            self.patches.append((run_id, patch))
+            return patch
+
+    def setUp(self):
+        self.real_store = coordinator.store
+
+    def tearDown(self):
+        coordinator.store = self.real_store
+
+    def use(self, row=None, matched=True):
+        coordinator.store = self.Store(row, matched)
+        return coordinator.store
+
+    def test_hold_on_the_page_reads_as_held_not_cancelled(self):
+        self.use({"id": "r1", "status": "held"})
+        self.assertEqual(coordinator.app_interrupt("r1"), "held")
+
+    def test_stop_on_the_page_still_reads_as_cancelled(self):
+        self.use({"id": "r1", "status": "cancelled"})
+        self.assertEqual(coordinator.app_interrupt("r1"), "cancelled")
+
+    def test_a_running_run_is_not_interrupted(self):
+        self.use({"id": "r1", "status": "running"})
+        self.assertIsNone(coordinator.app_interrupt("r1"))
+
+    def test_the_old_question_still_answers_true_for_a_held_run(self):
+        # Anything that is not 'running' stops the walk. Held just ends it differently.
+        self.use({"id": "r1", "status": "held"})
+        self.assertTrue(coordinator.cancelled_in_app("r1"))
+
+    def test_no_cap_never_holds(self):
+        p = coordinator.Progress("r1", 10)
+        p.new = 10_000
+        self.assertFalse(coordinator.reached_cap(p, None))
+
+    def test_under_the_cap_carries_on(self):
+        p = coordinator.Progress("r1", 10)
+        p.new = 199
+        self.assertFalse(coordinator.reached_cap(p, 200))
+
+    def test_reaching_the_cap_holds(self):
+        p = coordinator.Progress("r1", 10)
+        p.new = 200
+        self.assertTrue(coordinator.reached_cap(p, 200))
+        p.new = 231
+        self.assertTrue(coordinator.reached_cap(p, 200))
+
+    def test_parking_at_the_cap_writes_held_with_the_tallies(self):
+        store = self.use()
+        p = coordinator.Progress("r1", 40)
+        p.done, p.new = 12, 205
+        self.assertTrue(coordinator.park_at_cap(p))
+        run_id, patch = store.holds[0]
+        self.assertEqual(run_id, "r1")
+        self.assertEqual(patch["status"], "held")
+        self.assertEqual(patch["new_count"], 205)
+        self.assertEqual(patch["done_queries"], 12)
+
+    def test_a_run_stopped_a_moment_earlier_is_not_turned_back_into_held(self):
+        # The write only matches a row still reading 'running'. If Jake pressed
+        # Stop in the same minute, the run stays cancelled and the walk ends as one.
+        self.use(matched=False)
+        p = coordinator.Progress("r1", 40)
+        self.assertFalse(coordinator.park_at_cap(p))
+
+    def test_parking_never_raises(self):
+        class Broken(self.Store):
+            def hold_if_running(self, run_id, patch):
+                raise RuntimeError("no")
+        coordinator.store = Broken()
+        self.assertFalse(coordinator.park_at_cap(coordinator.Progress("r1", 1)))
+
+    def test_a_fresh_run_is_not_held(self):
+        self.assertFalse(coordinator.Progress("r1", 10).held)

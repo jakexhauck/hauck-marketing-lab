@@ -43,7 +43,7 @@ export interface ScrapeRun {
   states: string[];
   cities: { city: string; state: string }[];
   size: RunSize;
-  status: "preparing" | "queued" | "running" | "done" | "failed" | "cancelled";
+  status: "preparing" | "queued" | "running" | "held" | "done" | "failed" | "cancelled";
   host: string | null;
   error: string | null;
   totalQueries: number;
@@ -62,6 +62,10 @@ export interface ScrapeRun {
   blocked: boolean;
   crmSnapshotCount: number;
   crmSnapshotPartial: boolean;
+  // New leads per stretch (the wizard's cap) and the total the runner holds at
+  // next. Both null on a run with no cap.
+  leadCap: number | null;
+  holdAt: number | null;
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
@@ -111,10 +115,23 @@ export interface RunDraft {
   // cities; the wizard now only ever sends cities, so what you ticked is
   // exactly what gets scraped.
   cities: { city: string; state: string }[];
+  // New leads before the run holds itself. Null is no cap.
+  cap: number | null;
 }
 
 export function emptyDraft(): RunDraft {
-  return { nicheId: "", size: "standard", cities: [] };
+  return { nicheId: "", size: "standard", cities: [], cap: null };
+}
+
+// The cap step's buttons. A typed number covers anything else.
+export const CAP_PRESETS = [100, 250, 500] as const;
+
+/** A typed cap. Commas are fine; anything that is not a whole number from 1 up is no cap. */
+export function parseCapInput(text: string): number | null {
+  const cleaned = (text ?? "").replace(/[,\s]/g, "");
+  if (!/^\d+$/.test(cleaned)) return null;
+  const n = Number(cleaned);
+  return n >= 1 ? n : null;
 }
 
 export function cityKey(city: string, state: string): string {
@@ -160,12 +177,19 @@ export function addCities(
 /** What the wizard will actually send. */
 export function resolveRunRequest(
   draft: RunDraft,
-): { nicheId: string; states: string[]; cities: { city: string; state: string }[]; size: RunSize } {
+): {
+  nicheId: string;
+  states: string[];
+  cities: { city: string; state: string }[];
+  size: RunSize;
+  cap: number | null;
+} {
   return {
     nicheId: draft.nicheId,
     states: [],
     cities: draft.cities.slice(0, runCap(draft.size)),
     size: draft.size,
+    cap: draft.cap,
   };
 }
 
@@ -222,6 +246,12 @@ export function isRunActive(run: ScrapeRun | null | undefined): boolean {
   return !!run && (run.status === "preparing" || run.status === "queued" || run.status === "running");
 }
 
+// Parked by Hold or by its cap. Not active (it scrapes nothing and does not
+// block a new run) but not finished either: Continue picks it back up.
+export function isRunHeld(run: ScrapeRun | null | undefined): boolean {
+  return !!run && run.status === "held";
+}
+
 /**
  * The line under the progress bar.
  *
@@ -239,6 +269,8 @@ export function runStatusLine(run: ScrapeRun): string {
       return run.blocked
         ? "Google is throttling us. Maps is paused; the directory fallback is still going."
         : `Scraping. ${run.doneQueries} of ${run.totalQueries} searches done.`;
+    case "held":
+      return `Held at ${run.added} new ${run.added === 1 ? "lead" : "leads"}.`;
     case "done":
       return run.added > 0
         ? `Finished. ${run.added} new ${run.added === 1 ? "lead" : "leads"} added.`

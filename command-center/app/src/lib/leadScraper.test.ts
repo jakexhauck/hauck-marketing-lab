@@ -8,6 +8,8 @@ import {
   formatRating,
   formatScore,
   isRunActive,
+  isRunHeld,
+  parseCapInput,
   parseCityLine,
   parseCityList,
   passRateLabel,
@@ -38,7 +40,7 @@ function run(over: Partial<ScrapeRun> = {}): ScrapeRun {
     rawFound: 500, kept: 120, passed: 41, sendable: 15, added: 100,
     hiddenAsDuplicates: 12, rejected: 380,
     sent: 0, passRate: 0.24, failureRate: 0, blocked: false,
-    crmSnapshotCount: 900, crmSnapshotPartial: false,
+    crmSnapshotCount: 900, crmSnapshotPartial: false, leadCap: null, holdAt: null,
     createdAt: "2026-07-30T10:00:00Z", startedAt: null, finishedAt: null,
     ...over,
   };
@@ -115,6 +117,25 @@ describe("what the wizard actually sends", () => {
   it("carries the run size through", () => {
     expect(resolveRunRequest(draft({ size: "deep" })).size).toBe("deep");
   });
+
+  it("carries the cap through, and no cap as null", () => {
+    expect(resolveRunRequest(draft({ cap: 250 })).cap).toBe(250);
+    expect(resolveRunRequest(draft()).cap).toBeNull();
+  });
+});
+
+describe("typing a cap", () => {
+  it("reads a whole number", () => {
+    expect(parseCapInput("300")).toBe(300);
+    expect(parseCapInput(" 1,500 ")).toBe(1500);
+  });
+  it("reads anything else as no cap", () => {
+    expect(parseCapInput("")).toBeNull();
+    expect(parseCapInput("0")).toBeNull();
+    expect(parseCapInput("-5")).toBeNull();
+    expect(parseCapInput("12.5")).toBeNull();
+    expect(parseCapInput("lots")).toBeNull();
+  });
 });
 
 describe("typing cities by hand", () => {
@@ -159,10 +180,22 @@ describe("reading a run", () => {
     for (const status of ["preparing", "queued", "running"] as const) {
       expect(isRunActive(run({ status }))).toBe(true);
     }
-    for (const status of ["done", "failed", "cancelled"] as const) {
+    for (const status of ["done", "failed", "cancelled", "held"] as const) {
       expect(isRunActive(run({ status }))).toBe(false);
     }
     expect(isRunActive(null)).toBe(false);
+  });
+
+  // Held is parked, not going: it must not block the wizard, and it gets its
+  // own banner with Continue.
+  it("tells a held run apart from an active one", () => {
+    expect(isRunHeld(run({ status: "held" }))).toBe(true);
+    expect(isRunHeld(run({ status: "running" }))).toBe(false);
+  });
+
+  it("says how many leads a held run stopped at", () => {
+    expect(runStatusLine(run({ status: "held", added: 212 }))).toBe("Held at 212 new leads.");
+    expect(runStatusLine(run({ status: "held", added: 1 }))).toBe("Held at 1 new lead.");
   });
 
   it("tells you to go and start the runner when a run is queued", () => {

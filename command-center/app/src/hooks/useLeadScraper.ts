@@ -106,6 +106,8 @@ export interface StartRunInput {
   states: string[];
   cities: { city: string; state: string }[];
   size: RunSize;
+  // New leads before the run holds itself. Null is no cap.
+  cap: number | null;
 }
 
 export function useStartRun() {
@@ -115,6 +117,36 @@ export function useStartRun() {
       api<{ run: ScrapeRun }>("/api/admin/leads/runs", {
         method: "POST",
         body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: RUNS_KEY });
+    },
+  });
+}
+
+/** Park a queued or running run as held. The runner stops at the next keyword. */
+export function useHoldRun() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ run: ScrapeRun }>("/api/admin/leads/hold", {
+        method: "POST",
+        body: JSON.stringify({ id }),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: RUNS_KEY });
+    },
+  });
+}
+
+/** Continue a held run: back on the queue, next hold point up by the cap. */
+export function useResumeRun() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ run: ScrapeRun }>("/api/admin/leads/resume", {
+        method: "POST",
+        body: JSON.stringify({ id }),
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: RUNS_KEY });

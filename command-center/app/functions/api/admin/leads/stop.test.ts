@@ -27,7 +27,8 @@ const ROW = {
   error: "stopped from the app", total_queries: 400, done_queries: 295, raw_found: 22826,
   kept_count: 2021, passed_count: 0, sendable_count: 0, new_count: 0, in_crm_count: 0,
   excluded_count: 0, sent_count: 0, pass_rate: null, failure_rate: null, blocked: false,
-  crm_snapshot_count: 0, crm_snapshot_partial: false, created_at: "2026-08-26T21:16:50Z",
+  crm_snapshot_count: 0, crm_snapshot_partial: false, lead_cap: null, hold_at: null,
+  created_at: "2026-08-26T21:16:50Z",
   started_at: "2026-08-26T21:17:04Z", finished_at: "2026-08-27T13:59:04Z",
 };
 
@@ -48,7 +49,7 @@ describe("stopping a run", () => {
   it("only ever matches a run that has not finished", async () => {
     const { client: c, calls } = client(ROW);
     await stopRun(c, "r1");
-    expect(calls.in).toEqual(["status", ["preparing", "queued", "running"]]);
+    expect(calls.in).toEqual(["status", ["preparing", "queued", "running", "held"]]);
   });
 
   it("writes an ending, not just a status", async () => {

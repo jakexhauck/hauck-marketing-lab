@@ -509,3 +509,18 @@ Your action items:
 
 Still parked:
 - The Setter Suite's own slot list still uses the Chicago default zone; Willis is Detroit. Quick Book uses each client's real zone.
+
+## Hold a scrape + cap (21 September 2026)
+
+What's in the app now: New scrape step 4 "Cap" (No cap / 100 / 250 / 500 / own number). Hold button on a running scrape. Held scrape shows Continue and Stop. Send to SMS is off the Leads page. Leads and Cities filters look like the client picker.
+
+Your action items:
+1. Start a Quick scrape with a cap of 10.
+2. Watch it hold on its own (it may stop a little past 10).
+3. Press Continue. It should carry on and hold again about 10 later.
+4. Press Hold on a running scrape once, then Continue.
+5. Press Stop on a held scrape to end it.
+
+Still parked:
+- ClearoutPhone clean step (next build).
+- A held scrape only continues on the computer that started it.

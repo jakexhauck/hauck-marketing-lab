@@ -23,10 +23,11 @@ import { SELECT as RUN_SELECT, shapeRun } from "./runs";
 // finished, so a stopped run can be resumed by hand by putting it back to
 // 'queued' rather than re-walking from the start.
 
-// The three statuses that mean "not finished". Anything else has an end already
-// and must not be given a second one: a finished run that could be re-stopped
-// would rewrite its own finished_at every time somebody pressed the button.
-const ACTIVE = ["preparing", "queued", "running"];
+// The statuses that mean "not finished". Anything else has an end already and
+// must not be given a second one: a finished run that could be re-stopped would
+// rewrite its own finished_at every time somebody pressed the button. 'held' is
+// parked, not finished, so Stop on the held banner ends it for good.
+const ACTIVE = ["preparing", "queued", "running", "held"];
 
 interface PostBody {
   id?: unknown;

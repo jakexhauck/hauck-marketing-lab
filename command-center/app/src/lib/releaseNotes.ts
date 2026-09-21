@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-21-scrape-hold",
+    date: "21 September 2026",
+    title: "Hold a scrape, and cap it from the start",
+    items: [
+      "New scrape has a fourth step, Cap: No cap, 100, 250, 500 or your own number. The scrape holds itself once it has added that many new leads.",
+      "A running scrape has a Hold button next to Stop.",
+      "A held scrape shows Continue and Stop. Continue picks up where it stopped and holds again after the same number of new leads.",
+      "A held scrape continues on the computer that started it.",
+      "Send to SMS is gone from the Leads page. Send to power dialer stays.",
+      "The Leads and Cities filters now look like the client picker.",
+    ],
+  },
+  {
     id: "2026-09-21-home-screen-icons",
     date: "21 September 2026",
     title: "Home screen icons open the right app",

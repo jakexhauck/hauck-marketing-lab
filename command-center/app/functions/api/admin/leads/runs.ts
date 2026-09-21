@@ -22,7 +22,7 @@ import { toE164 } from "../../../lib/agencyCrm";
 // One literal, not a concatenation: supabase-js infers the row type from this
 // string, and a joined expression collapses it to an error type.
 export const SELECT =
-  "id, niche_id, niche_label, states, cities, size, status, host, error, total_queries, done_queries, raw_found, kept_count, passed_count, sendable_count, new_count, in_crm_count, excluded_count, sent_count, pass_rate, failure_rate, blocked, crm_snapshot_count, crm_snapshot_partial, created_at, started_at, finished_at";
+  "id, niche_id, niche_label, states, cities, size, status, host, error, total_queries, done_queries, raw_found, kept_count, passed_count, sendable_count, new_count, in_crm_count, excluded_count, sent_count, pass_rate, failure_rate, blocked, crm_snapshot_count, crm_snapshot_partial, lead_cap, hold_at, created_at, started_at, finished_at";
 
 const MAX_CONTACT_PAGES = 50; // 100 per page, so up to 5,000 contacts per sweep
 const SIZES = new Set(["quick", "standard", "deep"]);
@@ -52,6 +52,8 @@ interface RunRow {
   blocked: boolean;
   crm_snapshot_count: number;
   crm_snapshot_partial: boolean;
+  lead_cap: number | null;
+  hold_at: number | null;
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
@@ -91,6 +93,10 @@ export function shapeRun(row: RunRow) {
     blocked: row.blocked,
     crmSnapshotCount: row.crm_snapshot_count,
     crmSnapshotPartial: row.crm_snapshot_partial,
+    // The cap picked in the wizard, and the new-lead total the runner will next
+    // hold at. Continue moves holdAt up by leadCap (resume.ts).
+    leadCap: row.lead_cap ?? null,
+    holdAt: row.hold_at ?? null,
     createdAt: row.created_at,
     startedAt: row.started_at,
     finishedAt: row.finished_at,
@@ -124,6 +130,18 @@ interface PostBody {
   states?: unknown;
   cities?: unknown;
   size?: unknown;
+  cap?: unknown;
+}
+
+// The wizard's cap: new leads per stretch before the run holds itself. Anything
+// that is not a whole number from 1 up reads as no cap, which is the old
+// behaviour, rather than as an error: a cap is a spending guard, not a question
+// the run cannot start without.
+export const MAX_CAP = 100_000;
+export function cleanCap(value: unknown): number | null {
+  const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  if (!Number.isInteger(n) || n < 1) return null;
+  return Math.min(n, MAX_CAP);
 }
 
 function cleanStates(value: unknown): string[] {
@@ -243,6 +261,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   }
 
   const size = typeof body.size === "string" && SIZES.has(body.size) ? body.size : "standard";
+  const cap = cleanCap(body.cap);
 
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
@@ -284,6 +303,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       states,
       cities,
       size,
+      lead_cap: cap,
+      hold_at: cap,
       status: "preparing",
     })
     .select(SELECT)
@@ -301,6 +322,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     states,
     cities: cities.length,
     size,
+    cap,
   });
 
   // The sweep outlives the response. The row stays 'preparing' until it lands.

@@ -62,14 +62,20 @@ def claim_next_run():
 
     The status filter in the PATCH is the lock: if another machine (the PC) claimed
     it first, the row no longer matches and we get an empty list back.
+
+    Only a run nobody has touched (host null) or one this machine started. A run
+    that was held, paused or reaped keeps its host, and its place is saved on that
+    host's disk (data/queue_<id>.jsonl): the other machine would find no queue
+    file and re-walk every search from the start.
     """
-    queued = _request("GET", "/scrape_runs?status=eq.queued&order=created_at.asc&limit=1")
+    mine = f"or=(host.is.null,host.eq.{urllib.parse.quote(hostname(), safe='')})"
+    queued = _request("GET", f"/scrape_runs?status=eq.queued&{mine}&order=created_at.asc&limit=1")
     if not queued:
         return None
     run = queued[0]
     claimed = _request(
         "PATCH",
-        f"/scrape_runs?id=eq.{run['id']}&status=eq.queued",
+        f"/scrape_runs?id=eq.{run['id']}&status=eq.queued&{mine}",
         {"status": "running", "started_at": now_iso(), "host": hostname()},
         prefer="return=representation",
     )
@@ -109,6 +115,22 @@ def requeue_if_running(run_id):
         "PATCH",
         f"/scrape_runs?id=eq.{urllib.parse.quote(str(run_id), safe='')}&status=eq.running",
         {"status": "queued"},
+        prefer="return=representation",
+    )
+    return bool(rows)
+
+
+def hold_if_running(run_id, patch):
+    """Park a run as 'held', only while it still reads 'running'.
+
+    Same shape as requeue_if_running and for the same reason: if Stop was pressed
+    in the minute before the cap was reached, the row reads 'cancelled' and must
+    stay that way. `patch` carries the tallies so the held banner is current.
+    """
+    rows = _request(
+        "PATCH",
+        f"/scrape_runs?id=eq.{urllib.parse.quote(str(run_id), safe='')}&status=eq.running",
+        {**patch, "status": "held"},
         prefer="return=representation",
     )
     return bool(rows)

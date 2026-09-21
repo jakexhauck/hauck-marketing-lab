@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { CircleDot, Filter, Search } from "lucide-react";
+import FilterPicker from "../FilterPicker";
 import { useLeadCities } from "../../../hooks/useApi";
 import { useNichePresets } from "../../../hooks/useLeadScraper";
 import { cityKey } from "../../../lib/leadScraper";
@@ -241,38 +242,29 @@ export default function CitiesTable({ picker }: { picker?: CityPicker } = {}) {
             would have meant two controls answering one question, and the one you
             could not see would silently be narrowing the other. */}
 
-        <select
+        <FilterPicker
+          kicker="Coverage"
+          icon={<CircleDot size={14} />}
           value={status}
-          onChange={(e) => setStatus(e.target.value as Status)}
-          aria-label="Coverage"
-        >
-          {statuses.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABEL[s]}
-            </option>
-          ))}
-        </select>
+          options={statuses.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
+          onChange={(v) => setStatus(v as Status)}
+        />
 
         {/* Narrowing to a trade re-asks the server, because "scraped for HVAC"
             is a different question from "scraped at all" and the counts behind
             it are different rows. In the wizard the trade is already answered,
             so there is nothing to ask. */}
         {!picker && (
-          <select
+          <FilterPicker
+            kicker="Trade"
+            icon={<Filter size={14} />}
             value={niche}
-            onChange={(e) => {
-              setNiche(e.target.value);
-              if (!e.target.value && status === "open") setStatus("all");
+            options={[{ value: "", label: "All trades" }, ...niches.map((n) => ({ value: n, label: labels(n) }))]}
+            onChange={(v) => {
+              setNiche(v);
+              if (!v && status === "open") setStatus("all");
             }}
-            aria-label="Trade"
-          >
-            <option value="">All trades</option>
-            {niches.map((n) => (
-              <option key={n} value={n}>
-                {labels(n)}
-              </option>
-            ))}
-          </select>
+          />
         )}
 
         <span className="lc-count">
