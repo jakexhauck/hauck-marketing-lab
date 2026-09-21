@@ -507,7 +507,11 @@ export default function OperationsTasksTab({ fill = false }: { fill?: boolean } 
                         className="otk-del"
                         aria-label={`Remove ${task.title?.trim() || "untitled task"}`}
                         title="Remove task"
-                        onClick={() => setPendingDelete(task)}
+                        // A ticked-off task is finished work, so clearing it
+                        // needs no "are you sure". Open tasks still confirm.
+                        onClick={() =>
+                          task.completed ? void deleteTask(task) : setPendingDelete(task)
+                        }
                       >
                         <X size={15} strokeWidth={2.4} />
                       </button>
@@ -677,7 +681,7 @@ function OperationsTasksStyle() {
       .pk-kit .otk-card tr.otk-rowdone td .otk-txt { color: var(--text-faint); text-decoration: line-through; }
 
       /* Remove column: an always-visible X on the right of each row. Deletes the
-         task (behind a confirm) via useAdminTaskList. */
+         task via useAdminTaskList, behind a confirm unless it is already done. */
       .pk-kit .otk-card th.otk-delhead { width: 44px; }
       .pk-kit .otk-card td.otk-delcol { width: 44px; text-align: center; }
       /* The auto margin belongs to the TABLE CELL, not to the button. It was on

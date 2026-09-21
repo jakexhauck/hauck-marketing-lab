@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-21-done-task-no-confirm",
+    date: "21 September 2026",
+    title: "Done tasks delete without asking",
+    items: [
+      "Pressing the X on a task you have already ticked off removes it straight away.",
+      "Tasks that are still open ask \"Remove this task?\" first, as before.",
+    ],
+  },
+  {
     id: "2026-09-21-csv-keep-or-remove",
     date: "21 September 2026",
     title: "The Leads CSV asks whether to keep the leads",
