@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-21-home-screen-icons",
+    date: "21 September 2026",
+    title: "Home screen icons open the right app",
+    items: [
+      "Quick Book and Setter icons added to the home screen now open Quick Book and Setter, not the admin view.",
+      "Logging in from an admin page now takes you back to that page.",
+    ],
+  },
+  {
     id: "2026-09-21-quick-book",
     date: "21 September 2026",
     title: "Quick Book: book a caller from your phone",

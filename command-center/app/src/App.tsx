@@ -3,6 +3,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
   useNavigate,
   useParams,
   useSearchParams,
@@ -161,13 +162,19 @@ function AdminRoute({
   bare?: boolean;
 }) {
   const { status, isAdmin, preview, admin } = useAuth();
+  const location = useLocation();
   if (status === "loading") return null;
   // Starting a client preview swaps the admin session for a read-only tenant
   // session, so isAdmin flips to false while this admin route is still mounted.
   // Send the admin into the client app (the preview banner offers the way back)
   // instead of bouncing to /login.
   if (preview) return <Navigate to="/home" replace />;
-  if (!isAdmin) return <Navigate to="/login" replace />;
+  // Carries the page along so login can send you back to it (loginReturn.ts).
+  if (!isAdmin) {
+    return (
+      <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
+    );
+  }
   const role = effectiveAdminRole(admin?.role);
   // A role that cannot use this page goes to its own home rather than /login:
   // they are signed in correctly, they are simply somewhere they do not belong.

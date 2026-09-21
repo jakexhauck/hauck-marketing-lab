@@ -25,6 +25,26 @@
          the bottom home-indicator inset the tab bar pads for. -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Hauck" />
+    <!-- Pages with their own home screen icon. Every URL is served this same
+         HTML (the service worker hands back the cached shell for any page), so
+         the manifest has to be chosen HERE, while the head is parsed. Swapping
+         it later from React (useHomeScreenTarget) was not enough on iPhone:
+         Add to Home Screen still used the default manifest, so the icon opened
+         "/" and landed on the admin view. The browser uses the FIRST manifest
+         link, so writing ours before the build-injected default wins. -->
+    <script>
+      (function () {
+        var targets = {
+          "/admin/book": ["/book.webmanifest", "Book"],
+          "/admin/setter": ["/setter.webmanifest", "Setter"],
+        };
+        var t = targets[location.pathname.replace(/\/+$/, "")];
+        if (!t) return;
+        document.write('<link rel="manifest" href="' + t[0] + '" />');
+        var meta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+        if (meta) meta.setAttribute("content", t[1]);
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

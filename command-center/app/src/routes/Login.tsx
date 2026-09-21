@@ -1,5 +1,6 @@
 import { useState, type CSSProperties, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { adminReturnPath } from "../lib/loginReturn";
 import { useAuth } from "../context/AuthContext";
 import { APP_BRAND } from "../lib/appBrand";
 import { CLIENT_HOME } from "../lib/nav";
@@ -33,7 +34,10 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [mode, setMode] = useState<LoginMode>("live");
+  const location = useLocation();
+  // Bounced here from an admin page: open on the admin form and go back there.
+  const returnTo = adminReturnPath(location.state);
+  const [mode, setMode] = useState<LoginMode>(returnTo ? "admin" : "live");
   const { signInAsStaff, signInAsAdmin } = useAuth();
   const navigate = useNavigate();
 
@@ -57,7 +61,7 @@ export default function Login() {
       ? await signInAsAdmin(trimmedEmail, trimmedPw)
       : await signInAsStaff(trimmedEmail, trimmedPw, "live");
     if (res.ok) {
-      navigate(isAdmin ? "/admin/clients" : CLIENT_HOME, { replace: true });
+      navigate(isAdmin ? (returnTo ?? "/admin/clients") : CLIENT_HOME, { replace: true });
     } else {
       setPhase("error");
       setErrorMsg(res.error ?? "Sign-in failed");
