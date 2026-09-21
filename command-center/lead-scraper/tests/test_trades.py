@@ -25,7 +25,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import niche  # noqa: E402
 
 TRADES = ("roofing", "remodeling", "siding_windows", "windows_doors",
-          "general_contracting", "garage_doors", "flooring", "landscaping")
+          "general_contracting", "garage_doors", "flooring", "landscaping",
+          "hvac")
 
 # The primary category that unambiguously means each trade.
 PRIMARY = {
@@ -37,6 +38,7 @@ PRIMARY = {
     "garage_doors": "garage door supplier",
     "flooring": "flooring contractor",
     "landscaping": "landscaper",
+    "hvac": "hvac contractor",
 }
 
 GENEROUS = {"website": "https://example.com", "rating": 4.8, "review_count": 40,
@@ -53,7 +55,7 @@ class EachTradeLoads(unittest.TestCase):
             with self.subTest(trade=tid):
                 n = niche.load_niche(tid)
                 # Inherited from _shared rather than restated in each file.
-                self.assertIn("plumbing", n.deny)
+                self.assertIn("sewer", n.deny)
                 self.assertIn("restaurant", n.category_only)
                 self.assertIn("pool", n.whole_word)
                 self.assertTrue(n.recurring_deny)
@@ -142,8 +144,11 @@ class TradesKeepTheSharedGuards(unittest.TestCase):
     def test_plumbers_and_supply_yards_are_still_rejected_everywhere(self):
         for tid in TRADES:
             n = niche.load_niche(tid)
+            # HVAC escapes 'plumbing' on purpose (Plumbing, Heating & Air shops), so a
+            # plumber is refused there by primary category rather than by the word.
+            plumber_primary = "plumber" if tid == "hvac" else PRIMARY[tid]
             for name, primary in (
-                ("Rapid Response Plumbing", PRIMARY[tid]),
+                ("Rapid Response Plumbing", plumber_primary),
                 ("Northside Lumber Supply", "lumber store"),
                 ("Shield Pest Control", "pest control service"),
             ):
@@ -361,10 +366,8 @@ class LandscapingEscapesTheSharedList(unittest.TestCase):
             with self.subTest(trade=tid):
                 self.assertIn("landscap", n.deny)
                 self.assertIn("landscaper", n.primary_deny)
-                self.assertEqual(
-                    [t for t in base["recurring_deny"] if t not in n.recurring_deny], [],
-                    f"{tid} lost recurring-service exclusions",
-                )
+                for term in ("lawn care", "snow removal"):
+                    self.assertIn(term, n.recurring_deny, f"{tid} lost {term!r}")
                 _, flags, verdict = score(n, "Summit Roofing & Landscaping", "landscaper")
                 self.assertEqual(verdict, "drop", f"{tid} took a landscaper: {flags}")
 
@@ -376,11 +379,72 @@ class LandscapingEscapesTheSharedList(unittest.TestCase):
                 self.assertEqual(verdict, "drop", f"took a {other}: {flags}")
 
 
+class HvacKeepsTheShopsThatAlsoPlumb(unittest.TestCase):
+    """Back after being dropped on 2026-08-20.
+
+    A large share of residential HVAC firms are "Plumbing, Heating & Air" shops that
+    carry Plumber and Air duct cleaning service as SECONDARY categories. The shared
+    lists scan every category, so without the escapes they would all be thrown away.
+    Both stay refused as a PRIMARY.
+    """
+
+    def setUp(self):
+        self.n = niche.load_niche("hvac")
+
+    def test_an_hvac_contractor_qualifies(self):
+        s, flags, verdict = score(self.n, "Apex Heating & Air", "hvac contractor")
+        self.assertEqual(verdict, "pass", f"{s} {flags}")
+
+    def test_a_plumbing_heating_and_air_shop_qualifies(self):
+        s, flags, verdict = score(
+            self.n, "Smith Plumbing, Heating & Air", "hvac contractor",
+            ("plumber", "air duct cleaning service", "furnace repair service"),
+        )
+        self.assertEqual(verdict, "pass", f"{s} {flags}")
+
+    def test_the_repair_and_installation_forms_survive_the_broad_rules(self):
+        for primary in ("air conditioning repair service", "furnace repair service",
+                        "hvac repair service", "hvac installation service"):
+            with self.subTest(primary=primary):
+                s, flags, verdict = score(self.n, "Cascade Comfort", primary)
+                self.assertEqual(verdict, "pass", f"{s} {flags}")
+
+    def test_plumbers_duct_cleaners_and_suppliers_are_still_refused(self):
+        for name, primary in (
+            ("Smith Plumbing & Heating", "plumber"),
+            ("Fresh Air Duct Cleaning", "air duct cleaning service"),
+            ("Valley Heating Rooter & Drain", "hvac contractor"),
+            ("Metro Heating Supply", "heating equipment supplier"),
+            ("Quick Appliance Repair", "appliance repair service"),
+        ):
+            with self.subTest(business=name):
+                _, flags, verdict = score(self.n, name, primary)
+                self.assertEqual(verdict, "drop", f"{name} survived: {flags}")
+
+    def test_the_escape_does_not_leak_into_any_other_trade(self):
+        for tid in TRADES:
+            if tid == "hvac":
+                continue
+            n = niche.load_niche(tid)
+            with self.subTest(trade=tid):
+                self.assertIn("plumbing", n.deny)
+                self.assertIn("duct cleaning", n.recurring_deny)
+                _, flags, verdict = score(n, "Apex Heating & Air", "hvac contractor")
+                self.assertEqual(verdict, "drop", f"{tid} took an hvac firm: {flags}")
+
+    def test_it_still_refuses_the_trades_it_is_not(self):
+        for other in ("roofing contractor", "general contractor", "flooring contractor",
+                      "landscaper", "siding contractor"):
+            with self.subTest(primary=other):
+                _, flags, verdict = score(self.n, "Apex Heating & Air", other)
+                self.assertEqual(verdict, "drop", f"took a {other}: {flags}")
+
+
 class DenyRemoveIsNarrow(unittest.TestCase):
     def test_a_trade_that_does_not_ask_keeps_every_inherited_term(self):
         base = json.loads((niche.NICHES_DIR / "_shared.json").read_text(encoding="utf-8"))
         for tid in TRADES:
-            if tid in ("garage_doors", "flooring", "landscaping"):
+            if tid in ("garage_doors", "flooring", "landscaping", "hvac"):
                 continue
             n = niche.load_niche(tid)
             with self.subTest(trade=tid):

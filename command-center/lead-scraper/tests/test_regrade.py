@@ -45,8 +45,8 @@ class HistoryIsNeverRewritten(unittest.TestCase):
 
 class ARetiredTradeIsLeftAlone(unittest.TestCase):
     def test_a_niche_with_no_file_is_reported_not_guessed_at(self):
-        orphan = row(niche_id="hvac", business_name="Reds Heating and Cooling",
-                     primary_type="hvac contractor", categories=["hvac contractor"])
+        orphan = row(niche_id="pool_service", business_name="Reds Pool Service",
+                     primary_type="pool cleaning service", categories=["pool cleaning service"])
         rescored, dq, untouched = regrade.plan([orphan])
         self.assertEqual((rescored, dq), ([], []))
         self.assertEqual(len(untouched), 1)

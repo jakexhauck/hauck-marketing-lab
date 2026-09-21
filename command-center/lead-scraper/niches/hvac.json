@@ -1,0 +1,105 @@
+{
+  "id": "hvac",
+  "label": "HVAC (heating and cooling)",
+  "extends": "_shared",
+  "_comment": "Back 2026-09-21 after being dropped on 2026-08-20. Residential HVAC firms are very often 'Plumbing, Heating & Air' shops that carry Plumber as a SECONDARY category, and the shared deny scans every category, so this trade escapes 'plumbing' and 'plumber' from deny; a firm Google files FIRST as a plumber is still refused by the inherited primary_deny. Air duct cleaning is the same shape: a common secondary on real installers, so it leaves recurring_deny here and is refused only as a primary. Drain, sewer, rooter and septic stay denied, as do filter delivery and maintenance-plan outfits. The generic installation-service and repair-service rules are restated with the HVAC forms added, which _shared stopped carrying when the trade was dropped.",
+  "deny_remove": [
+    "plumbing",
+    "plumber"
+  ],
+  "recurring_deny_remove": [
+    "duct cleaning",
+    "air duct cleaning"
+  ],
+  "keywords": [
+    "hvac contractor",
+    "air conditioning repair",
+    "heating and cooling",
+    "furnace repair",
+    "ac installation",
+    "heat pump installation",
+    "furnace replacement",
+    "air conditioning installation",
+    "hvac repair",
+    "heating contractor"
+  ],
+  "allow_core": [
+    "hvac contractor",
+    "heating contractor",
+    "air conditioning contractor",
+    "furnace repair service",
+    "air conditioning repair service",
+    "hvac installation service",
+    "hvac repair service"
+  ],
+  "category_unless": [
+    {
+      "deny": "installation service",
+      "unless": [
+        "window installation service",
+        "insulation installation service",
+        "siding installation service",
+        "door installation service",
+        "hvac installation service",
+        "air conditioning installation service",
+        "heat pump installation service"
+      ]
+    },
+    {
+      "deny": "repair service",
+      "unless": [
+        "roof repair service",
+        "air conditioning repair service",
+        "furnace repair service",
+        "hvac repair service",
+        "heating repair service"
+      ]
+    }
+  ],
+  "primary_deny": [
+    "bathroom remodeler",
+    "bathroom remodeling service",
+    "carpet installer",
+    "construction company",
+    "door installation service",
+    "duct cleaning",
+    "floor refinishing service",
+    "floor sanding and polishing service",
+    "flooring contractor",
+    "general contractor",
+    "gutter service",
+    "home builder",
+    "insulation contractor",
+    "kitchen remodeler",
+    "remodeler",
+    "roof repair service",
+    "roofing contractor",
+    "roofing service",
+    "siding contractor",
+    "tile contractor",
+    "window installation service",
+    "wood floor installation service"
+  ],
+  "name_signals": {
+    "hvac": [
+      "hvac"
+    ],
+    "heating": [
+      "heating",
+      "heat pump",
+      "furnace"
+    ],
+    "cooling": [
+      "cooling",
+      "air conditioning",
+      "refrigeration"
+    ],
+    "comfort": [
+      "comfort",
+      "climate"
+    ],
+    "mechanical": [
+      "mechanical"
+    ]
+  }
+}

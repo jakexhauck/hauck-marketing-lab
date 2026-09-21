@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-21-hvac-trade",
+    date: "21 September 2026",
+    title: "HVAC is a trade you can scrape again",
+    items: [
+      "Starting a scrape offers HVAC (heating and cooling) again.",
+      "It keeps plumbing, heating and air shops and the ones that also clean ducts, which the old HVAC option threw away.",
+      "Plumbers, duct cleaners and supply houses are still thrown away, and the HVAC leads retired in August stay retired.",
+    ],
+  },
+  {
     id: "2026-09-21-landscaping-trade",
     date: "21 September 2026",
     title: "Landscaping is a trade you can scrape",
