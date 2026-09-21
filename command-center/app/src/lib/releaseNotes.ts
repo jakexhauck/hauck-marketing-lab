@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-21-cold-call-trimmed",
+    date: "21 September 2026",
+    title: "Cold Call is down to three pages",
+    items: [
+      "Cold Call now shows Power dialer, Tracker and Scripts.",
+      "Pipeline, Availability, SOPs and the Management tab are gone. Scripts moved up out of Management.",
+    ],
+  },
+  {
     id: "2026-09-21-retired-client-hidden",
     date: "21 September 2026",
     title: "Retired accounts are off the Clients list",

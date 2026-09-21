@@ -10,7 +10,7 @@ import { MIN_DIALS_FOR_RATE, leadingScript } from "../../../../functions/lib/col
 import SopDocPicker, { type SopDocChoice } from "./SopDocPicker";
 import ScriptEditor from "../script/ScriptEditor";
 
-// Cold Call > Management > Scripts: the dialing scripts, how each one is doing,
+// Cold Call > Scripts: the dialing scripts, how each one is doing,
 // and the objection handling read alongside them.
 //
 // The variations of one pitch running against each other. Every number on this

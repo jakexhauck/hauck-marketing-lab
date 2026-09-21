@@ -3,11 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { ScrollText, Tags } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { effectiveAdminRole } from "../../../lib/adminRoles";
-import {
-  coldCallSides,
-  resolveColdCallView,
-  resolveManagementPage,
-} from "../../../lib/coldCallPages";
+import { coldCallSides, resolveColdCallView } from "../../../lib/coldCallPages";
 import { useColdCallAssetsQuery } from "../../../hooks/useColdCallAssets";
 import { assetHtml, useDriveDocs } from "../../../hooks/useDriveDoc";
 import { resolveScriptId, setSelectedScriptId, useSelectedScriptId } from "../../../lib/selectedScript";
@@ -20,16 +16,12 @@ import { TrackerMonthNav } from "../tracker/DailyTracker";
 import { cursorForToday, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
 import ColdCallSurface, { AGENCY_CALLER_ID } from "./ColdCallSurface";
 import ColdCallDialing from "./ColdCallDialing";
-import ColdCallPipeline from "./ColdCallPipeline";
-import ColdCallManagement from "./ColdCallManagement";
-import ColdCallAvailability from "./ColdCallAvailability";
-import ColdCallAgencyAvailability from "./ColdCallAgencyAvailability";
-import ColdCallSops from "./ColdCallSops";
+import ScriptsPanel from "./ScriptsPanel";
 
 // Acquisition > Cold Call. Unlike its sibling tabs this is a section rather than
 // a single surface: the caller lives on the Power dialer page while GoHighLevel
-// works the list, reads the Pipeline to see where everybody stands, and the rest
-// are there to be looked at rather than lived in.
+// works the list, the Tracker holds the month, and Scripts is where the owner
+// writes the pitch.
 //
 // The strip under the page title is this section's own; the pillar's siblings
 // (SMS and so on) live in the sidebar dropdown, not here.
@@ -63,7 +55,7 @@ export default function ColdCallSection() {
   const scope = isOwner ? callerId : (admin?.id ?? "");
 
   const { left, right } = coldCallSides(isOwner);
-  const view = resolveColdCallView(searchParams.get("view"), isOwner);
+  const view = resolveColdCallView(searchParams.get("view"), isOwner, searchParams.get("manage"));
   // The Power dialer reads the script inline, above the card of the business
   // being called. Every other page has no card to sit above, so the script
   // stays the floating panel there.
@@ -141,14 +133,9 @@ export default function ColdCallSection() {
     return `Checked ${r.checked}, ${did || "nothing to change"}.${failed}${more}`;
   }, [push.isError, push.data]);
 
-  // Pages with nothing to scope. The team availability page IS the whole
-  // roster, the board is the whole board and an SOP is the same document for
-  // everyone, so a "whose section is this" selector above any of them would be
-  // a control with nothing to control.
-  const rosterWide =
-    view === "pipeline" ||
-    view === "sops" ||
-    (view === "management" && resolveManagementPage(searchParams.get("manage")) === "availability");
+  // A script is the same document for everyone, so a "whose section is this"
+  // selector above it would be a control with nothing to control.
+  const rosterWide = view === "scripts";
 
   // The shelf: the script variations and everything else read mid-call (0058).
   //
@@ -165,7 +152,7 @@ export default function ColdCallSection() {
   // The objection handling document is NOT shown here any more (Jake,
   // 2026-08-24). It used to render under the pitch in the same scroll; the
   // dialing script is now the script and nothing else. The asset kind and
-  // everything that manages it under Management > Scripts are untouched, so
+  // everything that manages it under Scripts are untouched, so
   // this is one prop away from coming back.
 
   // Every document this panel might show, resolved against Drive in one go. A
@@ -182,6 +169,8 @@ export default function ColdCallSection() {
       (prev) => {
         const params = new URLSearchParams(prev);
         params.set("view", next);
+        // Management's sub-page param means nothing now that Management is gone.
+        params.delete("manage");
         return params;
       },
       { replace: true },
@@ -213,10 +202,10 @@ export default function ColdCallSection() {
       emptyHint={
         scripts.length === 0
           ? isOwner
-            ? "No scripts yet. Add a variation under Management > Scripts and it will show here."
+            ? "No scripts yet. Add a variation under Scripts and it will show here."
             : "No script yet. Jake writes this one."
           : isOwner
-            ? `"${scripts.find((s) => s.id === selectedScriptId)?.name ?? "This variation"}" has nothing in it yet. Write it under Management > Scripts.`
+            ? `"${scripts.find((s) => s.id === selectedScriptId)?.name ?? "This variation"}" has nothing in it yet. Write it under Scripts.`
             : "This variation has not been written yet. Jake writes these."
       }
       onClose={() => setScriptOpen(false)}
@@ -371,12 +360,9 @@ function ColdCallBody({
     // with no queue on it, because the phone decides who is on it.
     case "dialing":
       return <ColdCallDialing callerId={callerId} scriptSlot={scriptSlot} />;
-    // The cold calling board, live from GoHighLevel. Agency-wide by nature: a
-    // board is where every prospect stands, not one caller's share of them.
-    case "pipeline":
-      return <ColdCallPipeline />;
-    case "management":
-      return <ColdCallManagement callerId={callerId} />;
+    // The pitch variations and, beneath them, the objection handling.
+    case "scripts":
+      return <ScriptsPanel />;
     case "tracker":
       // With nobody chosen, an owner gets the same grid reading the whole
       // roster: each caller's day resolved on its own and then added up, so the
@@ -392,18 +378,6 @@ function ColdCallBody({
           callerId={callerId || AGENCY_CALLER_ID}
         />
       );
-    case "availability":
-      // On Agency, the same week read across everybody: colour-coded by who,
-      // read-only. It cannot be SUMMED the way the tracker is (hours belong to a
-      // person, and a merged cell has no one owner to paint into), so the
-      // agency version shows whose hours are whose instead of merging them into
-      // one anonymous block.
-      if (!callerId && isOwner) return <ColdCallAgencyAvailability />;
-      return <ColdCallAvailability callerId={callerId} isOwner={isOwner} />;
-    case "sops":
-      // Roster-wide by nature: an SOP is the same document for everyone, so the
-      // person selector does not scope it.
-      return <ColdCallSops />;
     default:
       // resolveColdCallView never returns anything else; a miss is a bug, not a
       // state worth rendering something plausible for.
