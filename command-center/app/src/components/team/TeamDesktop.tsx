@@ -50,7 +50,7 @@ function accessSummary(m: StaffMember): string[] {
   const reachable = new Set(
     m.permissions.filter((p) => p.view || p.edit).map((p) => p.capability),
   );
-  return CAPABILITIES.filter((c) => reachable.has(c.key)).map(
+  return CAPABILITIES.filter((c) => !c.retired && reachable.has(c.key)).map(
     (c) => CAP_LABEL[c.key],
   );
 }
@@ -68,7 +68,6 @@ export default function TeamDesktop({
   onAdd,
   onEdit,
   onToggleStatus,
-  onManageRoles,
 }: {
   staff: StaffMember[];
   loading: boolean;
@@ -81,7 +80,6 @@ export default function TeamDesktop({
   onAdd: () => void;
   onEdit: (m: StaffMember) => void;
   onToggleStatus: (m: StaffMember) => void;
-  onManageRoles: () => void;
 }) {
   // View-only concerns owned by the desktop directory itself; the route keeps
   // the data and mutations, so a search or filter never touches the server.
@@ -120,23 +118,13 @@ export default function TeamDesktop({
     <DesktopPage
       title="Team"
       actions={
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={onManageRoles}>
-            Manage roles
-          </Button>
-          <Button variant="primary" onClick={onAdd}>
-            {adding ? <X size={16} /> : <UserPlus size={16} />}
-            {adding ? "Close" : "Add employee"}
-          </Button>
-        </div>
+        <Button variant="primary" onClick={onAdd}>
+          {adding ? <X size={16} /> : <UserPlus size={16} />}
+          {adding ? "Close" : "Add employee"}
+        </Button>
       }
     >
-      <p className="mb-5 max-w-[68ch] text-[14px] leading-relaxed text-muted">
-        Give your team their own logins. Each person signs in with their email
-        and password and only sees what you allow.
-      </p>
-
-      {showForm && <div className="mb-6 max-w-2xl">{form}</div>}
+      {showForm && <div className="mb-6">{form}</div>}
 
       {loadError ? (
         <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">

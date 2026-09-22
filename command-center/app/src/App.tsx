@@ -99,7 +99,7 @@ import { ChatProvider } from "./context/ChatContext";
 import { TourProvider } from "./context/TourContext";
 import TourOverlay from "./components/tour/TourOverlay";
 import type { ReactNode } from "react";
-import { CLIENT_HOME } from "./lib/nav";
+import { CLIENT_HOME, landingFor } from "./lib/nav";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { status, currentUser, needsIdentity, setIdentity, isAdmin, crmConnected } =
@@ -223,7 +223,7 @@ function ClientDetailRedirect() {
 }
 
 function RootRedirect() {
-  const { status, mode, isAdmin } = useAuth();
+  const { status, mode, isAdmin, isOwner, can } = useAuth();
   if (status === "loading") return null;
   // A super-admin always lands in the admin console, never a tenant surface.
   if (status === "authenticated" && isAdmin) {
@@ -237,7 +237,7 @@ function RootRedirect() {
   // Live sessions (clients) stay logged in and skip straight to the
   // dashboard. Test sessions (internal) always land on the login screen.
   if (status === "authenticated" && mode === "live") {
-    return <Navigate to={CLIENT_HOME} replace />;
+    return <Navigate to={landingFor({ isOwner, can })} replace />;
   }
   return <Navigate to="/login" replace />;
 }

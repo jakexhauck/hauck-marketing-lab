@@ -26,6 +26,22 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-22-client-app-polish",
+    date: "22 September 2026",
+    title: "Client app tidy-up",
+    items: [
+      "Schedule: Jobs, Month, Week, Agenda and Link Google Calendar sit in the header next to the bell, and the calendar fills the page.",
+      "Inbox: Send SMS sits beside the message box. On a phone the reply box no longer hides under the tab bar.",
+      "Contacts: name, phone and a Message button. Source, tags, last active, call and email are gone.",
+      "Ads Dashboard: the date notes and the leads-not-from-an-ad line are gone, and the column headers sit on one line.",
+      "Team: the employee form uses the full width. Chat roles, channels and Can message Hauck are gone, and so is Manage roles.",
+      "Team: What they can access lists the app's own pages, one toggle each, and switching one off really hides it. Existing employees keep what they could see.",
+      "Settings: two columns across the page. The push, email and text switches and the Everyone or Assigned rep choice are gone.",
+      "The whole app uses the client's own brand colour. The purple highlights are gone.",
+      "The tour covers every page in the app, and clients who already took it see only the new pages.",
+    ],
+  },
+  {
     id: "2026-09-22-subaccount-link",
     date: "22 September 2026",
     title: "Link a client to their sub-account",

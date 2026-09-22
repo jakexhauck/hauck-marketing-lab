@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, MessageSquare, Phone, Search } from "lucide-react";
+import { MessageSquare, Search } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
 import EmptyState from "../EmptyState";
 import Avatar from "../Avatar";
@@ -8,7 +8,6 @@ import { useAuth } from "../../context/AuthContext";
 import { useNow } from "../../context/NowContext";
 import { usePipelines } from "../../context/PipelinesContext";
 import { useContactsQuery, usePipelineLeadsQuery } from "../../hooks/useApi";
-import { classifyOrigin, ORIGIN_BY_KEY } from "../../lib/inboxFilters";
 import {
   contactSegment,
   SEGMENT_LABELS,
@@ -16,15 +15,11 @@ import {
   type ContactSegment,
 } from "../../lib/contactSegments";
 import { formatPhone } from "../../lib/phone";
-import { timeAgo } from "../../lib/timeAgo";
 import type { ApiContact } from "../../lib/api";
 
-// The Atelier desktop Contacts directory (lg+). One big searchable list: each
-// row shows who the contact is, where they came from (source badge, reusing the
-// Unified Inbox origin taxonomy), their tags, phone and last activity, with
-// call / text / email quick actions that surface on hover. The whole row links
-// through to the contact detail. The phone keeps its own list layout; this
-// renders only inside `hidden lg:flex` from the Contacts route.
+// The desktop Contacts directory (lg+): name, phone and a Message button that
+// opens the SMS thread. The whole row links through to the contact detail. The
+// phone keeps its own list layout; this renders only inside `hidden lg:flex`.
 export default function ContactsDesktop() {
   const { session } = useAuth();
   const now = useNow();
@@ -140,7 +135,7 @@ export default function ContactsDesktop() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, email, or phone"
+          placeholder="Search by name or phone"
           aria-label="Search contacts"
           className="w-full rounded-[var(--radius)] border border-border bg-surface py-2.5 pl-9 pr-3 text-[14px] text-text placeholder:text-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25"
         />
@@ -176,16 +171,7 @@ export default function ContactsDesktop() {
               <tr className="border-b border-divider text-left">
                 <th className="label-cap px-6 py-3 font-semibold">Name</th>
                 <th className="label-cap hidden px-6 py-3 font-semibold lg:table-cell">
-                  Source
-                </th>
-                <th className="label-cap hidden px-6 py-3 font-semibold xl:table-cell">
-                  Tags
-                </th>
-                <th className="label-cap hidden px-6 py-3 font-semibold lg:table-cell">
                   Phone
-                </th>
-                <th className="label-cap hidden px-6 py-3 font-semibold lg:table-cell">
-                  Last active
                 </th>
                 <th className="label-cap px-6 py-3 text-right font-semibold">
                   <span className="sr-only">Actions</span>
@@ -194,7 +180,7 @@ export default function ContactsDesktop() {
             </thead>
             <tbody className="fx-stagger">
               {visible.map((c) => (
-                <ContactRow key={c.id} contact={c} now={now} />
+                <ContactRow key={c.id} contact={c} />
               ))}
             </tbody>
           </table>
@@ -204,27 +190,13 @@ export default function ContactsDesktop() {
   );
 }
 
-function SourceBadge({ contact }: { contact: ApiContact }) {
-  const meta = ORIGIN_BY_KEY[classifyOrigin(contact.source, contact.tags)];
-  return (
-    <span className="inline-flex items-center gap-2 text-[12.5px] font-semibold text-muted">
-      <span
-        className="h-2 w-2 shrink-0 rounded-full"
-        style={{ backgroundColor: meta.swatch }}
-        aria-hidden
-      />
-      {meta.label}
-    </span>
-  );
-}
-
-function ContactRow({ contact, now }: { contact: ApiContact; now: number }) {
+// Name, phone, and one action: Message, which opens the contact's SMS thread
+// in the app's own Inbox. Source, tags, last active, email, call and mailto
+// were cut (Jake, 2026-09-22): this list is for finding a person and texting
+// them, and the rest was reading noise.
+function ContactRow({ contact }: { contact: ApiContact }) {
   const navigate = useNavigate();
-  const telDigits = contact.phone.replace(/[^0-9+]/g, "");
-  const hasPhone = telDigits.length > 0;
-  const hasEmail = contact.email.length > 0;
-  const visibleTags = contact.tags.slice(0, 3);
-  const extraTags = contact.tags.length - visibleTags.length;
+  const hasPhone = contact.phone.replace(/[^0-9+]/g, "").length > 0;
 
   const openDetail = () => navigate(`/contacts/${contact.id}`);
 
@@ -242,97 +214,36 @@ function ContactRow({ contact, now }: { contact: ApiContact; now: number }) {
       aria-label={`View ${contact.name}`}
       className="group cursor-pointer border-b border-divider transition-colors last:border-0 hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40"
     >
-      {/* Name + email */}
       <td className="px-6 py-3.5">
         <div className="flex items-center gap-3">
           <Avatar name={contact.name} size="md" />
-          <div className="min-w-0">
-            <div className="truncate font-display text-[14.5px] font-semibold text-text">
-              {contact.name}
-            </div>
-            {hasEmail && (
-              <div className="truncate text-[12.5px] text-muted">
-                {contact.email}
-              </div>
-            )}
-          </div>
+          <span className="truncate font-display text-[14.5px] font-semibold text-text">
+            {contact.name}
+          </span>
         </div>
       </td>
 
-      {/* Source */}
-      <td className="hidden px-6 py-3.5 lg:table-cell">
-        <SourceBadge contact={contact} />
-      </td>
-
-      {/* Tags */}
-      <td className="hidden px-6 py-3.5 xl:table-cell">
-        {visibleTags.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {visibleTags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex max-w-[140px] items-center truncate rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-semibold text-muted"
-              >
-                {tag}
-              </span>
-            ))}
-            {extraTags > 0 && (
-              <span className="text-[11px] font-semibold text-faint">
-                +{extraTags}
-              </span>
-            )}
-          </div>
-        ) : (
-          <span className="text-[13px] text-faint">--</span>
-        )}
-      </td>
-
-      {/* Phone */}
       <td className="hidden px-6 py-3.5 lg:table-cell">
         <span className="whitespace-nowrap font-data text-[13px] text-muted tabular-nums">
           {hasPhone ? formatPhone(contact.phone) : "--"}
         </span>
       </td>
 
-      {/* Last active */}
-      <td className="hidden px-6 py-3.5 lg:table-cell">
-        <span className="font-data text-[12px] text-faint tabular-nums">
-          {timeAgo(contact.lastActivityAt, now)}
-        </span>
-      </td>
-
-      {/* Actions (surface on row hover / focus) */}
       <td className="px-6 py-3.5">
-        <div className="flex items-center justify-end gap-2 opacity-40 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="flex items-center justify-end">
           {hasPhone && (
-            <a
-              href={`tel:${telDigits}`}
-              onClick={(e) => e.stopPropagation()}
-              aria-label={`Call ${contact.name}`}
-              className="flex h-9 w-9 items-center justify-center rounded-[var(--radius)] border border-border text-muted transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/conversations/${encodeURIComponent(contact.id)}`);
+              }}
+              aria-label={`Message ${contact.name}`}
+              className="inline-flex h-9 items-center gap-2 rounded-[var(--radius)] border border-border px-3.5 text-[13px] font-semibold text-muted transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
-              <Phone size={16} aria-hidden />
-            </a>
-          )}
-          {hasPhone && (
-            <a
-              href={`sms:${telDigits}`}
-              onClick={(e) => e.stopPropagation()}
-              aria-label={`Text ${contact.name}`}
-              className="flex h-9 w-9 items-center justify-center rounded-[var(--radius)] border border-border text-muted transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-            >
-              <MessageSquare size={16} aria-hidden />
-            </a>
-          )}
-          {hasEmail && (
-            <a
-              href={`mailto:${contact.email}`}
-              onClick={(e) => e.stopPropagation()}
-              aria-label={`Email ${contact.name}`}
-              className="flex h-9 w-9 items-center justify-center rounded-[var(--radius)] border border-border text-muted transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-            >
-              <Mail size={16} aria-hidden />
-            </a>
+              <MessageSquare size={15} aria-hidden />
+              Message
+            </button>
           )}
         </div>
       </td>

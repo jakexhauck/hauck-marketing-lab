@@ -43,8 +43,8 @@ const RESULT_COLUMNS = [
   "Bookings",
   "Booking Rate",
   "Sales",
-  "Sales % (of leads)",
-  "Close Rate (of bookings)",
+  "Sales %",
+  "Close Rate",
   "Revenue",
   "Ad Spend",
   "ROAS",
@@ -122,65 +122,17 @@ function Picker<T extends string>({
 
 // Breakdown's cells. Dense on purpose: that table is a list, sometimes a long
 // one, so it stays compact.
-const TH = "border border-border bg-surface-2 px-3 py-2 text-[11px] font-semibold text-muted";
+const TH = "whitespace-nowrap border border-border bg-surface-2 px-3 py-2 text-[11px] font-semibold text-muted";
 const TD = "border border-border px-3 py-2.5 text-[13px] text-text tnum";
 
 // Results' cells. Its own scale, a step up from Breakdown's dense list: taller
 // and wider cells, with the type sized to match so the figures sit in
 // proportion to the box rather than rattling around inside it.
+// Headers stay on one line: wrapped labels ("Ad / Spend") gave every column a
+// different height and read as broken.
 const RESULT_TH =
-  "border border-border bg-surface-2 px-4 py-3.5 text-[12.5px] font-semibold text-muted";
-const RESULT_TD = "border border-border px-4 py-6 text-[16px] text-text tnum";
-
-// "Jul 14 to Aug 12", the exact days the figures cover.
-function windowLabel(start: string | null, end: string | null): string {
-  if (!start && !end) return "All time";
-  const fmt = (d: string) => {
-    const [y, m, day] = d.split("-").map(Number);
-    return new Date(Date.UTC(y, m - 1, day)).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC",
-    });
-  };
-  if (start && end && start === end) return fmt(start);
-  return `${start ? fmt(start) : "start"} to ${end ? fmt(end) : "today"}`;
-}
-
-// The days this page is actually reporting on, and how fresh Meta's half of it
-// is.
-//
-// Both were computed and returned long before anything rendered them. A sync
-// that stopped a month ago looked identical to a healthy one while every cost
-// per lead and ROAS on the page drifted upward, and a client comparing this
-// screen against Ads Manager had no way to tell whether they were even looking
-// at the same days. `lastSpendDate` is flagged once it falls more than two days
-// behind the window, since the nightly job should never be further back than
-// yesterday.
-function WindowNote({ meta }: { meta: AdTrackerResponse["meta"] }) {
-  const last = meta.lastSpendDate;
-  const stale =
-    !!last && !!meta.windowEnd && last < windowLabelShift(meta.windowEnd, -2);
-
-  return (
-    <div className="mt-2 space-y-0.5 text-left text-[11px] font-normal leading-tight text-faint">
-      <div>{windowLabel(meta.windowStart, meta.windowEnd)}</div>
-      {meta.neverSynced ? (
-        <div className="text-danger">Meta has never been pulled in</div>
-      ) : last ? (
-        <div className={stale ? "font-semibold text-danger" : undefined}>
-          Meta data through {windowLabel(last, last)}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-// Calendar shift on a YYYY-MM-DD, for the staleness threshold.
-function windowLabelShift(iso: string, days: number): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
-}
+  "whitespace-nowrap border border-border bg-surface-2 px-3 py-3.5 text-[12px] font-semibold text-muted";
+const RESULT_TD = "whitespace-nowrap border border-border px-3 py-6 text-[16px] text-text tnum";
 
 // One figure on a phone card, with its label above it. The sheet's tables carry
 // their labels in a header row; a card has no header row, so each figure has to
@@ -323,9 +275,6 @@ export default function DashboardSheet({
       <div className="mb-3 shrink-0 overflow-x-auto lg:hidden" style={{ scrollbarWidth: "none" }}>
         <Segmented options={RANGES} value={range} onChange={onRange} label="Date range" />
       </div>
-      <div className="mb-3 shrink-0 lg:hidden">
-        <WindowNote meta={data.meta} />
-      </div>
 
       {/* Phone: the money line first and big, then the funnel, then the rates.
           Eleven equal cells in a hairline grid meant ROAS (the number the page
@@ -361,9 +310,8 @@ export default function DashboardSheet({
           </thead>
           <tbody>
             <tr>
-              <td className="border border-border px-4 py-6">
+              <td className="border border-border px-3 py-6">
                 <Picker options={RANGES} value={range} onChange={onRange} label="Date range" />
-                <WindowNote meta={data.meta} />
               </td>
               <td className={RESULT_TD}>{data.kpis.leads}</td>
               <td className={RESULT_TD}>{data.kpis.pickups}</td>
@@ -516,17 +464,6 @@ export default function DashboardSheet({
         </>
       )}
 
-      {/* Leads in range carrying no ad. The breakdown is the attributed subset,
-          so without this the client reads a Leads figure in Results and a
-          smaller one below it with nothing to explain the difference. The admin
-          cockpit has always said this; the client's own sheet did not. */}
-      {data.unattributed > 0 && (
-        <p className="mt-3 shrink-0 text-[12px] text-faint">
-          {data.unattributed} lead{data.unattributed === 1 ? "" : "s"} in this range did not come
-          from an ad, so {data.unattributed === 1 ? "it is" : "they are"} counted in Results but not
-          in the breakdown.
-        </p>
-      )}
     </>
   );
 }

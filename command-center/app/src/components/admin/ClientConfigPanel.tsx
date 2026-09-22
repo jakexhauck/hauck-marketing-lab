@@ -16,6 +16,7 @@ import { useAuth } from "../../context/AuthContext";
 import { CLIENT_HOME } from "../../lib/nav";
 import {
   CAPABILITIES,
+  GRANTABLE_CAPABILITIES,
   defaultGrantsForRole,
   type Capability,
   type StaffRole,
@@ -626,7 +627,7 @@ function EntitlementsCard({ tenantId, enabled, onSaved }: { tenantId: string; en
   return (
     <Card title="Surfaces (what this client sees)">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {CAPABILITIES.map((c) => {
+        {GRANTABLE_CAPABILITIES.map((c) => {
           const on = enabledSet.has(c.key);
           return (
             <button
@@ -860,7 +861,7 @@ function EditMemberForm({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const enabledCaps = CAPABILITIES.filter((c) => enabled.includes(c.key));
+  const enabledCaps = GRANTABLE_CAPABILITIES.filter((c) => enabled.includes(c.key));
 
   const [grants, setGrants] = useState<Record<string, { view: boolean; edit: boolean }>>(() => {
     const map: Record<string, { view: boolean; edit: boolean }> = {};

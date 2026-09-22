@@ -10,13 +10,23 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // it up automatically.
 // ---------------------------------------------------------------------------
 
+// One capability per page in the client app's sidebar, so the owner's "What
+// they can access" list reads exactly like the app. Three keys kept their old
+// names when their page was renamed (paid_ads is Lead Tracker, pipeline is
+// Leads, calendar is Schedule): the grant rows already stored under them carry
+// over untouched. overview, billing and activity have no page any more; they
+// stay valid keys so old grant rows still parse, but no owner can grant them.
 export type Capability =
-  | "overview"
   | "paid_ads"
+  | "ads_dashboard"
+  | "meta_data"
+  | "creatives"
+  | "organic"
   | "pipeline"
+  | "calendar"
   | "inbox"
   | "contacts"
-  | "calendar"
+  | "overview"
   | "billing"
   | "activity";
 
@@ -28,21 +38,28 @@ export interface CapabilityDef {
   // Whether an "edit" grant is meaningful today. View-only surfaces hide the
   // edit toggle in the owner UI.
   hasEdit: boolean;
+  // No page in the app any more: not offered to owners, not seeded.
+  retired?: boolean;
 }
 
 export const CAPABILITIES: CapabilityDef[] = [
-  { key: "overview", label: "Overview", hasEdit: false },
-  // hasEdit since 0102: on a client who types their own lead status, the Paid
-  // Ads tracker is a surface staff can WRITE to (the status, and the value of a
-  // closed job), so "can see the numbers" and "can mark my leads" became two
-  // different grants.
-  { key: "paid_ads", label: "Paid Ads", hasEdit: true },
-  { key: "pipeline", label: "Pipeline", hasEdit: true },
+  // hasEdit since 0102: on a client who types their own lead status, the Lead
+  // Tracker is a surface staff can WRITE to (the status, and the value of a
+  // closed job), so "can see the leads" and "can mark my leads" are two grants.
+  { key: "paid_ads", label: "Lead Tracker", hasEdit: true },
+  { key: "ads_dashboard", label: "Ads Dashboard", hasEdit: false },
+  { key: "meta_data", label: "Meta Data", hasEdit: false },
+  { key: "creatives", label: "Creatives", hasEdit: false },
+  { key: "organic", label: "Organic", hasEdit: false },
+  { key: "pipeline", label: "Leads", hasEdit: true },
+  { key: "calendar", label: "Schedule", hasEdit: true },
   { key: "inbox", label: "Inbox", hasEdit: true },
   { key: "contacts", label: "Contacts", hasEdit: true },
-  { key: "calendar", label: "Calendar", hasEdit: true },
-  { key: "billing", label: "Billing", hasEdit: true },
-  { key: "activity", label: "Activity", hasEdit: true },
+  // Retired pages. Kept so their stored grants still count toward the shared
+  // read rules below; never offered on the Team screen.
+  { key: "overview", label: "Overview", hasEdit: false, retired: true },
+  { key: "billing", label: "Billing", hasEdit: true, retired: true },
+  { key: "activity", label: "Activity", hasEdit: true, retired: true },
 ];
 
 const CAPABILITY_KEYS = new Set<string>(CAPABILITIES.map((c) => c.key));
@@ -81,12 +98,18 @@ const RULES: PermRule[] = [
   { pattern: /^\/api\/leads\/?$/, methods: ["POST"], any: [need("pipeline", "edit")] },
   { pattern: /^\/api\/leads\/?$/, methods: ["GET"], any: [need("pipeline", "view")] },
 
-  // Paid Ads. Only the tracker write is gated: every ads read stays open to any
-  // authenticated caller, as it was before this rule existed.
+  // Paid Ads, one rule per page. The tracker feed backs both the Lead Tracker
+  // and the Ads Dashboard, so either grant reads it.
   { pattern: /^\/api\/ads\/leads\/[^/]+\/?$/, methods: ["PATCH"], any: [need("paid_ads", "edit")] },
+  { pattern: /^\/api\/ads\/tracker\/?$/, methods: ["GET"], any: [need("paid_ads", "view"), need("ads_dashboard", "view")] },
+  { pattern: /^\/api\/ads\/meta-data\/?$/, methods: ["GET"], any: [need("meta_data", "view")] },
+  { pattern: /^\/api\/ads\/creatives-folder\/?$/, methods: ["GET"], any: [need("creatives", "view")] },
+
+  // Organic (the website leads page)
+  { pattern: /^\/api\/organic(\/|$)/, methods: ["GET"], any: [need("organic", "view")] },
 
   // Shared lookups used by multiple surfaces
-  { pattern: /^\/api\/pipelines\/?$/, any: [need("overview", "view"), need("pipeline", "view")] },
+  { pattern: /^\/api\/pipelines\/?$/, any: [need("overview", "view"), need("pipeline", "view"), need("calendar", "view")] },
   { pattern: /^\/api\/summary\/?$/, any: [need("overview", "view"), need("pipeline", "view")] },
 
   // Inbox / conversations
@@ -108,8 +131,8 @@ const RULES: PermRule[] = [
   { pattern: /^\/api\/payments(\/|$)/, methods: ["GET"], any: [need("billing", "view")] },
 
   // Activity / notifications
-  { pattern: /^\/api\/notifications\/read\/?$/, methods: ["POST"], any: [need("activity", "edit")] },
-  { pattern: /^\/api\/notifications\/?$/, methods: ["GET"], any: [need("activity", "view"), need("overview", "view")] },
+  // No notifications rule: the bell sits in every page header for everybody,
+  // and the Activity and Overview pages that used to gate it are gone.
   { pattern: /^\/api\/activity\/?$/, methods: ["GET"], any: [need("activity", "view"), need("overview", "view")] },
 ];
 

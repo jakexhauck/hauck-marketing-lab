@@ -5,19 +5,18 @@ import Shell from "../components/Shell";
 import BackButton from "../components/BackButton";
 import BrandedButton from "../components/BrandedButton";
 import TeamDesktop, { type StaffMember } from "../components/team/TeamDesktop";
-import RoleManager from "../components/comms/RoleManager";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { api, ApiError } from "../lib/api";
-import type { ChatChannel } from "../lib/api";
 import {
   CAPABILITIES,
+  GRANTABLE_CAPABILITIES,
   defaultGrantsForRole,
   type Capability,
   type StaffRole,
 } from "../lib/capabilities";
-import { useChatRoles, useChannels } from "../hooks/useChat";
 import { CLIENT_HOME } from "../lib/nav";
+import { demoMode } from "../demo/demoMode";
 
 type GrantMap = Record<Capability, { view: boolean; edit: boolean }>;
 
@@ -39,7 +38,6 @@ export default function Team() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [showRoles, setShowRoles] = useState(false);
   // When set, the form edits this member; when null (with the form open), it
   // adds a new one.
   const [editing, setEditing] = useState<StaffMember | null>(null);
@@ -59,7 +57,11 @@ export default function Team() {
         api<{ capabilities: Capability[] }>("/api/entitlements"),
       ]);
       setStaff(staffRes.staff ?? []);
-      setEnabled(entRes.capabilities ?? []);
+      // The demo tenant has no entitlement rows; show every page so the
+      // preview matches a real client.
+      setEnabled(
+        demoMode() ? GRANTABLE_CAPABILITIES.map((c) => c.key) : (entRes.capabilities ?? []),
+      );
     } catch (err) {
       setLoadError(err instanceof ApiError ? err.message : "Could not load your team.");
     } finally {
@@ -72,7 +74,7 @@ export default function Team() {
   }, [refresh]);
 
   const enabledCaps = useMemo(
-    () => CAPABILITIES.filter((c) => enabled.includes(c.key)),
+    () => GRANTABLE_CAPABILITIES.filter((c) => enabled.includes(c.key)),
     [enabled],
   );
 
@@ -145,13 +147,6 @@ export default function Team() {
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => setShowRoles(true)}
-            className="rounded-lg px-2.5 py-1.5 text-[12.5px] font-semibold text-[var(--text-muted)] transition-colors active:bg-[var(--surface-2)]"
-          >
-            Manage roles
-          </button>
-          <button
-            type="button"
             onClick={handleAdd}
             aria-label="Add employee"
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--brand-text)] transition-colors active:bg-[var(--surface-2)]"
@@ -164,11 +159,6 @@ export default function Team() {
       {/* pb-6, not pb-28: Shell already clears the fixed bottom bar. px-5, not
           px-[22px]: the app's phone gutter is 20px everywhere else. */}
       <div className="flex-1 overflow-y-auto px-5 pb-6 pt-5">
-        <p className="text-[13px] leading-relaxed text-[var(--text-muted)]">
-          Give your team their own logins. Each person signs in with their email
-          and password and only sees what you allow.
-        </p>
-
         {formEl}
 
         {loadError ? (
@@ -256,11 +246,8 @@ export default function Team() {
           onAdd={handleAdd}
           onEdit={handleEdit}
           onToggleStatus={toggleStatus}
-          onManageRoles={() => setShowRoles(true)}
         />
       </div>
-
-      {showRoles && <RoleManager onClose={() => setShowRoles(false)} />}
     </Shell>
   );
 }
@@ -297,44 +284,8 @@ function EmployeeForm({
   const [grants, setGrants] = useState<GrantMap>(() =>
     editing ? grantsFromMember(editing) : defaultGrantsForRole("rep"),
   );
-  const [chatRoleIds, setChatRoleIds] = useState<string[]>(
-    editing?.chatRoleIds ?? [],
-  );
-  const [canContactHauck, setCanContactHauck] = useState<boolean>(
-    editing?.canContactHauck ?? false,
-  );
-  const [channelIds, setChannelIds] = useState<string[]>(
-    editing?.channelIds ?? [],
-  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Always enabled inside EmployeeForm: the form is only rendered when open.
-  const { data: rolesData } = useChatRoles(true);
-  const { data: channelsData } = useChannels(true);
-  // Highest-priority role first, matching the roster and RoleManager ordering.
-  const chatRoles = useMemo(
-    () =>
-      [...(rolesData?.roles ?? [])].sort((a, b) => b.sortOrder - a.sortOrder),
-    [rolesData],
-  );
-  // Only real channels are assignable here; DMs and the hauck line are implicit.
-  const assignableChannels = useMemo(
-    () =>
-      (channelsData?.channels ?? []).filter(
-        (c: ChatChannel) => c.kind === "channel",
-      ),
-    [channelsData],
-  );
-
-  const toggleChatRole = (id: string) =>
-    setChatRoleIds((ids) =>
-      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
-    );
-  const toggleChannel = (id: string) =>
-    setChannelIds((ids) =>
-      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
-    );
 
   const onRoleChange = (next: StaffRole) => {
     setRole(next);
@@ -342,7 +293,7 @@ function EmployeeForm({
   };
 
   const caps = useMemo(
-    () => CAPABILITIES.filter((c) => enabledCaps.includes(c.key)),
+    () => GRANTABLE_CAPABILITIES.filter((c) => enabledCaps.includes(c.key)),
     [enabledCaps],
   );
 
@@ -382,9 +333,6 @@ function EmployeeForm({
             permissions,
             // Saving re-activates a disabled (e.g. imported) account.
             status: "active",
-            chatRoleIds,
-            canContactHauck,
-            channelIds,
             ...(password.trim() ? { password: password.trim() } : {}),
           }),
         });
@@ -398,9 +346,6 @@ function EmployeeForm({
             password: password.trim(),
             role,
             permissions,
-            chatRoleIds,
-            canContactHauck,
-            channelIds,
           }),
         });
         showToast("Employee added");
@@ -416,7 +361,9 @@ function EmployeeForm({
     "mt-1.5 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-[15px] text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 disabled:opacity-60";
 
   return (
-    <div className="mt-4 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    // Two columns on desktop: who they are on the left, what they can open on
+    // the right. The single 640px column left the right half of the page empty.
+    <div className="mt-4 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 lg:mt-0 lg:p-6">
       <div className="flex items-center gap-2">
         <UserPlus size={16} className="text-[var(--brand-text)]" />
         <span className="font-display text-[14px] font-bold text-[var(--text)]">
@@ -424,222 +371,129 @@ function EmployeeForm({
         </span>
       </div>
 
-      <div className="mt-4 space-y-3">
-        <label className="block">
-          <span className="label-cap">Name</span>
-          <input
-            className={inputClass}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Full name"
-            disabled={submitting}
-          />
-        </label>
-        <label className="block">
-          <span className="label-cap">Email</span>
-          <input
-            className={inputClass}
-            type="email"
-            autoCapitalize="none"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@email.com"
-            disabled={submitting || isEdit}
-          />
-        </label>
-        <label className="block">
-          <span className="label-cap">
-            {isEdit ? "New password (optional)" : "Temporary password"}
-          </span>
-          <input
-            className={inputClass}
-            type="text"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={isEdit ? "Leave blank to keep current" : "At least 8 characters"}
-            disabled={submitting}
-          />
-        </label>
-        <label className="block">
-          <span className="label-cap">Role</span>
-          <select
-            className={inputClass}
-            value={role}
-            onChange={(e) => onRoleChange(e.target.value as StaffRole)}
-            disabled={submitting}
-          >
-            {roleOptions.map((r) => (
-              <option key={r} value={r}>
-                {ROLE_LABEL[r]}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="mt-4">
-        <div className="flex items-center gap-1.5">
-          <ShieldCheck size={14} className="text-[var(--text-muted)]" />
-          <span className="label-cap">What they can access</span>
+      <div className="mt-4 grid gap-6 lg:grid-cols-2 lg:gap-8">
+        <div className="space-y-3">
+          <label className="block">
+            <span className="label-cap">Name</span>
+            <input
+              className={inputClass}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Full name"
+              disabled={submitting}
+            />
+          </label>
+          <label className="block">
+            <span className="label-cap">Email</span>
+            <input
+              className={inputClass}
+              type="email"
+              autoCapitalize="none"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@email.com"
+              disabled={submitting || isEdit}
+            />
+          </label>
+          <label className="block">
+            <span className="label-cap">
+              {isEdit ? "New password (optional)" : "Temporary password"}
+            </span>
+            <input
+              className={inputClass}
+              type="text"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={isEdit ? "Leave blank to keep current" : "At least 8 characters"}
+              disabled={submitting}
+            />
+          </label>
+          <label className="block">
+            <span className="label-cap">Role</span>
+            <select
+              className={inputClass}
+              value={role}
+              onChange={(e) => onRoleChange(e.target.value as StaffRole)}
+              disabled={submitting}
+            >
+              {roleOptions.map((r) => (
+                <option key={r} value={r}>
+                  {ROLE_LABEL[r]}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
-        {caps.length === 0 ? (
-          <p className="mt-2 text-[12.5px] text-[var(--text-muted)]">
-            No surfaces are enabled for this account yet.
-          </p>
-        ) : (
-          <ul className="mt-2 divide-y divide-[var(--divider)] overflow-hidden rounded-xl border border-[var(--border)]">
-            {caps.map((c) => (
-              <li
-                key={c.key}
-                className="flex items-center justify-between px-3.5 py-2.5"
-              >
-                <span className="text-[14px] font-semibold text-[var(--text)]">
-                  {c.label}
-                </span>
-                <div className="flex items-center gap-2">
-                  <ToggleChip
-                    label="View"
-                    on={grants[c.key].view}
-                    disabled={submitting}
-                    onClick={() =>
-                      setGrants((g) => {
-                        const view = !g[c.key].view;
-                        return {
-                          ...g,
-                          [c.key]: { view, edit: view ? g[c.key].edit : false },
-                        };
-                      })
-                    }
-                  />
-                  {c.hasEdit && (
+
+        <div>
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck size={14} className="text-[var(--text-muted)]" />
+            <span className="label-cap">What they can access</span>
+          </div>
+          {caps.length === 0 ? (
+            <p className="mt-2 text-[12.5px] text-[var(--text-muted)]">
+              No pages are switched on for this account yet.
+            </p>
+          ) : (
+            <ul className="mt-2 divide-y divide-[var(--divider)] overflow-hidden rounded-xl border border-[var(--border)]">
+              {caps.map((c) => (
+                <li key={c.key} className="flex items-center justify-between px-3.5 py-2.5">
+                  <span className="text-[14px] font-semibold text-[var(--text)]">{c.label}</span>
+                  <div className="flex items-center gap-2">
                     <ToggleChip
-                      label="Edit"
-                      on={grants[c.key].edit}
+                      label="View"
+                      on={grants[c.key].view}
                       disabled={submitting}
                       onClick={() =>
                         setGrants((g) => {
-                          const edit = !g[c.key].edit;
+                          const view = !g[c.key].view;
                           return {
                             ...g,
-                            [c.key]: { view: edit || g[c.key].view, edit },
+                            [c.key]: { view, edit: view ? g[c.key].edit : false },
                           };
                         })
                       }
                     />
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* Cosmetic chat roles (purely visual, separate from permissions). */}
-      <div className="mt-4">
-        <span className="label-cap">Chat roles</span>
-        {chatRoles.length === 0 ? (
-          <p className="mt-2 text-[12.5px] text-[var(--text-muted)]">
-            No chat roles yet. Add some from "Manage roles".
-          </p>
-        ) : (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {chatRoles.map((r) => {
-              const on = chatRoleIds.includes(r.id);
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => toggleChatRole(r.id)}
-                  disabled={submitting}
-                  aria-pressed={on}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors disabled:opacity-60"
-                  style={{
-                    borderColor: on ? r.color : "var(--border)",
-                    backgroundColor: on ? `${r.color}1f` : "var(--surface)",
-                    color: on ? "var(--text)" : "var(--text-muted)",
-                  }}
-                >
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: r.color }}
-                    aria-hidden
-                  />
-                  {r.name}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Direct line to Hauck (Jake). Off by default. */}
-      <div className="mt-4">
-        <span className="label-cap">Direct line to Hauck</span>
-        <ul className="mt-2 overflow-hidden rounded-xl border border-[var(--border)]">
-          <li className="flex items-center justify-between px-3.5 py-2.5">
-            <div className="min-w-0 pr-3">
-              <span className="text-[14px] font-semibold text-[var(--text)]">
-                Can message Hauck
-              </span>
-              <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
-                Lets this person open a private thread with Jake.
-              </p>
-            </div>
-            <ToggleChip
-              label={canContactHauck ? "On" : "Off"}
-              on={canContactHauck}
-              disabled={submitting}
-              onClick={() => setCanContactHauck((v) => !v)}
-            />
-          </li>
-        </ul>
-      </div>
-
-      {/* Channel membership. */}
-      <div className="mt-4">
-        <span className="label-cap">Channels</span>
-        {assignableChannels.length === 0 ? (
-          <p className="mt-2 text-[12.5px] text-[var(--text-muted)]">
-            No channels yet.
-          </p>
-        ) : (
-          <ul className="mt-2 divide-y divide-[var(--divider)] overflow-hidden rounded-xl border border-[var(--border)]">
-            {assignableChannels.map((c: ChatChannel) => (
-              <li
-                key={c.id}
-                className="flex items-center justify-between px-3.5 py-2.5"
-              >
-                <span className="truncate text-[14px] font-semibold text-[var(--text)]">
-                  {c.name || "Untitled channel"}
-                </span>
-                <ToggleChip
-                  label={channelIds.includes(c.id) ? "Member" : "Add"}
-                  on={channelIds.includes(c.id)}
-                  disabled={submitting}
-                  onClick={() => toggleChannel(c.id)}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+                    {c.hasEdit && (
+                      <ToggleChip
+                        label="Edit"
+                        on={grants[c.key].edit}
+                        disabled={submitting}
+                        onClick={() =>
+                          setGrants((g) => {
+                            const edit = !g[c.key].edit;
+                            return {
+                              ...g,
+                              [c.key]: { view: edit || g[c.key].view, edit },
+                            };
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       {error && (
         <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{error}</p>
       )}
 
-      <div className="mt-4 flex gap-2.5">
+      <div className="mt-5 flex gap-2.5 lg:justify-end">
         <button
           type="button"
           onClick={onClose}
           disabled={submitting}
-          className="flex-1 rounded-xl border border-[var(--border)] py-3 text-[14px] font-semibold text-[var(--text-muted)] transition-colors active:bg-[var(--surface-2)] disabled:opacity-60"
+          className="flex-1 rounded-xl border border-[var(--border)] px-6 py-3 text-[14px] font-semibold text-[var(--text-muted)] transition-colors active:bg-[var(--surface-2)] disabled:opacity-60 lg:flex-none"
         >
           Cancel
         </button>
         <BrandedButton
           type="button"
-          className="flex-1"
+          className="flex-1 lg:flex-none"
           onClick={submit}
           disabled={submitting}
         >

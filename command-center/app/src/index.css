@@ -23,9 +23,13 @@
   --border: #e7e9f1;
   --divider: #f1f3f9;
   --ring: var(--brand-primary);
+  /* Native scrollbars, selects and date pickers follow the theme. Without this
+     a dark page drew bright white scrollbars down the inbox list. */
+  color-scheme: light;
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --brand-bg: #0c0d14;
   --bg: #0c0d14;
   --surface: #15161f;
@@ -87,9 +91,9 @@ body {
   text-rendering: optimizeLegibility;
   background-color: var(--bg);
   background-image:
-    radial-gradient(60rem 40rem at 12% -8%, rgba(124, 115, 240, 0.16), transparent 60%),
-    radial-gradient(50rem 38rem at 100% 0%, rgba(79, 70, 229, 0.12), transparent 55%),
-    radial-gradient(46rem 36rem at 50% 120%, rgba(99, 102, 241, 0.1), transparent 60%);
+    radial-gradient(60rem 40rem at 12% -8%, color-mix(in srgb, var(--brand-2) 16%, transparent), transparent 60%),
+    radial-gradient(50rem 38rem at 100% 0%, color-mix(in srgb, var(--brand) 12%, transparent), transparent 55%),
+    radial-gradient(46rem 36rem at 50% 120%, color-mix(in srgb, var(--brand) 10%, transparent), transparent 60%);
   background-attachment: fixed;
   color: var(--text);
   transition: background-color 200ms ease, color 200ms ease;
@@ -97,9 +101,9 @@ body {
 
 [data-theme="dark"] body {
   background-image:
-    radial-gradient(60rem 40rem at 12% -8%, rgba(124, 115, 240, 0.1), transparent 60%),
-    radial-gradient(50rem 38rem at 100% 0%, rgba(79, 70, 229, 0.08), transparent 55%),
-    radial-gradient(46rem 36rem at 50% 120%, rgba(99, 102, 241, 0.07), transparent 60%);
+    radial-gradient(60rem 40rem at 12% -8%, color-mix(in srgb, var(--brand-2) 10%, transparent), transparent 60%),
+    radial-gradient(50rem 38rem at 100% 0%, color-mix(in srgb, var(--brand) 8%, transparent), transparent 55%),
+    radial-gradient(46rem 36rem at 50% 120%, color-mix(in srgb, var(--brand) 7%, transparent), transparent 60%);
 }
 
 .font-display {
@@ -186,17 +190,20 @@ body {
   --bg-grid: #eceef6;
   --text-inverse: #ffffff;
 
-  /* Brand family the desktop components expect, tracking the brand primary. */
+  /* Brand family the desktop components expect, tracking the brand primary.
+     EVERY shade here derives from --brand. The gradient and its second stop
+     were hard-coded indigo, so on a client with their own colour the sidebar
+     highlight and primary buttons stayed purple while every other brand fill
+     went green: two brand colours on one screen. */
   --brand: var(--brand-primary);
-  --brand-2: #7c73f0;
-  --brand-soft: #eceaff;
-  --grad-brand: linear-gradient(135deg, #4f46e5 0%, #7c73f0 100%);
+  --brand-2: color-mix(in srgb, var(--brand) 72%, white);
+  --brand-soft: color-mix(in srgb, var(--brand) 10%, white);
+  --grad-brand: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 100%);
   --brand-strong: var(--brand-primary-dark, var(--brand-primary));
   --brand-tint: color-mix(in srgb, var(--brand) 10%, transparent);
   --brand-tint-strong: color-mix(in srgb, var(--brand) 18%, transparent);
-  /* Indigo clears AA as small text on white, so brand-text equals brand.
-     The dark theme overrides this with a lighter indigo. */
-  --brand-text: #4f46e5;
+
+  --brand-text: color-mix(in srgb, var(--brand) 88%, black);
 
   /* Review stars. Gold, reserved for ratings (distinct from ledger money gold). */
   --star: #f5a524;
@@ -236,7 +243,7 @@ body {
   --shadow-sm: 0 1px 2px rgba(20, 22, 31, 0.04), 0 1px 3px rgba(20, 22, 31, 0.05);
   --shadow-md: 0 6px 18px rgba(40, 42, 70, 0.07), 0 2px 6px rgba(40, 42, 70, 0.05);
   --shadow-lg: 0 18px 40px rgba(40, 42, 70, 0.12), 0 6px 14px rgba(40, 42, 70, 0.07);
-  --shadow-brand: 0 8px 22px rgba(79, 70, 229, 0.28);
+  --shadow-brand: 0 8px 22px color-mix(in srgb, var(--brand) 28%, transparent);
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
@@ -289,7 +296,7 @@ body {
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.34);
   --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.34);
   --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.5), 0 6px 14px rgba(0, 0, 0, 0.4);
-  --shadow-brand: 0 8px 22px rgba(79, 70, 229, 0.45);
+  --shadow-brand: 0 8px 22px color-mix(in srgb, var(--brand) 45%, transparent);
 }
 
 @theme inline {

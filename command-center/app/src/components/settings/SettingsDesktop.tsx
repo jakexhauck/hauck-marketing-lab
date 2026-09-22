@@ -2,11 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight, Compass, LogOut, Users } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
 import { Button } from "../ui/Button";
-import { NotifyAudienceCard } from "../../routes/Settings";
 import {
   AppearanceControl,
   ThisDeviceControl,
-  ChannelsControl,
   ChangePasswordControl,
 } from "./SettingsControls";
 import { useAuth } from "../../context/AuthContext";
@@ -15,8 +13,7 @@ import { useClient } from "../../context/ClientContext";
 import { roleLabel } from "../../lib/rolePermissions";
 import { APP_BRAND } from "../../lib/appBrand";
 
-// The Atelier desktop Settings (lg+): a calm, centred column of grouped setting
-// rows. The phone keeps its own stacked layout; this renders only inside
+// The Atelier desktop Settings (lg+): grouped setting rows in two columns. The phone keeps its own stacked layout; this renders only inside
 // `hidden lg:flex` from the Settings route and shares the same auth, client and
 // notification-preference state and handlers as the phone screen.
 
@@ -45,16 +42,19 @@ export default function SettingsDesktop() {
 
   return (
     <DesktopPage
-      title="Settings"
+      title="Settings"
+
     >
-      <div className="fx-stagger mx-auto flex w-full max-w-3xl flex-col gap-8">
+      {/* Two columns across the full width. The old centred max-w-3xl column
+          left a wide empty band down both sides of the page. */}
+      <div className="fx-stagger grid w-full grid-cols-1 items-start gap-x-6 gap-y-8 xl:grid-cols-2">
         {/* Account */}
         <Group label="Account">
-          <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-sm)]">
-            <div className="font-display text-[18px] font-bold text-text">
+          <div className="rounded-[18px] border border-border bg-surface px-4 py-3.5 shadow-[var(--shadow-sm)]">
+            <div className="font-display text-[15px] font-bold text-text">
               {client.name}
             </div>
-            <div className="mt-1.5 text-[14px] text-muted">
+            <div className="mt-0.5 text-[12px] text-muted">
               Signed in as {currentUser?.name ?? "you"}
               {currentUser ? ` (${roleLabel(currentUser.role)})` : ""}
             </div>
@@ -70,33 +70,24 @@ export default function SettingsDesktop() {
         <Group label="Notifications">
           <div className="space-y-3">
             <ThisDeviceControl />
-            {isOwner && (
-              <>
-                <ChannelsControl />
-                <NotifyAudienceCard />
-              </>
-            )}
           </div>
         </Group>
 
         {/* Manage (owner only) */}
         {isOwner && (
           <Group label="Manage">
-            <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+            <div className="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[var(--shadow-sm)]">
               <button
                 type="button"
                 onClick={() => navigate("/team")}
-                className="flex w-full items-center gap-4 px-6 py-4 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius)] bg-brand-tint text-brand-text">
+                <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-text">
                   <Users size={18} strokeWidth={2} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="font-display text-[15px] font-semibold text-text">
                     Team
-                  </div>
-                  <div className="mt-0.5 text-[13px] text-muted">
-                    Add employees and set what they can see
                   </div>
                 </div>
                 <ChevronRight size={18} className="shrink-0 text-faint" />
@@ -112,21 +103,18 @@ export default function SettingsDesktop() {
 
         {/* Help */}
         <Group label="Help">
-          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+          <div className="overflow-hidden rounded-[18px] border border-border bg-surface shadow-[var(--shadow-sm)]">
             <button
               type="button"
               onClick={startFull}
-              className="flex w-full items-center gap-4 px-6 py-4 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius)] bg-brand-tint text-brand-text">
+              <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-text">
                 <Compass size={18} strokeWidth={2} />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="font-display text-[15px] font-semibold text-text">
                   Take the tour
-                </div>
-                <div className="mt-0.5 text-[13px] text-muted">
-                  A quick walkthrough of everything in here
                 </div>
               </div>
               <ChevronRight size={18} className="shrink-0 text-faint" />
@@ -134,24 +122,22 @@ export default function SettingsDesktop() {
           </div>
         </Group>
 
-        {/* Session — destructive, spatially separated below a divider */}
+        {/* Session: destructive, so it sits last */}
         <Group label="Session">
-          <div className="flex items-center justify-between gap-4 rounded-[var(--radius-lg)] border border-border bg-surface px-6 py-5 shadow-[var(--shadow-sm)]">
-            <div className="flex items-center gap-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius)] bg-danger-tint text-danger">
+          <div className="flex items-center justify-between gap-4 rounded-[18px] border border-border bg-surface px-4 py-3.5 shadow-[var(--shadow-sm)]">
+            <div className="flex items-center gap-3.5">
+              <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-danger-tint text-danger">
                 <LogOut size={18} strokeWidth={2} />
               </span>
               <div className="min-w-0">
                 <div className="font-display text-[15px] font-semibold text-text">
                   Sign out
                 </div>
-                <div className="mt-0.5 text-[13px] text-muted">
-                  Log out of this device
-                </div>
               </div>
             </div>
             <Button
               variant="danger"
+              size="sm"
               onClick={() =>
                 void signOut().then(() =>
                   navigate("/login", { replace: true }),
@@ -163,7 +149,7 @@ export default function SettingsDesktop() {
           </div>
         </Group>
 
-        <p className="pt-2 text-center text-[12px] font-medium text-faint">
+        <p className="pt-2 text-center text-[12px] font-medium text-faint xl:col-span-2">
           {client.brand.appName}. Secured by {APP_BRAND.securedBy}. Version{" "}
           {__APP_VERSION__}
         </p>

@@ -5,6 +5,7 @@ import {
   CURRENT_TOUR_VERSION,
   visibleSteps,
 } from "./tourSteps";
+import { NAV, flattenNav } from "./nav";
 
 // An owner sees everything.
 const ownerCan = () => true;
@@ -27,10 +28,43 @@ describe("tour registry integrity", () => {
   });
 });
 
+describe("tour covers the app", () => {
+  // The rule: a page in the sidebar is a page in the tour. Adding a nav row
+  // without a step fails here, so new features cannot skip the walkthrough.
+  it("has a step for every sidebar page, plus Team and Settings", () => {
+    const routes = new Set(TOUR_STEPS.map((s) => s.route));
+    const pages = flattenNav(NAV)
+      .filter((item) => !item.sidebarHidden)
+      .map((item) => item.to)
+      .concat("/team", "/settings");
+    const missing = pages.filter((to) => !routes.has(to));
+    expect(missing).toEqual([]);
+  });
+
+  it("gates each page step exactly as the nav gates its row", () => {
+    for (const item of flattenNav(NAV)) {
+      const step = TOUR_STEPS.find((s) => s.route === item.to && s.target.desktop);
+      if (!step) continue;
+      expect([item.to, step.capability]).toEqual([item.to, item.capability]);
+      expect([item.to, step.dataGate]).toEqual([item.to, item.dataGate]);
+    }
+  });
+
+  it("only points at routes the app still has", () => {
+    const known = new Set(flattenNav(NAV).map((i) => i.to).concat("/settings"));
+    for (const step of TOUR_STEPS) expect(known.has(step.route)).toBe(true);
+  });
+});
+
 describe("visibleSteps", () => {
   it("returns the full tour for a first-time owner", () => {
-    const steps = visibleSteps({ isOwner: true, can: ownerCan, sinceVersion: null });
+    const steps = visibleSteps({ isOwner: true, can: ownerCan, hasData: () => true, sinceVersion: null });
     expect(steps).toEqual(TOUR_STEPS);
+  });
+
+  it("skips Organic where the client has no Organic page", () => {
+    const ids = visibleSteps({ isOwner: true, can: ownerCan, sinceVersion: null }).map((s) => s.id);
+    expect(ids).not.toContain("organic");
   });
 
   it("hides surfaces a staff member cannot view", () => {
@@ -40,14 +74,15 @@ describe("visibleSteps", () => {
       sinceVersion: null,
     });
     const ids = steps.map((s) => s.id);
-    expect(ids).toContain("pipeline");
+    expect(ids).toContain("sales-leads");
     expect(ids).toContain("inbox");
-    // Gated surfaces the staffer lacks are absent.
+    // Gated surfaces the staffer lacks are absent, and so is owner-only Team.
     expect(ids).not.toContain("paid-ads");
-    expect(ids).not.toContain("billing");
-    // Ungated cards (welcome, chat, finish) always survive.
+    expect(ids).not.toContain("home");
+    expect(ids).not.toContain("team");
+    // Ungated cards (welcome, settings, finish) always survive.
     expect(ids).toContain("welcome");
-    expect(ids).toContain("chat");
+    expect(ids).toContain("settings");
     expect(ids).toContain("finish");
   });
 
@@ -61,8 +96,8 @@ describe("visibleSteps", () => {
   });
 
   it("returns only newer steps for a returning client", () => {
-    const steps = visibleSteps({ isOwner: true, can: ownerCan, sinceVersion: 0 });
-    // sinceVersion 0 with all-v1 content behaves like a full tour.
+    const steps = visibleSteps({ isOwner: true, can: ownerCan, hasData: () => true, sinceVersion: 0 });
+    // sinceVersion 0 behaves like a full tour.
     expect(steps).toEqual(TOUR_STEPS);
     // A client already at the current version below the max would see only
     // steps strictly newer than their stored version.

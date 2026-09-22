@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, Mail } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import Shell from "../components/Shell";
 import ContactsDesktop from "../components/contacts/ContactsDesktop";
 import { PageHeader } from "../components/PageHeader";
@@ -11,10 +11,8 @@ import Avatar from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
 import PullToRefresh from "../components/PullToRefresh";
 import { useAuth } from "../context/AuthContext";
-import { useNow } from "../context/NowContext";
 import { useContactsQuery } from "../hooks/useApi";
 import { formatPhone } from "../lib/phone";
-import { timeAgo } from "../lib/timeAgo";
 import type { ApiContact } from "../lib/api";
 
 export default function Contacts() {
@@ -130,14 +128,10 @@ interface ContactRowProps {
   isLast: boolean;
 }
 
+// Name, phone and a Message button into the SMS thread (Jake, 2026-09-22).
 function ContactRow({ contact, isLast }: ContactRowProps) {
-  const now = useNow();
   const navigate = useNavigate();
-  const telDigits = contact.phone.replace(/[^0-9+]/g, "");
-  const hasPhone = telDigits.length > 0;
-  const hasEmail = contact.email.length > 0;
-  const visibleTags = contact.tags.slice(0, 2);
-  const extraTags = contact.tags.length - visibleTags.length;
+  const hasPhone = contact.phone.replace(/[^0-9+]/g, "").length > 0;
 
   const openDetail = () => navigate(`/contacts/${contact.id}`);
 
@@ -164,52 +158,23 @@ function ContactRow({ contact, isLast }: ContactRowProps) {
         <div className="truncate font-display text-[15px] font-bold text-[var(--text)]">
           {contact.name}
         </div>
-        <div className="mt-0.5 truncate text-xs text-[var(--text-faint)]">
-          {hasPhone ? formatPhone(contact.phone) : hasEmail ? contact.email : "No contact info"}
+        <div className="mt-0.5 truncate text-xs text-[var(--text-faint)] tabular-nums">
+          {hasPhone ? formatPhone(contact.phone) : "--"}
         </div>
-        {visibleTags.length > 0 && (
-          <div className="mt-1 flex items-center gap-1">
-            {visibleTags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex max-w-[110px] items-center truncate rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]"
-              >
-                {tag}
-              </span>
-            ))}
-            {extraTags > 0 && (
-              <span className="text-[10px] font-semibold text-[var(--text-faint)]">
-                +{extraTags}
-              </span>
-            )}
-          </div>
-        )}
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        {hasPhone && (
-          <a
-            href={`tel:${telDigits}`}
-            aria-label={`Call ${contact.name}`}
-            onClick={(e) => e.stopPropagation()}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-muted)] transition-colors active:scale-95 active:bg-[var(--surface-2)]"
-          >
-            <Phone size={16} aria-hidden="true" />
-          </a>
-        )}
-        {hasEmail && (
-          <a
-            href={`mailto:${contact.email}`}
-            aria-label={`Email ${contact.name}`}
-            onClick={(e) => e.stopPropagation()}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-muted)] transition-colors active:scale-95 active:bg-[var(--surface-2)]"
-          >
-            <Mail size={16} aria-hidden="true" />
-          </a>
-        )}
-        <span className="tabular-figs ml-1 hidden text-[10.5px] font-semibold text-[var(--text-faint)] sm:inline">
-          {timeAgo(contact.lastActivityAt, now)}
-        </span>
-      </div>
+      {hasPhone && (
+        <button
+          type="button"
+          aria-label={`Message ${contact.name}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/conversations/${encodeURIComponent(contact.id)}`);
+          }}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-muted)] transition-colors active:scale-95 active:bg-[var(--surface-2)]"
+        >
+          <MessageSquare size={16} aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 }

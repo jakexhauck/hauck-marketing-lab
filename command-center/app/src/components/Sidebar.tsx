@@ -136,6 +136,8 @@ function FooterLink({ to, icon: Icon, label }: { to: string; icon: LucideIcon; l
   return (
     <NavLink
       to={to}
+      // The tour spotlights Team and Settings too (nav-team / nav-settings).
+      data-tour={`nav-${to.slice(1)}`}
       className={({ isActive }) =>
         [FOOTER_ROW, isActive ? "shadow-brand text-white" : FOOTER_IDLE].join(" ")
       }

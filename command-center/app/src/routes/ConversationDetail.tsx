@@ -53,12 +53,14 @@ export default function ConversationDetail() {
 
   return (
     <Shell>
-      {/* Phone: full-height column minus the safe-area inset Shell already pads.
-          overflow-hidden makes the thread the only scroll region, so the
-          composer stays pinned to the bottom. */}
+      {/* Phone: the screen minus the tab bar (4.75rem, the same number Shell
+          pads its column by) and the bottom safe area. overflow-hidden makes
+          the thread the only scroll region, so the composer stays pinned just
+          above the tab bar. It was 100dvh, which forgot the tab bar and parked
+          the reply box underneath it. */}
       <div
         className="flex flex-col overflow-hidden lg:hidden"
-        style={{ height: "calc(100dvh - env(safe-area-inset-bottom))" }}
+        style={{ height: "calc(100dvh - 4.75rem - env(safe-area-inset-bottom))" }}
       >
         <NavyHero rounded={false}>
           <div className="flex items-center gap-3">

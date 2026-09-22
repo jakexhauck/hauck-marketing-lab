@@ -102,6 +102,53 @@ function initialJobsView(): JobsView {
   return "jobs";
 }
 
+// The chosen view, remembered per device. Lives in a hook so the Schedule page
+// can hold it and put the switcher in its header bar, beside the bell.
+export function useJobsView(): [JobsView, (v: JobsView) => void] {
+  const [jobsView, setJobsView] = useState<JobsView>(initialJobsView);
+  const set = useCallback((v: JobsView) => {
+    setJobsView(v);
+    try {
+      window.localStorage.setItem(JOBS_VIEW_KEY, v);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  return [jobsView, set];
+}
+
+// The Jobs / Month / Week / Agenda switcher and the Google Calendar link.
+export function JobsViewControls({
+  value,
+  onChange,
+}: {
+  value: JobsView;
+  onChange: (v: JobsView) => void;
+}) {
+  return (
+    <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:items-center">
+      <Segmented<JobsView>
+        stretch
+        options={[
+          { value: "jobs", label: "Jobs" },
+          { value: "month", label: "Month" },
+          { value: "week", label: "Week" },
+          { value: "agenda", label: "Agenda" },
+        ]}
+        value={value}
+        onChange={onChange}
+      />
+      {/* Full width on a phone so it reads as a row of the settings card, its
+          natural width again at lg. The arbitrary variant reaches the button
+          inside rather than making GoogleCalendarLink take a layout prop it
+          would only ever be given from here. */}
+      <div className="flex [&>span]:flex-1 [&_button]:w-full lg:contents lg:[&>span]:flex-none lg:[&_button]:w-auto">
+        <GoogleCalendarLink />
+      </div>
+    </div>
+  );
+}
+
 // A slot-booking request handed over from the Leads tab (structural subset of
 // Sales' BookingRequest, so no import cycle).
 interface JobsBooking {
@@ -128,11 +175,20 @@ export function JobsBoard({
   booking = null,
   onBookPick,
   onBookCancel,
+  jobsView: jobsViewProp,
+  onJobsViewChange,
+  controlsInHeader = false,
 }: {
   embedded?: boolean;
   booking?: JobsBooking | null;
   onBookPick?: (iso: string, details: BookingDetails) => void;
   onBookCancel?: () => void;
+  // Controlled view, when the page above owns it (Schedule puts the switcher in
+  // its header bar). Uncontrolled otherwise.
+  jobsView?: JobsView;
+  onJobsViewChange?: (v: JobsView) => void;
+  // The switcher is already in the page header, so none is drawn here.
+  controlsInHeader?: boolean;
 }) {
   const demo = demoMode();
   const jobs = useJobs();
@@ -161,15 +217,9 @@ export function JobsBoard({
   const [selected, setSelected] = useState(demo ? DEMO_DEFAULT_DAY : today);
 
   // Which view is showing: the Jobs day-panel or one of the calendar views.
-  const [jobsView, setJobsView] = useState<JobsView>(initialJobsView);
-  const setJobsViewPersist = (v: JobsView) => {
-    setJobsView(v);
-    try {
-      window.localStorage.setItem(JOBS_VIEW_KEY, v);
-    } catch {
-      /* ignore */
-    }
-  };
+  const [ownJobsView, setOwnJobsView] = useJobsView();
+  const jobsView = jobsViewProp ?? ownJobsView;
+  const setJobsViewPersist = onJobsViewChange ?? setOwnJobsView;
 
   // The dates the calendar is showing, reported up by CalendarViews so the busy
   // fetch follows the client as they navigate. useCallback keeps the identity
@@ -292,55 +342,41 @@ export function JobsBoard({
   // legend as four unrelated blocks down the screen.
   //
   // At lg they sit back on a single line, as before.
-  const viewControls = (
-    <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:items-center">
-      <Segmented<JobsView>
-        stretch
-        options={[
-          { value: "jobs", label: "Jobs" },
-          { value: "month", label: "Month" },
-          { value: "week", label: "Week" },
-          { value: "agenda", label: "Agenda" },
-        ]}
-        value={jobsView}
-        onChange={setJobsViewPersist}
-      />
-      {/* Full width on a phone so it reads as a row of the settings card, its
-          natural width again at lg. The arbitrary variant reaches the button
-          inside rather than making GoogleCalendarLink take a layout prop it
-          would only ever be given from here. */}
-      <div className="flex [&>span]:flex-1 [&_button]:w-full lg:contents lg:[&>span]:flex-none lg:[&_button]:w-auto">
-        <GoogleCalendarLink />
-      </div>
-    </div>
-  );
+  const viewControls = <JobsViewControls value={jobsView} onChange={setJobsViewPersist} />;
 
   // On a calendar view the controls move INTO the calendar's own control card,
   // so nothing is rendered above it.
   const showControlsAbove = booking || jobsView === "jobs";
 
+  // Schedule on desktop: the switcher lives in the page header, so the board
+  // starts straight under it and runs to the bottom of the window. The old
+  // stack (header margin + container padding + a controls row + a card margin)
+  // was ~60px of empty band above the calendar and 48px below it.
+  const tight = embedded && controlsInHeader;
+
   return (
     <>
-      <div className={JOBS_CONTAINER}>
+      <div className={cn(JOBS_CONTAINER, embedded && "pt-0", tight && "pb-5")}>
         {embedded ? (
-          // Block on the phone so the stacked controls above fill the column;
-          // a right-aligned flex row again at lg. Below lg the controls move
-          // into the calendar card, so this row renders only on the Jobs view
-          // (and at lg, where the header row is wide enough to hold them).
-          <div
-            className={
-              (showControlsAbove ? "block" : "hidden lg:block") +
-              " pb-1 pt-1 lg:flex lg:justify-end"
-            }
-          >
-            {viewControls}
-          </div>
+          // Block on the phone so the stacked controls above fill the column.
+          // Below lg the controls move into the calendar card, so this row
+          // renders only on the Jobs view.
+          !controlsInHeader && (
+            <div className={(showControlsAbove ? "block" : "hidden") + " pb-1"}>
+              {viewControls}
+            </div>
+          )
         ) : (
           <PageHeader title="Jobs" actions={showControlsAbove ? viewControls : undefined} />
         )}
 
         {booking && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--brand-primary)]/30 bg-brand-tint px-4 py-2.5">
+          <div
+            className={cn(
+              "mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--brand-primary)]/30 bg-brand-tint px-4 py-2.5",
+              tight && "mt-0",
+            )}
+          >
             <span className="text-[13px] font-semibold text-text">
               Pick a time for{" "}
               <span className="text-brand-text">{booking.name}</span>'s{" "}
@@ -357,18 +393,23 @@ export function JobsBoard({
         )}
 
         {!booking && jobsView !== "jobs" ? (
-          <div className="mt-4 flex min-h-0 flex-1 flex-col">
+          <div className={cn("mt-4 flex min-h-0 flex-1 flex-col", tight && "mt-0")}>
             <CalendarViews
               items={calendarItems}
               connected={calendarConnected}
               view={jobsView}
               onRangeChange={onCalendarRangeChange}
               // Phone only: at lg the controls stay in the page header row.
-              header={<div className="lg:hidden">{viewControls}</div>}
+              header={controlsInHeader ? undefined : <div className="lg:hidden">{viewControls}</div>}
             />
           </div>
         ) : (
-        <Panel className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+        <Panel
+          className={cn(
+            "mt-4 flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row",
+            tight && !booking && "mt-0",
+          )}
+        >
           {/* LEFT — month calendar + summary */}
           <div className="flex flex-col border-divider lg:w-[320px] lg:border-r">
             <div className="flex items-center gap-2 px-4 pt-4">

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, BellOff, Mail, MessageSquare, Smartphone } from "lucide-react";
-import { Switch } from "../ui/Switch";
+import { Bell, BellOff } from "lucide-react";
 import { Segmented } from "../ui/Segmented";
 import { Button } from "../ui/Button";
 import { api } from "../../lib/api";
@@ -36,9 +35,6 @@ export function AppearanceControl() {
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
           <div className="font-display text-[15px] font-bold text-text">Theme</div>
-          <div className="mt-0.5 text-[12px] text-muted">
-            How the app looks on this device
-          </div>
         </div>
         <Segmented<ThemePref>
           value={theme}
@@ -132,8 +128,8 @@ export function ThisDeviceControl() {
           </div>
           <div className="mt-0.5 text-[12px] text-muted">
             {state === "loading" && "Checking..."}
-            {state === "on" && "On. This device will buzz for new leads, messages, and wins."}
-            {state === "off" && "Off. Turn on to get buzzed on this device."}
+            {state === "on" && "On"}
+            {state === "off" && "Off"}
             {state === "needs-install" &&
               "Add the app to your home screen first, then turn this on."}
             {state === "unsupported" && "This browser cannot show notifications."}
@@ -161,189 +157,6 @@ export function ThisDeviceControl() {
         </div>
       )}
     </div>
-  );
-}
-
-// ---- Channels: push / email / sms (owner) ---------------------------------
-
-interface ChannelSettings {
-  audience: "everyone" | "assigned";
-  push: boolean;
-  email: boolean;
-  sms: boolean;
-  emailTo: string | null;
-  smsTo: string | null;
-}
-
-function useChannelSettings() {
-  const [data, setData] = useState<ChannelSettings | null>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    api<ChannelSettings>("/api/settings/notifications")
-      .then((r) => mounted && setData(r))
-      .catch(() => mounted && setError(true));
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const patch = async (body: Partial<ChannelSettings>) => {
-    setError(false);
-    try {
-      const r = await api<ChannelSettings>("/api/settings/notifications", {
-        method: "PATCH",
-        body: JSON.stringify(body),
-      });
-      setData(r);
-      return true;
-    } catch {
-      setError(true);
-      return false;
-    }
-  };
-
-  return { data, error, patch };
-}
-
-const CHANNELS: {
-  key: "push" | "email" | "sms";
-  title: string;
-  sub: string;
-  icon: typeof Smartphone;
-}[] = [
-  { key: "push", title: "In-app push", sub: "Buzz on signed-in devices", icon: Smartphone },
-  { key: "email", title: "Email", sub: "Send to your chosen inbox", icon: Mail },
-  { key: "sms", title: "Text (SMS)", sub: "Text one number", icon: MessageSquare },
-];
-
-// A single editable destination (email address or phone) with its own draft +
-// Save, shown when its channel is on. Saved value lives on the tenant; GHL's
-// recipient custom value is set from it (or blanked when the channel is off).
-function DestinationField({
-  label,
-  type,
-  placeholder,
-  saved,
-  onSave,
-}: {
-  label: string;
-  type: "email" | "tel";
-  placeholder: string;
-  saved: string | null;
-  onSave: (value: string | null) => Promise<boolean>;
-}) {
-  const [draft, setDraft] = useState(saved ?? "");
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    setDraft(saved ?? "");
-  }, [saved]);
-
-  const save = async () => {
-    setSaving(true);
-    setMsg(null);
-    const ok = await onSave(draft.trim() || null);
-    setSaving(false);
-    setMsg(ok ? "Saved" : "Could not save. Check the value.");
-  };
-
-  return (
-    <div className="rounded-[18px] border border-border bg-surface p-4 shadow-[var(--shadow-sm)]">
-      <label className="font-display text-[14px] font-bold text-text">{label}</label>
-      <div className="mt-2 flex items-center gap-2">
-        <input
-          type={type}
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            setMsg(null);
-          }}
-          placeholder={placeholder}
-          className="min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 py-2.5 text-[14px] text-text outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-        />
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => void save()}
-          disabled={saving || draft.trim() === (saved ?? "")}
-        >
-          {saving ? "Saving" : "Save"}
-        </Button>
-      </div>
-      {msg && (
-        <div
-          className={`mt-2 text-[12px] ${
-            msg === "Saved" ? "text-emerald-600" : "text-[#be123c]"
-          }`}
-        >
-          {msg}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function ChannelsControl() {
-  const { data, error, patch } = useChannelSettings();
-  const loading = !data && !error;
-
-  return (
-    <>
-      <ul className={PANEL}>
-        {CHANNELS.map((c) => {
-          const on = data?.[c.key] === true;
-          return (
-            <li key={c.key} className="border-b border-border last:border-b-0">
-              <div className={ROW}>
-                <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-text">
-                  <c.icon size={18} strokeWidth={2} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="font-display text-[15px] font-bold text-text">
-                    {c.title}
-                  </div>
-                  <div className="mt-0.5 text-[12px] text-muted">{c.sub}</div>
-                </div>
-                <Switch
-                  checked={on}
-                  disabled={loading}
-                  label={c.title}
-                  onChange={(next) => void patch({ [c.key]: next })}
-                />
-              </div>
-            </li>
-          );
-        })}
-        {error && (
-          <li className="px-4 py-2.5 text-[12px] text-[#be123c]">
-            Could not save. Check your connection and try again.
-          </li>
-        )}
-      </ul>
-
-      {/* Destinations, shown only when their channel is on. */}
-      {data?.email && (
-        <DestinationField
-          label="Send email notifications to"
-          type="email"
-          placeholder="you@business.com"
-          saved={data.emailTo}
-          onSave={(value) => patch({ emailTo: value })}
-        />
-      )}
-      {data?.sms && (
-        <DestinationField
-          label="Text notifications to"
-          type="tel"
-          placeholder="+1 555 123 4567"
-          saved={data.smsTo}
-          onSave={(value) => patch({ smsTo: value })}
-        />
-      )}
-    </>
   );
 }
 
@@ -406,9 +219,6 @@ export function ChangePasswordControl() {
         <div className="min-w-0">
           <div className="font-display text-[15px] font-bold text-text">
             Password / PIN
-          </div>
-          <div className="mt-0.5 text-[12px] text-muted">
-            Change how you sign in
           </div>
         </div>
         {!open && (

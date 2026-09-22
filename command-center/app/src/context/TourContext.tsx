@@ -11,6 +11,7 @@ import {
 import { useAuth } from "./AuthContext";
 import { demoMode } from "../demo/demoMode";
 import { useSocialGate } from "../hooks/useApi";
+import { useNavDataGates } from "../hooks/useNavDataGates";
 import {
   fetchTourProgress,
   saveTourProgress,
@@ -52,6 +53,8 @@ export function TourProvider({ children }: { children: ReactNode }) {
     status === "authenticated" && !isAdmin && !preview && !needsIdentity && crmConnected;
   const gate = useSocialGate(gateEligible && !demoMode());
   const appVisible = gateEligible && (gate.isError || gate.data?.blocked === false);
+  // Organic's step shows only where its sidebar row does.
+  const hasData = useNavDataGates(appVisible);
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [steps, setSteps] = useState<TourStep[]>([]);
@@ -100,12 +103,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const skip = useCallback(() => end(true), [end]);
 
   const startFull = useCallback(() => {
-    const full = visibleSteps({ isOwner, can, sinceVersion: null });
+    const full = visibleSteps({ isOwner, can, hasData, sinceVersion: null });
     if (full.length === 0) return;
     setSteps(full);
     setIndex(0);
     setPhase("active");
-  }, [isOwner, can]);
+  }, [isOwner, can, hasData]);
 
   // One-time auto-evaluation: when a real client session has fully settled,
   // decide whether to run the full tour (never seen) or a "what's new" run
@@ -134,7 +137,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
       if (completed !== null && completed >= CURRENT_TOUR_VERSION) return; // caught up
 
       const sinceVersion = completed; // null => full tour; N => newer than N
-      const toShow = visibleSteps({ isOwner, can, sinceVersion });
+      const toShow = visibleSteps({ isOwner, can, hasData, sinceVersion });
       if (toShow.length === 0) {
         // Nothing new is visible to this user (e.g. the new step is a surface
         // they cannot see). Mark them caught up so we do not re-check forever.
@@ -148,7 +151,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [status, isAdmin, preview, needsIdentity, appVisible, isOwner, can, personKey, persist]);
+  }, [status, isAdmin, preview, needsIdentity, appVisible, isOwner, can, hasData, personKey, persist]);
 
   const value = useMemo<TourContextValue>(
     () => ({

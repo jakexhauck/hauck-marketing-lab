@@ -1,4 +1,5 @@
 import type { Capability } from "./capabilities";
+import type { DataGate } from "./nav";
 
 // The first-login product tour, as data. Each step explains one surface and is
 // the single source of truth for the walkthrough: the desktop sidebar tour and
@@ -29,14 +30,26 @@ export interface TourStep {
   capability?: Capability;
   // Owner-only surfaces (e.g. Team). Skipped for staff sessions.
   ownerOnly?: boolean;
+  // Mirrors NavItem.dataGate: the page only exists for some clients (Organic),
+  // so its step is skipped where the sidebar row is.
+  dataGate?: DataGate;
   // Where the tooltip card sits relative to the target. "center" floats it in
   // the middle of the screen (welcome/finish, and any null-target fallback).
   placement?: "top" | "bottom" | "left" | "right" | "center";
 }
 
-// Order is the order of the walkthrough: a welcome, then each surface in nav
-// order, then a sign-off. Selectors match the `data-tour="..."` attributes on
-// the Sidebar and BottomNav items (nav-<route> / bottomnav-<route>).
+// Order is the order of the walkthrough: a welcome, then every sidebar page in
+// sidebar order, then Team and Settings from the footer, then a sign-off.
+// Selectors match the `data-tour="..."` attributes on the Sidebar and BottomNav
+// items (nav-<route> / bottomnav-<route>). A page with no phone tab has
+// `mobile: null` and shows as a centred card on a phone.
+//
+// tourSteps.test.ts fails if a sidebar page has no step here, so a new page
+// cannot ship without being added to the tour.
+//
+// Version 2 (2026-09-22): the tour caught up with the app. Customers, Activity
+// and Chat left (their pages are gone), and every page added since the first
+// tour got a step. Clients who finished version 1 see only the version 2 steps.
 export const TOUR_STEPS: TourStep[] = [
   {
     id: "welcome",
@@ -44,12 +57,11 @@ export const TOUR_STEPS: TourStep[] = [
     route: "/marketing/paid-ads/leads",
     target: { desktop: null, mobile: null },
     title: "Welcome to your command center",
-    body: "This is where every lead, conversation, and dollar from your ads lives. Give me sixty seconds and you will know your way around the whole thing.",
+    body: "Every lead, conversation and dollar from your ads lives here. Give it sixty seconds and you will know your way around.",
     placement: "center",
   },
   {
-    // Home was retired from the nav on 2026-08-01, so this step became Lead
-    // Tracker: the page the app now opens on, and the one it describes.
+    // Kept as "home" so a client who finished version 1 is not shown it again.
     id: "home",
     version: 1,
     route: "/marketing/paid-ads/leads",
@@ -58,26 +70,81 @@ export const TOUR_STEPS: TourStep[] = [
       mobile: "[data-tour='bottomnav-marketing/paid-ads/leads']",
     },
     title: "Lead Tracker",
-    body: "Every lead your ads bring in, newest first. This is where the app opens and where most mornings start.",
+    body: "Every lead your ads bring in, newest first. Mark who picked up, who booked and who bought.",
+    capability: "paid_ads",
     placement: "right",
   },
   {
-    id: "pipeline",
+    id: "paid-ads",
     version: 1,
-    route: "/leads",
-    target: { desktop: "[data-tour='nav-leads']", mobile: "[data-tour='bottomnav-leads']" },
-    title: "Your pipeline",
-    body: "Every lead, sorted by the stage they are in. As someone moves from a new enquiry to a booked job, you drag their card forward so you always know exactly where each person stands.",
+    route: "/marketing/paid-ads",
+    target: {
+      desktop: "[data-tour='nav-marketing/paid-ads']",
+      mobile: "[data-tour='bottomnav-marketing/paid-ads']",
+    },
+    title: "Ads Dashboard",
+    body: "What your ads spent and what they brought back, by campaign, ad set or ad.",
+    capability: "ads_dashboard",
+    placement: "right",
+  },
+  {
+    id: "meta-data",
+    version: 2,
+    route: "/marketing/paid-ads/meta",
+    target: { desktop: "[data-tour='nav-marketing/paid-ads/meta']", mobile: null },
+    title: "Meta Data",
+    body: "The raw numbers from Meta, day by day.",
+    capability: "meta_data",
+    placement: "right",
+  },
+  {
+    id: "creatives",
+    version: 2,
+    route: "/marketing/paid-ads/creatives",
+    target: { desktop: "[data-tour='nav-marketing/paid-ads/creatives']", mobile: null },
+    title: "Creatives",
+    body: "Every photo and video running in your ads.",
+    capability: "creatives",
+    placement: "right",
+  },
+  {
+    id: "organic",
+    version: 2,
+    route: "/organic",
+    target: { desktop: "[data-tour='nav-organic']", mobile: null },
+    title: "Organic",
+    body: "Leads that came from your website rather than an ad.",
+    capability: "organic",
+    dataGate: "organic",
+    placement: "right",
+  },
+  {
+    id: "sales-leads",
+    version: 2,
+    route: "/sales",
+    target: { desktop: "[data-tour='nav-sales']", mobile: "[data-tour='bottomnav-sales']" },
+    title: "Leads",
+    body: "Every lead by where they stand, from first call to closed job. Book an estimate straight from the card.",
     capability: "pipeline",
+    placement: "right",
+  },
+  {
+    id: "schedule",
+    version: 2,
+    route: "/sales/schedule",
+    target: { desktop: "[data-tour='nav-sales/schedule']", mobile: null },
+    title: "Schedule",
+    body: "Your estimates and jobs on a calendar. Link your Google Calendar so booked hours are blocked off.",
+    capability: "calendar",
     placement: "right",
   },
   {
     id: "inbox",
     version: 1,
     route: "/conversations",
-    target: { desktop: "[data-tour='nav-conversations']", mobile: "[data-tour='bottomnav-conversations']" },
+    target: { desktop: "[data-tour='nav-conversations']", mobile: null },
     title: "Inbox",
-    body: "Every text and email with a lead, in one thread per person. Reply right from here. No more digging through your phone.",
+    body: "Every text with a lead, one thread per person. Reply right from here.",
     capability: "inbox",
     placement: "right",
   },
@@ -87,48 +154,27 @@ export const TOUR_STEPS: TourStep[] = [
     route: "/contacts",
     target: { desktop: "[data-tour='nav-contacts']", mobile: "[data-tour='bottomnav-contacts']" },
     title: "Contacts",
-    body: "The full database of everyone who has ever come through your ads. Search anyone, see their history, pick up where you left off.",
+    body: "Everyone who has come through your ads. Find anyone and message them in one tap.",
     capability: "contacts",
     placement: "right",
   },
   {
-    id: "paid-ads",
-    version: 1,
-    route: "/marketing/paid-ads",
-    target: { desktop: "[data-tour='nav-marketing/paid-ads']", mobile: null },
-    title: "Paid Ads",
-    body: "What your ads are spending and what they are bringing back. This is the scoreboard for the work we do together.",
-    capability: "paid_ads",
+    id: "team",
+    version: 2,
+    route: "/team",
+    target: { desktop: "[data-tour='nav-team']", mobile: null },
+    title: "Team",
+    body: "Give your staff their own logins and choose which pages each person can open.",
+    ownerOnly: true,
     placement: "right",
   },
   {
-    // Replaces the old Billing step: the Revenue row is gone, and its tour
-    // target was generated from that nav row, so the step had no anchor left.
-    id: "customers",
-    version: 1,
-    route: "/customers",
-    target: { desktop: "[data-tour='nav-customers']", mobile: null },
-    title: "Customers",
-    body: "Everyone who has paid you, what they spent, and when the recurring ones are next due.",
-    placement: "right",
-  },
-  {
-    id: "activity",
-    version: 1,
-    route: "/activity",
-    target: { desktop: "[data-tour='nav-activity']", mobile: null },
-    title: "Activity",
-    body: "A running log of everything happening in the account: new leads in, replies sent, jobs booked. The full story, in order.",
-    capability: "activity",
-    placement: "right",
-  },
-  {
-    id: "chat",
-    version: 1,
-    route: "/comms",
-    target: { desktop: "[data-tour='nav-comms']", mobile: "[data-tour='bottomnav-comms']" },
-    title: "Chat with us",
-    body: "Your direct line to the Hauck team. Questions, requests, anything at all: message us here and we will get back to you.",
+    id: "settings",
+    version: 2,
+    route: "/settings",
+    target: { desktop: "[data-tour='nav-settings']", mobile: null },
+    title: "Settings",
+    body: "Turn on notifications for this device, switch light or dark, and replay this tour any time.",
     placement: "right",
   },
   {
@@ -137,7 +183,7 @@ export const TOUR_STEPS: TourStep[] = [
     route: "/marketing/paid-ads/leads",
     target: { desktop: null, mobile: null },
     title: "That is the lot",
-    body: "You have seen the whole command center. Want a refresher later? Replay this tour any time from Settings.",
+    body: "You have seen the whole command center. Replay this tour any time from Settings.",
     placement: "center",
   },
 ];
@@ -155,6 +201,8 @@ export interface VisibleStepsOpts {
   // null = full tour (never seen). N = only steps with version > N ("what's
   // new" for a returning client who last finished at version N).
   sinceVersion: number | null;
+  // Answers TourStep.dataGate, as it does for the nav. Omitted = gate closed.
+  hasData?: (gate: DataGate) => boolean;
 }
 
 // The steps a given user should be walked through: gated to what they can see
@@ -162,10 +210,11 @@ export interface VisibleStepsOpts {
 // Welcome/finish cards (no capability, no ownerOnly) always pass the gate, so a
 // "what's new" run that has at least one real new step still gets a sign-off.
 export function visibleSteps(opts: VisibleStepsOpts): TourStep[] {
-  const { isOwner, can, sinceVersion } = opts;
+  const { isOwner, can, sinceVersion, hasData } = opts;
   return TOUR_STEPS.filter((step) => {
     if (sinceVersion !== null && step.version <= sinceVersion) return false;
     if (step.ownerOnly && !isOwner) return false;
+    if (step.dataGate && !(hasData?.(step.dataGate) ?? false)) return false;
     if (step.capability && !can(step.capability, "view")) return false;
     return true;
   });

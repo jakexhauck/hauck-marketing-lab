@@ -61,14 +61,19 @@ describe("enabledSurfacesSummary", () => {
   });
 
   it("labels only the enabled capabilities, in registry order", () => {
-    const summary = enabledSurfacesSummary(["billing", "overview"]);
+    const summary = enabledSurfacesSummary(["inbox", "paid_ads"]);
     expect(summary.count).toBe(2);
-    expect(summary.labels).toEqual(["Overview", "Billing"]);
+    expect(summary.labels).toEqual(["Lead Tracker", "Inbox"]);
   });
 
   it("ignores unknown entitlement keys", () => {
-    const summary = enabledSurfacesSummary(["overview", "not_a_real_capability"]);
+    const summary = enabledSurfacesSummary(["inbox", "not_a_real_capability"]);
     expect(summary.count).toBe(1);
-    expect(summary.labels).toEqual(["Overview"]);
+    expect(summary.labels).toEqual(["Inbox"]);
+  });
+
+  it("ignores retired pages that still have entitlement rows", () => {
+    const summary = enabledSurfacesSummary(["overview", "billing", "inbox"]);
+    expect(summary.labels).toEqual(["Inbox"]);
   });
 });

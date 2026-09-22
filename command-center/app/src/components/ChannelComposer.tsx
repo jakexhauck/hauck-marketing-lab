@@ -133,29 +133,28 @@ export default function ChannelComposer({
         />
       )}
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
-        onKeyDown={onKeyDown}
-        placeholder={isEmail ? "Write an email" : "Type a message"}
-        rows={2}
-        disabled={isPending}
-        className="resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-faint)] focus:border-[var(--ring)] disabled:opacity-60"
-      />
-
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-[var(--text-muted)]">
-          {count >= WARN_CHARS ? `${count} / ${MAX_CHARS}` : ""}
-        </span>
-        <BrandedButton
-          type="submit"
-          variant="primary"
-          disabled={!canSend}
-          className="ml-auto"
-        >
+      {/* Message box and Send on one row. Send used to sit on its own line
+          under the box, which doubled the composer's height for one button. */}
+      <div className="flex items-stretch gap-2">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
+          onKeyDown={onKeyDown}
+          placeholder={isEmail ? "Write an email" : "Type a message"}
+          rows={2}
+          disabled={isPending}
+          className="min-w-0 flex-1 resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-faint)] focus:border-[var(--ring)] disabled:opacity-60"
+        />
+        <BrandedButton type="submit" variant="primary" disabled={!canSend} className="shrink-0">
           {isPending ? "Sending..." : `Send ${label(channel)}`}
         </BrandedButton>
       </div>
+
+      {count >= WARN_CHARS && (
+        <span className="text-xs text-[var(--text-muted)]">
+          {count} / {MAX_CHARS}
+        </span>
+      )}
 
       {blocked && (
         <p className="text-xs text-[var(--text-muted)]">

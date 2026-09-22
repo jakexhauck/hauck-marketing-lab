@@ -1,4 +1,4 @@
-import { CAPABILITIES } from "./capabilities";
+import { GRANTABLE_CAPABILITIES as CAPABILITIES } from "./capabilities";
 
 // Pure helpers for the cockpit Overview tab (Task 3.3). Kept out of the
 // component so account-age formatting and the enabled-surfaces summary are

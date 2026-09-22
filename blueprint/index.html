@@ -335,6 +335,9 @@ const GAPS = {
   'notes-ro':     {sev:'low', node:'ghl',        title:'Contact notes cannot be edited or deleted', where:'functions/api/contacts/[id]/notes.ts',
     why:'Only create + read are wired. A typo in a note is permanent from the app.',
     fix:'Add PATCH/DELETE on the notes endpoint.'},
+  'retired-caps': {sev:'low', node:'supabase',   title:'Retired capability keys still seeded', where:'functions/lib/permissions.ts (overview, billing, activity)',
+    why:'Their pages are gone but the keys stay valid so old grant rows parse and the shared read rules still honour them. New clients are seeded with them too.',
+    fix:'Once no rule lists them, drop them from the registry and delete their rows.'},
   'dead-col':     {sev:'low', node:'supabase',   title:'Dead column / deprecated table linger', where:'migrations 0003, 0004/0006',
     why:'tenant_users.user_id was superseded by ghl_user_id but left in place; the 0003 admins table is deprecated yet kept.',
     fix:'Drop in a cleanup migration once nothing references them.'},
@@ -381,7 +384,7 @@ const NODES = [
     processes:[
       {g:'Auth data', items:['staff_accounts','admin_accounts','login_attempts (rate limit)','get_my_tenant() RPC']},
       {g:'Tenancy', items:['tenants (config·branding·notify rule)','tenant_users','tenant_entitlements (feature flags)']},
-      {g:'Permissions', items:['staff_permissions (per-surface view/edit)']},
+      {g:'Permissions', items:['staff_permissions (one capability per sidebar page, view/edit; 0129)']},
       {g:'Activity', items:['activity_log feed','unread state','webhook writes']},
       {g:'Devices', items:['push_subscriptions']},
       {g:'Admin', items:['Client CRUD','Entitlements','admin_tasks','admin_audit_log (write)']},

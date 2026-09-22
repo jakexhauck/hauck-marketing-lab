@@ -130,15 +130,17 @@ export const NAV: NavEntry[] = [
   // of its 75px slot in the phone bar, touching its neighbours. The bar's other
   // labels are one short word each ("Ads", "All", "Sales"), so the full name was
   // the odd one out as well as the widest. Sidebar and grid keep the full name.
-  { to: "/marketing/paid-ads/leads", label: "Lead Tracker", shortLabel: "Tracker", icon: ClipboardList, bottomNav: 1 },
-  { to: "/marketing/paid-ads", label: "Ads Dashboard", shortLabel: "Ads", icon: Megaphone, bottomNav: 2 },
-  { to: "/marketing/paid-ads/meta", label: "Meta Data", icon: Database },
-  { to: "/marketing/paid-ads/creatives", label: "Creatives", icon: FolderOpen },
+  // Every page row carries its capability, so a toggle on the Team screen is a
+  // row that appears or disappears here. nav.test.ts pins the pairing.
+  { to: "/marketing/paid-ads/leads", label: "Lead Tracker", shortLabel: "Tracker", icon: ClipboardList, capability: "paid_ads", bottomNav: 1 },
+  { to: "/marketing/paid-ads", label: "Ads Dashboard", shortLabel: "Ads", icon: Megaphone, capability: "ads_dashboard", bottomNav: 2 },
+  { to: "/marketing/paid-ads/meta", label: "Meta Data", icon: Database, capability: "meta_data" },
+  { to: "/marketing/paid-ads/creatives", label: "Creatives", icon: FolderOpen, capability: "creatives" },
   // Organic sits directly under the Paid Ads group because it is the same
   // question asked of the other half of the business: Lead Tracker is what the
   // ads produced, Organic is what the website produced. Only clients whose
   // website we manage have the pipeline behind it, so the row is data-gated.
-  { to: "/organic", label: "Organic", icon: Globe, dataGate: "organic" },
+  { to: "/organic", label: "Organic", icon: Globe, dataGate: "organic", capability: "organic" },
   // Sales was one row with two in-page tabs. It is two rows now: the pages are
   // opened independently all day and a tab strip made the second one invisible
   // until you had already arrived at the first.
@@ -154,8 +156,8 @@ export const NAV: NavEntry[] = [
   // page, so the bar named a destination the app does not have. Both say Leads
   // now. It sits beside "Tracker" (Lead Tracker) without ambiguity, because
   // that one is the ads lead list and this one is the sales board.
-  { to: "/sales", label: "Leads", shortLabel: "Leads", icon: Handshake, bottomNav: 4 },
-  { to: "/sales/schedule", label: "Schedule", icon: CalendarDays },
+  { to: "/sales", label: "Leads", shortLabel: "Leads", icon: Handshake, capability: "pipeline", bottomNav: 4 },
+  { to: "/sales/schedule", label: "Schedule", icon: CalendarDays, capability: "calendar" },
   // Only the services we actively sell get a row. Six channels are
   // back-burnered (hidden here, routes still registered in App.tsx): to
   // re-enable one, add its row back (and re-import its icon):
@@ -270,6 +272,18 @@ export function allFeaturesRoutes(entries: NavEntry[] = NAV): string[] {
 export function needsBackToAll(pathname: string, entries: NavEntry[] = NAV): boolean {
   if (!allFeaturesRoutes(entries).includes(pathname)) return false;
   return !bottomNavItems(entries).some((item) => item.to === pathname);
+}
+
+// Where a signed-in client lands: the Lead Tracker, unless this person was not
+// given it, in which case the first sidebar page they CAN open. Without this a
+// rep with no Lead Tracker grant opened the app onto a page that refused them.
+// Data-gated rows are skipped: whether they show is not known at redirect time.
+export function landingFor(opts: NavGateOpts, entries: NavEntry[] = NAV): string {
+  const pages = flattenNav(entries).filter(
+    (item) => !item.sidebarHidden && !item.dataGate && !item.ownerOnly,
+  );
+  const first = filterNav(pages, opts)[0];
+  return first ? first.to : CLIENT_HOME;
 }
 
 // Permission gate for a flat list of items: owner-only items need owner;

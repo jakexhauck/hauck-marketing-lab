@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { HandoffsBoard } from "../Handoffs";
-import { JobsBoard } from "./Jobs";
+import { JobsBoard, JobsViewControls, useJobsView } from "./Jobs";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { useUpdateHandoff } from "../../hooks/useApi";
 import type { ApiHandoff } from "../../lib/api";
 
@@ -51,6 +52,11 @@ export default function Sales() {
   const tab = tabFromLocation(location.pathname, location.search);
   const [booking, setBooking] = useState<BookingRequest | null>(null);
   const update = useUpdateHandoff();
+  // Schedule's view switcher sits in the header bar on desktop, beside the bell.
+  // A phone keeps it in the page (the header there has no room for it).
+  const [jobsView, setJobsView] = useJobsView();
+  const isMobile = useIsMobile();
+  const controlsInHeader = tab === "schedule" && !isMobile;
 
   // The URL is the tab, so switching pages is a navigation. replace: true so
   // the booking journey (Leads -> Schedule -> back to Leads) does not leave
@@ -108,7 +114,15 @@ export default function Sales() {
             lines up exactly with the board below it, which sits in
             PAGE_CONTAINER. The 2px difference read as a step down the page. */}
         <div className="px-5 pt-5 lg:px-6">
-          <PageBar tabs={[]} section={tab === "schedule" ? "Schedule" : "Leads"} />
+          <PageBar
+            tabs={[]}
+            section={tab === "schedule" ? "Schedule" : "Leads"}
+            actions={
+              controlsInHeader ? (
+                <JobsViewControls value={jobsView} onChange={setJobsView} />
+              ) : undefined
+            }
+          />
         </div>
         {/* PageBar's own mb-5 is the white space between the header and the
             board; the board brings its own top padding on top of that. */}
@@ -121,6 +135,9 @@ export default function Sales() {
               booking={booking}
               onBookPick={confirmBooking}
               onBookCancel={cancelBooking}
+              jobsView={jobsView}
+              onJobsViewChange={setJobsView}
+              controlsInHeader={controlsInHeader}
             />
           )}
         </div>
