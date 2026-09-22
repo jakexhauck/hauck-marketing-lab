@@ -259,8 +259,8 @@ ever compared the copy with Meta.
   Tracker and Meta Data show "Your ads haven't launched yet / Coming soon", and
   Home's This month tiles say Coming soon. Creatives stays open so the client
   can add creatives before launch.
-- ⏳ **Hourly cron.** `workers/ads-cron/wrangler.toml` says hourly; the Worker
-  needs `npx wrangler deploy` by hand to pick it up.
+- ✅ **Hourly cron.** `workers/ads-cron` fires at :07 every hour (deployed
+  2026-09-22). The health probe fails `ads-sync` after 3 hours without a run.
 
 Live proof, 2026-09-22: every stored day matched Meta (Willis 70 days,
 $1,777.03 / 105 leads; Made Better 7 days, $166.93), and all eight dashboard

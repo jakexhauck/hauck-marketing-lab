@@ -44,10 +44,10 @@ describe("judgeHeartbeat", () => {
     expect(s.detail).toMatch(/stopped/);
   });
 
-  it("gives the nightly ads sync its one-missed-night budget", () => {
-    const fresh = { job: "ads-sync", last_ok_at: new Date(NOW - 20 * 60 * 60000).toISOString() };
+  it("gives the hourly ads sync three missed runs before it fails", () => {
+    const fresh = { job: "ads-sync", last_ok_at: new Date(NOW - 2 * 60 * 60000).toISOString() };
     expect(judgeHeartbeat("ads-sync", fresh, NOW).state).toBe("ok");
-    const stale = { job: "ads-sync", last_ok_at: new Date(NOW - 27 * 60 * 60000).toISOString() };
+    const stale = { job: "ads-sync", last_ok_at: new Date(NOW - 4 * 60 * 60000).toISOString() };
     expect(judgeHeartbeat("ads-sync", stale, NOW).state).toBe("failed");
   });
 

@@ -308,9 +308,6 @@
    ===================================================================== */
 
 const GAPS = {
-  'ads-cron-hourly': {sev:'med', node:'g-ads', title:'Ads cron still fires once a night', where:'workers/ads-cron/wrangler.toml',
-    why:'The Worker config now says hourly, but the live Worker is only redeployed by hand (wrangler). Until then spend refreshes nightly plus whenever a Paid Ads page is opened over an hour after the last pull.',
-    fix:'cd workers/ads-cron && npx wrangler deploy. Then tighten CRON_MAX_AGE_MINUTES ads-sync to 3h in lib/cronHeartbeat.ts.'},
   'audit-noview': {sev:'med', node:'supabase',   title:'Audit log is written but never shown', where:'lib/adminAuth.ts · admin_audit_log',
     why:'Every admin action is logged to admin_audit_log, but no screen or endpoint ever reads it back.',
     fix:'Build an Admin Console viewer for admin_audit_log.'},
@@ -413,7 +410,7 @@ const NODES = [
   /* ---- ghost / loose-end nodes (a missing piece that should connect) ---- */
   { id:'g-ads', kind:'ghost', ic:'📊', label:'Meta ads data', tag:'VERIFIED', angle:268, dir:'in', r:0.84,
     lead:'Meta spend and leads are copied per ad per day into meta_ad_days, then every sync re-checks each client's whole history against Meta's own daily totals and re-pulls any day that is off (lib/metaReconcile.ts). Verdict in meta_sync_status; clients with no spend yet see Coming soon.',
-    processes:[], gaps:['ads-cron-hourly'], secrets:['META_SYSTEM_USER_TOKEN','ADS_CRON_SECRET'], note:'Proof 2026-09-22: every stored day and all 8 dashboard ranges matched Meta for Willis and Made Better.' },
+    processes:[], gaps:[], secrets:['META_SYSTEM_USER_TOKEN','ADS_CRON_SECRET'], note:'Proof 2026-09-22: every stored day and all 8 dashboard ranges matched Meta for Willis and Made Better.' },
   { id:'g-cron', kind:'ghost', ic:'⏰', label:'Scheduler', tag:'MISSING', angle:180, dir:'in', r:0.8,
     lead:'There is no scheduler. Anything recurring (Monday brief, digests, nudges, cleanup) has nowhere to run.',
     processes:[], gaps:['no-cron'], secrets:[], note:'' },
