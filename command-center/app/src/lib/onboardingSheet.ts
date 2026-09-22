@@ -33,7 +33,12 @@ export interface SheetSection {
 // The wiring worth showing. GA4 and the Google place id are left out for the
 // same reason the old wiring form left them out: Jake does not do analytics or
 // reviews work, and three permanently empty rows read as something unfinished.
-const WIRING_COLUMNS = ["ghl_location_id", "ghl_token", "meta_ad_account_id"];
+//
+// The GoHighLevel pair left for a different reason: the Sub-account card sits
+// directly above this sheet and names the linked sub-account, so repeating the
+// location id here was the same fact twice, and the token line only ever read
+// "app" or four characters of a secret nobody can use.
+const WIRING_COLUMNS = ["meta_ad_account_id"];
 
 /**
  * One answer as the client left it, or null when they left it blank.

@@ -51,6 +51,7 @@ export const RELEASES: Release[] = [
       "Linking writes their custom values, the webhook address and the tags, and ticks those checklist items for you.",
       "Picked the wrong one? Press Change. On a client who is already live it asks you to confirm first.",
       "Your phone tells you when somebody finishes the onboarding form, and when one of them did not go through.",
+      "The GoHighLevel connection boxes are gone from Operations > Management, and the location and token lines are gone from the client sheet. Linking is the one place now.",
     ],
   },
   {

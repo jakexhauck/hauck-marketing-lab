@@ -61,12 +61,19 @@ describe("sheetSections", () => {
     expect(sheetSections(ANSWERS, []).some((s) => s.key === "wiring")).toBe(false);
   });
 
-  it("shows configured wiring and marks the rest as not set up", () => {
+  it("shows the ad account and marks an unset one as not set up", () => {
     const sections = sheetSections(ANSWERS, WIRING);
     const wiring = sections.find((s) => s.key === "wiring")!;
-    expect(wiring.fields.map((f) => f.value)).toEqual(["loc_abc123", "••••7963", null]);
+    expect(wiring.fields.map((f) => f.value)).toEqual([null]);
     expect(wiring.fields.every((f) => f.mono)).toBe(true);
-    expect(wiring.fields[2].placeholder).toBe("Not set up yet");
+    expect(wiring.fields[0].placeholder).toBe("Not set up yet");
+  });
+
+  // The GoHighLevel pair is named by the Sub-account card above the sheet, so
+  // it must not be repeated here.
+  it("leaves the GoHighLevel location and token off the sheet", () => {
+    const wiring = sheetSections(ANSWERS, WIRING).find((s) => s.key === "wiring")!;
+    expect(wiring.fields.map((f) => f.key)).toEqual(["meta_ad_account_id"]);
   });
 
   it("treats a blank answer as unanswered rather than as an empty string", () => {
@@ -79,7 +86,7 @@ describe("sheetText", () => {
   it("writes every row, with a dash where there is no answer", () => {
     const text = sheetText(sheetSections(ANSWERS, WIRING, "Correct-Horse-9!"));
     expect(text).toContain("WIRING");
-    expect(text).toContain("GoHighLevel location id: loc_abc123");
+    expect(text).not.toContain("GoHighLevel location id");
     expect(text).toContain("Password: Correct-Horse-9!");
     expect(text).toContain("Meta ad account: -");
   });

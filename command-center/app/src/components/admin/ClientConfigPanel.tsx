@@ -174,7 +174,6 @@ export default function ClientConfigPanel({
   return (
     <div className="space-y-4">
       <BrandingCard client={client} onSaved={refreshAfterSave} />
-      <GhlCard client={client} onSaved={refreshAfterSave} />
       <AdsCard client={client} onSaved={refreshAfterSave} />
       <ReviewsCard client={client} onSaved={refreshAfterSave} />
       <WebsiteCard client={client} onSaved={refreshAfterSave} />
@@ -326,38 +325,12 @@ function BrandingCard({ client, onSaved }: { client: DetailClient; onSaved: () =
   );
 }
 
-function GhlCard({ client, onSaved }: { client: DetailClient; onSaved: () => Promise<void> }) {
-  const connected = !placeholderConn(client.ghlLocationId);
-  const [locationId, setLocationId] = useState(connected ? client.ghlLocationId : "");
-  const [token, setToken] = useState("");
-  const { saving, saved, err, run } = useSaver(onSaved);
-  const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const body: Record<string, unknown> = {};
-    if (locationId.trim()) body.ghlLocationId = locationId.trim();
-    if (token.trim()) body.ghlToken = token.trim();
-    if (Object.keys(body).length === 0) return;
-    void run(`/api/admin/clients/${client.id}`, body).then((ok) => {
-      if (ok) setToken("");
-    });
-  };
-  return (
-    <Card title="GoHighLevel connection">
-      <p className="mb-4 text-[13px] text-muted">
-        {connected ? "Connected. Update the location id or paste a new token to rotate it." : "Not connected. Add this client's GHL location id and private token."}
-      </p>
-      <form onSubmit={onSubmit}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label><span className={labelCls}>GHL location id</span><input className={inputCls} value={locationId} onChange={(e) => setLocationId(e.target.value)} placeholder="OznT3..." /></label>
-          <label><span className={labelCls}>GHL token (write-only)</span><input className={inputCls} type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="pit-..." autoComplete="off" /></label>
-        </div>
-        {err && <p className="mt-3 text-sm text-danger">{err}</p>}
-        <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
-      </form>
-    </Card>
-  );
-}
-
+// The GoHighLevel connection card lived here: a location id and a private
+// token, both typed in by hand. It went when linking did the job properly. A
+// sub-account is now picked off the agency's own list on the client sheet
+// (SubaccountCard), where a location another client already holds cannot be
+// chosen and the key is minted by the Marketplace app rather than pasted.
+//
 // Per-client Meta ad account. The agency system-user token is shared across all
 // clients (a global env var); only the account id is per-client, which is what
 // keeps one client's Paid Ads from ever showing another's numbers.
