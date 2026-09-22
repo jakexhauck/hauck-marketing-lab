@@ -1,13 +1,9 @@
-import { useEffect, useState } from "react";
-import { Check, KeyRound, RefreshCw } from "lucide-react";
-import { Button } from "../../ui/Button";
+import { KeyRound } from "lucide-react";
 import AdAccountPicker from "../AdAccountPicker";
 import {
   useAdminOnboardingReadinessQuery,
   useClientSecrets,
-  useSaveClientSecrets,
 } from "../../../hooks/useApi";
-import { CLIENT_SECRET_FIELDS } from "../../../lib/clientSecrets";
 
 // Wiring: the credentials that make a client's integrations real.
 //
@@ -16,62 +12,25 @@ import { CLIENT_SECRET_FIELDS } from "../../../lib/clientSecrets";
 // "this client's token"; the client row can, is read on every request, and is
 // therefore live the moment this saves. See functions/api/admin/secrets/client.
 //
-// Nothing typed here comes back: a saved secret is returned masked to its last
-// four characters, and an untouched field is never round-tripped through the
-// browser at all. Only the fields actually edited are sent.
+// The GoHighLevel pair used to be typed in here. It moved to the Sub-account
+// card: the location id is now picked off the agency's own list and the key is
+// minted by the Marketplace app, so there is nothing left to paste and no way
+// to paste the wrong client's location id.
 //
-// Saving then re-runs the live checks against GoHighLevel, so "did that token
-// work" is answered here rather than found out later by a client whose calendar
-// never fires.
-
 // GA4 and the Google place id are deliberately not offered. Jake does not do
 // analytics or reviews work, so a form asking for them would be three fields of
 // permanent emptiness suggesting something is unfinished.
 //
-// The Meta ad account is not in this list either, but for the opposite reason:
-// it is the one credential nobody should have to look up. It gets the picker
-// below instead of a text box.
-const WIRING_COLUMNS = ["ghl_location_id", "ghl_token"];
-
-const FIELDS = CLIENT_SECRET_FIELDS.filter((f) => WIRING_COLUMNS.includes(f.column));
+// The Meta ad account is not a text box for the opposite reason: it is the one
+// credential nobody should have to look up. It gets the picker instead.
 
 export default function WiringCard({ tenantId }: { tenantId: string }) {
   const secrets = useClientSecrets(tenantId);
-  const save = useSaveClientSecrets(tenantId);
   const readiness = useAdminOnboardingReadinessQuery(tenantId);
-
-  const [draft, setDraft] = useState<Record<string, string>>({});
-  const [savedAt, setSavedAt] = useState<number | null>(null);
-
-  // Switching client throws away anything half-typed rather than carrying it
-  // onto the next client's form.
-  useEffect(() => {
-    setDraft({});
-    setSavedAt(null);
-  }, [tenantId]);
-
-  useEffect(() => {
-    if (savedAt === null) return;
-    const t = setTimeout(() => setSavedAt(null), 4000);
-    return () => clearTimeout(t);
-  }, [savedAt]);
 
   // The API answers with one view per field: the value masked if it is a secret,
   // shown in full if it is only an id, and whether anything is set at all.
   const views = new Map((secrets.data?.fields ?? []).map((f) => [f.column, f]));
-  const dirty = Object.keys(draft).length > 0;
-
-  const submit = () => {
-    if (!dirty) return;
-    save.mutate(draft, {
-      onSuccess: () => {
-        setDraft({});
-        setSavedAt(Date.now());
-        // Ask GoHighLevel straight away whether what was just pasted works.
-        void readiness.refetch();
-      },
-    });
-  };
 
   return (
     <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)] sm:p-6">
@@ -82,79 +41,18 @@ export default function WiringCard({ tenantId }: { tenantId: string }) {
         >
           <KeyRound size={16} />
         </span>
-        <div className="min-w-0">
-          <h2 className="font-display text-[16.5px] font-semibold text-text">Wiring</h2>
-        </div>
+        <h2 className="font-display text-[16.5px] font-semibold text-text">Wiring</h2>
       </header>
 
       {secrets.isLoading ? (
         <p className="text-[13px] text-muted">Loading...</p>
       ) : (
-        // Two across on a wide screen: these are short credential fields, and a
-        // full-width input for a location id is mostly empty box.
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {FIELDS.map((field) => {
-            const current = views.get(field.column);
-            const isSet = Boolean(current?.configured);
-            const value = draft[field.column];
-            return (
-              <div key={field.column}>
-                <label htmlFor={`w-${field.column}`} className="label-cap block">
-                  {field.label}
-                  {isSet && (
-                    <span className="ml-2 inline-flex items-center gap-1 text-[10.5px] font-semibold text-positive">
-                      <Check size={11} aria-hidden />
-                      SET
-                    </span>
-                  )}
-                </label>
-                <input
-                  id={`w-${field.column}`}
-                  type="text"
-                  autoComplete="off"
-                  spellCheck={false}
-                  value={value ?? ""}
-                  placeholder={isSet ? (current?.display ?? "Saved") : field.placeholder}
-                  onChange={(e) =>
-                    setDraft((p) => ({ ...p, [field.column]: e.target.value }))
-                  }
-                  className="mt-1 w-full rounded-[var(--radius)] border border-border bg-surface px-3 py-2.5 font-mono text-[13px] text-text placeholder:text-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25"
-                />
-                <p className="mt-1 text-[12px] leading-snug text-faint">{field.help}</p>
-              </div>
-            );
-          })}
-
-          <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4 lg:col-span-2">
-            <Button variant="primary" disabled={!dirty} loading={save.isPending} onClick={submit}>
-              Save wiring
-            </Button>
-            {readiness.isFetching && (
-              <span className="inline-flex items-center gap-1.5 text-[12.5px] text-muted">
-                <RefreshCw size={13} className="animate-spin" aria-hidden />
-                Checking against GoHighLevel...
-              </span>
-            )}
-            {savedAt !== null && !readiness.isFetching && (
-              <span className="text-[12.5px] font-semibold text-positive">
-                Saved and re-checked.
-              </span>
-            )}
-            {save.isError && (
-              <span className="text-[12.5px] font-medium text-danger">
-                {(save.error as Error)?.message ?? "That did not save."}
-              </span>
-            )}
-          </div>
-
+        <div className="flex flex-col gap-4">
           {/* The ads manager. A pick, not a paste: the agency token already
               knows which accounts exist, so linking a new client is choosing
               their name off a list, and the ads are pulled in on the spot. */}
-          <div className="border-t border-border pt-4 lg:col-span-2">
+          <div>
             <p className="label-cap block">Meta ad account</p>
-            <p className="mt-1 mb-3 text-[12px] leading-snug text-faint">
-              Pick this client's ad account. Their Paid Ads section reads only this one.
-            </p>
             <AdAccountPicker
               tenantId={tenantId}
               currentAccountId={views.get("meta_ad_account_id")?.display ?? null}
@@ -165,10 +63,8 @@ export default function WiringCard({ tenantId }: { tenantId: string }) {
             />
           </div>
 
-          {/* What GoHighLevel says right now. The whole point of saving here is
-              to find out immediately, rather than from a client whose calendar
-              never fired. */}
-          <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+          {/* What GoHighLevel says right now, rather than what was saved. */}
+          <div className="flex flex-wrap gap-x-5 gap-y-1.5 border-t border-border pt-4">
             {(readiness.data?.checks ?? []).map((check) => (
               <span key={check.key} className="inline-flex items-center gap-1.5 text-[12.5px]">
                 <span

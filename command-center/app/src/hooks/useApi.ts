@@ -3210,6 +3210,86 @@ export function useDeployStatus(polling: boolean) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// The GoHighLevel Marketplace app, and linking a client to their sub-account.
+//
+// The install is agency-wide and happens once (GET /api/admin/ghl-app), which
+// is why this is not per client. Everything after it is: the list of
+// sub-accounts, and the link itself.
+
+export function useGhlAppQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "ghl-app"],
+    enabled,
+    staleTime: 30_000,
+    queryFn: () => api<{ installed: boolean; installUrl: string | null }>("/api/admin/ghl-app"),
+  });
+}
+
+export interface GhlLocationOption {
+  id: string;
+  name: string;
+  linkedTenantId: string | null;
+  linkedTenantName: string | null;
+}
+
+// Every sub-account the agency has, with the client holding each. Short stale
+// time on purpose: the sub-account made thirty seconds ago in GoHighLevel has
+// to be in this list, because that is when it gets opened.
+export function useGhlLocationsQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "ghl-app", "locations", tenantId],
+    enabled: enabled && !!tenantId,
+    staleTime: 10_000,
+    queryFn: () =>
+      api<{ locations: GhlLocationOption[]; suggestedId: string | null }>(
+        `/api/admin/ghl-app/locations?tenantId=${encodeURIComponent(tenantId)}`,
+      ),
+  });
+}
+
+export interface LinkSubaccountResult {
+  ok: boolean;
+  locationId: string;
+  provision: { kind: string; name: string; outcome: string }[];
+  customValues: {
+    ok: boolean;
+    written: string[];
+    failed: { name: string; status: number }[];
+    notFound: string[];
+  };
+}
+
+export function useLinkSubaccount(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (locationId: string) =>
+      api<LinkSubaccountResult>(`/api/admin/clients/${tenantId}/subaccount`, {
+        method: "POST",
+        body: JSON.stringify({ locationId }),
+      }),
+    // The whole client changes shape on a link: the connection check, the
+    // readiness ticks and the roster's connected flag all answer differently.
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "ghl-app"] });
+      qc.invalidateQueries({ queryKey: ["admin", "clients"] });
+      qc.invalidateQueries({ queryKey: ["admin", "onboarding"] });
+    },
+  });
+}
+
+export function useUnlinkSubaccount(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<{ ok: boolean }>(`/api/admin/clients/${tenantId}/subaccount`, { method: "DELETE" }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "ghl-app"] });
+      qc.invalidateQueries({ queryKey: ["admin", "clients"] });
+    },
+  });
+}
+
 // One client's own credentials (GET /api/admin/secrets/client/:tenantId).
 // Secrets come back masked; ids come back in full.
 export function useClientSecrets(tenantId: string, enabled = true) {

@@ -4,6 +4,7 @@ import ClientPicker from "../ClientPicker";
 import PickPrompt from "../PickPrompt";
 import IntakeAnswersCard from "./IntakeAnswersCard";
 import SetupSteps from "./SetupSteps";
+import SubaccountCard from "./SubaccountCard";
 import WiringCard from "./WiringCard";
 import { useSelectedClient } from "../../../hooks/useSelectedClient";
 
@@ -82,6 +83,13 @@ export default function ClientSetupView() {
           {/* Their answers first: working a setup step usually means reading
               one, and this is the only screen in the app that shows them. */}
           <IntakeAnswersCard tenantId={tenantId} />
+          {/* Above the checklist because nothing else on it can be finished,
+              or even checked, until this client is reading their own
+              sub-account. */}
+          <SubaccountCard
+            tenantId={tenantId}
+            inSetup={selected?.onboardingStatus === "setup"}
+          />
           <SetupSteps tenantId={tenantId} />
           <WiringCard tenantId={tenantId} />
         </div>
