@@ -57,7 +57,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     } satisfies GhlConnectionState);
   }
 
-  // A client linked on Client setup holds the 'app' sentinel rather than a
+  // A client linked through the Marketplace app holds the 'app' sentinel rather than a
   // pasted token, so the key is minted before it is proven. A mint that fails
   // is a disconnection and reads as one.
   const creds = await resolveTenantGhl(tenant, appMinter(client, ctx.env));

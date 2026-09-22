@@ -311,7 +311,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       // connected", which is the truth and is recoverable; the alternative was
       // plausible, wrong, and silent.
       //
-      // A client linked on Client setup stores the literal 'app' in ghl_token
+      // A client linked on their onboarding sheet stores the literal 'app' in ghl_token
       // instead of a pasted Private Integration token. resolveTenantGhl mints
       // the real key from the Marketplace app's agency install for those, and
       // returns a pasted token untouched for everyone else, so the two kinds of

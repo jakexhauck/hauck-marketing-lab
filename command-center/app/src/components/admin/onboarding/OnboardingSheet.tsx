@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "../../ui/Button";
+import SubaccountCard from "./SubaccountCard";
 import { useAdminOnboardingQuery, useClientSecrets } from "../../../hooks/useApi";
 import { useIntakeSubmission } from "../../../hooks/useIntake";
 import { sheetSections, sheetText, type SheetSection } from "../../../lib/onboardingSheet";
@@ -28,11 +29,23 @@ export function ClientSheet({ tenantId }: { tenantId: string }) {
   );
 
   return (
-    <SheetView
-      sections={sections}
-      loading={record.isLoading || secrets.isLoading}
-      error={record.isError ? "That client's record did not load." : null}
-    />
+    <div className="border-t border-divider bg-surface-2">
+      {/* Above the sheet because it is the only thing here that is an action:
+          everything below is a value to read or copy, and a client cannot use
+          their app at all until this is linked. */}
+      <div className="p-4 pb-0">
+        <SubaccountCard
+          tenantId={tenantId}
+          clientName={record.data?.name || "this client"}
+          isLive={record.data?.onboardingStatus !== "setup"}
+        />
+      </div>
+      <SheetView
+        sections={sections}
+        loading={record.isLoading || secrets.isLoading}
+        error={record.isError ? "That client's record did not load." : null}
+      />
+    </div>
   );
 }
 
@@ -44,12 +57,15 @@ export function SubmissionSheet({ submissionId }: { submissionId: string }) {
     [detail.data?.answers, detail.data?.password],
   );
 
+  // No Sub-account card: a form that never became a client has nothing to link.
   return (
-    <SheetView
-      sections={sections}
-      loading={detail.isLoading}
-      error={detail.isError ? "That form did not load." : null}
-    />
+    <div className="border-t border-divider bg-surface-2">
+      <SheetView
+        sections={sections}
+        loading={detail.isLoading}
+        error={detail.isError ? "That form did not load." : null}
+      />
+    </div>
   );
 }
 
@@ -77,7 +93,7 @@ function SheetView({
 
   if (loading) {
     return (
-      <div className="border-t border-divider bg-surface-2 px-5 py-6 text-[13px] text-muted">
+      <div className="px-5 py-6 text-[13px] text-muted">
         Loading their details...
       </div>
     );
@@ -85,7 +101,7 @@ function SheetView({
 
   if (error) {
     return (
-      <div className="border-t border-divider bg-surface-2 px-5 py-6 text-[13px] text-danger">
+      <div className="px-5 py-6 text-[13px] text-danger">
         {error}
       </div>
     );
@@ -93,14 +109,14 @@ function SheetView({
 
   if (sections.length === 0) {
     return (
-      <div className="border-t border-divider bg-surface-2 px-5 py-6 text-[13px] text-muted">
+      <div className="px-5 py-6 text-[13px] text-muted">
         Nothing on file yet. Their answers appear here once they fill the form in.
       </div>
     );
   }
 
   return (
-    <div className="border-t border-divider bg-surface-2 p-4">
+    <div className="p-4">
       <div className="rounded-[var(--radius)] border border-border bg-surface">
         <div className="flex justify-end px-3 pt-3">
           <Button

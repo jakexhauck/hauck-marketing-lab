@@ -30,7 +30,7 @@ export const RELEASES: Release[] = [
     date: "22 September 2026",
     title: "Link a client to their sub-account",
     items: [
-      "Client setup has a Sub-account card. Pick the client's sub-account off the list and press Link. Nothing to paste.",
+      "Open a client on Onboarding, or on Operations > Clients, and their sheet now opens with a Sub-account card. Pick their sub-account off the list and press Link. Nothing to paste.",
       "The sub-account that matches their business name is picked for you, and one another client already holds cannot be chosen.",
       "Linking writes their custom values, the webhook address and the tags, and ticks those checklist items for you.",
       "Picked the wrong one? Press Change. On a client who is already live it asks you to confirm first.",

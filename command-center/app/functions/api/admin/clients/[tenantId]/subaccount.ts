@@ -10,7 +10,7 @@ import { writeCustomValues, type CustomValuesResult } from "../../../../lib/cust
 
 // POST /api/admin/clients/:tenantId/subaccount   { locationId }
 //
-// Client setup's Link button: the moment a client's software account starts
+// The client sheet's Link button: the moment a client's software account starts
 // reading their own GoHighLevel sub-account. Admin only, enforced upstream in
 // _middleware.ts.
 //

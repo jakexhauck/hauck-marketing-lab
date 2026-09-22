@@ -204,7 +204,7 @@ async function autoApprove(
     // nothing else tells anybody they have arrived.
     await notifyAdmins(env, client, {
       title: `New client: ${name}`,
-      body: "Create their sub-account, then link it on Client setup.",
+      body: "Create their sub-account, then open them on Onboarding and link it.",
       url: "/admin/onboarding",
     }).catch(() => {});
   } catch (e) {
