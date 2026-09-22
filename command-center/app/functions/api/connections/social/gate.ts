@@ -1,48 +1,36 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { isPlaceholder } from "../../../lib/tenantGhl";
-import { fetchSocialAccounts } from "../../social/_lib";
-import type { GhlContext } from "../../../lib/ghl";
 import { composioUserId, getConnection } from "../../../lib/googleCalendar";
 
-// GET /api/connections/social/gate -> { blocked, facebook, instagram, reason }
+// GET /api/connections/social/gate -> { blocked, calendar, calendarRequired, reason }
 //
-// The single question the blocking modal asks: may this client use the app yet?
+// The single question the blocking gate asks: may this client use the app yet?
 //
-// Computed on the SERVER so the browser is never trusted with the answer, and
-// so the rule lives in one place rather than being reassembled from two calls in
-// the UI. `blocked` is the only field the gate needs; the rest drives which step
-// of the wizard opens and what the admin sees.
+// Calendar-only since 2026-09-22 (Jake). Facebook and Instagram used to be asked
+// of the client here, connected through GHL's Social Planner. Jake wants them
+// under Settings > Integrations instead, which GHL refuses to any outside token
+// (401 "not authorized for this scope"), so the agency connects them on the
+// onboarding call and the client is only asked for what they can do themselves.
 //
-// Deliberately fails OPEN. If GHL cannot be reached we do not know whether the
-// client is connected, and locking somebody out of paid software on the strength
-// of an upstream hiccup is worse than letting an unconnected client in for one
-// session. The gate reappears the moment the answer is knowable again.
+// Computed on the SERVER so the browser is never trusted with the answer.
 
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const t = ctx.data.tenant;
 
   const open = (reason: string) =>
-    Response.json({
-      blocked: false,
-      facebook: false,
-      instagram: false,
-      calendar: false,
-      calendarRequired: false,
-      reason,
-    });
+    Response.json({ blocked: false, calendar: false, calendarRequired: false, reason });
 
-  // A client whose GHL is not wired yet cannot connect anything, so gating them
-  // would be a locked door with no key. That is an agency-side gap, not theirs.
+  // A client whose GHL is not wired yet is held by SetupHoldingScreen before it
+  // ever reaches this gate; answering open keeps the two from stacking.
   if (isPlaceholder(t.ghl_location_id) || isPlaceholder(t.ghl_token)) {
     return open("not_configured");
   }
 
+  // Every tenant that existed before the calendar step shipped was
+  // grandfathered by migration 0101; new clients are gated from the day they
+  // are created. social_gate_waived (0094) stays the admin's full override.
   const client = getServiceClient(ctx.env);
-  // Whether this client has to link a Google Calendar to get in. Every tenant
-  // that existed before the calendar step shipped was grandfathered by
-  // migration 0101, so nobody was locked out by the deploy; new clients are
-  // gated from the day they are created. Un-waiving one is a deliberate act.
   let calendarRequired = false;
   if (client) {
     const { data } = await client
@@ -53,37 +41,16 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     if (data?.social_gate_waived) return open("waived");
     calendarRequired = data ? !data.calendar_gate_waived : false;
   }
+  if (!calendarRequired) return open("not_required");
 
-  const gctx: GhlContext = { token: t.ghl_token, locationId: t.ghl_location_id };
-
-  let facebook = false;
-  let instagram = false;
-  try {
-    const accounts = await fetchSocialAccounts(gctx);
-    facebook = accounts.some((a) => a.platform === "fb");
-    instagram = accounts.some((a) => a.platform === "ig");
-  } catch {
-    return open("upstream_unavailable");
-  }
-
-  // The calendar link lives with Composio, not GHL, so it is read separately and
-  // cannot be taken down by the same upstream hiccup. Its own failure mode is
-  // already "not connected", which is the safe direction: it holds the gate
-  // shut rather than letting somebody through on an error.
-  let calendar = false;
-  if (calendarRequired) {
-    const conn = await getConnection(ctx.env, composioUserId({ slug: t.slug, mode: t.mode }));
-    calendar = conn.connected;
-  }
-
-  const connected = facebook && instagram && (!calendarRequired || calendar);
+  // A failed read comes back as "not connected", which holds the gate shut
+  // rather than letting somebody through on an error.
+  const conn = await getConnection(ctx.env, composioUserId({ slug: t.slug, mode: t.mode }));
 
   return Response.json({
-    blocked: !connected,
-    facebook,
-    instagram,
-    calendar,
+    blocked: !conn.connected,
+    calendar: conn.connected,
     calendarRequired,
-    reason: connected ? "connected" : "missing",
+    reason: conn.connected ? "connected" : "missing",
   });
 };

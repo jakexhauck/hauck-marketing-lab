@@ -2993,23 +2993,20 @@ export function useUnlinkGoogleCalendar() {
 }
 
 // ---------------------------------------------------------------------------
-// Connecting the client's own Facebook page / Instagram account into their GHL
-// sub-account (0094). Three legs, one per hook, plus the gate's own question.
+// The connect gate (0094, calendar-only since 2026-09-22). The client links
+// their own Google Calendar before the app opens. Facebook and Instagram are no
+// longer asked of the client: the agency connects those under GHL Settings >
+// Integrations, which GHL does not let an outside app drive.
 //
 // The gate query is NOT persisted-cache friendly by accident: it is read on
 // every mount and decides whether the client may use the app at all, so it must
 // never answer from a snapshot written before they connected.
 
-export type ConnectPlatform = "facebook" | "instagram";
-
 export interface SocialGate {
   blocked: boolean;
-  facebook: boolean;
-  instagram: boolean;
   // Whether their Google Calendar is linked, and whether it is required of them
   // at all. Clients that existed before the calendar step shipped are
-  // grandfathered (migration 0101), so calendarRequired is false for them and
-  // the third card is not shown.
+  // grandfathered (migration 0101), so calendarRequired is false for them.
   calendar: boolean;
   calendarRequired: boolean;
   reason: string;
@@ -3026,49 +3023,6 @@ export function useSocialGate(enabled = true) {
     // would let one past who has not.
     staleTime: 0,
     queryFn: () => api<SocialGate>("/api/connections/social/gate"),
-  });
-}
-
-export function useStartSocialConnect() {
-  return useMutation({
-    mutationFn: (platform: ConnectPlatform) =>
-      api<{ url: string }>("/api/connections/social/start", {
-        method: "POST",
-        body: JSON.stringify({ platform }),
-      }),
-  });
-}
-
-export interface ConnectablePage {
-  id: string;
-  name: string;
-  avatar: string | null;
-}
-
-export function useSocialPages() {
-  return useMutation({
-    mutationFn: (vars: { platform: ConnectPlatform; accountId: string }) =>
-      api<{ pages: ConnectablePage[] }>(
-        `/api/connections/social/pages?platform=${encodeURIComponent(vars.platform)}` +
-          `&accountId=${encodeURIComponent(vars.accountId)}`,
-      ),
-  });
-}
-
-export function useAttachSocialPage() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (vars: { platform: ConnectPlatform; accountId: string; pageId: string }) =>
-      api<{ page: ConnectablePage }>("/api/connections/social/attach", {
-        method: "POST",
-        body: JSON.stringify(vars),
-      }),
-    // Returned so the gate's fresh answer lands before the caller's own
-    // onSuccess resets the wizard; otherwise the finished step flashes back.
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["social", "accounts"] });
-      return qc.invalidateQueries({ queryKey: ["connections", "social", "gate"] });
-    },
   });
 }
 

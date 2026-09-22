@@ -173,7 +173,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (!ids) return Response.json({ error: "calendarIds must be an array" }, { status: 400 });
 
   // GHL ids go into a URL path in the sync, so they are validated rather than
-  // escaped, exactly as socialConnect.ts does: a value that is not an id is a
+  // escaped: a value that is not an id is a
   // bug or an attack, and neither deserves a row.
   const clean = [...new Set(ids.filter((v): v is string => typeof v === "string"))].filter((v) =>
     /^[A-Za-z0-9_-]{1,64}$/.test(v),

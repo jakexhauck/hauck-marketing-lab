@@ -143,7 +143,7 @@ function SocialGateGuard({ children }: { children: ReactNode }) {
   // A failed gate check must not lock anybody out. The server already fails open
   // on its own errors; this covers the request never arriving at all.
   if (gate.isError || !gate.data) return <>{children}</>;
-  if (gate.data.blocked) return <SocialConnectGate gate={gate.data} />;
+  if (gate.data.blocked) return <SocialConnectGate />;
   return <>{children}</>;
 }
 
