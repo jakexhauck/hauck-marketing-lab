@@ -22,8 +22,11 @@ export function useOrganicAvailable(enabled: boolean): boolean {
   const { data } = useQuery({
     queryKey: ["organic-available"],
     enabled: enabled && !demo,
-    // The pipeline set changes when Jake builds one, not while somebody browses.
-    staleTime: Infinity,
+    // Rarely changes, but not never: the per-client switch (0128) can turn it
+    // off. This cache is persisted to localStorage, so Infinity pinned a stale
+    // "available" in the browser for a day after the switch flipped (found live
+    // 2026-09-22). Ten minutes keeps it to one cheap probe per stretch of use.
+    staleTime: 10 * 60_000,
     queryFn: () => api<{ available: boolean }>("/api/organic?probe=1"),
   });
   if (demo) return true;
