@@ -8,8 +8,7 @@ import { linkBlocker } from "../../../../lib/subaccountLink";
 import { provisionLocation, type ProvisionItem } from "../../../../lib/ghlProvision";
 import { writeCustomValues, type CustomValuesResult } from "../../../../lib/customValuesProvision";
 
-// POST   /api/admin/clients/:tenantId/subaccount   { locationId }
-// DELETE /api/admin/clients/:tenantId/subaccount
+// POST /api/admin/clients/:tenantId/subaccount   { locationId }
 //
 // Client setup's Link button: the moment a client's software account starts
 // reading their own GoHighLevel sub-account. Admin only, enforced upstream in
@@ -24,6 +23,12 @@ import { writeCustomValues, type CustomValuesResult } from "../../../../lib/cust
 // After that, the setup writes the API is actually capable of run in one go,
 // because the alternative is a checklist of things somebody has to remember to
 // press afterwards.
+//
+// A LIVE client may be re-linked through this same endpoint, deliberately.
+// There is no separate unlink: clearing a client back to nothing is the move
+// that empties their app, and swapping them to a sub-account that has just
+// answered a real read is not. The warning for a live client lives on the
+// button (SubaccountCard), where the client's name can be said out loud.
 
 interface LinkResponse {
   ok: true;
@@ -131,39 +136,4 @@ export const onRequestPost: PagesFunction<Env, "tenantId", ApiData> = async (ctx
   }));
 
   return Response.json({ ok: true, locationId, provision, customValues } satisfies LinkResponse);
-};
-
-// Unlinking exists to fix a wrong pick during setup. Once a client is live
-// their whole app reads this sub-account, so it is refused rather than
-// confirmed: unlinking a live client empties their app with one click.
-export const onRequestDelete: PagesFunction<Env, "tenantId", ApiData> = async (ctx) => {
-  const client = getServiceClient(ctx.env);
-  if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
-
-  const tenantId = ctx.params.tenantId as string;
-  const { data: tenant, error } = await client
-    .from("tenants")
-    .select("onboarding_status")
-    .eq("id", tenantId)
-    .maybeSingle();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
-  if (!tenant) return Response.json({ error: "client not found" }, { status: 404 });
-  if (tenant.onboarding_status !== "setup") {
-    return Response.json(
-      { error: "This client is live. Unlinking is only allowed during setup." },
-      { status: 409 },
-    );
-  }
-
-  const { error: upErr } = await client
-    .from("tenants")
-    .update({ ghl_location_id: "pending", ghl_token: "pending" })
-    .eq("id", tenantId);
-  if (upErr) return Response.json({ error: upErr.message }, { status: 500 });
-
-  if (ctx.data.admin) {
-    await logAdminAction(client, ctx.data.admin.id, "client.subaccount.unlink", tenantId, {});
-  }
-
-  return Response.json({ ok: true });
 };

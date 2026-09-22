@@ -88,7 +88,8 @@ export default function ClientSetupView() {
               sub-account. */}
           <SubaccountCard
             tenantId={tenantId}
-            inSetup={selected?.onboardingStatus === "setup"}
+            clientName={selected?.name ?? "this client"}
+            isLive={selected?.onboardingStatus !== "setup"}
           />
           <SetupSteps tenantId={tenantId} />
           <WiringCard tenantId={tenantId} />

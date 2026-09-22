@@ -3278,18 +3278,6 @@ export function useLinkSubaccount(tenantId: string) {
   });
 }
 
-export function useUnlinkSubaccount(tenantId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () =>
-      api<{ ok: boolean }>(`/api/admin/clients/${tenantId}/subaccount`, { method: "DELETE" }),
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "ghl-app"] });
-      qc.invalidateQueries({ queryKey: ["admin", "clients"] });
-    },
-  });
-}
-
 // One client's own credentials (GET /api/admin/secrets/client/:tenantId).
 // Secrets come back masked; ids come back in full.
 export function useClientSecrets(tenantId: string, enabled = true) {

@@ -6,7 +6,6 @@ import {
   useGhlAppQuery,
   useGhlLocationsQuery,
   useLinkSubaccount,
-  useUnlinkSubaccount,
 } from "../../../hooks/useApi";
 
 // Sub-account: the one step that turns a signed-up client into a working app.
@@ -17,14 +16,23 @@ import {
 // client's leads under this client's name. The list here comes from the agency
 // itself, the ones another client already holds cannot be chosen, and the link
 // is proven against GoHighLevel before it is stored.
+//
+// Change works on a live client too, because the alternative was worse: every
+// client was live, so Link could not be exercised at all and nobody could be
+// moved onto the app. It is safe in the way that matters: Link never stores a
+// sub-account it has not just read successfully, so a failed swap leaves the
+// client exactly as it found them. A live client gets a confirm first, since
+// this is their whole app's source of data.
 
 interface Props {
   tenantId: string;
-  // Live clients may not unlink: their whole app reads this sub-account.
-  inSetup: boolean;
+  clientName: string;
+  // Live clients are warned before their sub-account moves. Clients still being
+  // set up are not: nothing is reading them yet.
+  isLive: boolean;
 }
 
-export default function SubaccountCard({ tenantId, inSetup }: Props) {
+export default function SubaccountCard({ tenantId, clientName, isLive }: Props) {
   const app = useGhlAppQuery();
   const connection = useAdminGhlConnectionQuery(tenantId);
   const installed = app.data?.installed ?? false;
@@ -34,7 +42,6 @@ export default function SubaccountCard({ tenantId, inSetup }: Props) {
 
   const locations = useGhlLocationsQuery(tenantId, installed && picking);
   const link = useLinkSubaccount(tenantId);
-  const unlink = useUnlinkSubaccount(tenantId);
 
   const [chosen, setChosen] = useState("");
 
@@ -44,7 +51,6 @@ export default function SubaccountCard({ tenantId, inSetup }: Props) {
     setChosen("");
     setChanging(false);
     link.reset();
-    unlink.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
 
@@ -61,12 +67,27 @@ export default function SubaccountCard({ tenantId, inSetup }: Props) {
     connection.data?.locationName ?? options.find((o) => o.id === linkedId)?.name ?? null;
 
   const linkError = (link.error as Error | null)?.message ?? null;
-  const unlinkError = (unlink.error as Error | null)?.message ?? null;
   const result = link.data;
   const failures = [
     ...(result?.provision ?? []).filter((p) => p.outcome.startsWith("failed")).map((p) => p.name),
     ...(result?.customValues.failed ?? []).map((f) => f.name),
   ];
+
+  const submit = () => {
+    if (!chosen) return;
+    const target = options.find((o) => o.id === chosen)?.name ?? chosen;
+    if (
+      isLive &&
+      linkedId &&
+      chosen !== linkedId &&
+      !window.confirm(
+        `Move ${clientName} to the "${target}" sub-account? They are live, so every page in their app reads it from now on.`,
+      )
+    ) {
+      return;
+    }
+    link.mutate(chosen, { onSuccess: () => setChanging(false) });
+  };
 
   return (
     <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)] sm:p-6">
@@ -123,12 +144,7 @@ export default function SubaccountCard({ tenantId, inSetup }: Props) {
               ))}
             </select>
 
-            <Button
-              variant="primary"
-              disabled={!chosen}
-              loading={link.isPending}
-              onClick={() => link.mutate(chosen)}
-            >
+            <Button variant="primary" disabled={!chosen} loading={link.isPending} onClick={submit}>
               Link
             </Button>
 
@@ -159,9 +175,7 @@ export default function SubaccountCard({ tenantId, inSetup }: Props) {
               {(locations.error as Error)?.message ?? "That list did not load."}
             </span>
           )}
-          {linkError && (
-            <span className="text-[12.5px] font-medium text-danger">{linkError}</span>
-          )}
+          {linkError && <span className="text-[12.5px] font-medium text-danger">{linkError}</span>}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -172,23 +186,15 @@ export default function SubaccountCard({ tenantId, inSetup }: Props) {
             </span>
             <span className="text-[13px] font-medium text-text">{linkedName ?? "Sub-account"}</span>
             <span className="font-mono text-[12px] text-faint">{linkedId}</span>
-            {inSetup && (
-              <Button
-                variant="ghost"
-                loading={unlink.isPending}
-                onClick={() =>
-                  unlink.mutate(undefined, {
-                    onSuccess: () => {
-                      setChosen("");
-                      setChanging(true);
-                      void connection.refetch();
-                    },
-                  })
-                }
-              >
-                Change
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setChosen(linkedId);
+                setChanging(true);
+              }}
+            >
+              Change
+            </Button>
           </div>
 
           {connection.data && !connection.data.connected && (
@@ -200,9 +206,6 @@ export default function SubaccountCard({ tenantId, inSetup }: Props) {
             <span className="text-[12.5px] font-medium text-danger">
               Did not write: {failures.join(", ")}
             </span>
-          )}
-          {unlinkError && (
-            <span className="text-[12.5px] font-medium text-danger">{unlinkError}</span>
           )}
         </div>
       )}
