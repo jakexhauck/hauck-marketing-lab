@@ -37,7 +37,10 @@ export default function AdsMetaData() {
 
         {status.isError ? (
           <ErrorNote message={(status.error as Error | null)?.message} />
-        ) : status.isLoading ? (
+        ) : !status.data ? (
+          // No answer yet, not "not launched". Offline with nothing saved, the
+          // query sits paused with isLoading false, and reading that as
+          // launched=false told a live client their ads had not launched.
           <Spinner />
         ) : !launched ? (
           <AdsComingSoon />

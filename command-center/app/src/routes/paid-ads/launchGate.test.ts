@@ -60,6 +60,11 @@ describe.each(Object.entries(PAGES))("%s", (_name, Page) => {
     expect(html).toMatch(/DASHBOARD_SHEET|META_TABLE|LEAD_TABLE/);
   });
 
+  it("does not say coming soon offline with nothing saved (query paused, not loading)", () => {
+    status.current = { data: undefined, isLoading: false, isError: false };
+    expect(render(Page)).not.toContain("launched yet");
+  });
+
   it("does not flash coming soon while the status is loading", () => {
     status.current = { data: undefined, isLoading: true, isError: false };
     expect(render(Page)).not.toContain("launched yet");
