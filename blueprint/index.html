@@ -374,7 +374,7 @@ const NODES = [
       {g:'Attribution', items:['Custom-field map (cache 1h)','UTM extraction']},
       {g:'Webhooks IN', items:['Opp create/stage/status','Appointments','Invoices','Inbound / outbound messages']},
     ], gaps:['staff-link','team-sync','notes-ro'], secrets:['GHL_TOKEN','GHL_LOCATION_ID','GHL_COMPANY_ID'],
-    note:'Per-client token + location. Live and test modes use different sub-accounts.' },
+    note:'Per-client sub-account. A client linked on Client setup stores the sentinel ghl_token=app and their key is minted from the Marketplace app install; older clients keep a pasted Private Integration token. One resolver, functions/lib/ghlCreds.ts, answers both.' },
 
   { id:'supabase', kind:'service', ic:'🗄️', label:'Supabase', tag:'our own database', angle:40, dir:'out',
     lead:'Our Postgres database for everything that is NOT in GoHighLevel: who can log in, who can see what, the activity feed, push devices, and the admin layer.',

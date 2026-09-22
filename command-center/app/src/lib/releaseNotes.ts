@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-22-subaccount-link",
+    date: "22 September 2026",
+    title: "Link a client to their sub-account",
+    items: [
+      "Client setup has a Sub-account card. Pick the client's sub-account off the list and press Link. Nothing to paste.",
+      "The sub-account that matches their business name is picked for you, and one another client already holds cannot be chosen.",
+      "Linking writes their custom values, the webhook address and the tags, and ticks those checklist items for you.",
+      "Picked the wrong one? Change it while the client is still being set up.",
+      "Your phone tells you when somebody finishes the onboarding form, and when one of them did not go through.",
+    ],
+  },
+  {
     id: "2026-09-21-scrape-hold",
     date: "21 September 2026",
     title: "Hold a scrape, and cap it from the start",
