@@ -24,6 +24,28 @@ import {
 // client exactly as it found them. A live client gets a confirm first, since
 // this is their whole app's source of data.
 
+// Why the last install attempt was refused, in Jake's terms. The reasons are
+// the ones functions/api/crm/oauth/callback.ts sends back.
+const INSTALL_REASONS: Record<string, string> = {
+  not_agency:
+    "That install was approved for one sub-account, not the agency. Press Install app again and approve it at the agency level, for all sub-accounts.",
+  bad_state:
+    "That install took too long, or was started somewhere else. Press Install app and finish it within fifteen minutes.",
+  exchange_failed:
+    "GoHighLevel refused the handover. Usually the app's client secret or its redirect URL does not match what is stored here.",
+  other_agency: "That install came from a different agency account than the one already connected.",
+  no_code: "GoHighLevel sent you back without an install code.",
+  no_database: "The database was unreachable during the install.",
+};
+
+function installFailure(): string | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("install") !== "error") return null;
+  const reason = params.get("reason") ?? "";
+  return INSTALL_REASONS[reason] ?? `The install was refused (${reason || "no reason given"}).`;
+}
+
 interface Props {
   tenantId: string;
   clientName: string;
@@ -44,6 +66,11 @@ export default function SubaccountCard({ tenantId, clientName, isLive }: Props) 
   const link = useLinkSubaccount(tenantId);
 
   const [chosen, setChosen] = useState("");
+
+  // What the install callback said on the way back. Without this the page looks
+  // exactly the same after a refused install as before one was attempted, which
+  // is how an install that never stored anything reads as "press it again".
+  const installReason = installFailure();
 
   // Switching client drops a half-made choice rather than carrying it onto
   // somebody else's record.
@@ -104,20 +131,25 @@ export default function SubaccountCard({ tenantId, clientName, isLive }: Props) 
       {app.isLoading || connection.isLoading ? (
         <p className="text-[13px] text-muted">Loading...</p>
       ) : !installed ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            variant="primary"
-            disabled={!app.data?.installUrl}
-            onClick={() => {
-              if (app.data?.installUrl) window.location.href = app.data.installUrl;
-            }}
-          >
-            Install app
-          </Button>
-          {!app.data?.installUrl && (
-            <span className="text-[12.5px] font-medium text-danger">
-              GHL_APP_CLIENT_ID is not set on this deployment.
-            </span>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="primary"
+              disabled={!app.data?.installUrl}
+              onClick={() => {
+                if (app.data?.installUrl) window.location.href = app.data.installUrl;
+              }}
+            >
+              Install app
+            </Button>
+            {!app.data?.installUrl && (
+              <span className="text-[12.5px] font-medium text-danger">
+                GHL_APP_CLIENT_ID is not set on this deployment.
+              </span>
+            )}
+          </div>
+          {installReason && (
+            <span className="text-[12.5px] font-medium text-danger">{installReason}</span>
           )}
         </div>
       ) : picking ? (
