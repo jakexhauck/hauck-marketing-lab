@@ -16,7 +16,7 @@ import { HEALTH_CRON_HEADER, isHealthCronRequest } from "../lib/healthCron";
 import { ADS_CRON_HEADER, isAdsCronRequest } from "../lib/adsCron";
 import { CALENDAR_CRON_HEADER, isCalendarCronRequest } from "../lib/calendarCron";
 import { COLD_CALL_CRON_HEADER, isColdCallCronRequest } from "../lib/coldCallCron";
-import { funnelOrigin } from "../lib/funnelUrl";
+import { funnelOriginAllowed } from "../lib/funnelUrl";
 import { logError } from "../lib/errorLog";
 
 const allowedOrigins = new Set([
@@ -31,7 +31,7 @@ const allowedOrigins = new Set([
 // reachable cross-origin in practice; every other path demands a session cookie
 // the form does not have.
 function originAllowed(origin: string, env: Env): boolean {
-  return allowedOrigins.has(origin) || origin === funnelOrigin(env);
+  return allowedOrigins.has(origin) || funnelOriginAllowed(origin, env);
 }
 
 function corsHeaders(origin: string | null, env: Env): HeadersInit {

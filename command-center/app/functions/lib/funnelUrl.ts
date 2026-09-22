@@ -35,3 +35,18 @@ export function funnelOrigin(env: Env): string | null {
     return null;
   }
 }
+
+// The same host with and without "www.". GHL redirects one to the other
+// (www went to the bare domain on 2026-09-22), and the form then posts from
+// whichever one the browser landed on. Allowing both means a redirect flip on
+// the site can never take the form down again.
+function withoutWww(origin: string): string {
+  return origin.replace(/^(https?:\/\/)www\./, "$1");
+}
+
+/** Whether a browser Origin is the published intake form, www or not. */
+export function funnelOriginAllowed(origin: string, env: Env): boolean {
+  const allowed = funnelOrigin(env);
+  if (!allowed) return false;
+  return withoutWww(origin) === withoutWww(allowed);
+}

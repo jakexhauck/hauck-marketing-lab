@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Env } from "./env";
-import { funnelOrigin, funnelUrl } from "./funnelUrl";
+import { funnelOrigin, funnelOriginAllowed, funnelUrl } from "./funnelUrl";
 
 const env = (FUNNEL_URL?: string): Env => ({ FUNNEL_URL }) as unknown as Env;
 
@@ -42,5 +42,33 @@ describe("funnelOrigin", () => {
 
   it("is null when there is no funnel", () => {
     expect(funnelOrigin(env())).toBeNull();
+  });
+});
+
+describe("funnelOriginAllowed", () => {
+  // 2026-09-22: the site moved to GHL and www began redirecting to the bare
+  // domain. FUNNEL_URL still said www, so the form loaded from the bare domain,
+  // the API refused its origin and every client saw "Failed to fetch".
+  it("accepts the bare domain when the link says www", () => {
+    const e = env("https://www.hauckmarketing.com/onboarding-form");
+    expect(funnelOriginAllowed("https://hauckmarketing.com", e)).toBe(true);
+    expect(funnelOriginAllowed("https://www.hauckmarketing.com", e)).toBe(true);
+  });
+
+  it("accepts www when the link is the bare domain", () => {
+    const e = env("https://hauckmarketing.com/onboarding-form");
+    expect(funnelOriginAllowed("https://www.hauckmarketing.com", e)).toBe(true);
+  });
+
+  it("refuses other hosts, other subdomains and plain http", () => {
+    const e = env("https://www.hauckmarketing.com/onboarding-form");
+    expect(funnelOriginAllowed("https://evil.com", e)).toBe(false);
+    expect(funnelOriginAllowed("https://go.hauckmarketing.com", e)).toBe(false);
+    expect(funnelOriginAllowed("http://hauckmarketing.com", e)).toBe(false);
+    expect(funnelOriginAllowed("https://hauckmarketing.com.evil.com", e)).toBe(false);
+  });
+
+  it("refuses everything when there is no funnel", () => {
+    expect(funnelOriginAllowed("https://hauckmarketing.com", env())).toBe(false);
   });
 });
