@@ -327,6 +327,30 @@ describe("syncAndVerifyTenant (end to end)", () => {
     expect(tables.meta_sync_status[0].first_spend_date).toBe("2026-01-01");
   });
 
+  it("does not fail on today, which Meta is still settling", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-22T21:07:00Z"));
+    try {
+      // The 2026-09-22 Made Better case: per-ad rows lag the account line for
+      // the day still spending.
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string) => {
+          const u = new URL(url);
+          const json = (body: unknown) => ({ ok: true, json: async () => body, text: async () => "" });
+          if (u.searchParams.get("level") === "ad") return json({ data: [metaAd("2026-09-22", "a", "57.40")] });
+          return json({ data: [{ date_start: "2026-09-22", spend: "57.72", impressions: "100", inline_link_clicks: "4" }] });
+        }),
+      );
+      const r = await reconcileTenant(fakeDb({ meta_ad_days: [] }), "tok", "t1", "act_1", "UTC");
+      expect(r.ok).toBe(true);
+      expect(r.mismatches).toEqual([]);
+      expect(r.repairedDays).toBeGreaterThan(0); // still re-pulled
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("reports ok=false when a day still disagrees after the repair", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-22T20:00:00Z"));

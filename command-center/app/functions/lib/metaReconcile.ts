@@ -247,9 +247,8 @@ export async function reconcileTenant(
   let mismatches = diffDays(ours, meta);
 
   let repairedDays = 0;
-  // Two rounds, because "today" is still moving: Meta can add an impression
-  // between the account call and the ad call. A second round settles that; a
-  // day wrong after both is genuinely wrong.
+  // Two rounds, because a closed day Meta restated a moment ago can need a
+  // second pull to settle. A closed day wrong after both is genuinely wrong.
   for (let round = 0; round < 2 && mismatches.length > 0; round++) {
     const dates = mismatches.map((m) => m.date);
     if (dates.length > MAX_REPAIR_DAYS) {
@@ -273,6 +272,14 @@ export async function reconcileTenant(
     mismatches = diffDays(ours, meta);
   }
 
+  // Today is still spending, and Meta's own reports of it disagree with each
+  // other for a minute or so: at 21:07 on 2026-09-22 Made Better's per-ad rows
+  // summed to $57.40 while the account line already said $57.72, and a minute
+  // later the ad rows caught up to $57.71. So today is re-pulled every run like
+  // any other day, but it cannot fail the check. Every CLOSED day is held to
+  // the cent.
+  const settled = mismatches.filter((m) => m.date < until);
+
   const metaSum = sumTotals(meta);
   const oursSum = sumTotals(ours);
   let firstSpendDate: string | null = null;
@@ -284,7 +291,7 @@ export async function reconcileTenant(
   }
 
   return {
-    ok: mismatches.length === 0,
+    ok: settled.length === 0,
     since,
     until,
     daysChecked: new Set([...meta.keys(), ...ours.keys()]).size,
@@ -294,7 +301,7 @@ export async function reconcileTenant(
     metaLeads: metaSum.leads,
     repairedDays,
     firstSpendDate,
-    mismatches,
+    mismatches: settled,
   };
 }
 
