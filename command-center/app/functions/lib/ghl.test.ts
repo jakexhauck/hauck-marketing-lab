@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { fetchAllOpportunities, type GhlContext } from "./ghl";
+import { fetchAllOpportunities, ghlFetch, type GhlContext } from "./ghl";
+
+describe("ghlFetch app sentinel", () => {
+  it("refuses the unresolved app-linked token", async () => {
+    await expect(ghlFetch({ token: "app", locationId: "L" }, "/x")).rejects.toThrow(/not resolved/);
+  });
+});
 
 // fetchAllOpportunities pages until either a short (natural last) page, or the
 // maxPages cap. Return value alone cannot distinguish "the tenant has exactly

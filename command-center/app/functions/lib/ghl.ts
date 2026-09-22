@@ -30,6 +30,12 @@ export async function ghlFetch(
   init: RequestInit = {},
   options: GhlFetchOptions = {},
 ): Promise<Response> {
+  // An app-linked tenant stores the literal 'app' in ghl_token. Sending it as a
+  // bearer token 401s with nothing pointing at the real bug: a caller that
+  // skipped resolveTenantGhl (functions/lib/ghlCreds.ts).
+  if (ctx.token === "app") {
+    throw new Error(`ghlFetch ${path}: tenant token not resolved (app-linked)`);
+  }
   const url = path.startsWith("http") ? path : BASE + path;
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${ctx.token}`);
