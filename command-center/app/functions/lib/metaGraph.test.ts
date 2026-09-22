@@ -172,4 +172,44 @@ describe("graphGetAll", () => {
 
     expect(rows).toEqual([{ id: "first" }]);
   });
+
+  it("strict: throws when a followed page fails, instead of a partial list", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (url: string) =>
+        url.endsWith("/broken")
+          ? { ok: false, status: 500, text: async () => "boom" }
+          : {
+              ok: true,
+              json: async () => ({
+                data: [{ id: "first" }],
+                paging: { next: "https://graph.facebook.com/v21.0/broken" },
+              }),
+            },
+      ),
+    );
+    await expect(
+      graphGetAll("tok", "/act_1/insights", {}, 10, { strict: true }),
+    ).rejects.toThrow(/Meta 500 on page 2/);
+  });
+
+  it("strict: throws when the page cap is hit with Meta still offering more", async () => {
+    let call = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async () => {
+        call++;
+        return {
+          ok: true,
+          json: async () => ({
+            data: [{ id: `p${call}` }],
+            paging: { next: `https://graph.facebook.com/v21.0/p${call + 1}` },
+          }),
+        };
+      }),
+    );
+    await expect(
+      graphGetAll("tok", "/act_1/insights", {}, 3, { strict: true }),
+    ).rejects.toThrow(/more pages after 3/);
+  });
 });

@@ -226,21 +226,52 @@ export async function fetchAdDays(
   days = 7,
   zone = "UTC",
 ): Promise<MetaInsightRow[]> {
-  const account = adAccount.startsWith("act_") ? adAccount : `act_${adAccount}`;
-  const until = dateStringInZone(zone, Date.now());
+  const { since, until } = trailingWindow(days, zone);
+  return fetchAdDaysRange(token, adAccount, since, until);
+}
+
+// The calendar dates, in the ad account's zone, that a trailing sync covers.
+export function trailingWindow(
+  days: number,
+  zone: string,
+  now: number = Date.now(),
+): { since: string; until: string } {
+  const until = dateStringInZone(zone, now);
   const [y, m, d] = until.split("-").map(Number);
   const since = new Date(Date.UTC(y, m - 1, d - days)).toISOString().slice(0, 10);
+  return { since, until };
+}
 
-  const rows = await graphGetAll(token, `/${account}/insights`, {
-    level: "ad",
-    fields: INSIGHT_FIELDS,
-    time_range: JSON.stringify({ since, until }),
-    time_increment: "1",
-    // The account's own attribution setting rather than the API default of
-    // 7-day click / 1-day view. No effect on Willis (measured), correct for an
-    // account set to anything else.
-    ...UNIFIED_ATTRIBUTION,
-    limit: "500",
-  });
+// Enough for 90 days of a 50-ad account at 500 rows a page. Strict, so an
+// account that outgrows it fails the sync loudly instead of saving part of it.
+const AD_DAY_PAGES = 100;
+
+// Per-ad, per-day insights for an explicit range of account-zone dates. The
+// reconciler calls this for the exact days it found wrong; the trailing sync
+// calls it through fetchAdDays.
+export async function fetchAdDaysRange(
+  token: string,
+  adAccount: string,
+  since: string,
+  until: string,
+): Promise<MetaInsightRow[]> {
+  const account = adAccount.startsWith("act_") ? adAccount : `act_${adAccount}`;
+  const rows = await graphGetAll(
+    token,
+    `/${account}/insights`,
+    {
+      level: "ad",
+      fields: INSIGHT_FIELDS,
+      time_range: JSON.stringify({ since, until }),
+      time_increment: "1",
+      // The account's own attribution setting rather than the API default of
+      // 7-day click / 1-day view. No effect on Willis (measured), correct for an
+      // account set to anything else.
+      ...UNIFIED_ATTRIBUTION,
+      limit: "500",
+    },
+    AD_DAY_PAGES,
+    { strict: true },
+  );
   return rows as MetaInsightRow[];
 }

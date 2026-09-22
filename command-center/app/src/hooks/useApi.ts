@@ -24,6 +24,7 @@ import type {
 } from "../lib/secretsApi";
 import type { CreateClientPayload } from "../lib/clientOnboarding";
 import {
+  type AdsStatus,
   api,
   getAdminOverview,
   getBusinessHealth,
@@ -1713,6 +1714,27 @@ export function useMarkLead() {
 }
 
 // The Meta Data tab: raw daily per-ad rows from the snapshot table.
+// Launch + Meta-verification status. Asked before any Paid Ads number: the
+// server re-syncs a stale client inside this call, so the tracker fetched after
+// it reads fresh rows. Shared key, so Home and every Paid Ads tab ask once.
+export function useAdsStatusQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["ads-status"],
+    enabled,
+    staleTime: 5 * 60_000,
+    queryFn: () => api<AdsStatus>(`/api/ads/status`),
+  });
+}
+
+export function useAdminAdsStatusQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "ads-status", tenantId],
+    enabled: enabled && Boolean(tenantId),
+    staleTime: 5 * 60_000,
+    queryFn: () => api<AdsStatus>(`/api/admin/clients/${tenantId}/ads/status`),
+  });
+}
+
 export function useAdsMetaDataQuery(enabled = true) {
   return useQuery({
     queryKey: ["ads-meta-data"],
@@ -1850,6 +1872,9 @@ export function useAdsSyncMutation() {
       qc.invalidateQueries({ queryKey: ["admin", "ads-meta-data"] });
       qc.invalidateQueries({ queryKey: ["ads-tracker"] });
       qc.invalidateQueries({ queryKey: ["ads-meta-data"] });
+      // Every sync ends with the Meta check, so the verdict moved too.
+      qc.invalidateQueries({ queryKey: ["admin", "ads-status"] });
+      qc.invalidateQueries({ queryKey: ["ads-status"] });
     },
   });
 }

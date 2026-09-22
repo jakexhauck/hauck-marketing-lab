@@ -82,6 +82,24 @@ export async function handleDemoRequest<T>(
   if (clean === "/api/sales/jobs") return r({ jobs: DEMO_JOBS });
   // Paid Ads: Meta insights derived from the hand-authored demo ads.
   if (clean === "/api/ads/insights") return r(demoAdsInsights());
+  // The demo client has launched and matches Meta, so every Paid Ads tab shows
+  // its populated layout rather than "coming soon".
+  if (clean === "/api/ads/status")
+    return r({
+      launched: true,
+      hasAdAccount: true,
+      firstSpendDate: "2026-01-05",
+      syncedAt: new Date().toISOString(),
+      checkedAt: new Date().toISOString(),
+      verified: true,
+      daysChecked: 0,
+      storedSpend: 0,
+      metaSpend: 0,
+      storedLeads: 0,
+      metaLeads: 0,
+      mismatches: [],
+      error: null,
+    });
   // Lead feeds: the hand-authored worklists, returned unchanged so the demo view
   // matches a live account without touching a real pipeline.
   if (clean === "/api/ads/leads")

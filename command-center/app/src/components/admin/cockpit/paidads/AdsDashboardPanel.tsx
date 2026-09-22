@@ -1,8 +1,12 @@
 import { useState } from "react";
 import DashboardSheet from "../../../ads/tracker/DashboardSheet";
 import { DEFAULT_RANGE, ErrorNote, Spinner } from "../../../../routes/paid-ads/trackerShared";
-import { useAdminAdTrackerQuery, useAdsSyncMutation } from "../../../../hooks/useApi";
-import type { AdTrackerLevel, AdTrackerRange } from "../../../../lib/api";
+import {
+  useAdminAdTrackerQuery,
+  useAdminAdsStatusQuery,
+  useAdsSyncMutation,
+} from "../../../../hooks/useApi";
+import type { AdTrackerLevel, AdTrackerRange, AdsStatus } from "../../../../lib/api";
 
 // Paid Ads > Dashboard, in the Fulfillment cockpit.
 //
@@ -36,10 +40,29 @@ function spendAge(lastSpendDate: string | null): { text: string; stale: boolean 
   return { text: `Spend is ${days} days behind`, stale: true };
 }
 
+// The reconciler's verdict (functions/lib/metaReconcile.ts): every stored day
+// checked against Meta's own account total for that day. "Matches Meta" is the
+// proof; anything else names the first day that disagrees so it can be chased.
+function metaCheck(status: AdsStatus | undefined): { text: string; bad: boolean } | null {
+  if (!status || !status.hasAdAccount) return null;
+  if (status.verified === null) return { text: "Not checked against Meta yet", bad: true };
+  if (!status.verified) {
+    const first = status.mismatches[0];
+    if (!first) return { text: `Meta check failed: ${status.error ?? "unknown error"}`, bad: true };
+    const days = status.mismatches.length;
+    return {
+      text: `${days} ${days === 1 ? "day" : "days"} off from Meta (${first.date}: $${first.ours.spend.toFixed(2)} vs $${first.meta.spend.toFixed(2)})`,
+      bad: true,
+    };
+  }
+  return { text: `Matches Meta, ${status.daysChecked} days checked`, bad: false };
+}
+
 export default function AdsDashboardPanel({ tenantId }: { tenantId: string }) {
   const [range, setRange] = useState<AdTrackerRange>(DEFAULT_RANGE);
   const [level, setLevel] = useState<AdTrackerLevel>("ad");
 
+  const status = useAdminAdsStatusQuery(tenantId);
   const query = useAdminAdTrackerQuery(tenantId, range, level);
   const sync = useAdsSyncMutation();
   const data = query.data;
@@ -50,6 +73,7 @@ export default function AdsDashboardPanel({ tenantId }: { tenantId: string }) {
   if (query.isLoading && !data) return <Spinner />;
 
   const age = spendAge(data!.meta.lastSpendDate);
+  const check = metaCheck(status.data);
 
   return (
     <div className="flex flex-col">
@@ -74,6 +98,15 @@ export default function AdsDashboardPanel({ tenantId }: { tenantId: string }) {
             >
               {age.text}
             </span>
+            {check && (
+              <span
+                className={
+                  check.bad ? "text-[11.5px] font-semibold text-danger" : "text-[11.5px] text-positive"
+                }
+              >
+                {check.text}
+              </span>
+            )}
             <button
               type="button"
               onClick={() => sync.mutate(tenantId)}

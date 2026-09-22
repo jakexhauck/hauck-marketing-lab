@@ -58,6 +58,10 @@ function entity(
   return { id, level, name: text(row.name), status, campaignId, adsetId, live: isLive(status) };
 }
 
+// Strict and generous: the sync PRUNES every entity missing from this pull, so
+// a quietly partial list would delete live campaigns from the breakdown.
+const ENTITY_PAGES = 50;
+
 // Pull the whole structure of one ad account: every campaign, ad set and ad,
 // with its effective status.
 //
@@ -75,15 +79,15 @@ export async function fetchAdEntities(
     graphGetAll(token, `/${account}/campaigns`, {
       limit: "200",
       fields: "id,name,effective_status",
-    }),
+    }, ENTITY_PAGES, { strict: true }),
     graphGetAll(token, `/${account}/adsets`, {
       limit: "200",
       fields: "id,name,effective_status,campaign_id",
-    }),
+    }, ENTITY_PAGES, { strict: true }),
     graphGetAll(token, `/${account}/ads`, {
       limit: "500",
       fields: "id,name,effective_status,adset_id,campaign_id",
-    }),
+    }, ENTITY_PAGES, { strict: true }),
   ]);
 
   const out: AdEntity[] = [];

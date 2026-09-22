@@ -229,3 +229,39 @@ Two reasons it matters, both measured:
 A `fbclid` on the URL always wins: it belongs to this visit. The same click
 never restamps itself, or every reload would drag the recorded click time
 further from the ad that earned it.
+
+## Accuracy: every number is checked against Meta (2026-09-22)
+
+The dashboard, Lead Tracker and Meta Data all read `meta_ad_days`, a copy of
+Meta built one ad per day. A copy drifts, and did: on 2026-09-22 Willis was
+$31.65 short (a missed cron night plus a day Meta restated after the 7-day
+window closed) and Made Better $103.41 short. Nothing noticed, because nothing
+ever compared the copy with Meta.
+
+- ✅ **Proof after every sync.** `lib/metaReconcile.ts` pulls Meta's own
+  account-level total for every day of the last 400, compares spend,
+  impressions, link clicks and leads with the sum of our rows, re-pulls at ad
+  level exactly the days that disagree, and compares again. Spend may differ
+  only by Meta's own per-ad rounding (zero for a one-ad day). The verdict lands
+  in `meta_sync_status`; a day still off after the repair goes to `error_log`.
+- ✅ **A synced range equals Meta exactly.** `lib/metaAdDayStore.ts` upserts
+  what Meta returned and deletes, by key, stored rows in that range Meta no
+  longer reports.
+- ✅ **No partial reads.** Meta paging is strict (a failed or capped page
+  throws) and every `meta_ad_days` read goes through `lib/pagedSelect.ts`, past
+  PostgREST's silent 1000-row cap.
+- ✅ **Stale data refreshes itself.** `GET /api/ads/status` runs the sync
+  inline when the last one is over an hour old, before the page reads a number.
+- ✅ **Heartbeat.** Only an all-client run bumps `ads-sync`. A one-client manual
+  run used to bump it and hid the missed 2026-09-22 night.
+- ✅ **Launch gate.** A client is launched once Meta has recorded spend
+  (`meta_sync_status.first_spend_date`). Before that, Ads Dashboard, Lead
+  Tracker and Meta Data show "Your ads haven't launched yet / Coming soon", and
+  Home's This month tiles say Coming soon. Creatives stays open so the client
+  can add creatives before launch.
+- ⏳ **Hourly cron.** `workers/ads-cron/wrangler.toml` says hourly; the Worker
+  needs `npx wrangler deploy` by hand to pick it up.
+
+Live proof, 2026-09-22: every stored day matched Meta (Willis 70 days,
+$1,777.03 / 105 leads; Made Better 7 days, $166.93), and all eight dashboard
+ranges (Today through Maximum) matched Meta's own presets for both.

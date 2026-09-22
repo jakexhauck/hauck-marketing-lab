@@ -824,6 +824,33 @@ export interface MetaDataResponse {
   currency: string;
 }
 
+// GET /api/ads/status: has this client's advertising launched (Meta has
+// recorded spend), and does every stored day match Meta's own totals? Mirrors
+// AdsStatus in functions/lib/adsStatus.ts.
+export interface AdsStatusDay {
+  spend: number;
+  impressions: number;
+  linkClicks: number;
+  leads: number;
+  rows: number;
+}
+
+export interface AdsStatus {
+  launched: boolean;
+  hasAdAccount: boolean;
+  firstSpendDate: string | null;
+  syncedAt: string | null;
+  checkedAt: string | null;
+  verified: boolean | null;
+  daysChecked: number;
+  storedSpend: number;
+  metaSpend: number;
+  storedLeads: number;
+  metaLeads: number;
+  mismatches: { date: string; ours: AdsStatusDay; meta: AdsStatusDay }[];
+  error: string | null;
+}
+
 // Where this client's ad creatives live in Google Drive, and what is in there.
 // Both folder fields are null until an operator maps one, and `url` is rebuilt
 // server-side from the id rather than stored.

@@ -1,8 +1,8 @@
 import type { Env } from "./env";
 import type { GhlContext } from "./ghl";
 import { adRevenueThisMonth } from "./adsRevenue";
-import { graphGet } from "./metaGraph";
-import { actionsValue } from "./metaActions";
+import { graphGet, graphGetAll } from "./metaGraph";
+import { actionsValue, UNIFIED_ATTRIBUTION } from "./metaActions";
 import { resolveMetaToken } from "./metaToken";
 
 // The conversion-counting rollup moved to lib/metaActions.ts on 2026-08-13, so
@@ -261,6 +261,7 @@ export async function buildAdsInsights(
       level: "account",
       date_preset: "this_month",
       fields: "spend,impressions,clicks,ctr,cpc,cpm,reach,frequency,actions",
+      ...UNIFIED_ATTRIBUTION,
     });
     const trow = (((totalsResp.data as unknown[]) ?? [])[0] ?? {}) as Record<string, unknown>;
     const spend = num(trow.spend);
@@ -281,11 +282,14 @@ export async function buildAdsInsights(
       }
     }
 
-    const [lastResp, dailyResp, adInsResp, adMetaResp] = await Promise.all([
-      graphGet(token, `/${account}/insights`, { level: "account", date_preset: "last_month", fields: "actions" }),
-      graphGet(token, `/${account}/insights`, { level: "account", date_preset: "this_month", time_increment: "1", fields: "actions,date_start" }),
-      graphGet(token, `/${account}/insights`, { level: "ad", date_preset: "this_month", fields: "ad_id,ad_name,spend,reach,actions", limit: "200" }),
-      graphGet(token, `/${account}/ads`, { fields: "id,name,effective_status,creative{title,body,object_story_spec,image_url,thumbnail_url},campaign{name},adset{name}", limit: "200" }),
+    // Every insights call carries the account's own attribution setting, as the
+    // snapshot does, and the per-ad lists are read to the last page (strict):
+    // a single `limit: 200` page quietly dropped every ad past the 200th.
+    const [lastResp, dailyResp, adInsRows, adMetaRows] = await Promise.all([
+      graphGet(token, `/${account}/insights`, { level: "account", date_preset: "last_month", fields: "actions", ...UNIFIED_ATTRIBUTION }),
+      graphGet(token, `/${account}/insights`, { level: "account", date_preset: "this_month", time_increment: "1", fields: "actions,date_start", ...UNIFIED_ATTRIBUTION }),
+      graphGetAll(token, `/${account}/insights`, { level: "ad", date_preset: "this_month", fields: "ad_id,ad_name,spend,reach,actions", limit: "200", ...UNIFIED_ATTRIBUTION }, 25, { strict: true }),
+      graphGetAll(token, `/${account}/ads`, { fields: "id,name,effective_status,creative{title,body,object_story_spec,image_url,thumbnail_url},campaign{name},adset{name}", limit: "200" }, 25, { strict: true }),
     ]);
 
     // Campaign phase from ad-set learning status (best-effort; never sinks the call).
@@ -309,6 +313,7 @@ export async function buildAdsInsights(
         date_preset: "this_month",
         breakdowns: "publisher_platform",
         fields: "actions",
+        ...UNIFIED_ATTRIBUTION,
       });
       for (const row of ((platResp.data as Record<string, unknown>[]) ?? [])) {
         const v = actionsValue(row, "actions");
@@ -346,10 +351,7 @@ export async function buildAdsInsights(
       lastMonthLeads: Math.round(lastMonthLeads),
       weekly: bucketWeekly((dailyResp.data as Record<string, unknown>[]) ?? []),
       sources: { fb: Math.round(fb), ig: Math.round(ig) },
-      ads: buildAds(
-        (adInsResp.data as Record<string, unknown>[]) ?? [],
-        (adMetaResp.data as Record<string, unknown>[]) ?? [],
-      ),
+      ads: buildAds(adInsRows, adMetaRows),
       phase,
     };
     if (kv) await kv.put(cacheKey, JSON.stringify(payload), { expirationTtl: 900 });

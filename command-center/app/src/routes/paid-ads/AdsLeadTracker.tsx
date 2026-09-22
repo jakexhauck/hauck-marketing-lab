@@ -4,7 +4,8 @@ import PageBar from "../../components/PageBar";
 import LeadTrackerTable from "../../components/ads/tracker/LeadTrackerTable";
 import { PAID_ADS_CONTAINER } from "./shared";
 import { useAuth } from "../../context/AuthContext";
-import { useAdsTrackerQuery, useMarkLead } from "../../hooks/useApi";
+import { useAdsStatusQuery, useAdsTrackerQuery, useMarkLead } from "../../hooks/useApi";
+import AdsComingSoon from "../../components/ads/AdsComingSoon";
 import type { AdTrackerRange, LeadTrackerLead } from "../../lib/api";
 import type { LeadMarking } from "../../components/ads/tracker/LeadTrackerTable";
 import {
@@ -28,7 +29,9 @@ export default function AdsLeadTracker() {
   const [range, setRange] = useState<AdTrackerRange>(DEFAULT_RANGE);
   const [search, setSearch] = useState("");
   // Level is irrelevant to the lead list; keep it at the cheap default.
-  const query = useAdsTrackerQuery(range, "ad", Boolean(session));
+  const status = useAdsStatusQuery(Boolean(session));
+  const launched = status.data?.launched === true;
+  const query = useAdsTrackerQuery(range, "ad", Boolean(session) && launched);
 
   const realLeads: LeadTrackerLead[] = useMemo(() => query.data?.leads ?? [], [query.data]);
   // Fall back to a clearly-badged sample set when there are no real leads yet,
@@ -36,7 +39,7 @@ export default function AdsLeadTracker() {
   // in production must never see fabricated leads (the golden rule). Vanishes the
   // moment real leads flow, and is never mixed with real leads.
   const usingSample =
-    import.meta.env.DEV && !query.isLoading && !query.isError && realLeads.length === 0;
+    import.meta.env.DEV && launched && !query.isLoading && !query.isError && realLeads.length === 0;
   const leads = usingSample ? SAMPLE_LEADS : realLeads;
 
   const visible = useMemo(() => filterLeads(leads, search), [leads, search]);
@@ -61,12 +64,20 @@ export default function AdsLeadTracker() {
           tabs={[]}
           section="Lead Tracker"
           actions={
-            <Segmented options={RANGES} value={range} onChange={setRange} label="Date range" />
+            launched ? (
+              <Segmented options={RANGES} value={range} onChange={setRange} label="Date range" />
+            ) : undefined
           }
-          filters={<LeadSearch value={search} onChange={setSearch} />}
+          filters={launched ? <LeadSearch value={search} onChange={setSearch} /> : undefined}
         />
 
-        {query.isError ? (
+        {status.isError ? (
+          <ErrorNote message={(status.error as Error | null)?.message} />
+        ) : status.isLoading ? (
+          <Spinner />
+        ) : !launched ? (
+          <AdsComingSoon />
+        ) : query.isError ? (
           <ErrorNote message={(query.error as Error | null)?.message} />
         ) : query.isLoading && !data ? (
           <Spinner />

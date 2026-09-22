@@ -10,15 +10,16 @@ compatibility_date = "2026-05-18"
 # business logic: it makes one authenticated POST and logs the outcome.
 
 [triggers]
-# 06:00 UTC, which is roughly 1am Central. Late enough that Meta has closed out
-# the previous day, early enough that a client opening the app over breakfast
-# sees yesterday counted.
-crons = ["0 6 * * *"]
+# Hourly (was 06:00 UTC once a day until 2026-09-22). Once a day meant today's
+# spend never showed and one missed firing (it happened, 2026-09-22) left two
+# days out. Every run also re-proves each client's whole history against Meta
+# and re-pulls any day that disagrees, so older restatements are caught too.
+crons = ["7 * * * *"]
 
 [vars]
 # ?days=7 on purpose. Meta restates recent spend for several days after the
-# fact, so re-pulling a trailing week and upserting is what keeps history true.
-# Pulling only yesterday would freeze each day at its first, lowest reading.
+# fact, so re-pulling a trailing week keeps recent history true. Anything older
+# Meta restates is found by the reconciliation at the end of every run.
 SYNC_URL = "https://app.hauckmarketing.com/api/admin/ads/sync?days=7"
 
 # Reporting booked appointments back to Meta: OFF (Jake, 2026-08-14).

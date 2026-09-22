@@ -27,11 +27,17 @@ export async function graphGet(
 // first page. Capped at maxPages so a runaway account can't hang the request.
 const MAX_PAGES = 10;
 
+// strict: a page that fails, or a page cap reached with Meta still offering a
+// next page, THROWS instead of returning what arrived so far. Anything that
+// sums the rows (spend, leads) must be strict: a partial list is a wrong total
+// that looks exactly like a right one. The media library stays lenient, where a
+// short gallery beats an empty one.
 export async function graphGetAll(
   token: string,
   path: string,
   params: Record<string, string>,
   maxPages: number = MAX_PAGES,
+  opts: { strict?: boolean } = {},
 ): Promise<Record<string, unknown>[]> {
   const rows: Record<string, unknown>[] = [];
   let next: string | null = null;
@@ -39,7 +45,13 @@ export async function graphGetAll(
     let resp: Record<string, unknown>;
     if (next) {
       const res = await fetch(next);
-      if (!res.ok) break;
+      if (!res.ok) {
+        if (opts.strict) {
+          const body = await res.text().catch(() => "");
+          throw new Error(`Meta ${res.status} on page ${page + 1}: ${body.slice(0, 300)}`);
+        }
+        break;
+      }
       resp = (await res.json()) as Record<string, unknown>;
     } else {
       resp = await graphGet(token, path, params);
@@ -47,8 +59,11 @@ export async function graphGetAll(
     const data = (resp.data as Record<string, unknown>[]) ?? [];
     rows.push(...data);
     const paging = (resp.paging ?? {}) as { next?: string };
-    if (!paging.next) break;
+    if (!paging.next) return rows;
     next = paging.next;
+  }
+  if (opts.strict && next) {
+    throw new Error(`Meta still had more pages after ${maxPages}; refusing a partial result`);
   }
   return rows;
 }

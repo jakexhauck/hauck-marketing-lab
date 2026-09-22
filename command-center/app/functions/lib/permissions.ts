@@ -103,6 +103,8 @@ const RULES: PermRule[] = [
   { pattern: /^\/api\/ads\/leads\/[^/]+\/?$/, methods: ["PATCH"], any: [need("paid_ads", "edit")] },
   { pattern: /^\/api\/ads\/tracker\/?$/, methods: ["GET"], any: [need("paid_ads", "view"), need("ads_dashboard", "view")] },
   { pattern: /^\/api\/ads\/meta-data\/?$/, methods: ["GET"], any: [need("meta_data", "view")] },
+  // Launch + Meta-verification status, asked by every Paid Ads page first.
+  { pattern: /^\/api\/ads\/status\/?$/, methods: ["GET"], any: [need("paid_ads", "view"), need("ads_dashboard", "view"), need("meta_data", "view")] },
   { pattern: /^\/api\/ads\/creatives-folder\/?$/, methods: ["GET"], any: [need("creatives", "view")] },
 
   // Organic (the website leads page)

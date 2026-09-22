@@ -6,6 +6,7 @@ import CloseOutBanner from "./CloseOutBanner";
 import { useAuth } from "../../context/AuthContext";
 import { useNow } from "../../context/NowContext";
 import {
+  useAdsStatusQuery,
   useAdsTrackerQuery,
   useCalendarEventsQuery,
   useCloseOutCountQuery,
@@ -127,7 +128,11 @@ export default function HomeDesktop() {
   const closeOuts = useCloseOutCountQuery(useReal);
   // The month's own figures, from the same tracker Paid Ads reads. Shared query
   // key, so opening Paid Ads afterwards costs nothing.
-  const tracker = useAdsTrackerQuery("last_30d", "ad", useReal);
+  // Gated on launch like the Paid Ads pages: a client whose ads are not live
+  // sees "coming soon" here too, never a month of zeros.
+  const adsStatus = useAdsStatusQuery(useReal);
+  const adsNotLaunched = adsStatus.data?.launched === false;
+  const tracker = useAdsTrackerQuery("last_30d", "ad", useReal && adsStatus.data?.launched === true);
 
   const summary = summaryQuery.data;
   const events = calendarQuery.data?.events ?? [];
@@ -252,12 +257,12 @@ export default function HomeDesktop() {
                 <Tile
                   label="Leads"
                   value={kpis ? String(kpis.leads) : "--"}
-                  sub={kpis ? `${kpis.bookings} booked` : "last 30 days"}
+                  sub={adsNotLaunched ? "Coming soon" : kpis ? `${kpis.bookings} booked` : "last 30 days"}
                 />
                 <Tile
                   label="Revenue"
                   value={kpis ? formatMoney(kpis.revenue) : "--"}
-                  sub={kpis ? `${formatMoney(kpis.spend)} ad spend` : "last 30 days"}
+                  sub={adsNotLaunched ? "Coming soon" : kpis ? `${formatMoney(kpis.spend)} ad spend` : "last 30 days"}
                   tone={kpis && kpis.revenue > 0 ? "positive" : undefined}
                 />
               </div>

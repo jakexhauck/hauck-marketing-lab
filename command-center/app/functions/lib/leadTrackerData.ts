@@ -15,6 +15,7 @@ import {
 } from "./ghl";
 import { firstTouchAttribution, type AdAttribution } from "./adAttribution";
 import { toSpendRows } from "./metaAdDays";
+import { selectAllPages } from "./pagedSelect";
 import { toAdEntities, type AdEntity } from "./metaAdEntities";
 import { makeInternalConversationFilter } from "./internalRecipients";
 import {
@@ -77,32 +78,48 @@ export async function loadTrackerData(
     for (const s of p.stages ?? []) stageNames.set(s.id, s.name ?? "");
   }
 
-  const [oppSets, contacts, jobsRes, spendRes, entityRes] = await Promise.all([
+  const [oppSets, contacts, jobRows, spendRowsRaw, entityRows] = await Promise.all([
     Promise.all(wanted.map((p) => fetchAllOpportunities(gctx, { pipelineId: p.id }))),
     fetchAllContacts(gctx),
-    client.from("customer_jobs").select("ghl_contact_id, value_cents").eq("tenant_id", tenantId),
-    client
-      .from("meta_ad_days")
-      .select(
-        "date, ad_id, ad_name, adset_id, adset_name, campaign_id, campaign_name, spend, impressions, reach, link_clicks, leads, meta_bookings",
-      )
-      .eq("tenant_id", tenantId),
-    client
-      .from("meta_ad_entities")
-      .select("level, entity_id, name, status, campaign_id, adset_id")
-      .eq("tenant_id", tenantId),
+    // Every read here is paged (lib/pagedSelect.ts). A plain select stops at
+    // PostgREST's 1000 rows without a word, and meta_ad_days grows by one row
+    // per ad per day: past 1000 the dashboard's spend would have quietly lost
+    // its oldest days.
+    selectAllPages<Record<string, unknown>>((from, to) =>
+      client
+        .from("customer_jobs")
+        .select("id, ghl_contact_id, value_cents")
+        .eq("tenant_id", tenantId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    selectAllPages<Record<string, unknown>>((from, to) =>
+      client
+        .from("meta_ad_days")
+        .select(
+          "date, ad_id, ad_name, adset_id, adset_name, campaign_id, campaign_name, spend, impressions, reach, link_clicks, leads, meta_bookings",
+        )
+        .eq("tenant_id", tenantId)
+        .order("date", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    selectAllPages<Record<string, unknown>>((from, to) =>
+      client
+        .from("meta_ad_entities")
+        .select("level, entity_id, name, status, campaign_id, adset_id")
+        .eq("tenant_id", tenantId)
+        .order("entity_id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
-
-  if (jobsRes.error) throw new Error(jobsRes.error.message);
-  if (spendRes.error) throw new Error(spendRes.error.message);
-  if (entityRes.error) throw new Error(entityRes.error.message);
 
   const attributionByContact = new Map(
     contacts.map((c) => [c.id, firstTouchAttribution(c.attributions)]),
   );
 
   const jobValueByContact = new Map<string, number>();
-  for (const row of jobsRes.data ?? []) {
+  for (const row of jobRows) {
     const id = String(row.ghl_contact_id ?? "");
     if (!id) continue;
     const dollars = Number(row.value_cents ?? 0) / 100;
@@ -157,7 +174,7 @@ export async function loadTrackerData(
     jobValueByContact,
     statusOverrides,
   );
-  const spendRows = toSpendRows((spendRes.data ?? []) as Record<string, unknown>[]);
+  const spendRows = toSpendRows(spendRowsRaw);
 
   const adMeta = new Map<string, TrackerSpendRow>();
   for (const r of spendRows) if (!adMeta.has(r.adId)) adMeta.set(r.adId, r);
@@ -165,7 +182,7 @@ export async function loadTrackerData(
   return {
     leads,
     spendRows,
-    entities: toAdEntities((entityRes.data ?? []) as Record<string, unknown>[]),
+    entities: toAdEntities(entityRows),
     lostContacts,
     oppIdByContact,
     contactById: new Map(contacts.map((c) => [c.id, c])),

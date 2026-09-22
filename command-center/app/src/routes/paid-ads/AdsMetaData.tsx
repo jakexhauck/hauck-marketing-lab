@@ -4,7 +4,8 @@ import PageBar from "../../components/PageBar";
 import MetaDataTable from "../../components/ads/tracker/MetaDataTable";
 import { PAID_ADS_CONTAINER } from "./shared";
 import { useAuth } from "../../context/AuthContext";
-import { useAdsMetaDataQuery } from "../../hooks/useApi";
+import { useAdsMetaDataQuery, useAdsStatusQuery } from "../../hooks/useApi";
+import AdsComingSoon from "../../components/ads/AdsComingSoon";
 import { groupMetaDaysByDate } from "../../lib/metaDays";
 import { ErrorNote, Spinner } from "./trackerShared";
 
@@ -15,7 +16,9 @@ import { ErrorNote, Spinner } from "./trackerShared";
 
 export default function AdsMetaData() {
   const { session } = useAuth();
-  const query = useAdsMetaDataQuery(Boolean(session));
+  const status = useAdsStatusQuery(Boolean(session));
+  const launched = status.data?.launched === true;
+  const query = useAdsMetaDataQuery(Boolean(session) && launched);
   const rows = useMemo(() => query.data?.rows ?? [], [query.data]);
   const days = useMemo(() => groupMetaDaysByDate(rows), [rows]);
 
@@ -32,7 +35,13 @@ export default function AdsMetaData() {
           }
         />
 
-        {query.isError ? (
+        {status.isError ? (
+          <ErrorNote message={(status.error as Error | null)?.message} />
+        ) : status.isLoading ? (
+          <Spinner />
+        ) : !launched ? (
+          <AdsComingSoon />
+        ) : query.isError ? (
           <ErrorNote message={(query.error as Error | null)?.message} />
         ) : query.isLoading && !query.data ? (
           <Spinner />

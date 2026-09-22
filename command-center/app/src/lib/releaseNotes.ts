@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-22-ads-match-meta",
+    date: "22 September 2026",
+    title: "Ad numbers are checked against Meta",
+    items: [
+      "Every time spend is pulled, each client's whole ad history is checked day by day against Meta's own totals. Any day that is off is pulled again on the spot.",
+      "Paid Ads > Dashboard in the cockpit says Matches Meta, or names the day that is off and by how much.",
+      "Spend refreshes itself when a Paid Ads page is opened and the last pull is over an hour old, so a missed overnight run no longer leaves old numbers up.",
+      "A client whose ads have not spent anything yet sees Your ads haven't launched yet, Coming soon, on Ads Dashboard, Lead Tracker and Meta Data, and Coming soon on Home's This month tiles.",
+    ],
+  },
+  {
     id: "2026-09-22-client-app-polish",
     date: "22 September 2026",
     title: "Client app tidy-up",

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { selectAllPages } from "./pagedSelect";
 
 // The META DATA payload: the raw daily, per-ad Meta snapshot exactly as stored
 // in meta_ad_days. No GHL call, so this deliberately does NOT go through
@@ -35,16 +36,25 @@ export async function loadMetaDataRows(
   client: SupabaseClient,
   tenantId: string,
 ): Promise<{ rows: MetaDataRow[] } | { error: string }> {
-  const res = await client
-    .from("meta_ad_days")
-    .select(COLUMNS)
-    .eq("tenant_id", tenantId)
-    .order("date", { ascending: false })
-    .limit(5000);
+  // Paged: `.limit(5000)` here was a promise PostgREST never kept. It caps a
+  // read at 1000 rows regardless, silently, so past 1000 ad-days this tab
+  // would have lost its oldest rows without a word.
+  let data: Record<string, unknown>[];
+  try {
+    data = await selectAllPages<Record<string, unknown>>((from, to) =>
+      client
+        .from("meta_ad_days")
+        .select(`id, ${COLUMNS}`)
+        .eq("tenant_id", tenantId)
+        .order("date", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+  } catch (err) {
+    return { error: (err as Error).message };
+  }
 
-  if (res.error) return { error: res.error.message };
-
-  const rows: MetaDataRow[] = (res.data ?? []).map((r) => ({
+  const rows: MetaDataRow[] = data.map((r) => ({
     date: str(r.date),
     spend: num(r.spend),
     impressions: num(r.impressions),

@@ -13,6 +13,8 @@ export type CronJob = "ads-sync" | "calendar-sync" | "cold-call-sync" | "morning
 // scheduler being down. ads runs daily (26h = one missed night), calendar
 // every 15 min (45m), dialer every minute (10m, it feeds live dialing).
 export const CRON_MAX_AGE_MINUTES: Record<CronJob, number> = {
+  // Hourly since 2026-09-22 once the Worker is redeployed; left at a day so the
+  // probe stays quiet until then. Tighten to 3h after that deploy.
   "ads-sync": 26 * 60,
   "calendar-sync": 45,
   "cold-call-sync": 10,
