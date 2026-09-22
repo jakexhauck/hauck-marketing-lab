@@ -125,10 +125,11 @@ export async function handleDemoRequest<T>(
           : [...ESTIMATE_LEADS, ...CHAT_LEADS];
     return r({ submissions, total: submissions.length });
   }
-  // Organic (website form + chat widget). The probe answers true so the demo
-  // client gets the nav row; a real tenant only gets it if GHL says so.
+  // Organic (website form + chat widget). The probe answers false so the demo
+  // client has no Organic nav row (Jake pulled it from client demos
+  // 2026-09-22); a real tenant only gets it if GHL says so.
   if (clean === "/api/organic") {
-    if (queryParam(path, "probe") === "1") return r({ available: true });
+    if (queryParam(path, "probe") === "1") return r({ available: false });
     const leads = demoOrganicLeads();
     return r({ available: true, stages: ["Chat Widget", "Estimate Form"], leads });
   }
