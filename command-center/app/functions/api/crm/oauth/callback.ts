@@ -24,9 +24,9 @@ import {
 
 function back(origin: string, params: Record<string, string>): Response {
   const qs = new URLSearchParams(params).toString();
-  // No ?sub=: the Connection tab that used to receive this is gone, so the page
-  // decides for itself which sub-tab a client is entitled to.
-  return Response.redirect(`${origin}/admin/fulfillment/ghl?${qs}`, 302);
+  // Client setup is where the install now starts (the Sub-account card's
+  // Install button), so it is where the browser comes back to.
+  return Response.redirect(`${origin}/admin/onboarding?${qs}`, 302);
 }
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
