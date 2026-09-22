@@ -29,7 +29,9 @@ export function useOrganicAvailable(enabled: boolean): boolean {
     staleTime: 10 * 60_000,
     queryFn: () => api<{ available: boolean }>("/api/organic?probe=1"),
   });
-  if (demo) return true;
+  // The demo client has no Organic page (Jake pulled it from client demos
+  // 2026-09-22).
+  if (demo) return false;
   // Hidden until proven available: a row that appears and then vanishes on every
   // page load is worse than one that arrives a beat late.
   return data?.available ?? false;
