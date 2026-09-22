@@ -530,9 +530,9 @@ Still parked:
 What's in the app now: a Sub-account card on Client setup. Install the Marketplace app once, then link each new client by picking their sub-account off a list. The app mints its own key, so no token is ever pasted again. Linking writes the custom values, webhook address and tags, and ticks those checklist items. A push tells you when somebody finishes the onboarding form.
 
 Your action items:
-1. Open Admin, then Onboarding, then Client setup, and pick any client.
+1. Open Admin, then Onboarding, and click any client's row to open their sheet.
 2. Press Install app on the Sub-account card. Approve it in GHL for ALL sub-accounts.
-3. Pick the Hauck Marketing test client and link sub-account wbrjjHYzznyEHx9wumSr.
+3. Open Hauck Marketing (Operations > Clients, since they are live) and press Change, then Link, on sub-account wbrjjHYzznyEHx9wumSr. It asks you to confirm because they are live.
 4. Open that client's Leads page and confirm real data loads.
 5. Open Willis and confirm their Leads page still loads (they still use a pasted token).
 6. On the next real client, create their sub-account in GHL from the snapshot first, then press Link.
