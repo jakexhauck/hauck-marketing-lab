@@ -206,9 +206,16 @@ export default function SocialConnectGate({ gate }: { gate: SocialGate }) {
     attach.mutate(
       { platform: current as ConnectPlatform, accountId: accountId.current, pageId },
       {
-        // No success branch: attaching invalidates the gate query, the gate
-        // re-answers, and this component either advances to Instagram or stops
-        // rendering entirely. Nothing here should decide that.
+        // Which step comes next is still the gate's call: attaching invalidates
+        // the gate query and it re-answers. But this component stays mounted
+        // for the next step, so its own flow state must be cleared here, or the
+        // Instagram button sits on "Connecting..." forever (found live
+        // 2026-09-22).
+        onSuccess: () => {
+          setPhase("idle");
+          setPages([]);
+          accountId.current = "";
+        },
         onError: () => fail("We could not connect that. Try again."),
       },
     );
@@ -225,15 +232,10 @@ export default function SocialConnectGate({ gate }: { gate: SocialGate }) {
     <main className="flex min-h-dvh items-center justify-center bg-bg px-5 py-12">
       <div className="w-full max-w-[560px]">
         <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-7 shadow-[var(--shadow-sm)] sm:p-9">
-          <p className="label-cap">Hauck Marketing</p>
-          <h1 className="mt-2 font-display text-[26px] leading-tight font-semibold text-text">
+          <p className="label-cap text-center">Hauck Marketing</p>
+          <h1 className="mt-2 text-center font-display text-[26px] leading-tight font-semibold text-text">
             Connect your {label}.
           </h1>
-          <p className="mt-3 text-[14px] leading-relaxed text-muted">
-            {onCalendar
-              ? "So the times you are already busy never get offered to a customer, and every booking lands in your calendar."
-              : "We post and reply on your behalf, so your app needs access to both accounts before you can use it."}
-          </p>
 
           <ol className="mt-7 flex flex-col gap-3">
             {steps.map(({ id, label: stepLabel }, i) => {

@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useAuth } from "./AuthContext";
 import { demoMode } from "../demo/demoMode";
+import { useSocialGate } from "../hooks/useApi";
 import {
   fetchTourProgress,
   saveTourProgress,
@@ -39,8 +40,18 @@ interface TourContextValue {
 const TourContext = createContext<TourContextValue | null>(null);
 
 export function TourProvider({ children }: { children: ReactNode }) {
-  const { status, isOwner, can, currentUser, preview, isAdmin, needsIdentity } =
+  const { status, isOwner, can, currentUser, preview, isAdmin, needsIdentity, crmConnected } =
     useAuth();
+
+  // The tour points at the app's navigation, so it has to wait until the app
+  // is actually on screen. The provider sits above the routes, so without this
+  // it fired over the social connect gate on a new client's first login.
+  // Same fail-open rule as SocialGateGuard: a failed gate check lets the app
+  // through, so it lets the tour through too.
+  const gateEligible =
+    status === "authenticated" && !isAdmin && !preview && !needsIdentity && crmConnected;
+  const gate = useSocialGate(gateEligible && !demoMode());
+  const appVisible = gateEligible && (gate.isError || gate.data?.blocked === false);
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [steps, setSteps] = useState<TourStep[]>([]);
@@ -105,6 +116,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
     if (demoMode()) return;
     if (status !== "authenticated") return; // not offline-grace, not loading
     if (isAdmin || preview || needsIdentity) return;
+    if (!appVisible) return;
 
     evaluatedRef.current = true;
     let cancelled = false;
@@ -136,7 +148,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [status, isAdmin, preview, needsIdentity, isOwner, can, personKey, persist]);
+  }, [status, isAdmin, preview, needsIdentity, appVisible, isOwner, can, personKey, persist]);
 
   const value = useMemo<TourContextValue>(
     () => ({

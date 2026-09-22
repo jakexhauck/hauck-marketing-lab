@@ -3015,9 +3015,12 @@ export interface SocialGate {
   reason: string;
 }
 
-export function useSocialGate() {
+// `enabled` lets the tour read the same cached answer without firing it for
+// admins or clients still in setup, who never reach the gate.
+export function useSocialGate(enabled = true) {
   return useQuery({
     queryKey: ["connections", "social", "gate"],
+    enabled,
     // Zero, so a fresh answer is fetched every time the shell mounts. A stale
     // "blocked" would lock out a client who just connected; a stale "open"
     // would let one past who has not.
@@ -3060,9 +3063,11 @@ export function useAttachSocialPage() {
         method: "POST",
         body: JSON.stringify(vars),
       }),
+    // Returned so the gate's fresh answer lands before the caller's own
+    // onSuccess resets the wizard; otherwise the finished step flashes back.
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["connections", "social", "gate"] });
       qc.invalidateQueries({ queryKey: ["social", "accounts"] });
+      return qc.invalidateQueries({ queryKey: ["connections", "social", "gate"] });
     },
   });
 }
