@@ -1,5 +1,6 @@
 import type { Env, ApiData } from "../../lib/env";
 import { ghlJson, fetchAllOpportunities, type GhlContext } from "../../lib/ghl";
+import { getServiceClient } from "../../lib/supabase";
 import { organicChannel, resolveOrganicPipeline, type OrganicChannel } from "../../lib/organic";
 
 // GET /api/organic
@@ -35,6 +36,21 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const t = ctx.data.tenant;
   const gctx: GhlContext = { token: t.ghl_token, locationId: t.ghl_location_id };
   const probeOnly = new URL(ctx.request.url).searchParams.get("probe") === "1";
+
+  // New clients do not get Organic (0128): the pipeline can arrive with the GHL
+  // snapshot, so it takes this flag as well. Read here rather than threaded
+  // through TenantContext, the same way the connect gate reads its waivers.
+  const client = getServiceClient(ctx.env);
+  if (client) {
+    const { data } = await client
+      .from("tenants")
+      .select("organic_enabled")
+      .eq("slug", t.slug)
+      .maybeSingle();
+    if (!data?.organic_enabled) {
+      return Response.json({ available: false, stages: [], leads: [] });
+    }
+  }
 
   const pipeData = await ghlJson<{ pipelines?: { id: string; name?: string; stages?: { id: string; name?: string }[] }[] }>(
     gctx,

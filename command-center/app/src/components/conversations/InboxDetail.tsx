@@ -1,15 +1,12 @@
 import Avatar from "../Avatar";
 import ConversationThread from "../ConversationThread";
-import SourceBadge from "./SourceBadge";
-import ThreadChannelTabs, { ActiveChannelComposer } from "./ThreadChannelTabs";
+import MessageComposer from "../MessageComposer";
 import { ChannelFilterProvider } from "../../context/ChannelFilterContext";
-import { convOrigin } from "../../lib/inboxFilters";
 import type { ApiConversation } from "../../lib/api";
 
-// The right pane of the desktop inbox. One contact, two threads: SMS and Email
-// sit on their own tabs (ThreadChannelTabs), each reading and sending over its
-// own medium. The lead is a single row in the list, so the two threads never
-// drift into two separate conversations with the same person.
+// The right pane of the desktop inbox. One contact, one SMS thread. Email and
+// the SMS/Email switch were removed (Jake, 2026-09-22): the thread and the reply
+// box are locked to texts.
 //
 // `stageLabel` overrides the stage shown under the name. `conv.stageName` is
 // whichever single opportunity the backend chose, so on a page scoped to ONE
@@ -47,17 +44,15 @@ export default function InboxDetail({
               </div>
             )}
           </div>
-          <SourceBadge origin={convOrigin(conv)} />
         </div>
       </div>
 
-      <ChannelFilterProvider key={conv.contactId} initial={null}>
+      <ChannelFilterProvider key={conv.contactId} initial="SMS">
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-6 pb-3 pt-4">
-          <ThreadChannelTabs contactId={conv.contactId} />
           <ConversationThread contactId={conv.contactId} fill />
         </div>
         <div className="border-t border-border bg-surface px-6 py-3.5">
-          <ActiveChannelComposer contactId={conv.contactId} />
+          <MessageComposer contactId={conv.contactId} lockChannel="SMS" />
         </div>
       </ChannelFilterProvider>
     </section>

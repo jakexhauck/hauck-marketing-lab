@@ -6,15 +6,11 @@ import NavyHero from "../components/NavyHero";
 import { HeroIconButton } from "../components/HeroUi";
 import Avatar from "../components/Avatar";
 import ConversationThread from "../components/ConversationThread";
-import SourceBadge from "../components/conversations/SourceBadge";
-import ThreadChannelTabs, {
-  ActiveChannelComposer,
-} from "../components/conversations/ThreadChannelTabs";
+import MessageComposer from "../components/MessageComposer";
 import { ChannelFilterProvider } from "../context/ChannelFilterContext";
 import ConversationDetailDesktop from "../components/conversations/ConversationDetailDesktop";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "../hooks/useApi";
-import { convOrigin } from "../lib/inboxFilters";
 
 // Keep the composer above the iOS keyboard: the visual viewport shrinks when
 // the keyboard opens, the layout viewport does not. The difference becomes
@@ -74,20 +70,18 @@ export default function ConversationDetail() {
               <div className="truncate font-display text-base font-bold text-white">
                 {name}
               </div>
-              {conv && <SourceBadge origin={convOrigin(conv)} size="sm" />}
             </div>
           </div>
         </NavyHero>
 
-        <ChannelFilterProvider key={contactId} initial={null}>
+        <ChannelFilterProvider key={contactId} initial="SMS">
           <main className="flex min-h-0 flex-1 flex-col gap-3 px-5 pb-4 pt-4">
-            <ThreadChannelTabs contactId={contactId} />
             <ConversationThread contactId={contactId} fill />
             <div
               className="border-t border-[var(--border)] pt-3"
               style={{ paddingBottom: keyboardInset }}
             >
-              <ActiveChannelComposer contactId={contactId} />
+              <MessageComposer contactId={contactId} lockChannel="SMS" />
             </div>
           </main>
         </ChannelFilterProvider>

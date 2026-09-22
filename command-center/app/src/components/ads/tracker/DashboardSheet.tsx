@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import {
   AD_TRACKER_OTHER_ID,
-  type AdTrackerKpis,
   type AdTrackerBreakdownRow,
   type AdTrackerLevel,
   type AdTrackerRange,
@@ -39,10 +38,6 @@ import {
 
 const RESULT_COLUMNS = [
   "Leads",
-  // Leads is Meta's own figure and matches Ads Manager. This is how many of
-  // them reached the CRM, and the gap between the two is the point: Willis
-  // Windows, last 30 days, Meta 51 and CRM 6.
-  "Leads in CRM",
   "Pickups",
   "Pickup Rate",
   "Bookings",
@@ -136,29 +131,6 @@ const TD = "border border-border px-3 py-2.5 text-[13px] text-text tnum";
 const RESULT_TH =
   "border border-border bg-surface-2 px-4 py-3.5 text-[12.5px] font-semibold text-muted";
 const RESULT_TD = "border border-border px-4 py-6 text-[16px] text-text tnum";
-
-// Leads Meta reported and billed for that never reached the CRM. Zero when the
-// CRM has at least as many as Meta counted, which is the healthy case.
-export function missingLeads(kpis: AdTrackerKpis): number {
-  return Math.max(0, kpis.leads - kpis.crmLeads);
-}
-
-// The CRM lead count, marked when it has fallen behind Meta's.
-//
-// Reads as a plain figure when the two agree. When they do not, the shortfall
-// is named rather than left for the client to subtract: Willis's page showed 6
-// against Meta's 51 for weeks and looked merely wrong, when what it was
-// actually reporting was 45 paid-for leads nobody had called.
-function LeadsInCrm({ kpis }: { kpis: AdTrackerKpis }) {
-  const missing = missingLeads(kpis);
-  if (missing === 0) return <>{kpis.crmLeads}</>;
-  return (
-    <span className="inline-flex flex-col items-center leading-tight">
-      <span className="font-semibold text-danger">{kpis.crmLeads}</span>
-      <span className="text-[11px] font-medium text-danger">{missing} missing</span>
-    </span>
-  );
-}
 
 // "Jul 14 to Aug 12", the exact days the figures cover.
 function windowLabel(start: string | null, end: string | null): string {
@@ -366,7 +338,6 @@ export default function DashboardSheet({
       </div>
       <div className="mb-4 grid shrink-0 grid-cols-2 gap-px overflow-hidden rounded-[12px] border border-border bg-border lg:hidden">
         <Stat label="Leads" value={String(data.kpis.leads)} />
-        <Stat label="Leads in CRM" value={String(data.kpis.crmLeads)} negative={missingLeads(data.kpis) > 0} />
         <Stat label="Pickups" value={String(data.kpis.pickups)} />
         <Stat label="Bookings" value={String(data.kpis.bookings)} />
         <Stat label="Sales" value={String(data.kpis.sales)} />
@@ -395,9 +366,6 @@ export default function DashboardSheet({
                 <WindowNote meta={data.meta} />
               </td>
               <td className={RESULT_TD}>{data.kpis.leads}</td>
-              <td className={RESULT_TD}>
-                <LeadsInCrm kpis={data.kpis} />
-              </td>
               <td className={RESULT_TD}>{data.kpis.pickups}</td>
               <td className={RESULT_TD}>{pct(data.kpis.pickupRate)}</td>
               <td className={RESULT_TD}>{data.kpis.bookings}</td>

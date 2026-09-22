@@ -1,6 +1,4 @@
 import Avatar from "../Avatar";
-import SourceBadge from "./SourceBadge";
-import { convOrigin } from "../../lib/inboxFilters";
 import { useNow } from "../../context/NowContext";
 import { timeAgo } from "../../lib/timeAgo";
 import type { ApiConversation } from "../../lib/api";
@@ -97,9 +95,6 @@ function ConversationRow({
           }
         >
           {conv.preview || "No recent message"}
-        </div>
-        <div className="mt-2 flex items-center gap-2">
-          <SourceBadge origin={convOrigin(conv)} size="sm" />
         </div>
       </div>
     </button>
