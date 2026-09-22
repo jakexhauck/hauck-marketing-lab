@@ -1,6 +1,7 @@
 import type { Env } from "../../../../lib/env";
 import { getServiceClient } from "../../../../lib/supabase";
-import { loadTenantById, resolveGhlCreds } from "../../../../lib/tenantResolve";
+import { loadTenantById } from "../../../../lib/tenantResolve";
+import { appMinter, resolveTenantGhl } from "../../../../lib/ghlCreds";
 import { ghlJson, type GhlContext } from "../../../../lib/ghl";
 import {
   summariseOpenHours,
@@ -51,7 +52,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     composioUserId({ slug: tenant.slug, mode: "live" }),
   );
 
-  const creds = resolveGhlCreds(tenant);
+  const creds = await resolveTenantGhl(tenant, appMinter(client, ctx.env));
   if (!creds) {
     return Response.json({
       googleLinked: conn.connected,
@@ -148,7 +149,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         { status: 400 },
       );
     }
-    const creds = resolveGhlCreds(tenant);
+    const creds = await resolveTenantGhl(tenant, appMinter(client, ctx.env));
     if (!creds) return Response.json({ error: "this client's GHL is not wired" }, { status: 409 });
     try {
       const updated = await writeOpenHours(

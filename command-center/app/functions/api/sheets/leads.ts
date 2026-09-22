@@ -1,7 +1,8 @@
 import type { Env } from "../../lib/env";
 import { liveTenantSlug } from "../../lib/env";
 import { getServiceClient } from "../../lib/supabase";
-import { loadTenantBySlug, resolveGhlCreds } from "../../lib/tenantResolve";
+import { loadTenantBySlug } from "../../lib/tenantResolve";
+import { appMinter, resolveTenantGhl } from "../../lib/ghlCreds";
 import { readToken, tokenMatches } from "../../lib/webhookAuth";
 import { customFieldDefs, fetchAllContacts, type GhlContext } from "../../lib/ghl";
 import { loadAppointmentsByContact } from "../../lib/leadWhen";
@@ -58,7 +59,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const tenant = await loadTenantBySlug(client, slug);
   if (!tenant) return json(404, { error: "unknown_tenant", tenant: slug });
 
-  const creds = resolveGhlCreds(tenant);
+  const creds = await resolveTenantGhl(tenant, appMinter(client, env));
   if (!creds) return json(409, { error: "ghl_not_connected", tenant: slug });
 
   const gctx: GhlContext = { token: creds.token, locationId: creds.locationId };

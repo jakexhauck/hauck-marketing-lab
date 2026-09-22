@@ -1,6 +1,7 @@
 import { tenantTimezone, type Env, type ApiData } from "../../../../../lib/env";
 import { getServiceClient } from "../../../../../lib/supabase";
-import { loadTenantById, resolveGhlCreds } from "../../../../../lib/tenantResolve";
+import { loadTenantById } from "../../../../../lib/tenantResolve";
+import { appMinter, resolveTenantGhl } from "../../../../../lib/ghlCreds";
 import { resolveAdAccount } from "../../../../../lib/metaGraph";
 import {
   buildAdsInsights,
@@ -57,7 +58,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // path (tenant's own creds once real, else the GHL_* env fallback). Reading
   // tenant.ghl_token raw here would send a placeholder ('env'/'pending') into
   // the revenue join and fail it silently for any client not yet fully wired.
-  const creds = resolveGhlCreds(tenant);
+  const creds = await resolveTenantGhl(tenant, appMinter(client, ctx.env));
 
   const zone = tenantTimezone(ctx.env);
   const adsCtx: AdsContext = {

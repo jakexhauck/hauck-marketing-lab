@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../../lib/env";
 import { getServiceClient, resolveTenantId } from "../../lib/supabase";
 import { syncNotifyPrefsToGhl } from "../../lib/ghlNotifyPrefs";
+import { appMinter, resolveTenantGhl } from "../../lib/ghlCreds";
 
 // Per-tenant notification settings, set by the owner. Covers two things:
 //
@@ -187,15 +188,24 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (
     body.smsTo !== undefined
   ) {
     const row = data as (TenantRow & { ghl_location_id?: string; ghl_token?: string }) | null;
+    // Resolved inside the waitUntil: minting a key for an app-linked client is
+    // a network call, and this mirror is best-effort by design.
     ctx.waitUntil(
-      syncNotifyPrefsToGhl({
-        locationId: row?.ghl_location_id ?? "",
-        token: row?.ghl_token ?? "",
-        emailEnabled: next.email,
-        smsEnabled: next.sms,
-        emailTo: next.emailTo,
-        smsNumber: next.smsTo,
-      }).catch(() => {}),
+      (async () => {
+        const creds = await resolveTenantGhl(
+          { ghl_location_id: row?.ghl_location_id ?? "", ghl_token: row?.ghl_token ?? "" },
+          appMinter(client, ctx.env),
+        );
+        if (!creds) return;
+        await syncNotifyPrefsToGhl({
+          locationId: creds.locationId,
+          token: creds.token,
+          emailEnabled: next.email,
+          smsEnabled: next.sms,
+          emailTo: next.emailTo,
+          smsNumber: next.smsTo,
+        });
+      })().catch(() => {}),
     );
   }
 

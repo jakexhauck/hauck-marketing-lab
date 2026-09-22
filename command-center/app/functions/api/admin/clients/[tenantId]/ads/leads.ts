@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../../../../../lib/env";
 import { getServiceClient } from "../../../../../lib/supabase";
-import { loadTenantById, resolveGhlCreds } from "../../../../../lib/tenantResolve";
+import { loadTenantById } from "../../../../../lib/tenantResolve";
+import { appMinter, resolveTenantGhl } from "../../../../../lib/ghlCreds";
 import type { GhlContext } from "../../../../../lib/ghl";
 import { fetchPaidAdsLeads } from "../../../../../lib/paidAdsPipeline";
 
@@ -24,7 +25,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // path. Reading tenant.ghl_token raw would send a placeholder
   // ('env'/'pending') straight to GHL and 401 for any client not yet fully
   // wired (the same bug the Website Pages admin endpoint guards against).
-  const creds = resolveGhlCreds(tenant);
+  const creds = await resolveTenantGhl(tenant, appMinter(client, ctx.env));
   if (!creds) return Response.json({ leads: [], total: 0 });
 
   const gctx: GhlContext = { token: creds.token, locationId: creds.locationId };

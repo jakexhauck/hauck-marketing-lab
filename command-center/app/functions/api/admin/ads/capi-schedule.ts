@@ -1,7 +1,7 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
-import { resolveGhlCreds } from "../../../lib/tenantResolve";
+import { appMinter, resolveTenantGhl } from "../../../lib/ghlCreds";
 import type { GhlContext } from "../../../lib/ghl";
 import { funnelForTenantSlug, funnelKeyForTenantSlug } from "../../../lib/metaCapi";
 import { resolveMetaToken } from "../../../lib/metaToken";
@@ -100,7 +100,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       continue;
     }
 
-    const creds = resolveGhlCreds(tenant as never);
+    const creds = await resolveTenantGhl(tenant as never, appMinter(client, ctx.env));
     if (!creds) {
       results.push({ tenantId: tenant.id, name, funnel: funnelKey, reason: "crm not connected" });
       continue;

@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../../../../lib/env";
 import { getServiceClient } from "../../../../lib/supabase";
-import { loadTenantById, resolveGhlCreds } from "../../../../lib/tenantResolve";
+import { loadTenantById } from "../../../../lib/tenantResolve";
+import { appMinter, resolveTenantGhl } from "../../../../lib/ghlCreds";
 import type { GhlContext } from "../../../../lib/ghl";
 import { buildTrackerResponse, parseTrackerParams } from "../../../../lib/adsTrackerResponse";
 
@@ -30,7 +31,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // Resolve creds the way the live middleware does. Reading tenant.ghl_token
   // raw would send a placeholder ('env'/'pending') to GHL and 401 for any
   // client not yet fully wired.
-  const creds = resolveGhlCreds(tenant);
+  const creds = await resolveTenantGhl(tenant, appMinter(client, ctx.env));
   if (!creds) return Response.json({ error: "crm not connected" }, { status: 503 });
   const gctx: GhlContext = { token: creds.token, locationId: creds.locationId };
 

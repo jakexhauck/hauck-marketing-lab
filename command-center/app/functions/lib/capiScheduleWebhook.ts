@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Env } from "./env";
 import type { GhlContext } from "./ghl";
 import type { GhlWebhookEvent } from "./ghlEvents";
-import { resolveGhlCreds } from "./tenantResolve";
+import { appMinter, resolveTenantGhl } from "./ghlCreds";
 import { funnelForTenantSlug, funnelKeyForTenantSlug } from "./metaCapi";
 import { resolveMetaToken } from "./metaToken";
 import { isRealBooking, reportBooking, toAppointment } from "./capiSchedule";
@@ -46,7 +46,7 @@ export async function reportBookingFromWebhook(
   // else's account.
   if (!funnel || !funnelKey) return;
 
-  const creds = resolveGhlCreds(tenant as never);
+  const creds = await resolveTenantGhl(tenant as never, appMinter(client, env));
   if (!creds) return;
   const gctx: GhlContext = { token: creds.token, locationId: creds.locationId };
 

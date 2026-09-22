@@ -4,6 +4,7 @@ import { ghlFetch } from "../../../lib/ghl";
 import { isConnected, getAccessToken, DriveNotConnectedError } from "../../../lib/driveDirect";
 import { parseServiceAccount } from "../../../lib/ga4";
 import { isPlaceholder } from "../../../lib/tenantGhl";
+import { appMinter, resolveTenantGhl } from "../../../lib/ghlCreds";
 import { CONNECTIONS } from "../../../../src/lib/connectionRegistry";
 import { HEALTH_CRON_HEADER, isHealthCronRequest } from "../../../lib/healthCron";
 import { recordAndAlert } from "../../../lib/healthWatch";
@@ -323,15 +324,30 @@ async function clientHealth(env: Env): Promise<ClientConnectionHealth[]> {
       };
       if (ghlSet) {
         try {
-          // Same call the onboarding readiness check uses: cheap, read-only, and
-          // it fails exactly when the token has been revoked or reissued.
-          const res = await ghlFetch(
-            { token: row.ghl_token as string, locationId: row.ghl_location_id as string },
-            `/locations/${encodeURIComponent(row.ghl_location_id as string)}/customValues`,
+          // A client linked through the Marketplace app holds the 'app'
+          // sentinel, so the key is minted here. A mint that fails IS the
+          // failure this board exists to report: the app was uninstalled from
+          // that sub-account, or the agency token died.
+          const creds = await resolveTenantGhl(
+            {
+              ghl_location_id: row.ghl_location_id as string,
+              ghl_token: row.ghl_token as string,
+            },
+            appMinter(client, env),
           );
-          ghlProbe = res.ok
-            ? { state: "ok", detail: "Token accepted for this location" }
-            : { state: "failed", detail: `Returned ${res.status}` };
+          if (!creds) {
+            ghlProbe = { state: "failed", detail: "The app could not get a key for this sub-account" };
+          } else {
+            // Same call the onboarding readiness check uses: cheap, read-only, and
+            // it fails exactly when the token has been revoked or reissued.
+            const res = await ghlFetch(
+              creds,
+              `/locations/${encodeURIComponent(creds.locationId)}/customValues`,
+            );
+            ghlProbe = res.ok
+              ? { state: "ok", detail: "Token accepted for this location" }
+              : { state: "failed", detail: `Returned ${res.status}` };
+          }
         } catch (e) {
           ghlProbe = failure(e);
         }

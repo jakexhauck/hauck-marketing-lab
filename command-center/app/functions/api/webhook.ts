@@ -4,7 +4,7 @@ import { liveTenantSlug, testTenantSlug } from "../lib/env";
 import { getServiceClient, resolveTenantId } from "../lib/supabase";
 import { sendPushForActivity } from "../lib/push";
 import { readToken, tokenMatches } from "../lib/webhookAuth";
-import { tenantHasGhlCreds } from "../lib/tenantResolve";
+import { appMinter, resolveTenantGhl } from "../lib/ghlCreds";
 import {
   ghlJson,
   fetchAllOpportunities,
@@ -303,14 +303,14 @@ async function ghlContextForLocation(
   const row = data as
     | { ghl_location_id?: string; ghl_token?: string }
     | null;
-  if (
-    row &&
-    tenantHasGhlCreds({
-      ghl_location_id: row.ghl_location_id ?? "",
-      ghl_token: row.ghl_token ?? "",
-    })
-  ) {
-    return { token: row.ghl_token as string, locationId };
+  if (row) {
+    // Resolved rather than read raw: a client linked through the Marketplace
+    // app holds the 'app' sentinel in ghl_token, and this mints their real key.
+    const creds = await resolveTenantGhl(
+      { ghl_location_id: row.ghl_location_id ?? "", ghl_token: row.ghl_token ?? "" },
+      appMinter(client, env),
+    );
+    if (creds) return { token: creds.token, locationId };
   }
   if (env.GHL_LOCATION_ID && locationId === env.GHL_LOCATION_ID && env.GHL_TOKEN) {
     return { token: env.GHL_TOKEN, locationId };

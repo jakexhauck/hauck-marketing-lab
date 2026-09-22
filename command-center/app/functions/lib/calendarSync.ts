@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Env } from "./env";
 import { ghlJson, type GhlContext } from "./ghl";
+import { appMinter, resolveTenantGhl } from "./ghlCreds";
 import { composioUserId, listSyncableBusy, type SyncableBusyEvent } from "./googleCalendar";
 
 // Pushing a client's real commitments into the calendar their customers book
@@ -192,7 +193,11 @@ export async function syncTenantCalendar(
   // and strip every protection they have.
   if (events === null) return { ...base, status: "not_connected" };
 
-  const gctx: GhlContext = { token: tenant.ghl_token, locationId: tenant.ghl_location_id };
+  // Resolved, never raw: a client linked through the Marketplace app stores the
+  // 'app' sentinel in ghl_token, and their key is minted here.
+  const creds = await resolveTenantGhl(tenant, appMinter(client, env));
+  if (!creds) return { ...base, status: "not_connected" };
+  const gctx: GhlContext = { token: creds.token, locationId: creds.locationId };
 
   let targets: GhlCalendar[] = [];
   try {

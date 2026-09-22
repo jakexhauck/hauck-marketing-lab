@@ -4,6 +4,7 @@ import {
 } from "@block65/webcrypto-web-push";
 import { getServiceClient } from "./supabase";
 import { ghlJson } from "./ghl";
+import { appMinter, resolveTenantGhl } from "./ghlCreds";
 import type { Env } from "./env";
 
 // Shape we read back from the activity_log insert in the webhook. opportunity_id
@@ -168,10 +169,14 @@ export async function sendPushForActivity(
   // already say everything the owner needs.
   let body = activity.summary;
   if (activity.kind === "message_in" && activity.contact_id && prefs?.ghl_token) {
-    const described = await describeInboundMessage(
-      { token: prefs.ghl_token, locationId: prefs.ghl_location_id ?? "" },
-      activity.contact_id,
+    // Resolved, because a client linked through the Marketplace app holds the
+    // 'app' sentinel here. No key means no enrichment, never a failed push: the
+    // summary the webhook carried is already a usable notification.
+    const creds = await resolveTenantGhl(
+      { ghl_location_id: prefs.ghl_location_id ?? "", ghl_token: prefs.ghl_token },
+      appMinter(client, env),
     );
+    const described = creds ? await describeInboundMessage(creds, activity.contact_id) : null;
     if (described) body = described;
   }
 

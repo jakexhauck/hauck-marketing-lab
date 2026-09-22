@@ -3,6 +3,7 @@ import { getServiceClient } from "../../../../lib/supabase";
 import { logAdminAction } from "../../../../lib/adminAuth";
 import { loadTenantById, tenantHasGhlCreds } from "../../../../lib/tenantResolve";
 import { credsShapeError, verifyGhlCreds } from "../../../../lib/ghlVerify";
+import { appMinter, isAppLinked, resolveTenantGhl } from "../../../../lib/ghlCreds";
 
 // GET  /api/admin/clients/:tenantId/ghl
 // POST /api/admin/clients/:tenantId/ghl   { token?, locationId }
@@ -56,7 +57,21 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     } satisfies GhlConnectionState);
   }
 
-  const check = await verifyGhlCreds(tenant.ghl_token, tenant.ghl_location_id);
+  // A client linked on Client setup holds the 'app' sentinel rather than a
+  // pasted token, so the key is minted before it is proven. A mint that fails
+  // is a disconnection and reads as one.
+  const creds = await resolveTenantGhl(tenant, appMinter(client, ctx.env));
+  if (!creds) {
+    return Response.json({
+      locationId,
+      tokenSet,
+      connected: false,
+      locationName: null,
+      error: "The app could not get a key for this sub-account.",
+    } satisfies GhlConnectionState);
+  }
+
+  const check = await verifyGhlCreds(creds.token, creds.locationId);
   return Response.json({
     locationId,
     tokenSet,
@@ -87,7 +102,12 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // An empty token box on a client that already has one means "keep the token,
   // fix the location id". Anything else needs both, since a location id proven
   // with nothing is not proven.
-  const token = pastedToken || (placeholder(tenant.ghl_token) ? "" : tenant.ghl_token.trim());
+  //
+  // The sentinel counts as "no token to keep": this is the paste path, and an
+  // app-linked client that wants a pasted token must supply a real one.
+  const stored =
+    placeholder(tenant.ghl_token) || isAppLinked(tenant) ? "" : tenant.ghl_token.trim();
+  const token = pastedToken || stored;
   if (!token) return Response.json({ error: "Paste the token first." }, { status: 400 });
   if (!locationId) return Response.json({ error: "Paste the location id first." }, { status: 400 });
 
