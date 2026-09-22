@@ -14,6 +14,7 @@ import {
   type SubmissionRow,
 } from "../../lib/intake";
 import { approveSubmission } from "../../lib/intakeApprove";
+import { notifyAdmins } from "../../lib/healthWatch";
 import { REVIEW_STEP } from "../../../src/lib/intake";
 
 // POST /api/intake  (PUBLIC — no session, reachable by anyone)
@@ -182,13 +183,39 @@ async function autoApprove(
   client: NonNullable<ReturnType<typeof getServiceClient>>,
   row: SubmissionRow,
 ): Promise<void> {
+  const name =
+    typeof row.answers?.name === "string" && row.answers.name.trim()
+      ? row.answers.name.trim()
+      : "A new client";
   try {
     const result = await approveSubmission(client, env, row, null);
     if (!result.ok) {
       console.error("[intake] auto-approve refused", row.id, result.error);
+      // The submissions view is the only place a refused one appears, so the
+      // notification points straight at it.
+      await notifyAdmins(env, client, {
+        title: `Onboarding did not go through: ${name}`,
+        body: result.error,
+        url: "/admin/onboarding?view=submissions",
+      }).catch(() => {});
+      return;
     }
+    // A client cannot use their app until their sub-account is linked, and
+    // nothing else tells anybody they have arrived.
+    await notifyAdmins(env, client, {
+      title: `New client: ${name}`,
+      body: "Create their sub-account, then link it on Client setup.",
+      url: "/admin/onboarding",
+    }).catch(() => {});
   } catch (e) {
     console.error("[intake] auto-approve failed", row.id, (e as Error).message);
+    // Never throws into the caller: a failed push must not turn a saved
+    // submission into an error the client sees.
+    await notifyAdmins(env, client, {
+      title: `Onboarding did not go through: ${name}`,
+      body: (e as Error).message,
+      url: "/admin/onboarding?view=submissions",
+    }).catch(() => {});
   }
 }
 

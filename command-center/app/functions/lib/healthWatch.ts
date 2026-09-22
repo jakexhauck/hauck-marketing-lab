@@ -74,8 +74,13 @@ async function previousSnapshot(
   }));
 }
 
-/** Send one notification to every admin device. Best effort, dead ones pruned. */
-async function alertAdmins(
+/**
+ * Send one notification to every admin device. Best effort, dead ones pruned.
+ *
+ * Exported because it is the only admin-side push fan-out there is: a new
+ * client finishing the onboarding form uses it too (functions/api/intake).
+ */
+export async function notifyAdmins(
   env: Env,
   client: NonNullable<ReturnType<typeof getServiceClient>>,
   alert: { title: string; body: string; url: string },
@@ -177,7 +182,7 @@ export async function recordAndAlert(
 
     let notified = 0;
     const alert = buildHealthAlert(broke);
-    if (alert) notified = await alertAdmins(env, client, alert);
+    if (alert) notified = await notifyAdmins(env, client, alert);
 
     // Pruning last, and never allowed to affect the result: a failed cleanup is
     // a housekeeping problem, not a monitoring one.
