@@ -524,3 +524,19 @@ Your action items:
 Still parked:
 - ClearoutPhone clean step (next build).
 - A held scrape only continues on the computer that started it.
+
+## Link a client to their GHL sub-account (22 September 2026)
+
+What's in the app now: a Sub-account card on Client setup. Install the Marketplace app once, then link each new client by picking their sub-account off a list. The app mints its own key, so no token is ever pasted again. Linking writes the custom values, webhook address and tags, and ticks those checklist items. A push tells you when somebody finishes the onboarding form.
+
+Your action items:
+1. Open Admin, then Onboarding, then Client setup, and pick any client.
+2. Press Install app on the Sub-account card. Approve it in GHL for ALL sub-accounts.
+3. Pick the Hauck Marketing test client and link sub-account wbrjjHYzznyEHx9wumSr.
+4. Open that client's Leads page and confirm real data loads.
+5. Open Willis and confirm their Leads page still loads (they still use a pasted token).
+6. On the next real client, create their sub-account in GHL from the snapshot first, then press Link.
+
+Still parked:
+- The event feed cutover. New clients still report through the hand-built webhook workflows, not the Marketplace app's own feed. That is a separate build.
+- Willis and Made Better still hold pasted Private Integration tokens. Pressing Link on them moves them onto the app whenever you want.
