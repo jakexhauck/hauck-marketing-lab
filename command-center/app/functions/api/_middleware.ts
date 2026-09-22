@@ -6,8 +6,8 @@ import {
   clientLabelFromHost,
   loadLiveTenantForHost,
   loadTenantById,
-  resolveGhlCreds,
 } from "../lib/tenantResolve";
+import { appMinter, resolveTenantGhl } from "../lib/ghlCreds";
 import { resolveCaller } from "../lib/identity";
 import { checkStaffAccess } from "../lib/permissions";
 import { AdminLookupError, getActiveAdmin } from "../lib/adminAuth";
@@ -310,7 +310,14 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       // client that is not wired up yet gets a 503 its pages read as "not
       // connected", which is the truth and is recoverable; the alternative was
       // plausible, wrong, and silent.
-      const creds = tenant ? resolveGhlCreds(tenant) : null;
+      //
+      // A client linked on Client setup stores the literal 'app' in ghl_token
+      // instead of a pasted Private Integration token. resolveTenantGhl mints
+      // the real key from the Marketplace app's agency install for those, and
+      // returns a pasted token untouched for everyone else, so the two kinds of
+      // client resolve through one ladder rather than two.
+      const creds =
+        tenant && svc ? await resolveTenantGhl(tenant, appMinter(svc, ctx.env)) : null;
       if (!creds) {
         return json(503, { error: "crm not connected" }, origin, ctx.env);
       }

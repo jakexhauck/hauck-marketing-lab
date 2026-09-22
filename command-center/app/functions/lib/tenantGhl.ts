@@ -1,6 +1,7 @@
 import type { Env } from "./env";
 import { testTenantSlug } from "./env";
 import { getServiceClient } from "./supabase";
+import { appMinter, resolveTenantGhl } from "./ghlCreds";
 import type { GhlContext } from "./ghl";
 
 // mode is NOT a tenants column. It is a property of the client-app session
@@ -69,10 +70,21 @@ export async function getGhlContextForTenant(
   if (isPlaceholder(data.ghl_location_id) || isPlaceholder(data.ghl_token)) {
     throw new TenantGhlError(400, "ghl_not_connected", "Connect this client to the booking system first.");
   }
+  // A client linked through the Marketplace app stores the sentinel rather than
+  // a pasted token, so the real key is minted here. Same trust boundary as
+  // above: no key, no context, never a fallback to somebody else's account.
+  const creds = await resolveTenantGhl(data, appMinter(client, env));
+  if (!creds) {
+    throw new TenantGhlError(
+      400,
+      "ghl_not_connected",
+      "Connect this client to the booking system first.",
+    );
+  }
   const slug = data.slug ?? "";
   return {
-    token: data.ghl_token,
-    locationId: data.ghl_location_id,
+    token: creds.token,
+    locationId: creds.locationId,
     slug,
     mode: slug === testTenantSlug(env) ? "test" : "live",
     internal_recipients: data.internal_recipients ?? undefined,
