@@ -213,12 +213,12 @@ function LeadCard({ lead, marking }: { lead: LeadTrackerLead; marking?: LeadMark
 
       <div className="mt-2 flex flex-col gap-1 text-[13px]">
         {lead.phone && (
-          <a href={`tel:${lead.phone}`} className="truncate text-brand tnum">
+          <a href={`tel:${lead.phone}`} className="-my-1 truncate py-1.5 text-brand tnum">
             {lead.phone}
           </a>
         )}
         {lead.email && (
-          <a href={`mailto:${lead.email}`} className="truncate text-brand">
+          <a href={`mailto:${lead.email}`} className="-my-1 truncate py-1.5 text-brand">
             {lead.email}
           </a>
         )}

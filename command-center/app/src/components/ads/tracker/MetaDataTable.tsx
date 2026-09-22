@@ -53,7 +53,7 @@ function displayDate(iso: string): string {
 function MetaStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11px] text-faint">{label}</dt>
+      <dt className="text-[12px] text-faint">{label}</dt>
       <dd
         className={`truncate text-text tnum ${
           hint ? "cursor-help decoration-dotted underline-offset-[3px] [text-decoration-line:underline]" : ""
@@ -139,7 +139,9 @@ export default function MetaDataTable({
                 </span>
               </button>
 
-              <dl className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/60 px-3.5 py-2.5 text-[12.5px]">
+              {/* Three columns: five figures fill two rows (3 + 2). Two columns
+                  left CPM alone on a third row beside an empty cell. */}
+              <dl className="grid grid-cols-3 gap-x-3 gap-y-2.5 border-t border-border/60 px-3.5 py-2.5 text-[13px]">
                 <MetaStat label="Impressions" value={day.impressions.toLocaleString()} />
                 <MetaStat
                   label="Reach"
@@ -158,7 +160,7 @@ export default function MetaDataTable({
               {isOpen && (
                 <div className="flex flex-col gap-2 border-t border-border bg-surface-2/40 px-3.5 py-3">
                   {day.ads.map((ad, i) => (
-                    <div key={`${day.date}-${ad.adId}-${i}`} className="text-[12px]">
+                    <div key={`${day.date}-${ad.adId}-${i}`} className="text-[13px]">
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="min-w-0 flex-1 truncate font-medium text-text">
                           {ad.adName || "-"}
@@ -168,9 +170,9 @@ export default function MetaDataTable({
                         </span>
                       </div>
                       {ad.adsetName && (
-                        <div className="truncate text-[11px] text-faint">{ad.adsetName}</div>
+                        <div className="truncate text-[12px] text-faint">{ad.adsetName}</div>
                       )}
-                      <div className="mt-0.5 text-[11px] text-muted tnum">
+                      <div className="mt-0.5 text-[12px] text-muted tnum">
                         {ad.impressions.toLocaleString()} impressions ·{" "}
                         {ad.linkClicks.toLocaleString()} clicks ·{" "}
                         {ctr(ad.linkClicks, ad.impressions)} CTR
@@ -188,10 +190,10 @@ export default function MetaDataTable({
             "Reach -" reads as a missing figure rather than as one that cannot
             be added up. */}
         <div className="rounded-lg border border-border bg-surface-2/60 px-3.5 py-3">
-          <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">
+          <div className="text-[13px] font-semibold text-text">
             Total · {rows.length} ad day{rows.length === 1 ? "" : "s"}
           </div>
-          <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-[12.5px]">
+          <dl className="mt-2 grid grid-cols-3 gap-x-3 gap-y-2.5 text-[13px]">
             <MetaStat label="Spend" value={formatMoneyExact(totals.spend)} />
             <MetaStat label="Impressions" value={totals.impressions.toLocaleString()} />
             <MetaStat label="Link clicks" value={totals.linkClicks.toLocaleString()} />

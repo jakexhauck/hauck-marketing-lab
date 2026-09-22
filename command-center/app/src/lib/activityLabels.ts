@@ -14,6 +14,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   invoice_create: "Invoice created",
   invoice_sent: "Invoice sent",
   invoice_paid: "Invoice paid",
+  call_inbound: "Incoming call",
 };
 
 export function activityLabel(kind: string): string {

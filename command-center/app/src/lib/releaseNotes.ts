@@ -26,6 +26,22 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-22-phone-polish",
+    date: "22 September 2026",
+    title: "Client app on a phone",
+    items: [
+      "The tab bar is solid, so the page no longer shows through behind it, and the All label lines up with the others. All lights up on any page you opened from it.",
+      "Lead Tracker no longer slides sideways. On a phone the date range is one dropdown on the Lead Tracker and the Ads Dashboard.",
+      "Ads Dashboard: every number uses one font, and ROAS turns red under 1x instead of sitting in a blue box.",
+      "Home shows the client's own name. The closing-out banner is one tap, and recent activity shows two lines before cutting off.",
+      "Leads: a Leads, Estimates and Sold strip at the top, no coloured stripe down each row, and bigger status labels.",
+      "Schedule: the main job action has its own row, and the job text and buttons no longer cut off on a small phone.",
+      "Notifications and Billing use the same header as every other page. Notifications show a proper icon for each kind, calls included.",
+      "Settings, Team, Creatives and Organic: the explainer sentences are gone, the Team header matches the rest, and every Settings row has a matching icon.",
+      "Section labels are normal words instead of spaced-out capitals, avatars are round everywhere, and buttons are big enough to tap.",
+    ],
+  },
+  {
     id: "2026-09-22-ads-match-meta",
     date: "22 September 2026",
     title: "Ad numbers are checked against Meta",

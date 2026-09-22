@@ -50,24 +50,31 @@ export function HandoffsBoard({
             (loading / error), since flashing zeros that then jump to real
             figures is worse than showing nothing for a beat. */}
         {!query.isLoading && !query.isError && (
-          // justify-center below lg: four stats do not fit one phone line, and
-          // left-aligned they wrapped with the last one stranded alone against
-          // the left edge. Centred, both lines read as one balanced strip.
-          <div className="mb-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[12.5px] lg:justify-start">
+          // Phone: a three-column strip (number over label), with the
+          // attention nudge on its own line above it. The old single line of
+          // four inline stats wrapped at 390px and stranded "7 leads" alone,
+          // centred, on a second line. Desktop shows the same strip, capped width.
+          <div className="mb-3 shrink-0">
             {ignoredCount > 0 && (
-              <span className="inline-flex items-center gap-1 font-bold text-rose-600 dark:text-rose-400">
-                <AlertCircle size={14} strokeWidth={2.5} />
+              <div className="mb-2 flex items-center justify-center gap-1.5 text-[13px] font-semibold text-rose-600 dark:text-rose-400 lg:justify-start">
+                <AlertCircle size={15} strokeWidth={2.5} />
                 {ignoredCount} need{ignoredCount === 1 ? "s" : ""} attention
-              </span>
+              </div>
             )}
-            <span className="font-semibold text-[var(--text-muted)]">
-              <span className="text-emerald-600 dark:text-emerald-400">
-                {stats.booked + stats.won} sold
-              </span>
-              {stats.revenue > 0 && ` · $${stats.revenue.toLocaleString()}`}
-            </span>
-            <span className="font-medium text-[var(--text-muted)]">{stats.estimated} estimates</span>
-            <span className="font-medium text-[var(--text-muted)]">{stats.handed} leads</span>
+            <div className="grid grid-cols-3 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] lg:max-w-md">
+              <ScoreCell value={String(stats.handed)} label="Leads" />
+              <ScoreCell value={String(stats.estimated)} label="Estimates" divider />
+              <ScoreCell
+                value={
+                  stats.revenue > 0
+                    ? `${stats.booked + stats.won} · $${stats.revenue.toLocaleString()}`
+                    : String(stats.booked + stats.won)
+                }
+                label="Sold"
+                tone="text-emerald-600 dark:text-emerald-400"
+                divider
+              />
+            </div>
           </div>
         )}
 
@@ -128,5 +135,24 @@ export default function Handoffs() {
     <Shell>
       <HandoffsBoard />
     </Shell>
+  );
+}
+
+function ScoreCell({
+  value,
+  label,
+  tone = "text-[var(--text)]",
+  divider = false,
+}: {
+  value: string;
+  label: string;
+  tone?: string;
+  divider?: boolean;
+}) {
+  return (
+    <div className={"min-w-0 px-2 py-2.5 text-center" + (divider ? " border-l border-[var(--divider)]" : "")}>
+      <div className={"truncate text-[16px] font-semibold tnum " + tone}>{value}</div>
+      <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">{label}</div>
+    </div>
   );
 }

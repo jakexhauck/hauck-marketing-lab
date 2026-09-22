@@ -68,7 +68,6 @@ export default function Organic() {
           <div className="shrink-0">
             <EmptyState
               title="No website leads yet"
-              message="When someone fills out your website form or messages your chat widget, they show up here."
             />
           </div>
         ) : (
@@ -161,7 +160,7 @@ function ChannelColumn({
                       {l.name}
                     </span>
                     {isNewOrganic(l) && (
-                      <span className="shrink-0 rounded-[5px] bg-brand-tint px-1.5 py-px text-[9.5px] font-bold uppercase tracking-wide text-brand-text">
+                      <span className="shrink-0 rounded-[5px] bg-brand-tint px-1.5 py-px text-[11px] font-semibold text-brand-text">
                         New
                       </span>
                     )}

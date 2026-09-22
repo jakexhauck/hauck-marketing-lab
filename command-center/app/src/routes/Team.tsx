@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, ShieldCheck, UserPlus, X } from "lucide-react";
+import { ChevronLeft, Plus, ShieldCheck, UserPlus, X } from "lucide-react";
 import Shell from "../components/Shell";
-import BackButton from "../components/BackButton";
 import BrandedButton from "../components/BrandedButton";
 import TeamDesktop, { type StaffMember } from "../components/team/TeamDesktop";
 import { useAuth } from "../context/AuthContext";
@@ -133,23 +132,30 @@ export default function Team() {
       {/* Phone layout (below lg). The desktop client app renders TeamDesktop
           instead; both share the same staff state and mutations. */}
       <div className="flex min-h-0 flex-1 flex-col lg:hidden">
-      <div
-        className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2"
-        style={{ paddingTop: "calc(env(safe-area-inset-top) + 8px)" }}
-      >
-        {/* /apps, not /home: this page is opened from the All features list, and
-            /home is the home page retired from the nav on 2026-08-01, so the
-            old target dropped you on a screen nothing else links to. */}
-        <BackButton to="/apps" label="All" />
-        <span className="font-display text-[15px] font-bold text-[var(--text)]">
-          Team
-        </span>
-        <div className="flex items-center gap-1">
+      {/* The same floating header card every other phone page tops out with
+          (PageHeader / PageBar): centred title, chevron back to All features on
+          the left, and the page's one action on the right. This page used to
+          carry its own flat full-width bar with a text "< All" link, a third
+          header style nothing else used. */}
+      <div className="shrink-0 px-5 pt-4">
+        <div className="relative flex items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-[var(--shadow-sm)]">
+          {/* /apps, not /home: this page is opened from the All features list. */}
+          <button
+            type="button"
+            onClick={() => navigate("/apps")}
+            aria-label="Back to All features"
+            className="absolute left-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-[9px] text-[var(--text-muted)] transition-colors active:bg-[var(--surface-2)]"
+          >
+            <ChevronLeft size={19} aria-hidden="true" />
+          </button>
+          <h2 className="font-display text-[16px] font-semibold leading-none tracking-[-0.01em] text-[var(--text)]">
+            Team
+          </h2>
           <button
             type="button"
             onClick={handleAdd}
-            aria-label="Add employee"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--brand-text)] transition-colors active:bg-[var(--surface-2)]"
+            aria-label={showForm && !editing ? "Close" : "Add employee"}
+            className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-[9px] text-[var(--brand-text)] transition-colors active:bg-[var(--surface-2)]"
           >
             {showForm && !editing ? <X size={20} /> : <Plus size={20} />}
           </button>
@@ -177,8 +183,8 @@ export default function Team() {
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-2)]">
               <UserPlus size={22} className="text-[var(--text-faint)]" />
             </div>
-            <p className="text-sm text-[var(--text-muted)]">
-              No team members yet. Tap the plus to add your first employee.
+            <p className="font-display text-[15px] font-semibold text-[var(--text)]">
+              No team members yet
             </p>
           </div>
         ) : (
@@ -196,7 +202,7 @@ export default function Team() {
                         <span className="truncate font-display text-[15px] font-bold text-[var(--text)]">
                           {m.name}
                         </span>
-                        <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                        <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[12px] font-semibold text-[var(--text-muted)]">
                           {ROLE_LABEL[m.role]}
                         </span>
                       </div>

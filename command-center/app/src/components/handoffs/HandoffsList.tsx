@@ -1,8 +1,8 @@
 import Avatar from "../Avatar";
 import { useNow } from "../../context/NowContext";
 import type { ApiHandoff } from "../../lib/api";
-import { statusMeta, isIgnored, isActive, lostReasonLabel } from "../../lib/handoffModel";
-import { TONE_CHIP, TONE_SOLID } from "./tone";
+import { statusMeta, isIgnored, lostReasonLabel } from "../../lib/handoffModel";
+import { TONE_CHIP } from "./tone";
 
 // The queue of handed-off leads. In-play leads carry a coloured rail (red if the
 // owner has left a fresh one sitting), closed ones read quietly below.
@@ -22,7 +22,7 @@ function whenLabel(iso: string | null, now: number): string {
 function StatusChip({ h, now }: { h: ApiHandoff; now: number }) {
   if (isIgnored(h, now)) {
     return (
-      <span className={"inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold " + TONE_CHIP.danger}>
+      <span className={"inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold " + TONE_CHIP.danger}>
         <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
         Needs attention
       </span>
@@ -34,7 +34,7 @@ function StatusChip({ h, now }: { h: ApiHandoff; now: number }) {
     label = `${meta.label} · $${h.value.toLocaleString()}`;
   if (h.status === "lost" && h.lostReason) label = `Lost · ${lostReasonLabel(h.lostReason)}`;
   return (
-    <span className={"rounded-full px-2 py-0.5 text-[10.5px] font-bold " + TONE_CHIP[meta.tone]}>
+    <span className={"rounded-full px-2 py-0.5 text-[12px] font-semibold " + TONE_CHIP[meta.tone]}>
       {label}
     </span>
   );
@@ -65,36 +65,27 @@ export default function HandoffsList({
     <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       {items.map((h, i) => {
         const active = h.id === selectedId;
-        const ignored = isIgnored(h, now);
-        // A rail on in-play leads (not the parked "later"): red if ignored, else
-        // the status colour.
-        const showRail =
-          isActive(h.status) && h.status !== "later";
-        const railTone = ignored ? "danger" : statusMeta(h.status).tone;
+        // No coloured left rail: the status chip under the name already carries
+        // the colour (and says "Needs attention" in red when ignored), and a
+        // stripe down every row read as a template.
         return (
           <li key={h.id}>
             <button
               type="button"
               onClick={() => onOpen(h.id)}
               className={
-                "relative flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors " +
+                "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors " +
                 (active ? "bg-[var(--surface-2)]" : "hover:bg-[var(--surface-2)]") +
                 (i === items.length - 1 ? "" : " border-b border-[var(--divider)]")
               }
             >
-              {showRail && (
-                <span
-                  className={"absolute inset-y-0 left-0 w-[3px] " + TONE_SOLID[railTone]}
-                  aria-hidden="true"
-                />
-              )}
               <Avatar name={h.name} size="sm" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate font-display text-[14.5px] font-bold text-[var(--text)]">
                     {h.name}
                   </span>
-                  <span className="shrink-0 text-[11px] font-medium text-[var(--text-faint)]">
+                  <span className="shrink-0 text-[12px] font-medium text-[var(--text-faint)]">
                     {whenLabel(h.handedAt, now)}
                   </span>
                 </div>

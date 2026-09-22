@@ -40,8 +40,13 @@ export default function Settings() {
             {client.name}
           </div>
           <div className="mt-1 text-[13px] text-[var(--text-muted)]">
+            {/* The role only when it adds something: an owner account named
+                "Owner" read "Signed in as Owner (Owner)". */}
             Signed in as {currentUser?.name ?? "you"}
-            {currentUser ? ` (${roleLabel(currentUser.role)})` : ""}
+            {currentUser &&
+            currentUser.name.trim().toLowerCase() !== roleLabel(currentUser.role).toLowerCase()
+              ? ` (${roleLabel(currentUser.role)})`
+              : ""}
           </div>
         </div>
 
@@ -74,10 +79,7 @@ export default function Settings() {
                   onClick={() => navigate("/team")}
                   className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]"
                 >
-                  <span
-                    className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl text-[var(--brand-fg)]"
-                    style={{ backgroundColor: "var(--brand-primary)" }}
-                  >
+                  <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-text">
                     <Users size={18} strokeWidth={2} />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -111,10 +113,7 @@ export default function Settings() {
               onClick={startFull}
               className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]"
             >
-              <span
-                className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl text-[var(--brand-fg)]"
-                style={{ backgroundColor: "var(--brand-primary)" }}
-              >
+              <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-text">
                 <Compass size={18} strokeWidth={2} />
               </span>
               <div className="min-w-0 flex-1">
@@ -140,10 +139,9 @@ export default function Settings() {
               }
               className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]"
             >
-              <span
-                className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl text-white"
-                style={{ backgroundColor: "#be123c" }}
-              >
+              {/* Every row's icon is a tinted chip; sign out is the danger tint.
+                  They were a mix of solid brand, solid red and tinted grey. */}
+              <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-danger-tint text-danger">
                 <LogOut size={18} strokeWidth={2} />
               </span>
               <div className="min-w-0 flex-1">
@@ -156,7 +154,7 @@ export default function Settings() {
           </li>
         </ul>
 
-        <p className="mt-8 text-center text-[11px] font-medium text-[var(--text-faint)]">
+        <p className="mt-8 text-center text-[12px] font-medium text-[var(--text-faint)]">
           {client.brand.appName}. Secured by {APP_BRAND.securedBy}.
           <br />
           Version {__APP_VERSION__}

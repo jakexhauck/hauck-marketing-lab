@@ -158,7 +158,7 @@ function ContactRow({ contact, isLast }: ContactRowProps) {
         <div className="truncate font-display text-[15px] font-bold text-[var(--text)]">
           {contact.name}
         </div>
-        <div className="mt-0.5 truncate text-xs text-[var(--text-faint)] tabular-nums">
+        <div className="mt-0.5 truncate text-[13px] text-[var(--text-muted)] tabular-nums">
           {hasPhone ? formatPhone(contact.phone) : "--"}
         </div>
       </div>
@@ -170,7 +170,7 @@ function ContactRow({ contact, isLast }: ContactRowProps) {
             e.stopPropagation();
             navigate(`/conversations/${encodeURIComponent(contact.id)}`);
           }}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-muted)] transition-colors active:scale-95 active:bg-[var(--surface-2)]"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-muted)] transition-colors active:scale-95 active:bg-[var(--surface-2)]"
         >
           <MessageSquare size={16} aria-hidden="true" />
         </button>

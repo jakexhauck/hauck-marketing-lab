@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ChevronLeft,
   CheckCheck,
   UserPlus,
   ArrowLeftRight,
@@ -11,12 +10,12 @@ import {
   Trophy,
   CalendarDays,
   Receipt,
+  PhoneIncoming,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import Shell from "../components/Shell";
-import NavyHero from "../components/NavyHero";
+import { PageHeader } from "../components/PageHeader";
 import NotificationsDesktop from "../components/notifications/NotificationsDesktop";
-import { HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
 import EmptyState from "../components/EmptyState";
 import { useAuth } from "../context/AuthContext";
@@ -48,6 +47,7 @@ const TYPE_META: Record<
   invoice_create: { Icon: Receipt, tint: "#0e7490" },
   invoice_sent: { Icon: Receipt, tint: "#1d4ed8" },
   invoice_paid: { Icon: Receipt, tint: "#15803d" },
+  call_inbound: { Icon: PhoneIncoming, tint: "#1d4ed8" },
 };
 
 function meta(action: string) {
@@ -132,33 +132,32 @@ export default function Notifications() {
       <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       {isTest && <TestBanner />}
 
-      <NavyHero flushTop={isTest}>
-        <div className="flex items-center gap-2.5">
-          <HeroIconButton label="Back to home" onClick={() => navigate(CLIENT_HOME)}>
-            <ChevronLeft size={20} />
-          </HeroIconButton>
-          <div className="min-w-0 flex-1">
-            <div className="font-display text-[17px] font-bold text-white">
-              Notifications
-            </div>
-            <div className="truncate text-[12px] text-white/60">
-              {query.isLoading
-                ? "Loading..."
-                : unread > 0
-                  ? `${unread} unread`
-                  : "All caught up"}
-            </div>
-          </div>
-          {unread > 0 && (
-            <HeroIconButton
-              label="Mark all read"
+      {/* The standard floating header card, like every other phone page
+          (it was a navy hero, one of three header styles in the app). The
+          unread count lives on the rows' dots and the mark-all action. */}
+      <div className="shrink-0 px-5 pt-4">
+        <PageHeader
+          title="Notifications"
+          onBack={() => navigate(CLIENT_HOME)}
+          backLabel="Back to home"
+          className="mb-0"
+        />
+        {unread > 0 && (
+          <div className="mt-3 flex items-center justify-between px-1">
+            <span className="text-[13px] font-medium text-[var(--text-muted)]">
+              {unread} unread
+            </span>
+            <button
+              type="button"
               onClick={() => markRead.mutate({ all: true })}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-[var(--brand-text)] transition-colors active:bg-[var(--surface-2)]"
             >
-              <CheckCheck size={18} />
-            </HeroIconButton>
-          )}
-        </div>
-      </NavyHero>
+              <CheckCheck size={16} aria-hidden="true" />
+              Mark all read
+            </button>
+          </div>
+        )}
+      </div>
 
       <main className="flex flex-1 flex-col gap-5 px-5 pb-28 pt-4">
         {query.isError ? (
@@ -174,10 +173,7 @@ export default function Notifications() {
             />
           </div>
         ) : groups.length === 0 ? (
-          <EmptyState
-            title="No notifications"
-            message="New leads, replies, wins, and appointments will show up here."
-          />
+          <EmptyState title="No notifications" />
         ) : (
           groups.map((g) => (
             <section key={g.key} className="flex flex-col gap-2">
@@ -208,7 +204,9 @@ export default function Notifications() {
                         <div className="min-w-0 flex-1">
                           <div
                             className={
-                              "truncate text-[14.5px] text-[var(--text)]" +
+                              // Two lines before an ellipsis: one line cut the
+                              // part that matters ("marked Sold ($12,...").
+                              "line-clamp-2 text-[14.5px] leading-snug text-[var(--text)]" +
                               (isUnread ? " font-bold" : " font-semibold")
                             }
                           >

@@ -35,7 +35,6 @@ export default function AdsCreatives() {
             <CreativesFolderCard
               url={query.data?.url ?? null}
               title="Ad creatives"
-              description="Your ad creatives live in Google Drive. Open the folder to add your own, or click any one below."
               emptyText="Your creatives folder has not been set up yet. We will add it shortly."
             />
             <CreativesGrid

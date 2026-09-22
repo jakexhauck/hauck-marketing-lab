@@ -81,9 +81,11 @@ function Band({ children, right }: { children: string; right?: ReactNode }) {
         // the sheet, but on a 390px screen a full-width tinted bar above a
         // stack of cards is just a coloured stripe, and two of them made the
         // page read as a form rather than a report.
-        "mb-2 mt-1 shrink-0 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-faint " +
+        // Sentence case in the display face on a phone, not a tracked all-caps
+        // eyebrow.
+        "mb-2.5 mt-1 shrink-0 px-1 font-display text-[14px] font-semibold text-text " +
         // Desktop keeps the sheet exactly as it was.
-        "lg:mb-0 lg:mt-0 lg:border lg:border-b-0 lg:border-border lg:bg-brand/10 lg:px-3 lg:py-2 lg:text-[11.5px] lg:font-bold lg:tracking-[0.08em] lg:text-brand"
+        "lg:mb-0 lg:mt-0 lg:border lg:border-b-0 lg:border-border lg:bg-brand/10 lg:px-3 lg:py-2 lg:font-sans lg:text-[11.5px] lg:font-bold lg:uppercase lg:tracking-[0.08em] lg:text-brand"
       }
     >
       <span>{children}</span>
@@ -155,7 +157,7 @@ function Stat({
     // rule. Bordering each cell instead would double every interior line to 2px
     // while the outer edge stayed 1px.
     <div className={`min-w-0 bg-surface px-3 py-2.5 ${wide ? "col-span-2" : ""}`}>
-      <div className="truncate text-[11px] text-muted" title={label}>
+      <div className="truncate text-[12px] text-muted" title={label}>
         {label}
       </div>
       <div
@@ -172,30 +174,31 @@ function Stat({
 
 // The three figures that answer "did the ads make money": their own card, their
 // own scale, above the funnel counts. ROAS takes the full width as the verdict.
+// Same number face as the Stat grid below it (the mono face made two number
+// styles on one screen). `negative` marks a losing ROAS in red: it used to sit
+// in a brand-blue box whatever its value, so 0.72x read as good news.
 function Headline({
   label,
   value,
-  accent = false,
   wide = false,
+  negative = false,
 }: {
   label: string;
   value: string;
-  accent?: boolean;
   wide?: boolean;
+  negative?: boolean;
 }) {
   return (
     <div
       className={
-        "min-w-0 rounded-[12px] border px-3.5 py-3 " +
-        (wide ? "col-span-2 " : "") +
-        (accent ? "border-brand/30 bg-brand/5" : "border-border bg-surface")
+        "min-w-0 rounded-[12px] border border-border bg-surface px-3.5 py-3 " + (wide ? "col-span-2" : "")
       }
     >
-      <div className="truncate text-[11.5px] text-muted">{label}</div>
+      <div className="truncate text-[12px] text-muted">{label}</div>
       <div
         className={
-          "truncate font-data text-[22px] font-semibold tracking-tight tnum " +
-          (accent ? "text-brand" : "text-text")
+          "truncate text-[22px] font-semibold tracking-[-0.01em] tnum " +
+          (negative ? "text-danger" : "text-text")
         }
       >
         {value}
@@ -267,12 +270,10 @@ export default function DashboardSheet({
           client saw Leads and Pickups and had to drag for the rest, including
           ROAS, which is the number the page exists for. The grid keeps the
           sheet's ruled-cell look so it still reads as the workbook. */}
-      {/* Phone: the app's own segmented range control rather than a native
-          <select>. The dropdown was the sheet's data-validation cell, but on a
-          phone it read as an unstyled form field in the middle of a report, and
-          the Lead Tracker one tab away already sets the range with exactly this
-          control. Same gesture on both pages now. */}
-      <div className="mb-3 shrink-0 overflow-x-auto lg:hidden" style={{ scrollbarWidth: "none" }}>
+      {/* Phone: the shared range control, which on a phone renders as a styled
+          dropdown (eight presets do not fit as buttons at 390px). Same control
+          and gesture as the Lead Tracker one tab away. */}
+      <div className="mb-3 shrink-0 lg:hidden">
         <Segmented options={RANGES} value={range} onChange={onRange} label="Date range" />
       </div>
 
@@ -283,7 +284,12 @@ export default function DashboardSheet({
       <div className="mb-4 grid shrink-0 grid-cols-2 gap-2 lg:hidden">
         <Headline label="Revenue" value={money0(data.kpis.revenue)} />
         <Headline label="Ad Spend" value={money0(data.kpis.spend)} />
-        <Headline label="ROAS" value={roas(data.kpis.roas)} accent wide />
+        <Headline
+          label="ROAS"
+          value={roas(data.kpis.roas)}
+          wide
+          negative={data.kpis.roas !== null && data.kpis.roas < 1}
+        />
       </div>
       <div className="mb-4 grid shrink-0 grid-cols-2 gap-px overflow-hidden rounded-[12px] border border-border bg-border lg:hidden">
         <Stat label="Leads" value={String(data.kpis.leads)} />
@@ -384,7 +390,7 @@ export default function DashboardSheet({
             <div key={r.id} className="rounded-[12px] border border-border bg-surface px-3.5 py-3">
               <div className="flex items-start gap-2">
                 {r.live && (
-                  <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-positive-tint px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-positive">
+                  <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-positive-tint px-2 py-0.5 text-[11px] font-semibold text-positive">
                     <span className="h-1.5 w-1.5 rounded-full bg-positive" />
                     Live
                   </span>
@@ -434,7 +440,7 @@ export default function DashboardSheet({
                   >
                     <span className="flex items-center gap-2">
                       {r.live && (
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-positive-tint px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-positive">
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-positive-tint px-2 py-0.5 text-[11px] font-semibold text-positive">
                           <span className="h-1.5 w-1.5 rounded-full bg-positive" />
                           Live
                         </span>

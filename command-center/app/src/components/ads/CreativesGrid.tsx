@@ -81,10 +81,10 @@ function Tile({ file }: { file: CreativeFile }) {
       </div>
 
       <div className="flex flex-col gap-0.5 px-3 py-2.5">
-        <span className="truncate text-[12.5px] font-medium text-text group-hover:text-brand">
+        <span className="line-clamp-2 break-words text-[13px] font-medium leading-snug text-text group-hover:text-brand">
           {file.name}
         </span>
-        <span className="text-[11px] text-faint tnum">
+        <span className="text-[12px] text-faint tnum">
           {[formatSize(file.size), formatModified(file.modifiedTime)].filter(Boolean).join(" · ")}
         </span>
       </div>

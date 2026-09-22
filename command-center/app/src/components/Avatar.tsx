@@ -45,7 +45,7 @@ export default function Avatar({ name, size = "md", className }: Props) {
   const initials = getInitials(name);
   return (
     <div
-      className={`flex shrink-0 items-center justify-center rounded-2xl font-bold text-white font-display tabular-figs ${box} ${text} ${className ?? ""}`}
+      className={`flex shrink-0 items-center justify-center rounded-full font-bold text-white font-display tabular-figs ${box} ${text} ${className ?? ""}`}
       style={{ backgroundColor: palette }}
       aria-hidden="true"
     >

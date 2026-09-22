@@ -23,7 +23,9 @@ export default function CreativesFolderCard({
   // Null means no folder has been mapped for this client yet.
   url: string | null;
   title: string;
-  description: string;
+  // Optional: the client page carries no explainer under the title (helper
+  // text under a heading is banned there). The empty-folder text still shows.
+  description?: string;
   // What to say when there is no folder. Different for an operator (who can fix
   // it here) than for a client (who cannot), so the caller supplies it rather
   // than this component guessing.
@@ -47,9 +49,11 @@ export default function CreativesFolderCard({
 
         <div className="min-w-0 flex-1 basis-0">
           <h2 className="text-[15px] font-semibold text-text">{title}</h2>
-          <p className="mt-0.5 text-[13px] leading-snug text-muted">
-            {url ? description : emptyText}
-          </p>
+          {(url ? description : emptyText) && (
+            <p className="mt-0.5 text-[13px] leading-snug text-muted">
+              {url ? description : emptyText}
+            </p>
+          )}
         </div>
 
         {url && (

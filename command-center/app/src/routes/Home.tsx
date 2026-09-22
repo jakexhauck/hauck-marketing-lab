@@ -28,7 +28,7 @@ import {
 } from "../hooks/useApi";
 import { useJobs } from "../hooks/useJobs";
 import { demoMode } from "../demo/demoMode";
-import { APP_BRAND } from "../lib/appBrand";
+import { useClient } from "../context/ClientContext";
 import { activityLabel } from "../lib/activityLabels";
 import { freshnessLabel } from "../lib/freshness";
 import { DEMO_DEFAULT_DAY, jobsOnDay, toIso } from "../lib/jobsPipeline";
@@ -60,7 +60,7 @@ function greeting(now: number): string {
   return "Good evening";
 }
 
-// One tappable row in the "Today" priority feed: coloured left stripe, tinted
+// One tappable row in the "Today" priority feed: tinted
 // icon chip, title + one-line subtitle, and a big right-aligned count.
 interface PriorityCard {
   key: string;
@@ -72,7 +72,6 @@ interface PriorityCard {
   // Tailwind classes carry the accent so both the light and dark themes stay
   // in step. Brand rows lean on the app's --brand-* tokens; sample rows use
   // amber/emerald.
-  stripe: string;
   chip: string;
   countColor: string;
 }
@@ -83,6 +82,7 @@ const REFRESH_KEYS: unknown[][] = [["summary"], ["activity"], ["notifications"]]
 
 export default function Home() {
   const navigate = useNavigate();
+  const { client } = useClient();
   const queryClient = useQueryClient();
   const { session, mode } = useAuth();
   const now = useNow();
@@ -140,7 +140,6 @@ export default function Home() {
         count: summary.newToday,
         to: "/sales/leads",
         Icon: UserPlus,
-        stripe: "bg-[var(--brand-primary)]",
         chip: "bg-[var(--brand-tint)] text-[var(--brand-text)]",
         countColor: "text-[var(--brand-text)]",
       });
@@ -153,7 +152,6 @@ export default function Home() {
         count: summary.unreadConversations,
         to: "/conversations",
         Icon: MessageSquare,
-        stripe: "bg-[var(--brand-primary)]",
         chip: "bg-[var(--brand-tint)] text-[var(--brand-text)]",
         countColor: "text-[var(--brand-text)]",
       });
@@ -166,7 +164,6 @@ export default function Home() {
         count: todaysJobs.length,
         to: "/sales/jobs",
         Icon: Briefcase,
-        stripe: "bg-amber-500",
         chip: "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
         countColor: "text-amber-600 dark:text-amber-400",
       });
@@ -181,7 +178,6 @@ export default function Home() {
     //       count: reviewsToAsk,
     //       to: "/marketing/reviews/requests",
     //       Icon: Star,
-    //       stripe: "bg-emerald-500",
     //       chip: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
     //       countColor: "text-emerald-600 dark:text-emerald-400",
     //     });
@@ -210,10 +206,13 @@ export default function Home() {
       <NavyHero flushTop={isTest}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <HeroMark initials={APP_BRAND.initials} />
+            {/* The client's own name and mark. This read the APP_BRAND
+                fallback constant, so every client's Home said "Hauck Command
+                Center" while the desktop sidebar showed their own name. */}
+            <HeroMark initials={client.brand.initials} />
             <div className="min-w-0">
               <div className="truncate font-display text-[17px] font-bold text-white">
-                {APP_BRAND.appName}
+                {client.brand.appName}
               </div>
               <div className="truncate text-[12px] text-white/60">
                 {greeting(now)}, {today}
@@ -222,7 +221,9 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={refreshAll}
-                  className="mt-1 inline-flex items-center gap-1 text-[11px] text-white/40 transition-colors active:text-white/70"
+                  // min-h-8 plus the negative margin: a 32px tap strip without
+                  // pushing the header taller. It was 17px, too thin for a thumb.
+                  className="-my-1.5 inline-flex min-h-8 items-center gap-1 text-[12px] text-white/55 transition-colors active:text-white/80"
                 >
                   <RefreshCw
                     size={11}
@@ -305,12 +306,11 @@ export default function Home() {
                     key={card.key}
                     type="button"
                     onClick={() => navigate(card.to)}
-                    className="relative flex items-center gap-3.5 overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] py-4 pl-5 pr-4 text-left transition-colors active:bg-[var(--surface-2)]"
+                    // No coloured left-edge stripe: the tinted icon chip already
+                    // carries the card's colour, and the stripe read as a
+                    // template.
+                    className="flex items-center gap-3.5 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-4 text-left transition-colors active:bg-[var(--surface-2)]"
                   >
-                    <span
-                      className={"absolute inset-y-0 left-0 w-[3px] " + card.stripe}
-                      aria-hidden="true"
-                    />
                     <span
                       className={
                         "flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl " +
@@ -355,7 +355,7 @@ export default function Home() {
                       <div className="font-display text-[22px] font-black leading-none text-[var(--text)]">
                         {tile.value}
                       </div>
-                      <div className="mt-1.5 text-[11px] font-medium text-[var(--text-muted)]">
+                      <div className="mt-1.5 text-[12px] font-medium text-[var(--text-muted)]">
                         {tile.label}
                       </div>
                     </div>
@@ -385,11 +385,13 @@ export default function Home() {
                       }
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[14px] font-semibold text-[var(--text)]">
+                        {/* Two lines before an ellipsis: one line cut the
+                            part that matters ("moved to Estimate S..."). */}
+                        <div className="line-clamp-2 text-[14px] font-semibold leading-snug text-[var(--text)]">
                           {activityTitle(a)}
                         </div>
                       </div>
-                      <span className="shrink-0 text-[11.5px] font-medium text-[var(--text-faint)]">
+                      <span className="shrink-0 text-[12px] font-medium text-[var(--text-faint)]">
                         {activityWhen(a.created_at, now)}
                       </span>
                     </div>

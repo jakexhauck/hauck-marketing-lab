@@ -31,7 +31,7 @@ export function HeroIconButton({
       onClick={onClick}
       aria-label={label}
       aria-pressed={pressed}
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-colors active:scale-[0.96]"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white transition-colors active:scale-[0.96]"
       style={{ background: "rgba(255,255,255,0.14)" }}
     >
       {children}
@@ -40,7 +40,7 @@ export function HeroIconButton({
 }
 
 const CAP_LIGHT =
-  "text-[12px] font-semibold uppercase tracking-[0.06em] text-white/60";
+  "text-[13px] font-medium text-white/70";
 
 // The signature "dark split" metric block: a giant primary number on the left
 // and a light-blue accent figure on the right, divided by a hairline.

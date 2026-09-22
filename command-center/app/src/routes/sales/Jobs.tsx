@@ -418,7 +418,7 @@ export function JobsBoard({
                 <button
                   type="button"
                   onClick={() => shiftMonth(-1)}
-                  className="grid h-8 w-8 place-items-center rounded-lg border border-border bg-surface text-muted transition-colors hover:text-text"
+                  className="grid h-10 w-10 place-items-center rounded-lg border border-border bg-surface text-muted transition-colors hover:text-text lg:h-8 lg:w-8"
                   aria-label="Previous month"
                 >
                   <ChevronLeft size={16} />
@@ -426,7 +426,7 @@ export function JobsBoard({
                 <button
                   type="button"
                   onClick={() => shiftMonth(1)}
-                  className="grid h-8 w-8 place-items-center rounded-lg border border-border bg-surface text-muted transition-colors hover:text-text"
+                  className="grid h-10 w-10 place-items-center rounded-lg border border-border bg-surface text-muted transition-colors hover:text-text lg:h-8 lg:w-8"
                   aria-label="Next month"
                 >
                   <ChevronRight size={16} />
@@ -437,7 +437,7 @@ export function JobsBoard({
             <div className="px-3 pt-3">
               <div className="mb-1 grid grid-cols-7">
                 {WEEKDAYS.map((d, i) => (
-                  <span key={i} className="text-center text-[10px] font-bold uppercase tracking-wide text-faint">
+                  <span key={i} className="text-center text-[12px] font-semibold text-faint">
                     {d}
                   </span>
                 ))}
@@ -527,7 +527,7 @@ export function JobsBoard({
                   <div className="font-display text-[16px] font-semibold text-positive">
                     {formatMoney(dayBookedValue)}
                   </div>
-                  <div className="text-[10px] uppercase tracking-wide text-faint">booked value</div>
+                  <div className="text-[12px] text-faint">Booked value</div>
                 </div>
               )}
             </div>
@@ -1025,6 +1025,10 @@ function BookingForm({
   );
 }
 
+// Secondary-action span on the phone's 6-column action grid, by how many
+// secondary actions share the row. Static strings so Tailwind keeps them.
+const SPAN_OF: Record<number, string> = { 1: "col-span-6", 2: "col-span-3", 3: "col-span-2" };
+
 function JobCard({ job, onAct }: { job: Job; onAct: (job: Job, label: string) => void }) {
   const kind = jobKind(job);
   const [h, ap] = job.time.split(" ");
@@ -1033,7 +1037,7 @@ function JobCard({ job, onAct }: { job: Job; onAct: (job: Job, label: string) =>
       <div className="flex items-center gap-3 px-4 py-3.5">
         <div className="w-14 shrink-0 text-center">
           <div className="font-display text-[15px] font-semibold leading-none text-text">{h}</div>
-          <div className="mt-0.5 text-[10px] font-semibold text-faint">{ap}</div>
+          <div className="mt-0.5 text-[11px] font-semibold text-faint">{ap}</div>
         </div>
         <div className="self-stretch border-l border-divider" />
         <div className="min-w-0 flex-1">
@@ -1048,17 +1052,29 @@ function JobCard({ job, onAct }: { job: Job; onAct: (job: Job, label: string) =>
               {job.customer}
             </span>
           </div>
-          <div className="mt-1 truncate text-[12px] text-muted">{job.service}</div>
-          <div className="mt-1 flex items-center gap-1 truncate text-[11px] text-faint">
-            <MapPin size={11} className="shrink-0" />
-            {job.city} · {job.zip} · {job.phone}
+          {/* Service gets two lines and the address line drops the phone
+              (Message sits right under the card), so neither is sliced
+              mid-word on a phone: this read "Full exterior + scr..." and
+              "Rochester Hills · 48". */}
+          <div className="mt-1 line-clamp-2 text-[12.5px] leading-snug text-muted">{job.service}</div>
+          <div className="mt-1 flex min-w-0 items-center gap-1 text-[12px] text-faint">
+            <MapPin size={12} className="shrink-0" />
+            <span className="truncate">
+              {job.city || job.zip}
+            </span>
           </div>
+          <Badge tone={KIND_TONE[kind]} className="mt-2 lg:hidden">
+            <span className={cn("h-1.5 w-1.5 rounded-full", KIND_DOT[kind])} aria-hidden />
+            {KIND_LABEL[kind]}
+          </Badge>
         </div>
         <div className="shrink-0 text-right">
           <div className="font-display text-[16px] font-semibold text-text">
             {formatMoney(job.amount)}
           </div>
-          <Badge tone={KIND_TONE[kind]} className="mt-1.5">
+          {/* On a phone the badge moves under the job details (below) so the
+              customer name and service get this column's width back. */}
+          <Badge tone={KIND_TONE[kind]} className="mt-1.5 hidden lg:inline-flex">
             <span className={cn("h-1.5 w-1.5 rounded-full", KIND_DOT[kind])} aria-hidden />
             {KIND_LABEL[kind]}
           </Badge>
@@ -1067,21 +1083,33 @@ function JobCard({ job, onAct }: { job: Job; onAct: (job: Job, label: string) =>
       {/* Actions. A booked job carries four of these, and four side by side need
           ~400px: more than the ~306px this row gets inside the phone column, so
           they used to overflow and the last one ("Payment") was clipped away
-          entirely by the card's overflow-hidden. Two-up grid on the phone, one
-          row again at lg where there is room. A three-action job leaves the last
-          button half width on its own row, which reads fine. */}
-      <div className="grid grid-cols-2 gap-2 border-t border-divider bg-surface-2/50 px-4 py-2.5 lg:flex">
-        {jobActions(job).map((a) => {
+          entirely by the card's overflow-hidden. One row again at lg where
+          there is room. */}
+      {/* Phone: the primary action takes its own full row and the rest share
+          the row below, on a 6-column grid so two or three secondary actions
+          both divide evenly. Two-up squeezed "Mark completed" into a
+          half-width button that cut its own label off on a 360px phone. */}
+      <div className="grid grid-cols-6 gap-2 border-t border-divider bg-surface-2/50 px-4 py-2.5 lg:flex">
+        {jobActions(job).map((a, _i, all) => {
           const Icon = a.icon;
+          const secondary = all.filter((x) => !x.primary).length || 1;
+          const span = a.primary ? "col-span-6" : SPAN_OF[secondary] ?? "col-span-3";
           return (
             <button
               key={a.label}
               type="button"
               onClick={() => onAct(job, a.label)}
               className={cn(
+                span,
                 // min-w-0 so flex-1 can actually shrink these at lg: a flex item
                 // defaults to min-width:auto and refuses to go below its label.
-                "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[9px] border px-2 py-2 font-display text-[11.5px] font-semibold transition-colors",
+                // Secondary actions stack icon over label on a phone: three of
+                // them share one row, and side by side the labels were cut to
+                // "Resc..." on a 360px screen. lg: one inline row as before.
+                "flex min-w-0 flex-1 items-center justify-center rounded-[10px] border px-1.5 font-semibold transition-colors lg:min-h-0 lg:flex-row lg:gap-1.5 lg:py-2 lg:font-display lg:text-[11.5px]",
+                a.primary
+                  ? "min-h-11 gap-1.5 text-[13px]"
+                  : "min-h-[52px] flex-col gap-0.5 text-[12px]",
                 a.primary
                   ? "border-positive/40 bg-positive-tint text-positive hover:bg-positive-tint"
                   : "border-border bg-surface text-text hover:border-brand/40",

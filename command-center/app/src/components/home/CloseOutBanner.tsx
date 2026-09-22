@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useCloseOutCountQuery } from "../../hooks/useApi";
 
@@ -18,27 +18,24 @@ export default function CloseOutBanner({ className = "" }: { className?: string 
   const first = query.data?.opportunityIds?.[0];
   if (count === 0 || !first) return null;
 
+  // The whole banner is the button. It used to squeeze a sentence and a
+  // separate "Start closing out" button onto one line, which wrapped the text to
+  // four lines beside the button on a phone. The explanatory half-sentence went
+  // with it: the title says what needs doing.
   return (
-    <div
+    <button
+      type="button"
+      onClick={() => navigate(`/sales/leads/close-out/${first}`)}
       className={
-        "mb-5 flex items-center gap-2.5 rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-[13px] text-danger " +
+        "mb-5 flex min-h-12 w-[calc(100%-44px)] items-center gap-2.5 rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-left text-[14px] text-danger transition-colors active:bg-danger/15 lg:w-full " +
         className
       }
     >
       <AlertTriangle size={16} className="shrink-0" aria-hidden />
-      <span className="min-w-0">
-        <strong className="font-semibold">
-          {count} {count === 1 ? "job needs" : "jobs need"} closing out
-        </strong>{" "}
-        before {count === 1 ? "it counts" : "they count"} toward your customers and revenue.
+      <span className="min-w-0 flex-1 font-semibold">
+        {count} {count === 1 ? "job needs" : "jobs need"} closing out
       </span>
-      <button
-        type="button"
-        onClick={() => navigate(`/sales/leads/close-out/${first}`)}
-        className="ml-auto shrink-0 rounded-[var(--radius)] border border-danger/40 px-3 py-1.5 text-[12px] font-semibold transition-colors hover:bg-danger/10"
-      >
-        {count === 1 ? "Close it out" : "Start closing out"}
-      </button>
-    </div>
+      <ChevronRight size={18} className="shrink-0" aria-hidden />
+    </button>
   );
 }

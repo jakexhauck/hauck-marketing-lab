@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, KeyRound } from "lucide-react";
 import { Segmented } from "../ui/Segmented";
 import { Button } from "../ui/Button";
 import { api } from "../../lib/api";
@@ -123,9 +123,9 @@ export function ThisDeviceControl() {
           <Icon size={18} strokeWidth={2} />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="font-display text-[15px] font-bold text-text">
-            Notifications on this device
-          </div>
+          {/* "This device": the section heading above already says
+              Notifications, and the longer title wrapped to two lines. */}
+          <div className="font-display text-[15px] font-bold text-text">This device</div>
           <div className="mt-0.5 text-[12px] text-muted">
             {state === "loading" && "Checking..."}
             {state === "on" && "On"}
@@ -136,12 +136,12 @@ export function ThisDeviceControl() {
           </div>
         </div>
         {state === "off" && (
-          <Button variant="primary" size="sm" onClick={() => void enable()} disabled={busy}>
+          <Button variant="primary" size="sm" className="rounded-full" onClick={() => void enable()} disabled={busy}>
             {busy ? "Turning on" : "Turn on"}
           </Button>
         )}
         {state === "on" && (
-          <Button variant="secondary" size="sm" onClick={() => void disable()} disabled={busy}>
+          <Button variant="secondary" size="sm" className="rounded-full" onClick={() => void disable()} disabled={busy}>
             {busy ? "Turning off" : "Turn off"}
           </Button>
         )}
@@ -215,8 +215,13 @@ export function ChangePasswordControl() {
 
   return (
     <div className="rounded-[18px] border border-border bg-surface p-4 shadow-[var(--shadow-sm)]">
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
+      <div className="flex items-center gap-3.5">
+        {/* Same tinted icon chip as every other Settings row; this was the one
+            row with no icon at all. */}
+        <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-text">
+          <KeyRound size={18} strokeWidth={2} />
+        </span>
+        <div className="min-w-0 flex-1">
           <div className="font-display text-[15px] font-bold text-text">
             Password / PIN
           </div>
@@ -225,6 +230,7 @@ export function ChangePasswordControl() {
           <Button
             variant="secondary"
             size="sm"
+            className="rounded-full"
             onClick={() => {
               reset();
               setOpen(true);

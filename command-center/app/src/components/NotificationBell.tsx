@@ -42,7 +42,7 @@ export default function NotificationBell({
       className={
         surface
           ? "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] border border-border bg-surface text-muted transition-colors hover:border-border-strong hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-          : "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-colors active:scale-[0.96]"
+          : "relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white transition-colors active:scale-[0.96]"
       }
       style={surface ? undefined : { background: "rgba(255,255,255,0.14)" }}
     >

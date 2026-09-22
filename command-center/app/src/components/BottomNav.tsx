@@ -20,11 +20,19 @@ export default function BottomNav() {
   // /marketing/paid-ads, so a plain prefix test lights both. Same rule the
   // sidebar applies via needsExactMatch, kept local because the bar's tab set is
   // not the sidebar's.
-  const isActiveRoute = (to: string) => {
+  const matchesRoute = (to: string) => {
     if (pathname === to) return true;
     if (!pathname.startsWith(to + "/")) return false;
     return !items.some((other) => other.to !== to && other.to.startsWith(to + "/"));
   };
+  // A page with no tab of its own (Meta Data, Creatives, Organic, Inbox,
+  // Settings...) is reached through All features, so All lights for it.
+  // Without this the bar showed nothing lit and the user lost their place.
+  // Home and Notifications are the exceptions: Home is the front door and
+  // Notifications opens from its bell, neither from All features.
+  const ownedByTab = items.some((item) => item.to !== "/apps" && matchesRoute(item.to));
+  const isActiveRoute = (to: string) =>
+    to === "/apps" ? matchesRoute(to) || (!ownedByTab && pathname !== "/home" && pathname !== "/notifications") : matchesRoute(to);
 
   // Reuse the Conversations route's cached ["conversations"] query (same key +
   // fetcher) so this badge shares its data and 30s refetch cycle rather than
@@ -48,7 +56,10 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="glass fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-white/50 dark:border-white/10 lg:hidden"
+      // Solid surface, not frosted glass. At 62% opacity the list behind the bar
+      // showed through under the labels (names, prices, headings) on every
+      // scrolling page, so the bar read as unfinished.
+      className="fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-[var(--border)] bg-[var(--surface)] shadow-[0_-4px_16px_rgba(15,17,30,0.06)] lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {/* pt-2: the bar is a touch taller than it was, so the labels are not
@@ -88,14 +99,20 @@ export default function BottomNav() {
               }}
             >
               {isRaised ? (
-                <span
-                  className="-mt-6 flex h-[46px] w-[46px] items-center justify-center rounded-2xl text-white transition-transform"
-                  style={{
-                    backgroundImage: "var(--grad-brand)",
-                    boxShadow: "var(--shadow-brand)",
-                  }}
-                >
-                  <Icon size={24} strokeWidth={2.2} />
+                // Same 36px slot as the other four icons, with the FAB floating
+                // out of it. The FAB used to sit in flow with -mt-6, which made
+                // its slot 10px shorter than the rest and pushed the "All"
+                // label above the other four labels.
+                <span className="relative flex h-9 w-[52px] items-center justify-center">
+                  <span
+                    className="absolute left-1/2 top-[-18px] flex h-[46px] w-[46px] -translate-x-1/2 items-center justify-center rounded-2xl text-white transition-transform"
+                    style={{
+                      backgroundImage: "var(--grad-brand)",
+                      boxShadow: "var(--shadow-brand)",
+                    }}
+                  >
+                    <Icon size={24} strokeWidth={2.2} />
+                  </span>
                 </span>
               ) : (
                 <span

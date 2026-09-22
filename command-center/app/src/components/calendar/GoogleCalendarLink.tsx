@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { CalendarPlus } from "lucide-react";
 import {
   useGoogleCalendarConnection,
   useStartGoogleCalendarConnect,
@@ -71,8 +72,11 @@ export default function GoogleCalendarLink() {
         type="button"
         onClick={onLink}
         disabled={start.isPending}
-        className="rounded-[10px] border border-border bg-surface px-3 py-1.5 font-display text-[12px] font-semibold text-text hover:bg-surface-2 disabled:opacity-60"
+        // Phone: a full-height 44px row button at body size with an icon, so it
+        // reads as a real action rather than a thin 12px strip. Desktop compact.
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-[12px] border border-border bg-surface px-4 text-[14px] font-semibold text-text hover:bg-surface-2 disabled:opacity-60 lg:h-auto lg:rounded-[10px] lg:px-3 lg:py-1.5 lg:text-[12px]"
       >
+        <CalendarPlus size={16} aria-hidden="true" className="shrink-0 text-muted" />
         {start.isPending ? "Opening Google..." : "Link Google Calendar"}
       </button>
       {start.isError ? (

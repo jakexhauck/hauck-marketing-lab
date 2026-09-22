@@ -81,7 +81,11 @@ export function Segmented<T extends string>({
             onClick={() => onChange(opt.value)}
             className={cn(
               "relative z-10 inline-flex items-center justify-center gap-1.5 rounded-full font-medium transition-colors",
-              size === "sm" ? "h-7 px-3 text-[12.5px]" : "h-8 px-3.5 text-[13px]",
+              // Taller on a phone for a thumb-sized target (the 28/32px desktop
+              // heights were under the 44px touch guideline), compact at lg.
+              size === "sm"
+                ? "h-9 px-3 text-[13px] lg:h-7 lg:text-[12.5px]"
+                : "h-10 px-3.5 text-[14px] lg:h-8 lg:text-[13px]",
               // min-w-0 so equal segments can go narrower than their labels
               // rather than pushing the control past its container.
               stretch && "min-w-0 flex-1 lg:flex-none",
@@ -92,7 +96,7 @@ export function Segmented<T extends string>({
             {opt.count != null && (
               <span
                 className={cn(
-                  "font-data text-[11px]",
+                  "text-[12px] tnum",
                   active ? "text-white/85" : "text-faint",
                 )}
               >

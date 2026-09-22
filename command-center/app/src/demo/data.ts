@@ -141,7 +141,7 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     wonLabel: "Sold",
     valueLabel: "Job Value",
     monthlySpend: 2400,
-    websiteUrl: "https://rivertownplumbing.com",
+    websiteUrl: "https://coastalroofing.example.com",
   };
 
   const pipelines: ApiPipelineSummary[] = [
@@ -391,18 +391,22 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     .slice(0, 16);
   for (const l of recent) {
     let summary: string;
+    // The real webhook's ActivityKind names (functions/lib/ghlEvents.ts), so
+    // the demo gets the same per-type icons a live client does. These were
+    // "opportunity.won" and friends, which matched nothing and fell back to a
+    // bell on every row.
     let action: string;
     if (l.status === "won") {
-      action = "opportunity.won";
+      action = "status_changed";
       summary = `${l.name} marked Sold${l.value ? ` ($${l.value.toLocaleString()})` : ""}`;
     } else if (l.status === "lost") {
-      action = "opportunity.lost";
+      action = "status_changed";
       summary = `${l.name} marked Lost`;
     } else if (l.pipelineStageId === STAGES[0].id) {
-      action = "contact.created";
+      action = "lead_created";
       summary = `New lead: ${l.name}`;
     } else {
-      action = "opportunity.stage_changed";
+      action = "stage_changed";
       const st = STAGES.find((s) => s.id === l.pipelineStageId);
       summary = `${l.name} moved to ${st?.name ?? "next stage"}`;
     }

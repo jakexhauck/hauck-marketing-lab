@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { formatMoney, formatMoneyExact } from "../../lib/formatMoney";
 import type { AdTrackerLevel, AdTrackerRange, LeadTrackerStatus } from "../../lib/api";
@@ -108,6 +108,13 @@ export function formatLeadDate(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+// Past this many options a phone gets a dropdown instead of the button row.
+// Eight date presets were ~720px of buttons: on the Lead Tracker they pushed the
+// whole page sideways, and on the Ads Dashboard they were crushed into
+// three-line stacks ("Last / 7 / days"). Three options (the View by levels)
+// still fit as buttons.
+const PHONE_BUTTON_LIMIT = 4;
+
 export function Segmented<T extends string>({
   options,
   value,
@@ -119,26 +126,58 @@ export function Segmented<T extends string>({
   onChange: (id: T) => void;
   label: string;
 }) {
+  const phoneDropdown = options.length > PHONE_BUTTON_LIMIT;
   return (
-    <div
-      role="group"
-      aria-label={label}
-      className="inline-flex shrink-0 overflow-hidden rounded-[var(--radius)] border border-border"
-    >
-      {options.map((o) => (
-        <button
-          key={o.id}
-          type="button"
-          onClick={() => onChange(o.id)}
-          className={cn(
-            "border-border px-3 py-1.5 text-[12px] font-medium transition-colors [&+&]:border-l",
-            o.id === value ? "bg-brand/10 font-semibold text-brand" : "text-muted hover:text-text",
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
+    <>
+      {phoneDropdown && (
+        // Styled as an app control, not a bare form field: surface fill, the
+        // same border and radius as the buttons, a real chevron, and a 44px
+        // tap height. Native <select> so iOS opens its own picker wheel.
+        <label className="relative inline-flex lg:hidden">
+          <select
+            aria-label={label}
+            value={value}
+            onChange={(e) => onChange(e.target.value as T)}
+            className="h-11 appearance-none rounded-[var(--radius)] border border-border bg-surface pl-3.5 pr-9 text-[14px] font-semibold text-text focus:border-brand focus:outline-none"
+          >
+            {options.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown
+            size={16}
+            aria-hidden="true"
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted"
+          />
+        </label>
+      )}
+      <div
+        role="group"
+        aria-label={label}
+        className={cn(
+          "shrink-0 overflow-hidden rounded-[var(--radius)] border border-border",
+          phoneDropdown ? "hidden lg:inline-flex" : "inline-flex",
+        )}
+      >
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => onChange(o.id)}
+            className={cn(
+              // min-h-11 on a phone for the 44px tap target; nowrap so a label
+              // can never break across lines inside its button.
+              "min-h-11 whitespace-nowrap border-border px-3.5 py-1.5 text-[13px] font-medium transition-colors lg:min-h-0 lg:px-3 lg:text-[12px] [&+&]:border-l",
+              o.id === value ? "bg-brand/10 font-semibold text-brand" : "text-muted hover:text-text",
+            )}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -155,7 +194,7 @@ export function LeadSearch({
   className?: string;
 }) {
   return (
-    <label className={cn("relative max-w-xs flex-1", className)}>
+    <label className={cn("relative flex-1 lg:max-w-xs", className)}>
       <Search
         size={15}
         className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"
@@ -166,7 +205,7 @@ export function LeadSearch({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Search leads or ads"
         aria-label="Search leads"
-        className="w-full rounded-[var(--radius)] border border-border bg-surface py-2 pl-9 pr-3 text-[13.5px] text-text placeholder:text-faint focus:border-brand focus:outline-none"
+        className="h-11 w-full rounded-[var(--radius)] border border-border bg-surface pl-9 pr-3 text-[16px] text-text placeholder:text-faint focus:border-brand focus:outline-none lg:h-auto lg:py-2 lg:text-[13.5px]"
       />
     </label>
   );

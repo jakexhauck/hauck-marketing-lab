@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, RefreshCw, X } from "lucide-react";
+import { X } from "lucide-react";
 import Shell from "../components/Shell";
 import BillingDesktop from "../components/billing/BillingDesktop";
-import NavyHero from "../components/NavyHero";
-import { HeroIconButton } from "../components/HeroUi";
+import { PageHeader } from "../components/PageHeader";
 import TestBanner from "../components/TestBanner";
 import EmptyState from "../components/EmptyState";
 import PullToRefresh from "../components/PullToRefresh";
@@ -17,7 +15,6 @@ import {
   useInvoicesQuery,
   useTransactionsQuery,
 } from "../hooks/useApi";
-import { freshnessLabel } from "../lib/freshness";
 import { outstandingTotal, revenueThisMonth } from "../lib/revenue";
 import type { ApiInvoice } from "../lib/api";
 import { CLIENT_HOME } from "../lib/nav";
@@ -40,12 +37,14 @@ function fmtDate(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? "" : dateFmt.format(d);
 }
 
+// Theme tokens, not fixed light-mode hexes: those rendered as bright pastel
+// pills on the dark theme.
 const STATUS_STYLE: Record<string, { bg: string; fg: string; label: string }> = {
-  paid: { bg: "#dcfce7", fg: "#15803d", label: "Paid" },
-  overdue: { bg: "#ffe4e6", fg: "#e11d48", label: "Overdue" },
-  sent: { bg: "#dbeafe", fg: "#1d4ed8", label: "Sent" },
-  draft: { bg: "#f1f5f9", fg: "#64748b", label: "Draft" },
-  void: { bg: "#f1f5f9", fg: "#94a3b8", label: "Void" },
+  paid: { bg: "var(--positive-tint)", fg: "var(--positive)", label: "Paid" },
+  overdue: { bg: "var(--danger-tint)", fg: "var(--danger)", label: "Overdue" },
+  sent: { bg: "var(--brand-tint)", fg: "var(--brand-text)", label: "Sent" },
+  draft: { bg: "var(--surface-2)", fg: "var(--text-muted)", label: "Draft" },
+  void: { bg: "var(--surface-2)", fg: "var(--text-faint)", label: "Void" },
 };
 
 const FILTERS = [
@@ -58,20 +57,10 @@ const FILTERS = [
 
 export default function Billing() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { session, mode } = useAuth();
   const now = useNow();
   const useReal = Boolean(session);
   const isTest = mode === "test";
-
-  // Tapping the freshness line re-pulls the same data pull-to-refresh does, so
-  // a client can trust the revenue figures are current without leaving the hero.
-  const refreshAll = () => {
-    void Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["invoices"] }),
-      queryClient.invalidateQueries({ queryKey: ["transactions"] }),
-    ]);
-  };
 
   const [filter, setFilter] = useState("all");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -106,8 +95,6 @@ export default function Billing() {
     [transactions, now],
   );
 
-  const updatedLabel = freshnessLabel(invoicesQuery.dataUpdatedAt, now);
-
   return (
     <Shell>
       {/* Phone layout (below lg). The desktop client app renders
@@ -116,49 +103,32 @@ export default function Billing() {
       <PullToRefresh queryKeys={[["invoices"], ["transactions"]]} />
       {isTest && <TestBanner />}
 
-      <NavyHero flushTop={isTest}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <HeroIconButton label="Back to home" onClick={() => navigate(CLIENT_HOME)}>
-              <ChevronLeft size={20} />
-            </HeroIconButton>
-            <div className="min-w-0">
-              <div className="font-display text-[17px] font-bold text-white">
-                Revenue
-              </div>
-              {updatedLabel && (
-                <button
-                  type="button"
-                  onClick={refreshAll}
-                  className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate text-[12px] text-white/60 transition-colors active:text-white/90"
-                >
-                  <RefreshCw
-                    size={11}
-                    className={invoicesQuery.isFetching ? "animate-spin" : undefined}
-                    aria-hidden="true"
-                  />
-                  {updatedLabel}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-white/12 px-4 py-3">
-            <div className="label-cap-light">Outstanding</div>
-            <div className="mt-1 font-display text-[22px] font-black text-white">
+      {/* The standard floating header card (this was a navy hero, one of three
+          header styles in the app), titled Billing to match the page's name
+          everywhere else. The two totals sit below it as ordinary cards.
+          Refreshing is pull-to-refresh, so the "Updated" line went. */}
+      <div className="shrink-0 px-5 pt-4">
+        <PageHeader
+          title="Billing"
+          onBack={() => navigate(CLIENT_HOME)}
+          backLabel="Back to home"
+          className="mb-0"
+        />
+        <div className="mt-3 grid grid-cols-2 gap-2.5">
+          <div className="min-w-0 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+            <div className="label-cap">Outstanding</div>
+            <div className="mt-1 truncate text-[20px] font-semibold tabular-nums text-[var(--text)]">
               {money.format(outstanding)}
             </div>
           </div>
-          <div className="rounded-2xl bg-white/12 px-4 py-3">
-            <div className="label-cap-light">Revenue this month</div>
-            <div className="mt-1 font-display text-[22px] font-black text-white">
+          <div className="min-w-0 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+            <div className="label-cap">Revenue this month</div>
+            <div className="mt-1 truncate text-[20px] font-semibold tabular-nums text-[var(--text)]">
               {money.format(paidThisMonth)}
             </div>
           </div>
         </div>
-      </NavyHero>
+      </div>
 
       <div className="flex gap-2 overflow-x-auto px-5 pt-4 pb-1">
         {FILTERS.map((f) => (
@@ -167,7 +137,7 @@ export default function Billing() {
             type="button"
             onClick={() => setFilter(f.key)}
             aria-pressed={filter === f.key}
-            className="shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors"
+            className="min-h-10 shrink-0 rounded-full px-3.5 text-[13.5px] font-semibold transition-colors"
             style={{
               background:
                 filter === f.key ? "var(--brand-primary)" : "var(--surface-2)",
@@ -194,10 +164,7 @@ export default function Billing() {
               />
             </div>
           ) : visible.length === 0 ? (
-            <EmptyState
-              title="No invoices"
-              message="Invoices sent to this client's customers will show up here."
-            />
+            <EmptyState title="No invoices" />
           ) : (
             <ul className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
               {visible.map((inv, idx) => (

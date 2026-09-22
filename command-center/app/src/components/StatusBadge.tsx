@@ -9,7 +9,7 @@ export interface StatusStyle {
 export default function StatusBadge({ bg, fg, label }: StatusStyle) {
   return (
     <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide"
+      className="inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-semibold"
       style={{ background: bg, color: fg }}
     >
       {label}

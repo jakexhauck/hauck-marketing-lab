@@ -86,6 +86,9 @@ export default function NotificationPrompt() {
     setHidden(true);
   };
 
+  // Only problems get a line under the title. The explainer sentences ("One
+  // quick buzz per new lead...") were helper text under a heading, which the
+  // client app does not carry: the title and the buttons say it.
   const subtitle =
     status === "denied"
       ? "Notifications are blocked. Enable them in your device settings."
@@ -93,15 +96,11 @@ export default function NotificationPrompt() {
         ? "This device does not support notifications."
         : status === "failed"
           ? "Could not enable notifications. Check your connection and try again."
-          : needsInstall
-            ? "Add Hauck to your home screen and your phone will buzz the moment a lead comes in."
-            : reEnable
-              ? "Notifications were turned off on this device. Tap to turn them back on."
-              : "One quick buzz per new lead or reply. Nothing else, and you can turn it off anytime.";
+          : null;
 
   return (
     <div className="mx-[22px] mt-5 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4">
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-3">
         <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[var(--brand-fg)]">
           <Bell size={18} strokeWidth={2} />
         </span>
@@ -109,9 +108,9 @@ export default function NotificationPrompt() {
           <div className="font-display text-[15px] font-bold text-[var(--text)]">
             {reEnable ? "Notifications are off" : "Turn on notifications"}
           </div>
-          <div className="mt-0.5 text-[12.5px] text-[var(--text-muted)]">
-            {subtitle}
-          </div>
+          {subtitle && (
+            <div className="mt-0.5 text-[12.5px] text-[var(--text-muted)]">{subtitle}</div>
+          )}
         </div>
       </div>
       {/* iOS cannot subscribe from a Safari tab at all, so show the install
@@ -123,19 +122,19 @@ export default function NotificationPrompt() {
             type="button"
             onClick={onEnable}
             disabled={status === "working" || status === "unsupported"}
-            className="inline-flex flex-1 items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-[13px] font-bold uppercase tracking-wider text-[var(--brand-fg)] transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 text-[14px] font-semibold text-[var(--brand-fg)] transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {status === "working"
               ? "Enabling..."
               : reEnable
                 ? "Re-enable"
-                : "Enable"}
+                : "Turn on"}
           </button>
         )}
         <button
           type="button"
           onClick={onDismiss}
-          className={`inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-[13px] font-bold uppercase tracking-wider text-[var(--text-muted)] transition-transform active:scale-[0.98] ${
+          className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-[14px] font-semibold text-[var(--text-muted)] transition-transform active:scale-[0.98] ${
             needsInstall ? "flex-1" : ""
           }`}
         >

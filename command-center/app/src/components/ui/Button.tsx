@@ -21,11 +21,13 @@ const VARIANTS: Record<Variant, string> = {
   danger: "bg-danger text-white hover:brightness-95 active:brightness-90",
 };
 
+// sm and icon grow to 40px below lg: at 32/36px they were under the touch
+// guideline on a phone. Desktop sizes are unchanged.
 const SIZES: Record<Size, string> = {
-  sm: "h-8 px-3 text-[13px] gap-1.5 rounded-[var(--radius-sm)]",
+  sm: "h-10 px-3.5 text-[14px] gap-1.5 rounded-[var(--radius-sm)] lg:h-8 lg:px-3 lg:text-[13px]",
   md: "h-9.5 px-4 text-sm gap-2 rounded-[var(--radius)]",
   lg: "h-11 px-5 text-[15px] gap-2 rounded-[var(--radius)]",
-  icon: "h-9 w-9 justify-center rounded-[var(--radius-sm)]",
+  icon: "h-10 w-10 justify-center rounded-[var(--radius-sm)] lg:h-9 lg:w-9",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(

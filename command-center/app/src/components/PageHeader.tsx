@@ -70,7 +70,7 @@ export function PageHeader({
               // page, so the chevron would point at a screen that layout does
               // not have.
               className={cn(
-                "absolute left-0 top-1/2 flex h-11 w-9 -translate-y-1/2 shrink-0 items-center justify-center rounded-[9px] text-[var(--text-muted)] transition-colors hover:text-[var(--text)] active:bg-[var(--surface-2)]",
+                "absolute left-0 top-1/2 flex h-11 w-11 -translate-y-1/2 shrink-0 items-center justify-center rounded-[9px] text-[var(--text-muted)] transition-colors hover:text-[var(--text)] active:bg-[var(--surface-2)]",
                 isBackToAll
                   ? "lg:hidden"
                   : "lg:static lg:-my-1 lg:-ml-1.5 lg:translate-y-0 lg:self-center",
@@ -82,7 +82,9 @@ export function PageHeader({
           <h2 className="truncate font-display text-[16px] font-semibold leading-none tracking-[-0.01em] text-text">
             {title}
           </h2>
-          {count != null && <span className="font-data text-[12px] text-faint tnum">{count}</span>}
+          {/* Desktop only: on a phone the centred title stands alone, the same on
+              every page, instead of some headers carrying a count and others not. */}
+          {count != null && <span className="hidden text-[13px] text-faint tnum lg:inline">{count}</span>}
         </div>
         {actions && (
           <div
