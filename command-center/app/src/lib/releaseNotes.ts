@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-23-link-tag-check",
+    date: "23 September 2026",
+    title: "Linking a sub-account",
+    items: [
+      "Linking no longer says \"Did not write: facebook ads\" when the sub-account already has the tag.",
+    ],
+  },
+  {
     id: "2026-09-22-phone-polish",
     date: "22 September 2026",
     title: "Client app on a phone",

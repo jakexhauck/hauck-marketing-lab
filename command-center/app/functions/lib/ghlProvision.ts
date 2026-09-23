@@ -9,8 +9,9 @@ import { ghlJson, type GhlContext } from "./ghl";
 // picking a custom value from a dropdown rather than pasting a URL and a secret
 // by hand into every action.
 //
-// Idempotent by name: everything reads first and only writes what is missing or
-// wrong, so the button is safe to press repeatedly.
+// Idempotent by name, so the button is safe to press repeatedly: custom values
+// read first and only write what is missing or wrong; tags lean on GHL refusing
+// a duplicate name.
 
 export interface ProvisionItem {
   kind: "custom_value" | "tag";
@@ -75,24 +76,23 @@ async function upsertCustomValue(
   }
 }
 
+// Create, never read first. The Marketplace app holds locations/tags.write but
+// not tags.readonly, so listing tags 401s on every app-linked client. GHL
+// refuses a duplicate name with a 400 "already exist", which is the idempotency
+// check for free.
 async function ensureTag(gctx: GhlContext, name: string): Promise<ProvisionItem> {
   try {
-    const existing = await ghlJson<{ tags?: { id: string; name: string }[] }>(
-      gctx,
-      `/locations/${encodeURIComponent(gctx.locationId)}/tags`,
-    );
-    const has = (existing.tags ?? []).some(
-      (t) => t.name.trim().toLowerCase() === name.toLowerCase(),
-    );
-    if (has) return { kind: "tag", name, outcome: "already correct" };
-
     await ghlJson(gctx, `/locations/${encodeURIComponent(gctx.locationId)}/tags`, {
       method: "POST",
       body: JSON.stringify({ name }),
     });
     return { kind: "tag", name, outcome: "created" };
   } catch (err) {
-    return { kind: "tag", name, outcome: `failed: ${(err as Error).message}` };
+    const message = (err as Error).message;
+    if (/returned 400:.*already exist/i.test(message)) {
+      return { kind: "tag", name, outcome: "already correct" };
+    }
+    return { kind: "tag", name, outcome: `failed: ${message}` };
   }
 }
 
