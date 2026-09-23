@@ -1,5 +1,6 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
+import { isBundle, isDialer } from "../../../../src/lib/onboardingWizard";
 
 // GET /api/admin/onboarding/:tenantId  -> saved fields + intake + status
 // (the token is never returned; hasToken says only whether one is on file)
@@ -105,6 +106,47 @@ export const onRequestPut: PagesFunction<Env, "tenantId", ApiData> = async (ctx)
     .from("onboarding")
     .upsert(patch, { onConflict: "tenant_id" });
   if (error) return Response.json({ error: error.message }, { status: 500 });
+
+  return Response.json({ ok: true });
+};
+
+// PATCH /api/admin/onboarding/:tenantId  body { bundle?, dialer? }
+//
+// The wizard's Setup step: what we sold and who works the leads. Each key is
+// written only when present, so picking one never clears the other.
+export const onRequestPatch: PagesFunction<Env, "tenantId", ApiData> = async (ctx) => {
+  const client = getServiceClient(ctx.env);
+  if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
+  const tenantId = ctx.params.tenantId as string;
+
+  let body: { bundle?: unknown; dialer?: unknown };
+  try {
+    body = await ctx.request.json();
+  } catch {
+    return Response.json({ error: "invalid_json" }, { status: 400 });
+  }
+
+  const patch: Record<string, string> = {};
+  if ("bundle" in body) {
+    if (!isBundle(body.bundle)) return Response.json({ error: "Unknown bundle." }, { status: 400 });
+    patch.onboarding_bundle = body.bundle;
+  }
+  if ("dialer" in body) {
+    if (!isDialer(body.dialer)) return Response.json({ error: "Unknown dialer." }, { status: 400 });
+    patch.onboarding_dialer = body.dialer;
+  }
+  if (Object.keys(patch).length === 0) {
+    return Response.json({ error: "nothing to change" }, { status: 400 });
+  }
+
+  const { data, error } = await client
+    .from("tenants")
+    .update(patch)
+    .eq("id", tenantId)
+    .select("id")
+    .maybeSingle();
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (!data) return Response.json({ error: "not found" }, { status: 404 });
 
   return Response.json({ ok: true });
 };

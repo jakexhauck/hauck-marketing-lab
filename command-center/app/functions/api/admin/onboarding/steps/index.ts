@@ -10,9 +10,9 @@ import {
 // /api/admin/onboarding/steps  (admin-only, gated in _middleware.ts)
 //
 // The client setup checklist itself, as opposed to one client's ticks against
-// it. Edited on Onboarding > Management, read by every Client setup page.
+// it. Edited in Settings > Onboarding checklist, walked on the Onboarding page.
 
-const SELECT = "id, section, group_label, label, note, position, required, code";
+const SELECT = "id, section, group_label, label, note, field_label, position, required, code";
 
 interface Row {
   id: string;
@@ -20,6 +20,7 @@ interface Row {
   group_label: string | null;
   label: string;
   note: string | null;
+  field_label: string | null;
   position: number;
   required: boolean;
   code: string | null;
@@ -32,6 +33,7 @@ function view(row: Row) {
     groupLabel: row.group_label,
     label: row.label,
     note: row.note,
+    fieldLabel: row.field_label,
     position: row.position,
     required: row.required,
     code: row.code,

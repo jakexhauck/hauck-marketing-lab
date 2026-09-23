@@ -9,7 +9,7 @@ import { validateStepPatch } from "../../../../../src/lib/setupSteps";
 // not by this file: `code` and `archived` are unreachable from a PATCH, so
 // renaming a step can never steal another one's live-check wiring.
 
-const SELECT = "id, section, group_label, label, note, position, required, code";
+const SELECT = "id, section, group_label, label, note, field_label, position, required, code";
 
 export const onRequestPatch: PagesFunction<Env, "id", ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
@@ -49,6 +49,7 @@ export const onRequestPatch: PagesFunction<Env, "id", ApiData> = async (ctx) => 
       groupLabel: row.group_label,
       label: row.label,
       note: row.note,
+      fieldLabel: row.field_label,
       position: row.position,
       required: row.required,
       code: row.code,

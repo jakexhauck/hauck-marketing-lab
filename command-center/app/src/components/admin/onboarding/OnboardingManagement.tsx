@@ -19,19 +19,19 @@ import {
   type SetupStepRow,
 } from "../../../lib/setupSteps";
 
-// Onboarding > Management: the owner editing the process itself.
+// Settings > Onboarding checklist: Jake editing the process itself.
 //
-// Same shape as Cold Call > Management: a second level of tabs under the view,
-// in ?manage=, so a link to a specific page survives a reload.
+// One tab per pillar, in ?manage=, so a link to a specific pillar survives a
+// reload.
 //
-// Everything here changes what every client's Client setup page shows. It edits
-// the process, never one client's progress: a tick belongs to a client, a step
-// belongs to the agency.
+// Everything here changes what every client's Onboarding checklist shows,
+// straight away and for clients already mid-setup. It edits the process, never
+// one client's progress: a tick belongs to a client, a step to the agency.
 
 export default function OnboardingManagement() {
   const [params, setParams] = useSearchParams();
   const raw = params.get("manage");
-  const section: SetupSection = isSetupSection(raw) ? raw : "ghl";
+  const section: SetupSection = isSetupSection(raw) ? raw : "operations";
 
   const setSection = (next: SetupSection) => {
     setParams(
@@ -149,10 +149,7 @@ function SectionEditor({
     <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)] sm:p-6">
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-display text-[16.5px] font-semibold text-text">{def.label} steps</h2>
-          <p className="mt-0.5 text-[13px] leading-snug text-muted">
-            What every client's {def.label} section asks you to do.
-          </p>
+          <h2 className="font-display text-[16.5px] font-semibold text-text">{def.label}</h2>
         </div>
         {!adding && (
           <Button variant="secondary" size="sm" onClick={() => setAdding(true)}>
@@ -173,7 +170,7 @@ function SectionEditor({
                 id="new-step"
                 autoFocus
                 value={label}
-                placeholder="Publish the workflows, activate the triggers"
+                placeholder="Step"
                 onChange={(e) => setLabel(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submit()}
                 className="mt-1 w-full rounded-[var(--radius)] border border-border bg-surface px-3 py-2.5 text-[14px] text-text placeholder:text-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25"
@@ -187,7 +184,7 @@ function SectionEditor({
                 id="new-group"
                 list="known-groups"
                 value={group}
-                placeholder="Day 2, research and setup"
+                placeholder="Appointments"
                 onChange={(e) => setGroup(e.target.value)}
                 className="mt-1 w-full rounded-[var(--radius)] border border-border bg-surface px-3 py-2.5 text-[14px] text-text placeholder:text-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25"
               />
@@ -282,10 +279,12 @@ function EditableStep({
 
   const [label, setLabel] = useState(step.label);
   const [note, setNote] = useState(step.note ?? "");
+  const [field, setField] = useState(step.fieldLabel ?? "");
+  const [openField, setOpenField] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [openNote, setOpenNote] = useState(false);
 
-  const commit = (patch: Partial<{ label: string; note: string; required: boolean }>) => {
+  const commit = (patch: Partial<{ label: string; note: string; fieldLabel: string }>) => {
     update.mutate({ id: step.id, ...patch });
   };
 
@@ -333,31 +332,13 @@ function EditableStep({
           className="min-w-0 flex-1 rounded-[var(--radius-sm)] border border-transparent bg-transparent px-1.5 py-1 text-[13.5px] text-text hover:border-border focus:border-brand focus:bg-surface focus:outline-none"
         />
 
-        {step.code ? (
-          // An auto step's wiring is its code, so it can be renamed but not
-          // made optional: the live check ticks it either way.
-          <span className="shrink-0 rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-text">
-            Auto
-          </span>
-        ) : (
-          <button
-            type="button"
-            onClick={() => commit({ required: !step.required })}
-            className={[
-              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide transition-colors",
-              step.required
-                ? "bg-surface-3 text-muted hover:text-text"
-                : "bg-transparent text-faint hover:text-muted",
-            ].join(" ")}
-            title={
-              step.required
-                ? "Required before Go Live. Click to make optional."
-                : "Optional. Click to make it required."
-            }
-          >
-            {step.required ? "Required" : "Optional"}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setOpenField((o) => !o)}
+          className="shrink-0 text-[11.5px] font-medium text-muted hover:text-brand-text"
+        >
+          {step.fieldLabel || openField ? "Field" : "Add field"}
+        </button>
 
         <button
           type="button"
@@ -401,10 +382,23 @@ function EditableStep({
         <input
           value={note}
           aria-label="Note"
-          placeholder="One line of detail, where the step name is not enough."
+          placeholder="Note"
           onChange={(e) => setNote(e.target.value)}
           onBlur={() => {
             if (note.trim() !== (step.note ?? "")) commit({ note: note.trim() });
+          }}
+          className="mt-1.5 ml-[26px] w-[calc(100%-26px)] rounded-[var(--radius-sm)] border border-transparent bg-transparent px-1.5 py-1 text-[12.5px] text-muted placeholder:text-faint hover:border-border focus:border-brand focus:bg-surface focus:outline-none"
+        />
+      )}
+
+      {(openField || step.fieldLabel) && (
+        <input
+          value={field}
+          aria-label="Field label"
+          placeholder="Field label, e.g. Fathom link"
+          onChange={(e) => setField(e.target.value)}
+          onBlur={() => {
+            if (field.trim() !== (step.fieldLabel ?? "")) commit({ fieldLabel: field.trim() });
           }}
           className="mt-1.5 ml-[26px] w-[calc(100%-26px)] rounded-[var(--radius-sm)] border border-transparent bg-transparent px-1.5 py-1 text-[12.5px] text-muted placeholder:text-faint hover:border-border focus:border-brand focus:bg-surface focus:outline-none"
         />

@@ -9,17 +9,19 @@ import { isRetiredTenant } from "../../../lib/retiredTenant";
 // up. The page filters to the ones in setup; the whole roster is returned so
 // that reopening a client who has already gone live needs no second request.
 //
-// This used to count each client's checklist. The checklist went with the
-// redesign: the process lives in Jake's SOPs, and a second copy inside the app
-// was one to maintain and one to ignore. What survived is the record of what the
-// client told us, which is the part nothing else in the app holds.
+// Each client also carries what the wizard's roster needs to draw its progress
+// bar without a request per client: the Setup choices and the ids of the steps
+// ticked. The browser counts them against the live step list, so a step removed
+// in Settings stops counting without anything here changing.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
 
   const { data: tenants, error } = await client
     .from("tenants")
-    .select("id, name, slug, niche, brand_color, brand_initials, onboarding_status")
+    .select(
+      "id, name, slug, niche, brand_color, brand_initials, onboarding_status, onboarding_bundle, onboarding_dialer",
+    )
     .order("created_at", { ascending: true });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
@@ -34,6 +36,26 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     ]),
   );
 
+  // Only clients still being set up draw a progress bar, and scoping the read
+  // to them keeps it far under PostgREST's silent 1000-row cap.
+  const setupIds = ((tenants ?? []) as { id: string; onboarding_status: string | null }[])
+    .filter((t) => t.onboarding_status === "setup")
+    .map((t) => t.id);
+  const { data: ticks, error: tickErr } = setupIds.length
+    ? await client
+        .from("onboarding_checklist")
+        .select("tenant_id, task_key")
+        .eq("done", true)
+        .in("tenant_id", setupIds)
+    : { data: [], error: null };
+  if (tickErr) return Response.json({ error: tickErr.message }, { status: 500 });
+  const doneById = new Map<string, string[]>();
+  for (const t of (ticks ?? []) as { tenant_id: string; task_key: string }[]) {
+    const list = doneById.get(t.tenant_id) ?? [];
+    list.push(t.task_key);
+    doneById.set(t.tenant_id, list);
+  }
+
   const clients = (
     (tenants ?? []) as {
       id: string;
@@ -43,6 +65,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       brand_color: string | null;
       brand_initials: string | null;
       onboarding_status: string | null;
+      onboarding_bundle: string | null;
+      onboarding_dialer: string | null;
     }[]
   )
     // Same rule as /api/admin/clients: a retired account is not a client.
@@ -59,9 +83,12 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       city: (intake.addressCity ?? "").trim(),
       region: (intake.addressState ?? "").trim(),
       // 'setup' while they are still being stood up, 'live' once Go live has
-      // been pressed. The list is built on this, and nothing else reads it: it
-      // stopped gating the client app in 2026-08.
+      // been pressed, 'removed' once deleted from Onboarding. The lists are
+      // built on this: it stopped gating the client app in 2026-08.
       onboardingStatus: t.onboarding_status ?? "live",
+      bundle: t.onboarding_bundle,
+      dialer: t.onboarding_dialer,
+      doneKeys: doneById.get(t.id) ?? [],
     };
   });
 

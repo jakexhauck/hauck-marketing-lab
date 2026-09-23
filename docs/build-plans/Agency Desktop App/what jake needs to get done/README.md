@@ -540,3 +540,17 @@ Your action items:
 Still parked:
 - The event feed cutover. New clients still report through the hand-built webhook workflows, not the Marketplace app's own feed. That is a separate build.
 - Willis and Made Better still hold pasted Private Integration tokens. Pressing Link on them moves them onto the app whenever you want.
+
+## Onboarding setup checklist (23 September 2026)
+
+What's in the app now: Onboarding is the full setup checklist (Setup, Operations, GHL, GHL Follow Ups, Facebook Ads) in Stepper or Scroll view, edited in Settings > Onboarding checklist. Delete from Onboarding keeps the account.
+
+Your action items:
+1. Open Onboarding and tick through one client in both views.
+2. Open Settings > Onboarding checklist and fix anything the seed got wrong.
+3. Retire the Google Doc so the app is the only copy.
+
+Still parked:
+- What each bundle and "who dials" choice adds or removes from the checklist.
+- Automating items (staff invite, custom values, auto-ticks for ad account link, CAPI, Ads LIVE).
+- A "waiting on client / carrier" state for items like A2P Approved.

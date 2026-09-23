@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import type { SetupSection, SetupStepRow } from "../lib/setupSteps";
 
-// The setup checklist itself: read by Client setup, edited by Management.
+// The setup checklist itself: walked on Onboarding, edited in Settings.
 //
 // One query key for both, so editing a step on Management is reflected the next
 // time Client setup is opened without either page knowing about the other.
@@ -28,6 +28,7 @@ export interface NewStep {
   label: string;
   note?: string;
   groupLabel?: string;
+  fieldLabel?: string;
   position?: number;
   required?: boolean;
 }

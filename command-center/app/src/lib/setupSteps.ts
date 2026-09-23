@@ -1,47 +1,31 @@
-// The client setup steps, as the app now holds them: rows, not code.
+// The client setup checklist, as the app holds it: rows, not code.
 //
-// Two sections, GoHighLevel and Meta ads, each a list of checkboxes against one
-// client. The rows are edited in Onboarding > Management, so this file is the
-// shape and the rules rather than the content.
+// Four checklist pillars, each a list of checkboxes against one client, walked
+// in order on the Onboarding page after its Setup step. The rows are edited in
+// Settings > Onboarding checklist, so this file is the shape and the rules
+// rather than the content.
 //
-// The content is still in clientSetup.ts, demoted to a seed: the first read of
-// an empty table writes those steps in. That way a fresh database starts with
-// Jake's real process instead of an empty page, and editing it afterwards never
+// The content below is only a SEED: the first read of a pillar that has never
+// had a row writes these in. That way a fresh database starts with Jake's real
+// process (his Google Doc, retired 2026-09-23) and editing it afterwards never
 // fights with the code.
 
-import { SETUP_PHASES, SETUP_STEPS, type SetupPhaseKey } from "./clientSetup";
-
-export type SetupSection = "kickoff" | "call" | "ghl" | "ads";
+export type SetupSection = "operations" | "ghl_setup" | "followups" | "facebook";
 
 export interface SetupSectionDef {
   id: SetupSection;
   label: string;
-  blurb: string;
 }
 
-// The order here is the order on the page, and it is the order the work happens
-// in: sign them, call them, build them, launch them.
+// The order here is the order of the wizard, and the order the work happens in.
+// New ids rather than the 0072 ones (kickoff/call/ghl/ads): migration 0131
+// retired those rows, and a stale deploy reseeding an old id must never land in
+// the new list.
 export const SETUP_SECTIONS: SetupSectionDef[] = [
-  {
-    id: "kickoff",
-    label: "Kickoff",
-    blurb: "The moment they sign, before anything is built.",
-  },
-  {
-    id: "call",
-    label: "Onboarding call",
-    blurb: "One sitting, with them on the phone.",
-  },
-  {
-    id: "ghl",
-    label: "GoHighLevel",
-    blurb: "Their sub-account, wired and verified.",
-  },
-  {
-    id: "ads",
-    label: "Meta ads",
-    blurb: "From the onboarding call to live campaigns.",
-  },
+  { id: "operations", label: "Operations" },
+  { id: "ghl_setup", label: "GHL" },
+  { id: "followups", label: "GHL Follow Ups" },
+  { id: "facebook", label: "Facebook Ads" },
 ];
 
 const SECTION_IDS = new Set<string>(SETUP_SECTIONS.map((s) => s.id));
@@ -57,28 +41,24 @@ export interface SetupStepRow {
   groupLabel: string | null;
   label: string;
   note: string | null;
+  /** Names the one text box this step carries, e.g. "Fathom link". */
+  fieldLabel: string | null;
   position: number;
   required: boolean;
-  /** Set only on the steps the live GoHighLevel checks tick by themselves. */
   code: string | null;
 }
-
-/** What a live GHL readiness check answers, by step code. */
-export const READINESS_CODES: Record<string, string> = {
-  token: "token-connected",
-  custom_values: "provision-values",
-  calendars: "calendars-present",
-};
 
 export const MAX_LABEL = 200;
 export const MAX_NOTE = 600;
 export const MAX_GROUP = 80;
+export const MAX_FIELD = 60;
 
 export interface StepPatch {
   section?: SetupSection;
   groupLabel?: string | null;
   label?: string;
   note?: string | null;
+  fieldLabel?: string | null;
   position?: number;
   required?: boolean;
 }
@@ -116,6 +96,11 @@ export function validateStepPatch(input: unknown): PatchResult {
     patch.note = note ? note.slice(0, MAX_NOTE) : null;
   }
 
+  if ("fieldLabel" in body) {
+    const field = typeof body.fieldLabel === "string" ? body.fieldLabel.trim() : "";
+    patch.field_label = field ? field.slice(0, MAX_FIELD) : null;
+  }
+
   if ("groupLabel" in body) {
     const group = typeof body.groupLabel === "string" ? body.groupLabel.trim() : "";
     patch.group_label = group ? group.slice(0, MAX_GROUP) : null;
@@ -143,55 +128,76 @@ export interface SeedRow {
   group_label: string | null;
   label: string;
   note: string | null;
+  field_label: string | null;
   position: number;
   required: boolean;
   code: string | null;
 }
 
-/**
- * Which section a phase's steps land in.
- *
- * Kickoff, the call and the GoHighLevel build are each one section. The seven
- * days of the ads pipeline are one section between them, because they are one
- * run of work rather than seven, and the day survives as a subheading.
- */
-const SECTION_BY_PHASE: Record<SetupPhaseKey, SetupSection> = {
-  kickoff: "kickoff",
-  call: "call",
-  ghl: "ghl",
-  day1: "ads",
-  day2: "ads",
-  day34: "ads",
-  day56: "ads",
-  day7: "ads",
+interface SeedStep {
+  label: string;
+  group?: string;
+  field?: string;
+}
+
+// Jake's client setup doc, as it stood on 2026-09-23.
+const SEED: Record<SetupSection, SeedStep[]> = {
+  operations: [
+    { label: "Invoice Paid" },
+    { label: "Contract Signed" },
+    { label: "Onboarding Call Done", field: "Fathom link" },
+    { label: "Marketing Assets Sent" },
+    { label: "Ad Account Access" },
+    { label: "Software Account Made" },
+  ],
+  ghl_setup: [
+    { label: "Add Jake & Client As Staff" },
+    { label: "Connect Facebook To GHL" },
+    { label: "A2P Submitted & Local Number Purchased" },
+    { label: "A2P Approved" },
+    { label: "Custom Values Set" },
+    { label: "Custom Fields Set" },
+    { label: "Calendar Availability/Settings Configured" },
+    { label: "Conversion Assets Created/Placed Into Funnel" },
+  ],
+  followups: [
+    { label: "Phone Appointment", group: "Appointments" },
+    { label: "Estimate Reminders", group: "Appointments" },
+    { label: "Job Reminders", group: "Appointments" },
+    { label: "Conversions API (Leads)", group: "Attribution" },
+    { label: "Long Term Nurture", group: "Follow Ups" },
+    { label: "Lead Form FU's", group: "Follow Ups" },
+  ],
+  facebook: [
+    { label: "Link Ad Account To Command Center" },
+    { label: "Lead Form Setup" },
+    { label: "Creatives Done/Added To Media Library" },
+    { label: "Campaign Setup" },
+    { label: "Ads LIVE" },
+  ],
 };
 
 /**
- * The steps a section starts with: Jake's own processes.
+ * The steps every pillar starts with.
  *
- * A section is seeded once, the first time it is asked for, and is the client's
- * to edit from then on. See the GET handler: it compares the sections present in
- * the table against these, so a section added here arrives on the next page load
- * without a migration, and one already in the table is never re-seeded.
+ * A pillar is seeded once, the first time it is asked for, and is Jake's to
+ * edit from then on. See the steps GET: it compares the sections present in
+ * the table against these, so one already in the table is never re-seeded.
  */
 export function seedRows(): SeedRow[] {
-  return SETUP_STEPS.map((step, index) => {
-    const section = SECTION_BY_PHASE[step.phase];
-    const phase = SETUP_PHASES.find((p) => p.key === step.phase);
-    return {
-      section,
-      // A step may name its own subheading (the call, which moves between four
-      // systems in one sitting). Otherwise the ads section keeps its days, and
-      // the single-list sections have none.
-      group_label: step.group ?? (section === "ads" ? (phase?.label ?? null) : null),
+  return SETUP_SECTIONS.flatMap(({ id }) =>
+    SEED[id].map((step, index) => ({
+      section: id,
+      group_label: step.group ?? null,
       label: step.label,
-      note: step.note ?? null,
+      note: null,
+      field_label: step.field ?? null,
       // Spaced so a step can be dropped between two without renumbering.
       position: (index + 1) * 10,
-      required: Boolean(step.required),
-      code: step.auto ? step.key : null,
-    };
-  });
+      required: true,
+      code: null,
+    })),
+  );
 }
 
 // --- Shaping -----------------------------------------------------------------

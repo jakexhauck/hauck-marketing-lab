@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   ExternalLink,
   KeySquare,
+  ListChecks,
 } from "lucide-react";
 import { useConnectionHealth, useAgencySecrets } from "../../hooks/useApi";
 import {
@@ -32,6 +33,7 @@ import {
 } from "../../lib/connectionHealth";
 import { ConnectionsStyle } from "../../components/admin/settings/ConnectionsStyle";
 import { SecretsTab } from "../../components/admin/settings/SecretsTab";
+import OnboardingManagement from "../../components/admin/onboarding/OnboardingManagement";
 import { ActionBoard } from "../../components/admin/settings/ActionBoard";
 import { buildActionBoard, type ActionItem } from "../../lib/settingsActions";
 
@@ -57,7 +59,7 @@ import { buildActionBoard, type ActionItem } from "../../lib/settingsActions";
 // PillarStyle is mounted once by AdminLayout, so this page renders .pk-root and
 // reads the Modern Motion tokens like every other admin page.
 
-type Tab = "connections" | "surfaces" | "secrets" | "credentials" | "clients";
+type Tab = "connections" | "surfaces" | "secrets" | "credentials" | "clients" | "onboarding";
 
 const TABS: { id: Tab; label: string; icon: typeof Plug }[] = [
   { id: "connections", label: "Connections", icon: Plug },
@@ -65,6 +67,7 @@ const TABS: { id: Tab; label: string; icon: typeof Plug }[] = [
   { id: "secrets", label: "Secrets", icon: KeySquare },
   { id: "credentials", label: "Credentials", icon: KeyRound },
   { id: "clients", label: "Per client", icon: Users },
+  { id: "onboarding", label: "Onboarding checklist", icon: ListChecks },
 ];
 
 function StatePill({ state }: { state: ConnState }) {
@@ -197,6 +200,7 @@ export default function AdminSettings() {
             {tab === "secrets" && <SecretsTab clients={data?.clients ?? []} />}
             {tab === "credentials" && <CredentialsTab />}
             {tab === "clients" && <ClientsTab clients={data?.clients ?? []} loading={isLoading} />}
+            {tab === "onboarding" && <OnboardingManagement />}
           </div>
         )}
       </div>

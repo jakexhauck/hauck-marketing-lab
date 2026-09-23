@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-23-onboarding-checklist",
+    date: "23 September 2026",
+    title: "Onboarding is the setup checklist",
+    items: [
+      "Onboarding now holds the full client setup checklist: Setup, Operations, GHL, GHL Follow Ups and Facebook Ads. It replaces the Google Doc.",
+      "Two views of the same checklist: Stepper goes one pillar at a time, Scroll shows everything. The page remembers which one you used last.",
+      "Setup is where you pick the bundle (Ads only, Ads + Website) and who dials. The client's form answers and sub-account link sit there too.",
+      "Onboarding Call Done has a box for the Fathom link.",
+      "Hover over a client and press the X to delete them from Onboarding. You confirm, then type DELETE. Their account and data are kept.",
+      "Edit the checklist in Settings, under Onboarding checklist. Changes show for every client straight away.",
+    ],
+  },
+  {
     id: "2026-09-23-ad-revenue-no-tag",
     date: "23 September 2026",
     title: "Ad revenue without the tag",

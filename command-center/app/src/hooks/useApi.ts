@@ -1577,6 +1577,76 @@ export function useAdminOnboardingChecklistToggle(tenantId: string) {
   });
 }
 
+// Saves the text box on one checklist step (e.g. the Fathom link). The PUT
+// writes only `value`, so the tick beside it is left alone.
+export function useAdminOnboardingChecklistValue(tenantId: string) {
+  const qc = useQueryClient();
+  const key = ["admin", "onboarding", tenantId, "checklist"];
+  return useMutation({
+    mutationFn: (vars: { taskKey: string; value: string }) =>
+      api<{ ok: true }>(`/api/admin/onboarding/${tenantId}/checklist`, {
+        method: "PUT",
+        body: JSON.stringify(vars),
+      }),
+    onSuccess: (_res, vars) => {
+      qc.setQueryData<AdminOnboardingChecklistResponse>(key, (old) => {
+        const items = old?.items ?? [];
+        const existing = items.find((i) => i.task_key === vars.taskKey);
+        const value = vars.value.trim() || null;
+        return {
+          items: existing
+            ? items.map((i) => (i.task_key === vars.taskKey ? { ...i, value } : i))
+            : [...items, { task_key: vars.taskKey, done: false, value }],
+        };
+      });
+    },
+  });
+}
+
+// The wizard's Setup step: bundle and who dials. Optimistic on the roster,
+// which is where both are read from.
+export function useAdminOnboardingSetupChoice(tenantId: string) {
+  const qc = useQueryClient();
+  const key = ["admin", "onboarding", "list"];
+  return useMutation({
+    mutationFn: (patch: { bundle?: string; dialer?: string }) =>
+      api<{ ok: true }>(`/api/admin/onboarding/${tenantId}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      }),
+    onMutate: async (patch) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<AdminOnboardingListResponse>(key);
+      qc.setQueryData<AdminOnboardingListResponse>(key, (old) =>
+        old
+          ? {
+              clients: old.clients.map((c) => (c.id === tenantId ? { ...c, ...patch } : c)),
+            }
+          : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(key, context.previous);
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: key }),
+  });
+}
+
+// Deletes a client from Onboarding: ticks and Setup choices wiped, status
+// 'removed'. The account itself is untouched (see remove.ts).
+export function useAdminOnboardingRemove() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tenantId: string) =>
+      api<{ ok: true }>(`/api/admin/onboarding/${tenantId}/remove`, { method: "POST" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin", "onboarding"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "clients"] });
+    },
+  });
+}
+
 // The live readiness checks, from GET /api/admin/onboarding/:tenantId/readiness.
 // Every call reaches into GHL for custom values and calendars, so this is slow
 // and deliberately manual: it does not refetch on focus and goes stale slowly.

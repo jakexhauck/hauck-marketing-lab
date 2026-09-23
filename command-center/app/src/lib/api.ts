@@ -560,8 +560,13 @@ export interface AdminOnboardingListItem {
   /** From their own intake answers, so blank until they fill the form in. */
   city: string;
   region: string;
-  /** 'setup' = still on Jake's Onboarding list, 'live' = cleared off it. */
+  /** 'setup' = on Onboarding, 'live' = cleared off it, 'removed' = deleted from it. */
   onboardingStatus: string;
+  /** The wizard's Setup choices; null until picked. */
+  bundle: string | null;
+  dialer: string | null;
+  /** Ids of the checklist steps ticked. Only filled for clients in setup. */
+  doneKeys: string[];
 }
 
 export interface AdminOnboardingListResponse {

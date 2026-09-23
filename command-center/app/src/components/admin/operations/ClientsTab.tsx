@@ -24,7 +24,8 @@ export default function ClientsTab() {
   const rows = useMemo<AccountRowData[]>(
     () =>
       (roster.data?.clients ?? [])
-        .filter((c) => c.onboardingStatus !== "setup")
+        // Live only: a client deleted from Onboarding is not a running client.
+        .filter((c) => c.onboardingStatus === "live")
         .map((c) => ({
           key: `client:${c.id}`,
           name: c.name,
