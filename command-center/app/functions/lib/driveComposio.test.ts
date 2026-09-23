@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { listChildrenOfMany } from "./driveComposio";
+import { copyDriveFile, listChildrenOfMany } from "./driveComposio";
 import type { Env } from "./env";
 
 // The transport's two jobs, both of which the SOPs tab depends on:
@@ -193,5 +193,29 @@ describe("throttling", () => {
       new Response(JSON.stringify({ data: { error: "no access" }, status: 403 }), { status: 200 }),
     );
     await expect(listChildrenOfMany(env, "ca_1", ["a"])).rejects.toThrow(/\(403\)/);
+  });
+});
+
+describe("copyDriveFile", () => {
+  const TEMPLATE = "1jjhVbyGAkj8RaijsySwMznG54_O1Yip6eUt4QCKmB2c";
+  const CLIENT = "1ya0NgEZu5snPMM2eZRgqg6D2FipE5Sxa";
+
+  it("asks Drive to copy the file into the folder under the new name", async () => {
+    fetchMock.mockResolvedValueOnce(
+      proxyOk({ id: "newid", name: "WW | Copy", webViewLink: "https://docs/newid" }),
+    );
+
+    const out = await copyDriveFile(env, "acct", TEMPLATE, CLIENT, "WW | Copy");
+
+    const sent = JSON.parse(String(fetchMock.mock.calls[0][1].body));
+    expect(sent.method).toBe("POST");
+    expect(sent.endpoint).toMatch(new RegExp(`^/files/${TEMPLATE}/copy\?`));
+    expect(sent.body).toEqual({ name: "WW | Copy", parents: [CLIENT] });
+    expect(out).toEqual({ id: "newid", name: "WW | Copy", webViewLink: "https://docs/newid" });
+  });
+
+  it("refuses a bad file id before calling Drive", async () => {
+    await expect(copyDriveFile(env, "acct", "../x", CLIENT, "WW | Copy")).rejects.toThrow("invalid file id");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

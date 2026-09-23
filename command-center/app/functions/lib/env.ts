@@ -89,8 +89,7 @@ export interface Env {
   SOP_DRIVE_FOLDER_ID?: string;
   // The Drive folder a NEW client's folder is created inside, on that same
   // agency account ("🌟 Hauck Marketing", where the live client folders sit).
-  // Unset => creating a client skips the folder and says so, rather than
-  // dropping a client folder in whatever Drive root it could reach.
+  // Optional override; unset means 🌟 Hauck Marketing (clientDriveFolder.ts).
   CLIENT_DRIVE_ROOT_FOLDER_ID?: string;
   // The published client intake form, whole, e.g.
   // https://hauckmarketing.com/onboarding-form. Two jobs from one value: it is

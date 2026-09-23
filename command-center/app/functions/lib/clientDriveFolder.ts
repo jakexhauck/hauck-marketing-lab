@@ -1,14 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Env } from "./env";
-import { composioDriveConfigured, createDriveFolder, resolveDriveAccount } from "./driveComposio";
-import { isValidFileId } from "./driveDirect";
+import {
+  composioDriveConfigured,
+  copyDriveFile,
+  createDriveFolder,
+  listChildrenOfMany,
+  resolveDriveAccount,
+} from "./driveComposio";
+import { isValidFileId, type DriveFile } from "./driveDirect";
 
 // A new client's Google Drive folder, made when the client is created.
 //
-// One folder, empty. There is no agreed structure for the inside of a client
-// folder yet (the live ones disagree with each other), and inventing a skeleton
-// here would put a shape in Drive that nobody chose. When that structure is
-// decided it goes in this file and nowhere else.
+// Jake's layout (2026-09-23), modelled on "🤝 | Above All Garage Doors":
+//   🤝 | Business Name
+//   ├── Finished Creatives/
+//   └── a copy of every doc in "🚀 Client Setup", renamed "WW | Copy" etc.
+// Every doc in that folder is copied, so a template Jake drops in there later
+// is picked up with no code change. The structure lives in this file only.
 //
 // Composio, not the direct grant: the direct OAuth client's consent screen is in
 // Testing, so Google expires its refresh token weekly. Creating a folder is a
@@ -25,6 +33,34 @@ function sanitize(name: string): string {
 
 export function clientFolderName(businessName: string): string {
   return `${CLIENT_FOLDER_PREFIX}${sanitize(businessName)}`;
+}
+
+/** The subfolder every client folder gets. */
+export const FINISHED_CREATIVES_FOLDER = "Finished Creatives";
+
+// Endings that are paperwork, not name: "Made Better LC" is MB, not MBL.
+const COMPANY_ENDINGS = new Set(["LLC", "LC", "PLLC", "INC", "CO", "CORP", "LTD"]);
+
+/** "Willis Windows" -> "WW". The prefix on every copied doc. */
+export function clientInitials(businessName: string): string {
+  const words = businessName
+    .split(/[\s,]+/)
+    .map((w) => w.replace(/[^A-Za-z0-9]/g, ""))
+    .filter(Boolean);
+  const initials = words
+    .filter((w) => !COMPANY_ENDINGS.has(w.toUpperCase()))
+    .map((w) => w[0].toUpperCase())
+    .join("");
+  // A name that is nothing but endings still needs a prefix, or the copy would
+  // be called " | Copy".
+  if (initials) return initials;
+  return words[0]?.[0]?.toUpperCase() ?? "X";
+}
+
+/** "Copy | TEMPLATE" -> "WW | Copy". A doc with no tag just gets the prefix. */
+export function templateCopyName(templateName: string, initials: string): string {
+  const base = templateName.replace(/\s*\|\s*template\s*$/i, "").trim();
+  return `${initials} | ${base}`;
 }
 
 export interface ClientFolder {
@@ -46,16 +82,21 @@ export interface FolderOutcome {
   warning: string | null;
 }
 
+// Not secrets, so they live here. The root's env var still wins, for a move;
+// that env var never being set is what kept this switched off until 2026-09-23.
+const DEFAULT_CLIENT_DRIVE_ROOT = "195VBhcEi4ZHMUxr7yeyWeCIJo8WZC_7Y"; // 🌟 Hauck Marketing
+const SETUP_TEMPLATES_FOLDER = "1pG95hrqE06O9Dam-7IbGW7EO4Bl-dBze"; // 🚀 Client Setup
+
+const SHORTCUT_MIME = "application/vnd.google-apps.shortcut";
+
 /** The Drive folder every client folder is created inside. */
 export function clientDriveRoot(env: Env): string {
-  return (env.CLIENT_DRIVE_ROOT_FOLDER_ID ?? "").trim();
+  return (env.CLIENT_DRIVE_ROOT_FOLDER_ID ?? "").trim() || DEFAULT_CLIENT_DRIVE_ROOT;
 }
+
 
 export async function createClientFolder(env: Env, businessName: string): Promise<FolderOutcome> {
   const root = clientDriveRoot(env);
-  if (!root) {
-    return { folder: null, warning: "No Drive folder was created: CLIENT_DRIVE_ROOT_FOLDER_ID is not set." };
-  }
   if (!isValidFileId(root)) {
     return { folder: null, warning: "No Drive folder was created: CLIENT_DRIVE_ROOT_FOLDER_ID is not a Drive folder id." };
   }
@@ -63,17 +104,66 @@ export async function createClientFolder(env: Env, businessName: string): Promis
     return { folder: null, warning: "No Drive folder was created: Google Drive is not configured." };
   }
 
+  let accountId: string;
+  let made: { id: string; name: string; webViewLink: string | null };
   try {
-    const accountId = await resolveDriveAccount(env);
-    const made = await createDriveFolder(env, accountId, root, clientFolderName(businessName));
-    return {
-      folder: { folderId: made.id, name: made.name, webViewLink: made.webViewLink },
-      warning: null,
-    };
+    accountId = await resolveDriveAccount(env);
+    made = await createDriveFolder(env, accountId, root, clientFolderName(businessName));
   } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    return { folder: null, warning: `No Drive folder was created: ${detail}` };
+    return { folder: null, warning: `No Drive folder was created: ${errText(err)}` };
   }
+
+  const problems = await fillClientFolder(env, accountId, made.id, businessName);
+  return {
+    folder: { folderId: made.id, name: made.name, webViewLink: made.webViewLink },
+    warning: problems.length ? `The Drive folder was made, but ${problems.join("; ")}.` : null,
+  };
+}
+
+/**
+ * The inside of a new client folder. Returns what went wrong, one entry per
+ * failure, so one bad copy never costs the others. One call at a time: the
+ * Composio quota is shared and answers bursts with 429.
+ */
+async function fillClientFolder(
+  env: Env,
+  accountId: string,
+  folderId: string,
+  businessName: string,
+): Promise<string[]> {
+  const problems: string[] = [];
+
+  try {
+    await createDriveFolder(env, accountId, folderId, FINISHED_CREATIVES_FOLDER);
+  } catch (err) {
+    problems.push(`${FINISHED_CREATIVES_FOLDER} was not created (${errText(err)})`);
+  }
+
+  const setup = SETUP_TEMPLATES_FOLDER;
+  let templates: DriveFile[];
+  try {
+    templates = (await listChildrenOfMany(env, accountId, [setup])).get(setup) ?? [];
+  } catch (err) {
+    problems.push(`the setup templates could not be read (${errText(err)})`);
+    return problems;
+  }
+
+  const initials = clientInitials(businessName);
+  for (const t of templates) {
+    // Drive cannot copy a folder, and a shortcut would copy as a dead link.
+    if (t.isFolder || t.mimeType === SHORTCUT_MIME) continue;
+    const name = templateCopyName(t.name, initials);
+    try {
+      await copyDriveFile(env, accountId, t.id, folderId, name);
+    } catch (err) {
+      problems.push(`${name} was not copied (${errText(err)})`);
+    }
+  }
+  return problems;
+}
+
+function errText(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 /**

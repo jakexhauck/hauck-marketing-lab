@@ -339,13 +339,13 @@ export const CONNECTIONS: ConnectionDef[] = [
       },
       {
         // Same shape as the SOP folder above: a location, not a credential.
-        // Unset costs a new client its Drive folder and says so on the screen
-        // that would have made it; nothing else notices.
+        // Unset falls back to 🌟 Hauck Marketing, hard-coded in
+        // functions/lib/clientDriveFolder.ts.
         name: "CLIENT_DRIVE_ROOT_FOLDER_ID",
         home: "cloudflare",
         inDoppler: true,
         optional: true,
-        note: "The folder a new client's own folder is created inside. Unset means creating a client skips the folder and warns.",
+        note: "The folder a new client's own folder is created inside. Unset means 🌟 Hauck Marketing.",
       },
     ],
     surfaces: [

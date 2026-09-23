@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-23-client-drive-folder",
+    date: "23 September 2026",
+    title: "New clients get their Drive folder",
+    items: [
+      "Creating a client makes their folder in 🌟 Hauck Marketing, named 🤝 | Business Name.",
+      "Inside: a Finished Creatives folder and a copy of every doc in 🚀 Client Setup, named with the client's initials (WW | Copy, WW | Video Scripts).",
+      "Initials are the first letter of each word. Endings like LLC, LC and Inc are left off.",
+      "Drop a new template into 🚀 Client Setup and every client after that gets a copy.",
+    ],
+  },
+  {
     id: "2026-09-23-client-dials-own-leads",
     date: "23 September 2026",
     title: "Clients who dial their own leads",

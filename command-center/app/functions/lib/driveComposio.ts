@@ -256,6 +256,42 @@ export async function createDriveFolder(
   };
 }
 
+/**
+ * Copy a file into `parentId` under `name`. Google makes the copy on its side,
+ * so no file bytes pass through Composio (which cannot carry them).
+ */
+export async function copyDriveFile(
+  env: Env,
+  accountId: string,
+  fileId: string,
+  parentId: string,
+  name: string,
+): Promise<{ id: string; name: string; webViewLink: string | null }> {
+  if (!isValidFileId(fileId)) throw new Error(`invalid file id: ${fileId}`);
+  if (!isValidFileId(parentId)) throw new Error(`invalid parent folder id: ${parentId}`);
+  const clean = name.trim();
+  if (!clean) throw new Error("a file name is required");
+
+  const params = new URLSearchParams({
+    fields: "id,name,webViewLink",
+    supportsAllDrives: "true",
+  });
+  const data = asObject(
+    await proxyPost(env, accountId, `/files/${fileId}/copy?${params}`, {
+      name: clean,
+      parents: [parentId],
+    }),
+    "copy",
+  );
+  const id = typeof data.id === "string" ? data.id : "";
+  if (!id) throw new Error("Drive copied a file but returned no id.");
+  return {
+    id,
+    name: typeof data.name === "string" ? data.name : clean,
+    webViewLink: typeof data.webViewLink === "string" ? data.webViewLink : null,
+  };
+}
+
 // `parents` rides along because the batched read below asks for several folders
 // at once and Drive answers with one flat list; the parent is the only thing
 // that says which folder a file came back for.
