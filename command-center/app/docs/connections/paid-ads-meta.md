@@ -17,16 +17,16 @@ soon" by design: it is for real landing funnels, not lead forms (Jake, 2026-07-0
   - Insights: best ads, leads-vs-last-month, source split (publisher_platform).
 - ✅ **GHL join** for "New customers", "Revenue from ads" and "Your return"
   (ROAS) on the Overview. Meta can't know which ad leads became paid jobs for a
-  lead-gen business, so `functions/lib/adsRevenue.ts` counts this month's Job
-  Completed opportunities whose contact carries the **`facebook ads`** tag, sums
-  their opportunity `monetaryValue` (= revenue), and `roas = revenue / spend`.
-  - Jake's real flow: every ad lead is tagged `facebook ads`, runs Paid Ad's
-    Pipeline → Sales Pipeline, and the job value is set on the opp at Job
-    Completed.
+  lead-gen business, so `functions/lib/adsRevenue.ts` counts **every** Job
+  Completed opportunity this month, sums their opportunity `monetaryValue`
+  (= revenue), and `roas = revenue / spend`.
+  - Every client is ads-only (Jake, 2026-09-23), so every completed job is an
+    ad job. The old `facebook ads` tag filter is gone: the tagging workflow was
+    never reliably built, so real ad revenue read as zero.
+  - The lead runs Paid Ad's Pipeline → Sales Pipeline, and the job value is set
+    on the opp at Job Completed.
   - Sales pipeline + Job Completed stage resolved BY NAME per tenant (never by
-    id). Contact tags read one contact at a time, capped at 100 newest
-    completions (`truncated` flag if a client ever exceeds that; not surfaced to
-    the client UI).
+    id). No per-contact reads.
   - Windowed to the current month (tenant timezone) so it lines up with Meta's
     this-month spend and ROAS reads honestly. `customers`/`revenue`/`roas` are an
     honest 0/$0/0x until the first ad job completes (Jake's call: honest zeros,
@@ -68,7 +68,7 @@ soon" by design: it is for real landing funnels, not lead forms (Jake, 2026-07-0
 ## Known gaps (follow-ups)
 
 - ✅ **"New customers" / ad revenue / ROAS** — DONE. Wired via the GHL join above
-  (`functions/lib/adsRevenue.ts`, `facebook ads` tag → Job Completed value).
+  (`functions/lib/adsRevenue.ts`, every Job Completed value).
 - ❌ **Real ad thumbnails** — the Creatives grid uses gradient placeholders; Meta
   `creative.thumbnail_url` is available but not hotlinked yet (CSP/format).
 - ❌ **"Best time of day"** card was dropped from the real Insights view (needs an

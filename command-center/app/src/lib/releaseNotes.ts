@@ -26,11 +26,12 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
-    id: "2026-09-23-link-tag-check",
+    id: "2026-09-23-ad-revenue-no-tag",
     date: "23 September 2026",
-    title: "Linking a sub-account",
+    title: "Ad revenue without the tag",
     items: [
-      "Linking no longer says \"Did not write: facebook ads\" when the sub-account already has the tag.",
+      "Revenue from ads and ROAS count every job in Job Completed. Contacts no longer need the facebook ads tag.",
+      "Linking a sub-account no longer creates the facebook ads tag, so the \"Did not write: facebook ads\" warning is gone.",
     ],
   },
   {

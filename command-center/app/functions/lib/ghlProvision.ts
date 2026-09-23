@@ -9,12 +9,14 @@ import { ghlJson, type GhlContext } from "./ghl";
 // picking a custom value from a dropdown rather than pasting a URL and a secret
 // by hand into every action.
 //
-// Idempotent by name, so the button is safe to press repeatedly: custom values
-// read first and only write what is missing or wrong; tags lean on GHL refusing
-// a duplicate name.
+// Idempotent by name: it reads first and only writes what is missing or wrong,
+// so the button is safe to press repeatedly.
+//
+// It used to create a "facebook ads" tag too. Gone 2026-09-23: every client is
+// ads-only, so ad revenue counts every Job Completed and no tag is needed.
 
 export interface ProvisionItem {
-  kind: "custom_value" | "tag";
+  kind: "custom_value";
   name: string;
   // "created" | "updated" | "already correct" | "failed: <reason>"
   outcome: string;
@@ -34,11 +36,6 @@ interface CustomValue {
 // That is exactly where it lives today, pasted into each workflow action by
 // hand; this makes it one copy instead of fourteen.
 export const WEBHOOK_URL_VALUE_NAME = "Command Center Webhook URL";
-
-// Tags the app's own reads depend on. The paid-ads revenue join counts
-// customers carrying this tag, so a sub-account without it reports zero revenue
-// from ads and looks like a campaign that never converted.
-export const REQUIRED_TAGS = ["facebook ads"];
 
 async function upsertCustomValue(
   gctx: GhlContext,
@@ -76,37 +73,11 @@ async function upsertCustomValue(
   }
 }
 
-// Create, never read first. The Marketplace app holds locations/tags.write but
-// not tags.readonly, so listing tags 401s on every app-linked client. GHL
-// refuses a duplicate name with a 400 "already exist", which is the idempotency
-// check for free.
-async function ensureTag(gctx: GhlContext, name: string): Promise<ProvisionItem> {
-  try {
-    await ghlJson(gctx, `/locations/${encodeURIComponent(gctx.locationId)}/tags`, {
-      method: "POST",
-      body: JSON.stringify({ name }),
-    });
-    return { kind: "tag", name, outcome: "created" };
-  } catch (err) {
-    const message = (err as Error).message;
-    if (/returned 400:.*already exist/i.test(message)) {
-      return { kind: "tag", name, outcome: "already correct" };
-    }
-    return { kind: "tag", name, outcome: `failed: ${message}` };
-  }
-}
-
 // Run every provision step. Each step reports its own outcome rather than the
-// whole run failing on the first error: a locked-down sub-account that refuses
-// tag writes should still get its custom value.
+// whole run failing on the first error.
 export async function provisionLocation(
   gctx: GhlContext,
   webhookUrl: string,
 ): Promise<ProvisionItem[]> {
-  const items: ProvisionItem[] = [];
-  items.push(await upsertCustomValue(gctx, WEBHOOK_URL_VALUE_NAME, webhookUrl));
-  for (const tag of REQUIRED_TAGS) {
-    items.push(await ensureTag(gctx, tag));
-  }
-  return items;
+  return [await upsertCustomValue(gctx, WEBHOOK_URL_VALUE_NAME, webhookUrl)];
 }

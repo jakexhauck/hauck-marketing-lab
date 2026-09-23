@@ -3,7 +3,6 @@ import {
   resolveCompletedStage,
   completedInMonth,
   tallyRevenue,
-  hasAdTag,
 } from "./adsRevenue";
 import type { GhlOpportunity } from "./ghl";
 
@@ -74,18 +73,5 @@ describe("tallyRevenue", () => {
 
   it("is zero for no wins", () => {
     expect(tallyRevenue([])).toEqual({ customers: 0, revenue: 0 });
-  });
-});
-
-describe("hasAdTag", () => {
-  it("matches the facebook ads tag case-insensitively and by contains", () => {
-    expect(hasAdTag(["Facebook Ads"])).toBe(true);
-    expect(hasAdTag(["facebook ad"])).toBe(true);
-    expect(hasAdTag(["VIP", "  FACEBOOK ADS  "])).toBe(true);
-  });
-
-  it("is false without the tag", () => {
-    expect(hasAdTag(["referral", "google"])).toBe(false);
-    expect(hasAdTag(undefined)).toBe(false);
   });
 });

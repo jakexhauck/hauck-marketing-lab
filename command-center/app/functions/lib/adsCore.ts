@@ -29,7 +29,7 @@ export { actionsValue, ACTION_GROUPS } from "./metaActions";
 // "New customers", "Revenue from ads" and "Your return" (ROAS) can't come from
 // Meta for a lead-gen business: only GHL knows which ad leads became paid jobs.
 // Those three come from a GHL join (functions/lib/adsRevenue.ts) over this
-// month's Job Completed opportunities tagged "facebook ads". Everything else is
+// month's Job Completed opportunities (every client is ads-only). Everything else is
 // Meta. Because the join is several GHL round-trips, the whole payload is cached
 // per account+location+month in KV for 15 minutes when a KV_CACHE binding exists.
 //

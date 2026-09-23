@@ -123,9 +123,8 @@ function stubFetch() {
           ],
         });
       }
-      if (url.pathname === "/contacts/c1") {
-        return jsonRes({ contact: { tags: ["facebook ads"] } });
-      }
+      // No /contacts handler on purpose: every Job Completed opp counts as ad
+      // revenue with no per-contact tag lookup, so a contact read is a bug.
     }
     throw new Error("unexpected fetch: " + input);
   });

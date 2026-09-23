@@ -10,30 +10,23 @@ import {
 // ads" and "Your return" (ROAS) tiles. Meta can tell us spend and leads, but for
 // a lead-gen business only GHL knows which of those leads became a paid job.
 //
-// Jake's real GHL flow: every ad lead is tagged "facebook ads"; the lead runs
-// through the Paid Ad's Pipeline, then the Sales Pipeline, and when the job is
-// done it lands in Job Completed with the job's dollar value on the opportunity.
-// So an ad-won customer = a Job Completed opportunity whose contact carries the
-// "facebook ads" tag, and its revenue = that opportunity's monetaryValue.
+// Jake's real GHL flow: the lead runs through the Paid Ad's Pipeline, then the
+// Sales Pipeline, and when the job is done it lands in Job Completed with the
+// job's dollar value on the opportunity. Every client is ads-only (Jake's call,
+// 2026-09-23: no websites, no review funnels), so EVERY Job Completed
+// opportunity is an ad-won customer and its revenue is its monetaryValue. There
+// is deliberately no "facebook ads" tag check any more: the tagging workflow was
+// never reliably built (5 of Willis's 199 contacts carried it), so the tag made
+// real ad revenue read as zero.
 //
 // Windowed to the current month so it lines up with Meta's this-month spend and
 // the ROAS reads honestly against it.
-
-// The tag GHL adds to every ad lead (matched case-insensitively, and by a loose
-// contains so "Facebook Ads" / "facebook ad" all resolve).
-const AD_TAG = "facebook ad";
 
 // How the completed-job pipeline + stage are found per tenant. IDs differ per
 // client, so resolve by name, never hardcode. Exact match first, then a looser
 // contains, mirroring functions/api/reviews.
 const SALES_PIPELINE = "sales pipeline";
 const JOB_COMPLETED_STAGE = "job completed";
-
-// Cap on the per-contact tag lookups. Only completed-job contacts are ever
-// looked up (already a small set), but bound the fan-out so an unusually long
-// history can't spray hundreds of contact reads. Newest completions win the
-// budget; anything beyond is reported as truncated.
-const TAG_LOOKUP_CAP = 100;
 
 interface PipelinesResponse {
   pipelines: {
@@ -43,20 +36,12 @@ interface PipelinesResponse {
   }[];
 }
 
-interface GhlContactResponse {
-  contact?: { tags?: string[] };
-}
-
 export interface AdRevenue {
   customers: number;
   revenue: number;
-  // True when the completed-job history exceeded TAG_LOOKUP_CAP, so revenue is a
-  // floor (newest N counted). The caller surfaces this to the connections doc,
-  // not the client UI.
-  truncated: boolean;
 }
 
-const ZERO: AdRevenue = { customers: 0, revenue: 0, truncated: false };
+const ZERO: AdRevenue = { customers: 0, revenue: 0 };
 
 function norm(s: string): string {
   return s.trim().toLowerCase();
@@ -106,18 +91,13 @@ export function completedInMonth(
     .sort((a, b) => +new Date(completedAt(b)) - +new Date(completedAt(a)));
 }
 
-// Pure core: tally customers + revenue from the ad-tagged completed opps.
+// Pure core: tally customers + revenue from the completed opps.
 export function tallyRevenue(adWon: GhlOpportunity[]): { customers: number; revenue: number } {
   let revenue = 0;
   for (const o of adWon) {
     revenue += typeof o.monetaryValue === "number" ? o.monetaryValue : 0;
   }
   return { customers: adWon.length, revenue: Math.round(revenue * 100) / 100 };
-}
-
-// Does a contact's tag list mark it as an ad lead?
-export function hasAdTag(tags: string[] | undefined): boolean {
-  return (tags ?? []).some((t) => norm(t).includes(AD_TAG));
 }
 
 // The full join: this month's ad-won customers and their revenue for one tenant.
@@ -139,30 +119,5 @@ export async function adRevenueThisMonth(
   const monthKey = dateStringInZone(zone, nowMs).slice(0, 7);
   const opps = await fetchAllOpportunities(gctx, { pipelineId: resolved.pipelineId });
   const completed = completedInMonth(opps, resolved.stageId, monthKey, zone);
-  if (completed.length === 0) return ZERO;
-
-  const truncated = completed.length > TAG_LOOKUP_CAP;
-  const budget = truncated ? completed.slice(0, TAG_LOOKUP_CAP) : completed;
-
-  // Keep only the completions whose contact carries the ad tag. One read per
-  // completed contact; a single failed read drops that opp (never counts a job
-  // we can't attribute), like functions/api/reviews.
-  const adWon = (
-    await Promise.all(
-      budget.map(async (o) => {
-        const id = (o.contactId ?? o.contact?.id) as string;
-        try {
-          const data = await ghlJson<GhlContactResponse>(
-            gctx,
-            `/contacts/${encodeURIComponent(id)}`,
-          );
-          return hasAdTag(data.contact?.tags) ? o : null;
-        } catch {
-          return null;
-        }
-      }),
-    )
-  ).filter((o): o is GhlOpportunity => o !== null);
-
-  return { ...tallyRevenue(adWon), truncated };
+  return tallyRevenue(completed);
 }
