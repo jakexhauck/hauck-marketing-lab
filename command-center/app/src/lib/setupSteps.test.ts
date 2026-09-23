@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   MAX_LABEL,
   SETUP_SECTIONS,
+  SOFTWARE_LIVE_CODE,
   blockingSteps,
   groupSteps,
   isSetupSection,
@@ -83,8 +84,11 @@ describe("the seed", () => {
     }
   });
 
-  it("wires nothing to a live check", () => {
-    expect(seedRows().every((r) => r.code === null)).toBe(true);
+  it("wires only Software Account Made, which Software setup ticks", () => {
+    const coded = seedRows().filter((r) => r.code);
+    expect(coded.map((r) => [r.label, r.code])).toEqual([
+      ["Software Account Made", SOFTWARE_LIVE_CODE],
+    ]);
   });
 });
 

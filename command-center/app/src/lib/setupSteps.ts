@@ -138,7 +138,15 @@ interface SeedStep {
   label: string;
   group?: string;
   field?: string;
+  code?: string;
 }
+
+/**
+ * The step Software setup's Submit ticks. Matched on this code, never on the
+ * label, so renaming it in Settings keeps the wiring (migration 0132 gave the
+ * already-seeded row its code).
+ */
+export const SOFTWARE_LIVE_CODE = "software-live";
 
 // Jake's client setup doc, as it stood on 2026-09-23.
 const SEED: Record<SetupSection, SeedStep[]> = {
@@ -148,7 +156,7 @@ const SEED: Record<SetupSection, SeedStep[]> = {
     { label: "Onboarding Call Done", field: "Fathom link" },
     { label: "Marketing Assets Sent" },
     { label: "Ad Account Access" },
-    { label: "Software Account Made" },
+    { label: "Software Account Made", code: SOFTWARE_LIVE_CODE },
   ],
   ghl_setup: [
     { label: "Add Jake & Client As Staff" },
@@ -195,7 +203,7 @@ export function seedRows(): SeedRow[] {
       // Spaced so a step can be dropped between two without renumbering.
       position: (index + 1) * 10,
       required: true,
-      code: null,
+      code: step.code ?? null,
     })),
   );
 }

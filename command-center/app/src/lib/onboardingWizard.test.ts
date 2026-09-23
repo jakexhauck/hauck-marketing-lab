@@ -61,16 +61,8 @@ describe("pillarProgress", () => {
 });
 
 describe("clientProgress", () => {
-  it("counts Setup as one item, done once both choices are made", () => {
-    expect(clientProgress(steps, new Set(), null, null)).toEqual({ done: 0, total: 5 });
-    expect(clientProgress(steps, new Set(), "ads", null)).toEqual({ done: 0, total: 5 });
-    expect(clientProgress(steps, new Set(), "ads", "agency")).toEqual({ done: 1, total: 5 });
-  });
-
   it("adds every pillar's ticks", () => {
-    expect(clientProgress(steps, new Set(["a", "b", "c", "d"]), "ads", "client")).toEqual({
-      done: 5,
-      total: 5,
-    });
+    expect(clientProgress(steps, new Set())).toEqual({ done: 0, total: 4 });
+    expect(clientProgress(steps, new Set(["a", "c", "gone"]))).toEqual({ done: 2, total: 4 });
   });
 });

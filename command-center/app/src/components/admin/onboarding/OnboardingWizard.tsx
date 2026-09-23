@@ -105,7 +105,7 @@ export default function OnboardingWizard({ view }: { view: WizardView }) {
         {rows.map((row) => {
           const on = row.key === current?.key;
           const progress = row.client
-            ? pct(clientProgress(stepList, new Set(row.client.doneKeys), row.client.bundle, row.client.dialer))
+            ? pct(clientProgress(stepList, new Set(row.client.doneKeys)))
             : null;
           return (
             <div key={row.key} className="group relative">
@@ -126,7 +126,16 @@ export default function OnboardingWizard({ view }: { view: WizardView }) {
                   {row.initials}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13.5px] font-semibold text-text">{row.name}</span>
+                  <span className="flex items-center gap-1.5 text-[13.5px] font-semibold text-text">
+                    <span className="truncate">{row.name}</span>
+                    {row.client?.softwareLiveAt && (
+                      <span
+                        className="h-[7px] w-[7px] shrink-0 rounded-full bg-positive"
+                        title="Software live"
+                        aria-label="Software live"
+                      />
+                    )}
+                  </span>
                   {progress === null ? (
                     <span className="block truncate text-[11.5px] text-faint">{row.sub}</span>
                   ) : (
@@ -164,7 +173,7 @@ export default function OnboardingWizard({ view }: { view: WizardView }) {
       <div className="min-w-0">
         {current?.client ? (
           <ClientWizard
-            // Keyed so Stepper starts back at Setup, and Scroll re-derives which
+            // Keyed so Stepper starts back at the first pillar, and Scroll re-derives which
             // pillars are open, whenever a different client is picked.
             key={current.client.id}
             client={current.client}

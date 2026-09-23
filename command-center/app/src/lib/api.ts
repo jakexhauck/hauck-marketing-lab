@@ -562,9 +562,11 @@ export interface AdminOnboardingListItem {
   region: string;
   /** 'setup' = on Onboarding, 'live' = cleared off it, 'removed' = deleted from it. */
   onboardingStatus: string;
-  /** The wizard's Setup choices; null until picked. */
+  /** Software setup's choices; null until submitted. */
   bundle: string | null;
   dialer: string | null;
+  /** When Software setup was submitted. Null = not set up yet. */
+  softwareLiveAt: string | null;
   /** Ids of the checklist steps ticked. Only filled for clients in setup. */
   doneKeys: string[];
 }

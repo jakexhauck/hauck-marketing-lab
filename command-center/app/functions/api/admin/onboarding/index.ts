@@ -10,7 +10,7 @@ import { isRetiredTenant } from "../../../lib/retiredTenant";
 // that reopening a client who has already gone live needs no second request.
 //
 // Each client also carries what the wizard's roster needs to draw its progress
-// bar without a request per client: the Setup choices and the ids of the steps
+// bar without a request per client: the Software setup choices and the ids of the steps
 // ticked. The browser counts them against the live step list, so a step removed
 // in Settings stops counting without anything here changing.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -20,7 +20,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const { data: tenants, error } = await client
     .from("tenants")
     .select(
-      "id, name, slug, niche, brand_color, brand_initials, onboarding_status, onboarding_bundle, onboarding_dialer",
+      "id, name, slug, niche, brand_color, brand_initials, onboarding_status, onboarding_bundle, onboarding_dialer, software_live_at",
     )
     .order("created_at", { ascending: true });
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -67,6 +67,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       onboarding_status: string | null;
       onboarding_bundle: string | null;
       onboarding_dialer: string | null;
+      software_live_at: string | null;
     }[]
   )
     // Same rule as /api/admin/clients: a retired account is not a client.
@@ -88,6 +89,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       onboardingStatus: t.onboarding_status ?? "live",
       bundle: t.onboarding_bundle,
       dialer: t.onboarding_dialer,
+      softwareLiveAt: t.software_live_at,
       doneKeys: doneById.get(t.id) ?? [],
     };
   });

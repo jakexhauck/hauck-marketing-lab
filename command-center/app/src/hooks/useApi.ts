@@ -1603,33 +1603,20 @@ export function useAdminOnboardingChecklistValue(tenantId: string) {
   });
 }
 
-// The wizard's Setup step: bundle and who dials. Optimistic on the roster,
-// which is where both are read from.
-export function useAdminOnboardingSetupChoice(tenantId: string) {
+// Software setup's Submit: saves bundle and who dials, stamps the software as
+// live and ticks Software Account Made, so the roster and checklist refetch.
+export function useAdminOnboardingSoftwareSubmit(tenantId: string) {
   const qc = useQueryClient();
-  const key = ["admin", "onboarding", "list"];
   return useMutation({
-    mutationFn: (patch: { bundle?: string; dialer?: string }) =>
-      api<{ ok: true }>(`/api/admin/onboarding/${tenantId}`, {
-        method: "PATCH",
-        body: JSON.stringify(patch),
-      }),
-    onMutate: async (patch) => {
-      await qc.cancelQueries({ queryKey: key });
-      const previous = qc.getQueryData<AdminOnboardingListResponse>(key);
-      qc.setQueryData<AdminOnboardingListResponse>(key, (old) =>
-        old
-          ? {
-              clients: old.clients.map((c) => (c.id === tenantId ? { ...c, ...patch } : c)),
-            }
-          : old,
-      );
-      return { previous };
+    mutationFn: (body: { bundle: string; dialer: string }) =>
+      api<{ ok: true; softwareLiveAt: string; ticked: boolean }>(
+        `/api/admin/onboarding/${tenantId}/software`,
+        { method: "POST", body: JSON.stringify(body) },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin", "onboarding", "list"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "onboarding", tenantId, "checklist"] });
     },
-    onError: (_err, _vars, context) => {
-      if (context?.previous) qc.setQueryData(key, context.previous);
-    },
-    onSettled: () => void qc.invalidateQueries({ queryKey: key }),
   });
 }
 

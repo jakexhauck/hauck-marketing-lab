@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-23-software-setup",
+    date: "23 September 2026",
+    title: "Software setup",
+    items: [
+      "Each client on Onboarding has a Software setup button. It opens a pop-up: pick the bundle, pick who dials, review, then Submit.",
+      "Submit marks the software as live. The button turns grey with a green tick, the client gets a green dot in the list, and Software Account Made ticks itself. Click the button again to change an answer.",
+      "The Setup step is gone from the checklist. Onboarding is Operations, GHL, GHL Follow Ups and Facebook Ads.",
+      "Form answers fold into one line under the client's name. Click it to open them, click again to close.",
+    ],
+  },
+  {
     id: "2026-09-23-onboarding-checklist",
     date: "23 September 2026",
     title: "Onboarding is the setup checklist",

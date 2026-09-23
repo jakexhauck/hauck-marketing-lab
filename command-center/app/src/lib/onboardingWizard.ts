@@ -1,10 +1,10 @@
-// The Onboarding wizard's own rules: what the Setup step offers, and how far
+// The Onboarding wizard's own rules: what Software setup offers, and how far
 // along a client is.
 //
-// Setup counts as one item, done once both a bundle and a dialer are picked.
-// The four checklist pillars count their own steps (src/lib/setupSteps.ts).
-// Neither choice filters the checklist yet: which items each one adds or
-// removes is still Jake's to decide.
+// Progress is the four checklist pillars' steps (src/lib/setupSteps.ts).
+// Software setup is its own pop-up, not a pillar: its Submit ticks Software
+// Account Made, which is how it counts. Neither choice changes the checklist
+// or the client's app yet: what each one does is still Jake's to decide.
 
 import { SETUP_SECTIONS, type SetupSection, type SetupStepRow } from "./setupSteps";
 
@@ -51,18 +51,9 @@ export function pillarProgress(
   return { done: mine.filter((s) => doneIds.has(s.id)).length, total: mine.length };
 }
 
-export function setupDone(bundle: string | null, dialer: string | null): boolean {
-  return isBundle(bundle) && isDialer(dialer);
-}
-
-export function clientProgress(
-  steps: SetupStepRow[],
-  doneIds: Set<string>,
-  bundle: string | null,
-  dialer: string | null,
-): Progress {
-  let done = setupDone(bundle, dialer) ? 1 : 0;
-  let total = 1;
+export function clientProgress(steps: SetupStepRow[], doneIds: Set<string>): Progress {
+  let done = 0;
+  let total = 0;
   for (const s of SETUP_SECTIONS) {
     const p = pillarProgress(steps, s.id, doneIds);
     done += p.done;

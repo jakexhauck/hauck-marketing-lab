@@ -7,7 +7,7 @@ import { logAdminAction } from "../../../../lib/adminAuth";
 // Delete a client from Onboarding (Jake, 2026-09-23): the X on their roster
 // row, behind a confirm and a typed DELETE.
 //
-// Removes the onboarding record only. Their ticks and Setup choices are wiped
+// Removes the onboarding record only. Their ticks and Software setup are wiped
 // and they are marked 'removed', which takes them off Onboarding and off
 // Operations > Clients. The account itself, its data, and their GHL and Meta
 // accounts are untouched, so a mistake is one status flip away from undone.
@@ -31,7 +31,12 @@ export const onRequestPost: PagesFunction<Env, "tenantId", ApiData> = async (ctx
 
   const { error } = await client
     .from("tenants")
-    .update({ onboarding_status: "removed", onboarding_bundle: null, onboarding_dialer: null })
+    .update({
+      onboarding_status: "removed",
+      onboarding_bundle: null,
+      onboarding_dialer: null,
+      software_live_at: null,
+    })
     .eq("id", tenantId);
   if (error) return Response.json({ error: error.message }, { status: 500 });
 

@@ -2,24 +2,23 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { Button } from "../../ui/Button";
 import { ClientSheet } from "./OnboardingSheet";
+import SoftwareDialog from "./SoftwareDialog";
 import {
   useAdminOnboardingChecklistQuery,
   useAdminOnboardingChecklistToggle,
   useAdminOnboardingChecklistValue,
   useAdminOnboardingGoLive,
-  useAdminOnboardingSetupChoice,
+  useAdminOnboardingQuery,
 } from "../../../hooks/useApi";
 import type { AdminOnboardingListItem } from "../../../lib/api";
-import { SETUP_SECTIONS, groupSteps, type SetupSection, type SetupStepRow } from "../../../lib/setupSteps";
 import {
-  BUNDLES,
-  DIALERS,
-  bundleLabel,
-  dialerLabel,
-  pillarProgress,
-  setupDone,
-  type Progress,
-} from "../../../lib/onboardingWizard";
+  SETUP_SECTIONS,
+  SOFTWARE_LIVE_CODE,
+  groupSteps,
+  type SetupSection,
+  type SetupStepRow,
+} from "../../../lib/setupSteps";
+import { bundleLabel, dialerLabel, pillarProgress, type Progress } from "../../../lib/onboardingWizard";
 
 // One client's onboarding, in either view.
 //
@@ -27,13 +26,15 @@ import {
 // all out, finished ones folded shut. Same data, same controls: the view is
 // only how much of it is on screen at once.
 //
-// Go live sits in the header in both views and is never locked (Jake,
-// 2026-08-15): the judgement of when a client is ready is his, not a count's.
+// The header carries Software setup (a pop-up, SoftwareDialog) and Go live.
+// Go live is never locked (Jake, 2026-08-15): the judgement of when a client is
+// ready is his, not a count's. Under the header, the client's form answers sit
+// folded into one line until opened.
 
 export type WizardView = "stepper" | "scroll";
 
-type Pillar = { id: "setup" | SetupSection; label: string };
-const PILLARS: Pillar[] = [{ id: "setup", label: "Setup" }, ...SETUP_SECTIONS];
+type Pillar = { id: SetupSection; label: string };
+const PILLARS: Pillar[] = SETUP_SECTIONS;
 
 export default function ClientWizard({
   client,
@@ -49,8 +50,9 @@ export default function ClientWizard({
   const checklist = useAdminOnboardingChecklistQuery(client.id);
   const toggle = useAdminOnboardingChecklistToggle(client.id);
   const saveValue = useAdminOnboardingChecklistValue(client.id);
-  const choose = useAdminOnboardingSetupChoice(client.id);
   const goLive = useAdminOnboardingGoLive(client.id);
+  const [software, setSoftware] = useState(false);
+  const openSoftware = () => setSoftware(true);
 
   const { doneIds, values } = useMemo(() => {
     const items = checklist.data?.items ?? [];
@@ -60,19 +62,9 @@ export default function ClientWizard({
     };
   }, [checklist.data]);
 
-  const progressOf = (id: Pillar["id"]): Progress =>
-    id === "setup"
-      ? { done: setupDone(client.bundle, client.dialer) ? 1 : 0, total: 1 }
-      : pillarProgress(steps, id, doneIds);
+  const progressOf = (id: Pillar["id"]): Progress => pillarProgress(steps, id, doneIds);
 
-  const body = (id: Pillar["id"]) =>
-    id === "setup" ? (
-      <SetupBody
-        client={client}
-        onBundle={(bundle) => choose.mutate({ bundle })}
-        onDialer={(dialer) => choose.mutate({ dialer })}
-      />
-    ) : (
+  const body = (id: Pillar["id"]) => (
       <PillarBody
         steps={steps}
         section={id}
@@ -81,13 +73,13 @@ export default function ClientWizard({
         loading={checklist.isLoading}
         onToggle={(taskKey, done) => toggle.mutate({ taskKey, done })}
         onValue={(taskKey, value) => saveValue.mutate({ taskKey, value })}
+        onSoftware={openSoftware}
       />
     );
 
-  const chips = [bundleLabel(client.bundle), dialerLabel(client.dialer)].filter(Boolean);
-
   const header = (
-    <div className="flex flex-wrap items-center gap-3 border-b border-divider px-5 py-4">
+    <>
+    <div className="flex flex-wrap items-center gap-3 px-5 py-4">
       <span
         className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius)] font-display text-[12px] font-bold text-white"
         style={{ background: client.brandColor || "var(--brand)" }}
@@ -101,17 +93,7 @@ export default function ClientWizard({
         </h2>
         {subtitle && <p className="truncate text-[12.5px] text-faint">{subtitle}</p>}
       </div>
-      {chips.map((c, i) => (
-        <span
-          key={c}
-          className={
-            "rounded-full px-2.5 py-1 text-[11.5px] font-semibold " +
-            (i === 0 ? "bg-brand-tint text-brand-text" : "bg-surface-3 text-muted")
-          }
-        >
-          {c}
-        </span>
-      ))}
+      <SoftwareButton client={client} onOpen={openSoftware} />
       {goLive.isError && (
         <span className="text-[12px] font-medium text-danger">
           {(goLive.error as Error)?.message ?? "That did not work."}
@@ -121,12 +103,87 @@ export default function ClientWizard({
         Go live
       </Button>
     </div>
+    <FormAnswers tenantId={client.id} />
+    </>
   );
 
-  return view === "stepper" ? (
-    <StepperView header={header} progressOf={progressOf} body={body} />
-  ) : (
-    <ScrollView header={header} progressOf={progressOf} body={body} />
+  return (
+    <>
+      {view === "stepper" ? (
+        <StepperView header={header} progressOf={progressOf} body={body} />
+      ) : (
+        <ScrollView header={header} progressOf={progressOf} body={body} />
+      )}
+      {software && <SoftwareDialog client={client} onClose={() => setSoftware(false)} />}
+    </>
+  );
+}
+
+// Grey until submitted, then grey with a green ticked box: done, and still
+// clickable to change an answer.
+function SoftwareButton({
+  client,
+  onOpen,
+}: {
+  client: AdminOnboardingListItem;
+  onOpen: () => void;
+}) {
+  if (!client.softwareLiveAt) {
+    return (
+      <Button variant="secondary" size="sm" onClick={onOpen}>
+        Software setup
+      </Button>
+    );
+  }
+  const since = new Date(client.softwareLiveAt).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      title={`Live since ${since}: ${bundleLabel(client.bundle)}, ${dialerLabel(client.dialer)}`}
+      aria-label={`Software setup, live since ${since}. Open to change.`}
+      className="inline-flex h-8 items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-surface-2 px-3 text-[13px] font-medium text-faint transition-colors hover:text-muted"
+    >
+      <span className="grid h-4 w-4 place-items-center rounded-[4px] bg-positive text-white">
+        <Check size={11} strokeWidth={3.2} aria-hidden />
+      </span>
+      Software setup
+    </button>
+  );
+}
+
+// The client's form answers, folded to one line (who, phone, email) until
+// opened. Open, it is the full copyable sheet with the sub-account card.
+function FormAnswers({ tenantId }: { tenantId: string }) {
+  const [open, setOpen] = useState(false);
+  const record = useAdminOnboardingQuery(tenantId);
+  const intake = record.data?.intake ?? {};
+  const summary = [intake.contactName, intake.contactPhone, intake.contactEmail]
+    .map((v) => (v ?? "").trim())
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <div className="border-t border-divider">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-surface-2"
+      >
+        <span className="label-cap shrink-0">Form answers</span>
+        <span className="min-w-0 flex-1 truncate text-[13px] text-muted">{summary}</span>
+        <ChevronDown
+          size={16}
+          aria-hidden
+          className={"shrink-0 text-faint transition-transform " + (open ? "rotate-180" : "")}
+        />
+      </button>
+      {open && <ClientSheet tenantId={tenantId} />}
+    </div>
   );
 }
 
@@ -148,7 +205,7 @@ function StepperView({
   return (
     <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
       {header}
-      <nav aria-label="Steps" className="flex gap-1 overflow-x-auto border-b border-divider p-1.5">
+      <nav aria-label="Steps" className="flex gap-1 overflow-x-auto border-y border-divider p-1.5">
         {PILLARS.map((p, i) => {
           const pr = progressOf(p.id);
           const complete = pr.total > 0 && pr.done === pr.total;
@@ -179,7 +236,7 @@ function StepperView({
                 >
                   {complete ? <Check size={11} strokeWidth={3} aria-hidden /> : i + 1}
                 </span>
-                {p.id !== "setup" && `${pr.done}/${pr.total}`}
+                {pr.done}/{pr.total}
               </span>
               <span className="mt-0.5 block whitespace-nowrap text-[13.5px] font-semibold text-text">
                 {p.label}
@@ -275,11 +332,9 @@ function ScrollView({
             >
               <Ring progress={pr} size={24} />
               <h3 className="flex-1 font-display text-[15px] font-semibold text-text">{p.label}</h3>
-              {p.id !== "setup" && (
-                <span className="text-[12px] tabular-nums text-faint">
-                  {pr.done}/{pr.total}
-                </span>
-              )}
+              <span className="text-[12px] tabular-nums text-faint">
+                {pr.done}/{pr.total}
+              </span>
               <ChevronDown
                 size={16}
                 aria-hidden
@@ -330,70 +385,6 @@ function Ring({ progress, size }: { progress: Progress; size: number }) {
 
 // ---------- Bodies ----------
 
-function SetupBody({
-  client,
-  onBundle,
-  onDialer,
-}: {
-  client: AdminOnboardingListItem;
-  onBundle: (v: string) => void;
-  onDialer: (v: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-5 px-1">
-      <div>
-        <p className="label-cap mb-2">Bundle</p>
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-          {BUNDLES.map((b) => {
-            const on = client.bundle === b.value;
-            return (
-              <button
-                key={b.value}
-                type="button"
-                aria-pressed={on}
-                onClick={() => onBundle(b.value)}
-                className={
-                  "rounded-[var(--radius)] border px-4 py-3.5 text-left font-display text-[15px] font-semibold transition-colors " +
-                  (on
-                    ? "border-brand bg-brand-tint text-text"
-                    : "border-border bg-surface-2 text-text hover:border-border-strong")
-                }
-              >
-                {b.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <div>
-        <p className="label-cap mb-2">Who dials</p>
-        <div className="inline-flex gap-1 rounded-[var(--radius)] border border-border bg-surface-2 p-1">
-          {DIALERS.map((d) => {
-            const on = client.dialer === d.value;
-            return (
-              <button
-                key={d.value}
-                type="button"
-                aria-pressed={on}
-                onClick={() => onDialer(d.value)}
-                className={
-                  "rounded-[var(--radius-sm)] px-4 py-2 text-[13.5px] font-medium transition-colors " +
-                  (on ? "bg-surface text-text shadow-[inset_0_0_0_1px_var(--brand)]" : "text-muted hover:text-text")
-                }
-              >
-                {d.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <div className="overflow-hidden rounded-[var(--radius)] border border-border">
-        <ClientSheet tenantId={client.id} />
-      </div>
-    </div>
-  );
-}
-
 function PillarBody({
   steps,
   section,
@@ -402,6 +393,7 @@ function PillarBody({
   loading,
   onToggle,
   onValue,
+  onSoftware,
 }: {
   steps: SetupStepRow[];
   section: SetupSection;
@@ -410,6 +402,7 @@ function PillarBody({
   loading: boolean;
   onToggle: (taskKey: string, done: boolean) => void;
   onValue: (taskKey: string, value: string) => void;
+  onSoftware: () => void;
 }) {
   const groups = useMemo(() => groupSteps(steps, section), [steps, section]);
   if (loading) return <p className="px-3 py-2 text-[13px] text-muted">Loading...</p>;
@@ -428,6 +421,7 @@ function PillarBody({
               value={values.get(s.id) ?? ""}
               onToggle={() => onToggle(s.id, !doneIds.has(s.id))}
               onValue={(v) => onValue(s.id, v)}
+              onSoftware={s.code === SOFTWARE_LIVE_CODE ? onSoftware : undefined}
             />
           ))}
         </div>
@@ -442,12 +436,15 @@ function ChecklistItem({
   value,
   onToggle,
   onValue,
+  onSoftware,
 }: {
   step: SetupStepRow;
   done: boolean;
   value: string;
   onToggle: () => void;
   onValue: (v: string) => void;
+  /** Only on Software Account Made: opens Software setup. */
+  onSoftware?: () => void;
 }) {
   const [draft, setDraft] = useState(value);
   const [seen, setSeen] = useState(value);
@@ -498,6 +495,15 @@ function ChecklistItem({
           />
         )}
       </div>
+      {onSoftware && (
+        <button
+          type="button"
+          onClick={onSoftware}
+          className="shrink-0 self-center text-[12.5px] font-medium text-brand-text hover:underline"
+        >
+          Software setup
+        </button>
+      )}
     </div>
   );
 }
