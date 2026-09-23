@@ -125,6 +125,9 @@ export interface ApiTenant {
   // The client's live website, or null when none is set. Drives the Website
   // page's real preview + "View live site" button.
   websiteUrl: string | null;
+  // The owner rings their own leads: Leads lists every lead that submitted,
+  // each marked with what happened. Optional so older demo data still types.
+  selfDial?: boolean;
 }
 
 export interface ApiPipelineSummary {

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "../../ui/Button";
 import SubaccountCard from "./SubaccountCard";
+import SelfDialCard from "./SelfDialCard";
 import { useAdminOnboardingQuery, useClientSecrets } from "../../../hooks/useApi";
 import { useIntakeSubmission } from "../../../hooks/useIntake";
 import { sheetSections, sheetText, type SheetSection } from "../../../lib/onboardingSheet";
@@ -33,12 +34,13 @@ export function ClientSheet({ tenantId }: { tenantId: string }) {
       {/* Above the sheet because it is the only thing here that is an action:
           everything below is a value to read or copy, and a client cannot use
           their app at all until this is linked. */}
-      <div className="p-4 pb-0">
+      <div className="flex flex-col gap-4 p-4 pb-0">
         <SubaccountCard
           tenantId={tenantId}
           clientName={record.data?.name || "this client"}
           isLive={record.data?.onboardingStatus !== "setup"}
         />
+        <SelfDialCard tenantId={tenantId} />
       </div>
       <SheetView
         sections={sections}

@@ -5,7 +5,10 @@ import PageBar from "../../components/PageBar";
 import { HandoffsBoard } from "../Handoffs";
 import { JobsBoard, JobsViewControls, useJobsView } from "./Jobs";
 import { useIsMobile } from "../../hooks/useIsMobile";
-import { useUpdateHandoff } from "../../hooks/useApi";
+import { useTenantQuery, useUpdateHandoff } from "../../hooks/useApi";
+import { useAuth } from "../../context/AuthContext";
+import { demoMode } from "../../demo/demoMode";
+import SelfDialLeadsBoard from "../../components/leads/SelfDialLeadsBoard";
 import type { ApiHandoff } from "../../lib/api";
 
 // Leads and Schedule. "Leads" is the handoff outcomes board; "Schedule" is the
@@ -57,6 +60,13 @@ export default function Sales() {
   const [jobsView, setJobsView] = useJobsView();
   const isMobile = useIsMobile();
   const controlsInHeader = tab === "schedule" && !isMobile;
+  // A client who rings their own leads gets every lead that submitted instead
+  // of the hand-off board (tenants.manual_lead_status, the admin sheet's
+  // "Client dials own leads"). Same query key as ClientContext, so this is a
+  // cache hit, not a second request.
+  const { session } = useAuth();
+  const tenant = useTenantQuery(demoMode() || Boolean(session));
+  const selfDial = tenant.data?.tenant?.selfDial === true;
 
   // The URL is the tab, so switching pages is a navigation. replace: true so
   // the booking journey (Leads -> Schedule -> back to Leads) does not leave
@@ -128,7 +138,13 @@ export default function Sales() {
             board; the board brings its own top padding on top of that. */}
         <div className="flex min-h-0 flex-1 flex-col">
           {tab === "leads" ? (
-            <HandoffsBoard onBook={startBooking} />
+            // Wait for the answer rather than flash the hand-off board at a
+            // self-dial client and then swap it out.
+            tenant.isLoading ? null : selfDial ? (
+              <SelfDialLeadsBoard />
+            ) : (
+              <HandoffsBoard onBook={startBooking} />
+            )
           ) : (
             <JobsBoard
               embedded

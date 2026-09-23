@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../../../../lib/env";
 import { getServiceClient } from "../../../../lib/supabase";
 import { logAdminAction } from "../../../../lib/adminAuth";
+import { selfDialPatch } from "../../../../lib/selfDial";
 import { isBundle, isDialer } from "../../../../../src/lib/onboardingWizard";
 import { SOFTWARE_LIVE_CODE } from "../../../../../src/lib/setupSteps";
 
@@ -10,8 +11,9 @@ import { SOFTWARE_LIVE_CODE } from "../../../../../src/lib/setupSteps";
 // stamps software_live_at, and ticks Software Account Made on the checklist.
 // Submitting again (Edit) overwrites both choices and moves the date.
 //
-// It records the choices only. Neither one turns client-app pages on or off or
-// changes tracking yet; those rules are still Jake's to set.
+// Who dials is live (2026-09-23): "client" turns on self-dial (lib/selfDial.ts),
+// so their Leads page lists every lead for the owner to mark. "agency" turns it
+// off. The bundle is recorded only; it changes nothing in the client app yet.
 export const onRequestPost: PagesFunction<Env, "tenantId", ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
@@ -31,7 +33,7 @@ export const onRequestPost: PagesFunction<Env, "tenantId", ApiData> = async (ctx
     .from("tenants")
     .update({
       onboarding_bundle: body.bundle,
-      onboarding_dialer: body.dialer,
+      ...selfDialPatch(body.dialer === "client"),
       software_live_at: now,
     })
     .eq("id", tenantId)

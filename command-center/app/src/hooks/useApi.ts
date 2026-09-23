@@ -1616,6 +1616,8 @@ export function useAdminOnboardingSoftwareSubmit(tenantId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["admin", "onboarding", "list"] });
       void qc.invalidateQueries({ queryKey: ["admin", "onboarding", tenantId, "checklist"] });
+      // Who dials drives the client sheet's self-dial switch (lib/selfDial.ts).
+      void qc.invalidateQueries({ queryKey: ["admin", "self-dial", tenantId] });
     },
   });
 }
@@ -3653,3 +3655,29 @@ export function useCalendarSync(tenantId: string) {
   });
 }
 
+
+// Admin: does this client ring their own leads? (lib/selfDial.ts on the server)
+export function useSelfDialQuery(tenantId: string) {
+  return useQuery({
+    queryKey: ["admin", "self-dial", tenantId],
+    enabled: !!tenantId,
+    staleTime: 30_000,
+    queryFn: () => api<{ on: boolean }>(`/api/admin/clients/${tenantId}/self-dial`),
+  });
+}
+
+export function useSetSelfDial(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (on: boolean) =>
+      api<{ on: boolean }>(`/api/admin/clients/${tenantId}/self-dial`, {
+        method: "PUT",
+        body: JSON.stringify({ on }),
+      }),
+    onSuccess: (data) => {
+      qc.setQueryData(["admin", "self-dial", tenantId], data);
+      // The switch also rewrites Software setup's "Who dials" answer.
+      void qc.invalidateQueries({ queryKey: ["admin", "onboarding", "list"] });
+    },
+  });
+}

@@ -24,11 +24,20 @@ describe("page capabilities", () => {
     expect(checkStaffAccess("/api/ads/creatives-folder", "GET", view("creatives")).allowed).toBe(true);
   });
 
-  it("the tracker feed opens for Lead Tracker or Ads Dashboard", () => {
+  it("the tracker feed opens for Lead Tracker, Ads Dashboard or Leads", () => {
     const path = "/api/ads/tracker";
     expect(checkStaffAccess(path, "GET", view("paid_ads")).allowed).toBe(true);
     expect(checkStaffAccess(path, "GET", view("ads_dashboard")).allowed).toBe(true);
+    // A self-dial client's Leads page is this feed.
+    expect(checkStaffAccess(path, "GET", view("pipeline")).allowed).toBe(true);
     expect(checkStaffAccess(path, "GET", view("inbox")).allowed).toBe(false);
+  });
+
+  it("marking a lead takes Lead Tracker edit or Leads edit, never view", () => {
+    const path = "/api/ads/leads/abc";
+    expect(checkStaffAccess(path, "PATCH", { paid_ads: { view: true, edit: true } }).allowed).toBe(true);
+    expect(checkStaffAccess(path, "PATCH", { pipeline: { view: true, edit: true } }).allowed).toBe(true);
+    expect(checkStaffAccess(path, "PATCH", view("pipeline")).allowed).toBe(false);
   });
 
   it("organic needs the organic grant, detail included", () => {

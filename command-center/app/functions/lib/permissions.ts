@@ -98,10 +98,12 @@ const RULES: PermRule[] = [
   { pattern: /^\/api\/leads\/?$/, methods: ["POST"], any: [need("pipeline", "edit")] },
   { pattern: /^\/api\/leads\/?$/, methods: ["GET"], any: [need("pipeline", "view")] },
 
-  // Paid Ads, one rule per page. The tracker feed backs both the Lead Tracker
-  // and the Ads Dashboard, so either grant reads it.
-  { pattern: /^\/api\/ads\/leads\/[^/]+\/?$/, methods: ["PATCH"], any: [need("paid_ads", "edit")] },
-  { pattern: /^\/api\/ads\/tracker\/?$/, methods: ["GET"], any: [need("paid_ads", "view"), need("ads_dashboard", "view")] },
+  // Paid Ads, one rule per page. The tracker feed backs the Lead Tracker, the
+  // Ads Dashboard, and a self-dial client's Leads page (lib/selfDial.ts), where
+  // the owner marks each lead through the same PATCH. So any of the three reads
+  // it, and Leads edit may mark.
+  { pattern: /^\/api\/ads\/leads\/[^/]+\/?$/, methods: ["PATCH"], any: [need("paid_ads", "edit"), need("pipeline", "edit")] },
+  { pattern: /^\/api\/ads\/tracker\/?$/, methods: ["GET"], any: [need("paid_ads", "view"), need("ads_dashboard", "view"), need("pipeline", "view")] },
   { pattern: /^\/api\/ads\/meta-data\/?$/, methods: ["GET"], any: [need("meta_data", "view")] },
   // Launch + Meta-verification status, asked by every Paid Ads page first.
   { pattern: /^\/api\/ads\/status\/?$/, methods: ["GET"], any: [need("paid_ads", "view"), need("ads_dashboard", "view"), need("meta_data", "view")] },

@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-23-client-dials-own-leads",
+    date: "23 September 2026",
+    title: "Clients who dial their own leads",
+    items: [
+      "Each client's sheet on Operations > Clients has a Client dials own leads switch.",
+      "Picking Client dials in Software setup turns the same switch on. We dial turns it off.",
+      "With it on, the client's Leads page lists every lead that submitted, newest first, with a call button on each.",
+      "The owner taps a lead and picks what happened: No Answer, Contacted, Follow Up, Appointment Booked, Quoted, Won (with the job $) or Lost.",
+      "What they pick shows on their Lead Tracker and on your Ad Tracker. Won jobs count toward their revenue and ROAS.",
+    ],
+  },
+  {
     id: "2026-09-23-software-setup",
     date: "23 September 2026",
     title: "Software setup",

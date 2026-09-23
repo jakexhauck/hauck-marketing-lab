@@ -344,7 +344,7 @@ const NODES = [
   { id:'hub', kind:'hub', ic:'🛰️', label:'Command Center', tag:'one app, three faces',
     lead:'One responsive app on Cloudflare. Same data, three faces: Admin (you), Desktop and Mobile. Every request passes one auth gate, then fans out to the API functions.',
     processes:[
-      {g:'Surfaces', items:['Admin Console','Onboarding (client setup checklist in five pillars, Stepper or Scroll view; steps edited in Settings > Onboarding checklist, stored in setup_steps)','Setter Suite (our dialers work leads)','Quick Book (/admin/book: Jake books a client's caller from his phone)','Leads scraper (wizard queues runs for the PC runner; cap, Hold and Continue park a run as held and resume it on the same machine)','Desktop Dashboard','Mobile / PWA']},
+      {g:'Surfaces', items:['Admin Console','Onboarding (client setup checklist in five pillars, Stepper or Scroll view; steps edited in Settings > Onboarding checklist, stored in setup_steps)','Setter Suite (our dialers work leads)','Client Leads (self-dial clients: every submitted lead, owner marks what happened into lead_status; switched by Client dials own leads or Software setup Who dials)','Quick Book (/admin/book: Jake books a client's caller from his phone)','Leads scraper (wizard queues runs for the PC runner; cap, Hold and Continue park a run as held and resume it on the same machine)','Desktop Dashboard','Mobile / PWA']},
       {g:'Auth gate', items:['Session cookie','Tenant scope','Permissions','Read-only preview']},
       {g:'API functions', items:['Auth','CRM','Admin','Push','Notifications','Webhook']},
     ], gaps:['sessions'], secrets:['SESSION_SECRET'], note:'Open the Processes tab for the full breakdown of every function.' },
