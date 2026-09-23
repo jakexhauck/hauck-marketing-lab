@@ -448,9 +448,6 @@ export interface AdminClientCreated {
   ownerWarning?: string;
   /** The onboarding record could not be written. */
   onboardingWarning?: string;
-  /** No Drive folder was made, and why. */
-  driveWarning?: string;
-  driveFolderUrl?: string;
 }
 
 // The single-client detail (GET /api/admin/clients/:tenantId): everything the
@@ -570,6 +567,8 @@ export interface AdminOnboardingListItem {
   dialer: string | null;
   /** When Software setup was submitted. Null = not set up yet. */
   softwareLiveAt: string | null;
+  /** Their linked Drive folder. Null until Create client folder is pressed. */
+  driveFolderUrl: string | null;
   /** Ids of the checklist steps ticked. Only filled for clients in setup. */
   doneKeys: string[];
 }

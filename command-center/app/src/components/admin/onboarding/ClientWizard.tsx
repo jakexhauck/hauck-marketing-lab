@@ -7,6 +7,7 @@ import {
   useAdminOnboardingChecklistQuery,
   useAdminOnboardingChecklistToggle,
   useAdminOnboardingChecklistValue,
+  useAdminOnboardingDriveFolder,
   useAdminOnboardingGoLive,
   useAdminOnboardingQuery,
 } from "../../../hooks/useApi";
@@ -26,7 +27,8 @@ import { bundleLabel, dialerLabel, pillarProgress, type Progress } from "../../.
 // all out, finished ones folded shut. Same data, same controls: the view is
 // only how much of it is on screen at once.
 //
-// The header carries Software setup (a pop-up, SoftwareDialog) and Go live.
+// The header carries Software setup (a pop-up, SoftwareDialog), Create client
+// folder (clientDriveFolder.ts) and Go live.
 // Go live is never locked (Jake, 2026-08-15): the judgement of when a client is
 // ready is his, not a count's. Under the header, the client's form answers sit
 // folded into one line until opened.
@@ -94,6 +96,7 @@ export default function ClientWizard({
         {subtitle && <p className="truncate text-[12.5px] text-faint">{subtitle}</p>}
       </div>
       <SoftwareButton client={client} onOpen={openSoftware} />
+      <FolderButton client={client} />
       {goLive.isError && (
         <span className="text-[12px] font-medium text-danger">
           {(goLive.error as Error)?.message ?? "That did not work."}
@@ -152,6 +155,39 @@ function SoftwareButton({
       </span>
       Software setup
     </button>
+  );
+}
+
+// Same two looks as SoftwareButton. Once the folder exists the button opens it;
+// a doc that failed to copy is named beside it until the page reloads.
+function FolderButton({ client }: { client: AdminOnboardingListItem }) {
+  const create = useAdminOnboardingDriveFolder(client.id);
+  const problem = create.isError
+    ? ((create.error as Error)?.message ?? "That did not work.")
+    : create.data?.warning;
+
+  return (
+    <>
+      {problem && <span className="text-[12px] font-medium text-danger">{problem}</span>}
+      {client.driveFolderUrl ? (
+        <a
+          href={client.driveFolderUrl}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Client folder, created. Open in Google Drive."
+          className="inline-flex h-8 items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-surface-2 px-3 text-[13px] font-medium text-faint transition-colors hover:text-muted"
+        >
+          <span className="grid h-4 w-4 place-items-center rounded-[4px] bg-positive text-white">
+            <Check size={11} strokeWidth={3.2} aria-hidden />
+          </span>
+          Client folder
+        </a>
+      ) : (
+        <Button variant="secondary" size="sm" loading={create.isPending} onClick={() => create.mutate()}>
+          Create client folder
+        </Button>
+      )}
+    </>
   );
 }
 

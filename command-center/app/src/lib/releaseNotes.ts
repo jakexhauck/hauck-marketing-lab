@@ -28,9 +28,10 @@ export const RELEASES: Release[] = [
   {
     id: "2026-09-23-client-drive-folder",
     date: "23 September 2026",
-    title: "New clients get their Drive folder",
+    title: "Create client folder",
     items: [
-      "Creating a client makes their folder in 🌟 Hauck Marketing, named 🤝 | Business Name.",
+      "Each client on Onboarding has a Create client folder button next to Software setup. It makes their folder in 🌟 Hauck Marketing, named 🤝 | Business Name.",
+      "If that folder is already in Drive, the button links it instead of making a second one. Once linked, the button turns grey with a green tick and opens the folder.",
       "Inside: a Finished Creatives folder and a copy of every doc in 🚀 Client Setup, named with the client's initials (WW | Copy, WW | Video Scripts).",
       "Initials are the first letter of each word. Endings like LLC, LC and Inc are left off.",
       "Drop a new template into 🚀 Client Setup and every client after that gets a copy.",

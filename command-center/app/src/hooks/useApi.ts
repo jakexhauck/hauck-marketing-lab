@@ -1680,6 +1680,18 @@ export function useAdminOnboardingProvision(tenantId: string) {
 
 // The end of onboarding: open the client's app. Ungated, so this is exactly as
 // trusted as the person pressing it.
+export function useAdminOnboardingDriveFolder(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<{ ok: true; folderUrl: string | null; warning?: string }>(
+        `/api/admin/onboarding/${tenantId}/drive-folder`,
+        { method: "POST" },
+      ),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["admin", "onboarding"] }),
+  });
+}
+
 export function useAdminOnboardingGoLive(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({

@@ -10,7 +10,6 @@ import {
   createTenantWithOwner,
   seedOnboardingRecord,
 } from "../../../lib/clientCreate";
-import { provisionClientFolder } from "../../../lib/clientDriveFolder";
 import { CHECKLIST_TASKS } from "../../../../src/lib/onboarding";
 
 // GET /api/admin/clients  (admin-only, gated in _middleware.ts)
@@ -233,10 +232,6 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     CHECKLIST_TASKS.map((t) => t.key),
   );
 
-  // Last, and never fatal: the tenant and the owner login are already written,
-  // and a folder is the one part of this that can simply be made again.
-  const drive = await provisionClientFolder(ctx.env, client, tenantId, name, ctx.data.admin!.id);
-
   await logAdminAction(client, ctx.data.admin!.id, "client.create", tenantId, {
     slug: createdSlug,
     name,
@@ -251,8 +246,6 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       slug: createdSlug,
       ownerWarning,
       onboardingWarning,
-      driveWarning: drive.warning ?? undefined,
-      driveFolderUrl: drive.folder?.webViewLink ?? undefined,
     },
     { status: 201 },
   );

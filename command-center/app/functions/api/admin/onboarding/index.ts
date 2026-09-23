@@ -36,6 +36,18 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     ]),
   );
 
+  // Which clients already have their Drive folder, for the Create client
+  // folder button. One row per client at most in practice; a handful total.
+  const { data: folders, error: folderErr } = await client
+    .from("client_folders")
+    .select("tenant_id, folder_id, web_view_link")
+    .not("tenant_id", "is", null);
+  if (folderErr) return Response.json({ error: folderErr.message }, { status: 500 });
+  const folderById = new Map<string, string>();
+  for (const f of (folders ?? []) as { tenant_id: string; folder_id: string; web_view_link: string | null }[]) {
+    folderById.set(f.tenant_id, f.web_view_link ?? `https://drive.google.com/drive/folders/${f.folder_id}`);
+  }
+
   // Only clients still being set up draw a progress bar, and scoping the read
   // to them keeps it far under PostgREST's silent 1000-row cap.
   const setupIds = ((tenants ?? []) as { id: string; onboarding_status: string | null }[])
@@ -90,6 +102,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       bundle: t.onboarding_bundle,
       dialer: t.onboarding_dialer,
       softwareLiveAt: t.software_live_at,
+      driveFolderUrl: folderById.get(t.id) ?? null,
       doneKeys: doneById.get(t.id) ?? [],
     };
   });

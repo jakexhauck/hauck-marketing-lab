@@ -1,8 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Env } from "./env";
 import { approvalBlocker, type SubmissionRow } from "./intake";
 import { CreateTenantError, createTenantWithOwner, seedOnboardingRecord } from "./clientCreate";
-import { provisionClientFolder } from "./clientDriveFolder";
 import { CHECKLIST_TASKS } from "../../src/lib/onboarding";
 
 // Turning a finished submission into a client.
@@ -31,14 +29,11 @@ export type ApproveResult =
       slug: string;
       ownerWarning?: string;
       onboardingWarning?: string;
-      driveWarning?: string;
-      driveFolderUrl?: string;
     }
   | { ok: false; status: number; error: string };
 
 export async function approveSubmission(
   client: SupabaseClient,
-  env: Env,
   row: SubmissionRow,
   actorId: string | null,
 ): Promise<ApproveResult> {
@@ -98,16 +93,6 @@ export async function approveSubmission(
     CHECKLIST_TASKS.map((task) => task.key),
   );
 
-  // Their Drive folder. Never fatal: the client exists by now, and a folder can
-  // simply be made again.
-  const drive = await provisionClientFolder(
-    env,
-    client,
-    created.tenantId,
-    businessName,
-    actorId,
-  );
-
   const now = new Date().toISOString();
   await client
     .from("intake_submissions")
@@ -126,7 +111,5 @@ export async function approveSubmission(
     slug: created.slug,
     ownerWarning: created.ownerWarning,
     onboardingWarning,
-    driveWarning: drive.warning ?? undefined,
-    driveFolderUrl: drive.folder?.webViewLink ?? undefined,
   };
 }

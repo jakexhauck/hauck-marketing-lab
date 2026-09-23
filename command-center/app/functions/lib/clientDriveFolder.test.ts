@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Env } from "./env";
 import {
   CLIENT_FOLDER_PREFIX,
   clientFolderName,
   clientInitials,
   createClientFolder,
+  ensureClientFolder,
   templateCopyName,
 } from "./clientDriveFolder";
 import * as drive from "./driveComposio";
@@ -168,5 +170,62 @@ describe("templateCopyName", () => {
 
   it("prefixes a doc with no tag", () => {
     expect(templateCopyName("🛠️ Client Setup SOP", "WW")).toBe("WW | 🛠️ Client Setup SOP");
+  });
+});
+
+/** Just enough of supabase for client_folders: one lookup, one insert. */
+function fakeDb(linked: { folder_id: string; name: string; web_view_link: string | null } | null) {
+  const inserted: Record<string, unknown>[] = [];
+  const db = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({ limit: () => ({ maybeSingle: async () => ({ data: linked, error: null }) }) }),
+      }),
+      insert: async (row: Record<string, unknown>) => {
+        inserted.push(row);
+        return { error: null };
+      },
+    }),
+  } as unknown as SupabaseClient;
+  return { db, inserted };
+}
+
+describe("ensureClientFolder", () => {
+  it("hands back a folder already linked, and touches Drive not at all", async () => {
+    const account = vi.spyOn(drive, "resolveDriveAccount");
+    const { db } = fakeDb({ folder_id: "old", name: "Willis Windows", web_view_link: "https://drive/old" });
+
+    const out = await ensureClientFolder(env(), db, "t1", "Willis Windows", "admin");
+
+    expect(out.folder?.folderId).toBe("old");
+    expect(account).not.toHaveBeenCalled();
+  });
+
+  it("links a same-named folder already in Drive instead of making a second", async () => {
+    vi.spyOn(drive, "resolveDriveAccount").mockResolvedValue("acct");
+    vi.spyOn(drive, "listFolders").mockResolvedValue([
+      { id: "made", name: "🤝 | Made Better LC" },
+      { id: "ww", name: "🤝 | Willis Windows" },
+    ]);
+    const create = vi.spyOn(drive, "createDriveFolder");
+    const { db, inserted } = fakeDb(null);
+
+    const out = await ensureClientFolder(env(), db, "t1", "Willis Windows", "admin");
+
+    expect(out.folder?.folderId).toBe("ww");
+    expect(create).not.toHaveBeenCalled();
+    expect(inserted[0]).toMatchObject({ tenant_id: "t1", folder_id: "ww" });
+  });
+
+  it("makes and fills a new folder when there is none", async () => {
+    const { copy } = mockDrive([doc("t1", "Copy | TEMPLATE")]);
+    vi.spyOn(drive, "listFolders").mockResolvedValue([]);
+    const { db, inserted } = fakeDb(null);
+
+    const out = await ensureClientFolder(env(), db, "t1", "Willis Windows", "admin");
+
+    expect(out.folder?.folderId).toBe("fid");
+    expect(copy).toHaveBeenCalledWith(expect.anything(), "acct", "t1", "fid", "WW | Copy");
+    expect(inserted[0]).toMatchObject({ tenant_id: "t1", folder_id: "fid" });
   });
 });

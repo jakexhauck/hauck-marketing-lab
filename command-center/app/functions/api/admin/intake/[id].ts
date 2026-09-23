@@ -103,7 +103,7 @@ export const onRequestPost: PagesFunction<Env, "id", ApiData> = async (ctx) => {
   // path rather than the routine one: it is what clears a submission whose
   // automatic approval failed. Same function either way, so the two can never
   // disagree about what a new client is.
-  const result = await approveSubmission(client, ctx.env, row, adminId);
+  const result = await approveSubmission(client, row, adminId);
   if (!result.ok) return Response.json({ error: result.error }, { status: result.status });
 
   await logAdminAction(client, adminId, "intake.approve", result.tenantId, {
@@ -118,7 +118,5 @@ export const onRequestPost: PagesFunction<Env, "id", ApiData> = async (ctx) => {
     slug: result.slug,
     ownerWarning: result.ownerWarning,
     onboardingWarning: result.onboardingWarning,
-    driveWarning: result.driveWarning,
-    driveFolderUrl: result.driveFolderUrl,
   });
 };

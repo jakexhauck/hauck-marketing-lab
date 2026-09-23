@@ -188,7 +188,7 @@ async function autoApprove(
       ? row.answers.name.trim()
       : "A new client";
   try {
-    const result = await approveSubmission(client, env, row, null);
+    const result = await approveSubmission(client, row, null);
     if (!result.ok) {
       console.error("[intake] auto-approve refused", row.id, result.error);
       // The submissions view is the only place a refused one appears, so the

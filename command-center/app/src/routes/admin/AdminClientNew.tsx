@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
-  ExternalLink,
   FolderOpen,
   RotateCcw,
   TriangleAlert,
@@ -341,7 +340,7 @@ function Created({
   brandColor: string;
   initials: string;
 }) {
-  const warnings = [result.ownerWarning, result.onboardingWarning, result.driveWarning].filter(
+  const warnings = [result.ownerWarning, result.onboardingWarning].filter(
     (w): w is string => Boolean(w),
   );
 
@@ -378,16 +377,6 @@ function Created({
               <ArrowRight size={15} aria-hidden />
             </Button>
           </Link>
-
-          {result.driveFolderUrl && (
-            <a href={result.driveFolderUrl} target="_blank" rel="noreferrer">
-              <Button variant="secondary">
-                <FolderOpen size={15} aria-hidden />
-                Open their Drive folder
-                <ExternalLink size={13} className="text-faint" aria-hidden />
-              </Button>
-            </a>
-          )}
 
           <Link to="/admin/clients/new" reloadDocument>
             <Button variant="ghost">Add another client</Button>
@@ -510,7 +499,7 @@ function Review({
       <p className="mt-6 flex items-start gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3.5 py-3 text-[13px] leading-snug text-muted">
         <FolderOpen size={15} className="mt-0.5 shrink-0" aria-hidden />
         <span>
-          Creating the client also creates their Google Drive folder. The owner can sign in with
+          The owner can sign in with
           the email and password above, but they see the holding screen until you work through
           their checklist on Onboarding and press Go Live. Their own answers are not asked for
           here: those come from the intake form.

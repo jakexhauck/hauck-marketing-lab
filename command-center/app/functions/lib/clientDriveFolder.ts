@@ -5,11 +5,13 @@ import {
   copyDriveFile,
   createDriveFolder,
   listChildrenOfMany,
+  listFolders,
   resolveDriveAccount,
 } from "./driveComposio";
 import { isValidFileId, type DriveFile } from "./driveDirect";
 
-// A new client's Google Drive folder, made when the client is created.
+// A client's Google Drive folder, made by the Create client folder button on
+// Onboarding (Jake, 2026-09-23: a button, not automatic on client create).
 //
 // Jake's layout (2026-09-23), modelled on "🤝 | Above All Garage Doors":
 //   🤝 | Business Name
@@ -199,4 +201,64 @@ export async function provisionClientFolder(
     };
   }
   return outcome;
+}
+
+/**
+ * What the Create client folder button runs. Safe to press twice: a client
+ * already linked gets their folder back, and a folder that already sits in the
+ * root under the right name (Willis, Made Better and AAG were made by hand) is
+ * linked as it is, never duplicated and never refilled.
+ */
+export async function ensureClientFolder(
+  env: Env,
+  supabase: SupabaseClient,
+  tenantId: string,
+  businessName: string,
+  adminId: string | null,
+): Promise<FolderOutcome> {
+  const { data: linked, error: readErr } = await supabase
+    .from("client_folders")
+    .select("folder_id, name, web_view_link")
+    .eq("tenant_id", tenantId)
+    .limit(1)
+    .maybeSingle();
+  if (readErr) return { folder: null, warning: `Could not check for an existing folder: ${readErr.message}` };
+  if (linked) {
+    const row = linked as { folder_id: string; name: string; web_view_link: string | null };
+    return {
+      folder: { folderId: row.folder_id, name: row.name, webViewLink: row.web_view_link ?? folderUrl(row.folder_id) },
+      warning: null,
+    };
+  }
+
+  const root = clientDriveRoot(env);
+  if (composioDriveConfigured(env) && isValidFileId(root)) {
+    try {
+      const accountId = await resolveDriveAccount(env);
+      const wanted = clientFolderName(businessName);
+      const found = (await listFolders(env, accountId, root)).find((f) => f.name.trim() === wanted);
+      if (found) {
+        const folder = { folderId: found.id, name: found.name, webViewLink: folderUrl(found.id) };
+        const { error } = await supabase.from("client_folders").insert({
+          tenant_id: tenantId,
+          name: businessName.trim() || found.name,
+          folder_id: found.id,
+          web_view_link: folder.webViewLink,
+          created_by: adminId,
+        });
+        return {
+          folder,
+          warning: error ? `The Drive folder exists but was not linked to this client: ${error.message}` : null,
+        };
+      }
+    } catch (err) {
+      return { folder: null, warning: `No Drive folder was created: ${errText(err)}` };
+    }
+  }
+
+  return provisionClientFolder(env, supabase, tenantId, businessName, adminId);
+}
+
+function folderUrl(id: string): string {
+  return `https://drive.google.com/drive/folders/${id}`;
 }
