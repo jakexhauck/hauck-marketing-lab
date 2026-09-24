@@ -54,7 +54,7 @@ export interface PreviewPalette {
 }
 
 export type PreviewMedia =
-  | { kind: "portrait"; photo: string | null }
+  | { kind: "portrait"; photo: string | null; video: string | null }
   | { kind: "grid"; photos: (string | null)[] }
   // The mechanism has no photograph to show. It draws its own steps, which is
   // the honest picture of a page built out of positioning rather than assets.
@@ -163,7 +163,11 @@ export function previewCta(asset: ConversionAsset): string {
 export function previewMedia(asset: ConversionAsset): PreviewMedia {
   switch (asset.kind) {
     case "owner-story":
-      return { kind: "portrait", photo: asset.ownerPhotoUrl || null };
+      return {
+        kind: "portrait",
+        photo: asset.ownerPhotoUrl || null,
+        video: asset.ownerVideoUrl || null,
+      };
 
     case "unique-mechanism":
       return { kind: "steps", name: asset.mechanismName.trim() };
@@ -178,7 +182,7 @@ export function previewMedia(asset: ConversionAsset): PreviewMedia {
     }
 
     default:
-      return { kind: "portrait", photo: null };
+      return { kind: "portrait", photo: null, video: null };
   }
 }
 

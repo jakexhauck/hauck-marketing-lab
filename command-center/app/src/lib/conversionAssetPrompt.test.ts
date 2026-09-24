@@ -108,6 +108,21 @@ describe("buildPrompt", () => {
     expect(out).toContain("hates upselling");
   });
 
+  it("hands over the owner video, with the photo as its poster", () => {
+    const out = prompt("owner-story", { ...PERSON, ownerVideoUrl: "https://x/o.mp4" });
+    expect(out).toContain("Video of them: https://x/o.mp4");
+    expect(out).toContain("Use the photo as its poster");
+  });
+
+  it("does not flag a missing photo when there is a video", () => {
+    const only = asset("owner-story", { ownerVideoUrl: "https://x/o.mp4", storyNotes: "x" });
+    const out = buildPrompt(only, "Willis Windows", "willis-windows");
+    expect(out).not.toContain("Photo of them");
+    expect(out).not.toContain("Use the photo as its poster");
+    expect(missingFields(only)).not.toContain("Owner photo or video, and notes");
+    expect(missingFields(asset("owner-story"))).toContain("Owner photo or video, and notes");
+  });
+
   it("puts the gift in as a promise already made", () => {
     const out = prompt("owner-story", { ...PERSON, couponCode: "HELLO10" });
     expect(out).toContain("THE GIFT");
@@ -167,12 +182,12 @@ describe("missingFields", () => {
       asset("owner-story", { ...PERSON, couponOffer: "", colors: ["#123456"] }),
     );
     expect(missing).toContain("The gift the text promised");
-    expect(missing).not.toContain("Owner photo and notes");
+    expect(missing).not.toContain("Owner photo or video, and notes");
   });
 
   it("names what the owner story is short of", () => {
     expect(missingFields(asset("owner-story", { colors: ["#123456"] }))).toContain(
-      "Owner photo and notes",
+      "Owner photo or video, and notes",
     );
   });
 

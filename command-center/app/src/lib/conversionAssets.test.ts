@@ -96,6 +96,15 @@ describe("content completeness", () => {
     expect(contentIsComplete({ ...withPerson, storyNotes: "" })).toBe(false);
   });
 
+  it("takes a video in place of the photo on the owner story", () => {
+    const withVideo = asset("owner-story", {
+      ownerVideoUrl: "https://x/o.mp4",
+      storyNotes: "started in 2011",
+    });
+    expect(contentIsComplete(withVideo)).toBe(true);
+    expect(contentIsComplete({ ...withVideo, ownerVideoUrl: "" })).toBe(false);
+  });
+
   it("pre-fills the gift on the owner story and nowhere else", () => {
     expect(asset("owner-story").couponOffer).toBe(DEFAULT_COUPON_OFFER);
     expect(asset("recent-work").couponOffer).toBe("");

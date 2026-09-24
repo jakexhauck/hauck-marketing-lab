@@ -36,6 +36,7 @@ export const PATCH_KEYS = [
   "logoUrl",
   "ownerName",
   "ownerPhotoUrl",
+  "ownerVideoUrl",
   "storyNotes",
   "couponOffer",
   "couponCode",

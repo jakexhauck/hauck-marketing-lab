@@ -33,6 +33,7 @@ describe("asPatch", () => {
       logoUrl: "https://example.com/logo.jpg",
       ownerName: "Seamus",
       ownerPhotoUrl: "https://example.com/o.jpg",
+      ownerVideoUrl: "https://example.com/o.mp4",
       storyNotes: "started three seasons ago",
       couponOffer: "10 percent off the first job",
       couponCode: "MADEBETTER",

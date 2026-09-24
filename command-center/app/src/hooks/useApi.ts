@@ -3577,6 +3577,27 @@ export async function uploadAssetPhoto(input: {
   return body.url;
 }
 
+// Upload the owner's video. Two hops: the Worker signs a one-time upload URL,
+// then the browser PUTs the file straight to storage, so a phone video never
+// sits in Worker memory. See api/admin/followups/upload-url.ts.
+export async function uploadAssetVideo(input: { tenantId: string; file: File }): Promise<string> {
+  const signed = await api<{ uploadUrl: string; url: string }>("/api/admin/followups/upload-url", {
+    method: "POST",
+    body: JSON.stringify({ tenantId: input.tenantId, type: input.file.type, size: input.file.size }),
+  });
+
+  const res = await fetch(signed.uploadUrl, {
+    method: "PUT",
+    body: input.file,
+    headers: { "content-type": input.file.type, "x-upsert": "false" },
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+    throw new Error(body?.message ?? body?.error ?? "Upload failed.");
+  }
+  return signed.url;
+}
+
 // Fulfillment > GHL > Calendars.
 export interface CalendarDay {
   day: number;

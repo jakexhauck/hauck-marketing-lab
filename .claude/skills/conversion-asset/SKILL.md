@@ -42,8 +42,9 @@ Per kind, what the page needs:
 - **recent-work** up to five before/after pairs, the reviews as typed, and the
   six trust facts (licensed, insured, years, jobs completed, warranty, service
   area). An empty trust field means leave it off, not "find out".
-- **owner-story** owner's name, a photo of them, bullet notes, and **the
-  gift**. **You write the story from the notes;** they are raw material, never
+- **owner-story** owner's name, a photo and/or a video of them, bullet
+  notes, and **the gift**. A video leads the story as a native `<video>`
+  (controls, playsinline, no autoplay with sound), the photo as its poster. **You write the story from the notes;** they are raw material, never
   copy to paste.
 - **unique-mechanism** a method name and steering notes, both optional. See
   below: this one is built out of positioning, not assets.

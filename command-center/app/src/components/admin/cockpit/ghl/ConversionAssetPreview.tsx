@@ -283,7 +283,18 @@ function Media({
     case "portrait":
       return (
         <div className="h-28">
-          <Well url={media.photo} label="Owner photo" />
+          {media.video ? (
+            <video
+              src={media.video}
+              poster={media.photo ?? undefined}
+              muted
+              playsInline
+              preload="metadata"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <Well url={media.photo} label="Owner photo" />
+          )}
         </div>
       );
 

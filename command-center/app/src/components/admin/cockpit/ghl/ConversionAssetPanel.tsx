@@ -8,6 +8,7 @@ import ConversionAssetPreview, {
 import { BlockInput, LineInput, SectionLabel } from "../paidads/adBuilderShared";
 import {
   uploadAssetPhoto,
+  uploadAssetVideo,
   useConversionAssetsQuery,
   useCreateConversionAsset,
   useDeleteConversionAsset,
@@ -660,6 +661,7 @@ function FileField({
   accept,
   url,
   onChange,
+  upload,
 }: {
   label: string;
   hint?: string;
@@ -668,6 +670,8 @@ function FileField({
   accept: string;
   url: string;
   onChange: (url: string) => void;
+  // Overrides the default photo upload. Videos go a different route.
+  upload?: (file: File) => Promise<string>;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -677,7 +681,7 @@ function FileField({
     setBusy(true);
     setError(null);
     try {
-      onChange(await uploadAssetPhoto({ tenantId, slot, file }));
+      onChange(await (upload ? upload(file) : uploadAssetPhoto({ tenantId, slot, file })));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed.");
     } finally {
@@ -686,6 +690,7 @@ function FileField({
   };
 
   const isImage = /\.(png|jpe?g|webp|gif|svg|avif)$/i.test(url);
+  const isVideo = /\.(mp4|mov|webm)$/i.test(url);
 
   return (
     <div>
@@ -698,7 +703,16 @@ function FileField({
             className="h-14 w-14 shrink-0 rounded-[var(--radius)] border border-border object-cover"
           />
         )}
-        {url && !isImage && (
+        {url && isVideo && (
+          <video
+            src={url}
+            muted
+            playsInline
+            preload="metadata"
+            className="h-14 w-14 shrink-0 rounded-[var(--radius)] border border-border object-cover"
+          />
+        )}
+        {url && !isImage && !isVideo && (
           <span className="rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
             File attached
           </span>
@@ -871,14 +885,27 @@ function OwnerStoryFields({
         />
       </div>
 
+      {/* A photo, a video, or both. Either one is enough; with both, the
+          photo is the video's cover frame. */}
       <FileField
         label="Owner photo"
-        hint="required"
+        hint="or video"
         tenantId={tenantId}
         slot="owner"
         accept="image/*"
         url={draft.ownerPhotoUrl}
         onChange={(url) => patch({ ownerPhotoUrl: url })}
+      />
+
+      <FileField
+        label="Owner video"
+        hint="or photo"
+        tenantId={tenantId}
+        slot="owner"
+        accept="video/mp4,video/quicktime,video/webm"
+        url={draft.ownerVideoUrl}
+        onChange={(url) => patch({ ownerVideoUrl: url })}
+        upload={(file) => uploadAssetVideo({ tenantId, file })}
       />
 
       <div>

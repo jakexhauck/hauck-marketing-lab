@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-24-owner-story-video",
+    date: "24 September 2026",
+    title: "Owner video on the owner story",
+    items: [
+      "The owner story in Conversion Assets now takes a video of the owner as well as a photo. Either one is enough to build the page.",
+      "Add both and the photo becomes the video's cover image.",
+      "Videos can be MP4, MOV or WebM, up to 50 MB.",
+    ],
+  },
+  {
     id: "2026-09-23-client-drive-folder",
     date: "23 September 2026",
     title: "Create client folder",

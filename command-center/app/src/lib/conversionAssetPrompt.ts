@@ -24,6 +24,7 @@ import {
   JOB_CAP,
   asksForBooking,
   contentIsComplete,
+  hasOwnerMedia,
   hasTrust,
   needsColors,
   wholeJobs,
@@ -259,7 +260,20 @@ function contentLines(asset: ConversionAsset): string[] {
   switch (asset.kind) {
     case "owner-story":
       out.push(`Owner: ${asset.ownerName || NOT_ANSWERED}`);
-      out.push(`Photo of them: ${asset.ownerPhotoUrl || NOT_ANSWERED}`);
+      // A video alone is a full answer, so a missing photo is only flagged
+      // when there is nothing of them at all.
+      if (asset.ownerPhotoUrl || !asset.ownerVideoUrl) {
+        out.push(`Photo of them: ${asset.ownerPhotoUrl || NOT_ANSWERED}`);
+      }
+      if (asset.ownerVideoUrl) {
+        out.push(`Video of them: ${asset.ownerVideoUrl}`);
+        // The video leads when there is one: the owner talking beats a still.
+        out.push(
+          "  Put the video at the top of the story as a native <video> with controls, " +
+            "playsinline and preload=\"metadata\", never autoplay with sound." +
+            (asset.ownerPhotoUrl ? " Use the photo as its poster." : ""),
+        );
+      }
       out.push("");
       out.push("Notes about them. YOU write the story from these, they are raw material:");
       if (asset.storyNotes.trim()) {
@@ -388,7 +402,9 @@ export function missingFields(asset: ConversionAsset): string[] {
   // is nothing it can be short of.
   if (!contentIsComplete(asset)) {
     if (asset.kind === "owner-story") {
-      if (!asset.ownerPhotoUrl || !asset.storyNotes.trim()) missing.push("Owner photo and notes");
+      if (!hasOwnerMedia(asset) || !asset.storyNotes.trim()) {
+        missing.push("Owner photo or video, and notes");
+      }
       if (!asset.couponOffer.trim()) missing.push("The gift the text promised");
     } else {
       missing.push("A whole before/after job");

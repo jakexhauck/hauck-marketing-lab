@@ -190,6 +190,17 @@ export const REVIEW_CAP = 6;
 export const UPLOAD_FOLDERS = ["logo", "kit", "owner", "before", "after"] as const;
 export type UploadFolder = (typeof UPLOAD_FOLDERS)[number];
 
+// Owner videos. Uploaded by the browser straight to storage on a signed URL,
+// never through the Worker (see 0133). The cap is Supabase's default per-file
+// storage limit, so a bigger file is refused here with a readable message
+// rather than by storage with an opaque one.
+export const VIDEO_MAX_BYTES = 50 * 1024 * 1024;
+export const VIDEO_EXTENSIONS: Record<string, string> = {
+  "video/mp4": "mp4",
+  "video/quicktime": "mov",
+  "video/webm": "webm",
+};
+
 // ---------------------------------------------------------------------------
 
 // Where the look comes from. 'default' still asks which colours to use: the
@@ -245,6 +256,8 @@ export interface ConversionAsset {
 
   ownerName: string;
   ownerPhotoUrl: string;
+  // Optional alongside the photo; either one makes the page buildable.
+  ownerVideoUrl: string;
   storyNotes: string;
   // The gift the owner-story text promised. See DEFAULT_COUPON_OFFER.
   couponOffer: string;
@@ -496,13 +509,18 @@ export function stepsFor(kind: AssetKind | ""): WizardStep[] {
 // positioning rather than out of assets: the client may have no photos, no
 // documented process and nothing to hand over. Everything on that screen is
 // steering, and an empty screen still produces a page.
+// A photo, a video, or both. Either one puts the owner on the page.
+export function hasOwnerMedia(asset: Pick<ConversionAsset, "ownerPhotoUrl" | "ownerVideoUrl">): boolean {
+  return !!asset.ownerPhotoUrl || !!asset.ownerVideoUrl;
+}
+
 export function contentIsComplete(asset: ConversionAsset): boolean {
   switch (asset.kind) {
     case "recent-work":
       return wholeJobs(asset.jobs).length > 0;
     case "owner-story":
       return (
-        !!asset.ownerPhotoUrl &&
+        hasOwnerMedia(asset) &&
         asset.storyNotes.trim().length > 0 &&
         asset.couponOffer.trim().length > 0
       );
@@ -558,6 +576,7 @@ export interface ConversionAssetRow {
   logo_url: string;
   owner_name: string;
   owner_photo_url: string;
+  owner_video_url: string;
   story_notes: string;
   coupon_offer: string;
   coupon_code: string;
@@ -578,7 +597,7 @@ export interface ConversionAssetRow {
 export const CONVERSION_ASSET_SELECT =
   "id, tenant_id, asset_kind, slug, design_source, design_ref, " +
   "design_colors_source, colors, design_kit_url, logo_url, owner_name, " +
-  "owner_photo_url, story_notes, coupon_offer, coupon_code, coupon_terms, " +
+  "owner_photo_url, owner_video_url, story_notes, coupon_offer, coupon_code, coupon_terms, " +
   "mechanism_name, mechanism_notes, jobs, reviews, trust, appointment_type, " +
   "calendar_embed, status, has_source, created_at, updated_at";
 
@@ -603,6 +622,7 @@ export function toConversionAsset(row: ConversionAssetRow): ConversionAsset {
     logoUrl: row.logo_url,
     ownerName: row.owner_name ?? "",
     ownerPhotoUrl: row.owner_photo_url ?? "",
+    ownerVideoUrl: row.owner_video_url ?? "",
     storyNotes: row.story_notes ?? "",
     couponOffer: row.coupon_offer ?? "",
     couponCode: row.coupon_code ?? "",
@@ -640,6 +660,7 @@ export function emptyConversionAsset(tenantId: string, kind: AssetKind): Convers
     logoUrl: "",
     ownerName: "",
     ownerPhotoUrl: "",
+    ownerVideoUrl: "",
     storyNotes: "",
     // Pre-filled, because the universal text already told the lead what the
     // gift is. Typing it again per client is asking somebody to restate a
@@ -695,6 +716,7 @@ export interface ConversionAssetPatch {
   logoUrl?: string;
   ownerName?: string;
   ownerPhotoUrl?: string;
+  ownerVideoUrl?: string;
   storyNotes?: string;
   couponOffer?: string;
   couponCode?: string;
@@ -727,6 +749,7 @@ export function patchColumns(body: ConversionAssetPatch): Record<string, unknown
   if (body.logoUrl !== undefined) update.logo_url = cleanUrl(body.logoUrl);
   if (body.ownerName !== undefined) update.owner_name = cleanLine(body.ownerName, LIMITS.ownerName);
   if (body.ownerPhotoUrl !== undefined) update.owner_photo_url = cleanUrl(body.ownerPhotoUrl);
+  if (body.ownerVideoUrl !== undefined) update.owner_video_url = cleanUrl(body.ownerVideoUrl);
   if (body.storyNotes !== undefined) {
     update.story_notes = cleanBlock(body.storyNotes, LIMITS.storyNotes);
   }
