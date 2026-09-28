@@ -554,3 +554,15 @@ Still parked:
 - What each bundle and "who dials" choice adds or removes from the checklist.
 - Automating items (staff invite, custom values, auto-ticks for ad account link, CAPI, Ads LIVE).
 - A "waiting on client / carrier" state for items like A2P Approved.
+
+## Upload creatives to Meta (28 September 2026)
+
+What's in the app now: Fulfillment > Paid Ads > Creatives has an upload box. Files go into the client's Meta ad account media library, named `<creative> 1:1` / `<creative> 4:5`.
+
+Your action items:
+1. In Ads Manager for Willis Windows, open the media library and delete the 2-second green test video `zz-api-test 4:5` (Meta will not let the app delete videos).
+2. Drop one real 1:1 + 4:5 image pair for a client and check they appear in Ads Manager's media library.
+3. Drop one real video and check it shows "Processing", then its thumbnail.
+
+Still parked:
+- Business Suite folders: need Meta's `business_creative_management` permission, which the app cannot get today.
