@@ -118,6 +118,9 @@ export interface DialRow {
   outcome: string;
   // Why they said no, null for every dial that was not a no.
   reason?: string | null;
+  // How many dials this row stands for. Absent on a raw cold_call_dials row
+  // (one dial); set on a grouped row from cold_call_dial_day_counts (0134).
+  dials?: number;
 }
 
 // What the app recorded for one day. Always four real numbers: a day with rows
@@ -158,13 +161,14 @@ export function rollUpDialsByDay(dials: DialRow[]): Record<string, RecordedCount
       meetingsBooked: 0,
       reasons: {},
     });
-    counts.callsMade += 1;
-    if (dial.spoke) counts.pickups += 1;
-    if (dial.pitched) counts.passThrough += 1;
-    if (dial.outcome === "booked") counts.meetingsBooked += 1;
+    const n = dial.dials ?? 1;
+    counts.callsMade += n;
+    if (dial.spoke) counts.pickups += n;
+    if (dial.pitched) counts.passThrough += n;
+    if (dial.outcome === "booked") counts.meetingsBooked += n;
     // Keyed by outcome, not by the retired `reason` column (0078).
     if (isReportedReason(dial.outcome)) {
-      counts.reasons[dial.outcome] = (counts.reasons[dial.outcome] ?? 0) + 1;
+      counts.reasons[dial.outcome] = (counts.reasons[dial.outcome] ?? 0) + n;
     }
   }
   return byDay;

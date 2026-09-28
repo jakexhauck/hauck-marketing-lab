@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-28-cold-call-tracker-month",
+    date: "28 September 2026",
+    title: "Cold Call tracker counts every dial again",
+    items: [
+      "Once a month passed 1,000 dials, the Cold Call tracker stopped counting the newest days. 25 September showed 81 of its 201 dials and 28 September showed none.",
+      "Every dial was recorded the whole time. The tracker now shows all of them, whatever the month's total.",
+    ],
+  },
+  {
     id: "2026-09-24-owner-story-video",
     date: "24 September 2026",
     title: "Owner video on the owner story",

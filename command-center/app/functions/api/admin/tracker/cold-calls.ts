@@ -145,9 +145,11 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       .gte("day", first)
       .lte("day", last)
       .order("day", { ascending: true }),
+    // Grouped rows, never raw dials: a month of raw rows passed PostgREST's
+    // 1000-row cap in September 2026 and the newest days silently vanished (0134).
     client
-      .from("cold_call_dials")
-      .select("day, spoke, pitched, outcome, reason")
+      .from("cold_call_dial_day_counts")
+      .select("day, spoke, pitched, outcome, dials")
       .eq("caller_id", callerId)
       .gte("day", first)
       .lte("day", last),
@@ -184,8 +186,8 @@ async function agencyMonth(
       .lte("day", last)
       .order("day", { ascending: true }),
     client
-      .from("cold_call_dials")
-      .select("caller_id, day, spoke, pitched, outcome, reason")
+      .from("cold_call_dial_day_counts")
+      .select("caller_id, day, spoke, pitched, outcome, dials")
       .gte("day", first)
       .lte("day", last),
   ]);
@@ -203,7 +205,7 @@ async function agencyMonth(
       spoke: boolean | null;
       pitched: boolean | null;
       outcome: string | null;
-      reason: string | null;
+      dials: number;
     }[]
   ).map((row) => ({
     callerId: row.caller_id ?? "",
@@ -211,7 +213,7 @@ async function agencyMonth(
     spoke: Boolean(row.spoke),
     pitched: Boolean(row.pitched),
     outcome: row.outcome ?? "",
-    reason: row.reason,
+    dials: row.dials,
   }));
 
   const { days, callers, typedDays } = aggregateAgencyMonth(typed, dials);

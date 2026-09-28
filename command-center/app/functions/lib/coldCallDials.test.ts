@@ -112,6 +112,24 @@ describe("rollUpDialsByDay", () => {
     expect(rollUpDialsByDay([dial({ day: "" })])).toEqual({});
   });
 
+  // The tracker reads grouped rows from cold_call_dial_day_counts (0134), one
+  // per day per outcome, so a row can stand for many dials.
+  it("weights a grouped row by its dial count", () => {
+    const counts = rollUpDialsByDay([
+      dial({ outcome: "no_answer", dials: 148 }),
+      dial({ spoke: true, outcome: "opener_no", dials: 17 }),
+      dial({ spoke: true, pitched: true, outcome: "booked", dials: 2 }),
+      dial({ outcome: "not_in_niche", dials: 9 }),
+    ]);
+    expect(counts["2026-07-26"]).toEqual({
+      callsMade: 167,
+      pickups: 19,
+      passThrough: 2,
+      meetingsBooked: 2,
+      reasons: { opener_no: 17 },
+    });
+  });
+
   it("returns nothing for no dials, never a zero-filled day", () => {
     expect(rollUpDialsByDay([])).toEqual({});
   });
