@@ -5,6 +5,7 @@ import { toSheetCall, callsInMonth, type SalesCallRow } from "./salesSheetRows";
 // only the field it is about, so a test reads as the one fact it asserts.
 function call(over: Partial<SalesCallRow> = {}): SalesCallRow {
   return {
+    id: "call-1",
     scheduledAt: "2026-03-09T15:30:00Z",
     appointmentStatus: "confirmed",
     outcome: null,
@@ -14,7 +15,8 @@ function call(over: Partial<SalesCallRow> = {}): SalesCallRow {
     scratchpad: "",
     prospectName: "Jake Hauck",
     businessName: "Hauck Marketing",
-    postCallFormUrl: "",
+    dispositionStatus: "",
+    excludedAt: null,
     paymentPlatform: "",
     recordingLink: "",
     revenueGenerated: null,
@@ -44,7 +46,7 @@ describe("toSheetCall", () => {
     expect(toSheetCall(call({ outcome: "closed", deal: null })).revenue).toBeNull();
   });
 
-  // The disposition form's flat answer wins when the form gave one: "How Much
+  // The post-call form's flat answer wins when the form gave one: "How Much
   // Revenue Generated" is a number somebody typed about THIS deal, and deal
   // arithmetic only covers rows recorded before the form existed.
   it("prefers the form's flat revenue over deal arithmetic on a close", () => {
@@ -54,19 +56,69 @@ describe("toSheetCall", () => {
     expect(row.revenue).toBe(6000);
   });
 
-  it("carries the form's payment and recording stamps, and its link", () => {
+  it("carries the form's payment and recording answers", () => {
     const row = toSheetCall(
-      call({
-        paymentPlatform: "Stripe",
-        recordingLink: "https://drive.example/rec/1",
-        postCallFormUrl: "https://link.hauckmarketing.com/widget/form/RaoIfnclY5sytH5ndisi",
-      }),
+      call({ paymentPlatform: "Stripe", recordingLink: "https://drive.example/rec/1" }),
     );
     expect(row.paymentType).toBe("Stripe");
     expect(row.recordingLink).toBe("https://drive.example/rec/1");
-    expect(row.postCallFormUrl).toBe(
-      "https://link.hauckmarketing.com/widget/form/RaoIfnclY5sytH5ndisi",
+  });
+
+  // The calendar sync rewrites appointment_status on every pass, so a Cancelled
+  // saved on the form has to live somewhere the sync cannot reach.
+  it("keeps a form-cancelled meeting cancelled though the calendar says confirmed", () => {
+    const row = toSheetCall(call({ dispositionStatus: "cancelled", appointmentStatus: "confirmed" }));
+    expect(row.cancelled).toBe(true);
+    expect(row.recorded).toBe(true);
+  });
+
+  it("lets a saved form outrank a cancellation on the calendar", () => {
+    const row = toSheetCall(
+      call({ dispositionStatus: "pif", outcome: "closed", appointmentStatus: "cancelled" }),
     );
+    expect(row.cancelled).toBe(false);
+    expect(row.closed).toBe(true);
+  });
+
+  it("still reads a calendar cancellation when no form was saved", () => {
+    expect(toSheetCall(call({ appointmentStatus: "cancelled" })).cancelled).toBe(true);
+  });
+
+  it("marks a meeting recorded once the form or an outcome says what happened", () => {
+    expect(toSheetCall(call()).recorded).toBe(false);
+    expect(toSheetCall(call({ outcome: "no_show" })).recorded).toBe(true);
+    expect(toSheetCall(call({ dispositionStatus: "noshow", outcome: "no_show" })).recorded).toBe(true);
+  });
+
+  it("flags an exited meeting", () => {
+    expect(toSheetCall(call()).excluded).toBe(false);
+    expect(toSheetCall(call({ excludedAt: "2026-09-28T12:00:00Z" })).excluded).toBe(true);
+  });
+
+  it("opens the form on what was last saved", () => {
+    const row = toSheetCall(
+      call({
+        dispositionStatus: "deposit",
+        outcome: "closed",
+        cashCollected: 500,
+        revenueGenerated: 6000,
+        paymentPlatform: "Stripe",
+        recordingLink: "https://x.test/r",
+        scratchpad: "Starts Monday",
+      }),
+    );
+    expect(row.form).toEqual({
+      status: "deposit",
+      cashCollected: 500,
+      revenueGenerated: 6000,
+      paymentPlatform: "Stripe",
+      recordingLink: "https://x.test/r",
+      notes: "Starts Monday",
+    });
+  });
+
+  it("opens an old-panel meeting on the status nearest its outcome", () => {
+    expect(toSheetCall(call({ outcome: "not_interested" })).form.status).toBe("noclose");
   });
 
   // A no-show reached its slot and nobody came, which is not the same fact as a

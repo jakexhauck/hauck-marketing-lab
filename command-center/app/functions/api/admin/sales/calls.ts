@@ -95,6 +95,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const { data, error } = await client
     .from("sales_calls")
     .select(MEETING_SELECT)
+    // Exited out on Sales Data (a test booking, a friend): not a sales call on
+    // this page either, or the two funnels disagree.
+    .is("excluded_at", null)
     .order("scheduled_at", { ascending: false, nullsFirst: false });
   if (error) {
     console.error("[sales/calls] read failed", error.message);

@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-28-sales-data-form",
+    date: "28 September 2026",
+    title: "Sales Data post-call form lives in the app",
+    items: [
+      "Every sales call on Sales Data now has an Open form button. It has the same fields as the old GHL form and saves straight onto the call.",
+      "Reopen a call's form to fix anything you entered. Calls that have happened with no form saved are highlighted, and a count at the top shows how many.",
+      "The X on a row takes a call out of every number (test bookings, friends). Show removed brings it back.",
+    ],
+  },
+  {
     id: "2026-09-28-creative-uploads",
     date: "28 September 2026",
     title: "Upload creatives straight to Meta",

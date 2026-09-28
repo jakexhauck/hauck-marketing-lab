@@ -1152,6 +1152,33 @@ export async function getSalesData(month: string, sync = true): Promise<SalesDat
   );
 }
 
+// The post-call form, saved onto one meeting (functions/lib/salesDisposition.ts
+// holds the rules). Money goes as typed; the server reads "$1,500" itself and
+// refuses what it cannot read rather than dropping it.
+export interface SalesCallFormInput {
+  status: string;
+  cashCollected: string;
+  revenueGenerated: string;
+  paymentPlatform: string;
+  recordingLink: string;
+  notes: string;
+}
+
+export async function saveSalesCallForm(id: string, form: SalesCallFormInput): Promise<void> {
+  await api<{ ok: true }>("/api/admin/tracker/sales-data", {
+    method: "PATCH",
+    body: JSON.stringify({ id, form }),
+  });
+}
+
+// Exit a meeting out of the numbers, or bring it back.
+export async function setSalesCallExcluded(id: string, excluded: boolean): Promise<void> {
+  await api<{ ok: true }>("/api/admin/tracker/sales-data", {
+    method: "PATCH",
+    body: JSON.stringify({ id, excluded }),
+  });
+}
+
 // Business Health (0030): the agency's own numbers, one row per period key.
 // Agency-global, so nothing here is scoped to a tenant. The response carries
 // only the hand-entered inputs; CAC/ROAS/LTV and the end client count are

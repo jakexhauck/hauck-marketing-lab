@@ -82,6 +82,9 @@ import {
   type ApiReviewsResponse,
   type PillarConstraint,
   getSalesData,
+  saveSalesCallForm,
+  setSalesCallExcluded,
+  type SalesCallFormInput,
   type ApiSetterPipelinesResponse,
   type ApiSetterLead,
   type ApiSetterLeadsResponse,
@@ -3022,6 +3025,31 @@ export function useSalesDataQuery(month: string) {
     placeholderData: keepPreviousData,
     queryFn: () => getSalesData(month),
   });
+}
+
+// Both write onto sales_calls, so both refetch every month of Sales Data and
+// the Sales Calls list, which reads the same rows.
+function useSalesCallWrite<T>(fn: (input: T) => Promise<void>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin", "tracker", "sales-data"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "sales"] });
+    },
+  });
+}
+
+export function useSaveSalesCallForm() {
+  return useSalesCallWrite((input: { id: string; form: SalesCallFormInput }) =>
+    saveSalesCallForm(input.id, input.form),
+  );
+}
+
+export function useSetSalesCallExcluded() {
+  return useSalesCallWrite((input: { id: string; excluded: boolean }) =>
+    setSalesCallExcluded(input.id, input.excluded),
+  );
 }
 
 // ===== Operations pillar: Scaling Calculator =====

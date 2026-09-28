@@ -1,69 +1,66 @@
-import { normalizePhone } from "./internalRecipients";
 import type { SalesCallOutcome } from "./salesCalls";
 
-// The GHL disposition form, parsed.
+// The post-call form, parsed.
 //
-// The end-of-call recorder is Jake's GoHighLevel form
-// (form RaoIfnclY5sytH5ndisi on the Hauck Marketing location), not the in-app
-// panel. Two workflows post to /api/webhook and both land here first:
+// This used to be Jake's GoHighLevel form (RaoIfnclY5sytH5ndisi) plus two
+// workflows posting to /api/webhook. It was never submitted once: the workflow
+// that put the form link on a meeting fired for one meeting in twenty-three, so
+// there was nothing to press. The same fields now live in Sales Data itself
+// (SalesCallForm.tsx) and save through PATCH /api/admin/tracker/sales-data.
 //
-//   PostCallForm      -- "this meeting is confirmed, here is its form URL"
-//   SalesDisposition  -- "the form was submitted; here are the answers"
+// Kept pure so the whole mapping is unit-tested without Supabase.
 //
-// Everything in this file is pure so the whole mapping is unit-tested without
-// Supabase or GHL. The I/O half that calls it lives in salesDispositionApply.ts.
-//
-// The radio's exact strings were read off the live form (2026-08-24):
-//   PIF / Deposit / No-Close / No-Show / Follow Up / Unqualified / Cancelled
-// Matching tolerates case, spaces and hyphens ("no close" == "No-Close"), but
-// anything else parses as UNKNOWN, and unknown stamps nothing: a partial or
-// unexpected submission may fill the free-text columns but never invents an
-// outcome for a call somebody has not dispositioned.
+// The form is an EDITOR, not an append log: reopening a meeting shows what was
+// saved and saving again replaces it, so a mistake is fixed by correcting it.
 
-export interface ParsedStatus {
-  // Null only for Cancelled, which is a fact about the CALENDAR, not an
-  // outcome. The outcome check constraint has no cancelled value and the sheet
-  // reads cancellation off appointment_status instead.
+export type DispositionStatus =
+  | "pif"
+  | "deposit"
+  | "noclose"
+  | "noshow"
+  | "followup"
+  | "unqualified"
+  | "cancelled";
+
+interface StatusMeta {
+  key: DispositionStatus;
+  label: string;
+  // Null only for Cancelled: a meeting that never ran produced nothing.
   outcome: SalesCallOutcome | null;
-  // Unqualified sets this false, exactly as the old panel did; every other
-  // status leaves the recorded qualified bit alone.
-  qualified?: boolean;
-  // Cancelled flips appointment_status. Calendar sync otherwise owns that
-  // column; the form is allowed to write it deliberately, and if GHL still says
-  // confirmed afterwards the fix is cancelling there too.
-  cancelAppointment: boolean;
+  // Pitched means qualified, Unqualified means not, and a meeting nobody
+  // turned up to says nothing either way.
+  qualified: boolean | null;
 }
 
-const STATUS_MAP: Record<string, ParsedStatus> = {
-  pif: { outcome: "closed", cancelAppointment: false },
-  deposit: { outcome: "closed", cancelAppointment: false },
-  noclose: { outcome: "not_interested", cancelAppointment: false },
-  noshow: { outcome: "no_show", cancelAppointment: false },
-  followup: { outcome: "follow_up", cancelAppointment: false },
-  unqualified: { outcome: "not_qualified", qualified: false, cancelAppointment: false },
-  cancelled: { outcome: null, cancelAppointment: true },
-};
+// The GHL form's seven answers, in its order.
+export const DISPOSITION_STATUSES: StatusMeta[] = [
+  { key: "pif", label: "PIF", outcome: "closed", qualified: true },
+  { key: "deposit", label: "Deposit", outcome: "closed", qualified: true },
+  { key: "noclose", label: "No-Close", outcome: "not_interested", qualified: true },
+  { key: "noshow", label: "No-Show", outcome: "no_show", qualified: null },
+  { key: "followup", label: "Follow Up", outcome: "follow_up", qualified: true },
+  { key: "unqualified", label: "Unqualified", outcome: "not_qualified", qualified: false },
+  { key: "cancelled", label: "Cancelled", outcome: null, qualified: null },
+];
 
-function statusKey(raw: unknown): string {
-  return typeof raw === "string"
-    ? raw.trim().toLowerCase().replace(/[^a-z]/g, "")
-    : "";
+const BY_KEY = new Map(DISPOSITION_STATUSES.map((s) => [s.key, s]));
+
+export function isDispositionStatus(value: unknown): value is DispositionStatus {
+  return typeof value === "string" && BY_KEY.has(value as DispositionStatus);
 }
 
-export function parseStatus(raw: unknown): ParsedStatus | null {
-  const key = statusKey(raw);
-  if (!key) return null;
-  // Unknown strings return null rather than a guess: the free-text fields may
-  // still be stamped, but the row stays Awaiting until the radio says one of
-  // the seven things the form actually offers.
-  const hit = STATUS_MAP[key];
-  return hit ? { ...hit } : null;
+// A meeting recorded before the form existed (the old in-app panel) has an
+// outcome and no status. The form opens on the nearest answer rather than on
+// nothing, so saving it does not wipe that outcome by accident. Closed maps to
+// PIF because the old panel never asked which.
+export function statusFromOutcome(outcome: string | null): DispositionStatus | "" {
+  const hit = DISPOSITION_STATUSES.find((s) => s.outcome !== null && s.outcome === outcome);
+  return hit ? hit.key : "";
 }
 
 // "$1,200", "1200.50", " 2,000 " -> number. Blank, negative or nonsense -> null.
-// Money arrives from a browser form, so tolerance is cheap and a silent zero
-// would be expensive: null means "not answered", which the sheet renders as a
-// dash, while 0 would claim the deal was free.
+// null means "not answered", which the sheet renders as a dash; 0 would claim
+// the deal was free.
 export function parseMoney(raw: unknown): number | null {
   if (raw === null || raw === undefined) return null;
   const text = String(raw).trim();
@@ -74,143 +71,77 @@ export function parseMoney(raw: unknown): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-// Free-text answers pass through trimmed, or drop out entirely. An empty string
-// must never overwrite something already stored on the row.
-export function parseText(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
-  const text = raw.trim();
-  return text ? text : null;
+function text(raw: unknown, cap: number): string {
+  return typeof raw === "string" ? raw.trim().slice(0, cap) : "";
 }
 
-// ---------------------------------------------------------------------------
-// PostCallForm: the URL a confirmed meeting is worked from
-// ---------------------------------------------------------------------------
-
-// Only URLs the agency itself serves are accepted, so a misconfigured workflow
-// cannot stamp foreign links onto an admin surface. Exact prefix, no host games.
-export const FORM_URL_PREFIX = "https://link.hauckmarketing.com/widget/form/";
-
-export function isAllowedFormUrl(url: unknown): boolean {
-  return typeof url === "string" && url.startsWith(FORM_URL_PREFIX);
+function isBlank(raw: unknown): boolean {
+  return raw === null || raw === undefined || String(raw).trim() === "";
 }
 
-// ---------------------------------------------------------------------------
-// Which meeting row a submission belongs to
-// ---------------------------------------------------------------------------
-
-// The slice of sales_calls the picker needs. The apply layer maps DB rows onto
-// this, so the selection rule is testable without Supabase.
-export interface TargetableCall {
-  id: string;
-  ghl_contact_id: string | null;
-  phone: string | null;
-  outcome: string | null;
-  scheduled_at: string | null;
-}
-
-// A submission goes to that contact's most recent meeting with NO OUTCOME yet,
-// matched by contact id first and by normalised phone second (the form carries
-// the phone in its query string, so phone is always present even when the
-// workflow body omits contactId).
-//
-// Every meeting recorded means NO MATCH, not "overwrite the newest": a retry or
-// double-submission finds the row already stamped and no-ops, and a form filled
-// against the wrong prospect can never rewrite history. Nothing to stamp is
-// logged upstream and dropped.
-export function pickTargetCall<T extends TargetableCall>(
-  rows: T[],
-  contactId: string | null,
-  phone: string | null,
-): T | null {
-  const wantId = typeof contactId === "string" ? contactId.trim() : "";
-  const wantPhone = normalizePhone(phone ?? "");
-
-  const mine = rows.filter((row) => {
-    if (wantId && row.ghl_contact_id === wantId) return true;
-    if (wantPhone) {
-      const have = normalizePhone(row.phone ?? "");
-      if (have && have === wantPhone) return true;
-    }
-    return false;
-  });
-
-  const open = mine.filter((row) => !row.outcome);
-  if (open.length === 0) return null;
-
-  // Most recent first; a row with no time sorts last but still beats nothing.
-  return [...open].sort((a, b) =>
-    (b.scheduled_at ?? "").localeCompare(a.scheduled_at ?? ""),
-  )[0];
-}
-
-// ---------------------------------------------------------------------------
-// SalesDisposition: the answers -> a patch on the meeting row
-// ---------------------------------------------------------------------------
-
-export interface DispositionFields {
+export interface DispositionInput {
   status: unknown;
   cashCollected: unknown;
   revenueGenerated: unknown;
   paymentPlatform: unknown;
   recordingLink: unknown;
-  feedback: unknown;
+  notes: unknown;
 }
 
-export interface DispositionPatch {
-  // Column names match sales_calls, so the apply layer can hand this straight
-  // to .update(). Keys are present ONLY when there is something real to write;
-  // absent means "leave what is stored".
-  outcome?: SalesCallOutcome;
-  qualified?: boolean;
-  appointment_status?: string;
-  cash_collected?: number;
-  revenue_generated?: number;
-  payment_platform?: string;
-  recording_link?: string;
-  // Feedback appends rather than replaces, so a re-opened form's notes add to
-  // the story rather than deleting it. Carried apart because appending needs
-  // the existing scratchpad off the row.
-  feedback: string;
+// Column names match sales_calls, so the endpoint hands this straight to
+// .update(). Every key is always present: the form replaces what was saved.
+export interface DispositionUpdate {
+  disposition_status: DispositionStatus;
+  outcome: SalesCallOutcome | null;
+  qualified: boolean | null;
+  cash_collected: number | null;
+  revenue_generated: number | null;
+  payment_platform: string;
+  recording_link: string;
+  scratchpad: string;
 }
 
-export function buildDispositionPatch(fields: DispositionFields): DispositionPatch {
-  const patch: DispositionPatch = { feedback: "" };
+export type DispositionResult =
+  | { ok: true; update: DispositionUpdate }
+  | { ok: false; error: string };
 
-  const status = parseStatus(fields.status);
-  if (status) {
-    if (status.outcome) patch.outcome = status.outcome;
-    if (status.qualified !== undefined) patch.qualified = status.qualified;
-    if (status.cancelAppointment) patch.appointment_status = "cancelled";
+// Same ceiling recordSalesCall uses for the scratchpad.
+const NOTES_CAP = 4000;
+
+export function buildDispositionUpdate(input: DispositionInput): DispositionResult {
+  if (!isDispositionStatus(input.status)) {
+    return { ok: false, error: "Pick a status." };
+  }
+  const status = BY_KEY.get(input.status)!;
+
+  // Money a person typed and we could not read is refused, not dropped: a
+  // silently blank Cash column is how the month ends up wrong again.
+  const cash = parseMoney(input.cashCollected);
+  if (cash === null && !isBlank(input.cashCollected)) {
+    return { ok: false, error: "Cash Collected must be a number." };
+  }
+  const revenue = parseMoney(input.revenueGenerated);
+  if (revenue === null && !isBlank(input.revenueGenerated)) {
+    return { ok: false, error: "Revenue Generated must be a number." };
   }
 
-  const cash = parseMoney(fields.cashCollected);
-  if (cash !== null) patch.cash_collected = cash;
+  // Rendered as a link on the sheet, so only a web address gets in.
+  const recording = text(input.recordingLink, 500);
+  if (recording && !/^https?:\/\/\S+$/i.test(recording)) {
+    return { ok: false, error: "Recording must be a link starting with https://." };
+  }
 
-  const revenue = parseMoney(fields.revenueGenerated);
-  if (revenue !== null) patch.revenue_generated = revenue;
-
-  const platform = parseText(fields.paymentPlatform);
-  if (platform) patch.payment_platform = platform;
-
-  const recording = parseText(fields.recordingLink);
-  if (recording) patch.recording_link = recording;
-
-  patch.feedback = parseText(fields.feedback) ?? "";
-
-  return patch;
-}
-
-// Whether the patch carries anything worth an UPDATE at all. A submission with
-// nothing usable (unknown status, blank everything) is acked and dropped.
-export function patchIsEmpty(patch: DispositionPatch): boolean {
-  return (
-    patch.outcome === undefined &&
-    patch.qualified === undefined &&
-    patch.appointment_status === undefined &&
-    patch.cash_collected === undefined &&
-    patch.revenue_generated === undefined &&
-    patch.payment_platform === undefined &&
-    patch.recording_link === undefined &&
-    !patch.feedback
-  );
+  return {
+    ok: true,
+    update: {
+      disposition_status: status.key,
+      outcome: status.outcome,
+      qualified: status.qualified,
+      cash_collected: cash,
+      revenue_generated: revenue,
+      payment_platform: text(input.paymentPlatform, 80),
+      recording_link: recording,
+      scratchpad: text(input.notes, NOTES_CAP),
+    },
+  };
 }

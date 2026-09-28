@@ -1,198 +1,151 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildDispositionPatch,
-  isAllowedFormUrl,
+  DISPOSITION_STATUSES,
+  buildDispositionUpdate,
   parseMoney,
-  parseStatus,
-  patchIsEmpty,
-  pickTargetCall,
-  type TargetableCall,
+  statusFromOutcome,
 } from "./salesDisposition";
 
-// The GHL disposition form's answers decide real money and real close rates,
-// so every branch of the mapping is pinned. The radio strings are the live
-// form's exact values; anything else must parse as unknown.
+// The post-call form's answers decide real money and real close rates, so
+// every branch of the mapping is pinned.
 
-describe("parseStatus", () => {
-  it("maps every radio value on the live form", () => {
-    expect(parseStatus("PIF")).toEqual({ outcome: "closed", cancelAppointment: false });
-    expect(parseStatus("Deposit")).toEqual({ outcome: "closed", cancelAppointment: false });
-    expect(parseStatus("No-Close")).toEqual({ outcome: "not_interested", cancelAppointment: false });
-    expect(parseStatus("No-Show")).toEqual({ outcome: "no_show", cancelAppointment: false });
-    expect(parseStatus("Follow Up")).toEqual({ outcome: "follow_up", cancelAppointment: false });
-    expect(parseStatus("Unqualified")).toEqual({
-      outcome: "not_qualified",
-      qualified: false,
-      cancelAppointment: false,
+const blank = {
+  status: "",
+  cashCollected: "",
+  revenueGenerated: "",
+  paymentPlatform: "",
+  recordingLink: "",
+  notes: "",
+};
+
+function ok(input: Partial<typeof blank>) {
+  const result = buildDispositionUpdate({ ...blank, ...input });
+  if (!result.ok) throw new Error(`expected ok, got: ${result.error}`);
+  return result.update;
+}
+
+function err(input: Partial<typeof blank>) {
+  const result = buildDispositionUpdate({ ...blank, ...input });
+  if (result.ok) throw new Error("expected an error");
+  return result.error;
+}
+
+describe("DISPOSITION_STATUSES", () => {
+  it("offers the seven answers the GHL form offered, in its order", () => {
+    expect(DISPOSITION_STATUSES.map((s) => s.label)).toEqual([
+      "PIF",
+      "Deposit",
+      "No-Close",
+      "No-Show",
+      "Follow Up",
+      "Unqualified",
+      "Cancelled",
+    ]);
+  });
+});
+
+describe("buildDispositionUpdate: status", () => {
+  it("maps every status onto an outcome", () => {
+    expect(ok({ status: "pif" }).outcome).toBe("closed");
+    expect(ok({ status: "deposit" }).outcome).toBe("closed");
+    expect(ok({ status: "noclose" }).outcome).toBe("not_interested");
+    expect(ok({ status: "noshow" }).outcome).toBe("no_show");
+    expect(ok({ status: "followup" }).outcome).toBe("follow_up");
+    expect(ok({ status: "unqualified" }).outcome).toBe("not_qualified");
+  });
+
+  it("keeps PIF and Deposit apart in disposition_status", () => {
+    expect(ok({ status: "pif" }).disposition_status).toBe("pif");
+    expect(ok({ status: "deposit" }).disposition_status).toBe("deposit");
+  });
+
+  it("Cancelled clears the outcome rather than inventing one", () => {
+    const update = ok({ status: "cancelled" });
+    expect(update.outcome).toBeNull();
+    expect(update.disposition_status).toBe("cancelled");
+  });
+
+  it("Unqualified marks the prospect unqualified; a pitch marks them qualified", () => {
+    expect(ok({ status: "unqualified" }).qualified).toBe(false);
+    expect(ok({ status: "pif" }).qualified).toBe(true);
+    expect(ok({ status: "noclose" }).qualified).toBe(true);
+    expect(ok({ status: "noshow" }).qualified).toBeNull();
+  });
+
+  it("refuses a save with no status", () => {
+    expect(err({ status: "" })).toMatch(/status/i);
+  });
+
+  it("refuses a status the form does not offer", () => {
+    expect(err({ status: "maybe" })).toMatch(/status/i);
+  });
+});
+
+describe("buildDispositionUpdate: the other fields", () => {
+  it("writes money as numbers and blank money as null", () => {
+    const update = ok({ status: "pif", cashCollected: "$1,500", revenueGenerated: "" });
+    expect(update.cash_collected).toBe(1500);
+    expect(update.revenue_generated).toBeNull();
+  });
+
+  it("refuses money that is not a number, rather than dropping it quietly", () => {
+    expect(err({ status: "pif", cashCollected: "lots" })).toMatch(/cash/i);
+    expect(err({ status: "pif", revenueGenerated: "-5" })).toMatch(/revenue/i);
+  });
+
+  it("replaces the text fields, so a mistake can be corrected", () => {
+    const update = ok({
+      status: "noclose",
+      paymentPlatform: "  Stripe ",
+      recordingLink: "https://fathom.video/x",
+      notes: "  Too busy until spring  ",
     });
+    expect(update.payment_platform).toBe("Stripe");
+    expect(update.recording_link).toBe("https://fathom.video/x");
+    expect(update.scratchpad).toBe("Too busy until spring");
   });
 
-  it("tolerates case, spaces and punctuation", () => {
-    expect(parseStatus("pif")?.outcome).toBe("closed");
-    expect(parseStatus("  follow up ")?.outcome).toBe("follow_up");
-    expect(parseStatus("NO-SHOW")?.outcome).toBe("no_show");
+  it("blank text fields write empty strings, never null", () => {
+    const update = ok({ status: "noshow" });
+    expect(update.payment_platform).toBe("");
+    expect(update.recording_link).toBe("");
+    expect(update.scratchpad).toBe("");
   });
 
-  it("sends Cancelled to the calendar, not to an outcome", () => {
-    // The outcome check constraint has no cancelled value; cancellation lives
-    // on appointment_status, which the sheet reads separately.
-    expect(parseStatus("Cancelled")).toEqual({ outcome: null, cancelAppointment: true });
+  it("refuses a recording that is not a web link", () => {
+    expect(err({ status: "pif", recordingLink: "javascript:alert(1)" })).toMatch(/recording/i);
+    expect(err({ status: "pif", recordingLink: "my zoom" })).toMatch(/recording/i);
   });
 
-  it("refuses blank and unknown rather than guessing", () => {
-    expect(parseStatus("")).toBeNull();
-    expect(parseStatus(null)).toBeNull();
-    expect(parseStatus(42)).toBeNull();
-    expect(parseStatus("maybe")).toBeNull();
+  it("caps the notes", () => {
+    expect(ok({ status: "pif", notes: "x".repeat(5000) }).scratchpad).toHaveLength(4000);
   });
 });
 
 describe("parseMoney", () => {
-  it("takes what a browser form actually sends", () => {
+  it("reads what a person types", () => {
     expect(parseMoney("$1,200")).toBe(1200);
     expect(parseMoney("1200.50")).toBe(1200.5);
     expect(parseMoney(" 2,000 ")).toBe(2000);
-    expect(parseMoney("0")).toBe(0);
+    expect(parseMoney(900)).toBe(900);
   });
 
-  it("calls a blank answer unanswered, never zero", () => {
+  it("returns null for blank and nonsense", () => {
     expect(parseMoney("")).toBeNull();
-    expect(parseMoney("   ")).toBeNull();
-    expect(parseMoney(undefined)).toBeNull();
-    // A silent zero would claim the deal was free; null renders as a dash.
-    expect(parseMoney("n/a")).toBeNull();
-    expect(parseMoney("-500")).toBeNull();
+    expect(parseMoney(null)).toBeNull();
+    expect(parseMoney("abc")).toBeNull();
+    expect(parseMoney("-5")).toBeNull();
   });
 });
 
-describe("isAllowedFormUrl", () => {
-  const REAL = "https://link.hauckmarketing.com/widget/form/RaoIfnclY5sytH5ndisi?phone=%2B17343010570";
-
-  it("accepts the agency's own widget URLs", () => {
-    expect(isAllowedFormUrl(REAL)).toBe(true);
-  });
-
-  it("rejects foreign hosts, bare paths and non-strings", () => {
-    expect(isAllowedFormUrl("https://evil.example/widget/form/abc")).toBe(false);
-    expect(isAllowedFormUrl("/widget/form/RaoIfnclY5sytH5ndisi")).toBe(false);
-    expect(isAllowedFormUrl("http://link.hauckmarketing.com/widget/form/abc")).toBe(false);
-    expect(isAllowedFormUrl("")).toBe(false);
-    expect(isAllowedFormUrl(undefined)).toBe(false);
-  });
-});
-
-function call(over: Partial<TargetableCall>): TargetableCall {
-  return {
-    id: "row",
-    ghl_contact_id: "contact-1",
-    phone: "+17343010570",
-    outcome: null,
-    scheduled_at: "2026-08-24T15:00:00Z",
-    ...over,
-  };
-}
-
-describe("pickTargetCall", () => {
-  it("matches by contact id first", () => {
-    const rows = [
-      call({ id: "a", ghl_contact_id: "someone-else" }),
-      call({ id: "b" }),
-    ];
-    expect(pickTargetCall(rows, "contact-1", null)?.id).toBe("b");
-  });
-
-  it("falls back to normalised phone when no contact id matches", () => {
-    const rows = [call({ id: "a", phone: "(734) 301-0570" })];
-    expect(pickTargetCall(rows, null, "+1 734.301.0570")?.id).toBe("a");
-  });
-
-  it("skips recorded rows entirely", () => {
-    // A retry or double submission finds the row already stamped and no-ops;
-    // it must never overwrite an outcome somebody already recorded.
-    const rows = [
-      call({ id: "old", outcome: "closed", scheduled_at: "2026-08-20T15:00:00Z" }),
-      call({ id: "newest", outcome: "not_interested" }),
-    ];
-    expect(pickTargetCall(rows, "contact-1", null)).toBeNull();
-  });
-
-  it("prefers the most recent open meeting", () => {
-    const rows = [
-      call({ id: "older", scheduled_at: "2026-08-10T15:00:00Z" }),
-      call({ id: "newer", scheduled_at: "2026-08-24T15:00:00Z" }),
-      call({ id: "recorded", outcome: "closed", scheduled_at: "2026-08-25T15:00:00Z" }),
-    ];
-    expect(pickTargetCall(rows, "contact-1", null)?.id).toBe("newer");
-  });
-
-  it("returns nothing when the prospect owns no meeting", () => {
-    expect(pickTargetCall([call({ id: "a" })], "other-contact", null)).toBeNull();
-    expect(pickTargetCall([], null, null)).toBeNull();
-  });
-});
-
-describe("buildDispositionPatch", () => {
-  it("stamps a full closed call", () => {
-    const patch = buildDispositionPatch({
-      status: "PIF",
-      cashCollected: "$1,500",
-      revenueGenerated: "6000",
-      paymentPlatform: "Stripe",
-      recordingLink: "https://drive.example/rec/1",
-      feedback: "Wants onboarding next week.",
-    });
-    expect(patch.outcome).toBe("closed");
-    expect(patch.cash_collected).toBe(1500);
-    expect(patch.revenue_generated).toBe(6000);
-    expect(patch.payment_platform).toBe("Stripe");
-    expect(patch.recording_link).toBe("https://drive.example/rec/1");
-    expect(patch.feedback).toBe("Wants onboarding next week.");
-    expect(patch.appointment_status).toBeUndefined();
-    expect(patch.qualified).toBeUndefined();
-  });
-
-  it("marks unqualified and cancels without inventing outcomes", () => {
-    expect(buildDispositionPatch({ status: "Unqualified", cashCollected: "", revenueGenerated: "", paymentPlatform: "", recordingLink: "", feedback: "" })).toMatchObject({
-      outcome: "not_qualified",
-      qualified: false,
-    });
-    expect(buildDispositionPatch({ status: "Cancelled", cashCollected: "", revenueGenerated: "", paymentPlatform: "", recordingLink: "", feedback: "" })).toMatchObject({
-      appointment_status: "cancelled",
-    });
-    expect(
-      buildDispositionPatch({ status: "Cancelled", cashCollected: "", revenueGenerated: "", paymentPlatform: "", recordingLink: "", feedback: "" }).outcome,
-    ).toBeUndefined();
-  });
-
-  it("stamps free text while leaving the row Awaiting on an unknown status", () => {
-    // A partial or unexpected submission fills what it can and never guesses
-    // the radio.
-    const patch = buildDispositionPatch({
-      status: "maybe",
-      cashCollected: "",
-      revenueGenerated: "",
-      paymentPlatform: "Cash",
-      recordingLink: "",
-      feedback: "Rang back, will reschedule.",
-    });
-    expect(patch.outcome).toBeUndefined();
-    expect(patch.payment_platform).toBe("Cash");
-    expect(patch.feedback).toBe("Rang back, will reschedule.");
-  });
-
-  it("never writes empties over stored values", () => {
-    const patch = buildDispositionPatch({
-      status: "",
-      cashCollected: "",
-      revenueGenerated: "",
-      paymentPlatform: "   ",
-      recordingLink: undefined,
-      feedback: "",
-    });
-    expect(patch.cash_collected).toBeUndefined();
-    expect(patch.revenue_generated).toBeUndefined();
-    expect(patch.payment_platform).toBeUndefined();
-    expect(patch.recording_link).toBeUndefined();
-    expect(patchIsEmpty(patch)).toBe(true);
+describe("statusFromOutcome", () => {
+  it("prefills the form for a meeting recorded before the form existed", () => {
+    expect(statusFromOutcome("closed")).toBe("pif");
+    expect(statusFromOutcome("not_interested")).toBe("noclose");
+    expect(statusFromOutcome("no_show")).toBe("noshow");
+    expect(statusFromOutcome("follow_up")).toBe("followup");
+    expect(statusFromOutcome("not_qualified")).toBe("unqualified");
+    expect(statusFromOutcome(null)).toBe("");
+    expect(statusFromOutcome("rubbish")).toBe("");
   });
 });

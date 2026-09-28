@@ -11,10 +11,10 @@ import type { SheetCall } from "../../functions/lib/salesSheetRows";
 // Kept pure and out of the component so the arithmetic a commission is argued
 // over is unit-tested directly.
 //
-// Every column now has a source. Payment Type and Recording are read off the
-// GHL disposition form's answers, Post Call Form renders the prefilled link
-// stamped onto the meeting when it confirmed (sales-disposition-form.md). What
-// has no answer yet still shows a faint dash rather than an invention.
+// Every column now has a source. Payment Type, Recording and the rest are the
+// post-call form's answers (functions/lib/salesDisposition.ts), and the Post
+// Call Form column opens that form in the page. What has no answer yet still
+// shows a faint dash rather than an invention.
 
 // ===== the table =====
 
@@ -48,6 +48,8 @@ export const SHEET_COLUMNS: SheetColumn[] = [
   { key: "notes", label: "Notes", weight: 130 },
   { key: "postCallForm", label: "Post Call Form", weight: 95 },
   { key: "recordingLink", label: "Recording", weight: 85 },
+  // The exit control. No label: it is an X on every row.
+  { key: "exit", label: "", weight: 36 },
 ];
 
 // Each column's share of the table, as a CSS percentage, always summing to 100
@@ -128,6 +130,9 @@ export function bandTotals(calls: SheetCall[]): BandTotals {
   let closed = 0;
 
   for (const c of calls) {
+    // Exited out by Jake: a test booking, a friend. It moves nothing.
+    if (c.excluded) continue;
+
     revenue += c.revenue ?? 0;
     cashCollected += c.cashCollected ?? 0;
 
@@ -234,25 +239,37 @@ export const FUNNEL_CELLS: FunnelCell[] = [
 
 // ===== one row =====
 
+// ===== what still needs a form =====
+
+// A meeting whose time has passed, that ran (or should have), and that nobody
+// has said anything about. This is the count that stops the month drifting
+// again: it was 18 of 23 when the form lived in GHL.
+export function needsForm(call: SheetCall, nowMs: number): boolean {
+  if (call.excluded || call.cancelled || call.recorded) return false;
+  const at = call.scheduledAt ? Date.parse(call.scheduledAt) : NaN;
+  return Number.isFinite(at) && at <= nowMs;
+}
+
+export function formsOwed(calls: SheetCall[], nowMs: number): number {
+  return calls.filter((c) => needsForm(c, nowMs)).length;
+}
+
 export interface SheetRow {
+  id: string;
   date: string;
   name: string;
   outcome: OutcomePill;
-  // The prefilled disposition form for this meeting, when one is stamped and
-  // the meeting was not cancelled. The component renders it as an Open form
-  // link; it is kept off `cells` because a URL is not a cell of text.
-  formUrl?: string;
+  needsForm: boolean;
   cells: Record<string, string>;
 }
 
-export function sheetRow(call: SheetCall, timeZone: string): SheetRow {
+export function sheetRow(call: SheetCall, timeZone: string, nowMs = Date.now()): SheetRow {
   return {
+    id: call.id,
     date: formatApptDate(call.scheduledAt, timeZone),
     name: call.name,
     outcome: outcomeFor(call),
-    // A cancelled meeting needs no form worked, so the link goes quiet on one:
-    // the row's pill already says what happened to the slot.
-    formUrl: call.cancelled ? undefined : call.postCallFormUrl || undefined,
+    needsForm: needsForm(call, nowMs),
     cells: {
       revenue: formatMoney(call.revenue),
       cashCollected: formatMoney(call.cashCollected),
@@ -261,6 +278,7 @@ export function sheetRow(call: SheetCall, timeZone: string): SheetRow {
       paymentType: call.paymentType,
       recordingLink: call.recordingLink,
       postCallForm: "",
+      exit: "",
     },
   };
 }

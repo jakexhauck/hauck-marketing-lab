@@ -13,11 +13,10 @@ import { monthKey, cursorForToday, type MonthCursor, type TodayRef } from "../..
 // meetings counted into it, and before that it was a form somebody typed. Both
 // are gone: Jake reads his month a call at a time, so the page shows calls.
 //
-// It is still a REPORT and it still has no editing loop. Opening it reconciles
-// the GoHighLevel calendars, every cell is read-only, and the seven columns the
-// app has nowhere to read from yet render blank rather than inviting a number
-// nobody can check. What that buys is that this page and the Sales Calls funnel
-// are the same rows counted the same way, so they cannot drift.
+// Opening it reconciles the GoHighLevel calendars, so every booking lands here
+// however it was made. What happened at each one is recorded through the
+// row's Open form (SalesCallForm.tsx); cells are never typed into directly.
+// This page and the Sales Calls funnel read the same rows, so they cannot drift.
 
 export default function SalesDataTracker() {
   // "Today" is read once on mount and then injected everywhere, so the month

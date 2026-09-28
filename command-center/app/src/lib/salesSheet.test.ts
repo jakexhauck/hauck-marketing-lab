@@ -7,6 +7,8 @@ import {
   bandTotals,
   outcomeFor,
   sheetRow,
+  needsForm,
+  formsOwed,
   formatMoney,
   formatPct,
   formatApptDate,
@@ -16,6 +18,7 @@ import type { SheetCall } from "../../functions/lib/salesSheetRows";
 
 function call(over: Partial<SheetCall> = {}): SheetCall {
   return {
+    id: "call-1",
     scheduledAt: "2026-03-09T15:30:00Z",
     name: "Jake Hauck",
     closed: false,
@@ -29,9 +32,18 @@ function call(over: Partial<SheetCall> = {}): SheetCall {
     objection: "",
     needsFollowUp: false,
     notes: "",
-    postCallFormUrl: "",
     paymentType: "",
     recordingLink: "",
+    excluded: false,
+    recorded: false,
+    form: {
+      status: "",
+      cashCollected: null,
+      revenueGenerated: null,
+      paymentPlatform: "",
+      recordingLink: "",
+      notes: "",
+    },
     ...over,
   };
 }
@@ -39,6 +51,7 @@ function call(over: Partial<SheetCall> = {}): SheetCall {
 const CLOSED = call({
   closed: true,
   showed: true,
+  recorded: true,
   revenue: 24000,
   cashCollected: 2000,
 });
@@ -146,6 +159,15 @@ describe("bandTotals", () => {
     expect(t.closingRate).toBe(0.25);
   });
 
+  // A test booking or a friend, exited out by Jake. It must move nothing.
+  it("counts an exited meeting nowhere", () => {
+    const t = bandTotals([CLOSED, call({ ...CLOSED, excluded: true }), call({ excluded: true, cancelled: true })]);
+    expect(t.totalCalls).toBe(1);
+    expect(t.closed).toBe(1);
+    expect(t.revenue).toBe(24000);
+    expect(t.cancelled).toBe(0);
+  });
+
   // Unqualified is a fact about the list and No-Close is a fact about the
   // pitch. Merging them hides which of the two needs fixing.
   it("does not count an unqualified call or a follow up as a no-close", () => {
@@ -207,45 +229,54 @@ describe("sheetRow", () => {
     expect(r.cells.objection).toBe("Bad timing");
   });
 
-  // A row nobody has dispositioned yet. Empty cells and no link, so the column
-  // reads as waiting, not as broken.
-  it("renders dashes until the form's answers arrive", () => {
-    const r = sheetRow(CLOSED, "America/New_York");
-    expect(r.cells.paymentType).toBe("");
-    expect(r.cells.recordingLink).toBe("");
-    expect(r.formUrl).toBeUndefined();
-  });
-
-  // The disposition form feeds all three (sales-disposition-form.md). The link
-  // is carried on the row rather than in a cell: it renders as an Open form
-  // control, not as text.
-  it("carries the form's stamps through to the cells", () => {
-    const stamped = call({
-      paymentType: "Stripe",
-      recordingLink: "https://drive.example/rec/1",
-      postCallFormUrl:
-        "https://link.hauckmarketing.com/widget/form/RaoIfnclY5sytH5ndisi?phone=%2B17343010570",
-    });
-    const r = sheetRow(stamped, "America/New_York");
-    expect(r.cells.paymentType).toBe("Stripe");
-    expect(r.cells.recordingLink).toBe("https://drive.example/rec/1");
-    expect(r.formUrl).toBe(stamped.postCallFormUrl);
-  });
-
-  // A cancelled meeting needs no form worked, so its link goes quiet even when
-  // one is stamped; the pill already says what happened to the slot.
-  it("suppresses the form link on a cancelled row", () => {
+  it("carries the form's answers through to the cells", () => {
     const r = sheetRow(
-      call({ cancelled: true, postCallFormUrl: "https://link.hauckmarketing.com/widget/form/x" }),
+      call({ paymentType: "Stripe", recordingLink: "https://drive.example/rec/1" }),
       "America/New_York",
     );
-    expect(r.formUrl).toBeUndefined();
+    expect(r.cells.paymentType).toBe("Stripe");
+    expect(r.cells.recordingLink).toBe("https://drive.example/rec/1");
+  });
+
+  it("carries the meeting id, so the form saves onto the right row", () => {
+    expect(sheetRow(call({ id: "abc" }), "America/New_York").id).toBe("abc");
   });
 
   it("fills every column the table renders from cells", () => {
     const r = sheetRow(CLOSED, "America/New_York");
     // The first three are drawn from date, name and outcome directly.
     for (const col of SHEET_COLUMNS.slice(3)) expect(r.cells[col.key]).toBeDefined();
+  });
+});
+
+describe("needsForm", () => {
+  const NOW = Date.parse("2026-03-10T00:00:00Z");
+
+  it("flags a meeting that has happened with nothing recorded", () => {
+    expect(needsForm(call(), NOW)).toBe(true);
+  });
+
+  it("does not flag one still to come", () => {
+    expect(needsForm(call({ scheduledAt: "2026-03-11T15:00:00Z" }), NOW)).toBe(false);
+  });
+
+  it("does not flag one already recorded, cancelled or exited", () => {
+    expect(needsForm(CLOSED, NOW)).toBe(false);
+    expect(needsForm(call({ cancelled: true }), NOW)).toBe(false);
+    expect(needsForm(call({ excluded: true }), NOW)).toBe(false);
+  });
+
+  it("does not flag a meeting with no time", () => {
+    expect(needsForm(call({ scheduledAt: null }), NOW)).toBe(false);
+  });
+
+  it("counts the month's owed forms", () => {
+    expect(formsOwed([call(), call(), CLOSED, call({ excluded: true })], NOW)).toBe(2);
+  });
+
+  it("puts the flag on the row", () => {
+    expect(sheetRow(call(), "America/New_York", NOW).needsForm).toBe(true);
+    expect(sheetRow(CLOSED, "America/New_York", NOW).needsForm).toBe(false);
   });
 });
 

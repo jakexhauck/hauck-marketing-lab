@@ -8,6 +8,7 @@ import {
   contractValue,
   parseDeal,
 } from "./salesCalls";
+import { isDispositionStatus, statusFromOutcome, type DispositionStatus } from "./salesDisposition";
 
 // Sales Data, one row per meeting.
 //
@@ -30,6 +31,7 @@ import {
 // side at the start and end is a month nobody trusts twice.
 
 export interface SalesCallRow {
+  id: string;
   // The meeting's slot. Null on a row the calendar never gave a time.
   scheduledAt: string | null;
   // GoHighLevel's view: confirmed, cancelled, and so on.
@@ -46,9 +48,10 @@ export interface SalesCallRow {
   scratchpad?: string | null;
   prospectName: string;
   businessName: string;
-  // The GHL disposition form's answers (sales-disposition-form.md). The URL is
-  // stamped when the meeting confirms; the rest arrive with the submission.
-  postCallFormUrl: string;
+  // The post-call form's answers (salesDisposition.ts). '' until it is saved.
+  dispositionStatus: string;
+  // Set when Jake exited the meeting out of the numbers.
+  excludedAt: string | null;
   paymentPlatform: string;
   recordingLink: string;
   // The form's flat "How Much Revenue Generated". Preferred over deal
@@ -62,7 +65,18 @@ export interface SalesCallRow {
 // "Closed" column and a separate "Calls" column that says Live Call or No Show,
 // and asking the table to re-derive both from an outcome key would put the
 // counting rules in the component. They live here, once, beside the tests.
+// What the post-call form opens showing: whatever was last saved.
+export interface SheetForm {
+  status: DispositionStatus | "";
+  cashCollected: number | null;
+  revenueGenerated: number | null;
+  paymentPlatform: string;
+  recordingLink: string;
+  notes: string;
+}
+
 export interface SheetCall {
+  id: string;
   scheduledAt: string | null;
   name: string;
   closed: boolean;
@@ -90,12 +104,14 @@ export interface SheetCall {
   objection: string;
   needsFollowUp: boolean;
   notes: string;
-  // The disposition form's stamps (sales-disposition-form.md). postCallFormUrl
-  // is rendered as an Open form link by the sheet, suppressed on a cancelled
-  // row; the other two are plain text straight from the answers.
-  postCallFormUrl: string;
   paymentType: string;
   recordingLink: string;
+  // Exited out of the numbers: drawn only under "Show removed", counted nowhere.
+  excluded: boolean;
+  // Somebody has said what happened: the form was saved, or an outcome was
+  // recorded before the form existed. What "needs a form" is measured against.
+  recorded: boolean;
+  form: SheetForm;
 }
 
 // What a meeting is called on the sheet: THE BUSINESS.
@@ -118,13 +134,20 @@ export function toSheetCall(row: SalesCallRow): SheetCall {
   const outcome = isSalesCallOutcome(row.outcome) ? row.outcome : null;
   const meta = outcome ? SALES_CALL_OUTCOMES[outcome] : null;
 
+  const status = isDispositionStatus(row.dispositionStatus) ? row.dispositionStatus : "";
+
   return {
+    id: row.id,
     scheduledAt: row.scheduledAt,
     name: callLabel(row),
     closed: outcome === "closed",
     showed: meta?.showed ?? false,
     noShow: outcome === "no_show",
-    cancelled: isDeadStatus(row.appointmentStatus ?? ""),
+    // The form outranks the calendar once it has been saved, both ways: a
+    // meeting Jake marked Cancelled stays cancelled though GHL still says
+    // confirmed, and one the calendar cancelled that he then recorded (it ran
+    // after all, on another link) counts as what he recorded.
+    cancelled: status ? status === "cancelled" : isDeadStatus(row.appointmentStatus ?? ""),
     unqualified: outcome === "not_qualified",
     noClose: outcome === "not_interested",
     // Only on a close, unlike cash: a retainer recorded against a meeting that
@@ -141,9 +164,18 @@ export function toSheetCall(row: SalesCallRow): SheetCall {
     objection: isSalesNoReason(row.reason) ? SALES_NO_REASONS[row.reason].label : "",
     needsFollowUp: meta?.needsFollowUp ?? false,
     notes: row.scratchpad ?? "",
-    postCallFormUrl: row.postCallFormUrl,
     paymentType: row.paymentPlatform,
     recordingLink: row.recordingLink,
+    excluded: Boolean(row.excludedAt),
+    recorded: Boolean(status) || outcome !== null,
+    form: {
+      status: status || statusFromOutcome(outcome),
+      cashCollected: row.cashCollected,
+      revenueGenerated: row.revenueGenerated,
+      paymentPlatform: row.paymentPlatform,
+      recordingLink: row.recordingLink,
+      notes: row.scratchpad ?? "",
+    },
   };
 }
 

@@ -3,6 +3,7 @@ import { getServiceClient } from "../../../lib/supabase";
 import { monthWindow } from "../../../lib/tracker";
 import { agencyTimezone, getAgencyGhlContext, AgencyGhlError } from "../../../lib/agencyGhl";
 import { syncAgencyMeetings, type SyncResult } from "../../lib/salesCallSync";
+import { buildDispositionUpdate, type DispositionInput } from "../../../lib/salesDisposition";
 import {
   callsInMonth,
   toSheetCall,
@@ -22,10 +23,10 @@ import {
 // Jake works from, and that sheet has one line per call, so the days are gone
 // and the meetings themselves go over the wire.
 //
-// DERIVED, NOT TYPED. Every field is read off a meeting already recorded in
-// public.sales_calls: the calendar says what was booked and cancelled, and the
-// outcome recorded on Sales Calls says what turned up and closed. There is no
-// PATCH: nothing on this page is a number a person can assert.
+// The calendar says what was booked; the post-call form (PATCH below) says what
+// happened at it. The form used to be a GHL form posting back through a
+// webhook, and was never submitted once because its link rarely reached the
+// page. It now saves here directly.
 //
 // The band totals across the top of the sheet are NOT computed here. The client
 // already holds every call it would add up, and the arithmetic a commission is
@@ -40,6 +41,7 @@ import {
 // its own, not a side effect of changing a page.
 
 interface SalesCallDbRow {
+  id: string;
   scheduled_at: string | null;
   appointment_status: string | null;
   outcome: string | null;
@@ -52,9 +54,10 @@ interface SalesCallDbRow {
   scratchpad: string | null;
   prospect_name: string | null;
   business_name: string | null;
-  // The GHL disposition form's answers (sales-disposition-form.md). Flat
-  // revenue is numeric, so it goes through toMoney like cash does.
-  post_call_form_url: string | null;
+  // The post-call form's answers. Flat revenue is numeric, so it goes through
+  // toMoney like cash does.
+  disposition_status: string | null;
+  excluded_at: string | null;
   payment_platform: string | null;
   recording_link: string | null;
   revenue_generated: number | string | null;
@@ -64,9 +67,9 @@ interface SalesCallDbRow {
 // has no column for them, and a query that reads what no page renders is
 // how a select grows without anybody noticing.
 const SELECT =
-  "scheduled_at, appointment_status, outcome, cash_collected," +
+  "id, scheduled_at, appointment_status, outcome, cash_collected," +
   " deal, not_a_fit_reason, scratchpad, prospect_name, business_name," +
-  " post_call_form_url, payment_platform, recording_link, revenue_generated";
+  " disposition_status, excluded_at, payment_platform, recording_link, revenue_generated";
 
 // numeric arrives as a string on some drivers, so cash is normalised to a
 // number exactly once, here at the boundary.
@@ -78,6 +81,7 @@ function toMoney(value: number | string | null): number | null {
 
 function toRow(row: SalesCallDbRow): SalesCallRow {
   return {
+    id: row.id,
     scheduledAt: row.scheduled_at,
     appointmentStatus: row.appointment_status ?? "",
     outcome: row.outcome,
@@ -87,7 +91,8 @@ function toRow(row: SalesCallDbRow): SalesCallRow {
     scratchpad: row.scratchpad,
     prospectName: row.prospect_name ?? "",
     businessName: row.business_name ?? "",
-    postCallFormUrl: row.post_call_form_url ?? "",
+    dispositionStatus: row.disposition_status ?? "",
+    excludedAt: row.excluded_at,
     paymentPlatform: row.payment_platform ?? "",
     recordingLink: row.recording_link ?? "",
     revenueGenerated: toMoney(row.revenue_generated),
@@ -193,4 +198,74 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     undated: rows.filter((r) => !r.scheduledAt || Number.isNaN(Date.parse(r.scheduledAt))).length,
   };
   return Response.json(body);
+};
+
+// PATCH /api/admin/tracker/sales-data
+//
+//   { id, form: { status, cashCollected, revenueGenerated, paymentPlatform,
+//                 recordingLink, notes } }   saves the post-call form
+//   { id, excluded: true | false }           exits a meeting out of the
+//                                            numbers, or brings it back
+//
+// Neither touches a column the calendar sync owns (scheduled_at,
+// appointment_status), and the sync touches neither of these, so the two can
+// run in any order without undoing each other.
+interface PatchBody {
+  id?: unknown;
+  form?: Partial<DispositionInput>;
+  excluded?: unknown;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) => {
+  // The same bar Sales Calls sets for recording an outcome.
+  if (ctx.data.admin?.role !== "owner") {
+    return Response.json({ error: "not found" }, { status: 404 });
+  }
+  const client = getServiceClient(ctx.env);
+  if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
+
+  let body: PatchBody;
+  try {
+    body = (await ctx.request.json()) as PatchBody;
+  } catch {
+    return Response.json({ error: "invalid body" }, { status: 400 });
+  }
+
+  const id = typeof body.id === "string" ? body.id.trim() : "";
+  if (!UUID.test(id)) return Response.json({ error: "id is required" }, { status: 400 });
+
+  let update: Record<string, unknown>;
+  if (typeof body.excluded === "boolean") {
+    update = { excluded_at: body.excluded ? new Date().toISOString() : null };
+  } else if (body.form && typeof body.form === "object") {
+    const f = body.form;
+    const result = buildDispositionUpdate({
+      status: f.status,
+      cashCollected: f.cashCollected,
+      revenueGenerated: f.revenueGenerated,
+      paymentPlatform: f.paymentPlatform,
+      recordingLink: f.recordingLink,
+      notes: f.notes,
+    });
+    if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
+    update = { ...result.update };
+  } else {
+    return Response.json({ error: "nothing to update" }, { status: 400 });
+  }
+
+  const { data, error } = await client
+    .from("sales_calls")
+    .update({ ...update, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("id");
+  if (error) {
+    console.error("[tracker/sales-data] save failed", error.message);
+    return Response.json({ error: "could not save" }, { status: 500 });
+  }
+  if (!data || data.length === 0) {
+    return Response.json({ error: "meeting not found" }, { status: 404 });
+  }
+  return Response.json({ ok: true });
 };

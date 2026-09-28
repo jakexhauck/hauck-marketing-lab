@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { DollarSign, Wallet, Target, UserX } from "lucide-react";
+import { useMemo, useState } from "react";
+import { DollarSign, Wallet, Target, UserX, X } from "lucide-react";
 import type { SheetCall } from "../../../../functions/lib/salesSheetRows";
 import {
   SHEET_COLUMNS,
@@ -8,8 +8,12 @@ import {
   columnWidths,
   bandTotals,
   sheetRow,
+  formsOwed,
   zoneLabel,
+  type SheetRow,
 } from "../../../lib/salesSheet";
+import { useSetSalesCallExcluded } from "../../../hooks/useApi";
+import SalesCallForm from "./SalesCallForm";
 
 // Sales Data, in the Command Center's own design.
 //
@@ -36,7 +40,12 @@ export default function SalesSheet({
   timeZone: string;
 }) {
   const totals = useMemo(() => bandTotals(calls), [calls]);
-  const rows = useMemo(() => calls.map((c) => sheetRow(c, timeZone)), [calls, timeZone]);
+  // Read per render on purpose: a meeting passing its time starts asking for a
+  // form on the next refetch without anything else changing.
+  const now = Date.now();
+  const rows = calls.filter((c) => !c.excluded).map((c) => sheetRow(c, timeZone, now));
+  const removed = calls.filter((c) => c.excluded).map((c) => sheetRow(c, timeZone, now));
+  const owed = formsOwed(calls, now);
   const widths = useMemo(() => columnWidths(), []);
   // Read off a call in the month rather than off today, so a month viewed in
   // winter does not get labelled with summer's abbreviation.
@@ -45,9 +54,96 @@ export default function SalesSheet({
     [timeZone, calls],
   );
 
+  const exclude = useSetSalesCallExcluded();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [showRemoved, setShowRemoved] = useState(false);
+  const openCall = openId ? calls.find((c) => c.id === openId) : undefined;
+  const openRow = openId ? [...rows, ...removed].find((r) => r.id === openId) : undefined;
+
+  const renderRow = (row: SheetRow, isRemoved: boolean) => (
+    <tr key={row.id} className={isRemoved ? "ssh-removed" : undefined}>
+      <td className="ssh-date">{row.date}</td>
+      <td className="ssh-name">{row.name}</td>
+      <td>
+        <span className={`ssh-pill t-${row.outcome.tone}`}>{row.outcome.label}</span>
+      </td>
+      {SHEET_COLUMNS.slice(3).map((c) => {
+        if (c.key === "postCallForm") {
+          return (
+            <td key={c.key}>
+              {!isRemoved && (
+                <button
+                  type="button"
+                  className={`ssh-formlink${row.needsForm ? " is-owed" : ""}`}
+                  onClick={() => setOpenId(row.id)}
+                >
+                  Open form
+                </button>
+              )}
+            </td>
+          );
+        }
+        if (c.key === "exit") {
+          return (
+            <td key={c.key} className="ssh-exitcell">
+              {isRemoved ? (
+                <button
+                  type="button"
+                  className="ssh-restore"
+                  disabled={exclude.isPending}
+                  onClick={() => exclude.mutate({ id: row.id, excluded: false })}
+                >
+                  Restore
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="ssh-exit"
+                  aria-label={`Remove ${row.name} from sales data`}
+                  title="Remove from sales data"
+                  disabled={exclude.isPending}
+                  onClick={() => exclude.mutate({ id: row.id, excluded: true })}
+                >
+                  <X aria-hidden />
+                </button>
+              )}
+            </td>
+          );
+        }
+        const value = row.cells[c.key] ?? "";
+        if (c.key === "recordingLink" && /^https?:\/\//i.test(value)) {
+          return (
+            <td key={c.key}>
+              <a className="ssh-reclink" href={value} target="_blank" rel="noreferrer" title={value}>
+                Watch
+              </a>
+            </td>
+          );
+        }
+        return (
+          <td
+            key={c.key}
+            className={c.numeric ? "num" : undefined}
+            // So a value the column is too narrow to show whole is
+            // still readable, rather than lost behind an ellipsis.
+            title={value || undefined}
+          >
+            {value || <span className="ssh-none">-</span>}
+          </td>
+        );
+      })}
+    </tr>
+  );
+
   return (
     <div className="ssh">
       <SheetStyle />
+
+      {owed > 0 && (
+        <div className="ssh-owed" role="status">
+          {owed} need{owed === 1 ? "s" : ""} a form
+        </div>
+      )}
 
       <div className="ssh-tiles">
         {HEADLINE_TILES.map((tile) => {
@@ -98,51 +194,10 @@ export default function SalesSheet({
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {rows.map((row, i) => (
-                <tr key={i}>
-                  <td className="ssh-date">{row.date}</td>
-                  <td className="ssh-name">{row.name}</td>
-                  <td>
-                    <span className={`ssh-pill t-${row.outcome.tone}`}>{row.outcome.label}</span>
-                  </td>
-                  {SHEET_COLUMNS.slice(3).map((c) => {
-                    // The form link is a control, not a value: it opens the
-                    // prospect's prefilled disposition form in a new tab.
-                    if (c.key === "postCallForm") {
-                      return (
-                        <td key={c.key}>
-                          {row.formUrl ? (
-                            <a
-                              className="ssh-formlink"
-                              href={row.formUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Open form
-                            </a>
-                          ) : (
-                            <span className="ssh-none">-</span>
-                          )}
-                        </td>
-                      );
-                    }
-                    const value = row.cells[c.key] ?? "";
-                    return (
-                      <td
-                        key={c.key}
-                        className={c.numeric ? "num" : undefined}
-                        // So a value the column is too narrow to show whole is
-                        // still readable, rather than lost behind an ellipsis.
-                        title={value || undefined}
-                      >
-                        {value || <span className="ssh-none">-</span>}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
+            <tbody>{rows.map((row) => renderRow(row, false))}</tbody>
+            {showRemoved && removed.length > 0 && (
+              <tbody>{removed.map((row) => renderRow(row, true))}</tbody>
+            )}
           </table>
 
           {rows.length === 0 && (
@@ -150,6 +205,16 @@ export default function SalesSheet({
           )}
         </div>
       </div>
+
+      {removed.length > 0 && (
+        <button type="button" className="ssh-showremoved" onClick={() => setShowRemoved((v) => !v)}>
+          {showRemoved ? "Hide removed" : `Show removed (${removed.length})`}
+        </button>
+      )}
+
+      {openCall && openRow && (
+        <SalesCallForm call={openCall} date={openRow.date} onClose={() => setOpenId(null)} />
+      )}
     </div>
   );
 }
@@ -244,15 +309,53 @@ function SheetStyle() {
       }
       /* A column with nothing in it yet. Faint enough to read as waiting. */
       .pk-kit .ssh-none { color: var(--text-faint); opacity: .55; }
-      /* The disposition form link, styled like a quiet control so ten of them
-         down the sheet do not turn into a wall of buttons. */
+      /* The post-call form button, quiet so thirty of them down the sheet do
+         not turn into a wall of buttons. A meeting that has happened with
+         nothing recorded gets the loud version. */
       .pk-kit .ssh-formlink {
         display: inline-flex; align-items: center;
         font-size: 12px; font-weight: 600; color: var(--brand);
         background: var(--brand-tint);
         padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+        border: 0; cursor: pointer;
       }
       .pk-kit .ssh-formlink:hover { background: var(--brand-tint-strong); }
+      .pk-kit .ssh-formlink.is-owed { background: var(--ssh-amber); color: #fff; }
+      .pk-kit .ssh-formlink.is-owed:hover { filter: brightness(1.06); }
+      .pk-kit .ssh-reclink { font-size: 12.5px; font-weight: 600; color: var(--brand); }
+      .pk-kit .ssh-reclink:hover { text-decoration: underline; }
+
+      /* The owed count, above the tiles. */
+      .pk-kit .ssh-owed {
+        display: inline-flex; align-items: center; margin-bottom: 12px;
+        font-size: 12.5px; font-weight: 600; color: #a86a06;
+        background: var(--ssh-amber-tint); padding: 5px 12px; border-radius: 999px;
+      }
+      [data-theme="dark"] .pk-kit .ssh-owed { color: #fbbf24; }
+
+      /* The exit X: faint until the row is hovered, so it never competes with
+         the numbers. */
+      .pk-kit .ssh-card td.ssh-exitcell { padding-left: 4px; padding-right: 10px; text-align: right; }
+      .pk-kit .ssh-exit {
+        display: inline-grid; place-items: center; width: 24px; height: 24px;
+        border: 0; border-radius: 8px; background: transparent; cursor: pointer;
+        color: var(--text-faint); opacity: .35; transition: opacity .15s, background .15s, color .15s;
+      }
+      .pk-kit .ssh-exit svg { width: 14px; height: 14px; }
+      .pk-kit .ssh-card tbody tr:hover .ssh-exit { opacity: 1; }
+      .pk-kit .ssh-exit:hover { background: rgba(239,68,68,.12); color: var(--ssh-red); }
+      .pk-kit .ssh-exit:focus-visible { opacity: 1; }
+      .pk-kit .ssh-restore {
+        border: 0; background: transparent; cursor: pointer; white-space: nowrap;
+        font-size: 12px; font-weight: 600; color: var(--brand);
+      }
+      .pk-kit .ssh-removed td { opacity: .5; }
+      .pk-kit .ssh-removed td.ssh-exitcell { opacity: 1; }
+      .pk-kit .ssh-showremoved {
+        margin-top: 10px; border: 0; background: transparent; cursor: pointer;
+        font-size: 12.5px; font-weight: 600; color: var(--text-faint);
+      }
+      .pk-kit .ssh-showremoved:hover { color: var(--text); }
 
       /* ===== the outcome pill ===== */
       .pk-kit .ssh-pill { display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
