@@ -14,6 +14,7 @@ import type { LeadForm, LeadFormPatch } from "../../functions/lib/adLeadForms";
 import type { ConversionAsset, ConversionAssetPatch } from "../../functions/lib/conversionAssets";
 // The ad-account picker's shape, from the module the endpoint builds it with.
 import type { AdAccountsResponse } from "../../functions/lib/metaAdAccounts";
+import type { LibraryItem } from "../../functions/lib/metaUpload";
 import type {
   AgencySecretsResponse,
   ApplyResponse,
@@ -1856,6 +1857,68 @@ export function useAdminCreativesFolderQuery(tenantId: string) {
     queryFn: () =>
       api<CreativesFolderResponse>(`/api/admin/clients/${tenantId}/ads/creatives-folder`),
   });
+}
+
+// The labelled creatives in this client's Meta ad account library, read live.
+export function useAdminCreativeLibrary(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "creative-library", tenantId],
+    enabled: enabled && !!tenantId,
+    staleTime: 60_000,
+    queryFn: () =>
+      api<{ items: LibraryItem[] }>(`/api/admin/clients/${tenantId}/ads/uploads`),
+  });
+}
+
+// Multipart POST that reads the JSON answer. Not api(): that helper stamps a
+// JSON content-type on any body, which breaks the multipart boundary.
+async function postForm<T>(path: string, form: FormData): Promise<T> {
+  const res = await fetch(path, { method: "POST", body: form, credentials: "include" });
+  const body = (await res.json().catch(() => null)) as (T & { error?: string }) | null;
+  if (!res.ok || !body) throw new Error(body?.error ?? `Upload failed (${res.status}).`);
+  return body;
+}
+
+// One image, whole, into the client's ad account under its labelled name.
+export async function uploadCreativeImage(tenantId: string, file: File, name: string): Promise<void> {
+  const form = new FormData();
+  form.set("file", file);
+  form.set("name", name);
+  await postForm(`/api/admin/clients/${tenantId}/ads/uploads/image`, form);
+}
+
+// One video, in the slices Meta asks for. onProgress gets 0..1 after each slice.
+export async function uploadCreativeVideo(
+  tenantId: string,
+  file: File,
+  name: string,
+  onProgress: (fraction: number) => void,
+): Promise<void> {
+  const path = `/api/admin/clients/${tenantId}/ads/uploads/video`;
+  const startForm = new FormData();
+  startForm.set("phase", "start");
+  startForm.set("size", String(file.size));
+  const session = await postForm<{ sessionId: string; start: number; end: number }>(path, startForm);
+
+  let { start, end } = session;
+  while (start < end) {
+    const form = new FormData();
+    form.set("phase", "transfer");
+    form.set("sessionId", session.sessionId);
+    form.set("start", String(start));
+    form.set("chunk", file.slice(start, end));
+    const next = await postForm<{ start: number; end: number }>(path, form);
+    // Meta only ever moves forward; a stall would loop for ever.
+    if (next.start <= start) throw new Error("Meta stopped accepting the video.");
+    ({ start, end } = next);
+    onProgress(Math.min(1, start / file.size));
+  }
+
+  const finish = new FormData();
+  finish.set("phase", "finish");
+  finish.set("sessionId", session.sessionId);
+  finish.set("name", name);
+  await postForm(path, finish);
 }
 
 // The city list with its coverage. Re-fetched per niche, because "scraped for

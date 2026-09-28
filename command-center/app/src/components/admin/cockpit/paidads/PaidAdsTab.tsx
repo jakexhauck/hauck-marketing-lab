@@ -77,7 +77,7 @@ export default function PaidAdsTab({
     case "meta-data":
       return <AdsMetaDataPanel tenantId={tenantId} />;
     case "creatives":
-      return <CreativesPanel tenantId={tenantId} />;
+      return <CreativesPanel tenantId={tenantId} adAccountId={adAccountId} />;
     case "ad-builder":
       return <AdBuilderPanel tenantId={tenantId} clientName={clientName} />;
     default:

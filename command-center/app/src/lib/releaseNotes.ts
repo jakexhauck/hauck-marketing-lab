@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-28-creative-uploads",
+    date: "28 September 2026",
+    title: "Upload creatives straight to Meta",
+    items: [
+      "Paid Ads > Creatives now has an upload box. Drop a pile of images and videos and they go into that client's Meta ad account media library.",
+      "Each file is sized from its pixels and named with its size, like \"spring-promo 1:1\" and \"spring-promo 4:5\". Anything that is not 1:1 or 4:5 is refused, and a creative missing one of its two sizes is flagged.",
+      "Files Meta already has are skipped. The Meta library below shows every creative with both sizes side by side, split into Images and Videos.",
+    ],
+  },
+  {
     id: "2026-09-28-cold-call-tracker-month",
     date: "28 September 2026",
     title: "Cold Call tracker counts every dial again",

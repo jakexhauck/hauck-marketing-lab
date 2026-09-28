@@ -3,8 +3,14 @@ import CreativesFolderCard from "../../../ads/CreativesFolderCard";
 import CreativesGrid from "../../../ads/CreativesGrid";
 import CreativesWizard from "./CreativesWizard";
 import SetupWizard from "./SetupWizard";
+import CreativeUploader from "./CreativeUploader";
+import CreativeLibrary from "./CreativeLibrary";
 import { ErrorNote, Spinner } from "../../../../routes/paid-ads/trackerShared";
-import { useAdminCreativesFolderQuery, useSetCreativesFolder } from "../../../../hooks/useApi";
+import {
+  useAdminCreativeLibrary,
+  useAdminCreativesFolderQuery,
+  useSetCreativesFolder,
+} from "../../../../hooks/useApi";
 
 // Paid Ads > Creatives, in the Fulfillment cockpit.
 //
@@ -24,7 +30,43 @@ const CREATIVES_STEPS = [
   { id: "folder", label: "This client's folder" },
 ];
 
-export default function CreativesPanel({ tenantId }: { tenantId: string }) {
+// Upload to Meta sits above the Drive folder: Drive is where creatives are
+// made, the client's ad account library is where they have to end up, and
+// getting them there is the job this tab is opened for.
+export default function CreativesPanel({
+  tenantId,
+  adAccountId,
+}: {
+  tenantId: string;
+  adAccountId: string | null;
+}) {
+  const linked = Boolean((adAccountId ?? "").trim());
+  const library = useAdminCreativeLibrary(tenantId, linked);
+  const libraryItems = library.data?.items ?? [];
+
+  const meta = (
+    <>
+      <CreativeUploader tenantId={tenantId} library={libraryItems} disabled={!linked} />
+      {linked &&
+        (library.isError ? (
+          <ErrorNote message={(library.error as Error | null)?.message} />
+        ) : library.isLoading ? (
+          <Spinner />
+        ) : (
+          <CreativeLibrary items={libraryItems} />
+        ))}
+    </>
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      {meta}
+      <DriveFolderSection tenantId={tenantId} />
+    </div>
+  );
+}
+
+function DriveFolderSection({ tenantId }: { tenantId: string }) {
   const query = useAdminCreativesFolderQuery(tenantId);
   const save = useSetCreativesFolder(tenantId);
 
