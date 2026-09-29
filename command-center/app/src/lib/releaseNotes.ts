@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-09-29-booked-on-crm",
+    date: "29 September 2026",
+    title: "Booked on CRM button on Cold Calling",
+    items: [
+      "A Booked on CRM button now sits next to Gatekeeper. Press it when you booked the meeting in GoHighLevel yourself: the call counts as booked on the tracker and the script, and the prospect comes off the dialer.",
+    ],
+  },
+  {
     id: "2026-09-28-sales-data-form",
     date: "28 September 2026",
     title: "Sales Data post-call form lives in the app",

@@ -4,6 +4,7 @@ import {
   PhoneOff,
   CalendarClock,
   CalendarCheck,
+  CalendarCheck2,
   Ban,
   UserX,
   ThumbsDown,
@@ -332,6 +333,18 @@ export default function CallWorkspace({
     advance(lead.id);
   };
 
+  // Booked on CRM: Jake already put the meeting on the calendar in GoHighLevel
+  // himself (2026-09-29). It is the same "booked" dial as the in-app booking, so
+  // the day, the tracker and the script all get the credit, but no appointment
+  // is written from here because one already exists over there.
+  const bookedOnCrm = (lead: AdminLead) =>
+    logOutcome(lead, "booked", {
+      status: "Booked",
+      lastContact: today(),
+      firstContactDate: lead.firstContactDate ?? today(),
+      followUpDate: null,
+    });
+
   // Callback is a local date; Booked is a real appointment on the agency
   // calendar and is written by the booking endpoint, not here.
   const confirmCallback = (lead: AdminLead) => {
@@ -608,6 +621,12 @@ export default function CallWorkspace({
                 label="Gatekeeper"
                 title="The front desk would not put you through. Counts as a dial, not as a pickup."
                 onClick={() => sayNo(selected, "gatekeeper")}
+              />
+              <OutcomeButton
+                icon={CalendarCheck2}
+                label="Booked on CRM"
+                title="You booked the meeting in GoHighLevel yourself. Counts as a booked call."
+                onClick={() => bookedOnCrm(selected)}
               />
             </div>
 
