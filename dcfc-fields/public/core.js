@@ -43,9 +43,30 @@ function weekends(n = 8) {
 }
 const dayLabel = key => { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).replace(',', ''); };
 
-// Bookings live in this browser only until the real database exists.
-const KEY = 'dcfc-demo-bookings-v1';
-function loadBookings() { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
+// Bookings live in this browser only (look-around demo, no backend).
+// A first-time visitor gets a busy sample: the next two weekends filled in.
+const KEY = 'dcfc-demo-bookings-v2';
+const TEAMS = ['U9 Boys Rouge','U9 Girls Gold','U10 Boys Gold','U10 Girls Rouge','U11 Boys Rouge','U11 Girls Gold','U12 Boys Gold','U12 Girls Rouge','U13 Boys Rouge','U13 Girls Gold','U14 Boys Rouge','U14 Girls Gold','U15 Boys Gold','U16 Girls Rouge','U17 Boys Rouge'];
+const OPPS = ['Wyandotte FC','Southgate SC','Trenton Elite','Allen Park United','Dearborn Stars','Lincoln Park SC','Romulus FC','Woodhaven Wave','Riverview Rush','Grosse Ile SC'];
+const COACHES = [['Mike Kowalski','0113'],['Sarah Nguyen','0117'],['Dan Rivera','0142'],['Jess Thompson','0188'],['Tony Russo','0163'],['Amy Patel','0129'],['Chris Walker','0126'],['Nicole Brooks','0134'],['Kevin Doyle','0131'],['Laura Chen','0143'],['Marcus Hill','0159'],['Rachel Adams','0141']];
+function sampleBookings() {
+  let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const now = new Date(), today = keyOf(now), nowMin = now.getHours() * 60 + now.getMinutes(), out = [];
+  weekends(2).forEach((d, di) => PITCHES.forEach(p => slotsFor(p).forEach(s => {
+    if (rnd() > (di < 2 ? 0.62 : 0.3) || (d.key === today && s.start <= nowMin)) return;
+    const i = Math.floor(rnd() * TEAMS.length), [coach, tail] = COACHES[i % COACHES.length];
+    out.push({ pitch: p.id, date: d.key, start: s.start, team: TEAMS[i], opp: OPPS[Math.floor(rnd() * OPPS.length)], coach, phone: `(734) 555-${tail}`,
+      id: 1e12 + out.length, bookedAt: new Date(now.getTime() - (1 + rnd() * 6 * 24) * 3600e3).toISOString() });
+  })));
+  return out;
+}
+function loadBookings() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw === null) { const s = sampleBookings(); saveBookings(s); return s; }
+    return JSON.parse(raw) || [];
+  } catch { return []; }
+}
 function saveBookings(list) { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch {} }
 function addBooking(b) {
   const list = loadBookings();
@@ -82,7 +103,9 @@ function phoneHTML({ contact, msgs, typing }) {
   let last = 0, body = '';
   msgs.forEach(m => {
     const t = new Date(m.at).getTime();
-    if (t - last > 10 * 60 * 1000) body += `<div class="stamp"><b>Text Message</b><br>Today ${new Date(m.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>`;
+    if (t - last > 10 * 60 * 1000) { const at = new Date(m.at), time = at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      const when = keyOf(at) === keyOf(new Date()) ? `Today ${time}` : `${at.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at ${time}`;
+      body += `<div class="stamp"><b>Text Message</b><br>${when}</div>`; }
     last = t;
     body += `<div class="bub${m.fresh ? ' fresh' : ''}">${esc(m.text).replace(/^([^\n]*)\n/, '<b>$1</b><br>').replace(/\n/g, '<br>')}</div>`;
   });
