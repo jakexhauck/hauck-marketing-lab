@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Bookings Admin</title>
+<link rel="icon" href="crest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+body{font-size:14px}
+.wrap{max-width:1360px;margin:0 auto;padding:16px 16px 40px}
+.head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.head h1{font:700 26px/1 'Barlow Condensed';text-transform:uppercase;letter-spacing:.03em;flex:1}
+.btn{border:1.5px solid var(--line);background:#fff;color:var(--ink);font:600 13px Inter;padding:8px 12px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:var(--rouge);color:var(--rouge)}
+.chips{margin-bottom:12px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-width:120px}
+.stat b{display:block;font:700 26px/1 'Barlow Condensed'}
+.stat span{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+@media(min-width:1100px){.layout{grid-template-columns:minmax(0,1fr) 320px;align-items:start}}
+.scroll{overflow-x:auto;border-radius:16px}
+.board{min-width:900px}
+.hours{display:grid;grid-template-columns:150px 1fr;border-bottom:1px solid var(--line);background:#faf8f5;border-radius:16px 16px 0 0}
+.ticks{position:relative;height:30px}
+.ticks span{position:absolute;top:8px;font:600 11px Inter;color:var(--mute);transform:translateX(-50%)}
+.row{display:grid;grid-template-columns:150px 1fr;border-bottom:1px solid var(--line-2)}
+.row:last-child{border-bottom:0}
+.nm{padding:10px 12px;font:600 13px Inter;border-right:1px solid var(--line-2);position:sticky;left:0;background:#fff;z-index:2}
+.lane{position:relative;height:68px;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),var(--line-2) calc(10% - 1px) 10%)}
+.blk{position:absolute;top:6px;bottom:6px;border-radius:9px;padding:6px 9px;overflow:hidden;cursor:pointer;border:0;text-align:left;font:600 12px/1.3 Inter;color:#fff}
+.blk span,.blk small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk small{font-weight:500;opacity:.85}
+.b11v11{background:var(--c11)}.b9v9{background:var(--c9)}.b7v7{background:var(--c7)}
+.blk.sel{outline:3px solid var(--gold);outline-offset:1px}
+.blk.new{animation:glow 1.6s ease-out}
+@keyframes glow{from{box-shadow:0 0 0 6px rgba(199,156,44,.8)}to{box-shadow:0 0 0 0 rgba(199,156,44,0)}}
+.open{position:absolute;top:6px;bottom:6px;border-radius:9px;border:1.5px dashed #d9d1c5}
+.detail{padding:18px}
+@media(min-width:1100px){.detail{position:sticky;top:16px}}
+.detail h2{font:700 24px/1.05 'Barlow Condensed';text-transform:uppercase;margin-top:8px}
+.detail .vs{color:var(--mute);margin:4px 0 14px}
+.detail dl{display:grid;grid-template-columns:90px 1fr;gap:8px 10px;font-size:14px}
+.detail dt{color:var(--mute);font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding-top:2px}
+.detail dd a{color:var(--rouge);font-weight:600;text-decoration:none}
+.acts{display:flex;gap:8px;margin-top:18px}
+.call{flex:1;background:var(--rouge);color:#fff;border-radius:10px;font:600 14px Inter;padding:11px;text-align:center;text-decoration:none}
+.hint{color:var(--mute);text-align:center;padding:30px 10px}
+.list{display:grid;gap:12px}
+.fcard{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.fh{display:flex;align-items:center;gap:8px;padding:11px 14px;background:#faf8f5;border-bottom:1px solid var(--line)}
+.fh h3{font:700 18px/1 'Barlow Condensed';text-transform:uppercase;letter-spacing:.03em;flex:1}
+.fh .n{font:600 12px Inter;color:var(--mute)}
+.li{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border:0;border-bottom:1px solid var(--line-2);background:#fff;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.li:last-child{border-bottom:0}
+.li .t{font:700 15px 'Barlow Condensed';width:62px;flex:none}
+.li .w{flex:1;min-width:0}.li .w b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .w span{font-size:12.5px;color:var(--mute)}
+.li .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.li.gap{cursor:default}.li.gap .t,.li.gap .w{color:#bdb4aa}.li.gap .w{font-style:italic}
+.close{display:none}
+@media(max-width:700px){
+  .head h1{font-size:22px}
+  .stat{min-width:0;flex:1;padding:8px 10px}.stat b{font-size:22px}.stat span{font-size:10.5px}
+  .detail{position:fixed;left:0;right:0;bottom:0;border-radius:20px 20px 0 0;z-index:20;transform:translateY(105%);transition:transform .25s ease;box-shadow:0 -10px 40px rgba(40,10,10,.25);padding-bottom:28px}
+  .detail.up{transform:none}
+  .detail:not(.up){visibility:hidden;transition:transform .25s ease,visibility 0s .25s}
+  .close{display:block;position:absolute;right:12px;top:10px;border:0;background:#f1ede7;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;color:var(--mute)}
+  .shade{position:fixed;inset:0;background:rgba(30,10,10,.35);z-index:15;display:none}.shade.up{display:block}
+}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="wrap">
+  <div class="head"><h1>Bookings</h1><button class="btn" id="csv">Download CSV</button></div>
+  <div class="chips" id="days"></div>
+  <div class="stats" id="stats"></div>
+  <div class="layout">
+    <div class="card scroll" id="boardwrap"><div class="board" id="board"></div></div><div class="list" id="list"></div>
+    <div class="card detail" id="detail"></div><div class="shade" id="shade"></div>
+  </div>
+</div>
+<script src="core.js"></script>
+<script>
+document.getElementById('nav').innerHTML = nav('admin.html');
+const $ = id => document.getElementById(id), DAYS = weekends();
+const D0 = 8 * 60, SPAN = 10 * 60, pct = m => (m - D0) / SPAN * 100;
+let all = loadBookings(), sel = null, seen = new Set(all.map(b => b.id)), fresh = new Set();
+let day = (DAYS.find(d => all.some(b => b.date === d.key)) || DAYS[0]).key;
+
+function drawDays() {
+  $('days').innerHTML = DAYS.map(d => { const n = all.filter(b => b.date === d.key).length;
+    return `<button class="chip${d.key === day ? ' on' : ''}" data-d="${d.key}">${d.label}${n ? `<em>${n}</em>` : ''}</button>`; }).join('');
+}
+$('days').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; day = b.dataset.d; sel = null; draw(); };
+
+function draw() {
+  drawDays();
+  const today = all.filter(b => b.date === day);
+  $('stats').innerHTML = `<div class="stat"><b>${today.length}</b><span>Booked</span></div><div class="stat"><b>${totalBlocks() - today.length}</b><span>Open blocks</span></div><div class="stat"><b>${new Set(today.map(b => b.team)).size}</b><span>Teams</span></div>`;
+  let h = `<div class="hours"><div></div><div class="ticks">${[8,9,10,11,12,13,14,15,16,17].map(x => `<span style="left:${pct(x * 60) + (x === 8 ? 2 : 0)}%">${x > 12 ? x - 12 : x}${x >= 12 ? 'p' : 'a'}</span>`).join('')}</div></div>`;
+  h += PITCHES.map(p => `<div class="row"><div class="nm">${p.name}<br><span class="size s${p.size}">${p.size}</span></div><div class="lane">` +
+    slotsFor(p).map(s => { const b = today.find(x => x.pitch === p.id && x.start === s.start);
+      const st = `left:calc(${pct(s.start)}% + 3px);width:calc(${(s.end - s.start) / SPAN * 100}% - 6px)`;
+      return b ? `<button class="blk b${p.size}${sel === b.id ? ' sel' : ''}${fresh.has(b.id) ? ' new' : ''}" style="${st}" data-id="${b.id}"><span>${esc(b.team)}</span><small>${b.opp ? 'vs ' + esc(b.opp) : ''}</small><small>${esc(b.coach)}</small></button>`
+               : `<div class="open" style="${st}"></div>`; }).join('') + `</div></div>`).join('');
+  $('board').innerHTML = h;
+  const mobile = matchMedia('(max-width:700px)').matches;
+  $('boardwrap').hidden = mobile; $('list').hidden = !mobile;
+  $('list').innerHTML = !mobile ? '' : PITCHES.map(p => { const mine = today.filter(b => b.pitch === p.id), bl = slotsFor(p);
+    return `<div class="fcard"><div class="fh"><h3>${p.name}</h3><span class="size s${p.size}">${p.size}</span><span class="n">${mine.length} of ${bl.length}</span></div>` +
+      bl.map(s => { const b = mine.find(x => x.start === s.start);
+        return b ? `<button class="li" data-id="${b.id}"><span class="t">${fmt(s.start)}</span><span class="w"><b>${esc(b.team)}</b><span>${b.opp ? 'vs ' + esc(b.opp) + ' · ' : ''}${esc(b.coach)}</span></span><span class="dot s${p.size}"></span></button>`
+                 : `<div class="li gap"><span class="t">${fmt(s.start)}</span><span class="w">Open</span></div>`; }).join('') + `</div>`; }).join('');
+  $('list').querySelectorAll('.li[data-id]').forEach(x => x.onclick = () => { sel = +x.dataset.id; draw(); });
+  fresh.clear();
+  $('board').querySelectorAll('.blk').forEach(x => x.onclick = () => { sel = +x.dataset.id; draw(); if (innerWidth < 1100 && innerWidth > 700) $('detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+  drawDetail();
+}
+function drawDetail() {
+  const b = all.find(x => x.id === sel), d = $('detail');
+  d.classList.toggle('up', !!b); $('shade').classList.toggle('up', !!b);
+  if (!b) { d.innerHTML = `<div class="hint">${all.length ? 'Click a booking' : 'No bookings yet'}</div>`; return; }
+  const p = pitchById(b.pitch);
+  d.innerHTML = `<button class="close" id="close" aria-label="Close">×</button><span class="size s${p.size}">${p.size}</span><h2>${esc(b.team)}</h2><div class="vs">${b.opp ? 'vs ' + esc(b.opp) : '&nbsp;'}</div>
+    <dl><dt>Field</dt><dd>${p.name}</dd><dt>Day</dt><dd>${dayLabel(b.date)}</dd><dt>Time</dt><dd>${fmt(b.start)} to ${fmt(b.start + SIZES[p.size].block)}</dd>
+    <dt>Coach</dt><dd>${esc(b.coach)}</dd><dt>Phone</dt><dd><a href="${telHref(b.phone)}">${esc(b.phone)}</a></dd>
+    <dt>Booked</dt><dd>${new Date(b.bookedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</dd></dl>
+    <div class="acts"><a class="call" href="${telHref(b.phone)}">Call coach</a><button class="x" id="cx">Cancel</button></div>`;
+  $('close').onclick = () => { sel = null; draw(); };
+  const cx = $('cx');
+  cx.onclick = () => { if (!cx.classList.contains('arm')) { cx.classList.add('arm'); cx.textContent = 'Confirm'; setTimeout(() => { cx.classList.remove('arm'); cx.textContent = 'Cancel'; }, 4000); return; }
+    cancelBooking(sel); sel = null; refresh(); };
+}
+function refresh() {
+  all = loadBookings();
+  all.forEach(b => { if (!seen.has(b.id)) { fresh.add(b.id); seen.add(b.id); } });
+  draw();
+}
+$('csv').onclick = () => {
+  const rows = [['Date', 'Start', 'End', 'Field', 'Size', 'Team', 'Opponent', 'Coach', 'Phone', 'Booked']].concat(
+    all.slice().sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start).map(b => { const p = pitchById(b.pitch);
+      return [b.date, fmt(b.start), fmt(b.start + SIZES[p.size].block), p.name, p.size, b.team, b.opp, b.coach, b.phone, b.bookedAt]; }));
+  const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'heritage-park-bookings.csv'; a.click();
+};
+$('shade').onclick = () => { sel = null; draw(); };
+matchMedia('(max-width:700px)').addEventListener('change', draw);
+onBookingsChange(refresh);
+setInterval(refresh, 30000);
+draw();
+</script>
+</body>
+</html>

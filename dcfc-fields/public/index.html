@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heritage Park Field Booking</title>
+<link rel="icon" href="crest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+.hero{background:var(--rouge);color:#fff;padding:18px 16px 64px;text-align:center}
+.hero h1{font:700 34px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.03em}
+.hero h1 span{color:var(--gold)}
+.layout{max-width:1060px;margin:-44px auto 0;padding:0 16px 48px;display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+@media(min-width:980px){.layout{grid-template-columns:minmax(0,1fr) 300px;align-items:start}.side{position:sticky;top:16px;padding-top:4px}}
+.side{display:flex;justify-content:center}
+.step{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 6px 20px rgba(67,17,16,.06)}
+.step h2{font:700 20px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.step h2 b{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--rouge);color:var(--gold);font-size:16px;flex:none}
+.day{flex:none;border:1.5px solid var(--line);background:#fff;font:600 14px Inter;padding:10px 14px;border-radius:12px;cursor:pointer;color:var(--ink)}
+.day.on{border-color:var(--rouge);background:var(--rouge);color:#fff}
+.sizes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sz{border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:14px 6px;cursor:pointer;text-align:center;color:var(--ink)}
+.sz b{display:block;font:700 30px/1 'Barlow Condensed'}
+.sz small{color:var(--mute);font-size:12px}
+.sz.on{border-color:var(--rouge);box-shadow:inset 0 0 0 1.5px var(--rouge)}.sz.on b{color:var(--rouge)}
+.mapbox{border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.flist{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px}
+.fbtn{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;font:600 14px Inter;color:var(--ink)}
+.fbtn small{display:block;font-weight:500;font-size:12px;color:var(--mute)}
+.fbtn.on{background:var(--rouge);border-color:var(--rouge);color:#fff}.fbtn.on small{color:#e9cfc9}
+.fbtn[disabled]{opacity:.45;cursor:not-allowed}
+@media(max-width:560px){.hero h1{font-size:28px}.step{padding:16px 14px}.sz b{font-size:26px}}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.slot{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:12px;cursor:pointer;text-align:left;font:700 19px 'Barlow Condensed';color:var(--ink)}
+.slot small{display:block;font:500 12px Inter;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot:hover{border-color:var(--rouge)}
+.slot.on{background:var(--rouge);border-color:var(--rouge);color:#fff}.slot.on small{color:#e9cfc9}
+.slot[disabled]{background:#f1eeea;color:#b3aba3;cursor:not-allowed}
+.hint{color:var(--mute);font-size:14px}
+label{display:block;font:600 12px Inter;text-transform:uppercase;letter-spacing:.06em;margin:12px 0 5px;color:var(--mute)}
+input{width:100%;font:16px Inter;padding:12px;border:1.5px solid var(--line);border-radius:10px;color:var(--ink)}
+input:focus{outline:none;border-color:var(--rouge)}
+.two{display:grid;gap:0 12px}@media(min-width:560px){.two{grid-template-columns:1fr 1fr}}
+.go{margin-top:18px;width:100%;background:var(--rouge);color:#fff;border:0;font:700 20px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.05em;padding:14px;border-radius:12px;cursor:pointer}
+.go:disabled{opacity:.35;cursor:not-allowed}
+.err{color:var(--bad);font:600 14px Inter;margin-top:10px}
+.done{text-align:center;padding:30px 18px}
+.done .tick{width:64px;height:64px;border-radius:50%;background:var(--c7);color:#fff;display:grid;place-items:center;font-size:34px;margin:0 auto 12px}
+.done h2{justify-content:center;font-size:30px}
+.done dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;text-align:left;max-width:340px;margin:16px auto 20px;font-size:15px}
+.done dt{color:var(--mute);font:600 12px Inter;text-transform:uppercase;letter-spacing:.05em;padding-top:2px}
+.done .go{max-width:340px}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="hero"><h1>Heritage Park <span>Field Booking</span></h1></div>
+<div class="layout">
+  <main id="main">
+    <div class="step"><h2><b>1</b>Game day</h2><div class="chips" id="days"></div></div>
+    <div class="step"><h2><b>2</b>Game size</h2><div class="sizes" id="sizes"></div></div>
+    <div class="step"><h2><b>3</b>Field</h2><div class="mapbox" id="map"></div><div class="flist" id="flist"></div></div>
+    <div class="step"><h2><b>4</b>Kick-off block</h2><div id="slots"><p class="hint">Pick a field</p></div></div>
+    <form class="step" id="form" novalidate><h2><b>5</b>Your team</h2>
+      <div class="two"><div><label for="team">Team name</label><input id="team" required maxlength="60" placeholder="U12 Girls Rouge"></div>
+      <div><label for="opp">Opponent</label><input id="opp" maxlength="60"></div>
+      <div><label for="coach">Coach name</label><input id="coach" required maxlength="60" autocomplete="name"></div>
+      <div><label for="phone">Phone</label><input id="phone" type="tel" required maxlength="20" autocomplete="tel" placeholder="(734) 555-0100"></div></div>
+      <p class="err" id="err" hidden></p>
+      <button class="go" id="go" disabled>Book field</button></form>
+  </main>
+  <aside class="side" id="device"></aside>
+</div>
+<script src="core.js"></script>
+<script>
+document.getElementById('nav').innerHTML = nav('index.html');
+const DAYS = weekends();
+const S = { day: DAYS[0].key, size: '11v11', pitch: null, slot: null };
+const $ = id => document.getElementById(id);
+let phoneMsgs = [];
+const drawPhone = typing => { $("device").innerHTML = phoneHTML({ contact: CLUB, msgs: phoneMsgs, typing }); const t = $("device").querySelector('.thread'); t.scrollTop = t.scrollHeight; };
+drawPhone();
+
+function taken() { return loadBookings().filter(b => b.date === S.day); }
+function isPast(start) { const n = new Date(); return S.day === keyOf(n) && start <= n.getHours() * 60 + n.getMinutes(); }
+
+$('days').innerHTML = DAYS.map((d, i) => `<button type="button" class="day${i ? '' : ' on'}" data-d="${d.key}">${d.label}</button>`).join('');
+$('days').onclick = e => { const b = e.target.closest('.day'); if (!b) return; document.querySelectorAll('.day').forEach(x => x.classList.remove('on')); b.classList.add('on'); S.day = b.dataset.d; S.slot = null; drawMap(); drawSlots(); };
+$('sizes').innerHTML = Object.keys(SIZES).map(s => { const n = PITCHES.filter(p => p.size === s).length;
+  return `<button type="button" class="sz${s === S.size ? ' on' : ''}" data-s="${s}"><b>${s}</b><small>${n} field${n > 1 ? 's' : ''} · ${SIZES[s].len}</small></button>`; }).join('');
+$('sizes').onclick = e => { const b = e.target.closest('.sz'); if (!b) return; document.querySelectorAll('.sz').forEach(x => x.classList.remove('on')); b.classList.add('on'); S.size = b.dataset.s; S.pitch = null; S.slot = null; drawMap(); drawSlots(); };
+
+$('map').innerHTML = mapSVG();
+$('map').querySelectorAll('.pitch').forEach(g => {
+  const pick = () => { S.pitch = g.dataset.id; S.slot = null; drawMap(); drawSlots(); };
+  g.addEventListener('click', pick);
+  g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+});
+function drawMap() {
+  const t = taken();
+  $('map').querySelectorAll('.pitch').forEach(g => {
+    const p = pitchById(g.dataset.id), free = slotsFor(p).filter(s => !t.some(b => b.pitch === p.id && b.start === s.start) && !isPast(s.start)).length;
+    g.classList.toggle('dim', p.size !== S.size); g.classList.toggle('on', p.id === S.pitch); g.classList.toggle('full', free === 0);
+  });
+  $('flist').innerHTML = PITCHES.filter(p => p.size === S.size).map(p => {
+    const free = slotsFor(p).filter(s => !t.some(b => b.pitch === p.id && b.start === s.start) && !isPast(s.start)).length;
+    return `<button type="button" class="fbtn${p.id === S.pitch ? ' on' : ''}" data-id="${p.id}" ${free ? '' : 'disabled'}>${p.name}<small>${free ? free + ' open' : 'Full'}</small></button>`; }).join('');
+  $('flist').querySelectorAll('.fbtn:not([disabled])').forEach(b => b.onclick = () => { S.pitch = b.dataset.id; S.slot = null; drawMap(); drawSlots(); });
+}
+function drawSlots() {
+  $('go').disabled = !S.slot;
+  if (!S.pitch) { $('slots').innerHTML = '<p class="hint">Pick a field</p>'; return; }
+  const p = pitchById(S.pitch), t = taken();
+  $('slots').innerHTML = `<div class="slots">` + slotsFor(p).map(s => { const b = t.find(x => x.pitch === p.id && x.start === s.start), past = isPast(s.start);
+    return `<button type="button" class="slot${S.slot === s.start ? ' on' : ''}" data-s="${s.start}" ${b || past ? 'disabled' : ''}>${fmt(s.start)}<small>${b ? 'Taken · ' + esc(b.team) : past ? 'Started' : 'until ' + fmt(s.end)}</small></button>`; }).join('') + `</div>`;
+  $('slots').querySelectorAll('.slot:not([disabled])').forEach(b => b.onclick = () => { S.slot = +b.dataset.s; drawSlots(); });
+}
+
+$('form').onsubmit = e => {
+  e.preventDefault();
+  const v = id => $(id).value.trim(), digits = v('phone').replace(/\D/g, '');
+  const bad = !v('team') ? 'Add your team name' : !v('coach') ? 'Add the coach name' : digits.length < 10 ? 'Add a 10 digit phone number' : '';
+  if (bad) { $('err').textContent = bad; $('err').hidden = false; return; }
+  const rec = addBooking({ pitch: S.pitch, date: S.day, start: S.slot, team: v('team'), opp: v('opp'), coach: v('coach'), phone: v('phone') });
+  if (!rec) { $('err').textContent = 'Just taken. Pick another block.'; $('err').hidden = false; S.slot = null; drawMap(); drawSlots(); return; }
+  $('err').hidden = true;
+  confirmed(rec);
+};
+
+function confirmed(b) {
+  const p = pitchById(b.pitch);
+  $('main').dataset.form = $('main').innerHTML;
+  $('main').innerHTML = `<div class="step done"><div class="tick">✓</div><h2>Booked</h2>
+    <dl><dt>Team</dt><dd>${esc(b.team)}${b.opp ? ' vs ' + esc(b.opp) : ''}</dd><dt>Field</dt><dd>${p.name} (${p.size})</dd>
+    <dt>Day</dt><dd>${dayLabel(b.date)}</dd><dt>Time</dt><dd>${fmt(b.start)} to ${fmt(b.start + SIZES[p.size].block)}</dd><dt>Text to</dt><dd>${esc(b.phone)}</dd></dl>
+    <button class="go" onclick="location.reload()">Book another</button></div>`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  phoneMsgs = phoneMsgs.map(m => ({ ...m, fresh: false }));
+  drawPhone(true);
+  setTimeout(() => { phoneMsgs.push({ text: coachText(b), at: b.bookedAt, fresh: true }); drawPhone(false);
+    if (window.innerWidth < 980) $("device").scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 1300);
+}
+
+onBookingsChange(() => { drawMap(); drawSlots(); });
+setInterval(() => { if (document.getElementById('map')) { drawMap(); drawSlots(); } }, 15000);
+drawMap();
+</script>
+</body>
+</html>

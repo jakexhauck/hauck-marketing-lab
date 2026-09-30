@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booking Messages</title>
+<link rel="icon" href="crest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+.wrap{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+.phones{display:flex;gap:48px;justify-content:center;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;align-items:center;gap:12px}
+.col h2{font:700 22px/1 'Barlow Condensed';text-transform:uppercase;letter-spacing:.04em;color:var(--rouge)}
+.col .tag{font:600 12px Inter;color:var(--mute);min-height:34px;display:flex;align-items:center}
+select{font:14px Inter;padding:7px 10px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);max-width:260px}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="wrap">
+  <div class="phones">
+    <div class="col"><h2>Team</h2><div class="tag" id="pickwrap"></div><div id="coachPhone"></div></div>
+    <div class="col"><h2>Admins</h2><div class="tag">Field Bookings</div><div id="adminPhone"></div></div>
+  </div>
+</div>
+<script src="core.js"></script>
+<script>
+document.getElementById('nav').innerHTML = nav('messages.html');
+const $ = id => document.getElementById(id);
+let coach = null, seen = null;
+function draw() {
+  const all = loadBookings().sort((a, b) => a.bookedAt.localeCompare(b.bookedAt));
+  const isNew = b => seen && !seen.has(b.id);
+  // One thread per coach phone number, newest coach selected by default.
+  const phones = [...new Map(all.map(b => [b.phone.replace(/\D/g, ''), b])).values()].reverse();
+  if (!coach || !phones.some(b => b.phone.replace(/\D/g, '') === coach)) coach = phones[0] ? phones[0].phone.replace(/\D/g, '') : null;
+  $('pickwrap').innerHTML = phones.length ? `<select id="pick" aria-label="Coach">${phones.map(b => { const k = b.phone.replace(/\D/g, '');
+    return `<option value="${k}"${k === coach ? ' selected' : ''}>${esc(b.coach)} · ${esc(b.phone)}</option>`; }).join('')}</select>` : 'No bookings yet';
+  if ($('pick')) $('pick').onchange = e => { coach = e.target.value; draw(); };
+  $('coachPhone').innerHTML = phoneHTML({ contact: CLUB, msgs: all.filter(b => b.phone.replace(/\D/g, '') === coach).map(b => ({ text: coachText(b), at: b.bookedAt, fresh: isNew(b) })) });
+  $('adminPhone').innerHTML = phoneHTML({ contact: 'Field Bookings', msgs: all.map(b => ({ text: adminText(b), at: b.bookedAt, fresh: isNew(b) })) });
+  document.querySelectorAll('.thread').forEach(t => t.scrollTop = t.scrollHeight);
+  seen = new Set(all.map(b => b.id));
+}
+onBookingsChange(draw);
+draw();
+</script>
+</body>
+</html>
