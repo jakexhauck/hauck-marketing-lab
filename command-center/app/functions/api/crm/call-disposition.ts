@@ -115,11 +115,11 @@ async function record(
   const { contactId, outcome, callId } = parsed;
   const now = Date.now();
 
-  // The prospect. Created from the contact when the dialer rang somebody the
-  // book has never seen, the same as the sync does.
-  const leadId = await resolveLead(env, client, contactId, {});
-
-  let pick = pickDispositionDial(await candidates(client, leadId), { callId, now });
+  // The contact's dials, across EVERY lead on that contact. Looking under one
+  // lead missed the call on 2026-10-01: the sync filed it under one copy of the
+  // company and this endpoint under another, and one call became two dials.
+  let found = await candidates(client, contactId);
+  let pick = pickDispositionDial(found, { callId, now });
 
   // The disposition can arrive before the sync has noticed the call (it runs
   // once a minute). Read the dialer's wake now rather than inventing a row the
@@ -130,9 +130,15 @@ async function record(
       const since = now - DEFAULT_WINDOW_MINUTES * 60_000;
       const { dials, leads } = await readWindowRows(client, since);
       await runPowerDialerSync(env, client, { dials, leads, since, callerId: caller });
-      pick = pickDispositionDial(await candidates(client, leadId), { callId, now });
+      found = await candidates(client, contactId);
+      pick = pickDispositionDial(found, { callId, now });
     }
   }
+
+  // The lead is the one the dial is already filed under. Only a call with no
+  // row anywhere resolves (or creates) one, the same way the sync does.
+  const picked = pick.kind === "none" ? null : found.find((d) => d.id === pick.dialId);
+  const leadId = picked ? picked.leadId : await resolveLead(env, client, contactId, {});
 
   if (pick.kind === "judged") {
     return { status: "already_recorded", dialId: pick.dialId, leadId, outcome };
@@ -152,7 +158,6 @@ async function record(
         pitched,
         outcome,
         ...(callerId ? { caller_id: callerId } : {}),
-        ...(leadId ? { lead_id: leadId } : {}),
       })
       .eq("id", pick.dialId)
       .eq("outcome", PENDING_OUTCOME)
@@ -188,25 +193,44 @@ async function record(
   return { status: "recorded", dialId, leadId, outcome };
 }
 
-// This prospect's recent dials, newest first.
-async function candidates(client: SupabaseClient, leadId: string | null): Promise<CandidateDial[]> {
-  if (!leadId) return [];
+// This contact's recent dials, newest first, whichever of its leads they are
+// filed under (2,000 contacts have more than one lead).
+async function candidates(
+  client: SupabaseClient,
+  contactId: string,
+): Promise<(CandidateDial & { leadId: string | null })[]> {
+  const { data: leads, error: leadError } = await client
+    .from("leads")
+    .select("id")
+    .eq("ghl_contact_id", contactId)
+    .is("deleted_at", null);
+  if (leadError) throw new Error(`could not read the leads: ${leadError.message}`);
+  const leadIds = ((leads ?? []) as { id: string }[]).map((l) => l.id);
+  if (leadIds.length === 0) return [];
+
   const since = new Date(Date.now() - PENDING_LOOKBACK_MS).toISOString();
   const { data, error } = await client
     .from("cold_call_dials")
-    .select("id, outcome, call_message_id, dialed_at")
-    .eq("lead_id", leadId)
+    .select("id, lead_id, outcome, call_message_id, dialed_at")
+    .in("lead_id", leadIds)
     .gte("dialed_at", since)
     .order("dialed_at", { ascending: false });
   if (error) throw new Error(`could not read the dials: ${error.message}`);
-  return ((data ?? []) as { id: string; outcome: string; call_message_id: string | null; dialed_at: string }[]).map(
-    (d) => ({
-      id: d.id,
-      outcome: d.outcome,
-      callMessageId: d.call_message_id,
-      dialedAtMs: Date.parse(d.dialed_at),
-    }),
-  );
+  return (
+    (data ?? []) as {
+      id: string;
+      lead_id: string | null;
+      outcome: string;
+      call_message_id: string | null;
+      dialed_at: string;
+    }[]
+  ).map((d) => ({
+    id: d.id,
+    leadId: d.lead_id,
+    outcome: d.outcome,
+    callMessageId: d.call_message_id,
+    dialedAtMs: Date.parse(d.dialed_at),
+  }));
 }
 
 // Who made the call. The GoHighLevel user's email when the workflow sends one

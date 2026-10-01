@@ -228,13 +228,19 @@ export async function resolveLead(
   contactId: string,
   conv: { fullName?: string | null; contactName?: string | null; phone?: string | null },
 ): Promise<string | null> {
-  const { data: byContact } = await client
+  // The oldest lead on this contact, never maybeSingle. 2,000 contacts carry
+  // more than one lead (2026-10-01), and maybeSingle errors on two rows: the
+  // error read as "no lead", so every call to such a contact made ANOTHER one
+  // (one contact had 47). A failed read throws rather than creating a copy.
+  const { data: byContact, error: contactError } = await client
     .from("leads")
     .select("id")
     .eq("ghl_contact_id", contactId)
     .is("deleted_at", null)
-    .maybeSingle();
-  if (byContact) return (byContact as { id: string }).id;
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (contactError) throw new Error(`could not read the lead: ${contactError.message}`);
+  if (byContact && byContact.length > 0) return (byContact[0] as { id: string }).id;
 
   const contact = await fetchAgencyContact(env, contactId);
   const phone = (contact?.phone || conv.phone || "").trim();
