@@ -16,7 +16,6 @@ import { TrackerMonthNav } from "../tracker/DailyTracker";
 import { cursorForToday, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
 import ColdCallSurface, { AGENCY_CALLER_ID } from "./ColdCallSurface";
 import ScriptsPanel from "./ScriptsPanel";
-import ColdSmsSurface from "./ColdSmsSurface";
 
 // Acquisition > Cold Call. Unlike its sibling tabs this is a section rather than
 // a single surface: the Tracker holds the month and Scripts is where the owner
@@ -130,9 +129,8 @@ export default function ColdCallSection() {
   }, [push.isError, push.data]);
 
   // A script is the same document for everyone, so a "whose section is this"
-  // selector above it would be a control with nothing to control. Cold SMS is
-  // one agency-wide log too.
-  const rosterWide = view === "scripts" || view === "sms";
+  // selector above it would be a control with nothing to control.
+  const rosterWide = view === "scripts";
 
   // The shelf: the script variations and everything else read mid-call (0058).
   //
@@ -257,7 +255,7 @@ export default function ColdCallSection() {
               ))}
             </select>
           )}
-          {(view === "tracker" || view === "sms") && (
+          {view === "tracker" && (
             <TrackerMonthNav cursor={cursor} today={today} onMonthChange={setCursor} />
           )}
           {/* Owner only, and by hand only. It writes tags onto live contact
@@ -336,10 +334,6 @@ function ColdCallBody({
     // The pitch variations and, beneath them, the objection handling.
     case "scripts":
       return <ScriptsPanel />;
-    // The month nav in the header row drives the daily table; the monthly
-    // table under it is all-time.
-    case "sms":
-      return <ColdSmsSurface cursor={cursor} />;
     case "tracker":
       // With nobody chosen, an owner gets the same grid reading the whole
       // roster: each caller's day resolved on its own and then added up, so the

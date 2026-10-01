@@ -26,12 +26,12 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
-    id: "2026-10-01-cold-sms",
+    id: "2026-10-01-cold-sms-sheet",
     date: "1 October 2026",
-    title: "Cold SMS page under Cold Call",
+    title: "Cold SMS is its own page, built like the sheet",
     items: [
-      "Cold Call has a Cold SMS tab, laid out like the SMS Tracking sheet: the daily table on top, the monthly table under it. You type the numbers; the rates fill themselves in.",
-      "The monthly table gained Booking to Sent %. Anything already typed into the old SMS page is still there.",
+      "Cold SMS sits in the sidebar under Cold Call. It is the SMS Tracking sheet, same colours and layout: Daily, Monthly and Script, one page each.",
+      "Type the numbers in; the yellow, blue and green cells work themselves out. Daily runs from 10/1/26 straight through, like the sheet.",
     ],
   },
   {

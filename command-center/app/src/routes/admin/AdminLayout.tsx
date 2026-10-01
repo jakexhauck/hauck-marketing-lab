@@ -21,6 +21,7 @@ import {
   UserPlus,
   Briefcase,
   type LucideIcon,
+  MessagesSquare,
 } from "lucide-react";
 import { resolvePillarTab, type PillarId } from "../../lib/adminPillars";
 import { FULFILLMENT_HOME, FULFILLMENT_NAV } from "../../lib/fulfillmentPages";
@@ -120,11 +121,13 @@ const PILLAR_GROUPS: RailGroup[] = [
     ],
   },
   {
-    // Acquisition: sourcing first (Leads), then the daily work (Cold Call).
+    // Acquisition: sourcing first (Leads), then the daily work (Cold Call,
+    // then Cold SMS).
     caption: "Acquisition",
     rows: [
       pillarRow("Leads", "acquisition", "leads", Target),
       pillarRow("Cold Call", "acquisition", "cold-call", PhoneCall, "Calling"),
+      pillarRow("Cold SMS", "acquisition", "sms", MessagesSquare, "SMS"),
     ],
   },
   {

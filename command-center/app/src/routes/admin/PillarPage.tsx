@@ -19,6 +19,7 @@ import ClientsTab from "../../components/admin/operations/ClientsTab";
 import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
 import SopsTab from "../../components/admin/operations/SopsTab";
+import ColdSmsPage from "../../components/admin/coldSms/ColdSmsPage";
 import ColdCallSection from "../../components/admin/acquisition/ColdCallSection";
 import LeadsSurface from "../../components/admin/acquisition/LeadsSurface";
 
@@ -108,6 +109,9 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     // tracker, scoreboard, settings), not a single surface.
     case "cold-call":
       return <ColdCallSection />;
+    // Its own page under Cold Call: the SMS Tracking sheet, typed by hand.
+    case "sms":
+      return <ColdSmsPage />;
     // Sourcing: the scraper's results, and the hand-off into the two above.
     case "leads":
       return <LeadsSurface />;

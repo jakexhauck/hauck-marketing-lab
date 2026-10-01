@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { COLD_CALL_PAGES, coldCallPagesFor, coldCallSides, resolveColdCallView } from "./coldCallPages";
 
 describe("coldCallPagesFor", () => {
-  it("gives an owner the tracker, the scripts and cold SMS", () => {
-    expect(coldCallPagesFor(true).map((p) => p.id)).toEqual(["tracker", "scripts", "sms"]);
+  it("gives an owner the dialer, the tracker and the scripts", () => {
+    expect(coldCallPagesFor(true).map((p) => p.id)).toEqual(["tracker", "scripts"]);
   });
 
   it("gives a caller the dialer and the tracker", () => {
@@ -22,7 +22,7 @@ describe("coldCallSides", () => {
   it("puts scripts on the owner side", () => {
     const { left, right } = coldCallSides(true);
     expect(left.map((p) => p.id)).toEqual(["tracker"]);
-    expect(right.map((p) => p.id)).toEqual(["scripts", "sms"]);
+    expect(right.map((p) => p.id)).toEqual(["scripts"]);
   });
 
   it("gives a caller no right-hand group", () => {
@@ -36,10 +36,8 @@ describe("resolveColdCallView", () => {
     expect(resolveColdCallView("scripts", true)).toBe("scripts");
   });
 
-  it("keeps scripts and cold SMS from a caller", () => {
+  it("keeps scripts from a caller", () => {
     expect(resolveColdCallView("scripts", false)).toBe("tracker");
-    expect(resolveColdCallView("sms", false)).toBe("tracker");
-    expect(resolveColdCallView("sms", true)).toBe("sms");
   });
 
   it("sends an owner's old scripts links to Scripts", () => {

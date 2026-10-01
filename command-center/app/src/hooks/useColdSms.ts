@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   api,
   type ColdSmsDailyRow,
@@ -6,7 +6,7 @@ import {
   type ColdSmsScriptRow,
 } from "../lib/api";
 
-// Data hooks for the Cold SMS surface (Acquisition > SMS). Agency-global admin
+// Data hooks for the Cold SMS pages (Acquisition > Cold SMS). Agency-global admin
 // data, so no tenant is threaded through any key.
 //
 // Cell edits use the optimistic snapshot/rollback pattern: onMutate patches the
@@ -81,15 +81,35 @@ function toText(value: string): string | null {
 
 /* ---------------------------------------------------------------- daily --- */
 
+function fetchDailyMonth(month: string) {
+  return api<RowsResponse<ColdSmsDailyRow>>(
+    `/api/admin/tracker/cold-sms-daily?month=${encodeURIComponent(month)}`,
+  );
+}
+
 // month is "YYYY-MM". Returns only the days actually logged; the surface fills
 // the rest of the month from the shared month generator.
 export function useColdSmsDailyQuery(month: string) {
   return useQuery({
     queryKey: coldSmsKeys.daily(month),
-    queryFn: () =>
-      api<RowsResponse<ColdSmsDailyRow>>(
-        `/api/admin/tracker/cold-sms-daily?month=${encodeURIComponent(month)}`,
-      ),
+    queryFn: () => fetchDailyMonth(month),
+  });
+}
+
+// Several months at once, for the Daily sheet, which scrolls straight through
+// month ends the way the Google Sheet does. One query per month, on the same
+// keys as useColdSmsDailyQuery, so the upsert's optimistic patch lands here too.
+export function useColdSmsDailyRange(months: string[]) {
+  return useQueries({
+    queries: months.map((month) => ({
+      queryKey: coldSmsKeys.daily(month),
+      queryFn: () => fetchDailyMonth(month),
+    })),
+    combine: (results) => ({
+      rows: results.flatMap((r) => r.data?.rows ?? []),
+      isLoading: results.some((r) => r.isLoading),
+      isError: results.some((r) => r.isError),
+    }),
   });
 }
 

@@ -10,8 +10,7 @@
 // its outcome buttons and its inline script came out and Cold Call opens on
 // the Tracker. Pipeline, Availability, SOPs and the whole Management tab (Assign
 // leads, Team availability, SOPs, Stage check) came out; Scripts, the one page
-// of Management still wanted, moved up to the strip itself. Cold SMS joined
-// on 2026-10-01, the old SMS pillar page brought back as a Cold Call page.
+// of Management still wanted, moved up to the strip itself.
 
 export type ColdCallView = string;
 
@@ -33,9 +32,6 @@ export const COLD_CALL_PAGES: ColdCallPageDef[] = [
   // Owner only: the owner writes them, the caller reads them in the dialing
   // script panel.
   { id: "scripts", label: "Scripts", side: "right", ownerOnly: true },
-  // The SMS outreach month, typed in by hand, laid out like the SMS Tracking
-  // tab of the Master Data Tracker sheet (Jake, 2026-10-01). Owner only.
-  { id: "sms", label: "Cold SMS", side: "right", ownerOnly: true },
 ];
 
 // The pages a role may see, in strip order.
