@@ -5,7 +5,10 @@
 // one level down, which keeps every page linkable and reload-proof.
 //
 // Cut to three pages (Jake, 2026-09-21): the Power dialer, the Tracker and the
-// Scripts. Pipeline, Availability, SOPs and the whole Management tab (Assign
+// Scripts. Then two (2026-10-01): calls are judged by GoHighLevel's own
+// dispositions now (api/crm/call-disposition.ts), so the Power dialer page,
+// its outcome buttons and its inline script came out and Cold Call opens on
+// the Tracker. Pipeline, Availability, SOPs and the whole Management tab (Assign
 // leads, Team availability, SOPs, Stage check) came out; Scripts, the one page
 // of Management still wanted, moved up to the strip itself.
 
@@ -23,9 +26,6 @@ export interface ColdCallPageDef {
 }
 
 export const COLD_CALL_PAGES: ColdCallPageDef[] = [
-  // First, because it is where the day is spent: the page to have open while
-  // the GoHighLevel power dialer works through the list.
-  { id: "dialing", label: "Power dialer", side: "left" },
   // The caller's own month of dialing. His numbers, so he can see them.
   { id: "tracker", label: "Tracker", side: "left" },
   // The pitch variations and the objection handling read alongside them.
@@ -53,8 +53,8 @@ export function coldCallSides(isOwner: boolean): {
 }
 
 // Resolve a raw ?view= against what this role can see, else the first page.
-// A cold caller who types ?view=scripts lands on the Power dialer rather than
-// an error.
+// A cold caller who types ?view=scripts (or an old ?view=dialing link) lands on
+// the Tracker rather than an error.
 export function resolveColdCallView(
   param: string | null | undefined,
   isOwner: boolean,

@@ -30,6 +30,34 @@ export function phoneKey(phone: string): string {
   return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
 }
 
+// Every format the book has stored one number in, for an exact-match lookup.
+//
+// The book holds numbers the way each source wrote them: E.164 from
+// GoHighLevel, "(913) 706-5595" from a scrape, digits from a CSV. A database
+// `in` can only match exactly, so the lookup asks for all of them. Empty for
+// anything that is not a ten digit number, which phoneKey cannot match anyway.
+export function phoneVariants(phone: string): string[] {
+  const d = phoneKey(phone);
+  if (d.length !== 10) return [];
+  const [a, b, c] = [d.slice(0, 3), d.slice(3, 6), d.slice(6)];
+  return [`+1${d}`, `1${d}`, d, `(${a}) ${b}-${c}`, `${a}-${b}-${c}`, `${a}.${b}.${c}`, `${a} ${b} ${c}`];
+}
+
+// What to look the board's cards up by: each contact id and each phone
+// variant, once. The sync used to read the whole book instead, and PostgREST
+// returns at most 1,000 rows, so with 18,833 leads most prospects looked new
+// and were inserted again on every open of Cold Call (2026-10-01).
+export function existingLookupKeys(cards: RawOpportunity[]): { contactIds: string[]; phones: string[] } {
+  const contactIds = new Set<string>();
+  const phones = new Set<string>();
+  for (const raw of cards) {
+    const card = shapeOpportunity(raw);
+    if (card.contactId) contactIds.add(card.contactId);
+    for (const v of phoneVariants(card.phone)) phones.add(v);
+  }
+  return { contactIds: [...contactIds], phones: [...phones] };
+}
+
 interface NamedPipeline {
   name: string;
   stages: { id: string; name: string }[];

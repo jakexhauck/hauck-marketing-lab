@@ -3,11 +3,11 @@ import { COLD_CALL_PAGES, coldCallPagesFor, coldCallSides, resolveColdCallView }
 
 describe("coldCallPagesFor", () => {
   it("gives an owner the dialer, the tracker and the scripts", () => {
-    expect(coldCallPagesFor(true).map((p) => p.id)).toEqual(["dialing", "tracker", "scripts"]);
+    expect(coldCallPagesFor(true).map((p) => p.id)).toEqual(["tracker", "scripts"]);
   });
 
   it("gives a caller the dialer and the tracker", () => {
-    expect(coldCallPagesFor(false).map((p) => p.id)).toEqual(["dialing", "tracker"]);
+    expect(coldCallPagesFor(false).map((p) => p.id)).toEqual(["tracker"]);
   });
 
   it("has no Management, Pipeline, Availability or SOPs page", () => {
@@ -21,7 +21,7 @@ describe("coldCallPagesFor", () => {
 describe("coldCallSides", () => {
   it("puts scripts on the owner side", () => {
     const { left, right } = coldCallSides(true);
-    expect(left.map((p) => p.id)).toEqual(["dialing", "tracker"]);
+    expect(left.map((p) => p.id)).toEqual(["tracker"]);
     expect(right.map((p) => p.id)).toEqual(["scripts"]);
   });
 
@@ -37,7 +37,7 @@ describe("resolveColdCallView", () => {
   });
 
   it("keeps scripts from a caller", () => {
-    expect(resolveColdCallView("scripts", false)).toBe("dialing");
+    expect(resolveColdCallView("scripts", false)).toBe("tracker");
   });
 
   it("sends an owner's old scripts links to Scripts", () => {
@@ -48,9 +48,9 @@ describe("resolveColdCallView", () => {
 
   it("drops cut pages onto the power dialer", () => {
     for (const gone of ["pipeline", "availability", "sops", "assign", "first-dial"]) {
-      expect(resolveColdCallView(gone, true)).toBe("dialing");
+      expect(resolveColdCallView(gone, true)).toBe("tracker");
     }
-    expect(resolveColdCallView("management", true, "stages")).toBe("dialing");
-    expect(resolveColdCallView(null, false)).toBe("dialing");
+    expect(resolveColdCallView("management", true, "stages")).toBe("tracker");
+    expect(resolveColdCallView(null, false)).toBe("tracker");
   });
 });

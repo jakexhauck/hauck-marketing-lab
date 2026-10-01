@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ScrollText, Tags } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
@@ -15,13 +15,13 @@ import { TAB_TRACK, TabButton } from "../../PageTabs";
 import { TrackerMonthNav } from "../tracker/DailyTracker";
 import { cursorForToday, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
 import ColdCallSurface, { AGENCY_CALLER_ID } from "./ColdCallSurface";
-import ColdCallDialing from "./ColdCallDialing";
 import ScriptsPanel from "./ScriptsPanel";
 
 // Acquisition > Cold Call. Unlike its sibling tabs this is a section rather than
-// a single surface: the caller lives on the Power dialer page while GoHighLevel
-// works the list, the Tracker holds the month, and Scripts is where the owner
-// writes the pitch.
+// a single surface: the Tracker holds the month and Scripts is where the owner
+// writes the pitch. Calls themselves are judged in GoHighLevel since 2026-10-01
+// (its dispositions post to api/crm/call-disposition.ts), so there is no
+// calling page here any more.
 //
 // The strip under the page title is this section's own; the pillar's siblings
 // (SMS and so on) live in the sidebar dropdown, not here.
@@ -56,11 +56,6 @@ export default function ColdCallSection() {
 
   const { left, right } = coldCallSides(isOwner);
   const view = resolveColdCallView(searchParams.get("view"), isOwner, searchParams.get("manage"));
-  // The Power dialer reads the script inline, above the card of the business
-  // being called. Every other page has no card to sit above, so the script
-  // stays the floating panel there.
-  const inlineScript = view === "dialing";
-
   // Bring in anything sitting in the GoHighLevel board that the book has never
   // seen: a prospect created over there (a form, an import, by hand) used to
   // exist in no queue and no count here.
@@ -177,19 +172,10 @@ export default function ColdCallSection() {
     );
   };
 
-  // The dialing script, built once and rendered in one of two places.
-  //
-  // On the Power dialer it goes INLINE, above the prospect's card (Jake,
-  // 2026-08-24): one column, read top to bottom, nothing floating over the card
-  // being worked. Everywhere else it stays the panel it has always been, parked
-  // wherever the caller dragged it.
-  //
-  // One element either way. The variations, the selection and the documents are
-  // the same shelf wherever it is drawn, and the header's Dialing script button
-  // is the same toggle: only the wrapper changes.
+  // The dialing script, the floating panel parked wherever the caller dragged
+  // it, read beside GoHighLevel's dialer.
   const script = (
     <ScriptPanel
-      inline={inlineScript}
       // The shelf supplies the body now; this stays for the Setter Suite,
       // which passes a single document and no shelf.
       html=""
@@ -323,10 +309,9 @@ export default function ColdCallSection() {
         onCursorChange={setCursor}
         callerId={scope}
         isOwner={isOwner}
-        scriptSlot={inlineScript && scriptOpen ? script : null}
       />
 
-      {scriptOpen && !inlineScript && script}
+      {scriptOpen && script}
     </>
   );
 }
@@ -337,7 +322,6 @@ function ColdCallBody({
   onCursorChange,
   callerId,
   isOwner,
-  scriptSlot,
 }: {
   view: string;
   cursor: MonthCursor;
@@ -345,16 +329,8 @@ function ColdCallBody({
   // "" means everyone (owner viewing the whole operation).
   callerId: string;
   isOwner: boolean;
-  // The dialing script for the Power dialer, or null. Passed through rather
-  // than built here: only that page renders it, and only ColdCallSection knows
-  // whether the header's toggle is on.
-  scriptSlot?: ReactNode;
 }) {
   switch (view) {
-    // The page open beside the GoHighLevel power dialer: the calling workspace
-    // with no queue on it, because the phone decides who is on it.
-    case "dialing":
-      return <ColdCallDialing callerId={callerId} scriptSlot={scriptSlot} />;
     // The pitch variations and, beneath them, the objection handling.
     case "scripts":
       return <ScriptsPanel />;

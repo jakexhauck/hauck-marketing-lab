@@ -4,7 +4,12 @@ import { logAdminAction } from "../../../../lib/adminAuth";
 import { ghlJson } from "../../../../lib/ghl";
 import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../../lib/agencyGhl";
 import type { RawOpportunity } from "../../../../lib/agencyPipelines";
-import { pickColdCallPipeline, planLeadSync, type ExistingLead } from "../../../../lib/coldCallSync";
+import {
+  existingLookupKeys,
+  pickColdCallPipeline,
+  planLeadSync,
+  type ExistingLead,
+} from "../../../../lib/coldCallSync";
 import { LEAD_STATUSES, SELECT, toLead } from "../leads";
 
 // POST /api/admin/tracker/leads/sync-ghl
@@ -121,16 +126,28 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     return Response.json({ error: message.slice(0, 300) }, { status: 502 });
   }
 
-  // Everyone already in the book, including the soft-deleted: a prospect Jake
-  // threw away is not one to quietly re-add on the next sync.
-  const { data: existingRows, error: existingError } = await client
-    .from("leads")
-    .select("phone, ghl_contact_id");
-  if (existingError) {
+  // The board's prospects already in the book, including the soft-deleted: a
+  // prospect Jake threw away is not one to quietly re-add on the next sync.
+  //
+  // Looked up by the cards' own contact ids and phones, never by reading the
+  // whole book: PostgREST returns at most 1,000 rows, the book passed 18,000,
+  // and every prospect past the first thousand was inserted again on each open
+  // of Cold Call (2,000 contacts duplicated, one 47 times; 2026-10-01).
+  // Phones only for the cards no contact id matched, which keeps the requests
+  // to a handful.
+  const existingRows: ExistingLead[] = [];
+  try {
+    const { contactIds } = existingLookupKeys(cards);
+    existingRows.push(...(await readExisting(client, "ghl_contact_id", contactIds)));
+    const matched = new Set(existingRows.map((r) => r.ghl_contact_id).filter(Boolean));
+    const unmatched = cards.filter((raw) => !matched.has(raw.contact?.id ?? ""));
+    existingRows.push(...(await readExisting(client, "phone", existingLookupKeys(unmatched).phones)));
+  } catch (err) {
+    const code = (err as { code?: string }).code;
     const detail =
-      existingError.code === UNDEFINED_COLUMN
+      code === UNDEFINED_COLUMN
         ? "The lead book is missing its GoHighLevel link columns (migration 0053). Run the migrations before syncing."
-        : existingError.message;
+        : (err as Error).message;
     return Response.json({ error: detail }, { status: 500 });
   }
 
@@ -138,7 +155,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     cards,
     stageNameById,
     LEAD_STATUSES,
-    (existingRows ?? []) as ExistingLead[],
+    existingRows,
     new Date().toISOString(),
   );
 
@@ -174,3 +191,26 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     skippedStages: plan.skippedStages,
   });
 };
+
+// Leads whose column matches any of the values, in batches small enough for a
+// URL (300 values is about 6 KB) and few enough to stay well inside the 50
+// subrequest cap beside the 20 GoHighLevel pages. Throws the PostgREST error so
+// the caller can name a missing column.
+const LOOKUP_BATCH = 300;
+
+async function readExisting(
+  client: NonNullable<ReturnType<typeof getServiceClient>>,
+  column: "ghl_contact_id" | "phone",
+  values: string[],
+): Promise<ExistingLead[]> {
+  const out: ExistingLead[] = [];
+  for (let i = 0; i < values.length; i += LOOKUP_BATCH) {
+    const { data, error } = await client
+      .from("leads")
+      .select("phone, ghl_contact_id")
+      .in(column, values.slice(i, i + LOOKUP_BATCH));
+    if (error) throw Object.assign(new Error(error.message), { code: error.code });
+    out.push(...((data ?? []) as ExistingLead[]));
+  }
+  return out;
+}

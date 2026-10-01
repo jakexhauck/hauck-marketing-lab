@@ -34,8 +34,8 @@ export interface CreditedMeeting {
 //
 // The caller is whoever last dialled that prospect, which for a meeting booked
 // in GoHighLevel straight after a call is the person who made the call. Then
-// whoever logged the row. (sales_calls has no booked_by column in production,
-// whatever cold-call/book.ts writes, so it is not read.)
+// whoever logged the row. booked_by (0136) is not read: only the in-app
+// booking panel sets it, and meetings are booked in GoHighLevel now.
 export function creditMeetings(
   rows: CalendarMeetingRow[],
   lastCallerByLead: Map<string, string>,

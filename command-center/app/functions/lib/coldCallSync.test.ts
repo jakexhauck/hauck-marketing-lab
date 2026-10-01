@@ -3,6 +3,8 @@ import {
   pickColdCallPipeline,
   planLeadSync,
   phoneKey,
+  phoneVariants,
+  existingLookupKeys,
   splitName,
   type ExistingLead,
 } from "./coldCallSync";
@@ -271,5 +273,36 @@ describe("planLeadSync", () => {
     ).insert;
     expect(row.first_name).toBe("Sam");
     expect(row.last_name).toBe("Cole");
+  });
+});
+
+describe("phoneVariants", () => {
+  it("lists every way the book has stored one number", () => {
+    expect(phoneVariants("+1 (913) 706-5595")).toEqual([
+      "+19137065595",
+      "19137065595",
+      "9137065595",
+      "(913) 706-5595",
+      "913-706-5595",
+      "913.706.5595",
+      "913 706 5595",
+    ]);
+  });
+
+  it("has nothing for a number that is not ten digits", () => {
+    expect(phoneVariants("12345")).toEqual([]);
+    expect(phoneVariants("")).toEqual([]);
+  });
+});
+
+describe("existingLookupKeys", () => {
+  it("collects each card's contact and phone variants once", () => {
+    const keys = existingLookupKeys([
+      { id: "o1", contact: { id: "c1", phone: "+19137065595" } },
+      { id: "o2", contact: { id: "c1", phone: "913-706-5595" } },
+      { id: "o3", contact: {} },
+    ] as never);
+    expect(keys.contactIds).toEqual(["c1"]);
+    expect(keys.phones).toHaveLength(7);
   });
 });

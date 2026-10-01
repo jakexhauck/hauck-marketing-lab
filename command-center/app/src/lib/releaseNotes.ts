@@ -32,6 +32,7 @@ export const RELEASES: Release[] = [
     items: [
       "Picking a disposition in GoHighLevel's dialer now records the call on the Cold Call tracker, the same as pressing the button in the app. Tags and the dialer list update too.",
       "Meetings booked are counted off the Demo Call - Cold Call calendar, on the day they were booked. Earlier months keep their numbers.",
+      "The Power dialer page is gone. Cold Call opens on the Tracker, and the Dialing script button still opens the script beside GoHighLevel.",
     ],
   },
   {
