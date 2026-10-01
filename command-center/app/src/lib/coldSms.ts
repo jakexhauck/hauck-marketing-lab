@@ -135,6 +135,8 @@ export function computeDailyRollup(rows: Cells[]): DailyRollup {
 
 export interface MonthlyComputed {
   showRate: number | null;
+  // Calls booked over total initial SMS sent, the sheet's "Booking to Sent %".
+  bookToSentPct: number | null;
   smsPerClient: number | null;
   // null when neither cost was entered, so an untouched row stays blank rather
   // than claiming a $0 spend.
@@ -159,6 +161,7 @@ export function computeMonthlyRow(row: Cells): MonthlyComputed {
 
   return {
     showRate: pct(showed, booked),
+    bookToSentPct: pct(booked, sent),
     smsPerClient: safeDivide(sent, clients),
     totalCost: anyCost ? spend : null,
     costPerCall: safeDivide(spend, booked),

@@ -20,7 +20,6 @@ import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
 import SopsTab from "../../components/admin/operations/SopsTab";
 import ColdCallSection from "../../components/admin/acquisition/ColdCallSection";
-import ColdSmsSurface from "../../components/admin/acquisition/ColdSmsSurface";
 import LeadsSurface from "../../components/admin/acquisition/LeadsSurface";
 
 // An admin pillar page (/admin/pillar/:pillarId). The active tab is driven by
@@ -109,8 +108,6 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     // tracker, scoreboard, settings), not a single surface.
     case "cold-call":
       return <ColdCallSection />;
-    case "sms":
-      return <ColdSmsSurface />;
     // Sourcing: the scraper's results, and the hand-off into the two above.
     case "leads":
       return <LeadsSurface />;

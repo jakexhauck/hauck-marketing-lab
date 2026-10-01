@@ -44,8 +44,8 @@ export const ADMIN_PILLARS: PillarDef[] = [
     // home URLs carry ?tab=cold-call explicitly, so the default only moves for
     // an owner typing the bare pillar URL.
     //
-    // SMS is out of the nav (Jake, 2026-09-21). Its surface stays wired in
-    // PillarPage, so putting the row back here restores it; an old ?tab=sms
+    // SMS is out of the nav (Jake, 2026-09-21). It came back on 2026-10-01 as
+    // the Cold SMS page inside Cold Call (lib/coldCallPages); an old ?tab=sms
     // link falls through resolvePillarTab to the first tab.
     tabs: [
       { id: "leads", label: "Leads", ready: true },

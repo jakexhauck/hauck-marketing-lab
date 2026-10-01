@@ -120,6 +120,8 @@ describe("computeMonthlyRow", () => {
   it("computes the full economics chain for a logged month", () => {
     const c = computeMonthlyRow(july);
     expect(c.showRate).toBeCloseTo((22 / 34) * 100, 6);
+    // Booking to Sent: calls booked over total initial SMS sent.
+    expect(c.bookToSentPct).toBeCloseTo((34 / 9200) * 100, 6);
     expect(c.smsPerClient).toBeCloseTo(1840, 6);
     // Total cost is VA plus SMS spend.
     expect(c.totalCost).toBeCloseTo(1660, 6);
@@ -146,6 +148,7 @@ describe("computeMonthlyRow", () => {
       ltv: "",
     });
     expect(c.showRate).toBeNull();
+    expect(c.bookToSentPct).toBeNull();
     expect(c.smsPerClient).toBeNull();
     // No cost was entered, so the row stays blank rather than claiming $0 spend.
     expect(c.totalCost).toBeNull();
@@ -203,6 +206,7 @@ describe("computeMonthlyRollup", () => {
   it("recomputes the footer ratios from the sums, not from the row rates", () => {
     const { computed } = computeMonthlyRollup(rows);
     expect(computed.showRate).toBeCloseTo((32 / 50) * 100, 6);
+    expect(computed.bookToSentPct).toBeCloseTo((50 / 14000) * 100, 6);
     expect(computed.totalCost).toBeCloseTo(2700, 6);
     expect(computed.cac).toBeCloseTo(2700 / 8, 6);
     expect(computed.roi).toBeCloseTo(((20500 - 2700) / 2700) * 100, 6);

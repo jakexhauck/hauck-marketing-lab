@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-01-cold-sms",
+    date: "1 October 2026",
+    title: "Cold SMS page under Cold Call",
+    items: [
+      "Cold Call has a Cold SMS tab, laid out like the SMS Tracking sheet: the daily table on top, the monthly table under it. You type the numbers; the rates fill themselves in.",
+      "The monthly table gained Booking to Sent %. Anything already typed into the old SMS page is still there.",
+    ],
+  },
+  {
     id: "2026-10-01-ghl-dispositions",
     date: "1 October 2026",
     title: "Cold call outcomes come from GoHighLevel",

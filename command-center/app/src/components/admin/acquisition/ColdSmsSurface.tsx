@@ -1,48 +1,31 @@
 import { useMemo, useState } from "react";
-import { CalendarDays, MessageSquare, Percent, Table2, TrendingUp } from "lucide-react";
-import DailyTracker, {
-  TrackerMonthNav,
-  type StatTile,
-  type TrackerColumn,
-  type TrackerRow,
-} from "../tracker/DailyTracker";
+import DailyTracker, { type TrackerColumn, type TrackerRow } from "../tracker/DailyTracker";
 import MonthlyEconomicsTable from "./MonthlyEconomicsTable";
-import ScriptTestTable from "./ScriptTestTable";
-import { PillarTitleActions } from "../../pillars/PillarKit";
-import {
-  buildMonthDays,
-  cursorForToday,
-  formatPct,
-  type MonthCursor,
-  type TodayRef,
-} from "../../../lib/trackerMonth";
-import { computeDailyRollup, computeDailyRow, formatCount } from "../../../lib/coldSms";
+import { buildMonthDays, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
+import { computeDailyRollup, computeDailyRow } from "../../../lib/coldSms";
 import {
   useColdSmsDailyQuery,
   useColdSmsDailyUpsert,
-  useColdSmsScriptQuery,
   type ColdSmsDailyField,
 } from "../../../hooks/useColdSms";
 
-// The Cold SMS tab body (Acquisition > SMS). One page, three sub-views behind
-// an in-page sub-nav: Daily, Monthly and Script Test.
+// Cold Call > Cold SMS. A copy of the SMS Tracking tab of the Master Data
+// Tracker sheet (Jake, 2026-10-01): the daily table and, under it, the monthly
+// one. The sheet has them side by side; the monthly table is too wide for that
+// on a screen, so it stacks. Every number is typed by hand, nothing is synced,
+// and every rate is computed from those counts, never stored.
 //
-// The month nav belongs to the Daily view alone (Monthly and Script are
-// all-time), so it is lifted out of the DailyTracker engine and rendered inline
-// with the sub-nav, on the Daily view only. That is the same move Cold Call
-// makes, and it buys back the whole row the nav used to take above the tiles.
-// Nothing here fabricates data: an unlogged month renders the shared engine's
-// auto-generated empty day template.
+// The month is owned by ColdCallSection, whose header row carries the stepper.
+// The monthly table is all-time and ignores it.
 
-type SubView = "daily" | "monthly" | "script";
-
+// Column names are the sheet's own.
 const DAILY_COLUMNS: TrackerColumn[] = [
-  { key: "smsSent", label: "SMS Sent", kind: "input" },
+  { key: "smsSent", label: "Initial SMS Sent", kind: "input" },
   { key: "positiveReplies", label: "Positive Replies", kind: "input" },
-  { key: "replyPct", label: "Reply %", kind: "computed" },
+  { key: "replyPct", label: "Positive Reply Rate", kind: "computed" },
   { key: "meetingsBooked", label: "Meetings Booked", kind: "input" },
-  { key: "replyToBookPct", label: "Reply to Book %", kind: "computed" },
-  { key: "bookToSentPct", label: "Book to Sent %", kind: "computed" },
+  { key: "replyToBookPct", label: "Replies to Booking %", kind: "computed" },
+  { key: "bookToSentPct", label: "Booking To Sent %", kind: "computed" },
   { key: "note", label: "Notes", kind: "text" },
 ];
 
@@ -72,10 +55,8 @@ function cell(value: number | null): string {
   return value === null || value === undefined ? "" : String(value);
 }
 
-export default function ColdSmsSurface() {
-  const [view, setView] = useState<SubView>("daily");
+export default function ColdSmsSurface({ cursor }: { cursor: MonthCursor }) {
   const [today] = useState<TodayRef>(todayRef);
-  const [cursor, setCursor] = useState<MonthCursor>(() => cursorForToday(todayRef()));
   // Exactly what was typed, keyed by ISO day, so a half-typed number is never
   // round-tripped through a parse while the cursor is still in the cell.
   const [drafts, setDrafts] = useState<Record<string, TrackerRow>>({});
@@ -83,8 +64,6 @@ export default function ColdSmsSurface() {
   const month = monthParam(cursor);
   const daily = useColdSmsDailyQuery(month);
   const upsert = useColdSmsDailyUpsert();
-  // Shared cache with ScriptTestTable, so the count pill costs no extra fetch.
-  const script = useColdSmsScriptQuery();
 
   const serverRows = useMemo(() => {
     const byDay: Record<string, TrackerRow> = {};
@@ -118,150 +97,33 @@ export default function ColdSmsSurface() {
     [cursor, today, serverRows, drafts],
   );
 
-  const statTiles: StatTile[] = [
-    {
-      key: "sent",
-      tone: "indigo",
-      icon: <MessageSquare />,
-      label: "SMS Sent",
-      value: formatCount(rollup.totals.smsSent),
-      sub: "month to date",
-    },
-    {
-      key: "reply",
-      tone: "green",
-      icon: <TrendingUp />,
-      label: "Reply %",
-      value: formatPct(rollup.rates.replyPct),
-      sub: `${formatCount(rollup.totals.positiveReplies)} of ${formatCount(rollup.totals.smsSent)}`,
-    },
-    {
-      key: "booked",
-      tone: "sky",
-      icon: <CalendarDays />,
-      label: "Meetings Booked",
-      value: formatCount(rollup.totals.meetingsBooked),
-      sub: "month to date",
-    },
-    {
-      key: "bookToSent",
-      tone: "amber",
-      icon: <Percent />,
-      label: "Book to Sent %",
-      value: formatPct(rollup.rates.bookToSentPct),
-      sub: "per message",
-    },
-  ];
-
-  const subtitle = daily.isError
-    ? "Could not load this month."
-    : rollup.filledDays > 0
-      ? `${rollup.filledDays} days logged this month`
-      : "No days logged yet. Type into any row to start.";
-
-  const variationCount = script.data?.rows.length ?? 0;
-
   return (
-    <div className="cs">
+    <div className="cs cs-stack">
       <ColdSmsStyle />
-
-      {/* The sub-nav and the month stepper ride on the page's own title line,
-          beside "SMS", rather than in a band of their own. That is a whole row
-          of vertical space the tiles and the table get back. */}
-      <PillarTitleActions>
-        <div className="cs-subnav" role="tablist" aria-label="Cold SMS views">
-          <SubTab
-            id="daily"
-            view={view}
-            onSelect={setView}
-            icon={<CalendarDays size={16} />}
-            label="Daily"
-          />
-          <SubTab
-            id="monthly"
-            view={view}
-            onSelect={setView}
-            icon={<TrendingUp size={16} />}
-            label="Monthly"
-          />
-          <SubTab
-            id="script"
-            view={view}
-            onSelect={setView}
-            icon={<Table2 size={16} />}
-            label="Script Test"
-            count={variationCount}
-          />
-          {/* Daily only: the other two views are all-time. */}
-          {view === "daily" && (
-            <TrackerMonthNav cursor={cursor} today={today} onMonthChange={setCursor} />
-          )}
-        </div>
-      </PillarTitleActions>
-
-      <div className="cs-views">
-        {view === "daily" && (
-          <DailyTracker
-            title="SMS Outreach Tracker"
-            subtitle={subtitle}
-            columns={DAILY_COLUMNS}
-            cursor={cursor}
-            today={today}
-            statTiles={statTiles}
-            getRow={getRow}
-            computeRow={computeDailyRow}
-            rollup={rollup}
-            onEdit={onEdit}
-            onMonthChange={setCursor}
-            hideMonthNav
-          />
-        )}
-        {view === "monthly" && <MonthlyEconomicsTable />}
-        {view === "script" && <ScriptTestTable />}
-      </div>
-
-      <div className="cs-footnote">
-        Every rate on this page is computed from the counts you type. Nothing is stored derived.
-      </div>
+      {daily.isError && <div className="cs-empty">Could not load this month.</div>}
+      <DailyTracker
+        title="Daily"
+        columns={DAILY_COLUMNS}
+        cursor={cursor}
+        today={today}
+        statTiles={[]}
+        getRow={getRow}
+        computeRow={computeDailyRow}
+        rollup={rollup}
+        onEdit={onEdit}
+        // The stepper lives in ColdCallSection's header row.
+        onMonthChange={() => {}}
+        hideMonthNav
+      />
+      <MonthlyEconomicsTable />
     </div>
-  );
-}
-
-function SubTab({
-  id,
-  view,
-  onSelect,
-  icon,
-  label,
-  count,
-}: {
-  id: SubView;
-  view: SubView;
-  onSelect: (v: SubView) => void;
-  icon: React.ReactNode;
-  label: string;
-  count?: number;
-}) {
-  const on = view === id;
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={on}
-      className={`cs-subtab${on ? " on" : ""}`}
-      onClick={() => onSelect(id)}
-    >
-      {icon}
-      {label}
-      {count !== undefined && <span className="cs-cnt">{count}</span>}
-    </button>
   );
 }
 
 // Bento Bold styles ported from command-center/docs/mockups/admin-redesign/
 // cold-sms-B.html and scoped to .pk-kit so they read the admin theme tokens in
-// light and dark. The Monthly and Script tables share this block: they are the
-// same static-row editable table, and they only ever mount inside this surface.
+// light and dark. The Monthly table shares this block and only ever mounts inside
+// this surface.
 function ColdSmsStyle() {
   return (
     <style>{`
@@ -276,30 +138,6 @@ function ColdSmsStyle() {
         --cs-input-hover: rgba(255,255,255,.06);
       }
 
-      /* The sub-nav now lives in .pk-titleactions, on the title line. It keeps
-         its underline-tab look but carries no rule of its own: the title row
-         bottom-aligns it, so the active underline reads against the h1. */
-      .pk-kit .cs-subnav {
-        display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-      }
-      .pk-kit .cs-subnav .adt-monthnav { margin-left: 0; }
-
-      /* Nothing sits between the title line and the tiles now, so the tiles
-         start the body and the table takes back both freed rows. */
-      .pk-kit .cs .adt-stats { margin-top: 0; }
-      .pk-kit .cs .adt-scroll { max-height: min(80vh, 1040px); }
-      .pk-kit .cs-subtab {
-        border: 0; background: transparent; cursor: pointer; font-family: inherit;
-        font-size: 13.5px; font-weight: 600; color: var(--text-faint); padding: 9px 2px;
-        border-bottom: 2.5px solid transparent; transition: .15s;
-        display: inline-flex; align-items: center; gap: 7px;
-      }
-      .pk-kit .cs-subtab:hover { color: var(--text); }
-      .pk-kit .cs-subtab.on { color: var(--cs-indigo); border-bottom-color: var(--cs-indigo); }
-      .pk-kit .cs-cnt {
-        font-size: 11px; font-weight: 700; background: var(--cs-indigo-tint);
-        color: var(--cs-indigo); padding: 1px 7px; border-radius: 999px;
-      }
 
       .pk-kit .cs-card {
         background: var(--surface); border: 1px solid var(--border); border-radius: 22px;
@@ -390,10 +228,10 @@ function ColdSmsStyle() {
         text-transform: uppercase; font-size: 11.5px; color: var(--text-muted); padding-left: 16px;
       }
 
-      .pk-kit .cs-footnote { font-size: 11px; color: var(--text-faint); padding: 12px 2px 4px; }
+      .pk-kit .cs .adt-card { margin-top: 0; }
+      .pk-kit .cs-stack { display: flex; flex-direction: column; gap: 20px; }
 
       @media (max-width: 720px) {
-        .pk-kit .cs-subnav { gap: 10px; }
         .pk-kit .cs-headright { width: 100%; }
       }
     `}</style>

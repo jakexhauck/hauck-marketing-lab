@@ -15,7 +15,8 @@ import {
 } from "../../../hooks/useColdSms";
 import type { ColdSmsMonthlyRow } from "../../../lib/api";
 
-// Cold SMS > Monthly economics. One editable row per month: VA plus SMS spend
+// Cold Call > Cold SMS > Monthly, the right-hand table of the sheet's SMS
+// Tracking tab, with its column names. One editable row per month: VA plus SMS spend
 // against calls booked, showed and closed. All-time, so this view is not month
 // scoped and carries no month nav.
 //
@@ -107,10 +108,7 @@ export default function MonthlyEconomicsTable() {
     <div className="cs-card cs-fill">
       <div className="cs-head">
         <div>
-          <div className="cs-title">Monthly Economics</div>
-          <div className="cs-tsub">
-            One row per month. VA plus SMS spend against booked, showed and closed.
-          </div>
+          <div className="cs-title">Monthly</div>
         </div>
         <div className="cs-headright">
           <div className="cs-legend">
@@ -149,16 +147,17 @@ export default function MonthlyEconomicsTable() {
             <thead>
               <tr>
                 <th>Month</th>
-                <th>Total SMS Sent</th>
+                <th>Total Initial SMS Sent</th>
                 <th>VA Cost</th>
                 <th>Calls Booked</th>
                 <th>Calls Showed</th>
                 <th>Show Rate</th>
-                <th>SMS / Client</th>
+                <th>Booking to Sent %</th>
+                <th>SMS/New Client</th>
                 <th>SMS Cost</th>
                 <th>Total Cost</th>
-                <th>Cost / Call</th>
-                <th>Cost / Showed</th>
+                <th>Cost Per Call</th>
+                <th>Cost Per Showed Call</th>
                 <th>New Clients</th>
                 <th>Cash Collected</th>
                 <th>CAC</th>
@@ -177,6 +176,7 @@ export default function MonthlyEconomicsTable() {
                     {numCell(row, "callsBooked")}
                     {numCell(row, "callsShowed")}
                     <td className="calc">{formatPct(c.showRate)}</td>
+                    <td className="calc">{formatPct(c.bookToSentPct)}</td>
                     <td className="calc">
                       {c.smsPerClient === null ? "-" : formatCount(Math.round(c.smsPerClient))}
                     </td>
@@ -201,6 +201,7 @@ export default function MonthlyEconomicsTable() {
                 <td>{formatCount(rollup.totals.callsBooked)}</td>
                 <td>{formatCount(rollup.totals.callsShowed)}</td>
                 <td>{formatPct(rollup.computed.showRate)}</td>
+                <td>{formatPct(rollup.computed.bookToSentPct)}</td>
                 <td>
                   {rollup.computed.smsPerClient === null
                     ? "-"
