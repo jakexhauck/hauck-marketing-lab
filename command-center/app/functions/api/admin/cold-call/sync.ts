@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { isAgencyGhlConfigured } from "../../../lib/agencyGhl";
+import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../lib/agencyGhl";
+import { syncAgencyMeetings } from "../../lib/salesCallSync";
 import { DEFAULT_WINDOW_MINUTES } from "../../../lib/powerDialer";
 import {
   readWindowRows,
@@ -8,6 +9,7 @@ import {
   runPowerDialerSync,
 } from "../../../lib/powerDialerSync";
 import { bumpCronHeartbeat } from "../../../lib/cronHeartbeat";
+import { logErrorBestEffort } from "../../../lib/errorLog";
 
 // POST /api/admin/cold-call/sync  (cron gated in _middleware.ts, no session)
 //
@@ -44,6 +46,38 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // hiccup or a GoHighLevel outage puts a gap in the schedule, and the next run
   // has to be able to reach back over it.
   const since = Date.now() - DEFAULT_WINDOW_MINUTES * 60_000;
+
+  // Every fifth minute this run reads the calendar instead of the dialer.
+  //
+  // Meetings are booked in GoHighLevel since 2026-10-01, and the tracker counts
+  // them off the Cold Call calendar by the day the row first appears
+  // (lib/coldCallMeetings.ts), so the calendar has to be read without anybody
+  // opening a page. INSTEAD of the dialer sync, not as well: the two together
+  // can pass the 50 subrequest cap, and a dialer run skipped is caught by the
+  // next one (it reaches back twenty minutes).
+  //
+  // A narrow window, two hours back to sixty days ahead: a new booking is a
+  // meeting in the future, and reading the whole 180 days every five minutes
+  // would be one update per meeting for no new information.
+  if (new Date().getUTCMinutes() % 5 === 0) {
+    const now = Date.now();
+    try {
+      const meetings = await syncAgencyMeetings(getAgencyGhlContext(ctx.env), client, {
+        calendarIds: ctx.env.AGENCY_SALES_CALENDAR_IDS ?? null,
+        fromMs: now - 2 * 60 * 60_000,
+        toMs: now + 60 * 86_400_000,
+      });
+      await bumpCronHeartbeat(client, "cold-call-sync", `${meetings.added} meetings added`);
+      return Response.json({ configured: true, meetings });
+    } catch (err) {
+      // Not a stopped worker, so no heartbeat is withheld for it; the next fifth
+      // minute tries again and the error is on the record.
+      const message = err instanceof Error ? err.message : String(err);
+      logErrorBestEffort(ctx.env, "cold-call-sync", `meetings sync failed: ${message}`);
+      await bumpCronHeartbeat(client, "cold-call-sync", "meetings sync failed");
+      return Response.json({ configured: true, meetings: null, error: message.slice(0, 200) });
+    }
+  }
 
   const callerId = await resolveCronCaller(client);
   if (!callerId) {

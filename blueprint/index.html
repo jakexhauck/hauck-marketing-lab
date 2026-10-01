@@ -372,7 +372,7 @@ const NODES = [
       {g:'Billing', items:['Invoices: list + detail','Payment transactions']},
       {g:'Team', items:['List GHL users','Provision user on staff add','Sync team → staff (manual)']},
       {g:'Attribution', items:['Custom-field map (cache 1h)','UTM extraction']},
-      {g:'Webhooks IN', items:['Opp create/stage/status','Appointments','Invoices','Inbound / outbound messages']},
+      {g:'Webhooks IN', items:['Opp create/stage/status','Appointments','Invoices','Inbound / outbound messages','Cold call dispositions (Call Details workflows → /api/crm/call-disposition completes the pending dial; Cold Call calendar counts meetings booked from 2026-10-01)']},
     ], gaps:['staff-link','team-sync','notes-ro'], secrets:['GHL_TOKEN','GHL_LOCATION_ID','GHL_COMPANY_ID'],
     note:'Per-client sub-account. A client linked on Client setup stores the sentinel ghl_token=app and their key is minted from the Marketplace app install; older clients keep a pasted Private Integration token. One resolver, functions/lib/ghlCreds.ts, answers both.' },
 

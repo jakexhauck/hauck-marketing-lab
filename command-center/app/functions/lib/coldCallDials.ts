@@ -1,3 +1,5 @@
+import { MEETINGS_FROM_CALENDAR } from "./coldCallMeetings";
+
 // Cold Call dials: what an outcome counts as, and how a month of them rolls up
 // into the tracker's daily counts. Pure, no Supabase, no Request, so the
 // counting rules that a commission is argued over are unit-tested.
@@ -141,11 +143,16 @@ export interface RecordedCounts {
 //   every dial counts as a dial;
 //   spoke counts as a pickup;
 //   pitched counts as a pass-through;
-//   outcome "booked" counts as a booking.
+//   outcome "booked" counts as a booking, before MEETINGS_FROM_CALENDAR only.
+//   From that day the Cold Call calendar is the record of a meeting
+//   (coldCallMeetings.ts), and a booked dial is a pitched pickup like any other.
 //
 // spoke/pitched are read from the ROW, not re-derived from the outcome, because
 // the row is what the DB holds; if the two ever disagree the stored fact wins.
-export function rollUpDialsByDay(dials: DialRow[]): Record<string, RecordedCounts> {
+export function rollUpDialsByDay(
+  dials: DialRow[],
+  meetingsFrom = MEETINGS_FROM_CALENDAR,
+): Record<string, RecordedCounts> {
   const byDay: Record<string, RecordedCounts> = {};
   for (const dial of dials) {
     const day = (dial.day ?? "").slice(0, 10);
@@ -165,7 +172,7 @@ export function rollUpDialsByDay(dials: DialRow[]): Record<string, RecordedCount
     counts.callsMade += n;
     if (dial.spoke) counts.pickups += n;
     if (dial.pitched) counts.passThrough += n;
-    if (dial.outcome === "booked") counts.meetingsBooked += n;
+    if (dial.outcome === "booked" && day < meetingsFrom) counts.meetingsBooked += n;
     // Keyed by outcome, not by the retired `reason` column (0078).
     if (isReportedReason(dial.outcome)) {
       counts.reasons[dial.outcome] = (counts.reasons[dial.outcome] ?? 0) + n;

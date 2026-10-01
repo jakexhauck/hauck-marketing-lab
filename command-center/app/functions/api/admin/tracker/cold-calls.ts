@@ -12,6 +12,14 @@ import {
   type AgencyDialRow,
   type AgencyTypedRow,
 } from "../../../lib/coldCallAgency";
+import {
+  MEETINGS_FROM_CALENDAR,
+  addCalendarMeetings,
+  creditMeetings,
+  type CalendarMeetingRow,
+  type CreditedMeeting,
+} from "../../../lib/coldCallMeetings";
+import { agencyTimezone } from "../../../lib/agencyGhl";
 
 // Cold Call daily dialing funnel (Acquisition > Cold Call). Agency-global, one
 // row per caller per day in public.cold_calls (0035, 0050).
@@ -133,7 +141,14 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const callerId = resolveCallerId(ctx);
   const { first, last } = monthRange(month);
 
-  if (callerId === AGENCY) return agencyMonth(client, first, last);
+  let meetings: CreditedMeeting[];
+  try {
+    meetings = await readCalendarMeetings(client, agencyTimezone(ctx.env), first, last);
+  } catch (err) {
+    return Response.json({ error: (err as Error).message }, { status: 500 });
+  }
+
+  if (callerId === AGENCY) return agencyMonth(client, first, last, meetings);
 
   // Both sides of the month in parallel: the typed grid and the attempts the
   // app recorded.
@@ -158,7 +173,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   if (dialsRes.error) return Response.json({ error: dialsRes.error.message }, { status: 500 });
 
   const typed = ((typedRes.data ?? []) as unknown as ColdCallDbRow[]).map(toRow);
-  const recorded = rollUpDialsByDay((dialsRes.data ?? []) as unknown as DialRow[]);
+  const recorded = addCalendarMeetings(
+    rollUpDialsByDay((dialsRes.data ?? []) as unknown as DialRow[]),
+    meetings.filter((m) => m.callerId === callerId).map((m) => m.day),
+  );
 
   return Response.json({ days: mergeRecordedDays(typed, recorded) });
 };
@@ -177,6 +195,7 @@ async function agencyMonth(
   client: NonNullable<ReturnType<typeof getServiceClient>>,
   first: string,
   last: string,
+  meetings: CreditedMeeting[],
 ): Promise<Response> {
   const [typedRes, dialsRes] = await Promise.all([
     client
@@ -216,8 +235,64 @@ async function agencyMonth(
     dials: row.dials,
   }));
 
-  const { days, callers, typedDays } = aggregateAgencyMonth(typed, dials);
+  const { days, callers, typedDays } = aggregateAgencyMonth(typed, dials, meetings);
   return Response.json({ days, agency: { callers, typedDays } });
+}
+
+// The month's meetings off the Cold Call calendar, credited to a caller and the
+// day they were booked (lib/coldCallMeetings.ts). Empty for any month before
+// the calendar became the record, so those months read exactly as they did.
+//
+// Read by created_at with a day of slack either side, because the month is in
+// the agency's zone and the column is UTC; creditMeetings decides the real day.
+async function readCalendarMeetings(
+  client: NonNullable<ReturnType<typeof getServiceClient>>,
+  zone: string,
+  first: string,
+  last: string,
+): Promise<CreditedMeeting[]> {
+  if (last < MEETINGS_FROM_CALENDAR) return [];
+  const from = new Date(Date.parse(`${first}T00:00:00Z`) - 86_400_000).toISOString();
+  const to = new Date(Date.parse(`${last}T00:00:00Z`) + 2 * 86_400_000).toISOString();
+  const { data, error } = await client
+    .from("sales_calls")
+    .select("created_at, calendar_name, excluded_at, logged_by, lead_id")
+    .ilike("calendar_name", "%cold%call%")
+    .gte("created_at", from)
+    .lt("created_at", to);
+  if (error) throw new Error(`could not read the meetings: ${error.message}`);
+  const rows: CalendarMeetingRow[] = (
+    (data ?? []) as {
+      created_at: string;
+      calendar_name: string | null;
+      excluded_at: string | null;
+      logged_by: string | null;
+      lead_id: string | null;
+    }[]
+  ).map((r) => ({
+    createdAt: r.created_at,
+    calendarName: r.calendar_name,
+    excludedAt: r.excluded_at,
+    loggedBy: r.logged_by,
+    leadId: r.lead_id,
+  }));
+
+  // Who last dialled each prospect, for a meeting booked in GoHighLevel.
+  const leadIds = [...new Set(rows.filter((r) => r.leadId).map((r) => r.leadId as string))];
+  const lastCaller = new Map<string, string>();
+  if (leadIds.length > 0) {
+    const { data: dials, error: dialError } = await client
+      .from("cold_call_dials")
+      .select("lead_id, caller_id, dialed_at")
+      .in("lead_id", leadIds)
+      .order("dialed_at", { ascending: false });
+    if (dialError) throw new Error(`could not read the dials: ${dialError.message}`);
+    for (const d of (dials ?? []) as { lead_id: string; caller_id: string | null }[]) {
+      if (d.caller_id && !lastCaller.has(d.lead_id)) lastCaller.set(d.lead_id, d.caller_id);
+    }
+  }
+
+  return creditMeetings(rows, lastCaller, zone).filter((m) => m.day >= first && m.day <= last);
 }
 
 interface PatchBody {

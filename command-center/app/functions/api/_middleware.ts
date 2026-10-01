@@ -84,6 +84,10 @@ const PUBLIC_PATHS = new Set([
   // one. Each has its own guard, see the files themselves.
   "/api/crm/oauth/callback",
   "/api/crm/app-webhook",
+  // GoHighLevel's dialer reporting a cold call's disposition, from a workflow
+  // in the agency's own sub-account. Guarded by WEBHOOK_SECRET in the URL, the
+  // same as /api/webhook. See api/crm/call-disposition.ts.
+  "/api/crm/call-disposition",
   // The feed behind a client's Google Sheet lead tracker, read by the Apps
   // Script bound to that sheet. Google's servers make the call, so it can carry
   // no session of ours. Guarded by its own shared secret (SHEETS_SYNC_TOKEN),

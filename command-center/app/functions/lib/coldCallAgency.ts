@@ -5,6 +5,7 @@ import {
   type TrackerDay,
   type TypedDay,
 } from "./coldCallDials";
+import { addCalendarMeetings, type CreditedMeeting } from "./coldCallMeetings";
 
 // The agency's cold call month: every caller's day, combined into one row per
 // day. Pure, no Supabase, no Request, so the arithmetic behind an agency total
@@ -80,6 +81,8 @@ function resolveDay(typed: TypedDay | null, recorded: RecordedCounts | null): Re
 export function aggregateAgencyMonth(
   typedRows: AgencyTypedRow[],
   dials: AgencyDialRow[],
+  // Meetings off the Cold Call calendar, already credited to a caller and day.
+  meetings: CreditedMeeting[] = [],
 ): AgencyMonth {
   // Each caller's dials, rolled up by the same function the caller's own tracker
   // uses, so the two pages can never disagree about what a pickup is.
@@ -93,6 +96,14 @@ export function aggregateAgencyMonth(
   const recordedByCaller = new Map<string, Record<string, RecordedCounts>>();
   for (const [id, list] of dialsByCaller) {
     recordedByCaller.set(id, rollUpDialsByDay(list));
+  }
+  const meetingDaysByCaller = new Map<string, string[]>();
+  for (const m of meetings) {
+    const id = m.callerId || "unassigned";
+    meetingDaysByCaller.set(id, [...(meetingDaysByCaller.get(id) ?? []), m.day]);
+  }
+  for (const [id, days] of meetingDaysByCaller) {
+    recordedByCaller.set(id, addCalendarMeetings(recordedByCaller.get(id) ?? {}, days));
   }
 
   // Each caller's typed rows, keyed by day.

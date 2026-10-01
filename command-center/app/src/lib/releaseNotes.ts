@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-01-ghl-dispositions",
+    date: "1 October 2026",
+    title: "Cold call outcomes come from GoHighLevel",
+    items: [
+      "Picking a disposition in GoHighLevel's dialer now records the call on the Cold Call tracker, the same as pressing the button in the app. Tags and the dialer list update too.",
+      "Meetings booked are counted off the Demo Call - Cold Call calendar, on the day they were booked. Earlier months keep their numbers.",
+    ],
+  },
+  {
     id: "2026-09-29-booked-on-crm",
     date: "29 September 2026",
     title: "Booked on CRM button on Cold Calling",

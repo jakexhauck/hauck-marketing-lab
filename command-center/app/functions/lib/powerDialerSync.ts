@@ -222,7 +222,7 @@ export async function runPowerDialerSync(
 // matching on the number is how a prospect imported here and dialled over there
 // gets tied to their own calls, and doing it once means the next call resolves
 // on the id alone.
-async function resolveLead(
+export async function resolveLead(
   env: Env,
   client: SupabaseClient,
   contactId: string,
