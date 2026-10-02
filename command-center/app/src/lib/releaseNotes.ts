@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-02-cold-sms-one-page",
+    date: "2 October 2026",
+    title: "Cold SMS is one page",
+    items: [
+      "Monthly and Script now sit under the Daily table on the same page. The Daily, Monthly and Script tabs are gone.",
+    ],
+  },
+  {
     id: "2026-10-01-cold-sms-sheet",
     date: "1 October 2026",
     title: "Cold SMS is its own page, built like the sheet",
