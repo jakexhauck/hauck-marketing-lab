@@ -82,8 +82,13 @@ def run_batch(queries, depth, tag):
     return _read_results(rfile)
 
 
-def scrape(con, trade, batch_size=30, max_queries=None, log=print):
-    todo = con.execute("select id, query from queries where status='pending' order by rowid").fetchall()
+def pending_queries(con, states=None):
+    todo = con.execute("select id, query, state from queries where status='pending' order by rowid").fetchall()
+    return [q for q in todo if not states or q["state"] in states]
+
+
+def scrape(con, trade, states=None, batch_size=30, max_queries=None, log=print):
+    todo = pending_queries(con, states)
     if max_queries:
         todo = todo[:max_queries]
     totals = {"queries": 0, "listings": 0, "new": 0, "kept": 0}

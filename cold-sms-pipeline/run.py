@@ -61,7 +61,7 @@ def main(argv=None):
         added = plan_queries(con, trade, load_cities(), states)
         print(f"Queued {added} new searches.")
         try:
-            totals = scrape(con, trade, max_queries=args.max_queries)
+            totals = scrape(con, trade, states=states, max_queries=args.max_queries)
         except ScrapeStopped as err:
             print(f"STOPPED: {err}")
             return 1
