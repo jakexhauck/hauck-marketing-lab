@@ -1,0 +1,2002 @@
+[
+ {
+  "city": "Chicago",
+  "state": "IL",
+  "population": 2721308
+ },
+ {
+  "city": "Columbus",
+  "state": "OH",
+  "population": 933263
+ },
+ {
+  "city": "Indianapolis",
+  "state": "IN",
+  "population": 891484
+ },
+ {
+  "city": "Detroit",
+  "state": "MI",
+  "population": 645705
+ },
+ {
+  "city": "Milwaukee",
+  "state": "WI",
+  "population": 563531
+ },
+ {
+  "city": "Cleveland",
+  "state": "OH",
+  "population": 365379
+ },
+ {
+  "city": "Cincinnati",
+  "state": "OH",
+  "population": 314915
+ },
+ {
+  "city": "Madison",
+  "state": "WI",
+  "population": 285300
+ },
+ {
+  "city": "Fort Wayne",
+  "state": "IN",
+  "population": 273203
+ },
+ {
+  "city": "Toledo",
+  "state": "OH",
+  "population": 265638
+ },
+ {
+  "city": "Grand Rapids",
+  "state": "MI",
+  "population": 200117
+ },
+ {
+  "city": "Akron",
+  "state": "OH",
+  "population": 189664
+ },
+ {
+  "city": "Aurora",
+  "state": "IL",
+  "population": 180710
+ },
+ {
+  "city": "Naperville",
+  "state": "IL",
+  "population": 153124
+ },
+ {
+  "city": "Joliet",
+  "state": "IL",
+  "population": 151837
+ },
+ {
+  "city": "Rockford",
+  "state": "IL",
+  "population": 147486
+ },
+ {
+  "city": "Warren",
+  "state": "MI",
+  "population": 137686
+ },
+ {
+  "city": "Dayton",
+  "state": "OH",
+  "population": 136346
+ },
+ {
+  "city": "Sterling Heights",
+  "state": "MI",
+  "population": 134342
+ },
+ {
+  "city": "Ann Arbor",
+  "state": "MI",
+  "population": 122925
+ },
+ {
+  "city": "Evansville",
+  "state": "IN",
+  "population": 115395
+ },
+ {
+  "city": "Elgin",
+  "state": "IL",
+  "population": 114701
+ },
+ {
+  "city": "Lansing",
+  "state": "MI",
+  "population": 114336
+ },
+ {
+  "city": "Springfield",
+  "state": "IL",
+  "population": 112949
+ },
+ {
+  "city": "Peoria",
+  "state": "IL",
+  "population": 111696
+ },
+ {
+  "city": "Dearborn",
+  "state": "MI",
+  "population": 106377
+ },
+ {
+  "city": "Green Bay",
+  "state": "WI",
+  "population": 106311
+ },
+ {
+  "city": "Fishers",
+  "state": "IN",
+  "population": 103986
+ },
+ {
+  "city": "South Bend",
+  "state": "IN",
+  "population": 103713
+ },
+ {
+  "city": "Carmel",
+  "state": "IN",
+  "population": 103606
+ },
+ {
+  "city": "Clinton Township",
+  "state": "MI",
+  "population": 101359
+ },
+ {
+  "city": "Canton Township",
+  "state": "MI",
+  "population": 99793
+ },
+ {
+  "city": "Kenosha",
+  "state": "WI",
+  "population": 99578
+ },
+ {
+  "city": "Macomb Township",
+  "state": "MI",
+  "population": 94302
+ },
+ {
+  "city": "Livonia",
+  "state": "MI",
+  "population": 93113
+ },
+ {
+  "city": "Champaign",
+  "state": "IL",
+  "population": 91961
+ },
+ {
+  "city": "Troy",
+  "state": "MI",
+  "population": 89209
+ },
+ {
+  "city": "Waukegan",
+  "state": "IL",
+  "population": 88570
+ },
+ {
+  "city": "Farmington Hills",
+  "state": "MI",
+  "population": 84173
+ },
+ {
+  "city": "Westland",
+  "state": "MI",
+  "population": 82745
+ },
+ {
+  "city": "Cicero",
+  "state": "IL",
+  "population": 82090
+ },
+ {
+  "city": "Shelby Township",
+  "state": "MI",
+  "population": 80425
+ },
+ {
+  "city": "Bloomington",
+  "state": "IN",
+  "population": 79986
+ },
+ {
+  "city": "Flint",
+  "state": "MI",
+  "population": 79735
+ },
+ {
+  "city": "Parma",
+  "state": "OH",
+  "population": 79350
+ },
+ {
+  "city": "Bloomington",
+  "state": "IL",
+  "population": 79232
+ },
+ {
+  "city": "Wyoming",
+  "state": "MI",
+  "population": 78559
+ },
+ {
+  "city": "Rochester Hills",
+  "state": "MI",
+  "population": 78330
+ },
+ {
+  "city": "Racine",
+  "state": "WI",
+  "population": 78057
+ },
+ {
+  "city": "Schaumburg",
+  "state": "IL",
+  "population": 77099
+ },
+ {
+  "city": "Southfield",
+  "state": "MI",
+  "population": 76874
+ },
+ {
+  "city": "Hammond",
+  "state": "IN",
+  "population": 76030
+ },
+ {
+  "city": "Evanston",
+  "state": "IL",
+  "population": 76006
+ },
+ {
+  "city": "Arlington Heights",
+  "state": "IL",
+  "population": 75596
+ },
+ {
+  "city": "Appleton",
+  "state": "WI",
+  "population": 75344
+ },
+ {
+  "city": "Noblesville",
+  "state": "IN",
+  "population": 75239
+ },
+ {
+  "city": "Bolingbrook",
+  "state": "IL",
+  "population": 74756
+ },
+ {
+  "city": "Kalamazoo",
+  "state": "MI",
+  "population": 73290
+ },
+ {
+  "city": "Eau Claire",
+  "state": "WI",
+  "population": 72331
+ },
+ {
+  "city": "Lafayette",
+  "state": "IN",
+  "population": 71757
+ },
+ {
+  "city": "Waukesha",
+  "state": "WI",
+  "population": 71461
+ },
+ {
+  "city": "Waterford Township",
+  "state": "MI",
+  "population": 70538
+ },
+ {
+  "city": "Canton",
+  "state": "OH",
+  "population": 69211
+ },
+ {
+  "city": "Decatur",
+  "state": "IL",
+  "population": 68763
+ },
+ {
+  "city": "Greenwood",
+  "state": "IN",
+  "population": 68175
+ },
+ {
+  "city": "Novi",
+  "state": "MI",
+  "population": 67675
+ },
+ {
+  "city": "Gary",
+  "state": "IN",
+  "population": 67555
+ },
+ {
+  "city": "Oshkosh",
+  "state": "WI",
+  "population": 67242
+ },
+ {
+  "city": "West Bloomfield Township",
+  "state": "MI",
+  "population": 66586
+ },
+ {
+  "city": "Janesville",
+  "state": "WI",
+  "population": 66428
+ },
+ {
+  "city": "Palatine",
+  "state": "IL",
+  "population": 65951
+ },
+ {
+  "city": "Skokie",
+  "state": "IL",
+  "population": 65850
+ },
+ {
+  "city": "Lorain",
+  "state": "OH",
+  "population": 65751
+ },
+ {
+  "city": "Muncie",
+  "state": "IN",
+  "population": 65320
+ },
+ {
+  "city": "Hamilton",
+  "state": "OH",
+  "population": 63953
+ },
+ {
+  "city": "Westfield",
+  "state": "IN",
+  "population": 62994
+ },
+ {
+  "city": "Pontiac",
+  "state": "MI",
+  "population": 62528
+ },
+ {
+  "city": "Taylor",
+  "state": "MI",
+  "population": 61544
+ },
+ {
+  "city": "Dearborn Heights",
+  "state": "MI",
+  "population": 61040
+ },
+ {
+  "city": "Kokomo",
+  "state": "IN",
+  "population": 60093
+ },
+ {
+  "city": "West Allis",
+  "state": "WI",
+  "population": 59784
+ },
+ {
+  "city": "Youngstown",
+  "state": "OH",
+  "population": 59123
+ },
+ {
+  "city": "Des Plaines",
+  "state": "IL",
+  "population": 58832
+ },
+ {
+  "city": "Terre Haute",
+  "state": "IN",
+  "population": 58531
+ },
+ {
+  "city": "Royal Oak",
+  "state": "MI",
+  "population": 58251
+ },
+ {
+  "city": "Springfield",
+  "state": "OH",
+  "population": 58138
+ },
+ {
+  "city": "St. Clair Shores",
+  "state": "MI",
+  "population": 58077
+ },
+ {
+  "city": "Orland Park",
+  "state": "IL",
+  "population": 58020
+ },
+ {
+  "city": "Kettering",
+  "state": "OH",
+  "population": 57028
+ },
+ {
+  "city": "Oak Lawn",
+  "state": "IL",
+  "population": 56531
+ },
+ {
+  "city": "Anderson",
+  "state": "IN",
+  "population": 55851
+ },
+ {
+  "city": "Georgetown Township",
+  "state": "MI",
+  "population": 55552
+ },
+ {
+  "city": "Mount Prospect",
+  "state": "IL",
+  "population": 55460
+ },
+ {
+  "city": "Berwyn",
+  "state": "IL",
+  "population": 55152
+ },
+ {
+  "city": "Tinley Park",
+  "state": "IL",
+  "population": 54856
+ },
+ {
+  "city": "Kentwood",
+  "state": "MI",
+  "population": 54768
+ },
+ {
+  "city": "Ypsilanti Township",
+  "state": "MI",
+  "population": 54760
+ },
+ {
+  "city": "Wheaton",
+  "state": "IL",
+  "population": 53741
+ },
+ {
+  "city": "Elkhart",
+  "state": "IN",
+  "population": 53690
+ },
+ {
+  "city": "Elyria",
+  "state": "OH",
+  "population": 53604
+ },
+ {
+  "city": "Normal",
+  "state": "IL",
+  "population": 53304
+ },
+ {
+  "city": "Oak Park",
+  "state": "IL",
+  "population": 52947
+ },
+ {
+  "city": "Jeffersonville",
+  "state": "IN",
+  "population": 52912
+ },
+ {
+  "city": "Middletown",
+  "state": "OH",
+  "population": 52291
+ },
+ {
+  "city": "Battle Creek",
+  "state": "MI",
+  "population": 52205
+ },
+ {
+  "city": "Columbus",
+  "state": "IN",
+  "population": 51970
+ },
+ {
+  "city": "Newark",
+  "state": "OH",
+  "population": 51424
+ },
+ {
+  "city": "La Crosse",
+  "state": "WI",
+  "population": 51049
+ },
+ {
+  "city": "Mishawaka",
+  "state": "IN",
+  "population": 51020
+ },
+ {
+  "city": "Cuyahoga Falls",
+  "state": "OH",
+  "population": 50979
+ },
+ {
+  "city": "Hoffman Estates",
+  "state": "IL",
+  "population": 50920
+ },
+ {
+  "city": "Downers Grove",
+  "state": "IL",
+  "population": 50552
+ },
+ {
+  "city": "Portage",
+  "state": "MI",
+  "population": 49975
+ },
+ {
+  "city": "Lawrence",
+  "state": "IN",
+  "population": 49817
+ },
+ {
+  "city": "Sheboygan",
+  "state": "WI",
+  "population": 49624
+ },
+ {
+  "city": "Lakewood",
+  "state": "OH",
+  "population": 49517
+ },
+ {
+  "city": "Dublin",
+  "state": "OH",
+  "population": 49456
+ },
+ {
+  "city": "East Lansing",
+  "state": "MI",
+  "population": 48964
+ },
+ {
+  "city": "Plainfield",
+  "state": "IL",
+  "population": 48881
+ },
+ {
+  "city": "Wauwatosa",
+  "state": "WI",
+  "population": 48794
+ },
+ {
+  "city": "Euclid",
+  "state": "OH",
+  "population": 48421
+ },
+ {
+  "city": "Beavercreek",
+  "state": "OH",
+  "population": 48012
+ },
+ {
+  "city": "Redford Township",
+  "state": "MI",
+  "population": 47762
+ },
+ {
+  "city": "Glenview",
+  "state": "IL",
+  "population": 47634
+ },
+ {
+  "city": "Mansfield",
+  "state": "OH",
+  "population": 47593
+ },
+ {
+  "city": "Chesterfield Township",
+  "state": "MI",
+  "population": 47119
+ },
+ {
+  "city": "Mentor",
+  "state": "OH",
+  "population": 47113
+ },
+ {
+  "city": "Roseville",
+  "state": "MI",
+  "population": 47047
+ },
+ {
+  "city": "Delaware",
+  "state": "OH",
+  "population": 46521
+ },
+ {
+  "city": "West Lafayette",
+  "state": "IN",
+  "population": 46338
+ },
+ {
+  "city": "Elmhurst",
+  "state": "IL",
+  "population": 46108
+ },
+ {
+  "city": "Strongsville",
+  "state": "OH",
+  "population": 45768
+ },
+ {
+  "city": "Meridian Township",
+  "state": "MI",
+  "population": 45102
+ },
+ {
+  "city": "Fairfield",
+  "state": "OH",
+  "population": 45094
+ },
+ {
+  "city": "Commerce Township",
+  "state": "MI",
+  "population": 44625
+ },
+ {
+  "city": "Lombard",
+  "state": "IL",
+  "population": 44490
+ },
+ {
+  "city": "Fond du Lac",
+  "state": "WI",
+  "population": 44469
+ },
+ {
+  "city": "Bloomfield Township",
+  "state": "MI",
+  "population": 44361
+ },
+ {
+  "city": "Cleveland Heights",
+  "state": "OH",
+  "population": 44064
+ },
+ {
+  "city": "Grove City",
+  "state": "OH",
+  "population": 44019
+ },
+ {
+  "city": "Huber Heights",
+  "state": "OH",
+  "population": 43590
+ },
+ {
+  "city": "Buffalo Grove",
+  "state": "IL",
+  "population": 43072
+ },
+ {
+  "city": "Saginaw",
+  "state": "MI",
+  "population": 43001
+ },
+ {
+  "city": "Reynoldsburg",
+  "state": "OH",
+  "population": 42897
+ },
+ {
+  "city": "Midland",
+  "state": "MI",
+  "population": 42780
+ },
+ {
+  "city": "Moline",
+  "state": "IL",
+  "population": 42442
+ },
+ {
+  "city": "Lancaster",
+  "state": "OH",
+  "population": 41671
+ },
+ {
+  "city": "Crystal Lake",
+  "state": "IL",
+  "population": 41513
+ },
+ {
+  "city": "Brookfield",
+  "state": "WI",
+  "population": 41268
+ },
+ {
+  "city": "Romeoville",
+  "state": "IL",
+  "population": 41177
+ },
+ {
+  "city": "Saginaw Township",
+  "state": "MI",
+  "population": 40996
+ },
+ {
+  "city": "Bartlett",
+  "state": "IL",
+  "population": 40718
+ },
+ {
+  "city": "Menomonee Falls",
+  "state": "WI",
+  "population": 40700
+ },
+ {
+  "city": "Pittsfield Township",
+  "state": "MI",
+  "population": 40697
+ },
+ {
+  "city": "Belleville",
+  "state": "IL",
+  "population": 40560
+ },
+ {
+  "city": "Holland Township",
+  "state": "MI",
+  "population": 40521
+ },
+ {
+  "city": "DeKalb",
+  "state": "IL",
+  "population": 40491
+ },
+ {
+  "city": "Findlay",
+  "state": "OH",
+  "population": 40343
+ },
+ {
+  "city": "New Berlin",
+  "state": "WI",
+  "population": 40302
+ },
+ {
+  "city": "Wausau",
+  "state": "WI",
+  "population": 40262
+ },
+ {
+  "city": "Grand Blanc Township",
+  "state": "MI",
+  "population": 40056
+ },
+ {
+  "city": "Urbana",
+  "state": "IL",
+  "population": 39831
+ },
+ {
+  "city": "Carol Stream",
+  "state": "IL",
+  "population": 39556
+ },
+ {
+  "city": "Sun Prairie",
+  "state": "WI",
+  "population": 39253
+ },
+ {
+  "city": "Orion Township",
+  "state": "MI",
+  "population": 39119
+ },
+ {
+  "city": "Hilliard",
+  "state": "OH",
+  "population": 38832
+ },
+ {
+  "city": "Quincy",
+  "state": "IL",
+  "population": 38786
+ },
+ {
+  "city": "Oswego",
+  "state": "IL",
+  "population": 38778
+ },
+ {
+  "city": "Lincoln Park",
+  "state": "MI",
+  "population": 38774
+ },
+ {
+  "city": "Warren",
+  "state": "OH",
+  "population": 38683
+ },
+ {
+  "city": "Westerville",
+  "state": "OH",
+  "population": 38612
+ },
+ {
+  "city": "Portage",
+  "state": "IN",
+  "population": 38576
+ },
+ {
+  "city": "Park Ridge",
+  "state": "IL",
+  "population": 38445
+ },
+ {
+  "city": "Oak Creek",
+  "state": "WI",
+  "population": 38373
+ },
+ {
+  "city": "Streamwood",
+  "state": "IL",
+  "population": 38360
+ },
+ {
+  "city": "Wheeling",
+  "state": "IL",
+  "population": 38329
+ },
+ {
+  "city": "Plainfield",
+  "state": "IN",
+  "population": 37796
+ },
+ {
+  "city": "New Albany",
+  "state": "IN",
+  "population": 37652
+ },
+ {
+  "city": "Independence Township",
+  "state": "MI",
+  "population": 37618
+ },
+ {
+  "city": "North Ridgeville",
+  "state": "OH",
+  "population": 37504
+ },
+ {
+  "city": "Muskegon",
+  "state": "MI",
+  "population": 37287
+ },
+ {
+  "city": "Greenfield",
+  "state": "WI",
+  "population": 37232
+ },
+ {
+  "city": "Carpentersville",
+  "state": "IL",
+  "population": 37144
+ },
+ {
+  "city": "Merrillville",
+  "state": "IN",
+  "population": 36989
+ },
+ {
+  "city": "Hanover Park",
+  "state": "IL",
+  "population": 36685
+ },
+ {
+  "city": "Beloit",
+  "state": "WI",
+  "population": 36633
+ },
+ {
+  "city": "Franklin",
+  "state": "WI",
+  "population": 36591
+ },
+ {
+  "city": "Rock Island",
+  "state": "IL",
+  "population": 36434
+ },
+ {
+  "city": "Upper Arlington",
+  "state": "OH",
+  "population": 36140
+ },
+ {
+  "city": "Mason",
+  "state": "OH",
+  "population": 36046
+ },
+ {
+  "city": "Addison",
+  "state": "IL",
+  "population": 35728
+ },
+ {
+  "city": "Marion",
+  "state": "OH",
+  "population": 35576
+ },
+ {
+  "city": "Richmond",
+  "state": "IN",
+  "population": 35561
+ },
+ {
+  "city": "Gahanna",
+  "state": "OH",
+  "population": 35544
+ },
+ {
+  "city": "Brunswick",
+  "state": "OH",
+  "population": 35166
+ },
+ {
+  "city": "Fairborn",
+  "state": "OH",
+  "population": 35105
+ },
+ {
+  "city": "Crown Point",
+  "state": "IN",
+  "population": 35097
+ },
+ {
+  "city": "Valparaiso",
+  "state": "IN",
+  "population": 35065
+ },
+ {
+  "city": "Holland",
+  "state": "MI",
+  "population": 35023
+ },
+ {
+  "city": "Calumet City",
+  "state": "IL",
+  "population": 34855
+ },
+ {
+  "city": "Plainfield Township",
+  "state": "MI",
+  "population": 34692
+ },
+ {
+  "city": "Lima",
+  "state": "OH",
+  "population": 34690
+ },
+ {
+  "city": "Manitowoc",
+  "state": "WI",
+  "population": 34616
+ },
+ {
+  "city": "Northbrook",
+  "state": "IL",
+  "population": 34546
+ },
+ {
+  "city": "Goshen",
+  "state": "IN",
+  "population": 34458
+ },
+ {
+  "city": "Fitchburg",
+  "state": "WI",
+  "population": 34357
+ },
+ {
+  "city": "Westlake",
+  "state": "OH",
+  "population": 34232
+ },
+ {
+  "city": "Woodridge",
+  "state": "IL",
+  "population": 34103
+ },
+ {
+  "city": "Stow",
+  "state": "OH",
+  "population": 34101
+ },
+ {
+  "city": "Eastpointe",
+  "state": "MI",
+  "population": 33943
+ },
+ {
+  "city": "St. Charles",
+  "state": "IL",
+  "population": 33482
+ },
+ {
+  "city": "Brownsburg",
+  "state": "IN",
+  "population": 33430
+ },
+ {
+  "city": "Delta Township",
+  "state": "MI",
+  "population": 33211
+ },
+ {
+  "city": "Zionsville",
+  "state": "IN",
+  "population": 33161
+ },
+ {
+  "city": "Glendale Heights",
+  "state": "IL",
+  "population": 32866
+ },
+ {
+  "city": "Brownstown Township",
+  "state": "MI",
+  "population": 32778
+ },
+ {
+  "city": "Massillon",
+  "state": "OH",
+  "population": 32750
+ },
+ {
+  "city": "Mundelein",
+  "state": "IL",
+  "population": 32641
+ },
+ {
+  "city": "O'Fallon",
+  "state": "IL",
+  "population": 32169
+ },
+ {
+  "city": "West Bend",
+  "state": "WI",
+  "population": 32149
+ },
+ {
+  "city": "Bay City",
+  "state": "MI",
+  "population": 32086
+ },
+ {
+  "city": "Bedford Township",
+  "state": "MI",
+  "population": 31999
+ },
+ {
+  "city": "Elk Grove Village",
+  "state": "IL",
+  "population": 31802
+ },
+ {
+  "city": "North Olmsted",
+  "state": "OH",
+  "population": 31690
+ },
+ {
+  "city": "Northville Township",
+  "state": "MI",
+  "population": 31542
+ },
+ {
+  "city": "White Lake Township",
+  "state": "MI",
+  "population": 31499
+ },
+ {
+  "city": "Michigan City",
+  "state": "IN",
+  "population": 31466
+ },
+ {
+  "city": "Pekin",
+  "state": "IL",
+  "population": 31266
+ },
+ {
+  "city": "Flint Township",
+  "state": "MI",
+  "population": 30962
+ },
+ {
+  "city": "Jackson",
+  "state": "MI",
+  "population": 30920
+ },
+ {
+  "city": "North Royalton",
+  "state": "OH",
+  "population": 30894
+ },
+ {
+  "city": "Highland Park",
+  "state": "IL",
+  "population": 30794
+ },
+ {
+  "city": "North Chicago",
+  "state": "IL",
+  "population": 30639
+ },
+ {
+  "city": "Gurnee",
+  "state": "IL",
+  "population": 30546
+ },
+ {
+  "city": "Algonquin",
+  "state": "IL",
+  "population": 30539
+ },
+ {
+  "city": "Bowling Green",
+  "state": "OH",
+  "population": 30463
+ },
+ {
+  "city": "Gaines Township",
+  "state": "MI",
+  "population": 30302
+ },
+ {
+  "city": "Niles",
+  "state": "IL",
+  "population": 29918
+ },
+ {
+  "city": "Van Buren Township",
+  "state": "MI",
+  "population": 29813
+ },
+ {
+  "city": "Schererville",
+  "state": "IN",
+  "population": 29780
+ },
+ {
+  "city": "Burton",
+  "state": "MI",
+  "population": 29420
+ },
+ {
+  "city": "Hobart",
+  "state": "IN",
+  "population": 29418
+ },
+ {
+  "city": "Oak Park",
+  "state": "MI",
+  "population": 29402
+ },
+ {
+  "city": "Galesburg",
+  "state": "IL",
+  "population": 29289
+ },
+ {
+  "city": "Marysville",
+  "state": "OH",
+  "population": 29276
+ },
+ {
+  "city": "Washington Township",
+  "state": "MI",
+  "population": 29103
+ },
+ {
+  "city": "Southgate",
+  "state": "MI",
+  "population": 29081
+ },
+ {
+  "city": "Garfield Heights",
+  "state": "OH",
+  "population": 29014
+ },
+ {
+  "city": "Glen Ellyn",
+  "state": "IL",
+  "population": 28872
+ },
+ {
+  "city": "McHenry",
+  "state": "IL",
+  "population": 28825
+ },
+ {
+  "city": "Lake in the Hills",
+  "state": "IL",
+  "population": 28706
+ },
+ {
+  "city": "Shaker Heights",
+  "state": "OH",
+  "population": 28689
+ },
+ {
+  "city": "Madison Heights",
+  "state": "MI",
+  "population": 28626
+ },
+ {
+  "city": "Delhi Township",
+  "state": "MI",
+  "population": 28609
+ },
+ {
+  "city": "Burbank",
+  "state": "IL",
+  "population": 28606
+ },
+ {
+  "city": "Huntley",
+  "state": "IL",
+  "population": 28495
+ },
+ {
+  "city": "New Lenox",
+  "state": "IL",
+  "population": 28480
+ },
+ {
+  "city": "Byron Township",
+  "state": "MI",
+  "population": 28406
+ },
+ {
+  "city": "Port Huron",
+  "state": "MI",
+  "population": 28342
+ },
+ {
+  "city": "Marion",
+  "state": "IN",
+  "population": 28216
+ },
+ {
+  "city": "Mount Pleasant",
+  "state": "WI",
+  "population": 28184
+ },
+ {
+  "city": "Lansing",
+  "state": "IL",
+  "population": 28107
+ },
+ {
+  "city": "Danville",
+  "state": "IL",
+  "population": 27981
+ },
+ {
+  "city": "Kent",
+  "state": "OH",
+  "population": 27720
+ },
+ {
+  "city": "Allen Park",
+  "state": "MI",
+  "population": 27604
+ },
+ {
+  "city": "Neenah",
+  "state": "WI",
+  "population": 27502
+ },
+ {
+  "city": "Green",
+  "state": "OH",
+  "population": 27476
+ },
+ {
+  "city": "Wilmette",
+  "state": "IL",
+  "population": 27443
+ },
+ {
+  "city": "Hamtramck",
+  "state": "MI",
+  "population": 27424
+ },
+ {
+  "city": "Plymouth Township",
+  "state": "MI",
+  "population": 27191
+ },
+ {
+  "city": "Troy",
+  "state": "OH",
+  "population": 27122
+ },
+ {
+  "city": "Round Lake Beach",
+  "state": "IL",
+  "population": 27091
+ },
+ {
+  "city": "Vernon Hills",
+  "state": "IL",
+  "population": 27002
+ },
+ {
+  "city": "Wooster",
+  "state": "OH",
+  "population": 26982
+ },
+ {
+  "city": "Allendale Township",
+  "state": "MI",
+  "population": 26941
+ },
+ {
+  "city": "Lockport",
+  "state": "IL",
+  "population": 26915
+ },
+ {
+  "city": "Granite City",
+  "state": "IL",
+  "population": 26854
+ },
+ {
+  "city": "Oak Forest",
+  "state": "IL",
+  "population": 26813
+ },
+ {
+  "city": "Edwardsville",
+  "state": "IL",
+  "population": 26715
+ },
+ {
+  "city": "Superior",
+  "state": "WI",
+  "population": 26620
+ },
+ {
+  "city": "Lyon Township",
+  "state": "MI",
+  "population": 26574
+ },
+ {
+  "city": "Batavia",
+  "state": "IL",
+  "population": 26555
+ },
+ {
+  "city": "Chicago Heights",
+  "state": "IL",
+  "population": 26533
+ },
+ {
+  "city": "Stevens Point",
+  "state": "WI",
+  "population": 26465
+ },
+ {
+  "city": "Garden City",
+  "state": "MI",
+  "population": 26410
+ },
+ {
+  "city": "Avon Lake",
+  "state": "OH",
+  "population": 26342
+ },
+ {
+  "city": "Centerville",
+  "state": "OH",
+  "population": 26311
+ },
+ {
+  "city": "Greenfield",
+  "state": "IN",
+  "population": 26268
+ },
+ {
+  "city": "Franklin",
+  "state": "IN",
+  "population": 26158
+ },
+ {
+  "city": "Xenia",
+  "state": "OH",
+  "population": 26067
+ },
+ {
+  "city": "Auburn Hills",
+  "state": "MI",
+  "population": 26047
+ },
+ {
+  "city": "Yorkville",
+  "state": "IL",
+  "population": 25986
+ },
+ {
+  "city": "Walker",
+  "state": "MI",
+  "population": 25921
+ },
+ {
+  "city": "Woodstock",
+  "state": "IL",
+  "population": 25892
+ },
+ {
+  "city": "Pickerington",
+  "state": "OH",
+  "population": 25814
+ },
+ {
+  "city": "East Chicago",
+  "state": "IN",
+  "population": 25768
+ },
+ {
+  "city": "Muskego",
+  "state": "WI",
+  "population": 25759
+ },
+ {
+  "city": "Medina",
+  "state": "OH",
+  "population": 25757
+ },
+ {
+  "city": "Avon",
+  "state": "OH",
+  "population": 25573
+ },
+ {
+  "city": "Blackman Township",
+  "state": "MI",
+  "population": 25499
+ },
+ {
+  "city": "West Chicago",
+  "state": "IL",
+  "population": 25469
+ },
+ {
+  "city": "De Pere",
+  "state": "WI",
+  "population": 25453
+ },
+ {
+  "city": "Mequon",
+  "state": "WI",
+  "population": 25329
+ },
+ {
+  "city": "Belvidere",
+  "state": "IL",
+  "population": 25325
+ },
+ {
+  "city": "Perrysburg",
+  "state": "OH",
+  "population": 25313
+ },
+ {
+  "city": "Caledonia",
+  "state": "WI",
+  "population": 25240
+ },
+ {
+  "city": "Inkster",
+  "state": "MI",
+  "population": 25108
+ },
+ {
+  "city": "Norton Shores",
+  "state": "MI",
+  "population": 25070
+ },
+ {
+  "city": "Alton",
+  "state": "IL",
+  "population": 24967
+ },
+ {
+  "city": "South Elgin",
+  "state": "IL",
+  "population": 24921
+ },
+ {
+  "city": "Zanesville",
+  "state": "OH",
+  "population": 24916
+ },
+ {
+  "city": "Homer Glen",
+  "state": "IL",
+  "population": 24852
+ },
+ {
+  "city": "Athens",
+  "state": "OH",
+  "population": 24824
+ },
+ {
+  "city": "Wadsworth",
+  "state": "OH",
+  "population": 24753
+ },
+ {
+  "city": "Avon",
+  "state": "IN",
+  "population": 24735
+ },
+ {
+  "city": "Romulus",
+  "state": "MI",
+  "population": 24652
+ },
+ {
+  "city": "Barberton",
+  "state": "OH",
+  "population": 24624
+ },
+ {
+  "city": "Zion",
+  "state": "IL",
+  "population": 24583
+ },
+ {
+  "city": "Riverside",
+  "state": "OH",
+  "population": 24472
+ },
+ {
+  "city": "Morton Grove",
+  "state": "IL",
+  "population": 24467
+ },
+ {
+  "city": "Westmont",
+  "state": "IL",
+  "population": 24308
+ },
+ {
+  "city": "St. John",
+  "state": "IN",
+  "population": 24250
+ },
+ {
+  "city": "Wyandotte",
+  "state": "MI",
+  "population": 24214
+ },
+ {
+  "city": "Willoughby",
+  "state": "OH",
+  "population": 24208
+ },
+ {
+  "city": "Sandusky",
+  "state": "OH",
+  "population": 24174
+ },
+ {
+  "city": "Harrison Township",
+  "state": "MI",
+  "population": 24062
+ },
+ {
+  "city": "Melrose Park",
+  "state": "IL",
+  "population": 23999
+ },
+ {
+  "city": "Oshtemo Township",
+  "state": "MI",
+  "population": 23979
+ },
+ {
+  "city": "Solon",
+  "state": "OH",
+  "population": 23875
+ },
+ {
+  "city": "Collinsville",
+  "state": "IL",
+  "population": 23766
+ },
+ {
+  "city": "Rolling Meadows",
+  "state": "IL",
+  "population": 23732
+ },
+ {
+  "city": "Elmwood Park",
+  "state": "IL",
+  "population": 23698
+ },
+ {
+  "city": "Loves Park",
+  "state": "IL",
+  "population": 23636
+ },
+ {
+  "city": "Munster",
+  "state": "IN",
+  "population": 23634
+ },
+ {
+  "city": "Lisle",
+  "state": "IL",
+  "population": 23548
+ },
+ {
+  "city": "Kankakee",
+  "state": "IL",
+  "population": 23535
+ },
+ {
+  "city": "Highland",
+  "state": "IN",
+  "population": 23497
+ },
+ {
+  "city": "Maywood",
+  "state": "IL",
+  "population": 23364
+ },
+ {
+  "city": "Freeport",
+  "state": "IL",
+  "population": 23140
+ },
+ {
+  "city": "Oxford Township",
+  "state": "MI",
+  "population": 23104
+ },
+ {
+  "city": "Maple Heights",
+  "state": "OH",
+  "population": 23081
+ },
+ {
+  "city": "Hudson",
+  "state": "OH",
+  "population": 23073
+ },
+ {
+  "city": "Trotwood",
+  "state": "OH",
+  "population": 23073
+ },
+ {
+  "city": "Roselle",
+  "state": "IL",
+  "population": 22871
+ },
+ {
+  "city": "Machesney Park",
+  "state": "IL",
+  "population": 22839
+ },
+ {
+  "city": "Summit Township",
+  "state": "MI",
+  "population": 22809
+ },
+ {
+  "city": "Bloomingdale",
+  "state": "IL",
+  "population": 22622
+ },
+ {
+  "city": "Kalamazoo Township",
+  "state": "MI",
+  "population": 22620
+ },
+ {
+  "city": "Watertown",
+  "state": "WI",
+  "population": 22617
+ },
+ {
+  "city": "Oxford",
+  "state": "OH",
+  "population": 22585
+ },
+ {
+  "city": "Middleton",
+  "state": "WI",
+  "population": 22566
+ },
+ {
+  "city": "Seymour",
+  "state": "IN",
+  "population": 22524
+ },
+ {
+  "city": "La Porte",
+  "state": "IN",
+  "population": 22444
+ },
+ {
+  "city": "Carbondale",
+  "state": "IL",
+  "population": 22223
+ },
+ {
+  "city": "Birmingham",
+  "state": "MI",
+  "population": 22198
+ },
+ {
+  "city": "Clarksville",
+  "state": "IN",
+  "population": 22041
+ },
+ {
+  "city": "East Peoria",
+  "state": "IL",
+  "population": 22024
+ },
+ {
+  "city": "Villa Park",
+  "state": "IL",
+  "population": 22020
+ },
+ {
+  "city": "Darien",
+  "state": "IL",
+  "population": 22015
+ },
+ {
+  "city": "Lebanon",
+  "state": "OH",
+  "population": 21995
+ },
+ {
+  "city": "Howard",
+  "state": "WI",
+  "population": 21961
+ },
+ {
+  "city": "Montgomery",
+  "state": "IL",
+  "population": 21957
+ },
+ {
+  "city": "Marquette",
+  "state": "MI",
+  "population": 21845
+ },
+ {
+  "city": "Blue Island",
+  "state": "IL",
+  "population": 21805
+ },
+ {
+  "city": "Pleasant Prairie",
+  "state": "WI",
+  "population": 21802
+ },
+ {
+  "city": "Chillicothe",
+  "state": "OH",
+  "population": 21769
+ },
+ {
+  "city": "Frenchtown Township",
+  "state": "MI",
+  "population": 21732
+ },
+ {
+  "city": "Alliance",
+  "state": "OH",
+  "population": 21523
+ },
+ {
+  "city": "Rocky River",
+  "state": "OH",
+  "population": 21468
+ },
+ {
+  "city": "South Euclid",
+  "state": "OH",
+  "population": 21363
+ },
+ {
+  "city": "Grayslake",
+  "state": "IL",
+  "population": 21262
+ },
+ {
+  "city": "Geneva",
+  "state": "IL",
+  "population": 21168
+ },
+ {
+  "city": "Frankfort",
+  "state": "IL",
+  "population": 21160
+ },
+ {
+  "city": "Mount Pleasant",
+  "state": "MI",
+  "population": 21090
+ },
+ {
+  "city": "Germantown",
+  "state": "WI",
+  "population": 21032
+ },
+ {
+  "city": "Park Forest",
+  "state": "IL",
+  "population": 21016
+ },
+ {
+  "city": "East Moline",
+  "state": "IL",
+  "population": 20995
+ },
+ {
+  "city": "Hamburg Township",
+  "state": "MI",
+  "population": 20953
+ },
+ {
+  "city": "Piqua",
+  "state": "OH",
+  "population": 20940
+ },
+ {
+  "city": "Shelbyville",
+  "state": "IN",
+  "population": 20845
+ },
+ {
+  "city": "South Holland",
+  "state": "IL",
+  "population": 20775
+ },
+ {
+  "city": "Oakland Township",
+  "state": "MI",
+  "population": 20719
+ },
+ {
+  "city": "Dolton",
+  "state": "IL",
+  "population": 20697
+ },
+ {
+  "city": "Painesville",
+  "state": "OH",
+  "population": 20660
+ },
+ {
+  "city": "Libertyville",
+  "state": "IL",
+  "population": 20643
+ },
+ {
+  "city": "Genoa Township",
+  "state": "MI",
+  "population": 20636
+ },
+ {
+  "city": "Parma Heights",
+  "state": "OH",
+  "population": 20524
+ },
+ {
+  "city": "Davison Township",
+  "state": "MI",
+  "population": 20439
+ },
+ {
+  "city": "Sidney",
+  "state": "OH",
+  "population": 20392
+ },
+ {
+  "city": "Highland Township",
+  "state": "MI",
+  "population": 20337
+ },
+ {
+  "city": "Genesee Township",
+  "state": "MI",
+  "population": 20284
+ },
+ {
+  "city": "Adrian",
+  "state": "MI",
+  "population": 20259
+ },
+ {
+  "city": "Miamisburg",
+  "state": "OH",
+  "population": 20253
+ },
+ {
+  "city": "South Milwaukee",
+  "state": "WI",
+  "population": 20233
+ },
+ {
+  "city": "Crest Hill",
+  "state": "IL",
+  "population": 20223
+ },
+ {
+  "city": "Monroe",
+  "state": "MI",
+  "population": 20177
+ },
+ {
+  "city": "Cascade Township",
+  "state": "MI",
+  "population": 20172
+ },
+ {
+  "city": "Ypsilanti",
+  "state": "MI",
+  "population": 20150
+ },
+ {
+  "city": "Forest Park",
+  "state": "OH",
+  "population": 20033
+ },
+ {
+  "city": "Oconomowoc",
+  "state": "WI",
+  "population": 20002
+ }
+]

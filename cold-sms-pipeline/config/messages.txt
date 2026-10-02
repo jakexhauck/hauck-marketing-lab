@@ -1,0 +1,4 @@
+# The cold SMS texts, one per block, separated by a line of three dashes.
+# This copy is for the export check only. GHL's workflow is what actually sends,
+# so any change here must be made there too (and the other way round).
+# Merge fields: {{contact.company_name}} {{contact.city}} {{contact.state}} {{contact.service}}

@@ -1,0 +1,70 @@
+{
+  "trade": "hvac",
+  "tag": "cold-sms-hvac",
+  "keywords": [
+    "hvac contractor",
+    "heating and cooling",
+    "furnace replacement"
+  ],
+  "states": ["MI", "OH", "IN", "WI", "IL"],
+  "depth": 15,
+
+  "_core": "Google's PRIMARY category says this is an HVAC shop. Any of these keeps the lead.",
+  "core_categories": [
+    "hvac contractor",
+    "heating contractor",
+    "air conditioning contractor",
+    "air conditioning repair service",
+    "air conditioning installation service",
+    "furnace repair service",
+    "heating repair service",
+    "hvac repair service",
+    "hvac installation service",
+    "heat pump installation service"
+  ],
+
+  "_conditional": "Primary is something broader. Kept only when the NAME says heating or cooling AND an HVAC category sits somewhere in the list. Catches 'Smith Plumbing, Heating & Cooling', drops 'PM Plumbing & Mechanical'.",
+  "conditional_categories": [
+    "plumber",
+    "mechanical contractor",
+    "contractor",
+    "service establishment"
+  ],
+  "name_hvac_words": [
+    "hvac", "heat", "heating", "cooling", "air conditioning", "furnace", "furnaces",
+    "heat pump", "heat pumps", "comfort", "climate", "air", "boiler", "boilers"
+  ],
+
+  "_name_deny": "Drops the lead whatever its category. Whole words, case-insensitive.",
+  "name_deny": [
+    "supply", "supplies", "wholesale", "distributor", "distributors", "distributing",
+    "parts", "store", "rental", "rentals", "duct cleaning", "dryer vent",
+    "commercial", "industrial"
+  ],
+  "name_deny_unless": ["residential"],
+
+  "_franchises": "Big brands and national chains. Whole-word match on the name, case-insensitive.",
+  "franchises": [
+    "aire serv", "one hour heating", "one hour air", "service experts", "ars rescue",
+    "ars/rescue", "rescue rooter", "benjamin franklin", "mister sparky", "sears",
+    "home depot", "lowe's", "lowes", "lennox", "trane supply", "carrier enterprise",
+    "johnstone", "ferguson", "winsupply", "young supply", "habegger",
+    "united refrigeration", "watsco", "gustave a. larson", "gustave a larson",
+    "r.e. michel", "re michel", "horizon services", "goettl", "ace hardware",
+    "mr. handyman", "roto-rooter", "roto rooter"
+  ],
+
+  "_max_reviews": "Above this the shop is too big to be an owner-operator.",
+  "max_reviews": 1500,
+
+  "_service": "The sub-category. Read from the NAME only: 'Boiler supplier' sits on ordinary furnace shops as a secondary category, so categories would call half of them boiler shops. First match wins; nothing matches = default.",
+  "service_field": "service",
+  "service_default": "AC and furnace",
+  "service_rules": [
+    {"value": "boiler", "name_words": ["boiler", "boilers", "hydronic", "hydronics", "steam"]},
+    {"value": "heat pump", "name_words": ["heat pump", "heat pumps", "geothermal"]}
+  ],
+
+  "_line_types": "Twilio line_type_intelligence types that get a text.",
+  "keep_line_types": ["mobile"]
+}
