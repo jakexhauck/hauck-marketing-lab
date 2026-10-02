@@ -73,7 +73,7 @@ def run_batch(queries, depth, tag):
     qfile.write_text("".join(f"{text} #!#{qid}\n" for qid, text in queries), encoding="utf-8")
     rfile.unlink(missing_ok=True)
     cmd = [str(GOSOM), "-input", str(qfile), "-results", str(rfile), "-json",
-           "-depth", str(depth), "-c", "4", "-exit-on-inactivity", "3m", "-lang", "en"]
+           "-depth", str(depth), "-c", "4", "-exit-on-inactivity", "2m", "-lang", "en"]
     try:
         subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
                        timeout=300 + len(queries) * 120)
@@ -82,7 +82,7 @@ def run_batch(queries, depth, tag):
     return _read_results(rfile)
 
 
-def scrape(con, trade, batch_size=12, max_queries=None, log=print):
+def scrape(con, trade, batch_size=30, max_queries=None, log=print):
     todo = con.execute("select id, query from queries where status='pending' order by rowid").fetchall()
     if max_queries:
         todo = todo[:max_queries]

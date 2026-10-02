@@ -28,7 +28,7 @@ All in `config/hvac.json`:
 - **Kept:** Google's primary category is an HVAC one, or it is a plumber/mechanical shop whose name says heating or cooling and that lists an HVAC category somewhere.
 - **Dropped:** franchises and supply houses, names saying supply/parts/commercial/duct cleaning, more than 1,500 reviews, anything outside MI/OH/IN/WI/IL.
 - **service:** `boiler` or `heat pump` only when the NAME says so, otherwise `AC and furnace`.
-- **Sent:** Twilio says `mobile`.
+- **Sent:** Twilio says `mobile` or `nonFixedVoip` (Google Voice, OpenPhone and other phone apps).
 
 ## GHL setup (once, Hauck sub-account)
 

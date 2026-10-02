@@ -49,6 +49,14 @@ class Export(unittest.TestCase):
         [row] = self.rows(self.run_export()["csv"])
         self.assertEqual(row["Website"], "https://k.com/")
 
+    def test_phone_app_numbers_go_out(self):
+        add(self.con, "+12485550134", line="nonFixedVoip")
+        self.assertEqual(self.run_export()["count"], 1)
+
+    def test_office_voip_stays_out(self):
+        add(self.con, "+12485550134", line="fixedVoip")
+        self.assertIsNone(self.run_export()["csv"])
+
     def test_landline_and_unchecked_and_dropped_stay_out(self):
         add(self.con, "+12485550001", line="landline")
         add(self.con, "+12485550002", line=None)

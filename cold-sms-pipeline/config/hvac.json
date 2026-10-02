@@ -66,5 +66,5 @@
   ],
 
   "_line_types": "Twilio line_type_intelligence types that get a text.",
-  "keep_line_types": ["mobile"]
+  "keep_line_types": ["mobile", "nonFixedVoip"]
 }
