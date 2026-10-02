@@ -10,7 +10,7 @@ from pipeline.db import connect
 from pipeline.export import TemplateError, export, test_rows
 
 T = load_trade("hvac")
-MESSAGES = ["Hey, quick one for {{contact.company_name}} in {{contact.city}}.",
+MESSAGES = ["Hey, quick one for {{contact.business_name}} in {{contact.city}}.",
             "We book {{contact.service}} replacements."]
 
 
@@ -38,7 +38,8 @@ class Export(unittest.TestCase):
         result = self.run_export()
         [row] = self.rows(result["csv"])
         self.assertEqual(row["Phone"], "+12485550134")
-        self.assertEqual(row["Company Name"], "Koz Heating")
+        self.assertEqual(row["business_name"], "Koz Heating")
+        self.assertNotIn("Company Name", row)
         self.assertEqual(row["service"], "AC and furnace")
         self.assertEqual(row["Timezone"], "America/Detroit")
         self.assertIn("cold-sms-hvac", row["Tags"])

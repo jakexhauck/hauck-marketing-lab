@@ -42,5 +42,5 @@ All in `config/hvac.json`:
 ## Each batch
 
 1. Contacts, Import, pick the CSV from `out/`.
-2. Map: Company Name, Phone, City, State, Timezone, Website, Tags, and `service` to the custom field.
+2. Map: `business_name` to the **business_name** custom field, Phone, City, State, Timezone, Website, Tags, and `service` to the custom field.
 3. Import. The tag starts the workflow.

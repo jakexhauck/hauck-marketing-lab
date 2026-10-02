@@ -10,10 +10,10 @@ from datetime import datetime, timezone
 
 from .text import is_gsm7, normalize_phone, render
 
-COLUMNS = ["Company Name", "Phone", "City", "State", "service", "Timezone", "Website", "Tags"]
+COLUMNS = ["business_name", "Phone", "City", "State", "service", "Timezone", "Website", "Tags"]
 
 # Checked even before the texts exist, since every text is built from them.
-BASE_FIELDS = "{{contact.company_name}} {{contact.city}} {{contact.service}}"
+BASE_FIELDS = "{{contact.business_name}} {{contact.city}} {{contact.service}}"
 
 
 class TemplateError(Exception):
@@ -31,7 +31,7 @@ def _check_templates(messages):
 
 def _row(lead, trade, batch):
     return {
-        "Company Name": lead["company_name"], "Phone": lead["phone"], "City": lead["city"],
+        "business_name": lead["company_name"], "Phone": lead["phone"], "City": lead["city"],
         "State": lead["state"], "service": lead["service"], "Timezone": lead["timezone"],
         "Website": (lead["website"] or "").split("?")[0], "Tags": f"{trade['tag']},{trade['trade']}-batch-{batch}",
     }
@@ -56,7 +56,8 @@ def export(con, trade, messages, out_dir, stamp=None, dry_run=False):
 
     good, skipped = [], []
     for lead in leads:
-        fields = {k: lead[k] for k in ("company_name", "city", "state", "service")}
+        fields = {"business_name": lead["company_name"],
+                  **{k: lead[k] for k in ("city", "state", "service")}}
         reason = None
         for i, text in enumerate(checks, 1):
             filled, missing = render(text, fields)
@@ -68,7 +69,7 @@ def export(con, trade, messages, out_dir, stamp=None, dry_run=False):
                 reason = f"not GSM-7 after fill-in: {''.join(odd)!r}"
                 break
         if reason:
-            skipped.append({"Phone": lead["phone"], "Company Name": lead["company_name"],
+            skipped.append({"Phone": lead["phone"], "business_name": lead["company_name"],
                             "City": lead["city"], "reason": reason})
         else:
             good.append(_row(lead, trade, stamp[:8]))
@@ -77,7 +78,7 @@ def export(con, trade, messages, out_dir, stamp=None, dry_run=False):
     result = {"csv": None, "skipped_csv": None, "count": len(good), "skipped": skipped}
     if skipped:
         result["skipped_csv"] = out_dir / f"{trade['trade']}_{stamp}_skipped.csv"
-        _write(result["skipped_csv"], skipped, ["Phone", "Company Name", "City", "reason"])
+        _write(result["skipped_csv"], skipped, ["Phone", "business_name", "City", "reason"])
     if not good:
         return result
 
@@ -100,7 +101,7 @@ def test_rows(trade, phones):
         if not phone:
             raise ValueError(f"Not a usable US mobile: {raw}")
         rows.append({
-            "Company Name": "Test Heating & Cooling", "Phone": phone, "City": "Troy", "State": "MI",
+            "business_name": "Test Heating & Cooling", "Phone": phone, "City": "Troy", "State": "MI",
             "service": trade["service_default"], "Timezone": "America/Detroit", "Website": "",
             "Tags": f"{trade['tag']},cold-sms-test",
         })
