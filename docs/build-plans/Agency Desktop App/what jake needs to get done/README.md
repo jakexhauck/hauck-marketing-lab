@@ -566,3 +566,18 @@ Your action items:
 
 Still parked:
 - Business Suite folders: need Meta's `business_creative_management` permission, which the app cannot get today.
+
+## Client strip: clients are sub-accounts (5 October 2026)
+
+What's in the app now: a strip of client icons left of the admin sidebar. Click a client and the sidebar becomes that client's pages; the H takes you back to the agency. Fulfillment is gone from the agency sidebar. Phone: Accounts tab in the bottom bar.
+
+Your action items:
+1. Hard refresh app.hauckmarketing.com (the old version can stick in the service worker).
+2. Click each client chip: Made Better LC, Willis Windows, Above All Garage Doors. Check the sidebar swaps and wears their colour.
+3. On Above All Garage Doors, check Paid Ads shows Connect ads, Creatives and Ad Builder only.
+4. Open an old bookmark (any `/admin/fulfillment/...` link) and check it lands on the right client page.
+5. On your phone, tap Accounts in the bottom bar, pick a client, pick a page.
+6. Tell me if a removed client still shows a chip (the client list did not filter removed clients before this build either).
+
+Still parked:
+- The setup automation pages (LTN texts, lead form texts, Instant Form pack, A2P pack, custom values, campaign builder) slot into the client sidebar next.
