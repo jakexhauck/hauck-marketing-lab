@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-05-sms-budget",
+    date: "5 October 2026",
+    title: "SMS Budget page",
+    items: [
+      "SMS Budget sits under Cold SMS. Pick a month, type the leads you plan to check, and it works out Twilio Lookup, GHL texts, carrier fees, replies, numbers, A2P and subscriptions.",
+      "Every rate is a blue cell, so a price change is one edit. A new month starts as a copy of the last one.",
+      "Plan vs Actual reads the SMS sent and SMS cost you type into Monthly.",
+    ],
+  },
+  {
     id: "2026-10-02-cold-sms-one-page",
     date: "2 October 2026",
     title: "Cold SMS is one page",

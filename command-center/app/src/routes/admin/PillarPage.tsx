@@ -20,6 +20,7 @@ import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
 import SopsTab from "../../components/admin/operations/SopsTab";
 import ColdSmsPage from "../../components/admin/coldSms/ColdSmsPage";
+import SmsBudgetPage from "../../components/admin/coldSms/SmsBudgetPage";
 import ColdCallSection from "../../components/admin/acquisition/ColdCallSection";
 import LeadsSurface from "../../components/admin/acquisition/LeadsSurface";
 
@@ -112,6 +113,9 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     // Its own page under Cold Call: the SMS Tracking sheet, typed by hand.
     case "sms":
       return <ColdSmsPage />;
+    // Under it: the month's planned SMS spend.
+    case "sms-budget":
+      return <SmsBudgetPage />;
     // Sourcing: the scraper's results, and the hand-off into the two above.
     case "leads":
       return <LeadsSurface />;

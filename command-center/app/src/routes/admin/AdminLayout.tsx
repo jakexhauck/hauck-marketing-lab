@@ -22,6 +22,7 @@ import {
   Briefcase,
   type LucideIcon,
   MessagesSquare,
+  Wallet,
 } from "lucide-react";
 import { resolvePillarTab, type PillarId } from "../../lib/adminPillars";
 import { FULFILLMENT_HOME, FULFILLMENT_NAV } from "../../lib/fulfillmentPages";
@@ -122,12 +123,13 @@ const PILLAR_GROUPS: RailGroup[] = [
   },
   {
     // Acquisition: sourcing first (Leads), then the daily work (Cold Call,
-    // then Cold SMS).
+    // then Cold SMS and its budget).
     caption: "Acquisition",
     rows: [
       pillarRow("Leads", "acquisition", "leads", Target),
       pillarRow("Cold Call", "acquisition", "cold-call", PhoneCall, "Calling"),
       pillarRow("Cold SMS", "acquisition", "sms", MessagesSquare, "SMS"),
+      pillarRow("SMS Budget", "acquisition", "sms-budget", Wallet, "Budget"),
     ],
   },
   {

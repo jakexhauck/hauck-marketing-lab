@@ -1,6 +1,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   api,
+  type ColdSmsBudgetRow,
   type ColdSmsDailyRow,
   type ColdSmsMonthlyRow,
   type ColdSmsScriptRow,
@@ -306,6 +307,33 @@ export function useColdSmsScriptDelete() {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: coldSmsKeys.script() });
+    },
+  });
+}
+
+/* --------------------------------------------------------------- budget --- */
+
+const BUDGET_KEY = ["admin", "tracker", "cold-sms-budget"] as const;
+
+export function useColdSmsBudgetQuery() {
+  return useQuery({
+    queryKey: BUDGET_KEY,
+    queryFn: () => api<RowsResponse<ColdSmsBudgetRow>>("/api/admin/tracker/cold-sms-budget"),
+  });
+}
+
+// Writes one month whole. The page holds the month in local state while it is
+// open, so the cache is only refreshed, never patched optimistically.
+export function useColdSmsBudgetSave() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (row: Omit<ColdSmsBudgetRow, "id">) =>
+      api<{ row: ColdSmsBudgetRow }>("/api/admin/tracker/cold-sms-budget", {
+        method: "PUT",
+        body: JSON.stringify(row),
+      }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: BUDGET_KEY });
     },
   });
 }

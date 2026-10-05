@@ -2,6 +2,7 @@ import { demoMode } from "../demo/demoMode";
 import { handleDemoRequest } from "../demo/handler";
 import { previewHeaders } from "./previewFrame";
 import type { BusinessHealthInputs, PeriodType } from "./businessHealth";
+import type { BudgetInputs, BudgetSubscription } from "./coldSmsBudget";
 import type { SheetCall } from "../../functions/lib/salesSheetRows";
 
 // What one reconciliation against the agency's GoHighLevel calendars did.
@@ -1419,6 +1420,14 @@ export interface ColdSmsMonthlyRow {
   newClients: number | null;
   cashCollected: number | null;
   ltv: number | null;
+}
+
+// Acquisition > SMS Budget: one month of planned cold SMS spend (0137).
+export interface ColdSmsBudgetRow {
+  id: string;
+  month: string; // "YYYY-MM-01" (first of month)
+  inputs: BudgetInputs;
+  subscriptions: BudgetSubscription[];
 }
 
 export interface ColdSmsScriptRow {
