@@ -1,9 +1,9 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
-import { normalizeInputs, normalizeSubscriptions } from "../../../../src/lib/coldSmsBudget";
+import { normalizeInputs } from "../../../../src/lib/coldSmsBudget";
 
-// Acquisition > SMS Budget. One row per month of planned cold SMS spend
+// Cold SMS > SMS Budget. One row per month of estimated cold SMS spend
 // (0137). Agency-global, owner only (no role rule opens it). The cost lines
 // are computed client-side in src/lib/coldSmsBudget.ts and never stored.
 
@@ -11,17 +11,15 @@ interface BudgetRow {
   id: string;
   month: string;
   inputs: unknown;
-  subscriptions: unknown;
 }
 
-const SELECT = "id, month, inputs, subscriptions";
+const SELECT = "id, month, inputs";
 
 function toRow(row: BudgetRow) {
   return {
     id: row.id,
     month: row.month,
     inputs: normalizeInputs(row.inputs),
-    subscriptions: normalizeSubscriptions(row.subscriptions),
   };
 }
 
@@ -49,7 +47,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 };
 
 // PUT /api/admin/tracker/cold-sms-budget: write one month whole
-// ({ month, inputs, subscriptions }). The page always sends the full month, so
+// ({ month, inputs }). The page always sends the full month, so
 // a write never has to merge.
 export const onRequestPut: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
@@ -70,7 +68,6 @@ export const onRequestPut: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const update = {
     month,
     inputs: normalizeInputs(body.inputs),
-    subscriptions: normalizeSubscriptions(body.subscriptions),
     updated_at: new Date().toISOString(),
   };
 

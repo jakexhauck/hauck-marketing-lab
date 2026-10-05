@@ -28,11 +28,10 @@ export const RELEASES: Release[] = [
   {
     id: "2026-10-05-sms-budget",
     date: "5 October 2026",
-    title: "SMS Budget page",
+    title: "SMS Budget on the Cold SMS page",
     items: [
-      "SMS Budget sits under Cold SMS. Pick a month, type the leads you plan to check, and it works out Twilio Lookup, GHL texts, carrier fees, replies, numbers, A2P and subscriptions.",
-      "Every rate is a blue cell, so a price change is one edit. A new month starts as a copy of the last one.",
-      "Plan vs Actual reads the SMS sent and SMS cost you type into Monthly.",
+      "At the bottom of Cold SMS: type texts a day, send days and numbers, and it shows the estimated monthly cost, split into Twilio Lookup, texts, carrier fees, replies, number and A2P.",
+      "Actual so far and Remaining read the SMS Cost you type into Monthly. Prices and percentages sit under Rates.",
     ],
   },
   {

@@ -46,13 +46,12 @@ export const ADMIN_PILLARS: PillarDef[] = [
     //
     // SMS was out of the nav from 2026-09-21. It came back on 2026-10-01 as
     // Cold SMS, its own page under Cold Call: a copy of the SMS Tracking tab
-    // of the Master Data Tracker sheet. SMS Budget sits under it (Jake,
-    // 2026-10-05): the month's planned SMS spend against what Monthly records.
+    // of the Master Data Tracker sheet. Its SMS Budget is inline at the bottom
+    // of that page (Jake, 2026-10-05), not a row of its own.
     tabs: [
       { id: "leads", label: "Leads", ready: true },
       { id: "cold-call", label: "Cold Call", ready: true },
       { id: "sms", label: "Cold SMS", ready: true },
-      { id: "sms-budget", label: "SMS Budget", ready: true },
     ],
   },
   {

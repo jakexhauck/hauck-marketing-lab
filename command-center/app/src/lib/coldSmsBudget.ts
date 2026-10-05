@@ -1,27 +1,29 @@
-// Acquisition > SMS Budget (Jake, 2026-10-05): the month's PLANNED cold SMS
-// spend, line by line. Shared by the page and the API route, so the server
-// stores exactly the keys the page computes from.
+// Cold SMS > SMS Budget (Jake, 2026-10-05): the estimated monthly cost of
+// cold SMS, at the bottom of the Cold SMS page. Shared by the page and the API
+// route, so the server stores exactly the keys the page computes from.
 //
-// The chain: leads checked by Twilio Lookup -> the textable share (mobile and
-// phone-app numbers) is texted the whole sequence -> a share of those reply.
-// GHL bills every segment both ways, carriers add a fee on outbound ones.
+// The chain: new businesses texted a day x send days = contacts texted. To
+// find that many textable numbers, contacts / textable % go through Twilio
+// Lookup. Each contact gets the whole sequence (segments per contact), a share
+// reply. GHL bills every segment both ways, carriers add a fee on outbound.
 //
-// Rate defaults are the published prices as of 2026-10-05: Twilio Lookup Line
-// Type Intelligence $0.008, LC Phone $0.0079 a segment each way, carrier fees
-// $0.004 to $0.010 (low end used), number $1.15/mo, A2P Standard campaign
-// $10/mo. Every one is a typed cell, so a price change is a keystroke.
+// Defaults are Jake's answers on 2026-10-05 (500 a day, weekdays, 1 number,
+// Low Volume Standard A2P, GHL plan not counted) and the published prices that
+// day: Twilio Lookup Line Type Intelligence $0.008, LC Phone $0.0079 a segment
+// each way, carrier fees $0.004 to $0.010 (low end used), number $1.15/mo,
+// A2P Low Volume campaign $1.50/mo. Every one is a typed cell.
 //
 // Percentages are stored as typed (75 means 75%). A blank cell counts as 0 in
 // the maths but stays blank in storage.
 
 export const BUDGET_INPUT_KEYS = [
-  "leadsToCheck",
+  "contactsPerDay",
+  "sendDays",
+  "phoneNumbers",
   "textableRate",
-  "textsPerContact",
   "segmentsPerContact",
   "replyRate",
   "inboundSegmentsPerReply",
-  "phoneNumbers",
   "lookupRate",
   "outboundRate",
   "carrierFee",
@@ -29,85 +31,74 @@ export const BUDGET_INPUT_KEYS = [
   "numberMonthly",
   "a2pMonthly",
   "a2pOneTime",
+  "otherMonthly",
 ] as const;
 
 export type BudgetInputKey = (typeof BUDGET_INPUT_KEYS)[number];
 export type BudgetInputs = Record<BudgetInputKey, number | null>;
 
-export interface BudgetSubscription {
-  name: string;
-  amount: number | null;
-}
-
 export const BUDGET_DEFAULTS: BudgetInputs = {
-  leadsToCheck: null,
+  contactsPerDay: 500,
+  // Weekdays.
+  sendDays: 22,
+  phoneNumbers: 1,
   // 15 of the first 20 Detroit numbers were mobile or nonFixedVoip (2026-10-02).
   textableRate: 75,
   // cold-sms-pipeline/config/messages.txt: four texts, the last one is two
   // segments, so five segments for a contact who never replies.
-  textsPerContact: 4,
   segmentsPerContact: 5,
   replyRate: 5,
   inboundSegmentsPerReply: 2,
-  phoneNumbers: 1,
   lookupRate: 0.008,
   outboundRate: 0.0079,
   carrierFee: 0.004,
   inboundRate: 0.0079,
   numberMonthly: 1.15,
-  a2pMonthly: 10,
+  a2pMonthly: 1.5,
   // One-time registration, typed only in the month it is paid.
   a2pOneTime: null,
+  otherMonthly: null,
 };
 
 export interface BudgetResult {
   contactsTexted: number;
-  textsSent: number;
+  lookups: number;
   segmentsOut: number;
   segmentsIn: number;
   lines: {
     lookup: number;
-    outbound: number;
+    texts: number;
     carrier: number;
-    inbound: number;
+    replies: number;
     numbers: number;
     a2p: number;
-    subscriptions: number;
+    other: number;
   };
   total: number;
-  perContact: number | null;
 }
 
 const n = (v: number | null | undefined) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 
-export function computeBudget(inputs: BudgetInputs, subs: BudgetSubscription[]): BudgetResult {
-  const checked = n(inputs.leadsToCheck);
-  // Whole people: 75% of 3 checked numbers is 2 contacts, not 2.25.
-  const contactsTexted = Math.floor(checked * (n(inputs.textableRate) / 100));
-  const textsSent = contactsTexted * n(inputs.textsPerContact);
+export function computeBudget(inputs: BudgetInputs): BudgetResult {
+  const contactsTexted = n(inputs.contactsPerDay) * n(inputs.sendDays);
+  const textable = n(inputs.textableRate) / 100;
+  // Whole lookups: to end with 2 textable numbers at 75% you check 3.
+  const lookups = textable > 0 ? Math.ceil(contactsTexted / textable) : 0;
   const segmentsOut = contactsTexted * n(inputs.segmentsPerContact);
   const segmentsIn = contactsTexted * (n(inputs.replyRate) / 100) * n(inputs.inboundSegmentsPerReply);
 
   const lines = {
-    lookup: checked * n(inputs.lookupRate),
-    outbound: segmentsOut * n(inputs.outboundRate),
+    lookup: lookups * n(inputs.lookupRate),
+    texts: segmentsOut * n(inputs.outboundRate),
     carrier: segmentsOut * n(inputs.carrierFee),
-    inbound: segmentsIn * n(inputs.inboundRate),
+    replies: segmentsIn * n(inputs.inboundRate),
     numbers: n(inputs.phoneNumbers) * n(inputs.numberMonthly),
     a2p: n(inputs.a2pMonthly) + n(inputs.a2pOneTime),
-    subscriptions: subs.reduce((sum, s) => sum + n(s.amount), 0),
+    other: n(inputs.otherMonthly),
   };
   const total = Object.values(lines).reduce((sum, v) => sum + v, 0);
 
-  return {
-    contactsTexted,
-    textsSent,
-    segmentsOut,
-    segmentsIn,
-    lines,
-    total,
-    perContact: contactsTexted > 0 ? total / contactsTexted : null,
-  };
+  return { contactsTexted, lookups, segmentsOut, segmentsIn, lines, total };
 }
 
 function toNumOrNull(value: unknown): number | null {
@@ -127,38 +118,21 @@ export function normalizeInputs(raw: unknown): BudgetInputs {
   return out;
 }
 
-export function normalizeSubscriptions(raw: unknown): BudgetSubscription[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .filter((s): s is Record<string, unknown> => !!s && typeof s === "object")
-    .map((s) => ({ name: String(s.name ?? "").trim(), amount: toNumOrNull(s.amount) }));
-}
-
 export interface BudgetRowLike {
   month: string; // "YYYY-MM-01"
   inputs: BudgetInputs;
-  subscriptions: BudgetSubscription[];
 }
 
 // What the page shows for a month: its own saved row, or else a copy of the
 // latest earlier month (minus the one-time A2P fee), or else the defaults.
 // Nothing is written until a cell is typed in.
-export function startingBudget(
-  rows: BudgetRowLike[],
-  month: string, // "YYYY-MM"
-): { inputs: BudgetInputs; subscriptions: BudgetSubscription[]; saved: boolean } {
+export function startingBudget(rows: BudgetRowLike[], month: string /* "YYYY-MM" */): BudgetInputs {
   const own = rows.find((r) => r.month.slice(0, 7) === month);
-  if (own) return { inputs: { ...own.inputs }, subscriptions: [...own.subscriptions], saved: true };
+  if (own) return { ...own.inputs };
 
   const earlier = rows
     .filter((r) => r.month.slice(0, 7) < month)
     .sort((a, b) => (a.month < b.month ? 1 : -1))[0];
-  if (earlier) {
-    return {
-      inputs: { ...earlier.inputs, a2pOneTime: null },
-      subscriptions: earlier.subscriptions.map((s) => ({ ...s })),
-      saved: false,
-    };
-  }
-  return { inputs: { ...BUDGET_DEFAULTS }, subscriptions: [], saved: false };
+  if (earlier) return { ...earlier.inputs, a2pOneTime: null };
+  return { ...BUDGET_DEFAULTS };
 }
