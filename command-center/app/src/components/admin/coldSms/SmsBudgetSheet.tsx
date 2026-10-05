@@ -37,6 +37,7 @@ const RATES: [BudgetInputKey, string][] = [
   ["outboundRate", "GHL text / segment"],
   ["carrierFee", "Carrier fee / segment"],
   ["inboundRate", "GHL reply / segment"],
+  ["carrierFeeIn", "Carrier fee / reply segment"],
   ["numberMonthly", "Phone number / month"],
   ["a2pMonthly", "A2P / month"],
   ["a2pOneTime", "A2P one-time"],

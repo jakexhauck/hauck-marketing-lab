@@ -17,12 +17,13 @@ describe("computeBudget", () => {
     expect(b.segmentsIn).toBeCloseTo(1100);
     expect(b.lines.lookup).toBeCloseTo(117.336);
     expect(b.lines.texts).toBeCloseTo(325.875);
-    expect(b.lines.carrier).toBeCloseTo(165);
-    expect(b.lines.replies).toBeCloseTo(8.69);
+    expect(b.lines.carrier).toBeCloseTo(185.625);
+    // 1,100 reply segments at $0.0079 GHL + $0.007 carrier.
+    expect(b.lines.replies).toBeCloseTo(16.39);
     expect(b.lines.numbers).toBeCloseTo(1.15);
     expect(b.lines.a2p).toBeCloseTo(1.5);
     expect(b.lines.other).toBe(0);
-    expect(b.total).toBeCloseTo(619.551);
+    expect(b.total).toBeCloseTo(647.876);
   });
 
   it("adds the one-time A2P fee and other monthly costs", () => {

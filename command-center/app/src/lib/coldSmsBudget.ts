@@ -5,13 +5,21 @@
 // The chain: new businesses texted a day x send days = contacts texted. To
 // find that many textable numbers, contacts / textable % go through Twilio
 // Lookup. Each contact gets at most 3 texts (Jake, 2026-10-05: "3 messages in
-// total at the very most"), budgeted at the most; a share reply. GHL bills every segment both ways, carriers add a fee on outbound.
+// total at the very most"), budgeted at the most; a share reply. GHL bills
+// every segment both ways, and carriers add a fee both ways.
 //
 // Defaults are Jake's answers on 2026-10-05 (500 a day, weekdays, 1 number,
 // Low Volume Standard A2P, GHL plan not counted) and the published prices that
 // day: Twilio Lookup Line Type Intelligence $0.008, LC Phone $0.0079 a segment
-// each way, carrier fees $0.004 to $0.010 (low end used), number $1.15/mo,
-// A2P Low Volume campaign $1.50/mo. Every one is a typed cell.
+// each way, number $1.15/mo, A2P Low Volume campaign $1.50/mo (GHL help
+// article 155000005200). Every one is a typed cell.
+//
+// Carrier fees are Twilio's US 10DLC pass-through (twilio.com/sms/pricing/us,
+// October 2026; LC Phone runs on Twilio). Out: AT&T $0.0035, T-Mobile $0.0045,
+// Verizon $0.005, other $0.0042. In: AT&T $0.0035, T-Mobile $0.0025, Verizon
+// $0.007, other $0.01. About half the textable numbers are nonFixedVoip
+// (billed as "other"), so blended by market share and that mix: out about
+// $0.0043 (budgeted $0.0045), in about $0.0071 (budgeted $0.007).
 //
 // Percentages are stored as typed (75 means 75%). A blank cell counts as 0 in
 // the maths but stays blank in storage.
@@ -29,6 +37,7 @@ export const BUDGET_INPUT_KEYS = [
   "outboundRate",
   "carrierFee",
   "inboundRate",
+  "carrierFeeIn",
   "numberMonthly",
   "a2pMonthly",
   "a2pOneTime",
@@ -54,8 +63,9 @@ export const BUDGET_DEFAULTS: BudgetInputs = {
   inboundSegmentsPerReply: 2,
   lookupRate: 0.008,
   outboundRate: 0.0079,
-  carrierFee: 0.004,
+  carrierFee: 0.0045,
   inboundRate: 0.0079,
+  carrierFeeIn: 0.007,
   numberMonthly: 1.15,
   a2pMonthly: 1.5,
   // One-time registration, typed only in the month it is paid.
@@ -94,7 +104,7 @@ export function computeBudget(inputs: BudgetInputs): BudgetResult {
     lookup: lookups * n(inputs.lookupRate),
     texts: segmentsOut * n(inputs.outboundRate),
     carrier: segmentsOut * n(inputs.carrierFee),
-    replies: segmentsIn * n(inputs.inboundRate),
+    replies: segmentsIn * (n(inputs.inboundRate) + n(inputs.carrierFeeIn)),
     numbers: n(inputs.phoneNumbers) * n(inputs.numberMonthly),
     a2p: n(inputs.a2pMonthly) + n(inputs.a2pOneTime),
     other: n(inputs.otherMonthly),
