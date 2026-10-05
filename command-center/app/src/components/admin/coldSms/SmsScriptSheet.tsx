@@ -111,7 +111,7 @@ export default function SmsScriptSheet() {
         <colgroup>
           <col style={{ width: 110 }} />
           {slotList.map((slot) => (
-            <col key={slot} style={{ width: 95 }} />
+            <col key={slot} style={{ width: 90 }} />
           ))}
           <col style={{ width: 72 }} />
         </colgroup>
