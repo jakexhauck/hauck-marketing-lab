@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-05-client-strip",
+    date: "5 October 2026",
+    title: "Clients are sub-accounts now",
+    items: [
+      "A strip of client icons sits left of the sidebar. Click a client and the whole sidebar becomes that client's pages: Onboarding, Software, Paid Ads, GHL, Setter Suite and Management. The H at the top takes you back to the agency.",
+      "Fulfillment is gone from the agency sidebar. Paid Ads and GHL pages are sidebar rows inside each client, not tabs.",
+      "The + under the clients opens New client: open intake forms and Add a client. On the phone, the Accounts tab does the same job.",
+    ],
+  },
+  {
     id: "2026-10-05-sms-budget",
     date: "5 October 2026",
     title: "SMS Budget on the Cold SMS page",

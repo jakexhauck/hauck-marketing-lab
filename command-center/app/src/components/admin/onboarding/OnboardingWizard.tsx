@@ -1,28 +1,15 @@
 import { useMemo, useState } from "react";
 import { X } from "lucide-react";
-import { subtitle } from "./AccountRow";
-import ClientWizard, { type WizardView } from "./ClientWizard";
 import DeleteDialog from "./DeleteDialog";
 import { SubmissionSheet } from "./OnboardingSheet";
-import { useAdminOnboardingListQuery, useAdminOnboardingRemove } from "../../../hooks/useApi";
 import { useIntakeAction, useIntakeQueue } from "../../../hooks/useIntake";
-import { useSetupSteps } from "../../../hooks/useSetupSteps";
-import { clientProgress, pct } from "../../../lib/onboardingWizard";
-import type { AdminOnboardingListItem } from "../../../lib/api";
 
-// Onboarding (/admin/onboarding), redesigned 2026-09-23.
+// New client (/admin/onboarding), the agency side of onboarding.
 //
-// Everyone being stood up down the left, with how far along they are. Pick one
-// and their whole setup checklist opens on the right, in whichever view is
-// chosen at the top of the page.
-//
-// Clients in setup and forms that never became a client share the list, as
-// before. A form has no checklist (there is no account to set up), so opening
-// one shows what they filled in.
-//
-// The X on a row deletes it from Onboarding: a client's record is wiped and
-// they are marked 'removed' (account untouched, see remove.ts); a form is
-// rejected.
+// Since the client strip (2026-10-05) a client's setup checklist lives inside
+// their own sub-account (ClientOnboarding.tsx). What stays on the agency side
+// is what has no sub-account yet: intake forms that never became a client.
+// Opening one shows what they filled in; the X rejects it.
 
 interface Row {
   key: string;
@@ -30,36 +17,19 @@ interface Row {
   sub: string;
   initials: string;
   color: string;
-  client?: AdminOnboardingListItem;
-  submissionId?: string;
+  submissionId: string;
 }
 
-export default function OnboardingWizard({ view }: { view: WizardView }) {
-  const roster = useAdminOnboardingListQuery();
+export default function OnboardingWizard() {
   const forms = useIntakeQueue("all");
-  const steps = useSetupSteps();
-  const remove = useAdminOnboardingRemove();
   const reject = useIntakeAction();
 
   const [selected, setSelected] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Row | null>(null);
 
-  const stepList = useMemo(() => steps.data?.steps ?? [], [steps.data]);
-
   const rows = useMemo<Row[]>(() => {
-    const clients: Row[] = (roster.data?.clients ?? [])
-      .filter((c) => c.onboardingStatus === "setup")
-      .map((c) => ({
-        key: `client:${c.id}`,
-        name: c.name,
-        sub: subtitle(c.niche, c.city, c.region) || c.slug,
-        initials: c.brandInitials || c.name.slice(0, 2).toUpperCase(),
-        color: c.brandColor || "var(--brand)",
-        client: c,
-      }));
-
     // Only the forms that never became a client. A finished form creates the
-    // client itself, so anything with a tenant is already a row above.
+    // client itself, so anything with a tenant already has a sub-account.
     const pending: Row[] = (forms.data?.submissions ?? [])
       .filter((s) => !s.tenantId && s.status !== "rejected")
       .map((s) => ({
@@ -71,42 +41,38 @@ export default function OnboardingWizard({ view }: { view: WizardView }) {
         submissionId: s.id,
       }));
 
-    return [...clients, ...pending];
-  }, [roster.data, forms.data]);
+    return pending;
+  }, [forms.data]);
 
   // The first row until one is picked, and again when the picked one leaves
-  // the list (gone live, deleted).
+  // the list (became a client, rejected).
   const current = rows.find((r) => r.key === selected) ?? rows[0] ?? null;
 
-  if (roster.isLoading || steps.isLoading) {
+  if (forms.isLoading) {
     return <p className="mt-6 text-[13px] text-muted">Loading...</p>;
   }
-  if (roster.isError || steps.isError) {
-    return <p className="mt-6 text-[13px] text-danger">Onboarding did not load.</p>;
+  if (forms.isError) {
+    return <p className="mt-6 text-[13px] text-danger">Forms did not load.</p>;
   }
   if (rows.length === 0) {
-    return <p className="mt-6 text-[13px] text-muted">Nobody is being set up.</p>;
+    return <p className="mt-6 text-[13px] text-muted">No open forms.</p>;
   }
 
   const confirmDelete = () => {
     if (!deleting) return;
     const done = { onSuccess: () => setDeleting(null) };
-    if (deleting.client) remove.mutate(deleting.client.id, done);
-    else if (deleting.submissionId) reject.mutate({ id: deleting.submissionId, action: "reject" }, done);
+    reject.mutate({ id: deleting.submissionId, action: "reject" }, done);
   };
-  const deleteError = (remove.error ?? reject.error) as Error | null;
+  const deleteError = reject.error as Error | null;
 
   return (
     <div className="mt-5 grid grid-cols-1 items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
       <nav
-        aria-label="Clients in setup"
+        aria-label="Open forms"
         className="flex flex-col gap-0.5 rounded-[var(--radius-lg)] border border-border bg-surface p-1.5 shadow-[var(--shadow-sm)] lg:sticky lg:top-4"
       >
         {rows.map((row) => {
           const on = row.key === current?.key;
-          const progress = row.client
-            ? pct(clientProgress(stepList, new Set(row.client.doneKeys)))
-            : null;
           return (
             <div key={row.key} className="group relative">
               <button
@@ -128,35 +94,13 @@ export default function OnboardingWizard({ view }: { view: WizardView }) {
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5 text-[13.5px] font-semibold text-text">
                     <span className="truncate">{row.name}</span>
-                    {row.client?.softwareLiveAt && (
-                      <span
-                        className="h-[7px] w-[7px] shrink-0 rounded-full bg-positive"
-                        title="Software live"
-                        aria-label="Software live"
-                      />
-                    )}
                   </span>
-                  {progress === null ? (
-                    <span className="block truncate text-[11.5px] text-faint">{row.sub}</span>
-                  ) : (
-                    <span className="mt-1.5 block h-[5px] overflow-hidden rounded-full bg-surface-3">
-                      <span
-                        className="block h-full rounded-full bg-brand transition-[width] duration-300"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </span>
-                  )}
+                  <span className="block truncate text-[11.5px] text-faint">{row.sub}</span>
                 </span>
               </button>
-              {progress !== null && (
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11.5px] tabular-nums text-faint transition-opacity group-hover:opacity-0 group-focus-within:opacity-0 [@media(hover:none)]:opacity-0">
-                  {progress}%
-                </span>
-              )}
               <button
                 type="button"
                 onClick={() => {
-                  remove.reset();
                   reject.reset();
                   setDeleting(row);
                 }}
@@ -171,17 +115,7 @@ export default function OnboardingWizard({ view }: { view: WizardView }) {
       </nav>
 
       <div className="min-w-0">
-        {current?.client ? (
-          <ClientWizard
-            // Keyed so Stepper starts back at the first pillar, and Scroll re-derives which
-            // pillars are open, whenever a different client is picked.
-            key={current.client.id}
-            client={current.client}
-            subtitle={current.sub}
-            steps={stepList}
-            view={view}
-          />
-        ) : current?.submissionId ? (
+        {current ? (
           <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
             <h2 className="px-5 py-4 font-display text-[17px] font-semibold text-text">{current.name}</h2>
             <SubmissionSheet submissionId={current.submissionId} />
@@ -192,7 +126,7 @@ export default function OnboardingWizard({ view }: { view: WizardView }) {
       {deleting && (
         <DeleteDialog
           name={deleting.name}
-          pending={remove.isPending || reject.isPending}
+          pending={reject.isPending}
           error={deleteError ? deleteError.message || "That did not work." : null}
           onConfirm={confirmDelete}
           onClose={() => setDeleting(null)}

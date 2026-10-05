@@ -6,7 +6,6 @@ import {
   useLocation,
   useNavigate,
   useParams,
-  useSearchParams,
 } from "react-router-dom";
 import { queryClient } from "./lib/queryClient";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -70,13 +69,8 @@ import AdminNewClient from "./routes/admin/AdminNewClient";
 import AdminCommand from "./routes/admin/AdminCommand";
 import AdminApps from "./routes/admin/AdminApps";
 import AdminOnboarding from "./routes/admin/AdminOnboarding";
-import { clientSetupPath } from "./lib/onboardingViews";
-import FulfillmentPage from "./routes/admin/FulfillmentPage";
-import {
-  DEFAULT_FULFILLMENT_PAGE,
-  fulfillmentPath,
-  legacyFulfillmentPage,
-} from "./lib/fulfillmentPages";
+import ClientPage from "./routes/admin/ClientPage";
+import LegacyClientRedirect from "./routes/admin/LegacyClientRedirect";
 import SetterSuite from "./routes/admin/SetterSuite";
 import QuickBook from "./routes/admin/QuickBook";
 import PillarPage from "./routes/admin/PillarPage";
@@ -185,41 +179,12 @@ function AdminRoute({
   return <AdminLayout>{children}</AdminLayout>;
 }
 
-// /admin/onboarding/:tenantId and its old /setup child both became one view of
-// the Onboarding page. Reads the tenant out of the path and hands it over as the
-// selected client.
-function OnboardingClientRedirect() {
-  const { tenantId } = useParams<{ tenantId: string }>();
-  return <Navigate to={tenantId ? clientSetupPath(tenantId) : "/admin/onboarding"} replace />;
-}
-
 // Old pillar sub-routes (lane workspaces and tab deep links) collapse to the
 // pillar page now that lanes and tabs are gone. Reads the :pillarId and sends
 // the request up one level.
 function PillarRedirect() {
   const { pillarId } = useParams<{ pillarId: string }>();
   return <Navigate to={`/admin/pillar/${pillarId ?? ""}`} replace />;
-}
-
-// The retired per-client cockpit (/admin/delivery/:tenantId?tab=&sub=). Its
-// service tabs are now pages, so the old address maps across exactly: the tab
-// becomes the page, the tenant becomes the ?client=, and the sub-tab is kept.
-// An unknown or missing tab lands on Overview, which is where the cockpit
-// opened anyway.
-function DeliveryCockpitRedirect() {
-  const { tenantId } = useParams<{ tenantId: string }>();
-  const [searchParams] = useSearchParams();
-  const page = legacyFulfillmentPage(searchParams.get("tab"));
-  return (
-    <Navigate to={fulfillmentPath(page, tenantId, searchParams.get("sub"))} replace />
-  );
-}
-
-// The retired standalone client hub (/admin/clients/:id), which was the config
-// cards and nothing else. Those cards sit under Fulfillment > Management now.
-function ClientDetailRedirect() {
-  const { id } = useParams<{ id: string }>();
-  return <Navigate to={fulfillmentPath("management", id)} replace />;
 }
 
 function RootRedirect() {
@@ -610,47 +575,27 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              {/* The standalone client hub is retired: its config cards are the
-                  Fulfillment > Config page, on the same shared panel. */}
-              <Route path="/admin/clients/:id" element={<ClientDetailRedirect />} />
-              {/* Retired admin surfaces (SOPs, Onboarding, Build, Plans, Assets,
-                  Messages, Infrastructure, standalone Tasks) are gone; their
-                  work now lives inside the pillar tab bars. Old URLs fall
-                  through to RootRedirect below. */}
-              {/* Service Delivery > Paid Ads: the old standalone ad tracker
-                  is retired, replaced by the Fulfillment Paid Ads page. */}
+              {/* A client's sub-account (Jake, 2026-10-05): every per-client
+                  page, reached from the client strip. The client is in the
+                  path, so a pasted link opens the same client for anyone. */}
               <Route
-                path="/admin/ads"
-                element={<Navigate to="/admin/fulfillment/paid-ads" replace />}
-              />
-              <Route
-                path="/admin/ads/:clientId"
-                element={<Navigate to="/admin/fulfillment/paid-ads" replace />}
-              />
-
-              {/* Fulfillment: one route per service page. The client is a
-                  picker on the page (?client=), not part of the address, so
-                  switching client keeps you on the page you were reading. */}
-              <Route
-                path="/admin/fulfillment"
-                element={<Navigate to={`/admin/fulfillment/${DEFAULT_FULFILLMENT_PAGE}`} replace />}
-              />
-              <Route
-                path="/admin/fulfillment/:page"
+                path="/admin/client/:tenantId/:page/:sub?"
                 element={
                   <AdminRoute roles={["owner"]}>
-                    <FulfillmentPage />
+                    <ClientPage />
                   </AdminRoute>
                 }
               />
-              {/* The roster landing and the per-client cockpit it fed. */}
               <Route
-                path="/admin/delivery"
-                element={<Navigate to={`/admin/fulfillment/${DEFAULT_FULFILLMENT_PAGE}`} replace />}
+                path="/admin/client/:tenantId"
+                element={
+                  <AdminRoute roles={["owner"]} bare>
+                    <LegacyClientRedirect page="onboarding" />
+                  </AdminRoute>
+                }
               />
-              <Route path="/admin/delivery/:tenantId" element={<DeliveryCockpitRedirect />} />
-              {/* Fulfillment > Onboarding: standing a new client up. The
-                  roster, then one client's whole onboarding record. */}
+              {/* New client: open intake forms and the Add a client button,
+                  reached from the strip's + chip. */}
               <Route
                 path="/admin/onboarding"
                 element={
@@ -659,62 +604,56 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              {/* Onboarding is one page in two views (?view=setup|management),
-                  so the per-client addresses it used to have redirect into the
-                  setup view with that client selected. Old links, the pillar
-                  lanes and anything bookmarked all still land. */}
+              {/* Retired per-client addresses, each landed on the matching
+                  sub-account page (LegacyClientRedirect). */}
+              <Route path="/admin/clients/:id" element={
+                  <AdminRoute roles={["owner"]} bare>
+                    <LegacyClientRedirect page="management" />
+                  </AdminRoute>
+                } />
+              <Route path="/admin/ads" element={
+                  <AdminRoute roles={["owner"]} bare>
+                    <LegacyClientRedirect page="paid-ads" />
+                  </AdminRoute>
+                } />
+              <Route path="/admin/ads/:tenantId" element={
+                  <AdminRoute roles={["owner"]} bare>
+                    <LegacyClientRedirect page="paid-ads" />
+                  </AdminRoute>
+                } />
+              <Route path="/admin/fulfillment" element={
+                  <AdminRoute roles={["owner"]} bare>
+                    <LegacyClientRedirect />
+                  </AdminRoute>
+                } />
+              <Route path="/admin/fulfillment/:page" element={
+                  <AdminRoute roles={["owner"]} bare>
+                    <LegacyClientRedirect />
+                  </AdminRoute>
+                } />
+              <Route path="/admin/delivery" element={
+                  <AdminRoute roles={["owner"]} bare>
+                    <LegacyClientRedirect />
+                  </AdminRoute>
+                } />
+              <Route path="/admin/delivery/:tenantId" element={
+                  <AdminRoute roles={["owner"]} bare>
+                    <LegacyClientRedirect />
+                  </AdminRoute>
+                } />
               <Route
                 path="/admin/onboarding/:tenantId/setup"
-                element={<OnboardingClientRedirect />}
+                element={
+                  <AdminRoute roles={["owner"]} bare>
+                    <LegacyClientRedirect page="onboarding" />
+                  </AdminRoute>
+                }
               />
               <Route
                 path="/admin/onboarding/:tenantId"
-                element={<OnboardingClientRedirect />}
-              />
-
-              {/* Retired admin surfaces (SOPs, Onboarding, Build, Plans, Assets,
-                  Messages, Infrastructure, standalone Tasks) are gone; their
-                  work now lives inside the pillar tab bars. Old URLs fall
-                  through to RootRedirect below. */}
-              {/* Service Delivery > Paid Ads: the old standalone ad tracker
-                  is retired, replaced by the Fulfillment Paid Ads page. */}
-              <Route
-                path="/admin/ads"
-                element={<Navigate to="/admin/fulfillment/paid-ads" replace />}
-              />
-              <Route
-                path="/admin/ads/:clientId"
-                element={<Navigate to="/admin/fulfillment/paid-ads" replace />}
-              />
-
-              {/* Fulfillment: one route per service page. The client is a
-                  picker on the page (?client=), not part of the address, so
-                  switching client keeps you on the page you were reading. */}
-              <Route
-                path="/admin/fulfillment"
-                element={<Navigate to={`/admin/fulfillment/${DEFAULT_FULFILLMENT_PAGE}`} replace />}
-              />
-              <Route
-                path="/admin/fulfillment/:page"
                 element={
-                  <AdminRoute roles={["owner"]}>
-                    <FulfillmentPage />
-                  </AdminRoute>
-                }
-              />
-              {/* The roster landing and the per-client cockpit it fed. */}
-              <Route
-                path="/admin/delivery"
-                element={<Navigate to={`/admin/fulfillment/${DEFAULT_FULFILLMENT_PAGE}`} replace />}
-              />
-              <Route path="/admin/delivery/:tenantId" element={<DeliveryCockpitRedirect />} />
-              {/* Fulfillment > Onboarding: standing a new client up. The
-                  roster, then one client's whole onboarding record. */}
-              <Route
-                path="/admin/onboarding"
-                element={
-                  <AdminRoute roles={["owner"]}>
-                    <AdminOnboarding />
+                  <AdminRoute roles={["owner"]} bare>
+                    <LegacyClientRedirect page="onboarding" />
                   </AdminRoute>
                 }
               />

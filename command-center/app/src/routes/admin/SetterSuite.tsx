@@ -113,12 +113,16 @@ function initialSetterView(): SetterView {
 // The client picker sits ABOVE the tab switcher on purpose: one client
 // selection drives all three tabs, so the inbox can never be showing one client
 // while the pipeline shows another. Switching client keeps the open tab.
-export default function SetterSuite() {
+//
+// Inside a client's sub-account (/admin/client/:id/setter) the suite is handed
+// that client as lockedTenantId and its own picker goes: the strip already
+// chose. The caller keys it on the id, so a chip click starts it fresh.
+export default function SetterSuite({ lockedTenantId }: { lockedTenantId?: string } = {}) {
   const clientsQuery = useAdminClientsQuery(true);
   const clients = clientsQuery.data?.clients ?? [];
 
   const [tenantId, setTenantId] = useState<string | null>(null);
-  const activeTenantId = tenantId ?? clients[0]?.id ?? null;
+  const activeTenantId = lockedTenantId ?? tenantId ?? clients[0]?.id ?? null;
   const activeClient = clients.find((c) => c.id === activeTenantId) ?? null;
 
   // A phone gets the dialing surfaces only, and the docked cockpit becomes a
@@ -331,7 +335,7 @@ export default function SetterSuite() {
             <span className="setter-scriptlabel">Dialing script</span>
           </button>
 
-          {clients.length > 0 && (
+          {!lockedTenantId && clients.length > 0 && (
             <ClientPicker clients={clients} activeId={activeTenantId} onSelect={selectClient} />
           )}
         </div>

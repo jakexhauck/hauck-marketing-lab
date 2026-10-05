@@ -13,6 +13,7 @@ import WizardField from "../../components/admin/onboarding/WizardField";
 import WizardSteps from "../../components/admin/onboarding/WizardSteps";
 import { useAdminClientCreate } from "../../hooks/useApi";
 import type { AdminClientCreated } from "../../lib/api";
+import { clientPath } from "../../lib/clientNav";
 import {
   DEFAULT_VALUES,
   ONBOARDING_FIELDS,
@@ -215,10 +216,10 @@ export default function AdminClientNew() {
     <DesktopPage
       title="New client"
       actions={
-        <Link to="/admin/delivery">
+        <Link to="/admin/onboarding">
           <Button variant="ghost" size="sm">
             <ArrowLeft size={15} aria-hidden />
-            Back to Fulfillment
+            Back
           </Button>
         </Link>
       }
@@ -371,7 +372,7 @@ function Created({
         </p>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <Link to={`/admin/onboarding/${result.id}`}>
+          <Link to={clientPath(result.id, "onboarding")}>
             <Button variant="primary">
               Open their onboarding record
               <ArrowRight size={15} aria-hidden />

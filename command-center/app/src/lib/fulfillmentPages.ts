@@ -1,6 +1,8 @@
-// Pure config + helpers for the Fulfillment service pages
-// (/admin/fulfillment/:page). Replaces lib/deliveryCockpit.ts, which modelled
-// the same eight services as tabs on one per-client page.
+// Pure config + helpers for the per-client service pages. Since the client
+// strip (2026-10-05) these render inside a client's sub-account
+// (lib/clientNav.ts owns the rows and addresses); this file keeps the services,
+// their sub-pages and the connect gates. Historical notes below describe the
+// Fulfillment pages that came first.
 //
 // The inversion this file encodes: the SERVICE is the page and the CLIENT is a
 // control on it. Previously the client was the address (/admin/delivery/:id)
@@ -90,28 +92,6 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
 // and every retired Fulfillment URL lands.
 export const DEFAULT_FULFILLMENT_PAGE: FulfillmentPageId = "software";
 
-// The rail order under Fulfillment. Onboarding leads: a client is stood up
-// before anything is delivered to them. The Setter Suite sits in the same list
-// rather than below a rule, because working a client's leads is the same job as
-// the rest of this, even though it (like Onboarding) carries its own client
-// list instead of reading the page picker.
-export interface FulfillmentNavRow {
-  to: string;
-  label: string;
-}
-
-export const FULFILLMENT_NAV: FulfillmentNavRow[] = [
-  { to: "/admin/onboarding", label: "Onboarding" },
-  { to: "/admin/fulfillment/software", label: "Software" },
-  { to: "/admin/fulfillment/paid-ads", label: "Paid Ads" },
-  { to: "/admin/fulfillment/ghl", label: "GHL" },
-  { to: "/admin/setter", label: "Setter Suite" },
-  { to: "/admin/fulfillment/management", label: "Management" },
-];
-
-// Where Fulfillment opens when the pillar row itself is clicked.
-export const FULFILLMENT_HOME = FULFILLMENT_NAV[0].to;
-
 // Retired service tabs, mapped to where their work went. Keeps every old
 // /admin/delivery/:tenantId?tab= link landing somewhere true rather than on a
 // page that no longer exists.
@@ -138,28 +118,9 @@ export function isFulfillmentPage(id: string | null | undefined): id is Fulfillm
   return !!id && BY_ID.has(id);
 }
 
-// The page def for an id, or null when the id is unknown (a typed URL).
-export function getFulfillmentPage(
-  id: string | null | undefined,
-): FulfillmentPageDef | null {
-  return id ? (BY_ID.get(id) ?? null) : null;
-}
-
 // The sub-tabs for a page, or [] when it has none.
 export function subTabsFor(page: string | null | undefined): SubTabDef[] {
-  return getFulfillmentPage(page)?.subTabs ?? [];
-}
-
-// Resolve a raw ?sub= value against a page. Returns the first sub-tab id when
-// the given one is invalid, or null when the page has none.
-export function resolveSubTab(
-  page: string | null | undefined,
-  param: string | null | undefined,
-): string | null {
-  const subs = subTabsFor(page);
-  if (subs.length === 0) return null;
-  if (param && subs.some((s) => s.id === param)) return param;
-  return subs[0].id;
+  return (page ? BY_ID.get(page)?.subTabs : undefined) ?? [];
 }
 
 // The setup step a client lands on while their ads are not wired.
@@ -199,33 +160,6 @@ export function ghlSubTabs(subs: SubTabDef[], ghlConnected: boolean): SubTabDef[
   if (ghlConnected) return subs;
   const kept = subs.filter((s) => s.id === "conversion-assets");
   return [{ id: GHL_SETUP_SUB, label: "Connect GHL", ready: true }, ...kept];
-}
-
-// Keep a ?sub= inside whatever is actually on offer. A link to the Dashboard of
-// a client whose ads are not wired lands on the wizard rather than on a page
-// that is not in the row above it.
-export function resolveGatedSubTab(
-  subs: SubTabDef[],
-  param: string | null | undefined,
-): string | null {
-  if (subs.length === 0) return null;
-  if (param && subs.some((s) => s.id === param)) return param;
-  return subs[0].id;
-}
-
-// Build a link to a page. Every link into Fulfillment goes through here (the
-// sidebar, the redirects, the picker), so the client and sub-tab params can
-// never be spelled two different ways.
-export function fulfillmentPath(
-  page: FulfillmentPageId,
-  clientId?: string | null,
-  sub?: string | null,
-): string {
-  const params = new URLSearchParams();
-  if (clientId) params.set("client", clientId);
-  if (sub) params.set("sub", sub);
-  const q = params.toString();
-  return `/admin/fulfillment/${page}${q ? `?${q}` : ""}`;
 }
 
 // The "coming soon" copy for a not-yet-built surface.

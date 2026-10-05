@@ -1,8 +1,7 @@
-import { Fragment, createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { Fragment, createContext, useContext, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { NavLink, useLocation, useSearchParams } from "react-router-dom";
 import {
   LayoutGrid,
-  Megaphone,
   ClipboardList,
   MessageSquare,
   PhoneCall,
@@ -16,15 +15,16 @@ import {
   Target,
   SquareKanban,
   ChartColumn,
-  AppWindow,
-  Workflow,
-  UserPlus,
-  Briefcase,
+  Layers,
   type LucideIcon,
   MessagesSquare,
 } from "lucide-react";
 import { resolvePillarTab, type PillarId } from "../../lib/adminPillars";
-import { FULFILLMENT_HOME, FULFILLMENT_NAV } from "../../lib/fulfillmentPages";
+import { clientNavGroups, clientPath, parseClientPath, type ClientNavRow } from "../../lib/clientNav";
+import { useAdminClientsQuery } from "../../hooks/useApi";
+import ClientStrip from "../../components/admin/ClientStrip";
+import ClientSheet from "../../components/admin/ClientSheet";
+import { clientRowIcon } from "../../components/admin/clientRowIcons";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { PillarStyle } from "../../components/pillars/PillarKit";
@@ -34,10 +34,15 @@ import UpdateDialog from "../../components/admin/UpdateDialog";
 // The admin console chrome: a sidebar (the same shape and row treatment as the
 // client app's rail, so the two consoles read as one product) plus each page's
 // own body. Every agency page is an inline row, top of rail to bottom in
-// org-chart order under four DEAD pillar captions (Operations, Acquisition,
-// Sales, Fulfillment): labels only, nothing clickable or expandable. All of
-// them are AGENCY-level surfaces: they describe how Hauck Marketing itself is
-// running.
+// org-chart order under three DEAD pillar captions (Operations, Acquisition,
+// Sales): labels only, nothing clickable or expandable. All of them are
+// AGENCY-level surfaces: they describe how Hauck Marketing itself is running.
+//
+// Client work is not in that list (Jake, 2026-10-05). For an owner, a client
+// strip sits left of the rail (ClientStrip): the Agency chip shows the rows
+// above, a client's chip swaps the whole rail to that client's pages
+// (lib/clientNav), GHL sub-account style. The address says which, so the rail
+// reads it straight off the URL.
 //
 // Below a divider sits the client-work zone. The Setter Suite is not agency
 // work: it is where our setters work a *client's* leads, so for a setter role
@@ -85,18 +90,6 @@ function pillarRow(
   };
 }
 
-// Icons for Fulfillment's rows, keyed by route. FULFILLMENT_NAV carries only
-// {to,label}; the icon is presentation, so it lives here beside the rest of the
-// chrome rather than in the shared config.
-const FULFILLMENT_ROW_ICONS: Record<string, LucideIcon> = {
-  "/admin/onboarding": UserPlus,
-  "/admin/fulfillment/software": AppWindow,
-  "/admin/fulfillment/paid-ads": Megaphone,
-  "/admin/fulfillment/ghl": Workflow,
-  "/admin/setter": PhoneCall,
-  "/admin/fulfillment/management": Briefcase,
-};
-
 // The agency's pages, top of rail to bottom, in org-chart order, with the
 // pillar names back as CAPTIONS (Jake, 2026-08-23). A caption is a label and
 // nothing else: not a link, not a toggle, no chevron and no hover state, so
@@ -138,23 +131,12 @@ const PILLAR_GROUPS: RailGroup[] = [
       pillarRow("Data", "sales", "sales-data", ChartColumn),
     ],
   },
-  {
-    // Fulfillment: real routes, same order lib/fulfillmentPages keeps them in
-    // (Onboarding leads; Setter Suite sits inside the list, not below a rule).
-    caption: "Fulfillment",
-    rows: FULFILLMENT_NAV.map<NavRow>((row) => ({
-      to: row.to,
-      label: row.label,
-      icon: FULFILLMENT_ROW_ICONS[row.to] ?? Megaphone,
-    })),
-  },
 ];
 
 const PILLAR_NAV: NavRow[] = PILLAR_GROUPS.flatMap((group) => group.rows);
 
-// Client-work surfaces, below the divider. Empty for an owner now that the
-// Setter Suite sits inline inside Fulfillment; a setter's whole rail is this
-// one row.
+// Client-work surfaces, below the divider. Empty for an owner, whose client
+// work is behind the strip; a setter's whole rail is this one row.
 const CLIENT_NAV: NavRow[] = [
   { to: "/admin/setter", label: "Setter Suite", icon: PhoneCall, short: "Setter" },
 ];
@@ -202,17 +184,14 @@ export function adminHomeFor(role: AdminRole): string {
 // app launcher at /admin/apps), which is where everything else lives. Settings
 // moves to the header gear rather than taking a bottom slot.
 // Tasks and Inbox sit left because they are the two opened without thinking
-// about it; Clients and Onboarding right, Onboarding being where Fulfillment
-// always opened. Everything else is one tap away through the hub launcher, so
+// about it; Clients right, then Accounts, the phone's client strip (a sheet,
+// not a page, so it is a button rather than a row here). Everything else is one tap away through the hub launcher, so
 // the bar stays four tabs no matter how long the rail grows.
 const BOTTOM_LEFT: NavRow[] = [
   pillarRow("Tasks", "operations", "tasks", ClipboardList),
   pillarRow("Inbox", "operations", "inbox", MessageSquare),
 ];
-const BOTTOM_RIGHT: NavRow[] = [
-  pillarRow("Clients", "operations", "clients", Users),
-  { to: FULFILLMENT_HOME, label: "Onboarding", icon: UserPlus, short: "Onboard" },
-];
+const BOTTOM_RIGHT: NavRow[] = [pillarRow("Clients", "operations", "clients", Users)];
 
 // Collapsed rail. The whole desktop rail can shrink to an icon column so a wide
 // page (a board, the cockpit) gets the width back. Read through a context rather
@@ -379,6 +358,54 @@ function RailGroupCaption({ caption }: { caption: string }) {
   );
 }
 
+// One row of a client's rail. Same treatment as NavRowLink; active is matched
+// on page AND sub-page, since every Paid Ads row shares the /paid-ads prefix.
+function ClientRowLink({
+  tenantId,
+  row,
+  current,
+}: {
+  tenantId: string;
+  row: ClientNavRow;
+  current: { page: string; sub: string | null };
+}) {
+  const collapsed = useRailCollapsed();
+  const on = current.page === row.page && current.sub === row.sub;
+  const Icon = clientRowIcon(row);
+  return (
+    <NavLink
+      to={clientPath(tenantId, row.page, row.sub)}
+      title={collapsed ? row.label : undefined}
+      aria-label={collapsed ? row.label : undefined}
+      aria-current={on ? "page" : undefined}
+      className={[
+        "group relative mb-0.5 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-[color,background,transform] duration-200",
+        on
+          ? "text-white shadow-[var(--shadow-brand)]"
+          : "text-[var(--text)] hover:translate-x-0.5 hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)]",
+        collapsed ? COLLAPSED_ROW : "",
+      ].join(" ")}
+      style={on ? { backgroundImage: "var(--grad-brand)" } : undefined}
+    >
+      <Icon size={17} className="shrink-0 opacity-80" />
+      {!collapsed && row.label}
+    </NavLink>
+  );
+}
+
+// Inside a client the rail wears that client's colour, the way their chip on
+// the strip does. The derived tokens are re-declared here because a custom
+// property built from var(--brand) is computed where it is declared, not where
+// it is used, so overriding --brand alone would leave the gradient indigo.
+function clientBrandVars(color: string): CSSProperties {
+  return {
+    "--brand": color,
+    "--brand-2": `color-mix(in srgb, ${color} 72%, white)`,
+    "--grad-brand": `linear-gradient(135deg, ${color} 0%, color-mix(in srgb, ${color} 72%, white) 100%)`,
+    "--shadow-brand": `0 8px 22px color-mix(in srgb, ${color} 28%, transparent)`,
+  } as CSSProperties;
+}
+
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { admin, signOut } = useAuth();
   const { resolved, toggle } = useTheme();
@@ -403,6 +430,15 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const bottomLeft = isOwnerAdmin ? BOTTOM_LEFT : [];
   const bottomRight = isOwnerAdmin ? BOTTOM_RIGHT : [];
 
+  // Which sub-account the address is in, if any. Owners only: nobody else has
+  // a strip, and the client routes refuse them anyway.
+  const location = useLocation();
+  const clientCtx = isOwnerAdmin ? parseClientPath(location.pathname) : null;
+  const clientsQuery = useAdminClientsQuery(isOwnerAdmin);
+  const clients = clientsQuery.data?.clients ?? [];
+  const activeClient = clientCtx ? (clients.find((c) => c.id === clientCtx.tenantId) ?? null) : null;
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   return (
     // Desktop (lg+): lock the frame to the available height (h-full resolves
     // against .app-shell, so it already excludes any app-wide banner) and clip
@@ -424,15 +460,25 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <UpdateDialog />
 
       {/* Desktop sidebar (lg+). */}
+      {isOwnerAdmin && <ClientStrip clients={clients} current={clientCtx} agencyHome={nav.home} />}
+
       <RailCollapsed.Provider value={collapsed}>
-      <aside className={`adm-rail hidden lg:flex${collapsed ? " is-collapsed" : ""}`}>
+      <aside
+        className={`adm-rail hidden lg:flex${collapsed ? " is-collapsed" : ""}`}
+        style={activeClient ? clientBrandVars(activeClient.brandColor) : undefined}
+      >
         {/* Brand mark, and the control that shrinks the rail to icons. */}
         <div className="adm-rail-head">
           <NavLink to={nav.home} end className="adm-rail-brand" aria-label="Command home">
             <span className="adm-rail-brand-mark" aria-hidden>
-              H
+              {activeClient ? activeClient.brandInitials || activeClient.name.slice(0, 2).toUpperCase() : "H"}
             </span>
-            {!collapsed && (
+            {!collapsed && activeClient && (
+              <span className="min-w-0 truncate font-display text-[15px] font-semibold leading-tight text-[var(--text)]">
+                {activeClient.name}
+              </span>
+            )}
+            {!collapsed && !activeClient && (
               <span className="min-w-0">
                 <span className="block truncate font-display text-[15px] font-semibold leading-tight text-[var(--text)]">
                   Hauck Admin
@@ -461,7 +507,24 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             column can scroll on a short window and the last row needs
             somewhere to land clear of the pinned footer. */}
         <nav className="flex-1 overflow-y-auto px-3 pb-4 pt-1">
-          {isOwnerAdmin ? (
+          {activeClient && clientCtx ? (
+            // A client's rail: their pages, grouped as lib/clientNav groups
+            // them. Captions for Paid Ads and GHL, a hairline before the rest.
+            clientNavGroups(activeClient).map((group, i) => (
+              <Fragment key={i}>
+                {group.caption && <RailGroupCaption caption={group.caption} />}
+                {group.rule && <div aria-hidden className="mx-3 my-2 border-t border-[var(--border)]" />}
+                {group.rows.map((row) => (
+                  <ClientRowLink
+                    key={`${row.page}/${row.sub ?? ""}`}
+                    tenantId={activeClient.id}
+                    row={row}
+                    current={clientCtx}
+                  />
+                ))}
+              </Fragment>
+            ))
+          ) : isOwnerAdmin ? (
             // The owner's rail reads in pillar groups: a caption, then its
             // rows. Captions are dead labels (RailGroupCaption), so the only
             // things that navigate are the page rows themselves.
@@ -527,10 +590,16 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-20 border-b border-border bg-surface/85 backdrop-blur-xl lg:hidden">
           <div className="flex items-center gap-3 px-4 py-3">
             <NavLink to={nav.home} end className="flex items-center gap-3" aria-label="Command home">
-              <span className="adm-brandmark !h-[26px] !w-[26px] !rounded-[8px] !text-[13px]" aria-hidden>
-                H
+              <span
+                className="adm-brandmark !h-[26px] !w-[26px] !rounded-[8px] !text-[11px]"
+                style={activeClient ? clientBrandVars(activeClient.brandColor) : undefined}
+                aria-hidden
+              >
+                {activeClient ? activeClient.brandInitials || activeClient.name.slice(0, 2).toUpperCase() : "H"}
               </span>
-              <span className="font-display text-[15px] font-semibold tracking-[-0.02em]">Hauck Admin</span>
+              <span className="min-w-0 truncate font-display text-[15px] font-semibold tracking-[-0.02em]">
+                {activeClient ? activeClient.name : "Hauck Admin"}
+              </span>
             </NavLink>
             <div className="ml-auto flex items-center gap-1.5">
               {isOwnerAdmin && (
@@ -615,9 +684,27 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           {bottomRight.map((item) => (
             <BottomTab key={item.to} item={item} />
           ))}
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className={`adm-bottomtab${clientCtx ? " on" : ""}`}
+            aria-haspopup="dialog"
+          >
+            <Layers size={18} className="shrink-0" aria-hidden />
+            <span>Accounts</span>
+          </button>
         </div>
         )}
       </nav>
+
+      {sheetOpen && (
+        <ClientSheet
+          clients={clients}
+          current={clientCtx}
+          agencyHome={nav.home}
+          onClose={() => setSheetOpen(false)}
+        />
+      )}
     </div>
   );
 }
