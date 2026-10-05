@@ -121,3 +121,76 @@ There's no strip on the phone. The bottom bar's Onboarding tab becomes a **Clien
 - `RELEASES` entry in `releaseNotes.ts` (admin-facing change).
 - Update `blueprint/index.html` NODES and GAPS.
 - Delete the mockup folder and `git rm` this plan in the shipping commit.
+
+---
+
+# Implementation plan
+
+Spec approved by Jake 2026-10-05 ("go ahead and start building"). Executed natively in worktree `../hml-client-strip`, branch `feat/client-strip`.
+
+**Architecture:** one pure module (`lib/clientNav.ts`) owns the client rows, addresses, gates, switching and legacy mapping, fully unit tested. The UI (strip, rail, client page, phone sheet) only reads from it. The existing service bodies (PaidAdsTab, GhlTab, SoftwareTab, ManagementTab, ClientWizard, SetterSuite) are reused untouched apart from two small props.
+
+**Tech:** React 18 + react-router 6, Tailwind, vitest. Run everything from `command-center/app`.
+
+## Global constraints
+
+- No em dashes anywhere. No sub-text under headings. Labels are nouns.
+- Never name GoHighLevel in client-facing UI (admin only here, "GHL" is fine).
+- Owner role only for the strip and client view. Setter and cold caller rails unchanged.
+- Release note in `releaseNotes.ts` in the shipping commit.
+
+## Review focus
+
+1. A client id in the address that no longer exists: lands on Agency home, not a blank page.
+2. A gated page typed directly (AAG `/paid-ads/dashboard` with no ad account): redirects to Connect ads.
+3. Old `/admin/fulfillment/paid-ads?client=X&sub=leads` bookmarks: land on X's Lead Tracker.
+4. Agency view with zero clients: strip shows Agency and + only, nothing breaks.
+5. Switching client while on Connect ads to a linked client: lands on Dashboard, not a missing page.
+
+## Task 1: `lib/clientNav.ts` (pure model) + tests
+
+Files: create `src/lib/clientNav.ts`, `src/lib/clientNav.test.ts`.
+
+Produces:
+- `type ClientPageId = "onboarding" | "software" | "paid-ads" | "ghl" | "setter" | "management"`
+- `interface ClientGateInfo { metaAdAccountId: string | null; ghlConnected: boolean; onboardingStatus?: "setup" | "live" }`
+- `interface ClientNavRow { page: ClientPageId; sub: string | null; label: string }`
+- `interface ClientNavGroup { caption: string | null; rule?: boolean; rows: ClientNavRow[] }`
+- `clientNavGroups(c: ClientGateInfo): ClientNavGroup[]` (Onboarding, Software / PAID ADS gated / GHL gated / rule: Setter Suite, Management)
+- `clientPath(tenantId, page, sub?) => "/admin/client/<id>/<page>[/<sub>]"`
+- `parseClientPath(pathname) => { tenantId, page, sub } | null`
+- `resolveClientPage(c, page, sub) => { page, sub } | null` (null = unknown page; gated or missing sub = first offered sub of that group)
+- `switchTarget(from: {page, sub} | null, to: ClientGateInfo & {id}) => string` (same page and sub if offered, else first row of group; from agency: setup -> onboarding, live -> paid-ads)
+- `legacyClientPath(page: string | null, sub: string | null, tenantId) => string` (maps old fulfillment page ids and retired tabs)
+
+Tests: rows per gate state (4 combinations), path round-trip, unknown page null, gated sub redirect, switch rules (client to client same page, gated fallback, agency setup/live), legacy mapping (software, paid-ads+sub, billing to management, overview to software, onboarding).
+
+## Task 2: `ClientPage` route body
+
+Files: create `src/routes/admin/ClientPage.tsx`; modify `src/App.tsx` (new route `/admin/client/:tenantId/:page/:sub?`, owner only).
+
+Reads params, loads `useAdminClientsQuery`, finds the client (missing = Navigate to owner home), runs `resolveClientPage` (redirect when canonical differs), writes `writeStoredClient`, renders the body (the old `PageBody` switch plus `onboarding` and `setter`) with an Enter live app button top right. `onSelectSub` navigates to `clientPath`.
+
+## Task 3: Onboarding split
+
+Files: create `src/components/admin/onboarding/ClientOnboarding.tsx` (one client's ClientWizard + Stepper/Scroll toggle + delete); modify `OnboardingWizard.tsx` to list only pending forms; modify `AdminOnboarding.tsx` title to "New client".
+
+## Task 4: Setter Suite locked to a client
+
+Files: modify `src/routes/admin/SetterSuite.tsx`: optional `lockedTenantId` prop; when set, the picker is hidden and `activeTenantId = lockedTenantId`. ClientPage renders it with `key={tenantId}`.
+
+## Task 5: Client strip + rail swap
+
+Files: create `src/components/admin/ClientStrip.tsx`; modify `src/routes/admin/AdminLayout.tsx` (owner: strip left of rail; rail rows from `clientNavGroups` when `parseClientPath` matches, else PILLAR_GROUPS without Fulfillment; header shows client name; client rows active by page+sub).
+
+## Task 6: Redirects and cleanup
+
+Files: modify `src/App.tsx`: `/admin/fulfillment[/:page]`, `/admin/delivery[/:id]`, `/admin/onboarding/:id[/setup]`, `/admin/clients/:id` all redirect via `legacyClientPath` + `resolveSelectedClient`; remove duplicate route blocks. Modify `lib/fulfillmentPages.ts` (drop `FULFILLMENT_NAV`, `FULFILLMENT_HOME`, `fulfillmentPath`) and its test. Delete `FulfillmentPage.tsx`, `components/admin/ClientPicker.tsx`. Fix `AdminClientNew.tsx` links (`/admin/onboarding/${id}` -> `clientPath(id, "onboarding")`, `/admin/delivery` -> Clients).
+
+## Task 7: Phone
+
+Files: create `src/components/admin/ClientSheet.tsx`; modify `AdminLayout.tsx` bottom bar: the Onboarding tab becomes a Clients button opening the sheet (Agency, clients; a picked client shows its grouped rows as links).
+
+## Task 8: Ship
+
+Release note, blueprint NODES/GAPS, typecheck, vitest, build, merge to main, push, watch CF deploy, smoke the live URL, delete mockup folder and `git rm` this doc.
