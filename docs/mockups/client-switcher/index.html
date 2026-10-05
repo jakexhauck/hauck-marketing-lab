@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Client Switcher Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<style>
+  :root{
+    --brand:#4f46e5;
+    --bg:#f6f7fb; --surface:#ffffff; --surface-2:#f1f3f9; --surface-3:#e9ebf3;
+    --text:#14161f; --text-muted:#555a6b; --text-faint:#8a90a3;
+    --border:#e7e9f1; --border-strong:#d4d8e6;
+    --rail:rgba(255,255,255,0.60); --rail-border:rgba(120,115,160,0.16);
+    --menu-shadow:0 18px 50px rgba(20,22,40,.16), 0 2px 6px rgba(20,22,40,.06);
+    --font-display:"Poppins","Inter",system-ui,sans-serif; --font-body:"Inter",system-ui,sans-serif;
+  }
+  [data-theme="dark"]{
+    --bg:#0c0d14; --surface:#15161f; --surface-2:#1c1d28; --surface-3:#232536;
+    --text:#f4f4fb; --text-muted:#a8adc0; --text-faint:#6b7088;
+    --border:#262837; --border-strong:#34374a;
+    --rail:rgba(18,22,31,0.55); --rail-border:rgba(255,255,255,0.07);
+    --menu-shadow:0 18px 50px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.3);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+  .grad{background-image:linear-gradient(135deg,var(--c) 0%,color-mix(in srgb,var(--c) 72%,white) 100%)}
+  .shadow-c{box-shadow:0 8px 22px color-mix(in srgb,var(--c) 28%,transparent)}
+
+  /* Mockup chrome (not part of the app) */
+  .mock-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#14161f;color:#fff;font-size:12.5px;flex-shrink:0;flex-wrap:wrap}
+  .mock-bar b{font-family:var(--font-display);font-weight:600;font-size:13px;margin-right:6px}
+  .mock-seg{display:flex;background:rgba(255,255,255,.08);border-radius:9px;padding:3px}
+  .mock-seg button{padding:5px 12px;border-radius:7px;color:rgba(255,255,255,.7);font-size:12.5px;font-weight:500}
+  .mock-seg button.on{background:#fff;color:#14161f}
+  .mock-spacer{flex:1}
+
+  .frame{flex:1;display:flex;min-height:0}
+
+  /* Rail */
+  .rail{width:244px;flex-shrink:0;display:flex;flex-direction:column;background:var(--rail);backdrop-filter:blur(18px) saturate(1.4);border-right:1px solid var(--rail-border);transition:width .18s ease;position:relative}
+  .rail.collapsed{width:68px}
+  .head{display:flex;align-items:center;gap:6px;padding:16px 10px 16px 16px}
+  .rail.collapsed .head{flex-direction:column;gap:10px;padding:16px 0 14px}
+  .mark{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:grid;place-items:center;color:#fff;font-family:var(--font-display);font-weight:700;font-size:14px}
+  .brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+  .rail.collapsed .brand{flex:0 0 auto}
+  .brand-name{font-family:var(--font-display);font-size:15px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .collapse{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--text-faint);flex-shrink:0}
+  .collapse:hover{color:var(--text);background:color-mix(in srgb,var(--surface) 72%,transparent)}
+
+  nav.rows{flex:1;overflow-y:auto;padding:4px 12px 16px}
+  .cap{padding:12px 12px 4px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);user-select:none}
+  .rail.collapsed .cap{padding:0;margin:8px 12px;border-top:1px solid var(--border);height:0;overflow:hidden}
+  .row{display:flex;align-items:center;gap:12px;width:100%;margin-bottom:2px;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:500;text-align:left;transition:background .2s,transform .2s,color .2s}
+  .row:hover{transform:translateX(2px);background-color:color-mix(in srgb,var(--surface) 72%,transparent)}
+  .row.on{color:#fff}
+  .row.on:hover{transform:none;background-color:transparent}
+  .row svg{width:17px;height:17px;opacity:.8;flex-shrink:0}
+  .rail.collapsed .row{justify-content:center;padding:10px 0}
+  .rail.collapsed .row:hover{transform:none}
+  .rail.collapsed .label{display:none}
+
+  .foot{border-top:1px solid var(--border);padding:12px}
+  .foot .row{font-size:13px}
+
+  /* Client strip: an always-visible strip of client chips left of the rail */
+  .strip{width:64px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 0;background:var(--surface);border-right:1px solid var(--rail-border)}
+  .chip{position:relative;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#fff;font-family:var(--font-display);font-weight:700;font-size:14px;transition:border-radius .18s,transform .18s}
+  .chip:hover{border-radius:14px;transform:translateY(-1px)}
+  .chip.on::before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:4px;border-radius:0 4px 4px 0;background:var(--text)}
+  .chip.agency{background:var(--surface-2);color:var(--text)}
+  .chip.agency.on{color:#fff}
+  .chip.add{background:none;border:1.5px dashed var(--border-strong);color:var(--text-faint)}
+  .strip hr{width:28px;border:0;border-top:1px solid var(--border);margin:2px 0}
+  .tip{position:absolute;left:52px;top:50%;transform:translateY(-50%);background:#14161f;color:#fff;font-family:var(--font-body);font-weight:500;font-size:12px;padding:5px 9px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:40}
+  .chip:hover .tip{opacity:1}
+
+
+  /* Content */
+  main{flex:1;min-width:0;overflow:auto;padding:28px 36px}
+  .crumb{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-faint);margin-bottom:6px}
+  .crumb .dot{width:8px;height:8px;border-radius:3px}
+  h1{font-family:var(--font-display);font-weight:600;font-size:24px;margin:0 0 22px;letter-spacing:-.01em}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;min-height:96px}
+  .card.tall{min-height:280px}
+  .bar{height:9px;border-radius:5px;background:var(--surface-2);margin-bottom:10px}
+  .bar.w40{width:40%}.bar.w60{width:60%}.bar.w80{width:80%}.bar.big{height:22px;width:55%;margin-top:14px}
+  .wide{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+</style>
+</head>
+<body>
+
+<div class="mock-bar">
+  <b>Mockup · Client strip</b>
+  <div class="mock-spacer"></div>
+  <div class="mock-seg" id="themeSeg">
+    <button data-t="light" class="on">Light</button>
+    <button data-t="dark">Dark</button>
+  </div>
+</div>
+
+<div class="frame" id="frame"></div>
+
+<script>
+const CLIENTS = [
+  { id: "mb",  name: "Made Better LC",           initials: "MB", color: "#16a34a", adsLinked: true },
+  { id: "ww",  name: "Willis Windows",           initials: "WW", color: "#0284c7", adsLinked: true },
+  { id: "aag", name: "Above All Garage Doors",   initials: "AG", color: "#dc2626", adsLinked: false },
+];
+const AGENCY = { id: "agency", name: "Hauck Marketing", initials: "H", color: "#4f46e5" };
+
+const AGENCY_NAV = [
+  { cap: "Operations", rows: [["Tasks","clipboard-list"],["Inbox","message-square"],["Clients","users"]] },
+  { cap: "Acquisition", rows: [["Leads","target"],["Cold Call","phone-call"],["Cold SMS","messages-square"]] },
+  { cap: "Sales", rows: [["Pipeline","square-kanban"],["Data","chart-column"]] },
+];
+
+function clientNav(c) {
+  const paid = c.adsLinked
+    ? [["Dashboard","layout-dashboard"],["Lead Tracker","list-checks"],["Meta Data","database"],["Creatives","image"],["Ad Builder","pen-line"]]
+    : [["Connect ads","plug"],["Creatives","image"],["Ad Builder","pen-line"]];
+  return [
+    { cap: null, rows: [["Onboarding","user-plus"],["Software","app-window"]] },
+    { cap: "Paid Ads", rows: paid },
+    { cap: "GHL", rows: [["Conversion Assets","sparkles"],["Calendars","calendar-days"]] },
+    { cap: "", rows: [["Setter Suite","phone-call"],["Management","briefcase"]] },
+  ];
+}
+
+const state = { theme: "light", ctx: "ww", page: "Dashboard", collapsed: false };
+const ctxObj = () => state.ctx === "agency" ? AGENCY : CLIENTS.find(c => c.id === state.ctx);
+const navFor = () => state.ctx === "agency" ? AGENCY_NAV : clientNav(ctxObj());
+const firstPage = () => navFor()[0].rows[0][0];
+
+function mark(o, cls = "") {
+  const isAgency = o.id === "agency";
+  return `<span class="mark ${cls} grad shadow-c" style="--c:${o.color}">${o.initials}</span>`;
+}
+
+function rowsHtml() {
+  const c = ctxObj();
+  return navFor().map(g => `${g.cap ? `<div class="cap">${g.cap}</div>` : g.cap === "" ? `<div class="cap" style="padding:0;margin:10px 12px;border-top:1px solid var(--border);height:0"></div>` : ""}${g.rows.map(([label, icon]) => {
+    const on = label === state.page;
+    return `<button class="row ${on ? "on grad shadow-c" : ""}" style="--c:${c.color}" data-page="${label}" title="${state.collapsed ? label : ""}"><i data-lucide="${icon}"></i><span class="label">${label}</span></button>`;
+  }).join("")}`).join("");
+}
+
+function footHtml() {
+  return `<div class="foot">
+    <button class="row"><i data-lucide="users"></i><span class="label">Team</span></button>
+    <button class="row"><i data-lucide="settings"></i><span class="label">Settings</span></button>
+    <button class="row" id="themeRow"><i data-lucide="${state.theme === "light" ? "moon" : "sun"}"></i><span class="label">${state.theme === "light" ? "Dark mode" : "Light mode"}</span></button>
+  </div>`;
+}
+
+const collapseBtn = () => `<button class="collapse" id="collapse" aria-label="Collapse sidebar"><i data-lucide="${state.collapsed ? "panel-left-open" : "panel-left-close"}" style="width:16px;height:16px"></i></button>`;
+
+function railHtml() {
+  const o = ctxObj();
+  const top = `<div class="head"><div class="brand">${state.collapsed ? mark(o) : `<span class="brand-name">${state.ctx === "agency" ? "Hauck Admin" : o.name}</span>`}</div>${collapseBtn()}</div>`;
+  return `<aside class="rail ${state.collapsed ? "collapsed" : ""}" id="rail">${top}<nav class="rows">${rowsHtml()}</nav>${footHtml()}</aside>`;
+}
+
+function stripHtml() {
+  const chip = (o, extra = "") => `<button class="chip grad ${state.ctx === o.id ? "on shadow-c" : ""} ${extra}" style="--c:${o.color}" data-ctx="${o.id}">${o.initials}<span class="tip">${o.id === "agency" ? "Agency view" : o.name}</span></button>`;
+  return `<div class="strip">${chip(AGENCY)}<hr>${CLIENTS.map(c => chip(c)).join("")}<button class="chip add" data-new><i data-lucide="plus" style="width:16px;height:16px"></i><span class="tip">New client</span></button></div>`;
+}
+
+function contentHtml() {
+  const o = ctxObj();
+  const crumb = state.ctx === "agency" ? "" : `<div class="crumb"><span class="dot" style="background:${o.color}"></span>${o.name}</div>`;
+  const kpi = `<div class="card"><div class="bar w40"></div><div class="bar big"></div></div>`;
+  return `<main>${crumb}<h1>${state.page}</h1>
+    <div class="grid">${kpi}${kpi}${kpi}${kpi}</div>
+    <div class="wide"><div class="card tall"><div class="bar w60"></div><div class="bar w80"></div><div class="bar w40"></div></div><div class="card tall"><div class="bar w60"></div><div class="bar w40"></div></div></div>
+  </main>`;
+}
+
+function render() {
+  document.documentElement.dataset.theme = state.theme;
+  const frame = document.getElementById("frame");
+  frame.innerHTML = stripHtml() + railHtml() + contentHtml();
+  lucide.createIcons();
+}
+
+document.addEventListener("click", e => {
+  const t = e.target;
+  const tb = t.closest("[data-t]"); if (tb) { state.theme = tb.dataset.t; seg("themeSeg", "t", state.theme); return render(); }
+  if (t.closest("#themeRow")) { state.theme = state.theme === "light" ? "dark" : "light"; seg("themeSeg", "t", state.theme); return render(); }
+  if (t.closest("#collapse")) { state.collapsed = !state.collapsed; return render(); }
+  const cx = t.closest("[data-ctx]");
+  if (cx) { state.ctx = cx.dataset.ctx; state.page = firstPage(); return render(); }
+  if (t.closest("[data-new]")) { state.ctx = "agency"; state.page = "New client"; return render(); }
+  const pg = t.closest("[data-page]"); if (pg) { state.page = pg.dataset.page; return render(); }
+});
+
+function seg(id, key, val) {
+  document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle("on", b.dataset[key] === val));
+}
+
+render();
+</script>
+</body>
+</html>
