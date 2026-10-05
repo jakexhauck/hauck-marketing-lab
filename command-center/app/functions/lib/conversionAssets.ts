@@ -682,13 +682,22 @@ export function emptyConversionAsset(tenantId: string, kind: AssetKind): Convers
   };
 }
 
+// The owner story books into the client's own offer calendar, a separate GHL
+// calendar from the one Recent Work uses. A booking landing there is how the
+// agency knows the lead came for the 10% off, so the two must never share.
+export function usesOfferCalendar(kind: AssetKind | ""): boolean {
+  return kind === "owner-story";
+}
+
 // What a second asset for the same client inherits from one already filled in.
 // The look, the logo, the appointment and the calendar are settled once per
 // client, and asking again is asking Jake to repeat himself.
 //
 // Deliberately NOT carried: the kind, the slug, and every content field. Those
-// are the entire difference between the three.
-export function carryForward(from: ConversionAsset): Partial<ConversionAsset> {
+// are the entire difference between the three. The calendar crosses only
+// between pages on the same side of the offer line.
+export function carryForward(from: ConversionAsset, to: AssetKind): Partial<ConversionAsset> {
+  const sameCalendar = usesOfferCalendar(from.kind) === usesOfferCalendar(to);
   return {
     designSource: from.designSource,
     designRef: from.designRef,
@@ -698,7 +707,7 @@ export function carryForward(from: ConversionAsset): Partial<ConversionAsset> {
     logoUrl: from.logoUrl,
     ownerName: from.ownerName,
     appointmentType: from.appointmentType,
-    calendarEmbed: from.calendarEmbed,
+    calendarEmbed: sameCalendar ? from.calendarEmbed : "",
   };
 }
 

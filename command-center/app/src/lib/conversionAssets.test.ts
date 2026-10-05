@@ -5,6 +5,7 @@ import {
   DEFAULT_COUPON_OFFER,
   JOB_CAP,
   asksForBooking,
+  carryForward,
   cleanJobs,
   cleanReviews,
   cleanTrust,
@@ -178,5 +179,27 @@ describe("cleaners", () => {
     expect(cleanTrust(undefined).licensed).toBe(false);
     expect(cleanTrust({ licensed: "yes" }).licensed).toBe(false);
     expect(cleanTrust({ licensed: true }).licensed).toBe(true);
+  });
+});
+
+describe("carrying one asset's answers into the next", () => {
+  const embed = '<iframe src="https://x/widget/booking/normal"></iframe>';
+
+  it("hands the normal calendar from Recent Work to nothing but another normal page", () => {
+    const from = asset("recent-work", { calendarEmbed: embed, appointmentType: "Estimate" });
+    expect(carryForward(from, "recent-work").calendarEmbed).toBe(embed);
+    expect(carryForward(from, "owner-story").calendarEmbed).toBe("");
+  });
+
+  it("never lends the offer calendar to Recent Work", () => {
+    const from = asset("owner-story", { calendarEmbed: embed });
+    expect(carryForward(from, "recent-work").calendarEmbed).toBe("");
+  });
+
+  it("still carries the look and the appointment either way", () => {
+    const from = asset("recent-work", { logoUrl: "https://x/l.png", appointmentType: "Estimate" });
+    const next = carryForward(from, "owner-story");
+    expect(next.logoUrl).toBe("https://x/l.png");
+    expect(next.appointmentType).toBe("Estimate");
   });
 });

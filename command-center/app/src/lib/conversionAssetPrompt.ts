@@ -23,6 +23,7 @@ import {
   DESIGN_SOURCE_LABELS,
   JOB_CAP,
   asksForBooking,
+  usesOfferCalendar,
   contentIsComplete,
   hasOwnerMedia,
   hasTrust,
@@ -227,6 +228,14 @@ export function buildPrompt(
       lines.push("Drop this calendar embed into the page exactly as it is, unedited:");
       lines.push("");
       for (const line of asset.calendarEmbed.split("\n")) lines.push(`    ${line}`);
+      if (kind && usesOfferCalendar(kind)) {
+        lines.push("");
+        lines.push(
+          "This is the client's offer calendar, a different calendar from the one " +
+            "on the Recent Work page. Bookings landing on it are how the agency knows " +
+            "the lead came for the gift, so never swap in the other embed.",
+        );
+      }
     } else {
       lines.push(
         `Calendar embed: ${NOT_ANSWERED}. Leave a clearly marked placeholder ` +

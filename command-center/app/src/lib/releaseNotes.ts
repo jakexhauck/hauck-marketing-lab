@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-05-offer-calendar",
+    date: "5 October 2026",
+    title: "Owner Story books into its own calendar",
+    items: [
+      "The Owner Story page now has its own 10% off calendar, separate from Recent Work, so you can see which bookings came for the gift.",
+      "Starting an Owner Story no longer copies the Recent Work calendar. Paste the client's 10% off calendar embed on its Booking step.",
+      "Above All Garage Doors' Meet the Owner page now books into its 10% off calendar.",
+    ],
+  },
+  {
     id: "2026-10-05-client-strip",
     date: "5 October 2026",
     title: "Clients are sub-accounts now",

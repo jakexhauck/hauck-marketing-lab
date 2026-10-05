@@ -32,6 +32,7 @@ import {
   TRUST_FIELDS,
   asksForBooking,
   carryForward,
+  usesOfferCalendar,
   emptyConversionAsset,
   jobIsWhole,
   needsColors,
@@ -131,7 +132,7 @@ export default function ConversionAssetPanel({
     const sibling = assets.find((a) => a.kind && a.designSource);
     setDraft({
       ...emptyConversionAsset(tenantId, kind),
-      ...(sibling ? carryForward(sibling) : {}),
+      ...(sibling ? carryForward(sibling, kind) : {}),
     });
     setStepIdx(0);
     setError(null);
@@ -1251,7 +1252,9 @@ function BookingStep({
       </div>
 
       <div>
-        <SectionLabel>GHL calendar embed</SectionLabel>
+        <SectionLabel>
+          {usesOfferCalendar(draft.kind) ? `${draft.couponOffer || "Offer"} calendar embed` : "GHL calendar embed"}
+        </SectionLabel>
         <BlockInput
           value={draft.calendarEmbed}
           onChange={(v) => patch({ calendarEmbed: v })}
