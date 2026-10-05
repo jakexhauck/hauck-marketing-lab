@@ -11,9 +11,9 @@ import { formatMoney } from "../../../lib/coldSms";
 import type { ColdSmsBudgetRow } from "../../../lib/api";
 
 // Cold SMS > SMS Budget, the last table on the Cold SMS page (Jake,
-// 2026-10-05: inline, "very easy to look at"). Three blue cells, one big
-// estimated monthly cost, the cost lines in one strip, and what Monthly says
-// was actually spent. Everything else (percentages and prices) is folded away
+// 2026-10-05: inline, "very easy to look at", then "horizontal"). One band:
+// three blue cells, the big estimated monthly cost, the cost lines, and what
+// Monthly says was actually spent. Everything else (percentages and prices) is folded away
 // under Rates. Same sheet look as the tables above it.
 //
 // The open month lives in local state and is written whole on blur, so a
@@ -60,7 +60,7 @@ function stepMonth(month: string, delta: number): string {
 function BudgetStyle() {
   return (
     <style>{`
-      .sms-budget { max-width: 760px; max-height: none; border: 1px solid #000000; }
+      .sms-budget { max-height: none; border: 1px solid #000000; }
       .sms-budget .bh {
         display: flex; align-items: center; justify-content: space-between;
         background: #000000; color: #ffffff; font-weight: bold; padding: 6px 10px;
@@ -71,28 +71,28 @@ function BudgetStyle() {
       }
       .sms-budget .bh .mo { display: flex; align-items: center; gap: 4px; }
       .sms-budget .bh .mo span { min-width: 130px; text-align: center; }
-      .sms-budget .row { display: grid; border-top: 1px solid #000000; }
-      .sms-budget .row > div { border-left: 1px solid #000000; padding: 6px 10px; min-width: 0; }
-      .sms-budget .row > div:first-child { border-left: 0; }
-      .sms-budget .lab { font-size: 9pt; color: #434343; }
-      .sms-budget .main { grid-template-columns: repeat(3, 1fr); }
-      .sms-budget .main input {
-        display: block; width: 100%; border: 0; padding: 2px 0 0; margin: 0;
+      /* One horizontal band: inputs, the total, the cost lines, actual. */
+      .sms-budget .band { display: flex; flex-wrap: wrap; border-top: 1px solid #000000; }
+      .sms-budget .band > div {
+        flex: 1 1 96px; min-width: 0; padding: 8px 10px;
+        border-right: 1px solid #000000; display: flex; flex-direction: column; justify-content: center;
+      }
+      .sms-budget .band > div:last-child { border-right: 0; }
+      .sms-budget .band > div.edge { border-right: 2px solid #000000; }
+      .sms-budget .lab { font-size: 9pt; color: #434343; white-space: nowrap; }
+      .sms-budget .v { font-size: 13pt; white-space: nowrap; }
+      .sms-budget .band input {
+        display: block; width: 100%; border: 0; padding: 0; margin: 0;
         background: transparent; color: #2563eb; font: inherit; font-size: 16pt;
       }
       .sms-budget input:focus { outline: 2px solid #1a73e8; outline-offset: 1px; }
-      .sms-budget .total {
-        grid-template-columns: 1fr; background: #d9ead3; text-align: center; padding: 14px 0;
-      }
-      .sms-budget .total .big { font-size: 30pt; font-weight: bold; line-height: 1.1; }
-      .sms-budget .lines { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
-      .sms-budget .lines .v { font-size: 13pt; }
-      .sms-budget .act { grid-template-columns: 1fr 1fr; }
-      .sms-budget .act .v { font-size: 13pt; font-weight: bold; }
+      .sms-budget .band > div.total { flex: 2 1 170px; background: #d9ead3; text-align: center; }
+      .sms-budget .total .big { font-size: 24pt; font-weight: bold; line-height: 1.1; }
+      .sms-budget .strong { font-weight: bold; }
       .sms-budget .neg { color: #cc0000; }
       .sms-budget details { border-top: 1px solid #000000; }
       .sms-budget summary { cursor: pointer; padding: 6px 10px; font-weight: bold; background: #f3f3f3; }
-      .sms-budget .rates { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+      .sms-budget .rates { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
       .sms-budget .rates label {
         display: flex; align-items: center; justify-content: space-between; gap: 8px;
         border-top: 1px solid #e2e3e3; padding: 3px 10px;
@@ -188,39 +188,30 @@ function BudgetMonth({ month, rows }: { month: string; rows: ColdSmsBudgetRow[] 
 
   return (
     <>
-      <div className="row main">
-        {MAIN.map(([key, label]) => (
-          <div key={key}>
+      <div className="band">
+        {MAIN.map(([key, label], i) => (
+          <div key={key} className={i === MAIN.length - 1 ? "edge" : undefined}>
             <div className="lab">{label}</div>
             {field(key, label)}
           </div>
         ))}
-      </div>
-
-      <div className="row total">
-        <div>
+        <div className="total edge">
           <div className="lab">Estimated monthly cost</div>
           <div className="big">{formatMoney(b.total)}</div>
         </div>
-      </div>
-
-      <div className="row lines">
-        {lines.map(([label, value]) => (
-          <div key={label}>
+        {lines.map(([label, value], i) => (
+          <div key={label} className={i === lines.length - 1 ? "edge" : undefined}>
             <div className="lab">{label}</div>
             <div className="v">{formatMoney(value)}</div>
           </div>
         ))}
-      </div>
-
-      <div className="row act">
         <div>
           <div className="lab">Actual so far</div>
-          <div className="v">{formatMoney(actual ?? 0)}</div>
+          <div className="v strong">{formatMoney(actual ?? 0)}</div>
         </div>
         <div>
           <div className="lab">Remaining</div>
-          <div className={`v${remaining < 0 ? " neg" : ""}`}>
+          <div className={`v strong${remaining < 0 ? " neg" : ""}`}>
             {remaining < 0 ? `-${formatMoney(-remaining)}` : formatMoney(remaining)}
           </div>
         </div>

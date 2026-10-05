@@ -106,12 +106,14 @@ export default function SmsScriptSheet() {
   return (
     <div className="sms-sheet">
       <table>
+        {/* Narrower than the sheet's 120/133/100 (Jake, 2026-10-05) so the
+            box fits beside Daily on his 1920px screen. */}
         <colgroup>
-          <col style={{ width: 120 }} />
+          <col style={{ width: 110 }} />
           {slotList.map((slot) => (
-            <col key={slot} style={{ width: 133 }} />
+            <col key={slot} style={{ width: 95 }} />
           ))}
-          <col style={{ width: 100 }} />
+          <col style={{ width: 72 }} />
         </colgroup>
         <tbody>
           {isError && (
