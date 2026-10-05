@@ -3,7 +3,7 @@
 import unittest
 
 from pipeline.db import connect
-from pipeline.lookup import LookupStopped, run_lookups
+from pipeline.lookup import LookupStopped, answer, run_lookups
 
 
 def add(con, phone, keep=1, line=None):
@@ -61,6 +61,21 @@ class Lookups(unittest.TestCase):
             run_lookups(self.con, f, workers=1)
         self.assertEqual(self.line("+1a"), "mobile")
         self.assertIsNone(self.line("+1b"))
+
+
+class Answer(unittest.TestCase):
+    def test_reads_the_line_type(self):
+        body = {"valid": True, "line_type_intelligence": {"type": "mobile", "carrier_name": "Verizon"}}
+        self.assertEqual(answer(body), (200, "mobile", "Verizon"))
+
+    def test_error_inside_a_200_stops(self):
+        # Out of credit: Twilio still says 200, the error is only in the body (60627).
+        body = {"valid": True, "line_type_intelligence": {"type": None, "error_code": 60627}}
+        with self.assertRaises(LookupStopped):
+            answer(body)
+
+    def test_invalid_number(self):
+        self.assertEqual(answer({"valid": False, "line_type_intelligence": None}), (404, None, None))
 
 
 if __name__ == "__main__":

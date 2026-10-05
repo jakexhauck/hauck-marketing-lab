@@ -22,6 +22,22 @@ class LookupStopped(Exception):
     """Twilio refused for a reason retrying will not fix: bad keys, no credit, suspended."""
 
 
+def answer(body):
+    """One Lookup reply as (status, type, carrier).
+
+    Twilio answers 200 even when it could not check the line (60627 = no credit), with
+    the error only inside the body. Saving that as "unknown" burns the number for good,
+    so any error code stops the run instead.
+    """
+    if not body.get("valid", True):
+        return 404, None, None
+    lti = body.get("line_type_intelligence") or {}
+    if lti.get("error_code"):
+        raise LookupStopped(f"Twilio could not check the line, error {lti['error_code']} "
+                            "(60627 = out of credit).")
+    return 200, lti.get("type") or "unknown", lti.get("carrier_name")
+
+
 def twilio_fetcher():
     sid, token = os.environ.get("TWILIO_ACCOUNT_SID"), os.environ.get("TWILIO_AUTH_TOKEN")
     if not sid or not token:
@@ -34,11 +50,7 @@ def twilio_fetcher():
             req = urllib.request.Request(URL.format(phone), headers={"Authorization": auth})
             try:
                 with urllib.request.urlopen(req, timeout=20) as resp:
-                    body = json.loads(resp.read())
-                lti = body.get("line_type_intelligence") or {}
-                if not body.get("valid", True):
-                    return 404, None, None
-                return 200, lti.get("type") or "unknown", lti.get("carrier_name")
+                    return answer(json.loads(resp.read()))
             except urllib.error.HTTPError as e:
                 if e.code == 404:
                     return 404, None, None
