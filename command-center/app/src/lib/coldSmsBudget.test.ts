@@ -12,16 +12,17 @@ describe("computeBudget", () => {
     expect(b.contactsTexted).toBe(11000);
     // 11,000 textable at 75% means 14,667 numbers checked.
     expect(b.lookups).toBe(14667);
-    expect(b.segmentsOut).toBe(55000);
+    // 3 texts at 1.25 segments each.
+    expect(b.segmentsOut).toBe(41250);
     expect(b.segmentsIn).toBeCloseTo(1100);
     expect(b.lines.lookup).toBeCloseTo(117.336);
-    expect(b.lines.texts).toBeCloseTo(434.5);
-    expect(b.lines.carrier).toBeCloseTo(220);
+    expect(b.lines.texts).toBeCloseTo(325.875);
+    expect(b.lines.carrier).toBeCloseTo(165);
     expect(b.lines.replies).toBeCloseTo(8.69);
     expect(b.lines.numbers).toBeCloseTo(1.15);
     expect(b.lines.a2p).toBeCloseTo(1.5);
     expect(b.lines.other).toBe(0);
-    expect(b.total).toBeCloseTo(783.176);
+    expect(b.total).toBeCloseTo(619.551);
   });
 
   it("adds the one-time A2P fee and other monthly costs", () => {

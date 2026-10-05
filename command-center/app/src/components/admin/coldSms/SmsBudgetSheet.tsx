@@ -29,7 +29,8 @@ const MAIN: [BudgetInputKey, string][] = [
 
 const RATES: [BudgetInputKey, string][] = [
   ["textableRate", "Textable %"],
-  ["segmentsPerContact", "Segments per contact"],
+  ["textsPerContact", "Texts per prospect"],
+  ["segmentsPerText", "Segments per text"],
   ["replyRate", "Reply %"],
   ["inboundSegmentsPerReply", "Segments per reply"],
   ["lookupRate", "Twilio Lookup / number"],

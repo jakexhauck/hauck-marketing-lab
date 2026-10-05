@@ -4,8 +4,8 @@
 //
 // The chain: new businesses texted a day x send days = contacts texted. To
 // find that many textable numbers, contacts / textable % go through Twilio
-// Lookup. Each contact gets the whole sequence (segments per contact), a share
-// reply. GHL bills every segment both ways, carriers add a fee on outbound.
+// Lookup. Each contact gets at most 3 texts (Jake, 2026-10-05: "3 messages in
+// total at the very most"), budgeted at the most; a share reply. GHL bills every segment both ways, carriers add a fee on outbound.
 //
 // Defaults are Jake's answers on 2026-10-05 (500 a day, weekdays, 1 number,
 // Low Volume Standard A2P, GHL plan not counted) and the published prices that
@@ -21,7 +21,8 @@ export const BUDGET_INPUT_KEYS = [
   "sendDays",
   "phoneNumbers",
   "textableRate",
-  "segmentsPerContact",
+  "textsPerContact",
+  "segmentsPerText",
   "replyRate",
   "inboundSegmentsPerReply",
   "lookupRate",
@@ -44,9 +45,11 @@ export const BUDGET_DEFAULTS: BudgetInputs = {
   phoneNumbers: 1,
   // 15 of the first 20 Detroit numbers were mobile or nonFixedVoip (2026-10-02).
   textableRate: 75,
-  // cold-sms-pipeline/config/messages.txt: four texts, the last one is two
-  // segments, so five segments for a contact who never replies.
-  segmentsPerContact: 5,
+  textsPerContact: 3,
+  // cold-sms-pipeline/config/messages.txt holds four opener VARIATIONS (the
+  // Script table), all GSM-7: three are 1 segment, the long one is 2, so 1.25
+  // a text on average (checked with the merge fields filled, 2026-10-05).
+  segmentsPerText: 1.25,
   replyRate: 5,
   inboundSegmentsPerReply: 2,
   lookupRate: 0.008,
@@ -84,7 +87,7 @@ export function computeBudget(inputs: BudgetInputs): BudgetResult {
   const textable = n(inputs.textableRate) / 100;
   // Whole lookups: to end with 2 textable numbers at 75% you check 3.
   const lookups = textable > 0 ? Math.ceil(contactsTexted / textable) : 0;
-  const segmentsOut = contactsTexted * n(inputs.segmentsPerContact);
+  const segmentsOut = contactsTexted * n(inputs.textsPerContact) * n(inputs.segmentsPerText);
   const segmentsIn = contactsTexted * (n(inputs.replyRate) / 100) * n(inputs.inboundSegmentsPerReply);
 
   const lines = {
