@@ -1,5 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
-
 // Claude, from the server, for the client setup pages (Follow-up Texts, the
 // lead form checkmarks). One call shape: a system prompt, the client's facts,
 // a JSON schema the answer must match, and a guard that proves it did.
@@ -9,7 +7,7 @@ import Anthropic from "@anthropic-ai/sdk";
 // the schema. The server-side fallback is on (Anthropic retries a refused
 // request on another model inside the same call).
 //
-// The SDK call is injected so the tests never touch the network.
+// The API call is injected so the tests never touch the network.
 
 export const CLAUDE_MODEL = "claude-opus-5-5";
 
@@ -21,10 +19,26 @@ export interface ClaudeReply {
 
 export type ClaudeCreate = (apiKey: string, params: Record<string, unknown>) => Promise<ClaudeReply>;
 
+// Plain fetch, not the SDK: the SDK's lazy Node imports break the local
+// `wrangler pages dev` bundle. Retries 429/5xx twice, like the SDK did.
 export const sdkCreate: ClaudeCreate = async (apiKey, params) => {
-  const client = new Anthropic({ apiKey, maxRetries: 2 });
-  // Beta path: the fallback parameter lives there.
-  return (await client.beta.messages.create(params as never)) as unknown as ClaudeReply;
+  const { betas, ...body } = params as { betas?: string[] } & Record<string, unknown>;
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+        ...(betas?.length ? { "anthropic-beta": betas.join(",") } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return (await res.json()) as ClaudeReply;
+    const retryable = res.status === 429 || res.status >= 500;
+    if (!retryable || attempt >= 2) throw { status: res.status };
+    await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+  }
 };
 
 export type ClaudeResult<T> =
@@ -35,7 +49,8 @@ export async function writeWithClaude<T>(
   env: { ANTHROPIC_API_KEY?: string },
   opts: {
     system: string;
-    input: string;
+    // Plain text, or content blocks (a PDF document block before the text).
+    input: string | Record<string, unknown>[];
     schema: Record<string, unknown>;
     check: (v: unknown) => v is T;
     maxTokens?: number;

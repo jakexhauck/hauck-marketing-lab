@@ -20,7 +20,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.131.0",
     "@block65/webcrypto-web-push": "1.0.2",
     "@supabase/supabase-js": "^2.105.4",
     "@tanstack/query-sync-storage-persister": "^5.101.0",
