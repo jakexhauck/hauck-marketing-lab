@@ -105,6 +105,8 @@ export const ADMIN_PILLARS: PillarDef[] = [
       { id: "tasks", label: "Tasks", ready: true },
       { id: "inbox", label: "Inbox", ready: true },
       { id: "clients", label: "Clients", ready: true },
+      // What the agency spent each month, typed in line by line (Jake, 2026-10-06).
+      { id: "budget", label: "Budget", ready: true },
     ],
   },
 ];

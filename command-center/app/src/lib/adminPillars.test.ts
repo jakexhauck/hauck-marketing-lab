@@ -42,6 +42,7 @@ describe("adminPillars config", () => {
       "tasks",
       "inbox",
       "clients",
+      "budget",
     ]);
   });
 
@@ -63,6 +64,7 @@ describe("adminPillars config", () => {
       "tasks",
       "inbox",
       "clients",
+      "budget",
     ]);
   });
 });

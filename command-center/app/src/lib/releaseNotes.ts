@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-06-agency-budget",
+    date: "6 October 2026",
+    title: "Budget",
+    items: [
+      "Operations > Budget: add what the agency spent this month line by line (name, category, amount). The total and each category add up at the top.",
+      "A new month starts empty with Copy last month, so only what changed needs editing.",
+    ],
+  },
+  {
     id: "2026-10-06-sop-automations",
     date: "6 October 2026",
     title: "Client setup pages",
