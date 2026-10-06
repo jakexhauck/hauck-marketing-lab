@@ -1,51 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import type { AdWorkspace, AdWorkspacePatch } from "../../../../../functions/lib/adWorkspace";
 import { useAdWorkspaceQuery, useUpdateAdWorkspace } from "../../../../hooks/useApi";
-import { ErrorNote, Segmented, Spinner } from "../../../../routes/paid-ads/trackerShared";
+import { ErrorNote, Spinner } from "../../../../routes/paid-ads/trackerShared";
 import AdCopyPanel from "./AdCopyPanel";
-import AdsListPanel from "./AdsListPanel";
-import LeadFormsPanel from "./LeadFormsPanel";
 
-// Paid Ads > Ad Builder, in the Fulfillment cockpit (0091).
+// Paid Ads > Copy & Angles (0091): competitors, angles, three primaries, three
+// headlines, over ONE workspace row per client.
 //
-// Three pages over ONE workspace per client:
+// Since 2026-10-06 (Jake) this is its own Paid Ads page. The Ad Builder's other
+// two views split off: Lead Form is its own page (LeadFormsPanel, mounted
+// straight from PaidAdsTab) and the Ads list was dropped. The workspace's ads
+// block is still in the table, just no longer edited anywhere.
 //
-//   Copy & Angles   competitors, angles, three primaries, three headlines
-//   Ads             the flat ad list, each a free-text type and a creative
-//   Lead Form       Meta Instant Form drafts, its own table and its own list
-//
-// This replaced the batch (0088/0089): rounds, the static/video split, the hook,
-// the script and Master all went. There is no round to pick before anything can
-// be written, because there is only ever the current set.
-//
-// THE DRAFT LIVES HERE, not in the pages. Copy & Angles and Ads write different
-// blocks of the same row, and a draft owned per page would mean switching tabs
-// mid-edit either loses the block or saves it twice. The pages are handed the
-// draft and a way to give one block back.
-//
-// Lead Form is the exception and owns itself: a different table, a list rather
-// than a single row, and nothing shared with the other two.
+// The draft lives here and is handed to AdCopyPanel with a way to give one
+// block back, so a save only ever touches the keys it sent.
 
-type View = "copy" | "ads" | "form";
-
-const VIEWS: { id: View; label: string }[] = [
-  { id: "copy", label: "Copy & Angles" },
-  { id: "ads", label: "Ads" },
-  { id: "form", label: "Lead Form" },
-];
-
-
-export default function AdBuilderPanel({
-  tenantId,
-  clientName,
-}: {
-  tenantId: string;
-  clientName: string;
-}) {
-  const [view, setView] = useState<View>("copy");
-
-  // Not gated on the view: it is one small request per client and both of the
-  // other pages need it the instant they are opened.
+export default function AdBuilderPanel({ tenantId }: { tenantId: string }) {
   const query = useAdWorkspaceQuery(tenantId);
   const update = useUpdateAdWorkspace(tenantId);
 
@@ -61,7 +31,6 @@ export default function AdBuilderPanel({
   useEffect(() => {
     setDraft(null);
     saved.current = null;
-    setView("copy");
   }, [tenantId]);
 
   // Adopt the server's answer once, when it arrives for a client we have no
@@ -87,7 +56,7 @@ export default function AdBuilderPanel({
         // Fold the server's cleaned version back in: a pasted "facebook.com/x"
         // comes back as "https://facebook.com/x" and the box should show what
         // was actually kept. ONLY the keys that were sent are touched, so a
-        // block being typed on the other page is left alone.
+        // block still being typed is left alone.
         setDraft((d) => {
           if (!d) return workspace;
           const next: Record<string, unknown> = { ...d };
@@ -109,32 +78,18 @@ export default function AdBuilderPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <Segmented options={VIEWS} value={view} onChange={setView} label="Ad builder page" />
-
-      {view === "form" ? (
-        <LeadFormsPanel tenantId={tenantId} clientName={clientName} />
-      ) : query.isError ? (
+      {query.isError ? (
         <ErrorNote message={(query.error as Error | null)?.message} />
       ) : !draft || !saved.current ? (
         <Spinner />
       ) : (
         <>
-          {view === "copy" ? (
-            <AdCopyPanel
-              draft={draft}
-              saved={saved.current}
-              setDraft={(fn) => setDraft((d) => (d ? fn(d) : d))}
-              save={save}
-            />
-          ) : (
-            <AdsListPanel
-              tenantId={tenantId}
-              draft={draft}
-              saved={saved.current}
-              setDraft={(fn) => setDraft((d) => (d ? fn(d) : d))}
-              save={save}
-            />
-          )}
+          <AdCopyPanel
+            draft={draft}
+            saved={saved.current}
+            setDraft={(fn) => setDraft((d) => (d ? fn(d) : d))}
+            save={save}
+          />
 
           {/* A save that failed has to be visible: everything else about these
               pages is silent, so silence must only ever mean success. */}

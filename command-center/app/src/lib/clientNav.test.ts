@@ -19,7 +19,7 @@ describe("clientNavGroups", () => {
   it("lists every page for a fully wired client", () => {
     expect(labels(linked)).toEqual([
       [null, ["Onboarding", "Software"]],
-      ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Ad Builder"]],
+      ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Conversion Assets", "Follow-up Texts", "Custom Values", "CAPI", "Calendars"]],
       [null, ["Setter Suite", "Management"]],
     ]);
@@ -28,7 +28,7 @@ describe("clientNavGroups", () => {
   it("gates Paid Ads and GHL until they are connected", () => {
     expect(labels(bare)).toEqual([
       [null, ["Onboarding", "Software"]],
-      ["Paid Ads", ["Connect ads", "Creatives", "Ad Builder"]],
+      ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Connect GHL", "Conversion Assets", "Follow-up Texts", "Custom Values", "CAPI"]],
       [null, ["Setter Suite", "Management"]],
     ]);

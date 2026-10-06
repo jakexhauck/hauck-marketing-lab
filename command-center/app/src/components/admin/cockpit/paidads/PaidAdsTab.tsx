@@ -1,10 +1,11 @@
 import AdBuilderPanel from "./AdBuilderPanel";
+import LeadFormsPanel from "./LeadFormsPanel";
 import AdsDashboardPanel from "./AdsDashboardPanel";
 import AdsLeadTrackerPanel from "./AdsLeadTrackerPanel";
 import AdsMetaDataPanel from "./AdsMetaDataPanel";
 import AdsSetupWizard from "./AdsSetupWizard";
 import CreativesPanel from "./CreativesPanel";
-import { ADS_SETUP_SUB } from "../../../../lib/fulfillmentPages";
+import { ADS_SETUP_SUB, ADS_WITHOUT_META } from "../../../../lib/fulfillmentPages";
 
 // Paid Ads service tab inside the Fulfillment cockpit
 // (/admin/fulfillment/paid-ads). Routes the sub-tabs for the client in the
@@ -49,7 +50,7 @@ export default function PaidAdsTab({
   // a Meta-backed page for an unlinked client renders the wizard rather than a
   // month of zeroes.
   const linked = Boolean((adAccountId ?? "").trim());
-  if (!linked && activeSub !== "creatives" && activeSub !== "ad-builder") {
+  if (!linked && !ADS_WITHOUT_META.has(activeSub)) {
     return (
       <AdsSetupWizard
         tenantId={tenantId}
@@ -78,8 +79,10 @@ export default function PaidAdsTab({
       return <AdsMetaDataPanel tenantId={tenantId} />;
     case "creatives":
       return <CreativesPanel tenantId={tenantId} adAccountId={adAccountId} />;
-    case "ad-builder":
-      return <AdBuilderPanel tenantId={tenantId} clientName={clientName} />;
+    case "copy-angles":
+      return <AdBuilderPanel tenantId={tenantId} />;
+    case "lead-form":
+      return <LeadFormsPanel tenantId={tenantId} clientName={clientName} />;
     default:
       return <div className="pk-empty">We are still building this view.</div>;
   }

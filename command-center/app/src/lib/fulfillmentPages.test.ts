@@ -104,7 +104,8 @@ describe("paidAdsSubTabs", () => {
     expect(paidAdsSubTabs(subs, false).map((s) => s.id)).toEqual([
       ADS_SETUP_SUB,
       "creatives",
-      "ad-builder",
+      "copy-angles",
+      "lead-form",
     ]);
   });
 
