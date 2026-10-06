@@ -141,7 +141,16 @@ class TokenManager:
             with urllib.request.urlopen(req, context=CTX, timeout=10) as r:
                 data = json.loads(r.read())
                 return data.get("id_token", ""), data.get("refresh_token", "")
-        except Exception:
+        except urllib.error.HTTPError as e:
+            # Google's error code only (e.g. TOKEN_EXPIRED); never the token itself.
+            try:
+                reason = json.loads(e.read()).get("error", {}).get("message", "")
+            except Exception:
+                reason = ""
+            print(f"Firebase refresh HTTP {e.code} {reason}", file=sys.stderr)
+            return None
+        except Exception as e:
+            print(f"Firebase refresh failed: {type(e).__name__}: {e}", file=sys.stderr)
             return None
 
 
