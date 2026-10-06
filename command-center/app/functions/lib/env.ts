@@ -128,6 +128,9 @@ export interface Env {
   // Per-tenant account override (a tenants column) is a future step. See
   // functions/api/ads/insights.ts.
   META_SYSTEM_USER_TOKEN?: string;
+  // Anthropic API key for the client setup pages that write copy with Claude
+  // (functions/lib/claude.ts). Absent = those buttons say "Claude is not set up".
+  ANTHROPIC_API_KEY?: string;
   META_AD_ACCOUNT_ID?: string;
   // Google reviews rating hero (functions/api/reviews/summary.ts). The Places
   // API key is one global agency secret spanning every client's place, like

@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ghlFetch, type GhlContext } from "./ghl";
 import { buildProvisionPlan, type GhlCustomValue } from "../../src/lib/onboarding";
+import { effectiveFields } from "../../src/lib/customValuesSheet";
+import { fetchGhlNumber } from "./ghlPhone";
 
 // Writing a client's mapped answers into their GoHighLevel sub-account as
 // custom values.
@@ -48,7 +50,9 @@ export async function writeCustomValues(
   const cvData = (await probe.json()) as { customValues?: GhlCustomValue[] };
   const customValues = cvData.customValues ?? [];
 
-  const fields = (ob?.fields ?? {}) as Record<string, string>;
+  // Company Phone Number is the sub-account's bought number when it has one
+  // (see customValuesSheet.ts), so the sheet and the push agree.
+  const fields = effectiveFields((ob?.fields ?? {}) as Record<string, string>, await fetchGhlNumber(gctx));
   const plan = buildProvisionPlan(fields, customValues, gctx.token);
 
   const written: string[] = [];

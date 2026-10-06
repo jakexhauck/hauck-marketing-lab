@@ -76,8 +76,14 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
     id: "ghl",
     label: "GHL",
     ready: true,
+    // Follow-up Texts, Custom Values and CAPI came from the Client Setup SOP
+    // (2026-10-06): the texts, values and keys that used to be typed into GHL
+    // by hand from a Google Doc.
     subTabs: [
       { id: "conversion-assets", label: "Conversion Assets", ready: true },
+      { id: "follow-ups", label: "Follow-up Texts", ready: true },
+      { id: "custom-values", label: "Custom Values", ready: true },
+      { id: "capi", label: "CAPI", ready: true },
       { id: "calendars", label: "Calendars", ready: true },
     ],
   },
@@ -158,7 +164,9 @@ export const GHL_SETUP_SUB = "connect";
 // wiring screen at all.
 export function ghlSubTabs(subs: SubTabDef[], ghlConnected: boolean): SubTabDef[] {
   if (ghlConnected) return subs;
-  const kept = subs.filter((s) => s.id === "conversion-assets");
+  // Only Calendars needs the sub-account to read. Everything else is written
+  // here first (Custom Values shows the app's side and greys out Push).
+  const kept = subs.filter((s) => s.id !== "calendars");
   return [{ id: GHL_SETUP_SUB, label: "Connect GHL", ready: true }, ...kept];
 }
 

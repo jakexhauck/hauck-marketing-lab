@@ -122,13 +122,22 @@ describe("ghlSubTabs", () => {
   it("offers no wiring screen once the client is connected", () => {
     expect(ghlSubTabs(subs, true).map((s) => s.id)).toEqual([
       "conversion-assets",
+      "follow-ups",
+      "custom-values",
+      "capi",
       "calendars",
     ]);
   });
 
   it("opens on the wizard and hides Calendars while unwired", () => {
     const gated = ghlSubTabs(subs, false);
-    expect(gated.map((s) => s.id)).toEqual([GHL_SETUP_SUB, "conversion-assets"]);
+    expect(gated.map((s) => s.id)).toEqual([
+      GHL_SETUP_SUB,
+      "conversion-assets",
+      "follow-ups",
+      "custom-values",
+      "capi",
+    ]);
     expect(gated[0].label).toBe("Connect GHL");
   });
 

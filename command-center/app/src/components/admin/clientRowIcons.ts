@@ -1,6 +1,9 @@
 import {
   AppWindow,
+  Braces,
   Briefcase,
+  MessageSquareText,
+  Radio,
   CalendarDays,
   Database,
   Image,
@@ -30,6 +33,9 @@ const ICONS: Record<string, LucideIcon> = {
   connect: Plug,
   "conversion-assets": Sparkles,
   calendars: CalendarDays,
+  "follow-ups": MessageSquareText,
+  "custom-values": Braces,
+  capi: Radio,
   setter: PhoneCall,
   management: Briefcase,
 };
