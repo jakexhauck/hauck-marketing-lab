@@ -8,6 +8,7 @@ import type { HealthResponse as ConnectionHealthResponse } from "../lib/connecti
 // The ad builder's shape, straight from the module the endpoints validate with,
 // so the form cannot drift from what the server will accept.
 import type { AdWorkspace, AdWorkspacePatch } from "../../functions/lib/adWorkspace";
+import type { ContractDto } from "../../functions/lib/clientContract";
 // The lead form's shape, from the module the endpoints validate with (0090).
 import type { LeadForm, LeadFormPatch } from "../../functions/lib/adLeadForms";
 // The follow-up page's shape, from the module the endpoints validate with (0093).
@@ -27,6 +28,7 @@ import type { CreateClientPayload } from "../lib/clientOnboarding";
 import {
   type AdsStatus,
   api,
+  type ApiError,
   getAdminOverview,
   getBusinessHealth,
   getConstraints,
@@ -3804,4 +3806,71 @@ export function useSetSelfDial(tenantId: string) {
       void qc.invalidateQueries({ queryKey: ["admin", "onboarding", "list"] });
     },
   });
+}
+
+// --- Management > Contract rail (0148) ---------------------------------------
+
+const contractKey = (tenantId: string) => ["admin", "clients", tenantId, "contract"] as const;
+
+export function useAdminClientContractQuery(tenantId: string) {
+  return useQuery({
+    queryKey: contractKey(tenantId),
+    enabled: !!tenantId,
+    staleTime: 30_000,
+    queryFn: () => api<{ contract: ContractDto }>(`/api/admin/clients/${tenantId}/contract`),
+  });
+}
+
+export function useAdminClientContractSave(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: Partial<ContractDto>) =>
+      api<{ contract: ContractDto }>(`/api/admin/clients/${tenantId}/contract`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      }),
+    onSuccess: (data) => qc.setQueryData(contractKey(tenantId), data),
+  });
+}
+
+// Upload a contract PDF (or re-read the one on file) and let Claude fill the
+// terms. Upload is two hops like the owner video: the Worker signs, the browser
+// PUTs straight to the private bucket. A failed read still files the PDF, so
+// the error comes back beside the updated contract rather than instead of it.
+export function useAdminClientContractRead(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File | null) => {
+      let body: Record<string, string> = {};
+      if (file) {
+        const signed = await api<{ uploadUrl: string; path: string }>(
+          `/api/admin/clients/${tenantId}/contract/upload-url`,
+          { method: "POST", body: JSON.stringify({ type: file.type, size: file.size }) },
+        );
+        const put = await fetch(signed.uploadUrl, {
+          method: "PUT",
+          body: file,
+          headers: { "content-type": "application/pdf", "x-upsert": "false" },
+        });
+        if (!put.ok) throw new Error("Upload failed.");
+        body = { path: signed.path, name: file.name };
+      }
+      try {
+        return await api<{ contract: ContractDto }>(`/api/admin/clients/${tenantId}/contract/read`, {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      } catch (err) {
+        const b = (err as ApiError).body as { contract?: ContractDto; error?: string } | undefined;
+        if (b?.contract) qc.setQueryData(contractKey(tenantId), { contract: b.contract });
+        throw new Error(b?.error ?? (err as Error).message);
+      }
+    },
+    onSuccess: (data) => qc.setQueryData(contractKey(tenantId), data),
+  });
+}
+
+export async function openClientContract(tenantId: string): Promise<string> {
+  const { url } = await api<{ url: string }>(`/api/admin/clients/${tenantId}/contract/file`);
+  return url;
 }

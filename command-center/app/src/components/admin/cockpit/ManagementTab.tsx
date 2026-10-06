@@ -1,28 +1,30 @@
 import BillingTab from "./BillingTab";
+import ContractRail from "./ContractRail";
 import ClientConfigPanel from "../ClientConfigPanel";
 
-// Fulfillment > Management: a client's paperwork on one page.
+// Management: a client's paperwork on one page (layout B, 2026-10-06).
 //
-// This is the old Billing and Config tabs stacked rather than merged. They were
-// two tabs because tabs are cheap; as sidebar rows, two rows for "the admin
-// side of this client" was one row too many. Neither panel is touched: both
-// already own their own load, save and error states, so stacking them costs
-// nothing and keeps each one the single place its fields live.
+// The Contract rail sits left and sticks on desktop, so when the contract ends
+// stays in view while the right column scrolls: Cash and Account (BillingTab),
+// then the client setup cards, folded closed because they are set once and
+// rarely reopened. Below lg it all stacks, contract first.
 //
-// Order is deliberate. The commercial record comes first because it is the
-// thing you open this page to check; the setup below it is the thing you set
-// once and revisit rarely.
+// Each panel still owns its own load, save and error states.
 
 export default function ManagementTab({ tenantId }: { tenantId: string }) {
   return (
-    <div className="flex flex-col gap-8">
-      <BillingTab tenantId={tenantId} />
+    <div className="grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
+      <div className="lg:sticky lg:top-4">
+        <ContractRail tenantId={tenantId} />
+      </div>
 
-      <div>
-        <div className="pk-section-h" style={{ margin: "0 0 12px" }}>
-          Client setup
+      <div className="flex min-w-0 flex-col gap-8">
+        <BillingTab tenantId={tenantId} />
+
+        <div>
+          <h2 className="mb-3 font-display text-[16px] font-semibold text-text">Client setup</h2>
+          <ClientConfigPanel tenantId={tenantId} />
         </div>
-        <ClientConfigPanel tenantId={tenantId} />
       </div>
     </div>
   );

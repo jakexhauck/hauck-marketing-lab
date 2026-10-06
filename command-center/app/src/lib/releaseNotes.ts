@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-06-clients-page-gone",
+    date: "6 October 2026",
+    title: "Contract reader, Ad Builder split, Clients page removed",
+    items: [
+      "Operations > Clients is gone. Open a client from the client strip instead.",
+      "On the phone, Budget takes its place in the bottom bar.",
+      "Paid Ads > Ad Builder is now two pages: Copy & Angles and Lead Form. The Ads list is gone.",
+      "Management has a Contract panel on the left. Upload the signed PDF and the length, dates, fees, notice, ad spend and guarantee fill in on their own. Edit fixes anything it got wrong.",
+      "Cash and Account sit on the right. Client setup cards are folded; click a title to open one.",
+    ],
+  },
+  {
     id: "2026-10-06-client-picture",
     date: "6 October 2026",
     title: "Client pictures",

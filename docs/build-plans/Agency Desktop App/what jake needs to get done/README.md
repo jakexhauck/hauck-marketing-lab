@@ -598,3 +598,13 @@ Your action items:
 Still parked:
 - Meta campaign builder (Jake: not yet).
 - Conditional questions and "close the form" answers still go in by hand: Meta's API needs a separate upload for them.
+
+## Management contract reader (6 October 2026)
+
+What's in the app now: each client's Management page has a Contract panel on the left. Upload the signed PDF and Claude fills the length, dates, fees, payment, notice, auto-renew, ad spend, guarantee and key terms. Cash and Account cards on the right, client setup cards folded. Also shipped: Paid Ads Ad Builder split into Copy & Angles and Lead Form (Ads list gone), Operations > Clients page removed (Budget took its phone bar slot).
+
+Your action items:
+1. Open a client > Management and upload one real signed contract.
+2. Check every filled term against the PDF; fix anything with Edit.
+3. Click the file name once to confirm the PDF opens.
+4. Decide on retiring the "Hauck Marketing" client (rename to "RETIRED Hauck Marketing"; was blocked for Claude, needs your OK or a manual rename in Supabase).

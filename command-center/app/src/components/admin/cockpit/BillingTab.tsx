@@ -1,13 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import {
-  ArrowLeftRight,
-  BadgeCheck,
-  CalendarDays,
-  Check,
-  DollarSign,
-  LineChart,
-} from "lucide-react";
+import { BadgeCheck, Check, DollarSign } from "lucide-react";
 import {
   useAdminClientBillingQuery,
   useAdminClientBillingSave,
@@ -22,9 +14,11 @@ import {
   type BillingForm,
 } from "../../../lib/billing";
 
-// Billing service tab inside the Fulfillment cockpit
-// (/admin/delivery/:tenantId?tab=billing). One client's commercial record in
-// four grouped cards: Deal, Cash, Dates & Renewal, Status. Ported from
+// Management's right column: the client's Cash and Account cards. The
+// contract terms (length, dates, fees, payment) live on the Contract rail
+// beside it (ContractRail, 0148), which is why Payment Arrangement and Renewal
+// Date left this form on 2026-10-06. Their columns stay in client_billing,
+// untouched; no client had a row then. Ported from
 // docs/mockups/admin-redesign/client-billing-B.html into the .pk-kit admin
 // theme.
 //
@@ -83,41 +77,47 @@ export default function BillingTab({ tenantId }: { tenantId: string }) {
     <div className="bill">
       <BillingStyle />
 
-      <div className="bill-toolbar">
-        <div>
-          <div className="bill-tb-title">Billing Record</div>
-          <div className="bill-tb-sub">Grouped by deal, cash, dates and status.</div>
-        </div>
-        <div className="bill-toolbar-right">
-          {save.isError && (
-            <span className="bill-err">
-              {save.error instanceof Error ? save.error.message : "Could not save"}
-            </span>
-          )}
-          {save.isSuccess && !save.isPending && <span className="bill-saved">Saved</span>}
-          <Link
-            className="bill-btn ghost"
-            to={`/admin/delivery/${tenantId}?tab=paid-ads&sub=ad-tracking`}
-          >
-            <LineChart size={16} />
-            Open Ad Tracking
-          </Link>
-          <button
-            type="button"
-            className="bill-btn primary"
-            onClick={onSave}
-            disabled={save.isPending}
-          >
-            <Check size={16} />
-            {save.isPending ? "Saving..." : "Save"}
-          </button>
-        </div>
-      </div>
-
       <div className="bill-cards">
-        <Card icon={<ArrowLeftRight />} tone="indigo" title="Deal" note="How this client came in">
+        <Card icon={<DollarSign />} tone="green" title="Cash">
+          <div className="bill-fields three">
+            <MoneyField
+              label="Collected"
+              id="bill-total"
+              value={form.totalCashCollected}
+              onChange={(v) => set("totalCashCollected", v)}
+            />
+            <MoneyField
+              label="Upfront"
+              id="bill-upfront"
+              value={form.upfrontCash}
+              onChange={(v) => set("upfrontCash", v)}
+            />
+            <MoneyField
+              label="Remaining"
+              id="bill-remain"
+              value={form.remainingCash}
+              onChange={(v) => set("remainingCash", v)}
+            />
+          </div>
+        </Card>
+
+        <Card icon={<BadgeCheck />} tone="amber" title="Account">
           <div className="bill-fields">
-            <div className="bill-fields two">
+            <div className="bill-fields three">
+              <div className="bill-field">
+                <label htmlFor="bill-status">Status</label>
+                <div className={`bill-pillselect ${form.status}`}>
+                  <span className="bill-pdot" aria-hidden />
+                  <select
+                    id="bill-status"
+                    value={form.status}
+                    onChange={(e) => set("status", e.target.value as BillingForm["status"])}
+                  >
+                    <option value="active">Active</option>
+                    <option value="churned">Churned</option>
+                  </select>
+                </div>
+              </div>
               <Field label="Source" htmlFor="bill-source">
                 <select
                   id="bill-source"
@@ -136,6 +136,15 @@ export default function BillingTab({ tenantId }: { tenantId: string }) {
                   ))}
                 </select>
               </Field>
+              <Field label="Service" htmlFor="bill-service">
+                <input
+                  id="bill-service"
+                  type="text"
+                  value={form.service}
+                  placeholder="FB ads"
+                  onChange={(e) => set("service", e.target.value)}
+                />
+              </Field>
               <Field label="Date Closed" htmlFor="bill-closed">
                 <input
                   id="bill-closed"
@@ -145,129 +154,65 @@ export default function BillingTab({ tenantId }: { tenantId: string }) {
                   onChange={(e) => set("dateClosed", e.target.value)}
                 />
               </Field>
-            </div>
-            <Field label="Service" htmlFor="bill-service">
-              <input
-                id="bill-service"
-                type="text"
-                value={form.service}
-                placeholder="What we run for them"
-                onChange={(e) => set("service", e.target.value)}
-              />
-            </Field>
-            <Field label="Payment Arrangement" htmlFor="bill-arr">
-              <input
-                id="bill-arr"
-                type="text"
-                value={form.paymentArrangement}
-                placeholder="3k for 6 months, 2k upfront + 1k after 30 days"
-                onChange={(e) => set("paymentArrangement", e.target.value)}
-              />
-            </Field>
-          </div>
-        </Card>
-
-        <Card icon={<DollarSign />} tone="green" title="Cash" note="Collected and outstanding">
-          <div className="bill-fields">
-            <div className="bill-fields two">
-              <MoneyField
-                label="Upfront Cash"
-                id="bill-upfront"
-                value={form.upfrontCash}
-                onChange={(v) => set("upfrontCash", v)}
-              />
-              <MoneyField
-                label="Remaining to Collect"
-                id="bill-remain"
-                value={form.remainingCash}
-                onChange={(v) => set("remainingCash", v)}
-              />
-            </div>
-            <MoneyField
-              label="Total Cash Collected"
-              id="bill-total"
-              value={form.totalCashCollected}
-              onChange={(v) => set("totalCashCollected", v)}
-            />
-          </div>
-        </Card>
-
-        <Card
-          icon={<CalendarDays />}
-          tone="sky"
-          title="Dates & Renewal"
-          note="Billing cadence and touchpoints"
-        >
-          <div className="bill-fields two">
-            <div className={`bill-field${hint ? " near" : ""}`}>
-              <div className="bill-lblrow">
-                <label htmlFor="bill-billing">Billing Date</label>
-                {hint && <span className="bill-datehint">{hint.label}</span>}
+              <div className={`bill-field${hint ? " near" : ""}`}>
+                <div className="bill-lblrow">
+                  <label htmlFor="bill-billing">Billing Date</label>
+                  {hint && <span className="bill-datehint">{hint.label}</span>}
+                </div>
+                <input
+                  id="bill-billing"
+                  type="text"
+                  value={form.billingDate}
+                  placeholder="Jul 22, 2026"
+                  onChange={(e) => set("billingDate", e.target.value)}
+                />
               </div>
-              <input
-                id="bill-billing"
-                type="text"
-                value={form.billingDate}
-                placeholder="Jul 22, 2026"
-                onChange={(e) => set("billingDate", e.target.value)}
-              />
-            </div>
-            <Field label="Renewal Date" htmlFor="bill-renewal">
-              <input
-                id="bill-renewal"
-                type="text"
-                value={form.renewalDate}
-                placeholder="Dec 12, 2026"
-                onChange={(e) => set("renewalDate", e.target.value)}
-              />
-            </Field>
-            <Field label="Last Touchpoint" htmlFor="bill-touch">
-              <input
-                id="bill-touch"
-                type="text"
-                value={form.lastTouchpoint}
-                placeholder="Jul 14, 2026"
-                onChange={(e) => set("lastTouchpoint", e.target.value)}
-              />
-            </Field>
-            <Field label="Churn Date" htmlFor="bill-churn">
-              <input
-                id="bill-churn"
-                type="text"
-                value={form.churnDate}
-                placeholder="Still active"
-                onChange={(e) => set("churnDate", e.target.value)}
-              />
-            </Field>
-          </div>
-        </Card>
-
-        <Card icon={<BadgeCheck />} tone="amber" title="Status" note="Account standing and notes">
-          <div className="bill-fields">
-            <div className="bill-field">
-              <label htmlFor="bill-status">Status</label>
-              <div className={`bill-pillselect ${form.status}`}>
-                <span className="bill-pdot" aria-hidden />
-                <select
-                  id="bill-status"
-                  value={form.status}
-                  onChange={(e) => set("status", e.target.value as BillingForm["status"])}
-                >
-                  <option value="active">Active</option>
-                  <option value="churned">Churned</option>
-                </select>
-              </div>
+              <Field label="Last Touchpoint" htmlFor="bill-touch">
+                <input
+                  id="bill-touch"
+                  type="text"
+                  value={form.lastTouchpoint}
+                  placeholder="Jul 14, 2026"
+                  onChange={(e) => set("lastTouchpoint", e.target.value)}
+                />
+              </Field>
+              <Field label="Churn Date" htmlFor="bill-churn">
+                <input
+                  id="bill-churn"
+                  type="text"
+                  value={form.churnDate}
+                  placeholder="Still active"
+                  onChange={(e) => set("churnDate", e.target.value)}
+                />
+              </Field>
             </div>
             <Field label="Notes" htmlFor="bill-notes">
               <textarea
                 id="bill-notes"
                 value={form.notes}
-                placeholder="Anything worth remembering about this account"
                 onChange={(e) => set("notes", e.target.value)}
               />
             </Field>
           </div>
         </Card>
+      </div>
+
+      <div className="bill-savebar">
+        {save.isError && (
+          <span className="bill-err">
+            {save.error instanceof Error ? save.error.message : "Could not save"}
+          </span>
+        )}
+        {save.isSuccess && !save.isPending && <span className="bill-saved">Saved</span>}
+        <button
+          type="button"
+          className="bill-btn primary"
+          onClick={onSave}
+          disabled={save.isPending}
+        >
+          <Check size={16} />
+          {save.isPending ? "Saving..." : "Save"}
+        </button>
       </div>
     </div>
   );
@@ -277,13 +222,11 @@ function Card({
   icon,
   tone,
   title,
-  note,
   children,
 }: {
   icon: React.ReactNode;
   tone: "indigo" | "green" | "sky" | "amber";
   title: string;
-  note: string;
   children: React.ReactNode;
 }) {
   return (
@@ -292,10 +235,7 @@ function Card({
         <div className={`bill-bento-ico ${tone}`} aria-hidden>
           {icon}
         </div>
-        <div>
-          <div className="bill-bento-title">{title}</div>
-          <div className="bill-bento-note">{note}</div>
-        </div>
+        <div className="bill-bento-title">{title}</div>
       </div>
       {children}
     </div>
@@ -373,10 +313,7 @@ function BillingStyle() {
         --bill-active-ink: #34d399; --bill-churn-ink: #f87171; --bill-hint-ink: #fbbf24;
       }
 
-      .pk-kit .bill-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-      .pk-kit .bill-tb-title { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--text); }
-      .pk-kit .bill-tb-sub { font-size: 12.5px; color: var(--text-faint); margin-top: 2px; }
-      .pk-kit .bill-toolbar-right { margin-left: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+      .pk-kit .bill-savebar { display: flex; justify-content: flex-end; gap: 10px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
       .pk-kit .bill-saved { font-size: 12.5px; font-weight: 600; color: var(--positive); }
       .pk-kit .bill-err { font-size: 12.5px; font-weight: 600; color: var(--danger); }
 
@@ -391,7 +328,7 @@ function BillingStyle() {
       .pk-kit .bill-btn.ghost { background: var(--bill-indigo-tint); color: var(--bill-indigo); }
       .pk-kit .bill-btn.ghost:hover { filter: brightness(.97); }
 
-      .pk-kit .bill-cards { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+      .pk-kit .bill-cards { display: grid; grid-template-columns: minmax(0,1fr); gap: 16px; }
       .pk-kit .bill-bento {
         background: var(--surface); border: 1px solid var(--border); border-radius: 22px;
         box-shadow: var(--shadow-md); padding: 20px 22px 22px; display: flex; flex-direction: column;
@@ -404,10 +341,10 @@ function BillingStyle() {
       .pk-kit .bill-bento-ico.sky { background: var(--bill-sky); }
       .pk-kit .bill-bento-ico.amber { background: var(--bill-amber); }
       .pk-kit .bill-bento-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--text); }
-      .pk-kit .bill-bento-note { font-size: 11.5px; color: var(--text-faint); }
 
       .pk-kit .bill-fields { display: flex; flex-direction: column; gap: 14px; }
       .pk-kit .bill-fields.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+      .pk-kit .bill-fields.three { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px 16px; }
       .pk-kit .bill-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
       .pk-kit .bill-field > label,
       .pk-kit .bill-lblrow > label {
@@ -463,8 +400,7 @@ function BillingStyle() {
       .pk-kit .bill-pillselect.churned .bill-pdot { background: var(--bill-rose); box-shadow: 0 0 0 3px rgba(239,68,68,.18); }
       .pk-kit .bill-pillselect select:focus { outline: 0; box-shadow: 0 0 0 2px currentColor; }
 
-      @media (max-width: 980px) { .pk-kit .bill-cards { grid-template-columns: 1fr; } }
-      @media (max-width: 620px) { .pk-kit .bill-fields.two { grid-template-columns: 1fr; } }
+      @media (max-width: 620px) { .pk-kit .bill-fields.two, .pk-kit .bill-fields.three { grid-template-columns: 1fr; } }
     `}</style>
   );
 }

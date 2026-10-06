@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Check, UserPlus, DownloadCloud, Pencil, X, Eye } from "lucide-react";
+import { Loader2, Check, ChevronDown, UserPlus, DownloadCloud, Pencil, X, Eye } from "lucide-react";
 import { Button } from "../ui/Button";
 import AdAccountPicker from "./AdAccountPicker";
 import ClientMark from "../ClientMark";
@@ -85,15 +85,20 @@ interface DetailResponse {
   staff: StaffMember[];
 }
 
+// Folded closed: on Management these sit under the contract and the cash, and
+// are set once then rarely opened (Jake, 2026-10-06). The title is the toggle.
 function Card({ title, children, id }: { title: string; children: ReactNode; id?: string }) {
   return (
-    <section
+    <details
       id={id}
-      className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]"
+      className="group rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]"
     >
-      <h2 className="mb-4 font-display text-[15px] font-semibold text-text">{title}</h2>
-      {children}
-    </section>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 font-display text-[15px] font-semibold text-text [&::-webkit-details-marker]:hidden">
+        {title}
+        <ChevronDown size={18} className="shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden />
+      </summary>
+      <div className="px-5 pb-5">{children}</div>
+    </details>
   );
 }
 
@@ -174,7 +179,7 @@ export default function ClientConfigPanel({
   const { client } = data;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <BrandingCard client={client} onSaved={refreshAfterSave} />
       <AdsCard client={client} onSaved={refreshAfterSave} />
       <ReviewsCard client={client} onSaved={refreshAfterSave} />
