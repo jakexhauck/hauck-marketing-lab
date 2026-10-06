@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { RefreshCw, Sparkles } from "lucide-react";
 import { cn } from "../../../lib/cn";
 import { COPY_ITEMS, type CopyItemDef, type CopyKind, type LeadPhoto } from "../../../lib/followUpCopy";
-import { checkSms, segmentInfo } from "../../../lib/smsRules";
+import { checkSms, segmentInfo, withSampleValues } from "../../../lib/smsRules";
 import { useCopyQuery, useSaveCopy, useWriteCopy } from "../../../hooks/useSopApi";
 import { CopyButton, SOP_FIELD, SopButton, SopCard, SopError, SopHeading } from "./sopKit";
 
@@ -125,7 +125,8 @@ function TextCard({
 }) {
   const [draft, setDraft] = useState(text);
   useEffect(() => setDraft(text), [text]);
-  const seg = segmentInfo(draft);
+  // Counted as sent: merge fields replaced with typical names (smsRules.ts).
+  const seg = segmentInfo(withSampleValues(draft));
   const problems = def.note || !draft.trim() ? [] : checkSms(draft, { maxSegments: def.ai ? 2 : 4 });
 
   return (

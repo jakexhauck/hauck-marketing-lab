@@ -39,7 +39,9 @@ function mockDrive(templates: ReturnType<typeof doc>[] = []) {
   const copy = vi
     .spyOn(drive, "copyDriveFile")
     .mockImplementation(async (_e, _a, _f, _p, name) => ({ id: "x", name, webViewLink: null }));
-  return { folders, list, copy };
+  // The copies get [Company Name] filled (docFill.ts).
+  const fill = vi.spyOn(drive, "replaceDocText").mockResolvedValue([1, 0, 0, 0]);
+  return { folders, list, copy, fill };
 }
 
 function env(over: Partial<Env> = {}): Env {
@@ -85,6 +87,18 @@ describe("createClientFolder", () => {
     expect(copy).toHaveBeenCalledWith(expect.anything(), "acct", "t1", "fid", "WW | Copy");
     expect(copy).toHaveBeenCalledWith(expect.anything(), "acct", "t2", "fid", "WW | 🛠️ Client Setup SOP");
     expect(out.warning).toBeNull();
+  });
+
+  it("fills the company name into the copied docs, never the templates", async () => {
+    const { fill } = mockDrive([doc("t1", "Copy | TEMPLATE")]);
+    await createClientFolder(env(), "Willis Windows");
+    expect(fill).toHaveBeenCalledTimes(1);
+    expect(fill).toHaveBeenCalledWith(
+      expect.anything(),
+      "acct",
+      "x",
+      expect.arrayContaining([{ find: "[Company Name]", replace: "Willis Windows" }]),
+    );
   });
 
   it("skips folders and shortcuts in the setup folder", async () => {

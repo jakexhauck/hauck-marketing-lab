@@ -581,3 +581,20 @@ Your action items:
 
 Still parked:
 - The setup automation pages (LTN texts, lead form texts, Instant Form pack, A2P pack, custom values, campaign builder) slot into the client sidebar next.
+
+## Client setup pages from the SOP (6 October 2026)
+
+What's in the app now: inside each client, GHL > Follow-up Texts, Custom Values and CAPI; Paid Ads > Ad Builder > Lead Form has Page, SOP template and Create in Meta; Setter Suite > Settings has Write from template; the client folder's copied docs get the company name.
+
+Your action items:
+1. Hard refresh app.hauckmarketing.com.
+2. Willis > GHL > Follow-up Texts: press Write on both sections, read the texts, say if the voice is right.
+3. Willis > GHL > Custom Values: look at the orange (different) rows before pressing Push. Push writes to Willis's real GHL.
+4. Willis > GHL > CAPI: paste the Dataset ID and token, Save, Test.
+5. AAG > Paid Ads > Ad Builder > Lead Form: New form, pick the Page, SOP template, add the privacy link, Create in Meta. Then set the listed items by hand in Ads Manager (No / 30 Days+ close the form, Q2 only after Yes).
+6. AAG > Setter Suite > Settings: Write from template, check the script says Above All Garage Doors.
+7. AAG > Onboarding: press Fill in docs once the folder exists.
+
+Still parked:
+- Meta campaign builder (Jake: not yet).
+- Conditional questions and "close the form" answers still go in by hand: Meta's API needs a separate upload for them.

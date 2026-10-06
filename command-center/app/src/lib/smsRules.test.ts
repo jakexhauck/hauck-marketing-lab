@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { checkSms, segmentInfo } from "./smsRules";
+import { checkSms, segmentInfo, withSampleValues } from "./smsRules";
 
 describe("segmentInfo", () => {
   it("counts a plain text as one segment up to 160", () => {
@@ -24,11 +24,17 @@ describe("checkSms", () => {
   });
 
   it("flags dashes", () => {
-    expect(checkSms("Hey — there")).toContain("Has a dash; use a comma or full stop");
+    expect(checkSms("Hey \u2014 there")).toContain("Has a dash; use a comma or full stop");
   });
 
   it("flags an unknown merge field", () => {
     expect(checkSms("Hi {{contact.firstname}}")).toContain("Unknown merge field {{contact.firstname}}");
+  });
+
+  it("judges length with merge fields filled, not as literal braces", () => {
+    const text = "Hey {{contact.first_name}}, " + "a".repeat(120) + "\n\n- {{custom_values.user_first_name}}";
+    expect(checkSms(text)).toEqual([]);
+    expect(segmentInfo(withSampleValues(text)).segments).toBe(1);
   });
 
   it("flags a text that is too long", () => {

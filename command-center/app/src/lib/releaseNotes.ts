@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-06-sop-automations",
+    date: "6 October 2026",
+    title: "Client setup pages",
+    items: [
+      "GHL > Follow-up Texts: press Write and Claude writes the 4 Long Term Nurture texts and the lead form texts (first text, SMS 3, Hail Mary) for that client. Edit, rewrite one, copy.",
+      "GHL > Custom Values: every custom value, the app's next to GHL's, with Copy and one Push. Company Phone Number now uses the client's GHL number.",
+      "GHL > CAPI: save the Dataset ID and Access Token once. They also go into GHL's Facebook Dataset ID and Facebook Access Token values.",
+      "Paid Ads > Ad Builder > Lead Form: pick the Facebook Page, fill the SOP template, then Create in Meta. Anything Meta will not take is listed to set by hand.",
+      "Setter Suite > Settings: Write from template fills the dialing script with the company name. Undo puts the old one back.",
+      "Onboarding: the client folder's copied docs get the company name filled in. Fill in docs does it for older folders.",
+    ],
+  },
+  {
     id: "2026-10-06-cold-sms-leads",
     date: "6 October 2026",
     title: "Cold SMS has a Leads tab",

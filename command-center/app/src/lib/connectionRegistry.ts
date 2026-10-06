@@ -290,6 +290,20 @@ export const CONNECTIONS: ConnectionDef[] = [
       "The service account must be added as a Viewer on each client's GA4 property. If a property was recreated, the old id silently returns nothing.",
   },
   {
+    id: "anthropic",
+    label: "Claude (Anthropic)",
+    vendor: "Anthropic",
+    scope: "agency",
+    purpose: "Writes the per-client texts on Follow-up Texts and the lead form ticks (functions/lib/claude.ts).",
+    credentials: [{ name: "ANTHROPIC_API_KEY", home: "cloudflare", inDoppler: true }],
+    surfaces: [
+      { label: "Client > GHL > Follow-up Texts", to: "/admin/onboarding", audience: "admin" },
+      { label: "Client > Paid Ads > Ad Builder > Lead Form", to: "/admin/onboarding", audience: "admin" },
+    ],
+    remediation:
+      "Absent or revoked, the Write buttons answer 'Claude is not set up' or 'Claude key is not valid' and nothing else breaks. Spend per call is logged in ai_runs.",
+  },
+  {
     id: "google-places",
     label: "Google Places",
     vendor: "Google",

@@ -46,10 +46,26 @@ export const ALLOWED_MERGE_FIELDS = [
 
 const ADDRESS_CLAIMS = /\b(near you|in your (area|neighbou?rhood|street)|on your street|down the street|your neighbou?rs?)\b/i;
 
+// Merge fields are sent as the lead's real details, and a literal "{{" costs
+// double in GSM, so length is judged on the text as a lead would receive it.
+const SAMPLE_VALUES: Record<string, string> = {
+  "contact.first_name": "Jennifer",
+  "contact.name": "Jennifer Smith",
+  "contact.phone": "(313) 555-0100",
+  "contact.email": "jennifer.smith@gmail.com",
+  "custom_values.user_first_name": "Chris",
+  "custom_values.company_name": "Willis Windows",
+};
+
+/** The text with typical values in place of its merge fields. */
+export function withSampleValues(text: string): string {
+  return text.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (m, key: string) => SAMPLE_VALUES[key] ?? m);
+}
+
 export function checkSms(text: string, opts: { maxSegments?: number } = {}): string[] {
   const problems: string[] = [];
-  if (/[—–]/.test(text)) problems.push("Has a dash; use a comma or full stop");
-  const seg = segmentInfo(text);
+  if (/[\u2014\u2013]/.test(text)) problems.push("Has a dash; use a comma or full stop");
+  const seg = segmentInfo(withSampleValues(text));
   const max = opts.maxSegments ?? 2;
   if (seg.segments > max) problems.push(`${seg.segments} texts long; keep it to ${max}`);
   for (const m of text.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)) {

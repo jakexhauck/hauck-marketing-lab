@@ -100,6 +100,7 @@ export const AGENCY_KEYS: AgencyKeyDef[] = [
     entry: "paste",
     help: "Single-tenant fallback only. Each client's real ad account lives on their own row.",
   },
+  { name: "ANTHROPIC_API_KEY", group: "ads", entry: "paste", help: "Claude. Writes the follow-up texts and lead form ticks inside each client." },
 
   // --- Lead sync ------------------------------------------------------------
   {
