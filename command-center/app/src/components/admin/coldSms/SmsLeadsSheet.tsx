@@ -58,6 +58,7 @@ function LeadsStyle() {
       .pk-kit .sl-grid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; align-items: start; }
       @media (max-width: 900px) { .pk-kit .sl-grid { grid-template-columns: minmax(0, 1fr); } }
       .sms-sheet.sl-table { max-height: calc(100vh - 260px); }
+      .sms-sheet.sl-table table { width: 100%; }
       .sms-sheet .sl-dl {
         border: 0; background: transparent; cursor: pointer; color: #1a73e8; font: inherit; padding: 0;
       }
