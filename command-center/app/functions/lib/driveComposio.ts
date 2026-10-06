@@ -590,6 +590,39 @@ export async function exportDocTabHtml(
   return data;
 }
 
+/**
+ * Replace text inside a Google Doc (Docs API replaceAllText), one request per
+ * pair, all in one batchUpdate. Case-insensitive. Returns how many spots each
+ * pair changed. Used to fill [Company Name] in a client's copied docs
+ * (functions/lib/docFill.ts). Never called on the 🚀 Client Setup templates.
+ */
+export async function replaceDocText(
+  env: Env,
+  accountId: string,
+  fileId: string,
+  pairs: { find: string; replace: string }[],
+): Promise<number[]> {
+  if (!isValidFileId(fileId)) throw new Error(`invalid file id: ${fileId}`);
+  if (pairs.length === 0) return [];
+  const data = asObject(
+    await proxyPost(env, accountId, `${DOCS_API}/${fileId}:batchUpdate`, {
+      requests: pairs.map((p) => ({
+        replaceAllText: { containsText: { text: p.find, matchCase: false }, replaceText: p.replace },
+      })),
+    }),
+    "docs batchUpdate",
+  );
+  const replies = (data as { replies?: { replaceAllText?: { occurrencesChanged?: number } }[] }).replies ?? [];
+  return pairs.map((_, i) => replies[i]?.replaceAllText?.occurrencesChanged ?? 0);
+}
+
+/** A Doc's plain text (Docs API), for finding which [SPOTS] are left in it. */
+export async function readDocText(env: Env, accountId: string, fileId: string): Promise<string> {
+  if (!isValidFileId(fileId)) throw new Error(`invalid file id: ${fileId}`);
+  const data = await proxyGet(env, accountId, `/files/${fileId}/export?mimeType=${encodeURIComponent("text/plain")}`);
+  return typeof data === "string" ? data : "";
+}
+
 /** Which Google account the grant belongs to. Display only. */
 export async function connectedEmail(env: Env, accountId: string): Promise<string | null> {
   try {

@@ -11,6 +11,7 @@ import {
   useAdminOnboardingGoLive,
   useAdminOnboardingQuery,
 } from "../../../hooks/useApi";
+import { useFillClientDocs } from "../../../hooks/useSopApi";
 import type { AdminOnboardingListItem } from "../../../lib/api";
 import {
   SETUP_SECTIONS,
@@ -162,9 +163,14 @@ function SoftwareButton({
 // a doc that failed to copy is named beside it until the page reloads.
 function FolderButton({ client }: { client: AdminOnboardingListItem }) {
   const create = useAdminOnboardingDriveFolder(client.id);
+  // Fill in docs (2026-10-06): the company name into the copied docs. The
+  // folder button already does it for new folders; this is for older ones.
+  const fill = useFillClientDocs(client.id);
   const problem = create.isError
     ? ((create.error as Error)?.message ?? "That did not work.")
-    : create.data?.warning;
+    : fill.isError
+      ? ((fill.error as Error)?.message ?? "That did not work.")
+      : (create.data?.warning ?? fill.data?.problems[0]);
 
   return (
     <>
@@ -182,7 +188,13 @@ function FolderButton({ client }: { client: AdminOnboardingListItem }) {
           </span>
           Client folder
         </a>
-      ) : (
+      ) : null}
+      {client.driveFolderUrl && (
+        <Button variant="secondary" size="sm" loading={fill.isPending} onClick={() => fill.mutate()}>
+          {fill.data ? `Filled ${fill.data.spots} in ${fill.data.docs} docs` : "Fill in docs"}
+        </Button>
+      )}
+      {!client.driveFolderUrl && (
         <Button variant="secondary" size="sm" loading={create.isPending} onClick={() => create.mutate()}>
           Create client folder
         </Button>

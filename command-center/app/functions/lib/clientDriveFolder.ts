@@ -9,6 +9,7 @@ import {
   resolveDriveAccount,
 } from "./driveComposio";
 import { isValidFileId, type DriveFile } from "./driveDirect";
+import { fillDocs } from "./docFill";
 
 // A client's Google Drive folder, made by the Create client folder button on
 // Onboarding (Jake, 2026-09-23: a button, not automatic on client create).
@@ -151,16 +152,21 @@ async function fillClientFolder(
   }
 
   const initials = clientInitials(businessName);
+  const copiedDocs: { id: string; name: string }[] = [];
   for (const t of templates) {
     // Drive cannot copy a folder, and a shortcut would copy as a dead link.
     if (t.isFolder || t.mimeType === SHORTCUT_MIME) continue;
     const name = templateCopyName(t.name, initials);
     try {
-      await copyDriveFile(env, accountId, t.id, folderId, name);
+      const copy = await copyDriveFile(env, accountId, t.id, folderId, name);
+      if (t.mimeType === "application/vnd.google-apps.document") copiedDocs.push({ id: copy.id, name });
     } catch (err) {
       problems.push(`${name} was not copied (${errText(err)})`);
     }
   }
+  // The copies get the company name straight away (docFill.ts). Never the templates.
+  const filled = await fillDocs(env, accountId, copiedDocs, businessName);
+  problems.push(...filled.problems);
   return problems;
 }
 

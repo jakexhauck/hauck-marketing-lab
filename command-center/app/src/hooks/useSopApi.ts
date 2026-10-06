@@ -122,3 +122,15 @@ export function useWriteCopy(tenantId: string, kind: CopyKind) {
     onSuccess: (rec) => qc.setQueryData(copyKey(tenantId, kind), rec),
   });
 }
+
+// ---- Fill in docs --------------------------------------------------------
+
+export function useFillClientDocs(tenantId: string) {
+  return useMutation({
+    mutationFn: () =>
+      api<{ docs: number; spots: number; problems: string[] }>(
+        `/api/admin/onboarding/${enc(tenantId)}/drive-folder/fill`,
+        { method: "POST" },
+      ),
+  });
+}
