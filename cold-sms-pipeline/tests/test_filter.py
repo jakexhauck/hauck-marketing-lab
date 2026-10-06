@@ -105,25 +105,34 @@ class CommercialEscape(unittest.TestCase):
         self.assertTrue(keep, reason)
 
 
+# The rules HVAC used to carry, kept to prove the mechanism for a trade that wants them.
+RULED = {**T, "service_rules": [
+    {"value": "boiler", "name_words": ["boiler", "boilers", "hydronic", "hydronics", "steam"]},
+    {"value": "heat pump", "name_words": ["heat pump", "heat pumps", "geothermal"]},
+]}
+
+
 class Service(unittest.TestCase):
-    def test_default(self):
-        self.assertEqual(service_for("Koz Heating & Cooling", T), "AC and furnace")
+    def test_hvac_is_always_ac_and_furnace(self):
+        # Jake, 2026-10-06: every HVAC shop gets the same service, boilers included.
+        for name in ("Koz Heating & Cooling", "Detroit Boiler & Hydronics", "Great Lakes Geothermal"):
+            self.assertEqual(service_for(name, T), "AC and furnace")
 
     def test_boiler_category_alone_is_not_a_boiler_shop(self):
         # Briarwood lists 'Boiler supplier' but the name says nothing about boilers.
-        self.assertEqual(service_for("Briarwood Heating & Cooling", T), "AC and furnace")
+        self.assertEqual(service_for("Briarwood Heating & Cooling", RULED), "AC and furnace")
 
     def test_boiler_from_name(self):
-        self.assertEqual(service_for("Detroit Boiler & Hydronics", T), "boiler")
+        self.assertEqual(service_for("Detroit Boiler & Hydronics", RULED), "boiler")
 
     def test_heat_pump_from_name(self):
-        self.assertEqual(service_for("Allegiance Heat Pumps LLC", T), "heat pump")
+        self.assertEqual(service_for("Allegiance Heat Pumps LLC", RULED), "heat pump")
 
     def test_geothermal_is_heat_pump(self):
-        self.assertEqual(service_for("Great Lakes Geothermal", T), "heat pump")
+        self.assertEqual(service_for("Great Lakes Geothermal", RULED), "heat pump")
 
     def test_boiler_beats_heat_pump(self):
-        self.assertEqual(service_for("Boilers and Heat Pumps Inc", T), "boiler")
+        self.assertEqual(service_for("Boilers and Heat Pumps Inc", RULED), "boiler")
 
 
 if __name__ == "__main__":

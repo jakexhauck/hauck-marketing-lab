@@ -57,13 +57,10 @@
   "_max_reviews": "Above this the shop is too big to be an owner-operator.",
   "max_reviews": 1500,
 
-  "_service": "The sub-category. Read from the NAME only: 'Boiler supplier' sits on ordinary furnace shops as a secondary category, so categories would call half of them boiler shops. First match wins; nothing matches = default.",
+  "_service": "Every HVAC lead is 'AC and furnace' (Jake, 2026-10-06). The boiler / heat pump name rules were dropped; service_rules still works for a trade that wants sub-categories (read from the NAME only, first match wins, nothing matches = default).",
   "service_field": "service",
   "service_default": "AC and furnace",
-  "service_rules": [
-    {"value": "boiler", "name_words": ["boiler", "boilers", "hydronic", "hydronics", "steam"]},
-    {"value": "heat pump", "name_words": ["heat pump", "heat pumps", "geothermal"]}
-  ],
+  "service_rules": [],
 
   "_line_types": "Twilio line_type_intelligence types that get a text.",
   "keep_line_types": ["mobile", "nonFixedVoip"]
