@@ -3,7 +3,7 @@
   queries   every city x keyword search, and whether it has run
   listings  every raw Google Maps listing, kept so the rules can be re-run on it
   leads     one row per phone number: the verdict, the sub-category, Twilio's answer,
-            and when it went out in a CSV. The phone is the key, so a business found
+            and when it went out in a CSV or up to the app. The phone is the key, so a business found
             twice, or by a later run, is never a second lead.
 """
 
@@ -25,9 +25,13 @@ create table if not exists leads (
   primary_category text, categories text,
   keep integer not null, reason text, service text,
   line_type text, carrier text, looked_up_at text,
-  exported_at text, export_file text, created_at text not null
+  exported_at text, export_file text, created_at text not null,
+  uploaded_at text
 );
 """
+
+# Columns added after the first run; create table above only covers a fresh file.
+ADDED = {"leads": {"uploaded_at": "text"}}
 
 
 def connect(path=None):
@@ -35,4 +39,9 @@ def connect(path=None):
     con = sqlite3.connect(path or DATA / "leads.db")
     con.row_factory = sqlite3.Row
     con.executescript(SCHEMA)
+    for table, columns in ADDED.items():
+        have = {r["name"] for r in con.execute(f"pragma table_info({table})")}
+        for name, kind in columns.items():
+            if name not in have:
+                con.execute(f"alter table {table} add column {name} {kind}")
     return con

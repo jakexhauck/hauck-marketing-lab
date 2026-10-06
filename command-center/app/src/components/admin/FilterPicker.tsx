@@ -141,6 +141,151 @@ export default function FilterPicker({
   );
 }
 
+// The same picker, ticking several. Stays open while rows are ticked; the top
+// row clears back to every option. Nothing ticked means no filter.
+export function MultiFilterPicker({
+  kicker,
+  allLabel,
+  values,
+  options,
+  onChange,
+  icon,
+  align = "left",
+}: {
+  kicker: string;
+  allLabel: string;
+  values: string[];
+  options: FilterOption[];
+  onChange: (values: string[]) => void;
+  icon?: React.ReactNode;
+  align?: "left" | "right";
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+
+  const searchable = options.length >= SEARCH_FROM;
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => `${o.label} ${o.sub ?? ""}`.toLowerCase().includes(q));
+  }, [options, query]);
+
+  const on = new Set(values);
+  const name =
+    values.length === 0
+      ? allLabel
+      : values.length === 1
+        ? (options.find((o) => o.value === values[0])?.label ?? values[0])
+        : `${values.length} picked`;
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open && searchable) searchRef.current?.focus();
+    if (!open) setQuery("");
+  }, [open, searchable]);
+
+  const toggle = (value: string) =>
+    onChange(on.has(value) ? values.filter((v) => v !== value) : [...values, value]);
+
+  return (
+    <div className={`fp${open ? " open" : ""}`} ref={rootRef}>
+      <FilterPickerStyle />
+
+      <button
+        type="button"
+        className="fp-btn"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`${kicker}: ${name}`}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {icon && <span className="fp-icon" aria-hidden>{icon}</span>}
+        <span className="fp-meta">
+          <span className="fp-kicker">{kicker}</span>
+          <span className="fp-name">{name}</span>
+        </span>
+        <ChevronDown size={15} className="fp-chev" aria-hidden />
+      </button>
+
+      {open && (
+        <div
+          className={`fp-panel ${align}`}
+          role="listbox"
+          aria-label={kicker}
+          aria-multiselectable="true"
+        >
+          {searchable && (
+            <label className="fp-search">
+              <Search size={14} aria-hidden />
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Find"
+                aria-label={`Find a ${kicker.toLowerCase()}`}
+              />
+            </label>
+          )}
+
+          <div className="fp-list">
+            {!query && (
+              <button
+                type="button"
+                role="option"
+                aria-selected={values.length === 0}
+                className={`fp-row${values.length === 0 ? " on" : ""}`}
+                onClick={() => onChange([])}
+              >
+                <span className="fp-who">
+                  <b>{allLabel}</b>
+                </span>
+                {values.length === 0 && <Check size={15} className="fp-tick" aria-hidden />}
+              </button>
+            )}
+            {filtered.length === 0 ? (
+              <div className="fp-none">Nothing matches.</div>
+            ) : (
+              filtered.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  role="option"
+                  aria-selected={on.has(o.value)}
+                  className={`fp-row${on.has(o.value) ? " on" : ""}`}
+                  onClick={() => toggle(o.value)}
+                >
+                  <span className="fp-who">
+                    <b>{o.label}</b>
+                    {o.sub && <span>{o.sub}</span>}
+                  </span>
+                  {on.has(o.value) && <Check size={15} className="fp-tick" aria-hidden />}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // The client picker's rules, scaled for a toolbar: a filter sits in a row of
 // them, so it is a step smaller than the one control that changes the page.
 function FilterPickerStyle() {

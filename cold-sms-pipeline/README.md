@@ -11,8 +11,11 @@ From this folder:
 python run.py scrape                       every queued city x keyword, resumes where it stopped
 python run.py status
 doppler run --project hauck-command-center --config prd -- python run.py lookup
+doppler run --project hauck-command-center --config prd -- python run.py upload
 python run.py export                       out/hvac_<date>.csv (+ _skipped.csv with reasons)
 ```
+
+- `upload` is the normal last step: checked leads go to the app (Cold SMS > Leads), where Jake picks and downloads them. A lead already in a CSV, or already uploaded, is never sent. `export` stays for a CSV straight off this machine.
 
 - `scrape --state MI --max-queries 30` for a slice.
 - `lookup --max 500` caps Twilio spend (about $0.008 a number). Out of credit = it stops, keeps what it checked, resume later.

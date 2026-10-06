@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-06-cold-sms-leads",
+    date: "6 October 2026",
+    title: "Cold SMS has a Leads tab",
+    items: [
+      "Cold SMS now has two tabs: Tracker (the page as it was) and Leads.",
+      "Leads holds every textable lead from the scraper. Filter by city, line type and service, type how many, and press Export for the GHL import CSV.",
+      "Exported leads never come out again. Every past export is listed on the right and can be downloaded again.",
+    ],
+  },
+  {
     id: "2026-10-05-offer-calendar",
     date: "5 October 2026",
     title: "Owner Story books into its own calendar",

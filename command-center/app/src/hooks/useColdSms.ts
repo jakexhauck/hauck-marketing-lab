@@ -6,6 +6,12 @@ import {
   type ColdSmsMonthlyRow,
   type ColdSmsScriptRow,
 } from "../lib/api";
+import type {
+  ColdSmsLead,
+  ColdSmsLeadBatch,
+  ColdSmsLeadFilters,
+  ColdSmsLeadGroup,
+} from "../lib/coldSmsLeads";
 
 // Data hooks for the Cold SMS pages (Acquisition > Cold SMS). Agency-global admin
 // data, so no tenant is threaded through any key.
@@ -335,5 +341,39 @@ export function useColdSmsBudgetSave() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: BUDGET_KEY });
     },
+  });
+}
+
+/* ---------------------------------------------------------------- leads --- */
+
+const LEADS_KEY = ["admin", "tracker", "cold-sms-leads"] as const;
+
+export const coldSmsLeadKeys = {
+  all: () => [...LEADS_KEY],
+  groups: () => [...LEADS_KEY, "groups"],
+  preview: (filters: ColdSmsLeadFilters) => [...LEADS_KEY, "preview", filters],
+};
+
+// Every available city x line type x service count, and every past download.
+export function useColdSmsLeadGroups() {
+  return useQuery({
+    queryKey: coldSmsLeadKeys.groups(),
+    queryFn: () =>
+      api<{ groups: ColdSmsLeadGroup[]; batches: ColdSmsLeadBatch[] }>(
+        "/api/admin/tracker/cold-sms-leads",
+      ),
+  });
+}
+
+// The first leads a download with these filters would take (at most 100).
+export function useColdSmsLeadPreview(filters: ColdSmsLeadFilters) {
+  return useQuery({
+    queryKey: coldSmsLeadKeys.preview(filters),
+    queryFn: () =>
+      api<{ rows: ColdSmsLead[] }>("/api/admin/tracker/cold-sms-leads", {
+        method: "POST",
+        body: JSON.stringify(filters),
+      }),
+    placeholderData: (previous) => previous,
   });
 }

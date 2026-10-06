@@ -4,6 +4,8 @@
   python run.py scrape [--state MI] [--max-queries N]
   doppler run --project hauck-command-center --config prd -- python run.py lookup [--max N]
   python run.py export [--dry-run]           the CSV for GHL, in out/
+  doppler run --project hauck-command-center --config prd -- python run.py upload
+                                             checked leads into the app's Cold SMS > Leads tab
   python run.py test-csv --phone 2485550134 [--phone ...]
   python run.py reprocess                    re-judge stored leads after a rule change
   python run.py status
@@ -20,6 +22,7 @@ from pipeline.ingest import reprocess
 from pipeline.lookup import PRICE, LookupStopped, pending, run_lookups, twilio_fetcher
 from pipeline.scrape import ScrapeStopped, plan_queries, scrape
 from pipeline.text import split_messages
+from pipeline.upload import UploadStopped, supabase_poster, upload
 
 
 def status(con, trade):
@@ -33,11 +36,20 @@ def status(con, trade):
                            "group by line_type order by n desc"):
         print(f"  {row[0]}: {row[1]}")
     print(f"  exported: {one('select count(*) from leads where exported_at is not null')}")
+    print(f"  uploaded to the app: {one('select count(*) from leads where uploaded_at is not null')}")
     for row in con.execute("select service, count(*) from leads where keep=1 group by service"):
         print(f"  service {row[0]}: {row[1]}")
 
 
+def load_messages():
+    msg_file = CONFIG / "messages.txt"
+    return split_messages(msg_file.read_text(encoding="utf-8")) if msg_file.exists() else []
+
+
 def main(argv=None):
+    # Google names carry emoji; the Windows console cannot print them and would crash
+    # after the work is already done.
+    sys.stdout.reconfigure(errors="replace")
     p = argparse.ArgumentParser(description="Cold SMS lead pipeline")
     p.add_argument("--trade", default="hvac")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -46,7 +58,7 @@ def main(argv=None):
     l = sub.add_parser("lookup"); l.add_argument("--max", type=int)
     e = sub.add_parser("export"); e.add_argument("--dry-run", action="store_true")
     t = sub.add_parser("test-csv"); t.add_argument("--phone", action="append", required=True)
-    sub.add_parser("reprocess"); sub.add_parser("status")
+    sub.add_parser("upload"); sub.add_parser("reprocess"); sub.add_parser("status")
     args = p.parse_args(argv)
 
     trade = load_trade(args.trade)
@@ -79,8 +91,7 @@ def main(argv=None):
         print(f"Done: {stats}")
 
     elif args.cmd == "export":
-        msg_file = CONFIG / "messages.txt"
-        messages = split_messages(msg_file.read_text(encoding="utf-8")) if msg_file.exists() else []
+        messages = load_messages()
         if not messages:
             print("No texts in config/messages.txt yet: checking company name, city and service only.")
         try:
@@ -93,6 +104,16 @@ def main(argv=None):
             print(f"{len(result['skipped'])} skipped, reasons in {result['skipped_csv']}")
         if args.dry_run:
             print("Dry run: nothing marked as exported.")
+
+    elif args.cmd == "upload":
+        try:
+            result = upload(con, trade, load_messages(), supabase_poster())
+        except (TemplateError, UploadStopped) as err:
+            print(f"STOPPED: {err}\nEverything sent before this is saved; run upload again to resume.")
+            return 1
+        print(f"{result['count']} leads uploaded to Cold SMS > Leads.")
+        for skip in result["skipped"]:
+            print(f"  skipped {skip['Phone']} {skip['business_name']}: {skip['reason']}")
 
     elif args.cmd == "test-csv":
         print(f"Test CSV: {write_test_csv(trade, args.phone, OUT)}")

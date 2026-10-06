@@ -33,7 +33,7 @@ def _row(lead, trade, batch):
     return {
         "business_name": lead["company_name"], "Phone": lead["phone"], "City": lead["city"],
         "State": lead["state"], "service": lead["service"], "Timezone": lead["timezone"],
-        "Website": (lead["website"] or "").split("?")[0], "Tags": f"{trade['tag']},{trade['trade']}-batch-{batch}",
+        "Website": clean_website(lead["website"]), "Tags": f"{trade['tag']},{trade['trade']}-batch-{batch}",
     }
 
 
@@ -44,13 +44,16 @@ def _write(path, rows, columns):
         w.writerows(rows)
 
 
-def export(con, trade, messages, out_dir, stamp=None, dry_run=False):
+def checked(con, trade, messages, where="exported_at is null"):
+    """Textable leads that pass every text, and the ones that do not, with the reason.
+
+    Shared by the CSV and the upload to the app, so both hand out exactly the same leads.
+    """
     _check_templates(messages)
-    stamp = stamp or datetime.now().strftime("%Y%m%d_%H%M")
     checks = list(messages) + [BASE_FIELDS]
     placeholders = ",".join("?" * len(trade["keep_line_types"]))
     leads = con.execute(
-        f"select * from leads where keep=1 and exported_at is null "
+        f"select * from leads where keep=1 and {where} "
         f"and line_type in ({placeholders}) order by state, city",
         trade["keep_line_types"]).fetchall()
 
@@ -59,7 +62,7 @@ def export(con, trade, messages, out_dir, stamp=None, dry_run=False):
         fields = {"business_name": lead["company_name"],
                   **{k: lead[k] for k in ("city", "state", "service")}}
         reason = None
-        for i, text in enumerate(checks, 1):
+        for text in checks:
             filled, missing = render(text, fields)
             if missing:
                 reason = f"blank: {', '.join(sorted(set(missing)))}"
@@ -72,7 +75,18 @@ def export(con, trade, messages, out_dir, stamp=None, dry_run=False):
             skipped.append({"Phone": lead["phone"], "business_name": lead["company_name"],
                             "City": lead["city"], "reason": reason})
         else:
-            good.append(_row(lead, trade, stamp[:8]))
+            good.append(lead)
+    return good, skipped
+
+
+def clean_website(url):
+    return (url or "").split("?")[0]
+
+
+def export(con, trade, messages, out_dir, stamp=None, dry_run=False):
+    stamp = stamp or datetime.now().strftime("%Y%m%d_%H%M")
+    leads, skipped = checked(con, trade, messages)
+    good = [_row(lead, trade, stamp[:8]) for lead in leads]
 
     out_dir.mkdir(parents=True, exist_ok=True)
     result = {"csv": None, "skipped_csv": None, "count": len(good), "skipped": skipped}
