@@ -304,6 +304,26 @@ export const CONNECTIONS: ConnectionDef[] = [
       "Absent or revoked, the Write buttons answer 'Claude is not set up' or 'Claude key is not valid' and nothing else breaks. Spend per call is logged in ai_runs.",
   },
   {
+    id: "twilio",
+    label: "Twilio",
+    vendor: "Twilio",
+    scope: "agency",
+    purpose: "Reads the exact Twilio Lookup bill for the automatic cold SMS cost on Budget (functions/lib/coldSmsCost.ts).",
+    credentials: [
+      { name: "TWILIO_ACCOUNT_SID", home: "cloudflare", inDoppler: true },
+      { name: "TWILIO_AUTH_TOKEN", home: "cloudflare", inDoppler: true },
+      {
+        name: "COLD_SMS_FROM_NUMBER",
+        home: "cloudflare",
+        optional: true,
+        note: "Only if the Cold SMS number changes. Default +13133517535.",
+      },
+    ],
+    surfaces: [{ label: "Operations > Budget", to: "/admin/pillar/operations?tab=budget", audience: "admin" }],
+    remediation:
+      "Absent or revoked, the Twilio Lookup row on Budget shows 'Not connected' and the texts still count from GHL.",
+  },
+  {
     id: "google-places",
     label: "Google Places",
     vendor: "Google",

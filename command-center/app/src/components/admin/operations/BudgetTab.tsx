@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
-import { useAgencyBudgetQuery, useAgencyBudgetSave, type AgencyBudgetRow } from "../../../hooks/useAgencyBudget";
+import {
+  useAgencyBudgetQuery,
+  useAgencyBudgetSave,
+  useSmsCostQuery,
+  type AgencyBudgetRow,
+  type SmsCost,
+} from "../../../hooks/useAgencyBudget";
 import {
   budgetTotal,
   categoryTotals,
@@ -46,6 +52,36 @@ function toDraft(i: BudgetItem): Draft {
   return { id: i.id, name: i.name, category: i.category, amount: i.amount ? String(i.amount) : "" };
 }
 
+// The automatic cold SMS lines (texts from GHL, Lookup from Twilio, flat
+// number + A2P fees from the SMS Budget). Shown as locked rows and counted in
+// the total, never saved as items.
+interface AutoRow {
+  id: string;
+  name: string;
+  detail: string;
+  amount: number | null;
+}
+
+function autoRows(c: SmsCost | undefined): AutoRow[] {
+  if (!c) return [];
+  const count = (n: number) => n.toLocaleString("en-US");
+  return [
+    {
+      id: "auto-texts",
+      name: "Cold SMS texts",
+      detail: `${count(c.texts.outCount)} sent, ${count(c.texts.inCount)} replies`,
+      amount: c.texts.cost,
+    },
+    {
+      id: "auto-lookup",
+      name: "Twilio Lookup",
+      detail: c.lookup ? `${count(c.lookup.count)} lookups` : "Not connected",
+      amount: c.lookup ? c.lookup.cost : null,
+    },
+    { id: "auto-fixed", name: "Cold SMS number + A2P", detail: "", amount: c.fixed },
+  ];
+}
+
 function toItems(drafts: Draft[]): BudgetItem[] {
   return normalizeItems(drafts.map((d) => ({ ...d, amount: parseAmount(d.amount) })));
 }
@@ -77,6 +113,10 @@ function BudgetStyle() {
         border: 1px solid var(--border); background: transparent; color: var(--text); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
       }
       .bud-btn:hover { border-color: var(--text-faint); }
+      .bud-auto td { color: var(--text-muted); font-size: 13.5px; padding: 8px 6px; }
+      .bud-auto td.name { color: var(--text); }
+      .bud-auto td.amt { text-align: right; color: var(--text); padding-right: 12px; }
+      .bud-tag { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--text-muted); font-size: 11px; font-weight: 600; }
       .bud-err { color: var(--danger, #c0392b); font-size: 13px; }
       @media (max-width: 640px) {
         .bud-total { font-size: 32px; }
@@ -122,8 +162,18 @@ function BudgetMonth({ month, rows }: { month: string; rows: AgencyBudgetRow[] }
   const [dirty, setDirty] = useState(false);
 
   const items = useMemo(() => toItems(drafts), [drafts]);
-  const total = budgetTotal(items);
-  const cats = categoryTotals(items);
+  const smsCost = useSmsCostQuery(month);
+  const auto = useMemo(() => autoRows(smsCost.data), [smsCost.data]);
+  const counted = useMemo(
+    () => [
+      ...items,
+      ...auto.filter((a) => a.amount).map((a) => ({ id: a.id, name: a.name, category: "SMS", amount: a.amount ?? 0 })),
+    ],
+    [items, auto],
+  );
+  const total = budgetTotal(counted);
+  const cats = categoryTotals(counted);
+  const syncing = (smsCost.data?.pendingDays ?? 0) > 0 && !smsCost.data?.error;
   const suggestions = useMemo(() => knownCategories(rows), [rows]);
   const previous = useMemo(() => previousItems(rows, month), [rows, month]);
 
@@ -183,7 +233,7 @@ function BudgetMonth({ month, rows }: { month: string; rows: AgencyBudgetRow[] }
             <option key={c} value={c} />
           ))}
         </datalist>
-        {drafts.length > 0 && (
+        {(drafts.length > 0 || auto.length > 0) && (
           <table className="bud-table">
             <thead>
               <tr>
@@ -194,6 +244,17 @@ function BudgetMonth({ month, rows }: { month: string; rows: AgencyBudgetRow[] }
               </tr>
             </thead>
             <tbody>
+              {auto.map((a) => (
+                <tr key={a.id} className="bud-auto">
+                  <td className="name">
+                    {a.name}
+                    <span className="bud-tag">{syncing ? "Syncing" : "Auto"}</span>
+                  </td>
+                  <td>{a.detail}</td>
+                  <td className="amt">{a.amount === null ? "" : money(a.amount)}</td>
+                  <td />
+                </tr>
+              ))}
               {drafts.map((d) => (
                 <tr key={d.id}>
                   <td>
@@ -247,6 +308,7 @@ function BudgetMonth({ month, rows }: { month: string; rows: AgencyBudgetRow[] }
           )}
         </div>
         {save.isError && <div className="bud-err">Could not save. Try again.</div>}
+        {(smsCost.isError || smsCost.data?.error) && <div className="bud-err">Could not sync cold SMS cost.</div>}
       </div>
     </>
   );

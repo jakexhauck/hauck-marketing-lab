@@ -38,6 +38,11 @@ export interface Env {
   AGENCY_GHL_LOCATION_ID?: string;
   AGENCY_GHL_TOKEN?: string;
   AGENCY_TIMEZONE?: string;
+  // Automatic cold SMS cost (functions/lib/coldSmsCost.ts): Jake's own Twilio
+  // account for the exact Lookup bill, and an override for the Cold SMS number.
+  TWILIO_ACCOUNT_SID?: string;
+  TWILIO_AUTH_TOKEN?: string;
+  COLD_SMS_FROM_NUMBER?: string;
   // Who a callback task is assigned to in the agency's GHL. Defaults to Jake's
   // user id; see functions/lib/agencyGhl.ts.
   AGENCY_GHL_USER_ID?: string;

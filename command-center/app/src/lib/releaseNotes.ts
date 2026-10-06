@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-06-sms-cost-auto",
+    date: "6 October 2026",
+    title: "Cold SMS cost on Budget",
+    items: [
+      "Operations > Budget now adds cold SMS by itself: texts sent and replies on the Cold SMS number, Twilio Lookup (exact), and the number + A2P fees.",
+      "Texts are priced at the SMS Budget's rates, so changing a rate there re-prices the month.",
+    ],
+  },
+  {
     id: "2026-10-06-agency-budget",
     date: "6 October 2026",
     title: "Budget",

@@ -20,6 +20,30 @@ export function useAgencyBudgetQuery() {
   });
 }
 
+export interface SmsCost {
+  month: string;
+  texts: { outCount: number; outSegments: number; inCount: number; inSegments: number; cost: number };
+  fixed: number;
+  // null = Twilio not connected.
+  lookup: { count: number; cost: number } | null;
+  total: number;
+  pendingDays: number;
+  error: string | null;
+}
+
+// The automatic cold SMS cost. The server syncs a bounded slice of days per
+// call, so while days are pending the query polls until the month is whole.
+export function useSmsCostQuery(month: string) {
+  return useQuery({
+    queryKey: ["admin", "sms-cost", month],
+    queryFn: () => api<SmsCost>(`/api/admin/sms-cost?month=${month}`),
+    refetchInterval: (q) => {
+      const d = q.state.data;
+      return d && d.pendingDays > 0 && !d.error ? 1500 : false;
+    },
+  });
+}
+
 // The page holds the open month in local state, so the cache is only
 // refreshed after a write, never patched optimistically.
 export function useAgencyBudgetSave() {

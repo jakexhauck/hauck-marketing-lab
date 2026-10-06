@@ -101,6 +101,9 @@ export const AGENCY_KEYS: AgencyKeyDef[] = [
     help: "Single-tenant fallback only. Each client's real ad account lives on their own row.",
   },
   { name: "ANTHROPIC_API_KEY", group: "ads", entry: "paste", help: "Claude. Writes the follow-up texts and lead form ticks inside each client." },
+  { name: "TWILIO_ACCOUNT_SID", group: "coldcall", entry: "paste", help: "Your Twilio account. Budget reads the exact Lookup bill from it." },
+  { name: "TWILIO_AUTH_TOKEN", group: "coldcall", entry: "paste", help: "Goes with the Twilio account SID." },
+  { name: "COLD_SMS_FROM_NUMBER", group: "coldcall", entry: "paste", help: "Only if the Cold SMS number changes. Default +13133517535." },
 
   // --- Lead sync ------------------------------------------------------------
   {
