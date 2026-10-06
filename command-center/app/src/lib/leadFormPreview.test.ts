@@ -66,6 +66,8 @@ const form = (fields: Partial<LeadForm> = {}): LeadForm => ({
   trackingParams: [],
   createdAt: "",
   updatedAt: "",
+  metaFormId: null,
+  metaCreatedAt: null,
   ...fields,
 });
 

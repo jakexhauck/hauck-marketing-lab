@@ -17,7 +17,8 @@ import LeadFormEditor from "./LeadFormEditor";
 // panel rather than an expanded card, because the editor is Meta's builder with
 // a live preview beside it and that does not fit inside a row.
 //
-// Nothing here reaches Meta. The output is text on a clipboard.
+// Since 2026-10-06 a form can also be created in Meta from its editor
+// (LeadFormMetaBar); a form in Meta is read only and marked in the list.
 
 export default function LeadFormsPanel({
   tenantId,
@@ -30,6 +31,9 @@ export default function LeadFormsPanel({
   const create = useCreateLeadForm(tenantId);
   const remove = useDeleteLeadForm(tenantId);
   const [openId, setOpenId] = useState<string | null>(null);
+  // Bumped when the draft is replaced under the editor (SOP template), so the
+  // editor remounts and reseeds from the new row instead of keeping old text.
+  const [seed, setSeed] = useState(0);
 
   const forms = query.data?.forms ?? [];
   const openForm = forms.find((f) => f.id === openId) ?? null;
@@ -47,11 +51,13 @@ export default function LeadFormsPanel({
   if (openForm) {
     return (
       <LeadFormEditor
-        key={openForm.id}
+        key={`${openForm.id}:${seed}`}
         tenantId={tenantId}
         clientName={clientName}
         form={openForm}
         onClose={() => setOpenId(null)}
+        onReplaced={() => setSeed((n) => n + 1)}
+        onDuplicated={(f) => setOpenId(f.id)}
       />
     );
   }
@@ -102,6 +108,11 @@ export default function LeadFormsPanel({
                   <span className="shrink-0 text-[11.5px] text-faint">
                     {INTENT_LABEL[form.intent]}
                   </span>
+                  {form.metaFormId && (
+                    <span className="shrink-0 rounded-full bg-positive-tint px-2 py-0.5 text-[10.5px] font-semibold text-positive">
+                      In Meta
+                    </span>
+                  )}
                   <span className="ml-auto shrink-0 text-[11.5px] text-faint">
                     {shortDate(form.createdAt)}
                   </span>

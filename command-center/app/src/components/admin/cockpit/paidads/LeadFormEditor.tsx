@@ -23,6 +23,7 @@ import { cn } from "../../../../lib/cn";
 import { BlockInput, LineInput, SectionLabel, Toggle } from "./adBuilderShared";
 import LeadFormQuestions from "./LeadFormQuestions";
 import LeadFormPreview, { META_ACCENT, META_ACCENT_FG } from "./LeadFormPreview";
+import LeadFormMetaBar from "./LeadFormMetaBar";
 
 // One lead form, open for writing. Meta's builder, in Meta's order (0099).
 //
@@ -52,13 +53,20 @@ export default function LeadFormEditor({
   clientName,
   form,
   onClose,
+  onReplaced,
+  onDuplicated,
 }: {
   tenantId: string;
   clientName: string;
   form: LeadForm;
   onClose: () => void;
+  onReplaced: (form: LeadForm) => void;
+  onDuplicated: (form: LeadForm) => void;
 }) {
   const update = useUpdateLeadForm(tenantId);
+  // In Meta = read only (0143). Set from the row, or the moment Create succeeds.
+  const [createdHere, setCreatedHere] = useState(false);
+  const locked = !!form.metaFormId || createdHere;
 
   const [draft, setDraft] = useState<LeadForm>(form);
   // What the server last confirmed. Every "did this actually change" question is
@@ -154,6 +162,7 @@ export default function LeadFormEditor({
               value={draft.name}
               onChange={(e) => set("name")(e.target.value)}
               onBlur={commit("name")}
+              disabled={locked}
               placeholder="Untitled form"
               maxLength={FORM_LIMITS.name}
               aria-label="Form name"
@@ -170,10 +179,20 @@ export default function LeadFormEditor({
             </button>
           </div>
 
+          <LeadFormMetaBar
+            tenantId={tenantId}
+            form={draft}
+            onReplaced={onReplaced}
+            onCreated={() => setCreatedHere(true)}
+            onDuplicated={onDuplicated}
+          />
+
           {/* min-w-0 is load-bearing: without it a long URL stops this flex
               child shrinking and shoves the preview off. min-h-0 is the
-              vertical twin, or the sections do not scroll, they just grow. */}
-          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+              vertical twin, or the sections do not scroll, they just grow.
+              The fieldset is how a form in Meta goes read only: disabled
+              reaches every input and button inside it in one place. */}
+          <fieldset disabled={locked} className="m-0 min-h-0 min-w-0 flex-1 overflow-y-auto border-0 p-0 disabled:opacity-80">
             <Section
               id="type"
               title="Form type"
@@ -491,7 +510,7 @@ export default function LeadFormEditor({
                 />
               </div>
             </Section>
-          </div>
+          </fieldset>
 
           {/* A save that failed has to be visible: everything else about this
               editor is silent, so silence must only ever mean success. */}

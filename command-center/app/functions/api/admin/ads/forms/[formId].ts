@@ -34,6 +34,13 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     return Response.json({ error: "invalid body" }, { status: 400 });
   }
 
+  // A form already in Meta is read only (0143): Meta cannot edit it either, so
+  // an edit here would quietly stop matching what is live. Duplicate it instead.
+  const { data: current } = await client.from("ad_lead_forms").select("meta_form_id").eq("id", formId).maybeSingle();
+  if ((current as { meta_form_id?: string | null } | null)?.meta_form_id) {
+    return Response.json({ error: "This form is in Meta. Duplicate it to change it." }, { status: 409 });
+  }
+
   const update = formPatchColumns(body);
   if (Object.keys(update).length === 0) {
     return Response.json({ error: "nothing to update" }, { status: 400 });

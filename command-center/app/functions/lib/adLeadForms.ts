@@ -204,6 +204,11 @@ export interface LeadForm {
   sharing: FormSharing;
   trackingParams: TrackingParam[];
 
+  // Set once the form is created in Meta (0143). A form in Meta is read only:
+  // Meta cannot edit a form after creation, so neither can this.
+  metaFormId: string | null;
+  metaCreatedAt: string | null;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -494,6 +499,8 @@ export interface LeadFormRow {
   tracking_params: unknown;
   created_at: string;
   updated_at: string;
+  meta_form_id?: string | null;
+  meta_created_at?: string | null;
 }
 
 export const LEAD_FORM_SELECT =
@@ -501,7 +508,7 @@ export const LEAD_FORM_SELECT =
   "intro_layout, questions, privacy_url, privacy_link_text, disclaimer_title, " +
   "privacy_disclaimer, consents, completion_headline, completion_body, " +
   "completion_cta_type, completion_cta, completion_url, completion_phone, " +
-  "locale, sharing, tracking_params, created_at, updated_at";
+  "locale, sharing, tracking_params, meta_form_id, meta_created_at, created_at, updated_at";
 
 export function toLeadForm(row: LeadFormRow): LeadForm {
   return {
@@ -535,6 +542,8 @@ export function toLeadForm(row: LeadFormRow): LeadForm {
     locale: row.locale ?? "",
     sharing: isFormSharing(row.sharing) ? row.sharing : "restricted",
     trackingParams: cleanTrackingParams(row.tracking_params),
+    metaFormId: row.meta_form_id ?? null,
+    metaCreatedAt: row.meta_created_at ?? null,
 
     createdAt: row.created_at,
     updatedAt: row.updated_at,

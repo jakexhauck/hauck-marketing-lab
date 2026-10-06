@@ -273,6 +273,8 @@ describe("formToText", () => {
     trackingParams: [],
     createdAt: "",
     updatedAt: "",
+    metaFormId: null,
+    metaCreatedAt: null,
   };
 
   it("leads with the name and Meta's form type", () => {
