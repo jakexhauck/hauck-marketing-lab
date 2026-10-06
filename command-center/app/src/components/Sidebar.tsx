@@ -22,6 +22,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useCloseOutCountQuery } from "../hooks/useApi";
 import { useNavDataGates } from "../hooks/useNavDataGates";
+import ClientMark from "./ClientMark";
 
 // A single page row. Used for the standalone Home button and for the children of
 // the open section in the lower zone, so the active (gradient) and hover
@@ -229,7 +230,7 @@ export default function Sidebar() {
           className="shadow-brand flex h-[34px] w-[34px] items-center justify-center rounded-[10px] text-[12px] font-bold text-white"
           style={{ backgroundImage: "var(--grad-brand)" }}
         >
-          {brand.initials}
+          <ClientMark picture={brand.logoUrl} initials={brand.initials} />
         </span>
         <div className="min-w-0">
           <div className="truncate font-display text-[15px] font-semibold leading-tight text-[var(--text)]">
@@ -310,7 +311,7 @@ export default function Sidebar() {
             style={{ backgroundImage: "var(--grad-brand)" }}
             aria-hidden
           >
-            {avatarInitials}
+            {staff ? avatarInitials : <ClientMark picture={brand.logoUrl} initials={avatarInitials} />}
           </span>
           <span className="min-w-0 truncate text-[12px] text-[var(--text-faint)]" title={displayName}>
             {displayName}

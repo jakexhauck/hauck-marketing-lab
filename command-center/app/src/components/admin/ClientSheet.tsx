@@ -5,6 +5,7 @@ import { STRIP_ORDER } from "./ClientStrip";
 import { clientRowIcon } from "./clientRowIcons";
 import { clientNavGroups, clientPath, type ParsedClientPath } from "../../lib/clientNav";
 import type { AdminClient } from "../../lib/api";
+import ClientMark from "../ClientMark";
 
 // The phone's client strip: a bottom sheet from the bottom bar's Clients tab.
 // Two levels in one sheet. The first is the strip as a list (Agency, every
@@ -105,6 +106,7 @@ export default function ClientSheet({
               <SheetRow
                 key={c.id}
                 initials={c.brandInitials || c.name.slice(0, 2).toUpperCase()}
+                picture={c.brandLogoUrl}
                 color={c.brandColor}
                 label={c.name}
                 on={current?.tenantId === c.id}
@@ -131,6 +133,7 @@ export default function ClientSheet({
 
 function SheetRow({
   initials,
+  picture,
   color,
   label,
   on,
@@ -138,6 +141,7 @@ function SheetRow({
   onClick,
 }: {
   initials: string;
+  picture?: string | null;
   color?: string;
   label: string;
   on: boolean;
@@ -155,7 +159,7 @@ function SheetRow({
         style={{ background: color ?? "var(--grad-brand)" }}
         aria-hidden
       >
-        {initials}
+        <ClientMark picture={picture} initials={initials} />
       </span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {on && <Check size={16} aria-hidden className="text-[var(--brand-text)]" />}

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { switchTarget, type ParsedClientPath } from "../../lib/clientNav";
 import type { AdminClient } from "../../lib/api";
+import ClientMark from "../ClientMark";
 
 // The client strip: a thin column of chips left of the admin sidebar (Jake,
 // 2026-10-05, picked over a dropdown and a switcher card). The Agency chip on
@@ -57,6 +58,7 @@ export default function ClientStrip({
             key={c.id}
             label={c.name}
             initials={c.brandInitials || c.name.slice(0, 2).toUpperCase()}
+            picture={c.brandLogoUrl}
             color={c.brandColor}
             on={c.id === activeId}
             onTip={showTip}
@@ -93,6 +95,7 @@ export default function ClientStrip({
 function StripChip({
   label,
   initials,
+  picture,
   color,
   on,
   onClick,
@@ -101,6 +104,7 @@ function StripChip({
 }: {
   label: string;
   initials: string;
+  picture?: string | null;
   // Absent for the Agency chip, which wears the console's own brand.
   color?: string;
   on: boolean;
@@ -121,7 +125,7 @@ function StripChip({
       className={`adm-chip${on ? " on" : ""}`}
       style={color ? ({ "--brand": color } as CSSProperties) : undefined}
     >
-      {initials}
+      <ClientMark picture={picture} initials={initials} />
     </button>
   );
 }

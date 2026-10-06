@@ -50,7 +50,7 @@ function clientFromTenant(t: ApiTenant): Client {
     niche: t.niche,
     brand: {
       color: t.brandColor || APP_BRAND.color,
-      logoUrl: null,
+      logoUrl: t.brandLogoUrl ?? null,
       initials: t.brandInitials || APP_BRAND.initials,
       appName: t.appName || APP_BRAND.appName,
     },

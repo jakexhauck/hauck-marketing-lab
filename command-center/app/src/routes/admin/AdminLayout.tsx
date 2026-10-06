@@ -31,6 +31,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { PillarStyle } from "../../components/pillars/PillarKit";
 import { effectiveAdminRole, type AdminRole } from "../../lib/adminRoles";
 import UpdateDialog from "../../components/admin/UpdateDialog";
+import ClientMark from "../../components/ClientMark";
 
 // The admin console chrome: a sidebar (the same shape and row treatment as the
 // client app's rail, so the two consoles read as one product) plus each page's
@@ -473,7 +474,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div className="adm-rail-head">
           <NavLink to={nav.home} end className="adm-rail-brand" aria-label="Command home">
             <span className="adm-rail-brand-mark" aria-hidden>
-              {activeClient ? activeClient.brandInitials || activeClient.name.slice(0, 2).toUpperCase() : "H"}
+              {activeClient ? (
+                <ClientMark
+                  picture={activeClient.brandLogoUrl}
+                  initials={activeClient.brandInitials || activeClient.name.slice(0, 2).toUpperCase()}
+                />
+              ) : (
+                "H"
+              )}
             </span>
             {!collapsed && activeClient && (
               <span className="min-w-0 truncate font-display text-[15px] font-semibold leading-tight text-[var(--text)]">
@@ -597,7 +605,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 style={activeClient ? clientBrandVars(activeClient.brandColor) : undefined}
                 aria-hidden
               >
-                {activeClient ? activeClient.brandInitials || activeClient.name.slice(0, 2).toUpperCase() : "H"}
+                {activeClient ? (
+                <ClientMark
+                  picture={activeClient.brandLogoUrl}
+                  initials={activeClient.brandInitials || activeClient.name.slice(0, 2).toUpperCase()}
+                />
+              ) : (
+                "H"
+              )}
               </span>
               <span className="min-w-0 truncate font-display text-[15px] font-semibold tracking-[-0.02em]">
                 {activeClient ? activeClient.name : "Hauck Admin"}

@@ -209,7 +209,7 @@ export default function Home() {
             {/* The client's own name and mark. This read the APP_BRAND
                 fallback constant, so every client's Home said "Hauck Command
                 Center" while the desktop sidebar showed their own name. */}
-            <HeroMark initials={client.brand.initials} />
+            <HeroMark initials={client.brand.initials} picture={client.brand.logoUrl} />
             <div className="min-w-0">
               <div className="truncate font-display text-[17px] font-bold text-white">
                 {client.brand.appName}

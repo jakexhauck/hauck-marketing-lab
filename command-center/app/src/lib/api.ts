@@ -119,6 +119,9 @@ export interface ApiTenant {
   niche: string;
   brandColor: string;
   brandInitials: string;
+  // The client's picture, or null to show the initials. Optional so older demo
+  // data still types.
+  brandLogoUrl?: string | null;
   appName: string;
   wonLabel: string;
   valueLabel: string;
@@ -415,6 +418,9 @@ export interface AdminClient {
   niche: string;
   brandColor: string;
   brandInitials: string;
+  // The client's picture (0147), or null to show the initials. Optional so
+  // demo fixtures and older test rows still type.
+  brandLogoUrl?: string | null;
   appName: string;
   ghlLocationId: string;
   // Whether this client has a real GHL location id AND a real token. The
@@ -462,6 +468,7 @@ export interface AdminClientDetail {
   niche: string;
   brandColor: string;
   brandInitials: string;
+  brandLogoUrl?: string | null;
   appName: string;
   wonLabel: string;
   valueLabel: string;

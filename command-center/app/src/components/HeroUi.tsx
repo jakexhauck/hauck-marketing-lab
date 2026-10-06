@@ -1,15 +1,16 @@
 import type { ReactNode } from "react";
+import ClientMark from "./ClientMark";
 
 // Small building blocks shared by every navy hero so the brand mark, action
 // buttons, and split-metric block look identical across the app.
 
-export function HeroMark({ initials }: { initials: string }) {
+export function HeroMark({ initials, picture }: { initials: string; picture?: string | null }) {
   return (
     <div
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white font-display text-[13px] font-extrabold"
       style={{ color: "#13294a" }}
     >
-      {initials}
+      <ClientMark picture={picture} initials={initials} />
     </div>
   );
 }

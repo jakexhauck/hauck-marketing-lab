@@ -10,6 +10,7 @@ interface TenantRow {
   niche: string;
   brand_color: string;
   brand_initials: string;
+  brand_logo_url: string | null;
   app_name: string;
   won_label: string;
   value_label: string;
@@ -25,7 +26,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const { data, error } = await client
     .from("tenants")
     .select(
-      "name, niche, brand_color, brand_initials, app_name, won_label, value_label, monthly_spend, website_url, manual_lead_status",
+      "name, niche, brand_color, brand_initials, brand_logo_url, app_name, won_label, value_label, monthly_spend, website_url, manual_lead_status",
     )
     .eq("slug", ctx.data.tenant.slug)
     .maybeSingle();
@@ -42,6 +43,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       niche: row.niche,
       brandColor: row.brand_color,
       brandInitials: row.brand_initials,
+      brandLogoUrl: row.brand_logo_url ?? null,
       appName: row.app_name,
       wonLabel: row.won_label,
       valueLabel: row.value_label,

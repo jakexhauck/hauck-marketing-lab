@@ -114,6 +114,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       niche: tenant.niche,
       brandColor: tenant.brand_color,
       brandInitials: tenant.brand_initials,
+      brandLogoUrl: tenant.brand_logo_url ?? null,
       appName: tenant.app_name,
       wonLabel: tenant.won_label,
       valueLabel: tenant.value_label,

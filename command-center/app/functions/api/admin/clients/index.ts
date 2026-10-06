@@ -29,7 +29,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const { data: tenantRows, error } = await client
     .from("tenants")
     .select(
-      "id, slug, name, niche, brand_color, brand_initials, app_name, ghl_location_id, ghl_token, meta_ad_account_id, monthly_spend, created_at, health_status, health_note, onboarding_status",
+      "id, slug, name, niche, brand_color, brand_initials, brand_logo_url, app_name, ghl_location_id, ghl_token, meta_ad_account_id, monthly_spend, created_at, health_status, health_note, onboarding_status",
     )
     .order("created_at", { ascending: true });
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -43,6 +43,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     niche: string;
     brand_color: string;
     brand_initials: string;
+    brand_logo_url: string | null;
     app_name: string;
     ghl_location_id: string;
     ghl_token: string;
@@ -71,6 +72,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     niche: t.niche,
     brandColor: t.brand_color,
     brandInitials: t.brand_initials,
+    brandLogoUrl: t.brand_logo_url ?? null,
     appName: t.app_name,
     ghlLocationId: t.ghl_location_id,
     // Whether this client is wired to a GoHighLevel sub-account at all: a real

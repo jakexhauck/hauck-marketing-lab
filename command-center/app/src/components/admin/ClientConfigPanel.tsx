@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Check, UserPlus, DownloadCloud, Pencil, X, Eye } from "lucide-react";
 import { Button } from "../ui/Button";
 import AdAccountPicker from "./AdAccountPicker";
+import ClientMark from "../ClientMark";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { CLIENT_HOME } from "../../lib/nav";
@@ -43,6 +44,7 @@ export interface DetailClient {
   niche: string;
   brandColor: string;
   brandInitials: string;
+  brandLogoUrl: string | null;
   appName: string;
   wonLabel: string;
   valueLabel: string;
@@ -297,6 +299,7 @@ function BrandingCard({ client, onSaved }: { client: DetailClient; onSaved: () =
   };
   return (
     <Card title="Business & branding">
+      <PictureField client={client} onSaved={onSaved} />
       <form onSubmit={onSubmit}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <label><span className={labelCls}>Business name</span><input className={inputCls} value={f.name} onChange={set("name")} /></label>
@@ -322,6 +325,76 @@ function BrandingCard({ client, onSaved }: { client: DetailClient; onSaved: () =
         <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
       </form>
     </Card>
+  );
+}
+
+// The client's picture (0147): stands in for the initials badge in the client
+// strip and the client's own app. Saves on pick, not on the form's Save, since
+// a file input has nothing to hold in the form state.
+//
+// Multipart, so NOT through api(): that helper stamps a JSON content-type and
+// the browser must set its own boundary.
+function PictureField({ client, onSaved }: { client: DetailClient; onSaved: () => Promise<void> }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const send = async (init: RequestInit) => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/admin/clients/${client.id}/picture`, { ...init, credentials: "include" });
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(body?.error ?? "Upload failed.");
+      await onSaved();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Upload failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onPick = (e: { target: HTMLInputElement }) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const form = new FormData();
+    form.set("file", file);
+    void send({ method: "POST", body: form });
+  };
+
+  return (
+    <div className="mb-5">
+      <span className={labelCls}>Picture</span>
+      <div className="mt-1 flex items-center gap-3">
+        <span
+          className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[14px] font-display text-[16px] font-bold text-white"
+          style={{ background: client.brandColor || "var(--brand-primary)" }}
+          aria-hidden
+        >
+          <ClientMark
+            picture={client.brandLogoUrl}
+            initials={client.brandInitials || client.name.slice(0, 2).toUpperCase()}
+          />
+        </span>
+        <Button type="button" size="sm" loading={busy} onClick={() => input.current?.click()}>
+          {client.brandLogoUrl ? "Change" : "Upload"}
+        </Button>
+        {client.brandLogoUrl && (
+          <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => void send({ method: "DELETE" })}>
+            Remove
+          </Button>
+        )}
+        <input
+          ref={input}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/avif"
+          className="hidden"
+          onChange={onPick}
+        />
+      </div>
+      {err && <p className="mt-2 text-sm text-danger">{err}</p>}
+    </div>
   );
 }
 
