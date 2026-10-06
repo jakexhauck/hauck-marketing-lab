@@ -47,4 +47,4 @@ About 2k input + 1k output tokens per pack at $4 / $20 per million: roughly 3 ce
 
 ## Jake owes
 
-1. Create an Anthropic API key and add it to Doppler as `ANTHROPIC_API_KEY` (`hauck-command-center` / `prd`).
+Nothing. Key added and verified 2026-10-06.

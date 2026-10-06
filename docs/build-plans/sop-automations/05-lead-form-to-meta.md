@@ -32,7 +32,7 @@ The Instant Form drafted in Paid Ads > Ad Builder > Lead Form gets a "Create in 
 
 ## Tasks
 
-1. Spike (needs Jake's OK, it writes to a real Page): create one test form named "zz-api-test" on Willis's Page with a conditional question and two end pages, read it back, then archive it. Record exactly which fields the API accepted.
+1. Spike (approved by Jake 2026-10-06): create one test form named "zz-api-test" on Willis's Page with a conditional question and two end pages, read it back, then archive it. Record exactly which fields the API accepted.
 2. TDD `toMetaPayload` from the spike's accepted shape (prefill types, choice options, privacy, end pages, intent, tracking params, unsupported features listed).
 3. Migration 0143, Page picker, create + duplicate endpoints.
 4. SOP template filler (Claude writes the 3 checkmark lines; the rest is fixed text).
@@ -45,5 +45,4 @@ Vitest for the mapper and the template filler. Live: the spike form, then one re
 
 ## Jake owes
 
-1. Say yes to the test form on Willis's Page (it gets archived straight after).
-2. Give the Meta system user access to Above All Garage Doors' Page in Business Settings.
+Nothing. (Test form approved and AAG Page access given, 2026-10-06.)

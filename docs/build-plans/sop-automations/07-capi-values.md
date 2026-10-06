@@ -10,6 +10,7 @@ GHL > CAPI: two boxes per client, Dataset ID and Access Token, saved in the app 
 - Dataset ID: digits only, validated. Access Token: saved, shown masked (`EAAG...x9Qk`), Show and Copy buttons.
 - Saving records who and when; the page shows "Saved 6 Oct by Jake".
 - The token is never sent to the client app, never logged, and only returned to an owner admin session.
+- Push: the two values are also written into the client's GHL custom values **Facebook Dataset ID** (`{{custom_values.facebook_dataset_id}}`) and **Facebook Access Token** (`{{custom_values.facebook_access_token}}`), which already exist in the snapshot (confirmed on Willis 2026-10-06). The CAPI workflows then read the custom values instead of pasted text.
 - Optional quick check: "Test" button sends `GET /{dataset_id}?fields=name` with the stored token and shows the dataset name or Meta's error. Read only, no events sent.
 
 ## What exists
@@ -21,7 +22,7 @@ GHL > CAPI: two boxes per client, Dataset ID and Access Token, saved in the app 
 
 - Migration 0145: `client_capi(tenant_id uuid primary key references tenants, dataset_id text, access_token text, updated_at, updated_by)`, RLS on, no policies (service role only).
 - `functions/lib/capiValues.ts` (pure): `cleanDatasetId`, `maskToken`.
-- API: `GET /api/admin/clients/:tenantId/capi` (dataset id + masked token), `GET .../capi?reveal=1` (full token, audit-logged), `PUT .../capi`, `POST .../capi/test`.
+- API: `GET /api/admin/clients/:tenantId/capi` (dataset id + masked token), `GET .../capi?reveal=1` (full token, audit-logged), `PUT .../capi` (saves, then pushes both custom values when GHL is linked), `POST .../capi/test`.
 
 ## Files
 

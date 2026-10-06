@@ -10,7 +10,7 @@ GHL > Custom Values: every custom value the SOP lists for a client, what the app
 - Rows grouped as the SOP groups them: API Tokens, Business/Owner, Emails/SMS/Internal Notifications, Facebook Ads, Calendars, plus the rest of `ONBOARDING_FIELDS`.
 - Each row: name, app value (editable, saves to `onboarding.fields`), live GHL value (read on page load), a match tick or a mismatch dot, Copy.
 - Push writes through the existing `writeCustomValues` (same code path as linking a sub-account) and re-reads GHL after.
-- New: **Client Ad Account ID** custom value, filled from `tenants.meta_ad_account_id` (the Lead Form FU workflow reads `{{custom_values.client_ad_account_id}}`).
+- New: **Ad Account ID** custom value (merge field `{{custom_values.ad_account_id}}`, confirmed in Willis's GHL 2026-10-06), filled from `tenants.meta_ad_account_id`. The SOP doc wrongly says `client_ad_account_id`.
 - New: **Company Phone Number** defaults to the sub-account's bought GHL number when there is one (SOP: "Local GHL Number"), instead of the client's own phone that intake seeds today. The client's phone stays on User Personal Phone.
 - The Location API Token row shows "Set" / "Missing", never the token.
 - Unlinked sub-account: page shows the app values and Copy only, Push disabled with "Link GHL first".
@@ -25,7 +25,7 @@ GHL > Custom Values: every custom value the SOP lists for a client, what the app
 ## Design
 
 - `src/lib/customValuesSheet.ts` (pure): `buildSheet(fields, tenant, liveValues, phoneNumbers)` returns grouped rows with `appValue`, `ghlValue`, `state: "match" | "differs" | "missing-in-ghl" | "empty"`. Fully unit tested.
-- Add `{ key: "client_ad_account_id", customValue: "Client Ad Account ID" }` to `ONBOARDING_FIELDS`, filled at read time from the tenant (not typed).
+- Add `{ key: "ad_account_id", customValue: "Ad Account ID" }` to `ONBOARDING_FIELDS`, filled at read time from the tenant (not typed).
 - GHL phone lookup: `GET /phone-system/numbers/location/{locationId}` (check scope on the app token first; if the scope is missing, keep the typed value and show a note row).
 - API: `GET /api/admin/clients/:tenantId/custom-values` (sheet), `PATCH` (save one app value), `POST .../push` (wraps `writeCustomValues`).
 
@@ -37,10 +37,9 @@ GHL > Custom Values: every custom value the SOP lists for a client, what the app
 ## Tasks
 
 1. Spike: confirm the GHL phone-numbers endpoint works with the linked token on Willis (read only).
-2. Check the exact custom value name for the ad account id in Willis's GHL (`ghl` CLI) before hard-coding it.
-3. TDD `buildSheet` (match, differs, missing in GHL, empty, token masked, unlinked).
-4. Endpoints, page (mockup first), Push with a result line ("12 written, 1 not in GHL").
-5. Release note, blueprint.
+2. TDD `buildSheet` (match, differs, missing in GHL, empty, token masked, unlinked).
+3. Endpoints, page (mockup first), Push with a result line ("12 written, 1 not in GHL").
+4. Release note, blueprint.
 
 ## Tests
 
@@ -48,4 +47,4 @@ Vitest for `buildSheet` and the provision plan with the new key. Live: Willis sh
 
 ## Jake owes
 
-1. Confirm the snapshot has a "Client Ad Account ID" custom value (or tell me its exact name).
+Nothing.

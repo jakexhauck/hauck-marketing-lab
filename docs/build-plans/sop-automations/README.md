@@ -42,6 +42,6 @@ Already built, no plan: copying the Client Setup docs into the client folder (th
 
 ## Jake owes before building
 
-1. Add `ANTHROPIC_API_KEY` to Doppler `hauck-command-center` / `prd` (plan 0).
-2. Give the Meta system user access to Above All Garage Doors' Facebook Page in Business Settings (plan 5). Made Better and Willis already have it.
-3. Take the GHL password out of the 🛠️ Client Setup SOP (the folder button copies that doc into every client folder) and change the password.
+Done 2026-10-06: Anthropic key in Doppler (works), AAG Page reachable by the system user, OK for the Willis test form.
+
+1. Take the GHL password out of the 🛠️ Client Setup SOP (the folder button copies that doc into every client folder) and change the password.
