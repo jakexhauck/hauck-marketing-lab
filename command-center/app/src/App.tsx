@@ -548,12 +548,11 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              {/* Clients is a top-level rail row again (2026-08-23), so this old
-                  path lands on it rather than on Command, which no longer has a
-                  row to come back from. */}
+              {/* The Clients page is gone (2026-10-06); this old path lands on
+                  Tasks, the admin home. */}
               <Route
                 path="/admin/clients"
-                element={<Navigate to="/admin/pillar/operations?tab=clients" replace />}
+                element={<Navigate to="/admin/pillar/operations?tab=tasks" replace />}
               />
               {/* Declared above /admin/clients/:id or React Router hands "new"
                   to the detail page as a tenant id. The launchpad is the page

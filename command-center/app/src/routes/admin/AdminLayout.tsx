@@ -112,7 +112,6 @@ const PILLAR_GROUPS: RailGroup[] = [
     rows: [
       pillarRow("Tasks", "operations", "tasks", ClipboardList),
       pillarRow("Inbox", "operations", "inbox", MessageSquare),
-      pillarRow("Clients", "operations", "clients", Users),
       pillarRow("Budget", "operations", "budget", Wallet),
     ],
   },
@@ -187,14 +186,14 @@ export function adminHomeFor(role: AdminRole): string {
 // app launcher at /admin/apps), which is where everything else lives. Settings
 // moves to the header gear rather than taking a bottom slot.
 // Tasks and Inbox sit left because they are the two opened without thinking
-// about it; Clients right, then Accounts, the phone's client strip (a sheet,
+// about it; Budget right, then Accounts, the phone's client strip (a sheet,
 // not a page, so it is a button rather than a row here). Everything else is one tap away through the hub launcher, so
 // the bar stays four tabs no matter how long the rail grows.
 const BOTTOM_LEFT: NavRow[] = [
   pillarRow("Tasks", "operations", "tasks", ClipboardList),
   pillarRow("Inbox", "operations", "inbox", MessageSquare),
 ];
-const BOTTOM_RIGHT: NavRow[] = [pillarRow("Clients", "operations", "clients", Users)];
+const BOTTOM_RIGHT: NavRow[] = [pillarRow("Budget", "operations", "budget", Wallet)];
 
 // Collapsed rail. The whole desktop rail can shrink to an icon column so a wide
 // page (a board, the cockpit) gets the width back. Read through a context rather
