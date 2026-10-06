@@ -102,3 +102,55 @@ export function previousItems(
 export function newItemId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
+
+// ---------------------------------------------------------------------------
+// Recurring expenses (Jake, 2026-10-06): typed once, counted in every month
+// from `start` until `end` (both YYYY-MM, end inclusive, null = still running).
+// Removing one in a later month ENDS it the month before, so the months it
+// already counted in keep their totals; removing it in its first month drops
+// it outright. An amount edit applies to every month it runs in.
+
+export interface RecurringItem extends BudgetItem {
+  start: string;
+  end: string | null;
+}
+
+const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+export function normalizeRecurring(raw: unknown): RecurringItem[] {
+  if (!Array.isArray(raw)) return [];
+  const out: RecurringItem[] = [];
+  for (const entry of raw.slice(0, MAX_ITEMS)) {
+    const base = normalizeItems([entry])[0];
+    if (!base) continue;
+    const e = entry as Record<string, unknown>;
+    const start = String(e.start ?? "").slice(0, 7);
+    const end = e.end == null ? null : String(e.end).slice(0, 7);
+    if (!MONTH_RE.test(start)) continue;
+    out.push({ ...base, start, end: end && MONTH_RE.test(end) ? end : null });
+  }
+  return out;
+}
+
+export function isActiveIn(item: { start: string; end: string | null }, month: string): boolean {
+  return item.start <= month && (item.end === null || item.end >= month);
+}
+
+export function stepMonth(month: string, delta: number): string {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+export function removeRecurring<T extends { id: string; start: string; end: string | null }>(
+  items: T[],
+  id: string,
+  month: string,
+): T[] {
+  const out: T[] = [];
+  for (const i of items) {
+    if (i.id !== id) out.push(i);
+    else if (i.start < month) out.push({ ...i, end: stepMonth(month, -1) });
+  }
+  return out;
+}

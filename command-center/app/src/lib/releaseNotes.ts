@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-06-budget-recurring",
+    date: "6 October 2026",
+    title: "Recurring expenses on Budget",
+    items: [
+      "Operations > Budget > Recurring: add a monthly cost once and it counts in every month from then on.",
+      "Removing one stops it from that month; the months before keep it.",
+    ],
+  },
+  {
     id: "2026-10-06-sms-cost-auto",
     date: "6 October 2026",
     title: "Cold SMS cost on Budget",

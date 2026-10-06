@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import type { BudgetItem } from "../lib/agencyBudget";
+import type { BudgetItem, RecurringItem } from "../lib/agencyBudget";
 
 // Operations > Budget (0144). One row per month, written whole.
 
@@ -56,6 +56,31 @@ export function useAgencyBudgetSave() {
       }),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: KEY });
+    },
+  });
+}
+
+const RECURRING_KEY = ["admin", "budget-recurring"] as const;
+
+export function useRecurringQuery() {
+  return useQuery({
+    queryKey: RECURRING_KEY,
+    queryFn: () => api<{ items: RecurringItem[] }>("/api/admin/budget-recurring"),
+  });
+}
+
+// Writes the list whole. The page holds it in local state, so the cache is
+// only refreshed after a write.
+export function useRecurringSave() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (items: RecurringItem[]) =>
+      api<{ items: RecurringItem[] }>("/api/admin/budget-recurring", {
+        method: "PUT",
+        body: JSON.stringify({ items }),
+      }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: RECURRING_KEY });
     },
   });
 }

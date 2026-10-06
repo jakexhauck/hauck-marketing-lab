@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import {
   useAgencyBudgetQuery,
   useAgencyBudgetSave,
   useSmsCostQuery,
+  useRecurringQuery,
+  useRecurringSave,
   type AgencyBudgetRow,
   type SmsCost,
 } from "../../../hooks/useAgencyBudget";
@@ -15,7 +17,12 @@ import {
   normalizeItems,
   parseAmount,
   previousItems,
+  isActiveIn,
+  normalizeRecurring,
+  removeRecurring,
+  stepMonth,
   type BudgetItem,
+  type RecurringItem,
 } from "../../../lib/agencyBudget";
 import { sheetMonthLabel } from "../../../lib/coldSmsSheet";
 
@@ -36,12 +43,6 @@ interface Draft {
 function thisMonth(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function stepMonth(month: string, delta: number): string {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 function money(n: number): string {
@@ -80,6 +81,21 @@ function autoRows(c: SmsCost | undefined): AutoRow[] {
     },
     { id: "auto-fixed", name: "Cold SMS number + A2P", detail: "", amount: c.fixed },
   ];
+}
+
+// A recurring row as typed. The whole list (ended rows too) is held so a
+// write can send it back whole.
+interface RecDraft extends Draft {
+  start: string;
+  end: string | null;
+}
+
+function toRecDraft(i: RecurringItem): RecDraft {
+  return { ...toDraft(i), start: i.start, end: i.end };
+}
+
+function toRecItems(drafts: RecDraft[]): RecurringItem[] {
+  return normalizeRecurring(drafts.map((d) => ({ ...d, amount: parseAmount(d.amount) })));
 }
 
 function toItems(drafts: Draft[]): BudgetItem[] {
@@ -129,6 +145,7 @@ function BudgetStyle() {
 export default function BudgetTab() {
   const [month, setMonth] = useState(thisMonth);
   const { data, isLoading, isError } = useAgencyBudgetQuery();
+  const recurring = useRecurringQuery();
 
   return (
     <div className="bud">
@@ -144,16 +161,168 @@ export default function BudgetTab() {
           </button>
         </div>
       </div>
-      {isError ? (
+      {isError || recurring.isError ? (
         <div className="pk-empty">Could not load the budget.</div>
-      ) : isLoading || !data ? null : (
-        <BudgetMonth key={month} month={month} rows={data.rows} />
+      ) : isLoading || !data || !recurring.data ? null : (
+        <BudgetBody month={month} rows={data.rows} recurring={recurring.data.items} />
       )}
     </div>
   );
 }
 
-function BudgetMonth({ month, rows }: { month: string; rows: AgencyBudgetRow[] }) {
+// Holds the recurring list across month changes (seeded once), so the month
+// view and the Recurring card read the same rows.
+function BudgetBody({
+  month,
+  rows,
+  recurring,
+}: {
+  month: string;
+  rows: AgencyBudgetRow[];
+  recurring: RecurringItem[];
+}) {
+  const [recDrafts, setRecDrafts] = useState<RecDraft[]>(() => recurring.map(toRecDraft));
+  const active = useMemo(
+    () => toRecItems(recDrafts).filter((i) => isActiveIn(i, month)),
+    [recDrafts, month],
+  );
+  const suggestions = useMemo(
+    () => knownCategories([...rows, { items: toRecItems(recDrafts) }]),
+    [rows, recDrafts],
+  );
+
+  return (
+    <>
+      <BudgetMonth key={month} month={month} rows={rows} recurring={active} suggestions={suggestions} />
+      <RecurringCard month={month} drafts={recDrafts} setDrafts={setRecDrafts} suggestions={suggestions} />
+    </>
+  );
+}
+
+function RecurringCard({
+  month,
+  drafts,
+  setDrafts,
+  suggestions,
+}: {
+  month: string;
+  drafts: RecDraft[];
+  setDrafts: Dispatch<SetStateAction<RecDraft[]>>;
+  suggestions: string[];
+}) {
+  const save = useRecurringSave();
+  const [dirty, setDirty] = useState(false);
+  const shown = drafts.filter((d) => isActiveIn(d, month));
+
+  const write = (next: RecDraft[]) => {
+    save.mutate(toRecItems(next));
+    setDirty(false);
+  };
+
+  const edit = (id: string, patch: Partial<Draft>) => {
+    setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+    setDirty(true);
+  };
+
+  const onBlur = () => {
+    if (dirty) write(drafts);
+  };
+
+  const add = () => {
+    // Starts in the month on screen. Saved once something is typed (blur).
+    setDrafts((prev) => [...prev, { id: newItemId(), name: "", category: "", amount: "", start: month, end: null }]);
+  };
+
+  const remove = (id: string) => {
+    const next = removeRecurring(drafts, id, month);
+    setDrafts(next);
+    write(next);
+  };
+
+  const listId = "bud-cats-recurring";
+
+  return (
+    <div className="pk-card">
+      <div className="pk-section-h">Recurring</div>
+      <datalist id={listId}>
+        {suggestions.map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
+      {shown.length > 0 && (
+        <table className="bud-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Category</th>
+              <th style={{ textAlign: "right" }}>Per month</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((d) => (
+              <tr key={d.id}>
+                <td>
+                  <input
+                    className="pk-input"
+                    value={d.name}
+                    aria-label="Name"
+                    onChange={(e) => edit(d.id, { name: e.target.value })}
+                    onBlur={onBlur}
+                  />
+                </td>
+                <td>
+                  <input
+                    className="pk-input"
+                    value={d.category}
+                    list={listId}
+                    aria-label="Category"
+                    onChange={(e) => edit(d.id, { category: e.target.value })}
+                    onBlur={onBlur}
+                  />
+                </td>
+                <td className="amt">
+                  <input
+                    className="pk-input num"
+                    inputMode="decimal"
+                    value={d.amount}
+                    placeholder="$0"
+                    aria-label="Per month"
+                    onChange={(e) => edit(d.id, { amount: e.target.value })}
+                    onBlur={onBlur}
+                  />
+                </td>
+                <td className="del">
+                  <button type="button" className="bud-icon" aria-label="Remove" onClick={() => remove(d.id)}>
+                    <Trash2 size={15} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <div className="bud-actions">
+        <button type="button" className="bud-btn" onClick={add}>
+          <Plus size={15} /> Add recurring
+        </button>
+      </div>
+      {save.isError && <div className="bud-err">Could not save. Try again.</div>}
+    </div>
+  );
+}
+
+function BudgetMonth({
+  month,
+  rows,
+  recurring,
+  suggestions,
+}: {
+  month: string;
+  rows: AgencyBudgetRow[];
+  recurring: BudgetItem[];
+  suggestions: string[];
+}) {
   const save = useAgencyBudgetSave();
   const saved = rows.find((r) => r.month.slice(0, 7) === month);
 
@@ -167,14 +336,14 @@ function BudgetMonth({ month, rows }: { month: string; rows: AgencyBudgetRow[] }
   const counted = useMemo(
     () => [
       ...items,
+      ...recurring,
       ...auto.filter((a) => a.amount).map((a) => ({ id: a.id, name: a.name, category: "SMS", amount: a.amount ?? 0 })),
     ],
-    [items, auto],
+    [items, recurring, auto],
   );
   const total = budgetTotal(counted);
   const cats = categoryTotals(counted);
   const syncing = (smsCost.data?.pendingDays ?? 0) > 0 && !smsCost.data?.error;
-  const suggestions = useMemo(() => knownCategories(rows), [rows]);
   const previous = useMemo(() => previousItems(rows, month), [rows, month]);
 
   const write = (next: Draft[]) => {
@@ -228,6 +397,7 @@ function BudgetMonth({ month, rows }: { month: string; rows: AgencyBudgetRow[] }
       </div>
 
       <div className="pk-card">
+        <div className="pk-section-h">This month</div>
         <datalist id={listId}>
           {suggestions.map((c) => (
             <option key={c} value={c} />

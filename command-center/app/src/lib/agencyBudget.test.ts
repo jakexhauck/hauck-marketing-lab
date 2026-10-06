@@ -6,6 +6,10 @@ import {
   normalizeItems,
   parseAmount,
   previousItems,
+  normalizeRecurring,
+  isActiveIn,
+  removeRecurring,
+  stepMonth,
   type BudgetItem,
 } from "./agencyBudget";
 
@@ -83,5 +87,48 @@ describe("previousItems", () => {
   });
   it("is null when nothing came before", () => {
     expect(previousItems(rows, "2026-08")).toBeNull();
+  });
+});
+
+describe("recurring", () => {
+  const r = (id: string, start: string, end: string | null = null) => ({
+    id,
+    name: id,
+    category: "Software",
+    amount: 10,
+    start,
+    end,
+  });
+
+  it("normalizes and drops rows without a start month", () => {
+    const out = normalizeRecurring([
+      { id: "a", name: "GHL", amount: "297", start: "2026-10", end: null },
+      { id: "b", name: "x", amount: 1 },
+      { id: "c", name: "y", amount: 1, start: "2026-09-01", end: "bad" },
+    ]);
+    expect(out.map((i) => [i.id, i.amount, i.start, i.end])).toEqual([
+      ["a", 297, "2026-10", null],
+      ["c", 1, "2026-09", null],
+    ]);
+  });
+
+  it("is active from start through end", () => {
+    const i = r("a", "2026-09", "2026-11");
+    expect(isActiveIn(i, "2026-08")).toBe(false);
+    expect(isActiveIn(i, "2026-09")).toBe(true);
+    expect(isActiveIn(i, "2026-11")).toBe(true);
+    expect(isActiveIn(i, "2026-12")).toBe(false);
+    expect(isActiveIn(r("b", "2026-09"), "2030-01")).toBe(true);
+  });
+
+  it("ends a row the month before when removed later, drops it in its first month", () => {
+    const items = [r("a", "2026-08"), r("b", "2026-10")];
+    expect(removeRecurring(items, "a", "2026-10")).toEqual([{ ...items[0], end: "2026-09" }, items[1]]);
+    expect(removeRecurring(items, "b", "2026-10")).toEqual([items[0]]);
+  });
+
+  it("steps months across a year", () => {
+    expect(stepMonth("2026-01", -1)).toBe("2025-12");
+    expect(stepMonth("2026-12", 1)).toBe("2027-01");
   });
 });
