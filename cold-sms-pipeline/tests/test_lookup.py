@@ -74,6 +74,11 @@ class Answer(unittest.TestCase):
         with self.assertRaises(LookupStopped):
             answer(body)
 
+    def test_other_error_is_one_number_not_the_account(self):
+        # 60601: Twilio has no data for this number (seen on a Windsor, Ontario number).
+        body = {"valid": True, "line_type_intelligence": {"type": None, "error_code": 60601}}
+        self.assertEqual(answer(body), (200, "unknown", None))
+
     def test_invalid_number(self):
         self.assertEqual(answer({"valid": False, "line_type_intelligence": None}), (404, None, None))
 

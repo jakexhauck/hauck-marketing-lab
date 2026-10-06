@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 
 URL = "https://lookups.twilio.com/v2/PhoneNumbers/{}?Fields=line_type_intelligence"
 PRICE = 0.008
+OUT_OF_CREDIT = 60627
 
 
 class LookupStopped(Exception):
@@ -25,16 +26,16 @@ class LookupStopped(Exception):
 def answer(body):
     """One Lookup reply as (status, type, carrier).
 
-    Twilio answers 200 even when it could not check the line (60627 = no credit), with
-    the error only inside the body. Saving that as "unknown" burns the number for good,
-    so any error code stops the run instead.
+    Twilio answers 200 even when it could not check the line, with the error only inside
+    the body. 60627 is no credit: saving that as "unknown" would burn the number for good,
+    so it stops the run. Any other code is about this one number (60601 = no data, e.g. a
+    Canadian number), so it is saved as "unknown" and never texted.
     """
     if not body.get("valid", True):
         return 404, None, None
     lti = body.get("line_type_intelligence") or {}
-    if lti.get("error_code"):
-        raise LookupStopped(f"Twilio could not check the line, error {lti['error_code']} "
-                            "(60627 = out of credit).")
+    if lti.get("error_code") == OUT_OF_CREDIT:
+        raise LookupStopped(f"Twilio is out of credit (error {OUT_OF_CREDIT}).")
     return 200, lti.get("type") or "unknown", lti.get("carrier_name")
 
 
