@@ -98,12 +98,14 @@ export const ADMIN_PILLARS: PillarDef[] = [
     // whole of restoring one.
     //
     // Tasks leads, then Inbox (Hauck Marketing's own GoHighLevel sub-account,
-    // the one the cold call texts from). Clients came out 2026-10-06 (Jake):
-    // the client strip reaches every client now. This order is the rail's
+    // the one the cold call texts from), then Clients (the Client Tracker
+    // sheet: who each client is, what they pay, where they stand). This order is the rail's
     // order, so the tab strip and the rail cannot disagree.
     tabs: [
       { id: "tasks", label: "Tasks", ready: true },
       { id: "inbox", label: "Inbox", ready: true },
+      // The Client Tracker sheet as a page (back 2026-10-07, Jake).
+      { id: "clients", label: "Clients", ready: true },
       // What the agency spent each month, typed in line by line (Jake, 2026-10-06).
       { id: "budget", label: "Budget", ready: true },
     ],

@@ -112,6 +112,7 @@ const PILLAR_GROUPS: RailGroup[] = [
     rows: [
       pillarRow("Tasks", "operations", "tasks", ClipboardList),
       pillarRow("Inbox", "operations", "inbox", MessageSquare),
+      pillarRow("Clients", "operations", "clients", Users),
       pillarRow("Budget", "operations", "budget", Wallet),
     ],
   },

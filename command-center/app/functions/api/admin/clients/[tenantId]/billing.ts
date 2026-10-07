@@ -2,6 +2,7 @@ import type { Env, ApiData } from "../../../../lib/env";
 import { getServiceClient } from "../../../../lib/supabase";
 import { getTenantById, logAdminAction } from "../../../../lib/adminAuth";
 import {
+  BILLING_COLUMNS as COLUMNS,
   buildBillingUpdate,
   emptyBillingDto,
   toBillingDto,
@@ -21,10 +22,6 @@ import {
 // inserting one, so merely opening the tab does not create rows for every
 // client. PATCH upserts, creating the row on the first save.
 
-const COLUMNS =
-  "source, date_closed, service, payment_arrangement, upfront_cash, remaining_cash, " +
-  "total_cash_collected, billing_date, renewal_date, last_touchpoint, churn_date, " +
-  "status, notes, updated_at";
 
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);

@@ -15,6 +15,7 @@ import SalesPipelineBoard from "../../components/admin/sales/SalesPipelineBoard"
 import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
 import InboxTab from "../../components/admin/operations/InboxTab";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
+import ClientsTab from "../../components/admin/operations/ClientsTab";
 import BudgetTab from "../../components/admin/operations/BudgetTab";
 import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
@@ -138,6 +139,9 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     case "inbox":
       return <InboxTab />;
     // Every live client, opening onto the same sheet Onboarding shows.
+    // The Client Tracker sheet, one row per current client.
+    case "clients":
+      return <ClientsTab />;
     // What the agency spent each month.
     case "budget":
       return <BudgetTab />;

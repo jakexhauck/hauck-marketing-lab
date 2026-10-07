@@ -30,6 +30,12 @@ describe("buildBillingUpdate", () => {
     });
   });
 
+  it("maps the tracker's name and ad sheet columns", () => {
+    expect(
+      ok(buildBillingUpdate({ firstName: "Ryan", lastName: "Michael", adTrackingSheet: "https://x" })),
+    ).toEqual({ first_name: "Ryan", last_name: "Michael", ad_tracking_sheet: "https://x" });
+  });
+
   it("trims text values", () => {
     expect(ok(buildBillingUpdate({ notes: "  pays late  " }))).toEqual({
       notes: "pays late",
@@ -103,6 +109,8 @@ describe("emptyBillingDto", () => {
 
 describe("toBillingDto", () => {
   const row: BillingRow = {
+    first_name: "Ryan",
+    last_name: "Michael",
     source: "Cold Call",
     date_closed: "Jun 12, 2026",
     service: "Facebook ads",
@@ -116,6 +124,7 @@ describe("toBillingDto", () => {
     churn_date: "",
     status: "active",
     notes: "renewal call in Dec",
+    ad_tracking_sheet: "",
     updated_at: "2026-07-17T10:00:00Z",
   };
 
@@ -125,6 +134,8 @@ describe("toBillingDto", () => {
     expect(dto.paymentArrangement).toBe("3k for 6 months");
     expect(dto.totalCashCollected).toBe(2000);
     expect(dto.updatedAt).toBe("2026-07-17T10:00:00Z");
+    expect(dto.firstName).toBe("Ryan");
+    expect(dto.lastName).toBe("Michael");
   });
 
   it("falls back to active for a status the enum does not know", () => {

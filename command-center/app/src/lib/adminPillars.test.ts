@@ -41,6 +41,7 @@ describe("adminPillars config", () => {
       "sales-data",
       "tasks",
       "inbox",
+      "clients",
       "budget",
     ]);
   });
@@ -55,13 +56,14 @@ describe("adminPillars config", () => {
     // Data (the month read back). Sales Calls and Playbook are out of the
     // chrome; the labels are short because each is a rail row on its own.
     expect(tabsFor("sales").map((t) => t.id)).toEqual(["pipeline", "sales-data"]);
-    // Operations is no longer a rail group: Tasks, Inbox and Budget are
+    // Operations is no longer a rail group: Tasks, Inbox, Clients and Budget are
     // top-level rows and this pillar is only the route that hosts them. Business
     // Health, Calculator, Time Audit and SOPs came out of the nav with it.
     // The order is the rail's order, so the two cannot disagree.
     expect(tabsFor("operations").map((t) => t.id)).toEqual([
       "tasks",
       "inbox",
+      "clients",
       "budget",
     ]);
   });

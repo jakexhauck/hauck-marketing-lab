@@ -7,11 +7,19 @@
 // the only enum. The UI already coerces, but the server re-validates because it
 // is the boundary.
 
+// Every column the DTO reads, for each endpoint that selects a billing row.
+export const BILLING_COLUMNS =
+  "first_name, last_name, source, date_closed, service, payment_arrangement, upfront_cash, " +
+  "remaining_cash, total_cash_collected, billing_date, renewal_date, last_touchpoint, " +
+  "churn_date, status, notes, ad_tracking_sheet, updated_at";
+
 export const BILLING_STATUSES = ["active", "churned"] as const;
 export type BillingStatus = (typeof BILLING_STATUSES)[number];
 
 // The camelCase wire shape the client reads.
 export interface BillingDto {
+  firstName: string;
+  lastName: string;
   source: string;
   dateClosed: string;
   service: string;
@@ -25,11 +33,14 @@ export interface BillingDto {
   churnDate: string;
   status: BillingStatus;
   notes: string;
+  adTrackingSheet: string;
   updatedAt: string | null;
 }
 
 // The client_billing row as Postgres holds it.
 export interface BillingRow {
+  first_name: string;
+  last_name: string;
   source: string;
   date_closed: string;
   service: string;
@@ -43,6 +54,7 @@ export interface BillingRow {
   churn_date: string;
   status: string;
   notes: string;
+  ad_tracking_sheet: string;
   updated_at: string | null;
 }
 
@@ -51,6 +63,8 @@ export interface BillingRow {
 // create rows for every client.
 export function emptyBillingDto(): BillingDto {
   return {
+    firstName: "",
+    lastName: "",
     source: "",
     dateClosed: "",
     service: "",
@@ -64,12 +78,15 @@ export function emptyBillingDto(): BillingDto {
     churnDate: "",
     status: "active",
     notes: "",
+    adTrackingSheet: "",
     updatedAt: null,
   };
 }
 
 export function toBillingDto(row: BillingRow): BillingDto {
   return {
+    firstName: row.first_name ?? "",
+    lastName: row.last_name ?? "",
     source: row.source ?? "",
     dateClosed: row.date_closed ?? "",
     service: row.service ?? "",
@@ -83,6 +100,7 @@ export function toBillingDto(row: BillingRow): BillingDto {
     churnDate: row.churn_date ?? "",
     status: isBillingStatus(row.status) ? row.status : "active",
     notes: row.notes ?? "",
+    adTrackingSheet: row.ad_tracking_sheet ?? "",
     updatedAt: row.updated_at ?? null,
   };
 }
@@ -94,6 +112,8 @@ export function isBillingStatus(v: unknown): v is BillingStatus {
 // camelCase body key -> snake_case column, for the free-text fields. An empty
 // string is a legitimate value here: it clears the field.
 const TEXT_FIELDS: Record<string, string> = {
+  firstName: "first_name",
+  lastName: "last_name",
   source: "source",
   dateClosed: "date_closed",
   service: "service",
@@ -103,6 +123,7 @@ const TEXT_FIELDS: Record<string, string> = {
   lastTouchpoint: "last_touchpoint",
   churnDate: "churn_date",
   notes: "notes",
+  adTrackingSheet: "ad_tracking_sheet",
 };
 
 const CASH_FIELDS: Record<string, string> = {

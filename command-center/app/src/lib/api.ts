@@ -526,6 +526,9 @@ export interface AdminClientDetailResponse {
 // manual entry, so the four date fields are free text (typed exactly as the deal
 // notes read) and the cash fields are whole dollars.
 export interface AdminClientBilling {
+  // Owner name and ad sheet link, from the Client Tracker sheet (0149).
+  firstName: string;
+  lastName: string;
   source: string;
   dateClosed: string;
   service: string;
@@ -539,12 +542,28 @@ export interface AdminClientBilling {
   churnDate: string;
   status: "active" | "churned";
   notes: string;
+  adTrackingSheet: string;
   // null until the record has been saved once (a client with no row yet).
   updatedAt: string | null;
 }
 
-// The PATCH body: everything except the server-owned updatedAt.
-export type AdminClientBillingPatch = Omit<AdminClientBilling, "updatedAt">;
+// The PATCH body: any of the fields except the server-owned updatedAt. Only
+// the fields sent change, so the Billing cards and the Clients sheet never
+// save over each other's columns.
+export type AdminClientBillingPatch = Partial<Omit<AdminClientBilling, "updatedAt">>;
+
+// GET /api/admin/client-tracker: Operations > Clients, one row per client.
+export interface ClientTrackerRow {
+  tenantId: string;
+  name: string;
+  brandColor: string;
+  brandInitials: string;
+  billing: AdminClientBilling;
+}
+
+export interface ClientTrackerResponse {
+  clients: ClientTrackerRow[];
+}
 
 export interface AdminClientBillingResponse {
   billing: AdminClientBilling;

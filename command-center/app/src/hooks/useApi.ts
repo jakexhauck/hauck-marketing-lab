@@ -67,6 +67,7 @@ import {
   type AdminClientDetailResponse,
   type AdminClientBillingPatch,
   type AdminClientBillingResponse,
+  type ClientTrackerResponse,
   type AdminOnboardingListResponse,
   type AdminOnboardingResponse,
   type AdminOnboardingSavePatch,
@@ -1466,6 +1467,41 @@ export function useAdminClientBillingSave(tenantId: string) {
         ["admin", "clients", tenantId, "billing"],
         { billing: data.billing },
       );
+    },
+  });
+}
+
+// Operations > Clients: every current client's billing record in one list.
+export function useClientTrackerQuery() {
+  return useQuery({
+    queryKey: ["admin", "client-tracker"],
+    staleTime: 30_000,
+    queryFn: () => api<ClientTrackerResponse>("/api/admin/client-tracker"),
+  });
+}
+
+// One cell of the Clients sheet, saved on blur. Same PATCH as the Billing
+// cards; only the one field is sent. The client's own billing cache is
+// dropped so Management shows the edit next time it opens.
+export function useClientTrackerSave() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tenantId, patch }: { tenantId: string; patch: AdminClientBillingPatch }) =>
+      api<{ ok: true } & AdminClientBillingResponse>(`/api/admin/clients/${tenantId}/billing`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      }),
+    onSuccess: (data, { tenantId }) => {
+      qc.setQueryData<ClientTrackerResponse>(["admin", "client-tracker"], (prev) =>
+        prev
+          ? {
+              clients: prev.clients.map((c) =>
+                c.tenantId === tenantId ? { ...c, billing: data.billing } : c,
+              ),
+            }
+          : prev,
+      );
+      qc.invalidateQueries({ queryKey: ["admin", "clients", tenantId, "billing"] });
     },
   });
 }

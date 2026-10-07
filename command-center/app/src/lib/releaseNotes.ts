@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-07-clients-tracker",
+    date: "7 October 2026",
+    title: "Clients is back, as the Client Tracker",
+    items: [
+      "Operations > Clients is back. It is the Client Tracker sheet: one row per client, every column from First Name to Ad Tracking Sheet.",
+      "Click any cell to type. It saves when you click away.",
+      "Last TP Date turns red once it is more than 14 days old.",
+      "Cash, dates and status are the same ones on each client's Management page, so an edit in one place shows in the other.",
+    ],
+  },
+  {
     id: "2026-10-06-clients-page-gone",
     date: "6 October 2026",
     title: "Contract reader, Ad Builder split, Clients page removed",
