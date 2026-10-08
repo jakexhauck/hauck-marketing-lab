@@ -111,7 +111,6 @@ describe("the schema itself", () => {
       "contactEmail",
       "contactPhone",
       "timezone",
-      "taxId",
       "areaCallout",
       "usp",
       "headshotUrl",
@@ -148,7 +147,7 @@ describe("the schema itself", () => {
   });
 
   // A single address box came back as "Garden City" as often as it came back as
-  // an address, and A2P registration needs the pieces separately.
+  // an address.
   it("asks for the address in parts, and needs all of them but the suite", () => {
     const required = (key: string): boolean =>
       INTAKE_FIELDS.find((f) => f.key === key)?.required ?? false;
@@ -221,29 +220,9 @@ describe("the schema itself", () => {
     }
   });
 
-  // The A2P block. Carriers will not register a business texting number without
-  // all four, and collecting them by email after the fact is what held texting
-  // up last time. Asserted as a set so removing one quietly is a failing test
-  // rather than a client who cannot be registered.
-  it("asks for everything A2P brand registration needs", () => {
-    const keys = new Set(INTAKE_FIELDS.map((f) => f.key));
-    for (const key of ["legalName", "taxId", "entityType", "contactTitle"]) {
-      expect(keys.has(key), `${key} is missing from the funnel`).toBe(true);
-    }
-  });
-
-  // Optional on purpose. A client who does not know their EIN off-hand must
-  // still reach the end of the form; the gap is caught by the A2P item on their
-  // setup checklist, not by a submit button that will not move.
-  it("never blocks the form on a legal detail", () => {
-    for (const key of ["legalName", "taxId", "entityType", "contactTitle"]) {
-      expect(INTAKE_FIELDS.find((f) => f.key === key)?.required ?? false).toBe(false);
-    }
-  });
-
   // The admin record renders help through React, which escapes it. Markup in a
   // shared help string would reach Jake as visible tags, so the link that
-  // explains A2P lives only in the funnel's own copy of the schema.
+  // explains a field lives only in the funnel's own copy of the schema.
   it("keeps markup out of every help string", () => {
     for (const field of INTAKE_FIELDS) {
       expect(field.help ?? "", `${field.key} help must be plain text`).not.toMatch(/[<>]/);

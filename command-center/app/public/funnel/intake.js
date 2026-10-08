@@ -257,7 +257,7 @@ a.hm-btn{display:inline-block;text-decoration:none}
 
   var STEPS = [
     { n: 1, label: "Your business", blurb: "The basics, so we know who we are building for." },
-    { n: 2, label: "Contact details", blurb: "How we reach you, and what we need to register your phone number." },
+    { n: 2, label: "Contact details", blurb: "How we reach you." },
     { n: 3, label: "Your login", blurb: "Choose how you will sign in once your account is ready." },
     { n: 4, label: "Targeting", blurb: "Where your ads run, and the hours you would like to be booked in." },
     { n: 5, label: "Your services", blurb: "One service per box, in the words your customers use for them." },
@@ -280,22 +280,12 @@ a.hm-btn{display:inline-block;text-decoration:none}
     { key: "contactPhone", label: "Phone", type: "tel", step: 2, required: true, placeholder: "(313) 555 0134" },
     { key: "timezone", label: "Timezone", type: "select", step: 2, required: true, options: TIMEZONES, help: "This sets the times on your booking calendar, so please get it right." },
     // The address in parts. One box came back as "Garden City" as often as it
-    // came back as an address, and the A2P registration needs the pieces.
+    // came back as an address.
     { key: "addressStreet", label: "Street address", type: "text", step: 2, required: true, wide: true, placeholder: "123 Ford Rd" },
     { key: "addressUnit", label: "Suite, unit or floor", type: "text", step: 2, placeholder: "Suite 200", help: "Leave blank if there is not one." },
     { key: "addressCity", label: "City", type: "text", step: 2, required: true, placeholder: "Garden City" },
     { key: "addressState", label: "State", type: "text", step: 2, required: true, placeholder: "MI", help: "The two-letter state, like MI or TX." },
     { key: "addressZip", label: "ZIP code", type: "text", step: 2, required: true, placeholder: "48135" },
-    // The A2P block. All four optional: a client who does not know their EIN
-    // off-hand must still be able to finish. help renders as HTML (see
-    // fieldHtml), which is what lets the EIN note carry a link out.
-    { key: "legalName", label: "Legal business name", type: "text", step: 2, wide: true, placeholder: "Willis Exteriors LLC", help: "As registered with the IRS. Often your trading name plus LLC or Inc." },
-    { key: "taxId", label: "Tax ID / EIN", type: "text", step: 2, wide: true, placeholder: "12-3456789",
-      help: "We know this one is sensitive, so here is exactly why we ask. The mobile carriers will not let a business send texts until they have checked it is a real business, and the EIN is how they check. We use it for that registration and nothing else. " +
-            '<a href="https://www.twilio.com/docs/messaging/compliance/a2p-10dlc" target="_blank" rel="noreferrer">Read what this registration is</a>' },
-    { key: "entityType", label: "Business structure", type: "select", step: 2, options: [["llc", "LLC"], ["corporation", "Corporation"], ["sole_proprietor", "Sole proprietor"], ["partnership", "Partnership"], ["non_profit", "Non-profit"]] },
-    { key: "contactTitle", label: "Your job title", type: "text", step: 2, placeholder: "Owner", help: "The carriers ask who is authorising the registration." },
-
     // 3 Your login
     { key: "loginEmail", label: "Login email", type: "email", step: 3, required: true, wide: true, help: "Prefilled from the email above. Change it if you would rather sign in with another." },
     { key: "password", label: "Choose a password", type: "password", step: 3, required: true, help: PASSWORD_HELP },

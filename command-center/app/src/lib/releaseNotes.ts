@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-08-intake-no-a2p",
+    date: "8 October 2026",
+    title: "Onboarding form drops the A2P questions",
+    items: [
+      "The onboarding form no longer asks for legal business name, EIN, business structure or job title.",
+    ],
+  },
+  {
     id: "2026-10-07-clients-tracker",
     date: "7 October 2026",
     title: "Clients is back, as the Client Tracker",

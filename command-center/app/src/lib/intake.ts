@@ -11,18 +11,6 @@
 // asked a day at a time, and the notification-preference and LeadConnector
 // questions are gone. Each is noted at the question it replaced.
 //
-// THE LEGAL BLOCK ON STEP 2 (legalName, taxId, entityType, contactTitle) exists
-// for one reason: A2P 10DLC. A carrier will not register a business texting
-// number without the legal name, the EIN, the entity type and the job title of
-// the person vouching for it. These were cut once, on the reasoning that a
-// brand-new client should not be asked for legal details, and collecting them by
-// email afterwards turned out to be the thing that held texting up. Asking once,
-// here, is the lesser evil.
-//
-// All four are OPTIONAL. A client who does not know their EIN off-hand must
-// still be able to finish the form; the gap gets caught by the A2P item on their
-// setup checklist rather than by a blocked submit button.
-//
 // The funnel, its validation and its review screen all render from
 // INTAKE_FIELDS. Adding a question is one entry here, not a JSX edit in three
 // places.
@@ -84,7 +72,7 @@ export const INTAKE_STEPS: IntakeStep[] = [
     n: 2,
     key: "contact",
     label: "Contact details",
-    blurb: "How we reach you, and what we need to register your phone number.",
+    blurb: "How we reach you.",
   },
   {
     n: 3,
@@ -131,17 +119,6 @@ export const REVIEW_STEP = LAST_INPUT_STEP + 1;
 
 const ASSET_HELP =
   "Optional. Paste a Google Drive, Dropbox or iCloud link, and set it so anyone with the link can view it. If you are not sure how, leave it blank and message Jake, who will sort it out with you.";
-
-// How the business is registered. The carriers' own list for 10DLC brand
-// registration, in their wording, so an answer here transfers to the form Jake
-// fills in without a judgement call in between.
-const ENTITY_OPTIONS: IntakeOption[] = [
-  { value: "llc", label: "LLC" },
-  { value: "corporation", label: "Corporation" },
-  { value: "sole_proprietor", label: "Sole proprietor" },
-  { value: "partnership", label: "Partnership" },
-  { value: "non_profit", label: "Non-profit" },
-];
 
 // --- The password rule -------------------------------------------------------
 //
@@ -232,7 +209,7 @@ export const INTAKE_FIELDS: IntakeField[] = [
   },
   // The address, in parts rather than as one box. A single textarea came back as
   // "Garden City" as often as it came back as an address, and every downstream
-  // use (the A2P registration, the Google profile, the ad's service area) needs
+  // use (the Google profile, the ad's service area) needs
   // the pieces separately anyway.
   {
     key: "addressStreet",
@@ -275,42 +252,6 @@ export const INTAKE_FIELDS: IntakeField[] = [
     step: 2,
     required: true,
     placeholder: "48135",
-  },
-  // The A2P block. Optional on purpose: see the note at the top of this file.
-  {
-    key: "legalName",
-    label: "Legal business name",
-    type: "text",
-    step: 2,
-    placeholder: "Willis Exteriors LLC",
-    help: "As registered with the IRS. Often the trading name plus LLC or Inc.",
-  },
-  {
-    key: "taxId",
-    label: "Tax ID / EIN",
-    type: "text",
-    step: 2,
-    placeholder: "12-3456789",
-    // Plain text, no markup: the admin record renders help through React, which
-    // escapes it. The funnel's own copy of this field carries the same sentence
-    // plus a link out to an explainer, which is the version a client reads.
-    help:
-      "We know this one is sensitive. The mobile carriers will not let a business send texts until they have checked it is a real business, and the EIN is how they check. We use it for that registration and nothing else.",
-  },
-  {
-    key: "entityType",
-    label: "Business structure",
-    type: "select",
-    step: 2,
-    options: ENTITY_OPTIONS,
-  },
-  {
-    key: "contactTitle",
-    label: "Your job title",
-    type: "text",
-    step: 2,
-    placeholder: "Owner",
-    help: "The carriers ask who is authorising the registration.",
   },
 
   // 3 - Your login (new: this is what creates the account)
