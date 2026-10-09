@@ -93,6 +93,9 @@ const PUBLIC_PATHS = new Set([
   // no session of ours. Guarded by its own shared secret (SHEETS_SYNC_TOKEN),
   // read-only, and it names its tenant explicitly. See api/sheets/leads.ts.
   "/api/sheets/leads",
+  // The owner's "tap to call" link, opened from a text on their phone with no
+  // session. Guarded by a per-location key in the URL. See api/call-now.ts.
+  "/api/call-now",
 ]);
 
 // Public paths with a dynamic segment, matched by prefix. Kept separate from the
