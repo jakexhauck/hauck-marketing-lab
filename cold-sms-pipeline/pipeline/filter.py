@@ -43,7 +43,7 @@ def judge(row, trade):
     # alone): the name has to say the trade, and none of the categories may.
     if primary in trade.get("name_only_categories", []):
         bad = next((c for c in cats if c in trade.get("name_only_deny_categories", [])), None)
-        if bad:
+        if bad and not _has_word(name, trade.get("name_only_deny_unless", [])):
             return False, f"primary category {primary}, also {bad}"
         if not _has_word(name, trade["name_only_words"]):
             return False, f"primary category {primary}, name does not say the trade"

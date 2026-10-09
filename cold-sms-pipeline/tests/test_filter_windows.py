@@ -40,6 +40,10 @@ class WindowsDoors(unittest.TestCase):
     def test_door_supplier_that_does_garage_doors(self):
         self.assertDropped("Jan Door", ["Door supplier", "Door shop", "Garage door supplier"])
 
+    def test_door_and_window_shop_that_also_lists_garage_doors(self):
+        self.assertKept("Taylor Door and Window Company",
+                        ["Door shop", "Door supplier", "Garage door supplier", "Window installation service"])
+
     def test_exteriors_firm_with_window_category(self):
         self.assertKept("3G Home Exteriors",
                         ["Siding contractor", "Gutter service", "Roofing contractor", "Window installation service"])

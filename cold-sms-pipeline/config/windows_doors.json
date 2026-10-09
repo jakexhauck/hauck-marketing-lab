@@ -37,6 +37,7 @@
   "name_only_categories": ["window supplier", "door supplier", "door shop"],
   "name_only_words": ["window", "windows", "door", "doors"],
   "name_only_deny_categories": ["garage door supplier", "spring supplier", "garage door installer"],
+  "name_only_deny_unless": ["window", "windows"],
 
   "name_words": [
     "window", "windows", "door", "doors", "glass", "exterior", "exteriors"
