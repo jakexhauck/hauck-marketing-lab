@@ -245,7 +245,10 @@ export const FUNNEL_CELLS: FunnelCell[] = [
 // has said anything about. This is the count that stops the month drifting
 // again: it was 18 of 23 when the form lived in GHL.
 export function needsForm(call: SheetCall, nowMs: number): boolean {
-  if (call.excluded || call.cancelled || call.recorded) return false;
+  if (call.excluded || call.cancelled) return false;
+  // A close is recorded but still owes its Client Tracker row.
+  if (call.trackerOwed) return true;
+  if (call.recorded) return false;
   const at = call.scheduledAt ? Date.parse(call.scheduledAt) : NaN;
   return Number.isFinite(at) && at <= nowMs;
 }

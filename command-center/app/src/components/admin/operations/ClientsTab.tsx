@@ -1,6 +1,16 @@
 import { useState } from "react";
-import { useClientTrackerQuery, useClientTrackerSave } from "../../../hooks/useApi";
-import type { AdminClientBilling, ClientTrackerRow } from "../../../lib/api";
+import {
+  useCallTrackerLink,
+  useCallTrackerSave,
+  useClientTrackerQuery,
+  useClientTrackerSave,
+} from "../../../hooks/useApi";
+import type {
+  AdminClientBilling,
+  AdminClientBillingPatch,
+  ClientTrackerRow,
+  PendingTrackerRow,
+} from "../../../lib/api";
 import { formatMoney, parseMoneyInput } from "../../../lib/billing";
 import { isStaleTouchpoint } from "../../../lib/clientTracker";
 
@@ -14,6 +24,10 @@ import { isStaleTouchpoint } from "../../../lib/clientTracker";
 // header (#ff6d01), banded white/#f3f3f3 rows, Arial, white in dark mode too.
 // One deviation: a Company column leads, since an owner's first name alone
 // does not say which client the row is.
+//
+// Below the clients sit deals closed in Sales Data whose client does not exist
+// yet (pending_clients). Intake approval moves each onto its new client; the
+// Link picker in the Company cell does it by hand when the match missed.
 
 type TextKey =
   | "firstName"
@@ -87,6 +101,10 @@ function TrackerStyle() {
       .ct-sheet td input:focus, .ct-sheet td select:focus { outline: 2px solid #1a73e8; outline-offset: 1px; }
       .ct-sheet td a { color: #1155cc; text-decoration: underline; }
       .ct-sheet td.empty { color: #5f6368; text-align: center; height: 60px; }
+      .ct-sheet tr.pending td { color: #5f6368; }
+      .ct-sheet .co-in { display: flex; align-items: center; gap: 4px; }
+      .ct-sheet .co-in span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+      .ct-sheet td .co-in select { width: 52px; flex: none; color: #1155cc; font-weight: normal; }
     `}</style>
   );
 }
@@ -149,22 +167,84 @@ function LinkCell({ value, onSave }: { value: string; onSave: (next: string) => 
   );
 }
 
-function Row({ row, today }: { row: ClientTrackerRow; today: Date }) {
+function ClientRow({ row, today }: { row: ClientTrackerRow; today: Date }) {
   const save = useClientTrackerSave();
-  const b = row.billing;
-  const put = (patch: Partial<AdminClientBilling>) => save.mutate({ tenantId: row.tenantId, patch });
-
   return (
-    <tr>
-      <td className="co" title={row.name}>
-        {row.name}
+    <Row
+      name={row.name}
+      billing={row.billing}
+      today={today}
+      put={(patch) => save.mutate({ tenantId: row.tenantId, patch })}
+    />
+  );
+}
+
+function PendingRow({
+  row,
+  clients,
+  today,
+}: {
+  row: PendingTrackerRow;
+  clients: ClientTrackerRow[];
+  today: Date;
+}) {
+  const save = useCallTrackerSave();
+  const link = useCallTrackerLink();
+  return (
+    <Row
+      name={row.name}
+      billing={row.billing}
+      today={today}
+      pending
+      put={(patch) => save.mutate({ callId: row.callId, patch })}
+      company={
+        <div className="co-in">
+          <span>{row.name}</span>
+          <select
+            aria-label={`Link ${name} to a client`}
+            value=""
+            disabled={link.isPending}
+            onChange={(e) => e.target.value && link.mutate({ callId: row.callId, tenantId: e.target.value })}
+          >
+            <option value="">Link</option>
+            {clients.map((c) => (
+              <option key={c.tenantId} value={c.tenantId}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      }
+    />
+  );
+}
+
+function Row({
+  name,
+  billing: b,
+  today,
+  put,
+  pending,
+  company,
+}: {
+  name: string;
+  billing: AdminClientBilling;
+  today: Date;
+  put: (patch: AdminClientBillingPatch) => void;
+  pending?: boolean;
+  company?: React.ReactNode;
+}) {
+  return (
+    <tr className={pending ? "pending" : undefined}>
+      <td className="co" title={name}>
+        {company ?? name}
       </td>
       {COLS.map((col) => {
         if (col.kind === "status") {
           return (
             <td key="status" className="c">
               <select
-                aria-label={`Status ${row.name}`}
+                aria-label={`Status ${name}`}
                 value={b.status}
                 onChange={(e) => put({ status: e.target.value as AdminClientBilling["status"] })}
               >
@@ -181,7 +261,7 @@ function Row({ row, today }: { row: ClientTrackerRow; today: Date }) {
               <Cell
                 value={n ? String(n) : ""}
                 show={n ? `$${formatMoney(n)}` : ""}
-                label={`${col.label} ${row.name}`}
+                label={`${col.label} ${name}`}
                 onSave={(next) => put({ [col.key]: parseMoneyInput(next) })}
               />
             </td>
@@ -200,7 +280,7 @@ function Row({ row, today }: { row: ClientTrackerRow; today: Date }) {
           <td key={col.key} className={cls || undefined} title={b[col.key] || undefined}>
             <Cell
               value={b[col.key]}
-              label={`${col.label} ${row.name}`}
+              label={`${col.label} ${name}`}
               onSave={(next) => put({ [col.key]: next })}
             />
           </td>
@@ -214,6 +294,7 @@ export default function ClientsTab() {
   const tracker = useClientTrackerQuery();
   const [today] = useState(() => new Date());
   const clients = tracker.data?.clients ?? [];
+  const pending = tracker.data?.pending ?? [];
   const width = 180 + COLS.reduce((sum, c) => sum + c.width, 0);
 
   return (
@@ -248,14 +329,21 @@ export default function ClientsTab() {
                   The list did not load.
                 </td>
               </tr>
-            ) : clients.length === 0 ? (
+            ) : clients.length === 0 && pending.length === 0 ? (
               <tr>
                 <td className="empty" colSpan={COLS.length + 1}>
                   No clients yet.
                 </td>
               </tr>
             ) : (
-              clients.map((row) => <Row key={row.tenantId} row={row} today={today} />)
+              <>
+                {clients.map((row) => (
+                  <ClientRow key={row.tenantId} row={row} today={today} />
+                ))}
+                {pending.map((row) => (
+                  <PendingRow key={row.callId} row={row} clients={clients} today={today} />
+                ))}
+              </>
             )}
           </tbody>
         </table>

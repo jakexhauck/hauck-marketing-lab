@@ -68,6 +68,7 @@ import {
   type AdminClientBillingPatch,
   type AdminClientBillingResponse,
   type ClientTrackerResponse,
+  type CallTrackerResponse,
   type AdminOnboardingListResponse,
   type AdminOnboardingResponse,
   type AdminOnboardingSavePatch,
@@ -1495,6 +1496,7 @@ export function useClientTrackerSave() {
       qc.setQueryData<ClientTrackerResponse>(["admin", "client-tracker"], (prev) =>
         prev
           ? {
+              ...prev,
               clients: prev.clients.map((c) =>
                 c.tenantId === tenantId ? { ...c, billing: data.billing } : c,
               ),
@@ -1503,6 +1505,48 @@ export function useClientTrackerSave() {
       );
       qc.invalidateQueries({ queryKey: ["admin", "clients", tenantId, "billing"] });
     },
+  });
+}
+
+// The Client Tracker row for one closed meeting: Sales Data's second step and
+// the waiting rows under the Clients sheet. Saving refreshes both pages.
+export function useCallTrackerQuery(callId: string | null) {
+  return useQuery({
+    queryKey: ["admin", "client-tracker", "call", callId],
+    enabled: !!callId,
+    queryFn: () => api<CallTrackerResponse>(`/api/admin/client-tracker/pending/${callId}`),
+  });
+}
+
+function useTrackerRefresh() {
+  const qc = useQueryClient();
+  return () => {
+    void qc.invalidateQueries({ queryKey: ["admin", "client-tracker"] });
+    void qc.invalidateQueries({ queryKey: ["admin", "tracker", "sales-data"] });
+  };
+}
+
+export function useCallTrackerSave() {
+  const refresh = useTrackerRefresh();
+  return useMutation({
+    mutationFn: ({ callId, patch }: { callId: string; patch: AdminClientBillingPatch }) =>
+      api<{ ok: true } & AdminClientBillingResponse>(`/api/admin/client-tracker/pending/${callId}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      }),
+    onSuccess: refresh,
+  });
+}
+
+export function useCallTrackerLink() {
+  const refresh = useTrackerRefresh();
+  return useMutation({
+    mutationFn: ({ callId, tenantId }: { callId: string; tenantId: string }) =>
+      api<{ ok: true }>(`/api/admin/client-tracker/pending/${callId}`, {
+        method: "POST",
+        body: JSON.stringify({ tenantId }),
+      }),
+    onSuccess: refresh,
   });
 }
 

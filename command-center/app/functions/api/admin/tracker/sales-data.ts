@@ -179,6 +179,19 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const timeZone = agencyTimezone(ctx.env);
   const rows = ((data ?? []) as unknown as SalesCallDbRow[]).map(toRow);
 
+  // Which closes already have their Client Tracker row. Best effort: a failed
+  // read only means the Open form link is not lit, never a broken month.
+  const ids = rows.map((r) => r.id);
+  if (ids.length > 0) {
+    const { data: saved, error: savedErr } = await client
+      .from("pending_clients")
+      .select("sales_call_id")
+      .in("sales_call_id", ids);
+    if (savedErr) console.error("[tracker/sales-data] tracker read failed", savedErr.message);
+    const done = new Set(((saved ?? []) as { sales_call_id: string }[]).map((r) => r.sales_call_id));
+    for (const r of rows) r.trackerSaved = savedErr ? true : done.has(r.id);
+  }
+
   // From the validated window rather than the raw query string, so the trim can
   // never be asked to match a month the read did not cover. The query window is
   // widened by a day at each end, so this is what keeps a neighbouring month's

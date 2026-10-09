@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { approvalBlocker, type SubmissionRow } from "./intake";
 import { CreateTenantError, createTenantWithOwner, seedOnboardingRecord } from "./clientCreate";
 import { CHECKLIST_TASKS } from "../../src/lib/onboarding";
+import { attachOnApprove } from "./pendingClientsStore";
 
 // Turning a finished submission into a client.
 //
@@ -29,6 +30,7 @@ export type ApproveResult =
       slug: string;
       ownerWarning?: string;
       onboardingWarning?: string;
+      trackerWarning?: string;
     }
   | { ok: false; status: number; error: string };
 
@@ -93,6 +95,14 @@ export async function approveSubmission(
     CHECKLIST_TASKS.map((task) => task.key),
   );
 
+  // The Client Tracker answers Jake gave when he closed the deal in Sales Data
+  // move onto this client now that it exists.
+  const trackerWarning = await attachOnApprove(client, created.tenantId, {
+    email: text("contactEmail") ?? (row.login_email as string) ?? "",
+    phone: text("contactPhone") ?? "",
+    businessName,
+  });
+
   const now = new Date().toISOString();
   await client
     .from("intake_submissions")
@@ -111,5 +121,6 @@ export async function approveSubmission(
     slug: created.slug,
     ownerWarning: created.ownerWarning,
     onboardingWarning,
+    trackerWarning,
   };
 }

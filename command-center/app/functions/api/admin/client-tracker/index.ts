@@ -7,6 +7,7 @@ import {
   toBillingDto,
   type BillingRow,
 } from "../../../lib/clientBilling";
+import { PENDING_COLUMNS, type PendingRow } from "../../../lib/pendingClientsStore";
 
 // GET /api/admin/client-tracker  (admin-only, gated in _middleware.ts)
 //
@@ -57,7 +58,21 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     ((rows ?? []) as unknown as (BillingRow & { tenant_id: string })[]).map((r) => [r.tenant_id, r]),
   );
 
+  // Deals closed in Sales Data whose client does not exist yet. Drawn under
+  // the real clients until intake approval (or a hand link) attaches them.
+  const { data: waiting, error: waitErr } = await client
+    .from("pending_clients")
+    .select(PENDING_COLUMNS)
+    .is("tenant_id", null)
+    .order("created_at", { ascending: true });
+  if (waitErr) return Response.json({ error: waitErr.message }, { status: 500 });
+
   return Response.json({
+    pending: ((waiting ?? []) as unknown as PendingRow[]).map((r) => ({
+      callId: r.sales_call_id,
+      name: r.business_name || "Unnamed",
+      billing: toBillingDto(r),
+    })),
     clients: current.map((t) => {
       const row = byTenant.get(t.id);
       return {

@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-09-close-fills-tracker",
+    date: "9 October 2026",
+    title: "A close fills in the Client Tracker",
+    items: [
+      "Saving a sales call as PIF or Deposit now asks for the new client's Client Tracker row: name, source, dates, cash, payment arrangement, service and notes.",
+      "Name, call date and cash collected are filled in for you.",
+      "Until the client's onboarding form is approved, the row waits at the bottom of Operations > Clients. Approval moves it onto the new client automatically.",
+      "If it does not find its client, use Link in the Company cell to attach it.",
+      "Open form stays orange on a close until its tracker row is saved.",
+    ],
+  },
+  {
     id: "2026-10-08-intake-no-a2p",
     date: "8 October 2026",
     title: "Onboarding form drops the A2P questions",

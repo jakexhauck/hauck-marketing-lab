@@ -5,11 +5,17 @@ import { useSaveSalesCallForm } from "../../../hooks/useApi";
 import type { SalesCallFormInput } from "../../../lib/api";
 import type { SheetCall } from "../../../../functions/lib/salesSheetRows";
 import { DISPOSITION_STATUSES } from "../../../../functions/lib/salesDisposition";
+import { isCloseStatus } from "../../../../functions/lib/pendingClients";
+import SalesCallTrackerStep from "./SalesCallTrackerStep";
 
 // The post-call form, over Sales Data. Same fields the GHL form had, in the
 // same order, saved straight onto the meeting (PATCH /api/admin/tracker/
 // sales-data). Opens on whatever was last saved, so reopening a meeting is how
 // a mistake gets fixed.
+//
+// Saving a PIF or Deposit moves on to a second step, the new client's Client
+// Tracker row (SalesCallTrackerStep.tsx), so Operations > Clients is never
+// behind a close.
 
 const FIELD =
   "w-full rounded-[var(--radius)] bg-surface-2 px-3.5 py-2.5 text-[13.5px] text-text outline-none " +
@@ -29,6 +35,7 @@ export default function SalesCallForm({
   onClose: () => void;
 }) {
   const save = useSaveSalesCallForm();
+  const [step, setStep] = useState<"call" | "tracker">("call");
   const [form, setForm] = useState<SalesCallFormInput>(() => ({
     status: call.form.status,
     cashCollected: money(call.form.cashCollected),
@@ -49,7 +56,46 @@ export default function SalesCallForm({
   }, [onClose]);
 
   const submit = () =>
-    save.mutate({ id: call.id, form }, { onSuccess: onClose });
+    save.mutate(
+      { id: call.id, form },
+      { onSuccess: () => (isCloseStatus(form.status) ? setStep("tracker") : onClose()) },
+    );
+
+  const header = (
+    <div className="flex items-start gap-2.5">
+      <div className="min-w-0 flex-1">
+        <h2 id="scf-title" className="font-display text-[16px] font-semibold text-text">
+          {step === "tracker" ? `${call.name}: Client Tracker` : call.name}
+        </h2>
+        <div className="text-[12.5px] text-faint">{date}</div>
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-2 hover:text-text"
+      >
+        <X size={16} aria-hidden />
+      </button>
+    </div>
+  );
+
+  const panel =
+    "grid max-h-[calc(100vh-32px)] w-full max-w-[520px] gap-4 overflow-y-auto rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-lg)]";
+
+  if (step === "tracker") {
+    return (
+      <div
+        className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
+        onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+      >
+        <div role="dialog" aria-modal="true" aria-labelledby="scf-title" className={panel}>
+          {header}
+          <SalesCallTrackerStep callId={call.id} onDone={onClose} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -64,24 +110,9 @@ export default function SalesCallForm({
           e.preventDefault();
           submit();
         }}
-        className="grid max-h-[calc(100vh-32px)] w-full max-w-[520px] gap-4 overflow-y-auto rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-lg)]"
+        className={panel}
       >
-        <div className="flex items-start gap-2.5">
-          <div className="min-w-0 flex-1">
-            <h2 id="scf-title" className="font-display text-[16px] font-semibold text-text">
-              {call.name}
-            </h2>
-            <div className="text-[12.5px] text-faint">{date}</div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-sm)] text-muted hover:bg-surface-2 hover:text-text"
-          >
-            <X size={16} aria-hidden />
-          </button>
-        </div>
+        {header}
 
         <fieldset>
           <legend className="mb-2 text-[12.5px] font-semibold text-muted">Status</legend>

@@ -36,6 +36,7 @@ function call(over: Partial<SheetCall> = {}): SheetCall {
     recordingLink: "",
     excluded: false,
     recorded: false,
+    trackerOwed: false,
     form: {
       status: "",
       cashCollected: null,
@@ -268,6 +269,11 @@ describe("needsForm", () => {
 
   it("does not flag a meeting with no time", () => {
     expect(needsForm(call({ scheduledAt: null }), NOW)).toBe(false);
+  });
+
+  it("is owed on a close still waiting on its Client Tracker row", () => {
+    expect(needsForm({ ...CLOSED, trackerOwed: true }, NOW)).toBe(true);
+    expect(needsForm(call({ recorded: true, trackerOwed: true, excluded: true }), NOW)).toBe(false);
   });
 
   it("counts the month's owed forms", () => {

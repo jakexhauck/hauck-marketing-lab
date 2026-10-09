@@ -561,8 +561,23 @@ export interface ClientTrackerRow {
   billing: AdminClientBilling;
 }
 
+// A deal closed in Sales Data whose client does not exist yet.
+export interface PendingTrackerRow {
+  callId: string;
+  name: string;
+  billing: AdminClientBilling;
+}
+
 export interface ClientTrackerResponse {
   clients: ClientTrackerRow[];
+  pending: PendingTrackerRow[];
+}
+
+// The Client Tracker row for one closed meeting.
+export interface CallTrackerResponse {
+  billing: AdminClientBilling;
+  saved: boolean;
+  tenantId: string | null;
 }
 
 export interface AdminClientBillingResponse {

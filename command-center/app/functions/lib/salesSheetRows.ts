@@ -9,6 +9,7 @@ import {
   parseDeal,
 } from "./salesCalls";
 import { isDispositionStatus, statusFromOutcome, type DispositionStatus } from "./salesDisposition";
+import { trackerOwed } from "./pendingClients";
 
 // Sales Data, one row per meeting.
 //
@@ -57,6 +58,8 @@ export interface SalesCallRow {
   // The form's flat "How Much Revenue Generated". Preferred over deal
   // arithmetic on a close; null leaves the sheet to contractValue(parseDeal).
   revenueGenerated: number | null;
+  // A Client Tracker row has been saved for this meeting (pending_clients).
+  trackerSaved?: boolean;
 }
 
 // One line of the sheet, as it goes over the wire.
@@ -111,6 +114,8 @@ export interface SheetCall {
   // Somebody has said what happened: the form was saved, or an outcome was
   // recorded before the form existed. What "needs a form" is measured against.
   recorded: boolean;
+  // A PIF or Deposit still waiting on its Client Tracker row.
+  trackerOwed: boolean;
   form: SheetForm;
 }
 
@@ -168,6 +173,7 @@ export function toSheetCall(row: SalesCallRow): SheetCall {
     recordingLink: row.recordingLink,
     excluded: Boolean(row.excludedAt),
     recorded: Boolean(status) || outcome !== null,
+    trackerOwed: trackerOwed(status, row.scheduledAt, Boolean(row.trackerSaved)),
     form: {
       status: status || statusFromOutcome(outcome),
       cashCollected: row.cashCollected,
