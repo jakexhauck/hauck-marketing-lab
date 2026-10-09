@@ -476,8 +476,7 @@ export default function App() {
               <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsDashboard /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/leads" element={<ProtectedRoute><AdsLeadTracker /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/meta" element={<ProtectedRoute><AdsMetaData /></ProtectedRoute>} />
-              {/* Creatives points at the client's Drive folder. This path used to
-                  redirect to the dashboard; it is a real page again. */}
+              {/* Creatives: files the agency uploaded, viewed and played in the app. */}
               <Route path="/marketing/paid-ads/creatives" element={<ProtectedRoute><AdsCreatives /></ProtectedRoute>} />
               {/* Website leads. The nav row is data-gated (see NavItem.dataGate)
                   but the route stays registered for everyone: a client without an

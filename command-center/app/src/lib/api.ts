@@ -902,22 +902,21 @@ export interface AdsStatus {
   error: string | null;
 }
 
-// Where this client's ad creatives live in Google Drive, and what is in there.
-// Both folder fields are null until an operator maps one, and `url` is rebuilt
-// server-side from the id rather than stored.
-export type CreativeKind = "image" | "video" | "pdf" | "sheet" | "zip" | "doc";
-
-export interface CreativeFile {
+// A creative uploaded into the app (Paid Ads > Creatives). `url` is a
+// short-lived signed URL into the private bucket, null only if signing failed.
+export interface AdCreativeFile {
   id: string;
   name: string;
-  kind: CreativeKind;
-  webViewLink: string | null;
-  modifiedTime: string | null;
-  size: number | null;
-  // Drive's own short-lived thumbnail URL, loaded by the browser directly.
-  // Composio's transport cannot move file bytes, so there is no proxied path to
-  // an image; a tile whose thumbnail fails falls back to a type icon.
-  thumbnailUrl: string | null;
+  kind: "image" | "video";
+  size: number;
+  width: number | null;
+  height: number | null;
+  createdAt: string;
+  url: string | null;
+}
+
+export interface AdCreativeFilesResponse {
+  files: AdCreativeFile[];
 }
 
 // One of the 1000 biggest US cities, with what we have already done there.
@@ -954,27 +953,6 @@ export interface LeadCitiesResponse {
   niche: string | null;
 }
 
-// One level of the Drive folder picker.
-export interface CreativesBrowseResponse {
-  connected: boolean;
-  // Which Google account is being browsed. Display only.
-  email: string | null;
-  folders: { id: string; name: string }[];
-  error: string | null;
-}
-
-export interface CreativesFolderResponse {
-  folderId: string | null;
-  url: string | null;
-  // False means the agency Google account has never been connected, so the
-  // folder link works but its contents cannot be listed. Distinct from an empty
-  // folder, and shown differently.
-  connected: boolean;
-  files: CreativeFile[];
-  // Drive answered badly (folder deleted, access revoked, quota). Surfaced
-  // rather than rendered as an empty folder.
-  error: string | null;
-}
 
 
 // An agency task in the admin "Tasks" tab, or a pillar task in a pillar

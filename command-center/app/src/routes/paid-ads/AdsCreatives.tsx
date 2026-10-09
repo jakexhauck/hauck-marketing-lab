@@ -1,25 +1,19 @@
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
-import CreativesFolderCard from "../../components/ads/CreativesFolderCard";
 import CreativesGrid from "../../components/ads/CreativesGrid";
 import { PAID_ADS_CONTAINER } from "./shared";
 import { useAuth } from "../../context/AuthContext";
-import { useAdsCreativesFolderQuery } from "../../hooks/useApi";
+import { useAdsCreativeFilesQuery } from "../../hooks/useApi";
 import { ErrorNote, Spinner } from "./trackerShared";
 
-// Paid Ads > Creatives. Where this client's ad creatives live in Drive.
+// Paid Ads > Creatives. The ad creatives the agency has uploaded for this
+// client, opened and played in the app.
 //
-// Read only, and deliberately so: the folder is chosen by an operator in the
-// cockpit. A client repointing themselves is not a feature, it is a way to see
-// somebody else's creatives.
-//
-// The empty state says the plain truth and offers nothing. It does not say
-// "your creatives will appear here", because a connected client reading filler
-// about a thing that is not set up is worse than being told it is not set up.
+// Read only: uploading and deleting happen in the admin cockpit.
 
 export default function AdsCreatives() {
   const { session } = useAuth();
-  const query = useAdsCreativesFolderQuery(Boolean(session));
+  const query = useAdsCreativeFilesQuery(Boolean(session));
 
   return (
     <Shell>
@@ -31,19 +25,9 @@ export default function AdsCreatives() {
         ) : query.isLoading && !query.data ? (
           <Spinner />
         ) : (
-          <>
-            <CreativesFolderCard
-              url={query.data?.url ?? null}
-              title="Ad creatives"
-              emptyText="Your creatives folder has not been set up yet. We will add it shortly."
-            />
-            <CreativesGrid
-              files={query.data?.files ?? []}
-              connected={query.data?.connected ?? false}
-              error={query.data?.error ?? null}
-              hasFolder={Boolean(query.data?.folderId)}
-            />
-          </>
+          <div className="mt-5">
+            <CreativesGrid files={query.data?.files ?? []} />
+          </div>
         )}
       </div>
     </Shell>

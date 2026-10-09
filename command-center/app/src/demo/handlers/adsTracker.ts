@@ -4,7 +4,7 @@ import type {
   AdTrackerBreakdownRow,
   AdTrackerLevel,
   AdTrackerRange,
-  CreativesFolderResponse,
+  AdCreativeFilesResponse,
   LeadTrackerLead,
   LeadTrackerResponse,
   LeadTrackerStatus,
@@ -14,7 +14,7 @@ import type {
 import type { AdsMediaResponse } from "../../hooks/useAdsMedia";
 
 // Demo fixtures for the four Paid Ads endpoints the demo router had no answer
-// for: /api/ads/tracker, /meta-data, /creatives-folder and /media. Without
+// for: /api/ads/tracker, /meta-data, /creative-files and /media. Without
 // these, Lead Tracker (the page the client app OPENS ON), Meta Data and
 // Creatives all rendered "Could not load this data" in the demo view, which
 // made the demo useless for reviewing exactly those screens.
@@ -272,28 +272,28 @@ export function demoMetaData(): MetaDataResponse {
   return { rows, currency: CURRENCY };
 }
 
-// A mapped Drive folder with one file per demo ad. `connected: true` so the
-// grid renders tiles; thumbnails are null because the demo has no real Drive
-// bytes to point at, and the UI already falls back to a type icon for those.
-export function demoCreativesFolder(): CreativesFolderResponse {
+// One uploaded creative per demo ad, every third a video. Images point at the
+// app icon so the viewer has something real to open; videos have no demo bytes
+// and fall back to the type icon.
+export function demoCreativeFiles(): AdCreativeFilesResponse {
   return {
-    folderId: "demo-folder",
-    url: "https://drive.google.com/drive/folders/demo-folder",
-    connected: true,
-    files: demoAdCatalogue().map((ad, i) => ({
-      id: `file_${i}`,
-      name: `${ad.adName}.jpg`,
-      kind: "image" as const,
-      webViewLink: null,
-      modifiedTime: new Date(ANCHOR.getTime() - i * 86400_000).toISOString(),
-      size: 240_000 + i * 18_000,
-      thumbnailUrl: null,
-    })),
-    error: null,
+    files: demoAdCatalogue().map((ad, i) => {
+      const video = i % 3 === 2;
+      return {
+        id: `creative_${i}`,
+        name: `${ad.adName}${video ? ".mp4" : ".jpg"}`,
+        kind: video ? ("video" as const) : ("image" as const),
+        size: video ? 14_200_000 + i * 900_000 : 240_000 + i * 18_000,
+        width: 1080,
+        height: 1350,
+        createdAt: new Date(ANCHOR.getTime() - i * 86400_000).toISOString(),
+        url: video ? null : "/icon-512.png",
+      };
+    }),
   };
 }
 
-// The ad account's media library: the same assets as the creatives folder.
+// The ad account's media library: the same assets as the uploaded creatives.
 export function demoAdsMedia(): AdsMediaResponse {
   return {
     configured: true,

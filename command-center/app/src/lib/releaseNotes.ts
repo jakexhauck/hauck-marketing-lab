@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-09-creatives-upload",
+    date: "9 October 2026",
+    title: "Creatives are uploaded into the app",
+    items: [
+      "Client > Paid Ads > Creatives has a new Creatives drop zone. Drop images and videos (up to 50 MB each) and they upload straight away.",
+      "The client sees them on their own Creatives page. Clicking one opens it full screen, and videos play in the app.",
+      "Delete a creative with the bin on its tile, then Delete again to confirm.",
+      "The Google Drive folder is gone from Creatives. Upload to Meta is unchanged and separate.",
+    ],
+  },
+  {
     id: "2026-10-09-close-fills-tracker",
     date: "9 October 2026",
     title: "A close fills in the Client Tracker",

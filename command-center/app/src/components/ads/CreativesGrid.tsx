@@ -1,25 +1,15 @@
 import { useState } from "react";
-import { FileText, Film, Image as ImageIcon, Sheet, FileArchive, File } from "lucide-react";
-import type { CreativeFile, CreativeKind } from "../../lib/api";
+import { Film, Image as ImageIcon, Play, Trash2 } from "lucide-react";
+import type { AdCreativeFile } from "../../lib/api";
+import CreativeViewer from "./CreativeViewer";
 
-// The creatives grid: what is actually inside the client's Drive folder.
+// The creatives grid: what has been uploaded for this client.
 //
 // Rendered by BOTH the client's own Creatives page and the admin cockpit's Paid
-// Ads > Creatives tab. Each tile opens the file in Drive; nothing is edited
-// here, because Drive is where these are made and a second editor is a second
-// source of truth.
+// Ads > Creatives tab. A tile opens the creative in the in-app viewer. Only the
+// cockpit passes onDelete.
 
-const KIND_ICON: Record<CreativeKind, typeof File> = {
-  image: ImageIcon,
-  video: Film,
-  pdf: FileText,
-  sheet: Sheet,
-  zip: FileArchive,
-  doc: File,
-};
-
-function formatSize(bytes: number | null): string {
-  if (bytes == null) return "";
+function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   const units = ["KB", "MB", "GB"];
   let v = bytes / 1024;
@@ -31,118 +21,131 @@ function formatSize(bytes: number | null): string {
   return `${v < 10 ? v.toFixed(1) : Math.round(v)} ${units[i]}`;
 }
 
-function formatModified(iso: string | null): string {
-  if (!iso) return "";
+function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-// One tile. The preview is fetched through our own route, so it can fail for
-// ordinary reasons (thumbnail not generated yet, Drive hiccup). When it does the
-// tile falls back to the type icon rather than showing a broken image.
-function Tile({ file }: { file: CreativeFile }) {
+function Preview({ file }: { file: AdCreativeFile }) {
   const [broken, setBroken] = useState(false);
-  const Icon = KIND_ICON[file.kind] ?? File;
-  const showPreview = Boolean(file.thumbnailUrl) && !broken;
+  const Icon = file.kind === "video" ? Film : ImageIcon;
+  if (!file.url || broken) return <Icon size={26} className="text-faint" aria-hidden />;
+  if (file.kind === "video") {
+    // #t=0.1 makes the browser paint the first frame as the poster.
+    return (
+      <video
+        src={`${file.url}#t=0.1`}
+        preload="metadata"
+        muted
+        playsInline
+        onError={() => setBroken(true)}
+        className="pointer-events-none h-full w-full object-cover"
+      />
+    );
+  }
+  return (
+    <img
+      src={file.url}
+      alt=""
+      loading="lazy"
+      onError={() => setBroken(true)}
+      className="h-full w-full object-cover"
+    />
+  );
+}
+
+function Tile({
+  file,
+  onOpen,
+  onDelete,
+  deleting,
+}: {
+  file: AdCreativeFile;
+  onOpen: () => void;
+  onDelete?: () => void;
+  deleting: boolean;
+}) {
+  // Two clicks to delete: the first arms it, the second does it.
+  const [armed, setArmed] = useState(false);
 
   return (
-    <a
-      href={file.webViewLink ?? "#"}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex flex-col overflow-hidden rounded-lg border border-border bg-surface transition-colors hover:border-brand"
-      title={file.name}
-    >
-      <div className="relative flex aspect-[4/3] items-center justify-center bg-surface-2">
-        {showPreview ? (
-          // Google's own thumbnail URL, loaded straight from Drive. It is
-          // short-lived and can refuse us, hence the icon fallback below rather
-          // than a broken image.
-          <img
-            src={file.thumbnailUrl!}
-            alt=""
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            onError={() => setBroken(true)}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <Icon size={26} className="text-faint" aria-hidden />
-        )}
-
-        {/* Video is the one kind whose thumbnail is indistinguishable from a
-            photo, so it says so. */}
-        {file.kind === "video" && (
-          <span className="absolute bottom-1.5 right-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-            Video
+    <div className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-surface transition-colors hover:border-brand">
+      <button type="button" onClick={onOpen} className="flex flex-col text-left" title={file.name}>
+        <div className="relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden bg-surface-2">
+          <Preview file={file} />
+          {file.kind === "video" && (
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="rounded-full bg-black/55 p-2.5 text-white">
+                <Play size={18} fill="currentColor" aria-hidden />
+              </span>
+            </span>
+          )}
+        </div>
+        <div className="flex w-full flex-col gap-0.5 px-3 py-2.5">
+          <span className="line-clamp-2 break-words text-[13px] font-medium leading-snug text-text group-hover:text-brand">
+            {file.name}
           </span>
-        )}
-      </div>
+          <span className="text-[12px] text-faint tnum">
+            {[formatSize(file.size), formatDate(file.createdAt)].filter(Boolean).join(" · ")}
+          </span>
+        </div>
+      </button>
 
-      <div className="flex flex-col gap-0.5 px-3 py-2.5">
-        <span className="line-clamp-2 break-words text-[13px] font-medium leading-snug text-text group-hover:text-brand">
-          {file.name}
-        </span>
-        <span className="text-[12px] text-faint tnum">
-          {[formatSize(file.size), formatModified(file.modifiedTime)].filter(Boolean).join(" · ")}
-        </span>
-      </div>
-    </a>
+      {onDelete && (
+        <button
+          type="button"
+          disabled={deleting}
+          onClick={() => (armed ? onDelete() : setArmed(true))}
+          onMouseLeave={() => setArmed(false)}
+          aria-label={armed ? "Confirm delete" : "Delete"}
+          className={`absolute right-1.5 top-1.5 flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-semibold transition-opacity disabled:opacity-50 ${
+            armed
+              ? "bg-danger text-white opacity-100"
+              : "bg-black/60 text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+          }`}
+        >
+          <Trash2 size={13} aria-hidden />
+          {armed && (deleting ? "Deleting" : "Delete")}
+        </button>
+      )}
+    </div>
   );
 }
 
 export default function CreativesGrid({
   files,
-  connected,
-  error,
-  hasFolder,
-  quiet = false,
+  onDelete,
+  deletingId,
 }: {
-  files: CreativeFile[];
-  // False means the agency Google account is not connected in Composio. Distinct
-  // from an empty folder, and said differently, because one is a setup step and
-  // the other is just an empty folder.
-  connected: boolean;
-  error: string | null;
-  hasFolder: boolean;
-  // Suppress the not-connected notice when the caller is already showing a
-  // connect button of its own, so the operator is not told twice.
-  quiet?: boolean;
+  files: AdCreativeFile[];
+  onDelete?: (id: string) => void;
+  deletingId?: string | null;
 }) {
-  if (!hasFolder) return null;
-
-  if (!connected) {
-    if (quiet) return null;
-    return (
-      <p className="mt-5 rounded-lg border border-border bg-surface px-4 py-3 text-[13px] text-muted">
-        The folder link works, but we cannot list what is inside it yet: the agency Google account
-        is not connected.
-      </p>
-    );
-  }
-
-  if (error) {
-    return (
-      <p className="mt-5 rounded-lg border border-danger/30 bg-danger-tint px-4 py-3 text-[13px] text-danger">
-        Could not read the folder. {error}
-      </p>
-    );
-  }
+  const [open, setOpen] = useState<number | null>(null);
 
   if (files.length === 0) {
     return (
-      <p className="mt-5 rounded-lg border border-border bg-surface px-4 py-3 text-[13px] text-muted">
-        This folder is empty.
-      </p>
+      <p className="rounded-lg border border-border bg-surface px-4 py-3 text-[13px] text-muted">No creatives yet.</p>
     );
   }
 
   return (
-    <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-      {files.map((f) => (
-        <Tile key={f.id} file={f} />
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {files.map((f, i) => (
+          <Tile
+            key={f.id}
+            file={f}
+            onOpen={() => setOpen(i)}
+            onDelete={onDelete ? () => onDelete(f.id) : undefined}
+            deleting={deletingId === f.id}
+          />
+        ))}
+      </div>
+      {open != null && files[open] && (
+        <CreativeViewer files={files} index={open} onIndex={setOpen} onClose={() => setOpen(null)} />
+      )}
+    </>
   );
 }

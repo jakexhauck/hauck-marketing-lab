@@ -24,9 +24,9 @@ import { ADS_SETUP_SUB, ADS_WITHOUT_META } from "../../../../lib/fulfillmentPage
 // and Data & Leads were the same numbers as the client's Dashboard and Lead
 // Tracker drawn a second way, and Campaigns was a tree the Breakdown's "View by:
 // Campaign" already covers. Ad Library became Creatives: it tried to mirror the
-// Meta media library and hold a hand-typed creatives tracker, when the creatives
-// have always lived in Drive. Creatives points at that folder instead, and is
-// the one tab that carries an operator-only control (setting the folder).
+// Meta media library and hold a hand-typed creatives tracker. Creatives now holds
+// files uploaded here for the client to view, and is the one tab that carries
+// operator-only controls (upload and delete).
 
 export default function PaidAdsTab({
   tenantId,

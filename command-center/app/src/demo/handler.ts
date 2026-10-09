@@ -13,7 +13,7 @@ import { DEMO_LEADS as HUB_DEMO } from "../lib/leadsHub";
 import { demoAdsInsights } from "../lib/adsInsights";
 import {
   demoAdsMedia,
-  demoCreativesFolder,
+  demoCreativeFiles,
   demoLeadTracker,
   demoMetaData,
 } from "./handlers/adsTracker";
@@ -113,7 +113,7 @@ export async function handleDemoRequest<T>(
     return r(demoLeadTracker(range, level));
   }
   if (clean === "/api/ads/meta-data") return r(demoMetaData());
-  if (clean === "/api/ads/creatives-folder") return r(demoCreativesFolder());
+  if (clean === "/api/ads/creative-files") return r(demoCreativeFiles());
   if (clean === "/api/ads/media") return r(demoAdsMedia());
   if (clean === "/api/forms/submissions") {
     const source = queryParam(path, "source");

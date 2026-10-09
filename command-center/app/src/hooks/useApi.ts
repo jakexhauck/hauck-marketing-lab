@@ -77,8 +77,7 @@ import {
   type AdminProvisionResponse,
   type AdTrackerLevel,
   type AdTrackerRange,
-  type CreativesBrowseResponse,
-  type CreativesFolderResponse,
+  type AdCreativeFilesResponse,
   type LeadCitiesResponse,
   type LeadTrackerResponse,
   type ManualLeadStatus,
@@ -1922,26 +1921,78 @@ export function useAdminAdTrackerQuery(
   });
 }
 
-// Where this client's ad creatives live in Drive, as the CLIENT sees it: read
-// only, scoped to their own session.
-export function useAdsCreativesFolderQuery(enabled = true) {
+// The creatives uploaded for this client, as the CLIENT sees them: read only,
+// scoped to their own session. Signed URLs last an hour, so refetch well inside.
+export function useAdsCreativeFilesQuery(enabled = true) {
   return useQuery({
-    queryKey: ["ads-creatives-folder"],
+    queryKey: ["ads-creative-files"],
     enabled,
-    staleTime: 5 * 60_000,
-    queryFn: () => api<CreativesFolderResponse>(`/api/ads/creatives-folder`),
+    staleTime: 20 * 60_000,
+    refetchInterval: 30 * 60_000,
+    queryFn: () => api<AdCreativeFilesResponse>(`/api/ads/creative-files`),
   });
 }
 
-// The same mapping as the operator sees it, for the client in the picker.
-export function useAdminCreativesFolderQuery(tenantId: string) {
+const adminCreativeFilesKey = (tenantId: string) => ["admin", "creative-files", tenantId];
+
+export function useAdminCreativeFilesQuery(tenantId: string) {
   return useQuery({
-    queryKey: ["admin", "creatives-folder", tenantId],
+    queryKey: adminCreativeFilesKey(tenantId),
     enabled: !!tenantId,
-    staleTime: 5 * 60_000,
-    queryFn: () =>
-      api<CreativesFolderResponse>(`/api/admin/clients/${tenantId}/ads/creatives-folder`),
+    staleTime: 20 * 60_000,
+    refetchInterval: 30 * 60_000,
+    queryFn: () => api<AdCreativeFilesResponse>(`/api/admin/clients/${tenantId}/ads/creative-files`),
   });
+}
+
+// PUT with progress. fetch() cannot report upload progress, XHR can.
+function putWithProgress(url: string, file: File, onProgress: (fraction: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    xhr.setRequestHeader("content-type", file.type);
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(e.loaded / e.total);
+    };
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("Upload failed.")));
+    xhr.onerror = () => reject(new Error("Upload failed."));
+    xhr.send(file);
+  });
+}
+
+// One creative, two hops: the Worker signs, the browser PUTs straight to the
+// bucket, then the Worker files the row and returns the fresh list.
+export async function uploadAdCreativeFile(
+  tenantId: string,
+  file: File,
+  dims: { width: number; height: number },
+  onProgress: (fraction: number) => void,
+): Promise<AdCreativeFilesResponse> {
+  const base = `/api/admin/clients/${tenantId}/ads/creative-files`;
+  const signed = await api<{ uploadUrl: string; path: string }>(`${base}/upload-url`, {
+    method: "POST",
+    body: JSON.stringify({ type: file.type, size: file.size }),
+  });
+  await putWithProgress(signed.uploadUrl, file, onProgress);
+  return api<AdCreativeFilesResponse>(base, {
+    method: "POST",
+    body: JSON.stringify({ path: signed.path, name: file.name, type: file.type, size: file.size, ...dims }),
+  });
+}
+
+export function useDeleteAdCreativeFile(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<AdCreativeFilesResponse>(`/api/admin/clients/${tenantId}/ads/creative-files/${id}`, { method: "DELETE" }),
+    onSuccess: (data) => qc.setQueryData(adminCreativeFilesKey(tenantId), data),
+  });
+}
+
+export function useSetAdminCreativeFiles(tenantId: string) {
+  const qc = useQueryClient();
+  return (data: AdCreativeFilesResponse) => qc.setQueryData(adminCreativeFilesKey(tenantId), data);
 }
 
 // The labelled creatives in this client's Meta ad account library, read live.
@@ -2021,44 +2072,6 @@ export function useLeadCities(niche: string, enabled = true) {
           ? `/api/admin/leads/cities?niche=${encodeURIComponent(niche)}`
           : `/api/admin/leads/cities`,
       ),
-  });
-}
-
-// One level of the agency Drive, for the folder picker. `parent` is a folder id
-// or Drive's "root" alias; a non-empty `q` searches by name instead of browsing.
-export function useCreativesBrowseQuery(parent: string, q: string, enabled = true) {
-  const search = q.trim();
-  return useQuery({
-    queryKey: ["admin", "creatives-browse", search ? `q:${search}` : parent],
-    enabled,
-    staleTime: 60_000,
-    placeholderData: (prev) => prev,
-    queryFn: () =>
-      api<CreativesBrowseResponse>(
-        search
-          ? `/api/admin/ads/creatives-browse?q=${encodeURIComponent(search)}`
-          : `/api/admin/ads/creatives-browse?parent=${encodeURIComponent(parent)}`,
-      ),
-  });
-}
-
-// Point a client at a Drive folder, or clear it by saving nothing. Pass a
-// folderId from the picker, or a folderUrl from the paste box.
-export function useSetCreativesFolder(tenantId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { folderId?: string; folderUrl?: string }) =>
-      api<CreativesFolderResponse>(`/api/admin/clients/${tenantId}/ads/creatives-folder`, {
-        method: "PUT",
-        body: JSON.stringify(input),
-      }),
-    onSuccess: (data) => {
-      // Seed rather than invalidate: the response IS the new state, so this
-      // avoids a refetch that would briefly show the old link.
-      qc.setQueryData(["admin", "creatives-folder", tenantId], data);
-      // The client's own page reads a different key off a different route.
-      qc.invalidateQueries({ queryKey: ["ads-creatives-folder"] });
-    },
   });
 }
 

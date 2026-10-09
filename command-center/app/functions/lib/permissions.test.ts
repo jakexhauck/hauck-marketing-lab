@@ -20,8 +20,8 @@ describe("page capabilities", () => {
   it("each ads page reads only with its own grant", () => {
     expect(checkStaffAccess("/api/ads/meta-data", "GET", view("paid_ads")).allowed).toBe(false);
     expect(checkStaffAccess("/api/ads/meta-data", "GET", view("meta_data")).allowed).toBe(true);
-    expect(checkStaffAccess("/api/ads/creatives-folder", "GET", view("ads_dashboard")).allowed).toBe(false);
-    expect(checkStaffAccess("/api/ads/creatives-folder", "GET", view("creatives")).allowed).toBe(true);
+    expect(checkStaffAccess("/api/ads/creative-files", "GET", view("ads_dashboard")).allowed).toBe(false);
+    expect(checkStaffAccess("/api/ads/creative-files", "GET", view("creatives")).allowed).toBe(true);
   });
 
   it("the tracker feed opens for Lead Tracker, Ads Dashboard or Leads", () => {
