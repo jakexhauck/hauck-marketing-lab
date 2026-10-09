@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-09-creatives-shrink",
+    date: "9 October 2026",
+    title: "Big creatives shrink themselves",
+    items: [
+      "A video over 50 MB dropped into Creatives is shrunk in your browser first, then uploaded. The row says Shrinking, then Uploading.",
+      "iPhone .mov videos are converted to MP4 so they play for the client in any browser.",
+      "Keep the tab open while it shrinks. Chrome or Edge works best.",
+    ],
+  },
+  {
     id: "2026-10-09-creatives-upload",
     date: "9 October 2026",
     title: "Creatives are uploaded into the app",

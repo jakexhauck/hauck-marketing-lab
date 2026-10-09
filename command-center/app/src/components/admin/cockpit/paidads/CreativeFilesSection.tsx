@@ -9,13 +9,21 @@ import {
   useSetAdminCreativeFiles,
 } from "../../../../hooks/useApi";
 import { probeFile } from "../../../../lib/creativeProbe";
+import { shrinkCreative, UPLOAD_CAP_BYTES } from "../../../../lib/shrinkCreative";
 
 // The client's creatives, as uploaded here and shown on their own Creatives
-// page. Dropping a file uploads it straight away; nothing goes to Meta.
+// page. Dropping a file uploads it straight away; nothing goes to Meta. A file
+// over the 50 MB cap is shrunk in the browser first (see shrinkCreative.ts). A
+// .mov is always converted to MP4: iPhone .mov is often HEVC, which Chrome
+// cannot play, and the whole point is that the client can watch it.
 
-const MAX_BYTES = 50 * 1024 * 1024;
-
-type Job = { id: string; name: string; progress: number; error: string | null };
+type Job = {
+  id: string;
+  name: string;
+  phase: "shrinking" | "uploading";
+  progress: number;
+  error: string | null;
+};
 
 let nextId = 0;
 
@@ -33,21 +41,23 @@ export default function CreativeFilesSection({ tenantId }: { tenantId: string })
   async function add(list: FileList | null) {
     if (!list || list.length === 0) return;
     const incoming = Array.from(list).map((file) => ({ id: `u${nextId++}`, file }));
-    setJobs((prev) => [...prev, ...incoming.map(({ id, file }) => ({ id, name: file.name, progress: 0, error: null }))]);
+    setJobs((prev) => [...prev, ...incoming.map(({ id, file }) => ({ id, name: file.name, phase: "uploading" as const, progress: 0, error: null }))]);
 
     // One at a time: a pile of videos in parallel starves each other and the
     // progress bars all crawl together.
-    for (const { id, file } of incoming) {
-      const type = file.type || "";
+    for (const { id, file: dropped } of incoming) {
+      const type = dropped.type || "";
       if (!type.startsWith("image/") && !type.startsWith("video/")) {
         patch(id, { error: "Not an image or video." });
         continue;
       }
-      if (file.size > MAX_BYTES) {
-        patch(id, { error: "Over 50 MB." });
-        continue;
-      }
       try {
+        let file = dropped;
+        if (file.size > UPLOAD_CAP_BYTES || type === "video/quicktime") {
+          patch(id, { phase: "shrinking", progress: 0 });
+          file = await shrinkCreative(file, (p) => patch(id, { progress: p }));
+          patch(id, { phase: "uploading", progress: 0 });
+        }
         const { width, height } = await probeFile(id, file);
         const data = await uploadAdCreativeFile(tenantId, file, { width, height }, (p) => patch(id, { progress: p }));
         setFiles(data);
@@ -115,7 +125,9 @@ export default function CreativeFilesSection({ tenantId }: { tenantId: string })
                   </button>
                 </>
               ) : (
-                <span className="flex w-32 items-center gap-2">
+                <span className="flex items-center gap-2">
+                  <span className="text-[12px] text-muted">{j.phase === "shrinking" ? "Shrinking" : "Uploading"}</span>
+                  <span className="flex w-32 items-center gap-2">
                   <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
                     <span
                       className="block h-full rounded-full bg-brand transition-[width]"
@@ -123,6 +135,7 @@ export default function CreativeFilesSection({ tenantId }: { tenantId: string })
                     />
                   </span>
                   <span className="tnum w-9 text-right text-[12px] text-muted">{Math.round(j.progress * 100)}%</span>
+                  </span>
                 </span>
               )}
             </li>

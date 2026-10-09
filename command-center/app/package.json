@@ -27,6 +27,7 @@
     "@tanstack/react-query-persist-client": "^5.101.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
+    "mediabunny": "1.60.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.1.1",
