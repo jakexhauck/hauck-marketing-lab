@@ -1,0 +1,76 @@
+{
+  "trade": "windows_doors",
+  "tag": "cold-sms-windows-doors",
+  "keywords": [
+    "window replacement",
+    "window installation",
+    "door installation"
+  ],
+  "states": ["MI", "OH", "IN", "WI", "IL"],
+  "depth": 15,
+
+  "_core": "Google's PRIMARY category says this is a window or door installer. Any of these keeps the lead. A shop that only does doors, or only windows, still counts (Jake, 2026-10-09).",
+  "core_categories": [
+    "window installation service",
+    "door installation service",
+    "window and door contractor",
+    "window replacement service",
+    "door replacement service"
+  ],
+
+  "_conditional": "Primary is something broader. Kept only when the NAME says window or door AND a window/door category sits somewhere in the list. Catches 'Smith Windows & Siding' filed as a siding contractor.",
+  "conditional_categories": [
+    "contractor",
+    "general contractor",
+    "remodeler",
+    "construction company",
+    "siding contractor",
+    "roofing contractor",
+    "home improvement",
+    "service establishment",
+    "glass & mirror shop",
+    "glass repair service",
+    "window repair service",
+    "door repair service"
+  ],
+  "_name_only": "Google files many real installers as a bare 'Door supplier' or 'Window supplier'. Kept when the NAME says window or door, unless a garage door category sits anywhere in the list (pilot 2026-10-09: 34 door shops dropped without this).",
+  "name_only_categories": ["window supplier", "door supplier", "door shop"],
+  "name_only_words": ["window", "windows", "door", "doors"],
+  "name_only_deny_categories": ["garage door supplier", "spring supplier", "garage door installer"],
+
+  "name_words": [
+    "window", "windows", "door", "doors", "glass", "exterior", "exteriors"
+  ],
+
+  "_name_deny": "Drops the lead whatever its category. Whole words, case-insensitive. Garage doors are their own trade.",
+  "name_deny": [
+    "supply", "supplies", "wholesale", "distributor", "distributors", "distributing",
+    "parts", "store", "rental", "rentals", "lumber", "hardware",
+    "garage", "overhead door", "auto glass", "windshield", "tint", "tinting",
+    "window cleaning", "window washing", "cleaning", "blinds", "shades", "shutters",
+    "locksmith", "commercial", "industrial", "storefront"
+  ],
+  "name_deny_unless": ["residential"],
+
+  "_franchises": "Big brands and national chains. Whole-word match on the name, case-insensitive.",
+  "franchises": [
+    "renewal by andersen", "andersen", "pella", "marvin", "window world", "window nation",
+    "champion windows", "champion window", "window depot", "zen windows", "feldco",
+    "power home remodeling", "universal windows direct", "thompson creek", "window works",
+    "home depot", "lowe's", "lowes", "menards", "sears", "1-800-hansons", "hansons",
+    "wallside", "milgard", "larson", "provia", "therma-tru", "jeld-wen", "jeld wen",
+    "glass doctor", "mr. handyman", "bath fitter", "leaffilter", "erie home",
+    "great day improvements", "patio enclosures"
+  ],
+
+  "_max_reviews": "Above this the shop is too big to be an owner-operator.",
+  "max_reviews": 1500,
+
+  "_service": "Every lead is 'window and door', whether the shop does one or both: it reads right in every text.",
+  "service_field": "service",
+  "service_default": "window and door",
+  "service_rules": [],
+
+  "_line_types": "Twilio line_type_intelligence types that get a text.",
+  "keep_line_types": ["mobile", "nonFixedVoip"]
+}

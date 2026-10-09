@@ -1,7 +1,7 @@
 """Keep or drop a Google Maps listing, and pick its sub-category.
 
 Every category on the listing is read, not just the first: Google attaches up to ten,
-and the HVAC one can sit last behind 'Service establishment' and 'Electrician'.
+and the trade's own one can sit last behind 'Service establishment' and 'Electrician'.
 """
 
 import re
@@ -39,12 +39,22 @@ def judge(row, trade):
     if primary in core:
         return True, f"primary category: {primary}"
 
+    # Primaries Google gives real installers with nothing else attached ('Door supplier'
+    # alone): the name has to say the trade, and none of the categories may.
+    if primary in trade.get("name_only_categories", []):
+        bad = next((c for c in cats if c in trade.get("name_only_deny_categories", [])), None)
+        if bad:
+            return False, f"primary category {primary}, also {bad}"
+        if not _has_word(name, trade["name_only_words"]):
+            return False, f"primary category {primary}, name does not say the trade"
+        return True, f"{primary} with {trade['trade']} name"
+
     if primary in trade["conditional_categories"]:
         if not any(c in core for c in cats):
-            return False, f"primary category {primary}, no HVAC category"
-        if not _has_word(name, trade["name_hvac_words"]):
-            return False, f"primary category {primary}, name does not say heating or cooling"
-        return True, f"{primary} with HVAC name and category"
+            return False, f"primary category {primary}, no {trade['trade']} category"
+        if not _has_word(name, trade["name_words"]):
+            return False, f"primary category {primary}, name does not say the trade"
+        return True, f"{primary} with {trade['trade']} name and category"
 
     return False, f"primary category: {primary or 'none'}"
 

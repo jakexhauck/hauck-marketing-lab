@@ -9,6 +9,9 @@
   python run.py test-csv --phone 2485550134 [--phone ...]
   python run.py reprocess                    re-judge stored leads after a rule change
   python run.py status
+
+  --trade windows_doors (before the command) runs another trade from config/<trade>.json,
+  in its own database. Default hvac.
 """
 
 import argparse
@@ -16,7 +19,7 @@ import sys
 
 from pipeline.cities import build as build_cities
 from pipeline.config import CONFIG, OUT, load_cities, load_trade
-from pipeline.db import connect
+from pipeline.db import connect, db_path
 from pipeline.export import TemplateError, export, write_test_csv
 from pipeline.ingest import reprocess
 from pipeline.lookup import PRICE, LookupStopped, pending, run_lookups, twilio_fetcher
@@ -62,7 +65,7 @@ def main(argv=None):
     args = p.parse_args(argv)
 
     trade = load_trade(args.trade)
-    con = connect()
+    con = connect(db_path(trade["trade"]))
 
     if args.cmd == "cities":
         cities = build_cities(args.min_population, set(trade["states"]))

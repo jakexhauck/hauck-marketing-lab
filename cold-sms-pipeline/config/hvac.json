@@ -30,7 +30,7 @@
     "contractor",
     "service establishment"
   ],
-  "name_hvac_words": [
+  "name_words": [
     "hvac", "heat", "heating", "cooling", "air conditioning", "furnace", "furnaces",
     "heat pump", "heat pumps", "comfort", "climate", "air", "boiler", "boilers"
   ],

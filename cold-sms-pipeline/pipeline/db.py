@@ -1,4 +1,5 @@
-"""The local database. One file, data/leads.db.
+"""The local database. One file per trade: data/leads.db for HVAC (it predates other
+trades), data/<trade>.db for the rest, so trades never share searches or leads.
 
   queries   every city x keyword search, and whether it has run
   listings  every raw Google Maps listing, kept so the rules can be re-run on it
@@ -34,9 +35,13 @@ create table if not exists leads (
 ADDED = {"leads": {"uploaded_at": "text"}}
 
 
-def connect(path=None):
+def db_path(trade_name):
+    return DATA / ("leads.db" if trade_name == "hvac" else f"{trade_name}.db")
+
+
+def connect(path):
     DATA.mkdir(exist_ok=True)
-    con = sqlite3.connect(path or DATA / "leads.db")
+    con = sqlite3.connect(path)
     con.row_factory = sqlite3.Row
     con.executescript(SCHEMA)
     for table, columns in ADDED.items():
