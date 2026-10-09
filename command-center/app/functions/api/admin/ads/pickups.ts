@@ -2,8 +2,10 @@ import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { appMinter, resolveTenantGhl } from "../../../lib/ghlCreds";
 import { syncTenantTouches, type SyncBudget } from "../../../lib/leadPickupSync";
+import { remindCallBacks } from "../../../lib/leadCallBacks";
 
-// Read every client's calls and inbound texts and decide the pickups.
+// Read every client's calls and inbound texts and decide the pickups, and tag
+// the call-backs that have come due (lib/leadCallBacks.ts).
 //
 // POST /api/admin/ads/pickups              -> every estimate-model client, least recently synced first
 // POST /api/admin/ads/pickups?tenantId=X   -> just that one
@@ -69,8 +71,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       continue;
     }
     try {
+      // Reminders first: they are time-sensitive, a pickup verdict is not.
+      const remindedCallBacks = await remindCallBacks(client, tenant.id, creds, budget);
       const r = await syncTenantTouches(ctx.env, client, tenant.id, creds, budget);
-      results.push({ name, ...r });
+      results.push({ name, remindedCallBacks, ...r });
     } catch (err) {
       // One client's broken export must not stop the rest.
       results.push({ name, error: String(err).slice(0, 200) });

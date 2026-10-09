@@ -1,6 +1,7 @@
 import { ghlJson, type GhlContext } from "./ghl";
 import { linkKey } from "./callNow";
 import { OUTCOME_KEY_PURPOSE } from "./estimateOutcome";
+import { LEAD_KEY_PURPOSE } from "./leadOutcome";
 
 // Everything the Connection page's Provision button writes INTO a client's
 // GoHighLevel sub-account.
@@ -80,11 +81,13 @@ async function upsertCustomValue(
 //
 //   Tap to call: {{custom_values.call_now_link}}&c={{contact.id}}
 //   How did it go? {{custom_values.estimate_outcome_link}}&c={{contact.id}}
+//   Log outcome: {{custom_values.lead_outcome_link}}&c={{contact.id}}
 //
 // GoHighLevel derives the merge key from the name, so these names are the
 // contract with the snapshot. Do not rename them.
 export const CALL_NOW_LINK_NAME = "Call Now Link";
 export const ESTIMATE_OUTCOME_LINK_NAME = "Estimate Outcome Link";
+export const LEAD_OUTCOME_LINK_NAME = "Lead Outcome Link";
 
 const LIVE_ORIGIN = "https://app.hauckmarketing.com";
 
@@ -104,6 +107,10 @@ export async function ownerLinkValues(
     {
       name: ESTIMATE_OUTCOME_LINK_NAME,
       value: `${origin}/api/estimate-outcome?l=${l}&k=${await linkKey(secret, OUTCOME_KEY_PURPOSE, locationId)}`,
+    },
+    {
+      name: LEAD_OUTCOME_LINK_NAME,
+      value: `${origin}/api/lead-outcome?l=${l}&k=${await linkKey(secret, LEAD_KEY_PURPOSE, locationId)}`,
     },
   ];
 }

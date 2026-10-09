@@ -106,3 +106,31 @@ alter table public.tenants
 update public.tenants
   set estimate_tracking = true
   where ghl_location_id = 'yVfX127fswQ03fydxBQg';
+
+-- lead_link_outcomes: what the owner tapped on the new-lead link texted when a
+-- lead lands (api/lead-outcome). One row per lead; a second tap overwrites it.
+--   estimate_booked  appointment_id is the GHL estimate it booked or moved
+--   call_back        call_back_at; the ads cron tags the lead call-back-due
+--                    once it passes (reminded_at), and a GHL workflow texts
+--                    the owner
+--   not_interested   reason
+create table if not exists public.lead_link_outcomes (
+  tenant_id       uuid not null references public.tenants (id) on delete cascade,
+  ghl_contact_id  text not null,
+  outcome         text not null,
+  reason          text,
+  appointment_id  text,
+  call_back_at    timestamptz,
+  reminded_at     timestamptz,
+  updated_at      timestamptz not null default now(),
+  primary key (tenant_id, ghl_contact_id),
+  constraint lead_link_outcomes_outcome_chk
+    check (outcome in ('estimate_booked', 'call_back', 'not_interested'))
+);
+
+alter table public.lead_link_outcomes enable row level security;
+
+-- The reminder queue: call-backs due and not yet reminded.
+create index if not exists lead_link_outcomes_due_idx
+  on public.lead_link_outcomes (call_back_at)
+  where outcome = 'call_back' and reminded_at is null;

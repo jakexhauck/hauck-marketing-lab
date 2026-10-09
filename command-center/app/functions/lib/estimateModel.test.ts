@@ -62,7 +62,8 @@ describe("estimate model", () => {
 describe("ownerLinkValues", () => {
   it("puts the key in the link and never a localhost origin", async () => {
     const live = await ownerLinkValues("http://localhost:8788", "s3cret", "yVfX127fswQ03fydxBQg");
-    expect(live.map((v) => v.name)).toEqual(["Call Now Link", "Estimate Outcome Link"]);
+    expect(live.map((v) => v.name)).toEqual(["Call Now Link", "Estimate Outcome Link", "Lead Outcome Link"]);
+    expect(live[2].value).toMatch(/\/api\/lead-outcome\?l=yVfX127fswQ03fydxBQg&k=[0-9a-f]{32}$/);
     expect(live[0].value).toMatch(
       /^https:\/\/app\.hauckmarketing\.com\/api\/call-now\?l=yVfX127fswQ03fydxBQg&k=[0-9a-f]{32}$/,
     );

@@ -100,6 +100,9 @@ const PUBLIC_PATHS = new Set([
   // texted, no session, per-location key. See api/estimate-outcome/.
   "/api/estimate-outcome",
   "/api/estimate-outcome/slots",
+  // The owner's new-lead link (book an estimate, call back, not interested).
+  "/api/lead-outcome",
+  "/api/lead-outcome/slots",
 ]);
 
 // Public paths with a dynamic segment, matched by prefix. Kept separate from the

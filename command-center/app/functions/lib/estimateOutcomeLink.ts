@@ -7,8 +7,8 @@ import { keysMatch, linkKey, parseCallNowParams } from "./callNow";
 import { OUTCOME_KEY_PURPOSE } from "./estimateOutcome";
 import { loadEstimateCalendars, type EstimateCalendars } from "./estimateTracking";
 
-// Everything both outcome routes (the page and its time slots) need from the
-// link: the key checked, the client found, their GoHighLevel key minted and
+// Everything the owner-link routes (estimate outcome, new lead, and their time
+// slots) need from the link: the key checked, the client found, their GoHighLevel key minted and
 // their estimate and job calendars found by name.
 
 // The zone a client's times are shown and booked in when no ad sync has
@@ -29,12 +29,18 @@ export interface OutcomeLink {
 
 export type LinkFailure = { status: number; message: string };
 
-export async function resolveOutcomeLink(env: Env, url: URL): Promise<OutcomeLink | LinkFailure> {
+// `purpose` picks which owner link the key must belong to: the estimate
+// outcome link, or the new-lead link (lib/leadOutcome.ts).
+export async function resolveOutcomeLink(
+  env: Env,
+  url: URL,
+  purpose: string = OUTCOME_KEY_PURPOSE,
+): Promise<OutcomeLink | LinkFailure> {
   const bad = { status: 400, message: "This link is not valid." };
   const secret = (env.SESSION_SECRET ?? "").trim();
   const params = parseCallNowParams(url);
   if (!secret || !params) return bad;
-  if (!keysMatch(params.key, await linkKey(secret, OUTCOME_KEY_PURPOSE, params.locationId))) return bad;
+  if (!keysMatch(params.key, await linkKey(secret, purpose, params.locationId))) return bad;
 
   const client = getServiceClient(env);
   if (!client) return { status: 503, message: "Something went wrong. Try again." };

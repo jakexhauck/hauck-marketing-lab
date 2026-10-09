@@ -132,7 +132,7 @@ export function stageForOutcome(outcome: Outcome): { stage: string; status?: "wo
 
 // ------------------------------------------------------------------ the page
 
-function escapeHtml(s: string): string {
+export function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
@@ -164,14 +164,38 @@ export function currentLabel(c: OutcomePageInput["current"]): string {
 
 // A message-only page (bad link, nothing to report on).
 export function outcomeMessagePage(title: string): string {
-  return shell(`<h1>${escapeHtml(title)}</h1>`);
+  return pageShell(`<h1>${escapeHtml(title)}</h1>`);
 }
 
-function shell(body: string, script = ""): string {
+// The day + time picker both owner pages use. Plain script (no build step on
+// these pages): pickSlots(box, url, onPick, onFail) draws a row of days and a
+// grid of times from a slots endpoint and calls onPick(slot) or onPick(null).
+export const SLOT_PICKER_JS = `
+function fmtDay(d){var x=new Date(d+"T12:00:00");return x.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
+function fmtTime(s){var h=+s.slice(11,13),m=s.slice(14,16);return ((h%12)||12)+":"+m+(h<12?" AM":" PM")}
+function pickRow(row,b){row.querySelectorAll("button").forEach(function(x){x.classList.remove("pick")});b.classList.add("pick")}
+function pickSlots(box,url,onPick,onFail){
+  box.innerHTML='<p class="empty">Loading times...</p>';
+  fetch(url).then(function(r){return r.json()}).then(function(d){
+    var days=(d&&d.days)||[];
+    if(!days.length){box.innerHTML='<p class="empty">No open times in the next 3 weeks.</p>';return}
+    box.innerHTML='<div class="row" data-days></div><div class="times" data-times style="margin-top:10px"></div>';
+    var dayRow=box.querySelector("[data-days]"),times=box.querySelector("[data-times]");
+    days.forEach(function(day,i){
+      var b=document.createElement("button");b.type="button";b.textContent=fmtDay(day.date);
+      b.onclick=function(){pickRow(dayRow,b);times.innerHTML="";onPick(null);
+        day.slots.forEach(function(s){var t=document.createElement("button");t.type="button";t.textContent=fmtTime(s);
+          t.onclick=function(){pickRow(times,t);onPick(s)};times.appendChild(t)})};
+      dayRow.appendChild(b);if(i===0)b.click();
+    });
+  }).catch(function(){onFail();box.innerHTML='<p class="empty">Could not load times. Try again.</p>'});
+}`;
+
+export function pageShell(body: string, script = "", title = "Estimate outcome"): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <meta name="robots" content="noindex">
-<title>Estimate outcome</title>
+<title>${escapeHtml(title)}</title>
 <style>
 :root{--bg:#0A1D19;--card:#11302A;--line:#1E4A40;--ink:#fff;--mute:#9DB8B0;--brand:#4DBB83;--bad:#E5675C}
 *{box-sizing:border-box}
@@ -244,28 +268,13 @@ function show(o){
   if(o==="sold")load("job");
   if(o==="rescheduled")load("estimate");
 }
-function fmtDay(d){var x=new Date(d+"T12:00:00");return x.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
-function fmtTime(s){var h=+s.slice(11,13),m=s.slice(14,16);return ((h%12)||12)+":"+m+(h<12?" AM":" PM")}
+${SLOT_PICKER_JS}
 var loaded={};
 function load(cal){
   var box=document.querySelector('[data-picker="'+cal+'"]');
   if(!box||loaded[cal])return;loaded[cal]=true;
-  box.innerHTML='<p class="empty">Loading times...</p>';
-  fetch("/api/estimate-outcome/slots"+q+"&cal="+cal).then(function(r){return r.json()}).then(function(d){
-    var days=(d&&d.days)||[];
-    if(!days.length){box.innerHTML='<p class="empty">No open times in the next 3 weeks.</p>';return}
-    box.innerHTML='<div class="row" data-days></div><div class="times" data-times style="margin-top:10px"></div>';
-    var dayRow=box.querySelector("[data-days]"),times=box.querySelector("[data-times]");
-    days.forEach(function(day,i){
-      var b=document.createElement("button");b.type="button";b.textContent=fmtDay(day.date);
-      b.onclick=function(){dayRow.querySelectorAll("button").forEach(function(x){x.classList.remove("pick")});b.classList.add("pick");
-        times.innerHTML="";state.slot[cal]=null;sync();
-        day.slots.forEach(function(s){var t=document.createElement("button");t.type="button";t.textContent=fmtTime(s);
-          t.onclick=function(){times.querySelectorAll("button").forEach(function(x){x.classList.remove("pick")});t.classList.add("pick");state.slot[cal]=s;sync()};
-          times.appendChild(t)})};
-      dayRow.appendChild(b);if(i===0)b.click();
-    });
-  }).catch(function(){loaded[cal]=false;box.innerHTML='<p class="empty">Could not load times. Try again.</p>'});
+  pickSlots(box,"/api/estimate-outcome/slots"+q+"&cal="+cal,
+    function(s){state.slot[cal]=s;sync()},function(){loaded[cal]=false});
 }
 function amount(){return Number(($("amount").value||"").replace(/[$,\\s]/g,""))}
 function sync(){
@@ -288,5 +297,5 @@ $("saveRe").onclick=function(){send({outcome:"rescheduled",slot:state.slot.estim
 $("saveNo").onclick=function(){send({outcome:"no_show"},$("saveNo"))};
 })();
 </script>`;
-  return shell(body, script);
+  return pageShell(body, script);
 }

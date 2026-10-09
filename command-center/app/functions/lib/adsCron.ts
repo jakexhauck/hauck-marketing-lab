@@ -48,10 +48,12 @@ export const ADS_CRON_PATH = "/api/admin/ads/sync";
 export const CAPI_CRON_PATH = "/api/admin/ads/capi-schedule";
 
 /**
- * Reading clients' calls into lead_touches and judging pickups (added
- * 2026-10-09). Writes only lead_touches / lead_touch_sync, keyed on GHL message
- * ids the caller cannot choose, and reads no body: the only caller-supplied
- * value is `tenantId`. Replaying it stores nothing new.
+ * Reading clients' calls into lead_touches and judging pickups, and tagging
+ * call-backs that have come due (added 2026-10-09). Writes lead_touches /
+ * lead_touch_sync keyed on GHL message ids the caller cannot choose, and
+ * stamps lead_link_outcomes.reminded_at so a call-back is tagged once. Reads
+ * no body: the only caller-supplied value is `tenantId`. Replaying it stores
+ * nothing new and tags nobody twice.
  */
 export const PICKUPS_CRON_PATH = "/api/admin/ads/pickups";
 
