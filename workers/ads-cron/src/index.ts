@@ -25,6 +25,11 @@ export interface Env {
    */
   CAPI_SCHEDULE_URL?: string;
   /**
+   * Reading clients' calls and judging pickups for the Ads Dashboard's
+   * Pickup %. Set in wrangler.toml [vars]; unset skips it.
+   */
+  PICKUPS_URL?: string;
+  /**
    * Shared with the app's own environment. Must match EXACTLY on both sides or
    * every run comes back 401 and spend silently stops updating.
    *
@@ -124,13 +129,33 @@ async function runCapiSchedule(env: Env): Promise<string> {
   ].join(" | ");
 }
 
+// Calls into lead_touches, and a pickup verdict per outbound call. Own step for
+// the same reason as the capi one: a GHL outage must not stop the spend sync.
+async function runPickups(env: Env): Promise<string> {
+  if (!env.PICKUPS_URL) return "PICKUPS_URL not set, skipped.";
+  if (!env.ADS_CRON_SECRET) return "ADS_CRON_SECRET is not set. No pickups read.";
+  const res = await fetch(env.PICKUPS_URL, {
+    method: "POST",
+    headers: { "x-ads-cron": env.ADS_CRON_SECRET },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (res.status === 401) return "401 from the pickups endpoint. Secret mismatch.";
+  if (!res.ok) return `Pickups endpoint returned ${res.status}.`;
+  const body = (await res.json()) as { results?: { name?: string; judged?: number; error?: string }[] };
+  const results = body.results ?? [];
+  const judged = results.reduce((n, r) => n + (r.judged ?? 0), 0);
+  const failed = results.filter((r) => r.error);
+  return `pickups judged ${judged} | errors: ${failed.length ? failed.map((r) => `${r.name}: ${r.error}`).join("; ") : "none"}`;
+}
+
 async function runAll(env: Env): Promise<string> {
   // Sequential, not Promise.all: both hit the same Pages deployment and the
   // spend sync already walks every client calling Meta. Running them at once
   // buys nothing on a nightly job and doubles the peak load.
   const spend = await runSync(env).catch((err) => `sync threw: ${err}`);
   const capi = await runCapiSchedule(env).catch((err) => `capi threw: ${err}`);
-  return `${spend} || ${capi}`;
+  const pickups = await runPickups(env).catch((err) => `pickups threw: ${err}`);
+  return `${spend} || ${capi} || ${pickups}`;
 }
 
 export default {

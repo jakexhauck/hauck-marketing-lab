@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
   AD_TRACKER_OTHER_ID,
   type AdTrackerBreakdownRow,
+  type AdTrackerKpis,
   type AdTrackerLevel,
   type AdTrackerRange,
   type AdTrackerResponse,
@@ -36,31 +37,74 @@ import {
 // revenue from the app's own close-out ledger. A null ratio prints "-", never a
 // fabricated zero, exactly as the sheet did.
 
-const RESULT_COLUMNS = [
-  "Leads",
-  "Pickups",
-  "Pickup Rate",
-  "Bookings",
-  "Booking Rate",
-  "Sales",
-  "Sales %",
-  "Close Rate",
-  "Revenue",
-  "Ad Spend",
-  "ROAS",
-];
+// One Results figure: its label, its printed value, and whether it is the
+// bolded verdict. Both models build a list of these, so the desktop row and
+// the phone grid can never disagree about which figures exist.
+interface Figure {
+  label: string;
+  value: string;
+  strong?: boolean;
+}
 
-const BREAKDOWN_COLUMNS = [
-  "ID",
-  "Spend",
-  "Leads",
-  "Bookings",
-  "Sales",
-  "Revenue",
-  "ROAS",
-  "Cost / Lead",
-  "Cost / Booking",
-];
+// The original sheet (stage model, Willis): pickups and bookings off the stage.
+function stageFigures(k: AdTrackerKpis): Figure[] {
+  return [
+    { label: "Leads", value: String(k.leads) },
+    { label: "Pickups", value: String(k.pickups) },
+    { label: "Pickup Rate", value: pct(k.pickupRate) },
+    { label: "Bookings", value: String(k.bookings) },
+    { label: "Booking Rate", value: pct(k.bookingRate) },
+    { label: "Sales", value: String(k.sales) },
+    { label: "Sales %", value: pct(k.salesPct) },
+    { label: "Close Rate", value: pct(k.closeRate) },
+    { label: "Revenue", value: money0(k.revenue) },
+    { label: "Ad Spend", value: money0(k.spend) },
+    { label: "ROAS", value: roas(k.roas), strong: true },
+  ];
+}
+
+// The estimate model, as agreed with Jake 2026-10-09: Pickup % is over leads
+// called, Estimate % over all leads, Jobs are Sold taps on the outcome link.
+function estimateFigures(k: AdTrackerKpis): Figure[] {
+  return [
+    { label: "Leads", value: String(k.leads) },
+    { label: "Pickups", value: String(k.pickups) },
+    { label: "Pickup %", value: pct(k.pickupRate) },
+    { label: "Estimates", value: String(k.bookings) },
+    { label: "Estimate %", value: pct(k.bookingRate) },
+    { label: "Jobs", value: String(k.sales) },
+    { label: "Revenue", value: money0(k.revenue) },
+    { label: "Ad Spend", value: money0(k.spend) },
+    { label: "ROAS", value: roas(k.roas), strong: true },
+    { label: "Cost / Lead", value: money2(k.costPerLead ?? null) },
+    { label: "Cost / Estimate", value: money2(k.costPerBooking ?? null) },
+    { label: "Cost / Job", value: money2(k.costPerSale ?? null) },
+  ];
+}
+
+// The figures the phone shows in its headline cards rather than the grid.
+const HEADLINE = new Set(["Revenue", "Ad Spend", "ROAS"]);
+
+interface Column {
+  label: string;
+  value: (r: AdTrackerBreakdownRow) => string;
+  strong?: boolean;
+}
+
+function breakdownColumns(estimate: boolean): Column[] {
+  const cols: Column[] = [
+    { label: "Spend", value: (r) => money0(r.spend) },
+    { label: "Leads", value: (r) => String(r.leads) },
+    { label: estimate ? "Estimates" : "Bookings", value: (r) => String(r.bookings) },
+    { label: estimate ? "Jobs" : "Sales", value: (r) => String(r.sales) },
+    { label: "Revenue", value: (r) => money0(r.revenue) },
+    { label: "ROAS", value: (r) => roas(r.roas), strong: true },
+    { label: "Cost / Lead", value: (r) => money2(r.costPerLead) },
+    { label: estimate ? "Cost / Estimate" : "Cost / Booking", value: (r) => money2(r.costPerBooking) },
+  ];
+  if (estimate) cols.push({ label: "Cost / Job", value: (r) => money2(r.costPerSale ?? null) });
+  return cols;
+}
 
 // The sheet's section headers: a full-width band in the brand tint with the
 // label letter-spaced. They are what makes the page scan as the workbook.
@@ -244,6 +288,9 @@ export default function DashboardSheet({
 }) {
   const rows: AdTrackerBreakdownRow[] = data.breakdown ?? [];
   const levelLabel = LEVELS.find((l) => l.id === level)!.label;
+  const estimate = data.model === "estimate";
+  const figures = estimate ? estimateFigures(data.kpis) : stageFigures(data.kpis);
+  const columns = breakdownColumns(estimate);
 
   return (
     <>
@@ -292,14 +339,11 @@ export default function DashboardSheet({
         />
       </div>
       <div className="mb-4 grid shrink-0 grid-cols-2 gap-px overflow-hidden rounded-[12px] border border-border bg-border lg:hidden">
-        <Stat label="Leads" value={String(data.kpis.leads)} />
-        <Stat label="Pickups" value={String(data.kpis.pickups)} />
-        <Stat label="Bookings" value={String(data.kpis.bookings)} />
-        <Stat label="Sales" value={String(data.kpis.sales)} />
-        <Stat label="Pickup Rate" value={pct(data.kpis.pickupRate)} />
-        <Stat label="Booking Rate" value={pct(data.kpis.bookingRate)} />
-        <Stat label="Sales % of leads" value={pct(data.kpis.salesPct)} />
-        <Stat label="Close Rate of bookings" value={pct(data.kpis.closeRate)} />
+        {figures
+          .filter((f) => !HEADLINE.has(f.label))
+          .map((f) => (
+            <Stat key={f.label} label={f.label} value={f.value} />
+          ))}
       </div>
 
       <div className="hidden shrink-0 overflow-x-auto lg:block">
@@ -307,9 +351,9 @@ export default function DashboardSheet({
           <thead>
             <tr>
               <th className={RESULT_TH}>Date Range</th>
-              {RESULT_COLUMNS.map((c) => (
-                <th key={c} className={RESULT_TH}>
-                  {c}
+              {figures.map((f) => (
+                <th key={f.label} className={RESULT_TH}>
+                  {f.label}
                 </th>
               ))}
             </tr>
@@ -319,17 +363,11 @@ export default function DashboardSheet({
               <td className="border border-border px-3 py-6">
                 <Picker options={RANGES} value={range} onChange={onRange} label="Date range" />
               </td>
-              <td className={RESULT_TD}>{data.kpis.leads}</td>
-              <td className={RESULT_TD}>{data.kpis.pickups}</td>
-              <td className={RESULT_TD}>{pct(data.kpis.pickupRate)}</td>
-              <td className={RESULT_TD}>{data.kpis.bookings}</td>
-              <td className={RESULT_TD}>{pct(data.kpis.bookingRate)}</td>
-              <td className={RESULT_TD}>{data.kpis.sales}</td>
-              <td className={RESULT_TD}>{pct(data.kpis.salesPct)}</td>
-              <td className={RESULT_TD}>{pct(data.kpis.closeRate)}</td>
-              <td className={RESULT_TD}>{money0(data.kpis.revenue)}</td>
-              <td className={RESULT_TD}>{money0(data.kpis.spend)}</td>
-              <td className={`${RESULT_TD} font-semibold`}>{roas(data.kpis.roas)}</td>
+              {figures.map((f) => (
+                <td key={f.label} className={`${RESULT_TD}${f.strong ? " font-semibold" : ""}`}>
+                  {f.value}
+                </td>
+              ))}
             </tr>
           </tbody>
         </table>
@@ -404,14 +442,9 @@ export default function DashboardSheet({
                   it is a line of machine text with nothing to do. */}
 
               <dl className="mt-2.5 grid grid-cols-3 gap-x-3 gap-y-2 border-t border-border/60 pt-2.5 text-[12.5px]">
-                <BreakdownStat label="Spend" value={money0(r.spend)} />
-                <BreakdownStat label="Leads" value={String(r.leads)} />
-                <BreakdownStat label="Bookings" value={String(r.bookings)} />
-                <BreakdownStat label="Sales" value={String(r.sales)} />
-                <BreakdownStat label="Revenue" value={money0(r.revenue)} />
-                <BreakdownStat label="ROAS" value={roas(r.roas)} strong />
-                <BreakdownStat label="Cost / lead" value={money2(r.costPerLead)} />
-                <BreakdownStat label="Cost / booking" value={money2(r.costPerBooking)} />
+                {columns.map((c) => (
+                  <BreakdownStat key={c.label} label={c.label} value={c.value(r)} strong={c.strong} />
+                ))}
               </dl>
             </div>
           ))}
@@ -424,9 +457,10 @@ export default function DashboardSheet({
             <thead>
               <tr>
                 <th className={`${TH} text-left`}>{levelLabel} Name</th>
-                {BREAKDOWN_COLUMNS.map((c) => (
-                  <th key={c} className={TH}>
-                    {c}
+                <th className={TH}>ID</th>
+                {columns.map((c) => (
+                  <th key={c.label} className={TH}>
+                    {c.label}
                   </th>
                 ))}
               </tr>
@@ -454,14 +488,11 @@ export default function DashboardSheet({
                   <td className={`${TD} text-faint`}>
                     {r.id === AD_TRACKER_OTHER_ID ? "-" : r.id}
                   </td>
-                  <td className={TD}>{money0(r.spend)}</td>
-                  <td className={TD}>{r.leads}</td>
-                  <td className={TD}>{r.bookings}</td>
-                  <td className={TD}>{r.sales}</td>
-                  <td className={TD}>{money0(r.revenue)}</td>
-                  <td className={`${TD} font-semibold`}>{roas(r.roas)}</td>
-                  <td className={TD}>{money2(r.costPerLead)}</td>
-                  <td className={TD}>{money2(r.costPerBooking)}</td>
+                  {columns.map((c) => (
+                    <td key={c.label} className={`${TD}${c.strong ? " font-semibold" : ""}`}>
+                      {c.value(r)}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>

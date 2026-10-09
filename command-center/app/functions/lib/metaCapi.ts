@@ -210,6 +210,8 @@ export interface LeadEventInput {
   // stream. Used to prove the wiring without inventing a lead in a client's
   // reporting.
   testEventCode?: string;
+  // Meta's custom_data, e.g. { value, currency } on a Purchase.
+  customData?: Record<string, unknown>;
 }
 
 export interface LeadEventResult {
@@ -273,6 +275,7 @@ export async function sendConversionEvent(
         event_source_url: input.sourceUrl || undefined,
         action_source: input.actionSource || "website",
         user_data: await buildUserData(input.who, input.signals),
+        ...(input.customData ? { custom_data: input.customData } : {}),
       },
     ],
   };

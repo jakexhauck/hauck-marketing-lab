@@ -48,3 +48,11 @@ describe("callNowPage", () => {
     expect(callNowPage({ title: "Done" })).not.toContain("<form");
   });
 });
+
+describe("linkKey", () => {
+  it("keeps every call-now key already pasted into GHL, and scopes other purposes apart", async () => {
+    const { linkKey } = await import("./callNow");
+    expect(await linkKey("s3cret", "call-now", LOC)).toBe(await callNowKey("s3cret", LOC));
+    expect(await linkKey("s3cret", "estimate-outcome", LOC)).not.toBe(await callNowKey("s3cret", LOC));
+  });
+});

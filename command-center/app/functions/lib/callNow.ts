@@ -20,6 +20,13 @@ export const CALL_NOW_TAG = "call-now";
 const ID = /^[A-Za-z0-9]{8,64}$/;
 
 export async function callNowKey(secret: string, locationId: string): Promise<string> {
+  return linkKey(secret, "call-now", locationId);
+}
+
+// The same per-location key for any owner link texted from a workflow, scoped by
+// purpose so a leaked call-now key opens nothing else. "call-now" keeps the
+// exact message it always signed, so keys already pasted into GHL still work.
+export async function linkKey(secret: string, purpose: string, locationId: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -28,7 +35,7 @@ export async function callNowKey(secret: string, locationId: string): Promise<st
     ["sign"],
   );
   const sig = new Uint8Array(
-    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`call-now:${locationId}`)),
+    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${purpose}:${locationId}`)),
   );
   // 16 bytes is plenty for a link guard and keeps the SMS short.
   return [...sig.slice(0, 16)].map((b) => b.toString(16).padStart(2, "0")).join("");

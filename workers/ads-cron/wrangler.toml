@@ -35,6 +35,16 @@ SYNC_URL = "https://app.hauckmarketing.com/api/admin/ads/sync?days=7"
 # browser event off in public/sites/willis/thanks.js at the same time.
 #
 # CAPI_SCHEDULE_URL = "https://app.hauckmarketing.com/api/admin/ads/capi-schedule"
+#
+# 2026-10-09: back on, but ONLY for estimate-model clients (?scope=estimate).
+# The endpoint then skips every hand-built funnel, so Willis is untouched, and
+# reports each new client's estimate bookings to the dataset saved on their
+# Client > GHL > CAPI page with their own token.
+CAPI_SCHEDULE_URL = "https://app.hauckmarketing.com/api/admin/ads/capi-schedule?scope=estimate"
+
+# Calls and pickups for the Ads Dashboard's Pickup % (2026-10-09). Hourly is
+# plenty: a pickup only has to be right by the time someone reads the page.
+PICKUPS_URL = "https://app.hauckmarketing.com/api/admin/ads/pickups"
 
 # ADS_CRON_SECRET is NOT here on purpose: it is a secret, set with
 #   wrangler secret put ADS_CRON_SECRET

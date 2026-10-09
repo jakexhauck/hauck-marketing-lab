@@ -48,6 +48,14 @@ export const ADS_CRON_PATH = "/api/admin/ads/sync";
 export const CAPI_CRON_PATH = "/api/admin/ads/capi-schedule";
 
 /**
+ * Reading clients' calls into lead_touches and judging pickups (added
+ * 2026-10-09). Writes only lead_touches / lead_touch_sync, keyed on GHL message
+ * ids the caller cannot choose, and reads no body: the only caller-supplied
+ * value is `tenantId`. Replaying it stores nothing new.
+ */
+export const PICKUPS_CRON_PATH = "/api/admin/ads/pickups";
+
+/**
  * Every route this secret opens, matched with === against the whole set.
  *
  * A LIST of exact paths, deliberately, rather than the prefix "/api/admin/ads/"
@@ -56,7 +64,7 @@ export const CAPI_CRON_PATH = "/api/admin/ads/capi-schedule";
  * is the kind of thing that gets widened by someone in a hurry. Adding a path
  * here should stay a decision, not a side effect.
  */
-export const CRON_PATHS: readonly string[] = [ADS_CRON_PATH, CAPI_CRON_PATH];
+export const CRON_PATHS: readonly string[] = [ADS_CRON_PATH, CAPI_CRON_PATH, PICKUPS_CRON_PATH];
 
 /** The header the scheduler sends the shared secret in. */
 export const ADS_CRON_HEADER = "x-ads-cron";

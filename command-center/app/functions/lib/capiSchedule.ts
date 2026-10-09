@@ -114,6 +114,11 @@ export async function fetchRecentBookings(
   gctx: GhlContext,
   sinceMs: number,
   nowMs: number,
+  // Only these calendars. An estimate-model client reports its estimate
+  // calendar alone: a job is reported as a Purchase from the outcome link, and
+  // sending its appointment as a Schedule too would count one sale as two
+  // bookings.
+  onlyCalendarIds?: string[],
 ): Promise<GhlAppointment[]> {
   let calendars: CalendarsResp["calendars"] = [];
   try {
@@ -125,6 +130,10 @@ export async function fetchRecentBookings(
   } catch (err) {
     console.warn("[capi/schedule] calendar discovery failed", err);
     return [];
+  }
+  if (onlyCalendarIds) {
+    const keep = new Set(onlyCalendarIds);
+    calendars = (calendars ?? []).filter((c) => keep.has(c.id));
   }
 
   const from = nowMs - EVENT_WINDOW_DAYS * 86_400_000;
@@ -303,11 +312,12 @@ export async function reportBookingsForTenant(input: {
   nowMs?: number;
   lookbackDays?: number;
   testEventCode?: string;
+  onlyCalendarIds?: string[];
 }): Promise<{ found: number; sent: number; failed: number; skipped: number; reports: ScheduleReport[] }> {
   const now = input.nowMs ?? Date.now();
   const since = now - (input.lookbackDays ?? SCHEDULE_LOOKBACK_DAYS) * 86_400_000;
 
-  const bookings = await fetchRecentBookings(input.gctx, since, now);
+  const bookings = await fetchRecentBookings(input.gctx, since, now, input.onlyCalendarIds);
 
   // A test run ignores the ledger in both directions: it does not skip a
   // booking already reported live, and it does not record what it sends. The

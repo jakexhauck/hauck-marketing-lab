@@ -6,6 +6,8 @@ import type { GhlContext } from "../../../lib/ghl";
 import { funnelForTenantSlug, funnelKeyForTenantSlug } from "../../../lib/metaCapi";
 import { resolveMetaToken } from "../../../lib/metaToken";
 import { parseLookbackDays, reportBookingsForTenant } from "../../../lib/capiSchedule";
+import { loadEstimateCalendars } from "../../../lib/estimateTracking";
+import type { FunnelCapi } from "../../../lib/metaCapi";
 
 // Report booked appointments to Meta's Conversions API.
 //
@@ -39,6 +41,7 @@ interface TenantRow {
   name?: string | null;
   ghl_token?: string | null;
   ghl_location_id?: string | null;
+  estimate_tracking?: boolean | null;
 }
 
 interface Result {
@@ -69,14 +72,20 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // See parseLookbackDays: `days=0` must mean zero, not "unset".
   const days = parseLookbackDays(url.searchParams.get("days"));
   const testEventCode = url.searchParams.get("test")?.trim() || undefined;
+  // ?scope=estimate: only estimate-model clients, on their own datasets. This
+  // is what the hourly cron calls. Willis's server-side reporting stays off
+  // (the browser reports its bookings, see workers/ads-cron/wrangler.toml), so
+  // the cron must never reach the funnel path.
+  const estimateScope = url.searchParams.get("scope") === "estimate";
 
   // ghl_token / ghl_location_id are what resolveGhlCreds reads. Selected here
   // rather than re-fetched per tenant, and never read raw: a client not fully
   // wired carries a placeholder ('env'/'pending') that would 401 against GHL.
   let query = client
     .from("tenants")
-    .select("id, slug, name, ghl_token, ghl_location_id");
+    .select("id, slug, name, ghl_token, ghl_location_id, estimate_tracking");
   if (onlyTenant) query = query.eq("id", onlyTenant);
+  if (estimateScope) query = query.eq("estimate_tracking", true);
 
   const { data, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -93,8 +102,28 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     // A client whose ads do not run through one of our funnels has no pixel to
     // report into. Skipped by name, never guessed at: writing a conversion into
     // the wrong client's pixel is not a recoverable mistake.
-    const funnel = funnelForTenantSlug(tenant.slug);
-    const funnelKey = funnelKeyForTenantSlug(tenant.slug);
+    // A hand-built funnel (Willis) reports to its own pixel with the agency's
+    // token. An estimate-model client reports to the dataset saved on
+    // Client > GHL > CAPI with that client's own token, estimates only.
+    let funnel: FunnelCapi | null = estimateScope ? null : funnelForTenantSlug(tenant.slug);
+    let funnelKey = estimateScope ? null : funnelKeyForTenantSlug(tenant.slug);
+    let sendToken = token;
+    let estimateOnly = false;
+    if ((!funnel || !funnelKey) && tenant.estimate_tracking) {
+      const { data: capi } = await client
+        .from("client_capi")
+        .select("dataset_id, access_token")
+        .eq("tenant_id", tenant.id)
+        .maybeSingle();
+      const datasetId = String((capi as { dataset_id?: string } | null)?.dataset_id ?? "").trim();
+      const clientToken = String((capi as { access_token?: string } | null)?.access_token ?? "").trim();
+      if (datasetId && clientToken) {
+        funnel = { pixelId: datasetId, origins: [] };
+        funnelKey = `tenant:${tenant.id}`;
+        sendToken = clientToken;
+        estimateOnly = true;
+      }
+    }
     if (!funnel || !funnelKey) {
       results.push({ tenantId: tenant.id, name, reason: "no funnel" });
       continue;
@@ -107,10 +136,21 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     }
     const gctx: GhlContext = { token: creds.token, locationId: creds.locationId };
 
+    let onlyCalendarIds: string[] | undefined;
+    if (estimateOnly) {
+      const cals = await loadEstimateCalendars(gctx).catch(() => null);
+      if (!cals) {
+        results.push({ tenantId: tenant.id, name, funnel: funnelKey, reason: "no estimate calendar" });
+        continue;
+      }
+      onlyCalendarIds = [cals.estimate.id];
+    }
+
     try {
       const r = await reportBookingsForTenant({
         client,
-        token,
+        token: sendToken,
+        onlyCalendarIds,
         funnelKey,
         funnel,
         gctx,

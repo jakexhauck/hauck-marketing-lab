@@ -11,6 +11,10 @@
 
 export const CLAUDE_MODEL = "claude-opus-5-5";
 
+// For a yes/no read of a short text (did anyone pick up this call?). Opus is
+// wasted on it, and it runs once per call a client makes.
+export const CLAUDE_SMALL_MODEL = "claude-haiku-5-5";
+
 export interface ClaudeReply {
   stop_reason: string | null;
   content: { type: string; text?: string }[];
@@ -54,6 +58,8 @@ export async function writeWithClaude<T>(
     schema: Record<string, unknown>;
     check: (v: unknown) => v is T;
     maxTokens?: number;
+    // Defaults to CLAUDE_MODEL. Effort is only sent for the default model.
+    model?: string;
   },
   create: ClaudeCreate = sdkCreate,
 ): Promise<ClaudeResult<T>> {
@@ -62,12 +68,14 @@ export async function writeWithClaude<T>(
 
   let reply: ClaudeReply;
   try {
+    const model = opts.model ?? CLAUDE_MODEL;
+    const format = { type: "json_schema", schema: opts.schema };
     reply = await create(key, {
-      model: CLAUDE_MODEL,
+      model,
       max_tokens: opts.maxTokens ?? 4000,
       system: opts.system,
       messages: [{ role: "user", content: opts.input }],
-      output_config: { effort: "medium", format: { type: "json_schema", schema: opts.schema } },
+      output_config: model === CLAUDE_MODEL ? { effort: "medium", format } : { format },
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
     });

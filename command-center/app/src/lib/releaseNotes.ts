@@ -26,6 +26,20 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-09-ads-dashboard-estimates",
+    date: "9 October 2026",
+    title: "Ads Dashboard counts estimates and jobs for new clients",
+    items: [
+      "New clients' Ads Dashboard shows Leads, Pickups, Pickup %, Estimates, Estimate %, Jobs, Revenue, Ad Spend, ROAS, Cost / Lead, Cost / Estimate and Cost / Job.",
+      "Pickup % is leads who picked up out of leads called. Claude reads each call's recording; with no recording, 30 seconds or more counts. A lead who texts or calls in counts too.",
+      "Estimates are appointments on the Home Estimate calendar. Jobs are Sold taps on the estimate outcome link, and the amount is the revenue.",
+      "The outcome link asks Sold (amount, then book the job on the Job calendar), Not sold (reason), Rescheduled (new time) or No-show.",
+      "Linking a sub-account, or pressing Provision, now fills the Call Now Link and Estimate Outcome Link custom values.",
+      "Sold jobs go to Meta as a Purchase, and estimates as a Schedule, on the dataset saved on the client's CAPI page.",
+      "Willis Windows and other existing clients keep their current numbers.",
+    ],
+  },
+  {
     id: "2026-10-09-creatives-shrink",
     date: "9 October 2026",
     title: "Big creatives shrink themselves",

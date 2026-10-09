@@ -112,7 +112,10 @@ export const onRequestPost: PagesFunction<Env, "tenantId", ApiData> = async (ctx
   const origin = new URL(ctx.request.url).origin;
   const secret = (ctx.env.WEBHOOK_SECRET ?? "").trim();
   const provision = secret
-    ? await provisionLocation(gctx, `${origin}/api/webhook?token=${encodeURIComponent(secret)}`).catch(
+    ? await provisionLocation(gctx, `${origin}/api/webhook?token=${encodeURIComponent(secret)}`, {
+        origin,
+        secret: (ctx.env.SESSION_SECRET ?? "").trim(),
+      }).catch(
         (e: unknown) => [
           {
             kind: "custom_value" as const,

@@ -19,7 +19,10 @@ import {
 } from "./leadWhen";
 import {
   breakdown,
+  estimateLevel,
   inWindow,
+  leadsInWindow,
+  withPickups,
   lastSpendDate,
   rangeWindow,
   rollup,
@@ -28,6 +31,9 @@ import {
   type TrackerRange,
 } from "./adTrackerMetrics";
 import { dateStringInZone } from "./tz";
+import { loadEstimateCalendars, loadEstimateContacts } from "./estimateTracking";
+import { loadContactTouches } from "./leadPickupSync";
+import { countPickups, type ContactTouches } from "./leadPickups";
 
 // The one Paid Ads tracker payload, shared by the client's own page and the
 // admin cockpit's view of that client.
@@ -82,6 +88,12 @@ export function displayStatus(status: ClientLeadStatus, lost: boolean): LeadTrac
 // eight the owner types (0102). Sent on every response so the client renders a
 // badge or a dropdown from the payload rather than from a build-time constant.
 export type TrackerStatusMode = "auto" | "manual";
+
+// How the funnel numbers are counted. "stage" is the original model (pickups
+// and bookings off the GHL stage). "estimate" is tenants.estimate_tracking:
+// Pickup % from real calls, Estimates off the estimate calendar, Jobs off the
+// owner's outcome link. The page relabels Bookings as Estimates on it.
+export type TrackerModel = "stage" | "estimate";
 
 // Does this lead have a real appointment on the calendar, past or future?
 // Cancelled ones do not count; pickAppointment already skips those.
@@ -143,7 +155,7 @@ export async function buildTrackerResponse(input: TrackerResponseInput) {
   const { client, gctx, tenantId, internalRecipients, range, level } = input;
   const manual = input.manualStatus === true;
 
-  const [data, typedStatus, typedValues, zoneRow] = await Promise.all([
+  const [data, typedStatus, typedValues, zoneRow, switchRow] = await Promise.all([
     loadTrackerData(gctx, client, tenantId, internalRecipients),
     manual ? loadManualStatuses(client, tenantId) : Promise.resolve(new Map<string, ManualLeadStatus>()),
     manual ? loadTrackerJobValues(client, tenantId) : Promise.resolve(new Map<string, number>()),
@@ -153,7 +165,9 @@ export async function buildTrackerResponse(input: TrackerResponseInput) {
     input.metaTimezone !== undefined
       ? Promise.resolve({ data: { meta_timezone: input.metaTimezone } })
       : client.from("tenants").select("meta_timezone").eq("id", tenantId).maybeSingle(),
+    client.from("tenants").select("estimate_tracking").eq("id", tenantId).maybeSingle(),
   ]);
+  const estimateModel = switchRow?.data?.estimate_tracking === true;
 
   const zone = (zoneRow?.data?.meta_timezone ?? "").trim() || DEFAULT_ZONE;
   const window = rangeWindow(range, new Date(), zone);
@@ -190,7 +204,31 @@ export async function buildTrackerResponse(input: TrackerResponseInput) {
   // it on the GHL stages would put a Bookings figure on the dashboard that
   // disagreed with the tracker one tab away, and the client would be right to
   // believe neither.
-  const leads = manual
+  // The estimate model's inputs. Neither read may fail the page: a calendar
+  // GHL will not list reads as no estimates, and missing touches as no calls.
+  let estimateContacts = new Set<string>();
+  let touches = new Map<string, ContactTouches>();
+  if (estimateModel) {
+    [estimateContacts, touches] = await Promise.all([
+      loadEstimateCalendars(gctx)
+        .then((cals) => (cals ? loadEstimateContacts(gctx, cals.estimate.id, now) : new Set<string>()))
+        .catch((err) => {
+          console.warn("[ads/tracker] estimate calendar read failed", err);
+          return new Set<string>();
+        }),
+      loadContactTouches(client, tenantId).catch((err) => {
+        console.warn("[ads/tracker] lead_touches read failed", err);
+        return new Map<string, ContactTouches>();
+      }),
+    ]);
+  }
+
+  const leads = estimateModel
+    ? rawLeads.map((l) => ({
+        ...l,
+        level: estimateLevel(data.jobContacts.has(l.contactId), estimateContacts.has(l.contactId)),
+      }))
+    : manual
     ? rawLeads.map((l) => ({
         ...l,
         level: manualLevel(
@@ -202,7 +240,16 @@ export async function buildTrackerResponse(input: TrackerResponseInput) {
       }))
     : rawLeads;
 
-  const kpis = rollup(leads, data.spendRows, window, zone);
+  const stageKpis = rollup(leads, data.spendRows, window, zone);
+  const kpis = estimateModel
+    ? withPickups(
+        stageKpis,
+        countPickups(
+          leadsInWindow(leads, window, zone).map((l) => l.contactId),
+          touches,
+        ),
+      )
+    : stageKpis;
   const rows = breakdown(leads, data.spendRows, level, window, data.entities, zone);
 
   // CRM leads inside the window carrying no ad id.
@@ -305,6 +352,7 @@ export async function buildTrackerResponse(input: TrackerResponseInput) {
     // Which vocabulary the status on each lead row speaks, and therefore
     // whether the page renders a badge or an editable dropdown.
     statusMode: (manual ? "manual" : "auto") as TrackerStatusMode,
+    model: (estimateModel ? "estimate" : "stage") as TrackerModel,
     kpis,
     breakdown: rows,
     unattributed,

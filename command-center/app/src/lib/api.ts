@@ -718,7 +718,19 @@ export interface AdTrackerKpis {
   salesPct: number | null;
   closeRate: number | null;
   roas: number | null;
+  costPerLead?: number | null;
+  costPerBooking?: number | null;
+  costPerSale?: number | null;
+  // Estimate model only (see AdTrackerResponse.model): leads called or who
+  // reached out, and leads nobody has called. Null on the stage model.
+  called?: number | null;
+  notCalled?: number | null;
 }
+
+// "stage": pickups and bookings off the CRM stage (Willis). "estimate":
+// Pickup % from real calls, Estimates off the estimate calendar, Jobs off the
+// owner's outcome link. Mirrors TrackerModel in functions/lib/adsTrackerResponse.ts.
+export type AdTrackerModel = "stage" | "estimate";
 
 // The id of the aggregate breakdown row carrying spend that the live-campaign
 // scope excluded, so the column reconciles with the Ad Spend figure in Results.
@@ -736,6 +748,7 @@ export interface AdTrackerBreakdownRow {
   roas: number | null;
   costPerLead: number | null;
   costPerBooking: number | null;
+  costPerSale?: number | null;
   // Running in Meta right now. Badged "Live" and sorted to the top.
   live: boolean;
 }
@@ -745,6 +758,8 @@ export interface AdTrackerResponse {
   level: AdTrackerLevel;
   // Absent on an older deploy, which means the derived twelve, as it always was.
   statusMode?: TrackerStatusMode;
+  // Absent on an older deploy, which means "stage".
+  model?: AdTrackerModel;
   kpis: AdTrackerKpis;
   breakdown: AdTrackerBreakdownRow[];
   // Leads in range with no ad id. The breakdown is the attributed subset, so

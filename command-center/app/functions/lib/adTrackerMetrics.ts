@@ -284,6 +284,14 @@ export interface TrackerKpis {
   salesPct: number | null;
   closeRate: number | null;
   roas: number | null;
+  costPerLead: number | null;
+  costPerBooking: number | null;
+  costPerSale: number | null;
+  // Leads with at least one call (or who reached out), and leads nobody has
+  // called. Only measured on an estimate-model client (see buildTrackerResponse);
+  // null elsewhere, where pickups still come from the stage.
+  called: number | null;
+  notCalled: number | null;
 }
 
 // The id of the aggregate row that carries spend the live-campaign scope
@@ -302,6 +310,7 @@ export interface BreakdownRow {
   roas: number | null;
   costPerLead: number | null;
   costPerBooking: number | null;
+  costPerSale: number | null;
   // Running in Meta right now. Drives the "Live" badge and sorts the row to the
   // top, so the client's eye lands on what their money is buying today rather
   // than on whichever dead creative happened to spend the most historically.
@@ -433,6 +442,44 @@ function leadDay(createdAt: string, zone: string): string {
   return dateStringInZone(zone, ms);
 }
 
+// The leads a window covers, dated in the ad account's zone like everything else.
+export function leadsInWindow(
+  leads: TrackerLead[],
+  window: TrackerWindow | null,
+  zone = "UTC",
+): TrackerLead[] {
+  return leads.filter((l) => inWindow(leadDay(l.createdAt, zone), window));
+}
+
+// The estimate model's ladder (tenants.estimate_tracking): a Job is a closed-out
+// job in the app (the owner's Sold tap writes one), an Estimate is an
+// appointment on the estimate calendar, and nothing is read off the stage. A
+// card dragged to Won with no job behind it is not money, so it is not a Job.
+// Pickups are not on this ladder at all: they come from the calls
+// (withPickups below), since an estimate booked off a web form proves nothing
+// about whether anyone answered the phone.
+export function estimateLevel(hasJob: boolean, hasEstimate: boolean): TrackerLevel {
+  if (hasJob) return "sale";
+  if (hasEstimate) return "booking";
+  return "lead";
+}
+
+// Pickup % from real calls: of the leads we called (or who reached out), how
+// many we got. Per Jake 2026-10-09 it is NOT over all leads, so a lead nobody
+// has rung yet does not drag it down; notCalled sits beside it instead.
+export function withPickups(
+  kpis: TrackerKpis,
+  counts: { called: number; pickups: number; notCalled: number },
+): TrackerKpis {
+  return {
+    ...kpis,
+    pickups: counts.pickups,
+    called: counts.called,
+    notCalled: counts.notCalled,
+    pickupRate: ratio(counts.pickups, counts.called),
+  };
+}
+
 // The Results row.
 //
 // Leads comes from Meta and nowhere else, as of 2026-08-13. It used to be
@@ -488,6 +535,11 @@ export function rollup(
     salesPct: ratio(sales, metaLeads),
     closeRate: ratio(sales, bookings),
     roas: ratio(revenue, spend),
+    costPerLead: ratio(spend, metaLeads),
+    costPerBooking: ratio(spend, bookings),
+    costPerSale: ratio(spend, sales),
+    called: null,
+    notCalled: null,
   };
 }
 
@@ -568,6 +620,7 @@ export function breakdown(
     roas: null,
     costPerLead: null,
     costPerBooking: null,
+    costPerSale: null,
     live: entityById.get(id)?.live ?? false,
   });
 
@@ -656,6 +709,7 @@ export function breakdown(
     row.roas = ratio(row.revenue, row.spend);
     row.costPerLead = ratio(row.spend, row.leads);
     row.costPerBooking = ratio(row.spend, row.bookings);
+    row.costPerSale = ratio(row.spend, row.sales);
   }
 
   // Live first, then by spend. What is running today is the thing worth looking

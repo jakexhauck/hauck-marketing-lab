@@ -1,4 +1,6 @@
 import { ghlJson, type GhlContext } from "./ghl";
+import { linkKey } from "./callNow";
+import { OUTCOME_KEY_PURPOSE } from "./estimateOutcome";
 
 // Everything the Connection page's Provision button writes INTO a client's
 // GoHighLevel sub-account.
@@ -73,11 +75,62 @@ async function upsertCustomValue(
   }
 }
 
+// The owner links texted by the snapshot's workflows, each with this client's
+// key already in it, so the workflow text is identical in every sub-account:
+//
+//   Tap to call: {{custom_values.call_now_link}}&c={{contact.id}}
+//   How did it go? {{custom_values.estimate_outcome_link}}&c={{contact.id}}
+//
+// GoHighLevel derives the merge key from the name, so these names are the
+// contract with the snapshot. Do not rename them.
+export const CALL_NOW_LINK_NAME = "Call Now Link";
+export const ESTIMATE_OUTCOME_LINK_NAME = "Estimate Outcome Link";
+
+const LIVE_ORIGIN = "https://app.hauckmarketing.com";
+
+export async function ownerLinkValues(
+  origin: string,
+  secret: string,
+  locationId: string,
+): Promise<{ name: string; value: string }[]> {
+  const l = encodeURIComponent(locationId);
+  // A press on localhost must not text a client's owner a localhost link.
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(origin)) origin = LIVE_ORIGIN;
+  return [
+    {
+      name: CALL_NOW_LINK_NAME,
+      value: `${origin}/api/call-now?l=${l}&k=${await linkKey(secret, "call-now", locationId)}`,
+    },
+    {
+      name: ESTIMATE_OUTCOME_LINK_NAME,
+      value: `${origin}/api/estimate-outcome?l=${l}&k=${await linkKey(secret, OUTCOME_KEY_PURPOSE, locationId)}`,
+    },
+  ];
+}
+
+// Just the owner links, for the Provision button (which does not touch the
+// webhook URL).
+export async function provisionOwnerLinks(
+  gctx: GhlContext,
+  origin: string,
+  secret: string,
+): Promise<ProvisionItem[]> {
+  if (!secret) return [];
+  const out: ProvisionItem[] = [];
+  for (const v of await ownerLinkValues(origin, secret, gctx.locationId)) {
+    out.push(await upsertCustomValue(gctx, v.name, v.value));
+  }
+  return out;
+}
+
 // Run every provision step. Each step reports its own outcome rather than the
 // whole run failing on the first error.
 export async function provisionLocation(
   gctx: GhlContext,
   webhookUrl: string,
+  links?: { origin: string; secret: string },
 ): Promise<ProvisionItem[]> {
-  return [await upsertCustomValue(gctx, WEBHOOK_URL_VALUE_NAME, webhookUrl)];
+  const out = [await upsertCustomValue(gctx, WEBHOOK_URL_VALUE_NAME, webhookUrl)];
+  if (links) out.push(...(await provisionOwnerLinks(gctx, links.origin, links.secret)));
+  return out;
 }

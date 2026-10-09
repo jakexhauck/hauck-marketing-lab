@@ -3,6 +3,7 @@ import { getServiceClient } from "../../../../lib/supabase";
 import { loadTenantById } from "../../../../lib/tenantResolve";
 import { appMinter, resolveTenantGhl } from "../../../../lib/ghlCreds";
 import { writeCustomValues } from "../../../../lib/customValuesProvision";
+import { provisionOwnerLinks } from "../../../../lib/ghlProvision";
 
 // POST /api/admin/onboarding/:tenantId/provision
 // Writes the client's mapped custom values into their GHL subaccount.
@@ -33,10 +34,20 @@ export const onRequestPost: PagesFunction<Env, "tenantId", ApiData> = async (ctx
     );
   }
 
+  // The owner links (Call Now Link, Estimate Outcome Link) are created when
+  // missing, unlike the mapped values above, so the snapshot never has to
+  // carry them. Reported in the same written/failed lists.
+  const links = await provisionOwnerLinks(
+    creds,
+    new URL(ctx.request.url).origin,
+    (ctx.env.SESSION_SECRET ?? "").trim(),
+  );
+  const linkFailed = links.filter((l) => l.outcome.startsWith("failed"));
+
   return Response.json({
-    ok: result.ok,
-    written: result.written,
-    failed: result.failed,
+    ok: result.ok && linkFailed.length === 0,
+    written: [...result.written, ...links.filter((l) => !l.outcome.startsWith("failed")).map((l) => l.name)],
+    failed: [...result.failed, ...linkFailed.map((l) => ({ name: l.name, status: 0 }))],
     notFound: result.notFound,
   });
 };

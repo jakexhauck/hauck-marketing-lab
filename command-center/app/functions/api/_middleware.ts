@@ -96,6 +96,10 @@ const PUBLIC_PATHS = new Set([
   // The owner's "tap to call" link, opened from a text on their phone with no
   // session. Guarded by a per-location key in the URL. See api/call-now.ts.
   "/api/call-now",
+  // The owner's estimate outcome link and the open times it offers, same deal:
+  // texted, no session, per-location key. See api/estimate-outcome/.
+  "/api/estimate-outcome",
+  "/api/estimate-outcome/slots",
 ]);
 
 // Public paths with a dynamic segment, matched by prefix. Kept separate from the

@@ -44,6 +44,9 @@ export interface TrackerData {
   // ad id -> a spend row carrying that ad's names, for labelling lead rows.
   adMeta: Map<string, TrackerSpendRow>;
   opportunitiesCount: number;
+  // Contacts with at least one closed-out job, $0 ones included. The estimate
+  // model counts Jobs from this alone.
+  jobContacts: Set<string>;
   // True while a contact belongs to an internal notification recipient, so
   // callers can drop those from lead lists and counts.
   isInternal: (x: { contactId?: string }) => boolean;
@@ -189,6 +192,7 @@ export async function loadTrackerData(
     attributionByContact,
     adMeta,
     opportunitiesCount: opportunities.length,
+    jobContacts: new Set(jobValueByContact.keys()),
     isInternal: makeInternalConversationFilter(contacts, internalRecipients),
   };
 }
