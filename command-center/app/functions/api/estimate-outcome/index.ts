@@ -72,7 +72,13 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   if ("message" in link) return html(outcomeMessagePage(link.message), link.status);
 
   try {
-    const [estimate, contact] = await Promise.all([findEstimate(link), fetchContact(link.gctx, link.contactId)]);
+    // GoHighLevel answers an unknown contact's appointments with an error, not
+    // an empty list, so a deleted lead is caught here rather than as a 502.
+    const [estimate, contact] = await Promise.all([
+      findEstimate(link).catch(() => null),
+      fetchContact(link.gctx, link.contactId),
+    ]);
+    if (!contact) return html(outcomeMessagePage("This lead is not in the account any more."), 404);
     if (!estimate) return html(outcomeMessagePage("No estimate found for this lead."), 404);
     const current = await loadOutcome(link, estimate.id);
     return html(
@@ -116,6 +122,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     findEstimate(link).catch(() => null),
     fetchContact(gctx, contactId),
   ]);
+  if (!contact) return fail("This lead is not in the account any more.", 404);
   if (!estimate) return fail("No estimate found for this lead.", 404);
   const existing = await loadOutcome(link, estimate.id);
   const name = contactName(contact);
