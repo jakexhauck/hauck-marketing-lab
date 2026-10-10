@@ -87,6 +87,9 @@ const sameDay = (iso: string, now: number) => new Date(iso).toDateString() === n
 export interface LeadFlags {
   staleNew: boolean;
   needsOutcome: boolean;
+  // Mark outcome (Jake, 2026-10-10): nobody has said what happened. A booking
+  // whose time has passed, or a new lead still in Lead after an hour.
+  markOutcome: boolean;
   followDue: boolean;
   followOverdue: boolean;
   bookedToday: boolean;
@@ -95,9 +98,12 @@ export interface LeadFlags {
 export function leadFlags(lead: BoardLead, key: StageKey | null, now = Date.now()): LeadFlags {
   const booking = currentBooking(lead, key);
   const fu = carriesFollowUp(key) ? lead.followUp : null;
+  const staleNew = key === "lead" && now - Date.parse(lead.createdAt) > NEW_LEAD_SLA_MS;
+  const needsOutcome = !!booking && Date.parse(booking.at) < now;
   return {
-    staleNew: key === "lead" && now - Date.parse(lead.createdAt) > NEW_LEAD_SLA_MS,
-    needsOutcome: !!booking && Date.parse(booking.at) < now,
+    staleNew,
+    needsOutcome,
+    markOutcome: staleNew || needsOutcome,
     followDue: !!fu && Date.parse(fu.at) <= endOfDay(now),
     followOverdue: !!fu && Date.parse(fu.at) < now,
     bookedToday: !!booking && sameDay(booking.at, now),
@@ -115,7 +121,7 @@ export function matchesFocus(focus: Focus, key: StageKey | null, f: LeadFlags): 
     case "today":
       return f.bookedToday;
     case "outcome":
-      return f.needsOutcome;
+      return f.markOutcome;
   }
 }
 

@@ -46,7 +46,7 @@ const FOCUS: { id: Focus; label: string; urgent: boolean }[] = [
   { id: "new", label: "New", urgent: true },
   { id: "follow", label: "Follow-ups due", urgent: true },
   { id: "today", label: "Today", urgent: false },
-  { id: "outcome", label: "How did it go?", urgent: true },
+  { id: "outcome", label: "Mark outcome", urgent: true },
 ];
 
 const ZERO_WIDTH_SPACE = String.fromCharCode(0x200b);
@@ -117,11 +117,15 @@ export default function PipelineBoard({ data }: { data: BoardPayload }) {
     if (stage) setPending({ kind: "ask", lead, stage });
   };
 
-  // A booked lead whose time has passed asks how it went instead of opening.
+  // A card marked "Mark outcome" asks what happened instead of opening: a
+  // booking whose time has passed gets the outcome sheet, a new lead left in
+  // Lead gets "What happened?".
   const openLead = (id: string) => {
     const lead = leads.find((l) => l.id === id);
     if (!lead) return;
-    if (flagsOf(lead).needsOutcome) return setPending({ kind: "outcome", lead });
+    const f = flagsOf(lead);
+    if (f.needsOutcome) return setPending({ kind: "outcome", lead });
+    if (f.staleNew) return setPending({ kind: "afterCall", lead });
     setOpenId(id);
   };
 
@@ -259,7 +263,7 @@ const SHORT_LABEL: Record<Focus, string> = {
   new: "New",
   follow: "Follow-ups",
   today: "Today",
-  outcome: "Check in",
+  outcome: "Outcome",
 };
 
 function MobileStrip({
@@ -450,7 +454,7 @@ function MobileRow({
               (flags.needsOutcome ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                   <HelpCircle size={12} strokeWidth={2.4} />
-                  How did it go?
+                  Mark outcome
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-tint)] px-2 py-0.5 text-[11.5px] font-semibold text-[var(--brand-text)]">
@@ -458,6 +462,12 @@ function MobileRow({
                   {fmtShort(booking.at)}
                 </span>
               ))}
+            {flags.staleNew && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                <HelpCircle size={12} strokeWidth={2.4} />
+                Mark outcome
+              </span>
+            )}
             {follow && (
               <span
                 className={cn(
@@ -872,7 +882,7 @@ function LeadCard({
         (flags.needsOutcome ? (
           <div className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full lg:rounded-md bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
             <HelpCircle size={12} strokeWidth={2.4} className="shrink-0" />
-            <span className="truncate lg:whitespace-normal lg:leading-tight">How did it go?</span>
+            <span className="truncate lg:whitespace-normal lg:leading-tight">Mark outcome</span>
           </div>
         ) : (
           <div className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full lg:rounded-md bg-[var(--brand-tint)] px-2 py-0.5 text-[11.5px] font-semibold text-[var(--brand-text)]">
@@ -880,6 +890,12 @@ function LeadCard({
             <span className="truncate lg:whitespace-normal lg:leading-tight">{fmtShort(booking.at)}</span>
           </div>
         ))}
+      {flags.staleNew && (
+        <div className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full lg:rounded-md bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+          <HelpCircle size={12} strokeWidth={2.4} className="shrink-0" />
+          <span className="truncate lg:whitespace-normal lg:leading-tight">Mark outcome</span>
+        </div>
+      )}
       {showFollow && (
         <div
           className={cn(

@@ -38,6 +38,16 @@ describe("leadFlags", () => {
   });
 });
 
+describe("markOutcome", () => {
+  it("flags a new lead left over an hour, or a booking whose time passed", () => {
+    expect(leadFlags(lead(), "lead", NOW).markOutcome).toBe(false);
+    const old = lead({ createdAt: new Date(NOW - 2 * 3_600_000).toISOString() });
+    expect(leadFlags(old, "lead", NOW).markOutcome).toBe(true);
+    expect(matchesFocus("outcome", "lead", leadFlags(old, "lead", NOW))).toBe(true);
+    expect(leadFlags(old, "lost", NOW).markOutcome).toBe(false);
+  });
+});
+
 describe("matchesFocus", () => {
   it("New is every lead in the Lead stage", () => {
     expect(matchesFocus("new", "lead", leadFlags(lead(), "lead", NOW))).toBe(true);
