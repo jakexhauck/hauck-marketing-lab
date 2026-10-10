@@ -31,7 +31,7 @@ export const RELEASES: Release[] = [
     title: "Phone Appointment Call Now Link",
     items: [
       "A fourth owner link for a lead with a phone appointment. Tapping it rings the owner and connects them to the lead, like Call Now.",
-      "It tags the lead phone appt call now, so its own GHL workflow fires.",
+      "It uses the same call now tag, so the existing Call Now workflow rings. Nothing new to build in GHL.",
       "Client > GHL > Wiring shows it with its merge tag. Push on Custom Values writes it into the client's GHL.",
     ],
   },

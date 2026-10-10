@@ -9,8 +9,7 @@ import { callNowPage, keysMatch, linkKey, parseCallNowParams, type CallNowParams
 // button; POST tags the lead so that sub-account's workflow rings the owner and
 // bridges the call. See lib/callNow.ts for why it is shaped this way.
 //
-// Each link has its own key purpose (a leaked key opens only its own link) and
-// its own tag (each fires its own GHL workflow).
+// Each link has its own key purpose, so a leaked key opens only its own link.
 
 export interface CallLink {
   // Key purpose. Never change one already live: every key pasted into GHL

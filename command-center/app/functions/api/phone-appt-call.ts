@@ -3,9 +3,9 @@ import { callLinkHandlers } from "../lib/callNowHandler";
 
 // /api/phone-appt-call?l=<locationId>&c=<contactId>&k=<key>  (public, own key)
 //
-// The owner's "tap to call" link for a lead with a phone appointment. Same as
-// /api/call-now, but its own key and its own tag (`phone appt call now`), so
-// the sub-account's phone appointment workflow is the one that rings.
+// The owner's "tap to call" link for a lead with a phone appointment. Same tag
+// as /api/call-now (`call now`, so the same workflow rings the owner), but its
+// own key and its own custom value.
 
 export const { onRequestGet, onRequestPost } = callLinkHandlers({
   purpose: PHONE_APPT_CALL_PURPOSE,

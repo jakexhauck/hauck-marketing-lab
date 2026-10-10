@@ -21,9 +21,10 @@
 export const CALL_NOW_TAG = "call now";
 export const CALL_NOW_PURPOSE = "call-now";
 
-// The same link for a lead with a phone appointment (Jake, 2026-10-10): its own
-// tag, so its own GHL workflow rings, and its own key.
-export const PHONE_APPT_CALL_TAG = "phone appt call now";
+// The same link for a lead with a phone appointment (Jake, 2026-10-10). Same
+// tag, so the existing Call Now workflow rings: no auto call, no new workflow.
+// Its own key, so a leaked Call Now link opens nothing else.
+export const PHONE_APPT_CALL_TAG = CALL_NOW_TAG;
 export const PHONE_APPT_CALL_PURPOSE = "phone-appt-call";
 
 const ID = /^[A-Za-z0-9]{8,64}$/;
