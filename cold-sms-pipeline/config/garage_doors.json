@@ -1,0 +1,67 @@
+{
+  "trade": "garage_doors",
+  "tag": "cold-sms-garage-doors",
+  "keywords": [
+    "garage door repair",
+    "garage door installation"
+  ],
+  "states": ["MI"],
+  "depth": 15,
+
+  "_core": "Google's PRIMARY category says this is a garage door shop. 'Garage door supplier' is what Google gives almost every installer (343 of 461 garage shops in the windows_doors MI scrape, 2026-10-10).",
+  "core_categories": [
+    "garage door supplier",
+    "garage door installer",
+    "garage door repair service",
+    "overhead door contractor"
+  ],
+
+  "_conditional": "Primary is something broader. Kept only when the NAME says garage or door AND a garage door category sits somewhere in the list.",
+  "conditional_categories": [
+    "contractor",
+    "general contractor",
+    "construction company",
+    "service establishment",
+    "handyman/handywoman/handyperson",
+    "garage builder",
+    "gate repair service",
+    "door repair service"
+  ],
+  "_name_only": "Bare 'Door supplier' / 'Door shop' / 'Repair service' primaries are kept when the NAME says garage.",
+  "name_only_categories": ["door supplier", "door shop", "door warehouse", "spring supplier", "repair service"],
+  "name_only_words": ["garage", "overhead"],
+  "name_only_deny_categories": [],
+  "name_only_deny_unless": [],
+
+  "name_words": ["garage", "door", "doors", "overhead"],
+
+  "_name_deny": "Drops the lead whatever its category. Whole words, case-insensitive.",
+  "name_deny": [
+    "supply", "supplies", "wholesale", "distributor", "distributors", "distributing",
+    "parts", "store", "rental", "rentals", "lumber", "hardware",
+    "auto", "automotive", "collision", "tire", "tires", "storage", "self storage",
+    "commercial", "industrial", "dock", "loading dock", "storefront", "builders", "barns"
+  ],
+  "name_deny_unless": ["residential"],
+
+  "_franchises": "Big brands, national chains, and our own client (Above All Garage Doors). Whole-word match on the name, case-insensitive.",
+  "franchises": [
+    "above all",
+    "overhead door company", "precision door", "precision garage door", "a1 garage",
+    "a1 garage door service", "mr. garage door", "garage door doctor", "garage experts",
+    "garage force", "ziprepair", "neighborly", "mr. handyman",
+    "clopay", "amarr", "wayne dalton", "wayne-dalton", "raynor", "chi overhead",
+    "liftmaster", "genie", "chamberlain", "martin door", "haas door",
+    "home depot", "lowe's", "lowes", "menards", "sears"
+  ],
+
+  "_max_reviews": "Above this the shop is too big to be an owner-operator.",
+  "max_reviews": 1500,
+
+  "service_field": "service",
+  "service_default": "garage door",
+  "service_rules": [],
+
+  "_line_types": "Twilio line_type_intelligence types that get a text.",
+  "keep_line_types": ["mobile", "nonFixedVoip"]
+}

@@ -43,7 +43,13 @@ def _origin(con, row):
 def verdict(row, trade, origin=("", "")):
     """The judged fields for a listing, everything except the phone and lookups."""
     addr = row.get("complete_address") or {}
-    state = _state_code(addr) or origin[1]
+    # The search's state stands in only for a hidden address. A Windsor, Ontario shop
+    # found by a Detroit search has a state, just not a US one.
+    foreign = (addr.get("country") or "US").upper() not in ("US", "USA")
+    if foreign or (addr.get("state") or "").strip():
+        state = "" if foreign else _state_code(addr) or addr["state"].strip()
+    else:
+        state = origin[1]
     keep, reason = judge(row, trade)
     if keep and state not in trade["states"]:
         keep, reason = False, f"outside target states: {state or 'unknown'}"

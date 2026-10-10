@@ -48,6 +48,15 @@ class Ingest(unittest.TestCase):
         self.assertEqual(lead["keep"], 0)
         self.assertIn("outside", lead["reason"])
 
+    def test_canadian_address_is_not_the_search_state(self):
+        self.con.execute("insert into queries (id, query, city, state) values ('q1','x','Detroit','MI')")
+        row = {**raw("1", "Windsor Heating", "519-555-0134", "Windsor", "Ontario"), "input_id": "q1"}
+        row["complete_address"]["country"] = "CA"
+        ingest(self.con, [row], T)
+        lead = self.leads()["+15195550134"]
+        self.assertEqual(lead["keep"], 0)
+        self.assertIn("outside", lead["reason"])
+
     def test_hidden_address_takes_the_search_city(self):
         self.con.execute("insert into queries (id, query, city, state) values ('q1','x','Taylor','MI')")
         row = {**raw("1", "Motown Heating", "313-555-0134", city="", state=""), "input_id": "q1"}
