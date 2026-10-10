@@ -608,3 +608,33 @@ Your action items:
 2. Check every filled term against the PDF; fix anything with Edit.
 3. Click the file name once to confirm the PDF opens.
 4. Decide on retiring the "Hauck Marketing" client (rename to "RETIRED Hauck Marketing"; was blocked for Claude, needs your OK or a manual rename in Supabase).
+
+## Ads Dashboard estimates + owner links (10 October 2026)
+
+What's in the app now: new clients (every client created from 9 October; only Test v2 so far) get the new Ads Dashboard: Leads, Pickups, Pickup % (of leads called, from real GHL calls), Estimates (Home Estimate calendar), Estimate %, Jobs (Sold taps), Revenue, Ad Spend, ROAS, Cost / Lead, Cost / Estimate, Cost / Job. Three owner text links: Call Now Link, Lead Outcome Link (Estimate booked / Call back later / Not interested) and Estimate Outcome Link (Sold + book job / Not sold / Rescheduled / No-show). Linking a sub-account or pressing Push on Custom Values fills all three. Sold goes to Meta as a Purchase, estimates as a Schedule. Willis, Made Better and AAG unchanged.
+
+Your action items (Test v2 first, then snapshot):
+1. Turn on Call Recording + Call Transcription.
+2. Save your cell on your GHL user (Settings > My Staff).
+3. Home Estimate + Job calendars: add a team member, set availability and slot length. Keep both names exact.
+4. Test v2 > GHL > Custom Values: press Push (creates Call Now Link, Lead Outcome Link, Estimate Outcome Link).
+5. New Lead Text workflow: Contact Created > Assign User > Call (owner) > SMS to owner: `New lead: {{contact.name}}` / `Call: {{custom_values.call_now_link}}&c={{contact.id}}` / `Log outcome: {{custom_values.lead_outcome_link}}&c={{contact.id}}`.
+6. Missed Call Text workflow: Call Details trigger, Outbound, No Answer / Busy / Canceled / Voicemail > SMS owner with the same two links.
+7. Call Now workflow: tag `call-now` added > Call (owner) > Remove tag `call-now`.
+8. Call Back Reminder workflow: tag `call-back-due` added > SMS owner `Call back {{contact.name}} now.` with both links > Remove tag `call-back-due`.
+9. Estimate Outcome workflow: Customer Booked Appointment on Home Estimate > Wait 1 hour after appointment start > SMS owner `How did {{contact.name}}'s estimate go? {{custom_values.estimate_outcome_link}}&c={{contact.id}}`. Allow re-entry.
+10. Add `&h_ad_id={{ad.id}}` to the Meta URL parameters.
+11. Test v2 > GHL > CAPI: save the Meta Dataset ID + token.
+12. Test end to end: new test lead > tap Log outcome > book an estimate > after it, tap Sold > book the job. Tell Claude so it can check the dashboard and Meta.
+13. Snapshot Test v2. Per new client after that: load snapshot, Link in the app, then steps 1 to 3 and 11.
+
+Decisions open:
+- Job outcome link after the job (Done / Rescheduled / Cancelled), or keep Sold = job.
+- Switch Above All Garage Doors to the new numbers (needs Claude to flip `estimate_tracking`).
+
+Still parked:
+- Hand-typed and call-in leads carry no ad id.
+- Personal-cell calls do not count toward Pickup %.
+- Unknown whether GHL re-runs the estimate Wait after a reschedule; if no second text arrives, add an Appointment Status: Rescheduled trigger.
+- No admin on/off switch for the new dashboard yet.
+- Call-back reminders go out within the hour after the time picked.

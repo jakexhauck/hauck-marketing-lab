@@ -26,8 +26,8 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
-    id: "2026-10-09-ads-dashboard-estimates",
-    date: "9 October 2026",
+    id: "2026-10-10-ads-dashboard-estimates",
+    date: "10 October 2026",
     title: "Ads Dashboard counts estimates and jobs for new clients",
     items: [
       "New clients' Ads Dashboard shows Leads, Pickups, Pickup %, Estimates, Estimate %, Jobs, Revenue, Ad Spend, ROAS, Cost / Lead, Cost / Estimate and Cost / Job.",
