@@ -17,6 +17,7 @@ import InboxTab from "../../components/admin/operations/InboxTab";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
 import ClientsTab from "../../components/admin/operations/ClientsTab";
 import BudgetTab from "../../components/admin/operations/BudgetTab";
+import OutcomePageTab from "../../components/admin/operations/OutcomePageTab";
 import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
 import SopsTab from "../../components/admin/operations/SopsTab";
@@ -145,6 +146,8 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     // What the agency spent each month.
     case "budget":
       return <BudgetTab />;
+    case "outcome-page":
+      return <OutcomePageTab />;
     case "calculator":
       return <ScalingCalculatorTab />;
     case "time-audit":

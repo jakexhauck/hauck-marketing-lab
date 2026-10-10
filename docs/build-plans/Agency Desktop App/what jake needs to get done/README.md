@@ -661,3 +661,14 @@ Your action items:
 1. In the phone appointment reminder text to the owner, add: `{{custom_values.phone_appointment_call_now_link}}&c={{contact.id}}`
 2. Press Push on Custom Values for each client so the new value lands in their GHL (or copy it from Client > GHL > Wiring).
 3. Re-save the Test v2 snapshot after editing the reminder text.
+
+## Outcome page (10 October 2026)
+
+What's in the app now: one outcome page behind `{{custom_values.outcome_link}}&c={{contact.id}}` (and the old Lead Outcome / Estimate Outcome links). Operations > Outcome Page shows it and what each answer does.
+
+Your action items:
+1. Add the **No Answer** stage to the Test v2 Sales Pipeline (until then No answer lands in Follow Up).
+2. Press Push on Custom Values for each client so **Outcome Link** lands in their GHL.
+3. In the owner texts, use `{{custom_values.outcome_link}}&c={{contact.id}}`.
+4. Re-save the Test v2 snapshot.
+5. Open one real link on a test lead and try each answer once.

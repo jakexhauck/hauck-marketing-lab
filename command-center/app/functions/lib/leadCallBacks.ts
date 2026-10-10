@@ -24,7 +24,8 @@ export async function remindCallBacks(
     .from("lead_link_outcomes")
     .select("ghl_contact_id")
     .eq("tenant_id", tenantId)
-    .eq("outcome", "call_back")
+    // A no-answer is a call-back too: this time tomorrow (lib/outcome.ts).
+    .in("outcome", ["call_back", "no_answer"])
     .is("reminded_at", null)
     .lte("call_back_at", new Date(now).toISOString())
     .order("call_back_at", { ascending: true })

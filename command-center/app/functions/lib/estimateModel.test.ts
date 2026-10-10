@@ -67,7 +67,9 @@ describe("ownerLinkValues", () => {
       "Estimate Outcome Link",
       "Lead Outcome Link",
       "Phone Appointment Call Now Link",
+      "Outcome Link",
     ]);
+    expect(live[4].value).toMatch(/\/api\/outcome\?l=yVfX127fswQ03fydxBQg&k=[0-9a-f]{32}$/);
     expect(live[3].value).toMatch(/\/api\/phone-appt-call\?l=yVfX127fswQ03fydxBQg&k=[0-9a-f]{32}$/);
     expect(live[3].value.split("k=")[1]).not.toBe(live[0].value.split("k=")[1]);
     expect(live[2].value).toMatch(/\/api\/lead-outcome\?l=yVfX127fswQ03fydxBQg&k=[0-9a-f]{32}$/);

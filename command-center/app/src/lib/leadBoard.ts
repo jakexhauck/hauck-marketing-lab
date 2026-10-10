@@ -8,6 +8,7 @@ export type StageKey =
   | "job"
   | "won"
   | "followUp"
+  | "noAnswer"
   | "nurture"
   | "lost"
   | "cancelled"
@@ -93,7 +94,7 @@ export interface LeadFlags {
 
 export function leadFlags(lead: BoardLead, key: StageKey | null, now = Date.now()): LeadFlags {
   const booking = currentBooking(lead, key);
-  const fu = key === "followUp" ? lead.followUp : null;
+  const fu = carriesFollowUp(key) ? lead.followUp : null;
   return {
     staleNew: key === "lead" && now - Date.parse(lead.createdAt) > NEW_LEAD_SLA_MS,
     needsOutcome: !!booking && Date.parse(booking.at) < now,
@@ -119,6 +120,11 @@ export function matchesFocus(focus: Focus, key: StageKey | null, f: LeadFlags): 
 }
 
 // What a drop on this stage must ask before it can land.
+// Follow Up and No Answer both hold a "call again at" time.
+export function carriesFollowUp(key: StageKey | null): boolean {
+  return key === "followUp" || key === "noAnswer";
+}
+
 export type Ask = "none" | "datetime" | "followUp" | "value" | "reason";
 export function askFor(key: StageKey | null): Ask {
   switch (key) {
@@ -126,6 +132,7 @@ export function askFor(key: StageKey | null): Ask {
     case "job":
       return "datetime";
     case "followUp":
+    case "noAnswer":
       return "followUp";
     case "won":
       return "value";
@@ -139,7 +146,7 @@ export function askFor(key: StageKey | null): Ask {
 // Apply a move to a lead the way the server will, for the optimistic board.
 export function applyMoveLocally(lead: BoardLead, key: StageKey | null, m: MoveRequest): BoardLead {
   const next: BoardLead = { ...lead, stageId: m.stageId };
-  if (key !== "followUp") next.followUp = null;
+  if (!carriesFollowUp(key)) next.followUp = null;
   if ((key === "estimate" || key === "job") && m.at) {
     next.bookings = [...lead.bookings.filter((b) => b.kind !== key && !(key === "job" && b.kind === "estimate")), { kind: key, at: m.at }];
   }
@@ -147,7 +154,7 @@ export function applyMoveLocally(lead: BoardLead, key: StageKey | null, m: MoveR
     next.bookings = [];
     if (m.value) next.value = m.value;
   }
-  if (key === "followUp" && m.at) next.followUp = { at: m.at, note: (m.note ?? "").trim() };
+  if (carriesFollowUp(key) && m.at) next.followUp = { at: m.at, note: (m.note ?? "").trim() };
   if (key === "lost" && m.lostReason) next.lostReason = m.lostReason;
   return next;
 }

@@ -2,6 +2,7 @@ import { ghlJson, type GhlContext } from "./ghl";
 import { PHONE_APPT_CALL_PURPOSE, linkKey } from "./callNow";
 import { OUTCOME_KEY_PURPOSE } from "./estimateOutcome";
 import { LEAD_KEY_PURPOSE } from "./leadOutcome";
+import { OUTCOME_LINK_PURPOSE } from "./outcome";
 
 // Everything the Connection page's Provision button writes INTO a client's
 // GoHighLevel sub-account.
@@ -83,6 +84,7 @@ async function upsertCustomValue(
 //   How did it go? {{custom_values.estimate_outcome_link}}&c={{contact.id}}
 //   Log outcome: {{custom_values.lead_outcome_link}}&c={{contact.id}}
 //   Phone appointment: {{custom_values.phone_appointment_call_now_link}}&c={{contact.id}}
+//   What happened? {{custom_values.outcome_link}}&c={{contact.id}}
 //
 // GoHighLevel derives the merge key from the name, so these names are the
 // contract with the snapshot. Do not rename them.
@@ -90,6 +92,9 @@ export const CALL_NOW_LINK_NAME = "Call Now Link";
 export const ESTIMATE_OUTCOME_LINK_NAME = "Estimate Outcome Link";
 export const LEAD_OUTCOME_LINK_NAME = "Lead Outcome Link";
 export const PHONE_APPT_CALL_LINK_NAME = "Phone Appointment Call Now Link";
+// The universal outcome page (lib/outcome.ts); the two outcome links above open
+// the same page.
+export const OUTCOME_LINK_NAME = "Outcome Link";
 
 const LIVE_ORIGIN = "https://app.hauckmarketing.com";
 
@@ -131,6 +136,10 @@ export async function ownerLinkValues(
     {
       name: PHONE_APPT_CALL_LINK_NAME,
       value: `${origin}/api/phone-appt-call?l=${l}&k=${await linkKey(secret, PHONE_APPT_CALL_PURPOSE, locationId)}`,
+    },
+    {
+      name: OUTCOME_LINK_NAME,
+      value: `${origin}/api/outcome?l=${l}&k=${await linkKey(secret, OUTCOME_LINK_PURPOSE, locationId)}`,
     },
   ];
 }

@@ -214,6 +214,7 @@ button:disabled{opacity:.4;cursor:default}
 .row button{flex:0 0 auto;padding:10px 14px;min-height:44px;font-size:14px}
 .times{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .times button{padding:10px 4px;min-height:44px;font-size:14px}
+textarea,input.txt{width:100%;font:500 16px Inter,system-ui,sans-serif;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:12px 14px;resize:vertical}
 input{width:100%;font:600 22px Poppins,Inter,system-ui,sans-serif;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
 .save{width:100%;margin-top:20px;background:var(--brand);color:var(--bg);border-color:var(--brand)}
 .err{color:var(--bad);font-size:14px;margin-top:12px;min-height:18px}

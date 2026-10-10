@@ -8,6 +8,7 @@ import { useMoveLead, useNoAnswer } from "../../hooks/useLeadBoard";
 import {
   LOST_REASONS,
   askFor,
+  carriesFollowUp,
   currentBooking,
   leadFlags,
   lostLabel,
@@ -68,8 +69,8 @@ const ago = (iso: string, now: number) => {
   return fmtDate(iso);
 };
 
-type ParkedKey = "followUp" | "nurture";
-const PARKED: ParkedKey[] = ["followUp", "nurture"];
+type ParkedKey = "followUp" | "noAnswer" | "nurture";
+const PARKED: ParkedKey[] = ["followUp", "noAnswer", "nurture"];
 
 export default function PipelineBoard({ data }: { data: BoardPayload }) {
   // Trash stays in GHL but never reaches the board, nor do the leads in it.
@@ -335,7 +336,7 @@ function MobileBoard({
   // A count in the strip shows its leads across every stage, each tagged with
   // the stage it sits in. Otherwise the tab picks the stage.
   const rows = focused ? shown : leads.filter((l) => l.stageId === stage?.id);
-  if (!focused && stage?.key === "followUp") {
+  if (!focused && carriesFollowUp(stage?.key ?? null)) {
     rows.sort((a, b) => (a.followUp?.at ?? "").localeCompare(b.followUp?.at ?? ""));
   }
 
@@ -417,7 +418,7 @@ function MobileRow({
   onCall: () => void;
 }) {
   const booking = currentBooking(lead, stageKey);
-  const follow = stageKey === "followUp" ? lead.followUp : null;
+  const follow = carriesFollowUp(stageKey) ? lead.followUp : null;
   const lostReason = stageKey === "lost" ? lead.lostReason : null;
   const quiet = !stage && !booking && !follow && !lead.value && !lostReason;
   // Two targets side by side, not nested: the row opens the lead, the phone
@@ -470,7 +471,7 @@ function MobileRow({
                 {fmtShort(follow.at)}
               </span>
             )}
-            {stageKey === "followUp" && lead.attempts > 0 && (
+            {carriesFollowUp(stageKey) && lead.attempts > 0 && (
               <span className="inline-flex items-center gap-1 text-[11.5px] font-medium text-[var(--text-muted)]">
                 <PhoneMissed size={12} strokeWidth={2.2} />
                 {lead.attempts}
@@ -538,11 +539,11 @@ function RailBoard({
   const parkedLeads = (k: ParkedKey, from: BoardLead[]) => {
     const st = stageOf(k);
     const rows = from.filter((l) => l.stageId === st?.id);
-    return k === "followUp"
+    return carriesFollowUp(k)
       ? rows.sort((a, b) => (a.followUp?.at ?? "").localeCompare(b.followUp?.at ?? ""))
       : rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   };
-  const overdue = parkedLeads("followUp", leads).filter((l) => leadFlags(l, "followUp", now).followOverdue).length;
+  const overdue = (k: ParkedKey) => parkedLeads(k, leads).filter((l) => leadFlags(l, k, now).followOverdue).length;
 
   return (
     <div
@@ -566,13 +567,13 @@ function RailBoard({
                 armed={dragging}
                 className={cn(
                   "flex min-h-0 flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)]",
-                  k === "followUp" ? "flex-[3]" : "flex-[2]",
+                  k === "nurture" ? "flex-[2]" : "flex-[3]",
                 )}
               >
                 <header className="flex items-center gap-1.5 px-3 pb-1.5 pt-2.5">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: st.color ?? "var(--text-faint)" }} />
                   <span className="font-display text-[12.5px] font-bold text-[var(--text)]">{st.name}</span>
-                  {k === "followUp" && overdue > 0 && <OverdueDot n={overdue} />}
+                  {overdue(k) > 0 && <OverdueDot n={overdue(k)} />}
                   <span className="ml-auto text-[11.5px] font-semibold text-[var(--text-muted)] tnum">
                     {parkedLeads(k, leads).length}
                   </span>
@@ -655,7 +656,7 @@ function RailList({
     <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       {leads.map((l, i) => {
         const flags = leadFlags(l, stageKey, now);
-        const follow = stageKey === "followUp" ? l.followUp : null;
+        const follow = carriesFollowUp(stageKey) ? l.followUp : null;
         return (
           // Draggable both ways: a rail row can be dropped onto a column.
           <li
@@ -671,7 +672,7 @@ function RailList({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="truncate font-display text-[12.5px] font-bold text-[var(--text)]">{l.name}</span>
-                {stageKey === "followUp" && l.attempts > 0 && (
+                {carriesFollowUp(stageKey) && l.attempts > 0 && (
                   <span className="inline-flex shrink-0 items-center gap-0.5 text-[11.5px] font-medium text-[var(--text-muted)]">
                     <PhoneMissed size={11} strokeWidth={2.2} />
                     {l.attempts}
@@ -845,7 +846,7 @@ function LeadCard({
   onOpen: () => void;
 }) {
   const booking = currentBooking(lead, stageKey);
-  const showFollow = stageKey === "followUp" && lead.followUp;
+  const showFollow = carriesFollowUp(stageKey) && lead.followUp;
   return (
     <button
       type="button"
@@ -892,7 +893,7 @@ function LeadCard({
           <span className="truncate lg:whitespace-normal lg:leading-tight">{fmtShort(lead.followUp!.at)}</span>
         </div>
       )}
-      {stageKey === "followUp" && lead.attempts > 0 && (
+      {carriesFollowUp(stageKey) && lead.attempts > 0 && (
         <div className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-[var(--text-muted)]">
           <PhoneMissed size={12} strokeWidth={2.2} />
           {lead.attempts} {lead.attempts === 1 ? "try" : "tries"}

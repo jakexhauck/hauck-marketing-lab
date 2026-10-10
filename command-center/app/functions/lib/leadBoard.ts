@@ -13,6 +13,7 @@ export type StageKey =
   | "job"
   | "won"
   | "followUp"
+  | "noAnswer"
   | "nurture"
   | "lost"
   | "cancelled"
@@ -47,6 +48,9 @@ const KEY_BY_NAME: Record<string, StageKey> = {
   // in once the work is done and paid, which is what Revenue counts.
   jobcompleted: "won",
   followup: "followUp",
+  // Jake, 2026-10-10: where the outcome page's No answer lands. Carries a
+  // follow-up (call again this time tomorrow), like Follow Up.
+  noanswer: "noAnswer",
   longtermnurture: "nurture",
   lost: "lost",
   jobestimatecancelled: "cancelled",
@@ -147,11 +151,12 @@ export function planMove(stages: BoardStage[], input: MoveInput): MovePlan {
     key,
     ghl: { pipelineStageId: stage.id, status: "open" as "open" | "won" | "lost" },
     closeBookings: [] as BookingKind[],
-    closeFollowUp: key !== "followUp",
+    closeFollowUp: key !== "followUp" && key !== "noAnswer",
   };
 
   switch (key) {
-    case "followUp": {
+    case "followUp":
+    case "noAnswer": {
       const dueAt = isoOrNull(input.at);
       if (!dueAt) return { ok: false, error: "at_required" };
       return { ...base, followUp: { dueAt, note: (input.note ?? "").trim() } };

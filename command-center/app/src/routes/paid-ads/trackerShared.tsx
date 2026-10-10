@@ -71,6 +71,7 @@ export const STATUS_META: Record<LeadTrackerStatus, { label: string; chip: strin
 export const STAGE_CHIP: Record<LeadBoardStageKey, string> = {
   lead: "bg-surface-2 text-muted",
   followUp: "bg-warning/10 text-warning",
+  noAnswer: "bg-warning/10 text-warning",
   nurture: "bg-surface-2 text-faint",
   estimate: "bg-brand/20 text-brand",
   job: "bg-brand/20 text-brand",

@@ -43,6 +43,7 @@ describe("adminPillars config", () => {
       "inbox",
       "clients",
       "budget",
+      "outcome-page",
     ]);
   });
 
@@ -65,6 +66,7 @@ describe("adminPillars config", () => {
       "inbox",
       "clients",
       "budget",
+      "outcome-page",
     ]);
   });
 });

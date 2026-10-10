@@ -26,6 +26,20 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-outcome-page",
+    date: "10 October 2026",
+    title: "One outcome page for every lead",
+    items: [
+      "The owner's outcome link now asks: Estimate booked, Job closed, Call back later, No answer or Not interested.",
+      "Estimate booked and Job closed book the calendar and ask street address, services and notes. Name, phone and email fill themselves.",
+      "Job closed counts a job and its revenue on the Ads Dashboard and goes to Meta as a sale.",
+      "No answer moves the lead to No Answer and reminds the owner to call again this time tomorrow.",
+      "Every answer moves the lead the same way the Leads board does. If a move fails the page says so.",
+      "New custom value Outcome Link. The Lead Outcome and Estimate Outcome links open the same page.",
+      "Operations > Outcome Page shows the page and what each answer does.",
+    ],
+  },
+  {
     id: "2026-10-10-ghl-app-scopes",
     date: "10 October 2026",
     title: "Install the GHL app once more",

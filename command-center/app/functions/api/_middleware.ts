@@ -102,6 +102,9 @@ const PUBLIC_PATHS = new Set([
   // texted, no session, per-location key. See api/estimate-outcome/.
   "/api/estimate-outcome",
   "/api/estimate-outcome/slots",
+  // The universal owner outcome page (Outcome Link). See api/outcome/.
+  "/api/outcome",
+  "/api/outcome/slots",
   // The owner's new-lead link (book an estimate, call back, not interested).
   "/api/lead-outcome",
   "/api/lead-outcome/slots",
