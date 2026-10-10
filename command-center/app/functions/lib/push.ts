@@ -3,7 +3,8 @@ import {
   type PushSubscription,
 } from "@block65/webcrypto-web-push";
 import { getServiceClient } from "./supabase";
-import { ghlJson } from "./ghl";
+import { fetchContact, ghlJson } from "./ghl";
+import { isInternalRecipient, parseInternalRecipients } from "./internalRecipients";
 import { appMinter, resolveTenantGhl } from "./ghlCreds";
 import type { Env } from "./env";
 
@@ -132,7 +133,7 @@ export async function sendPushForActivity(
   const { data: tenantRow } = await client
     .from("tenants")
     .select(
-      "notify_audience, notify_push_enabled, ghl_token, ghl_location_id",
+      "notify_audience, notify_push_enabled, ghl_token, ghl_location_id, internal_recipients",
     )
     .eq("id", tenantId)
     .maybeSingle();
@@ -141,6 +142,7 @@ export async function sendPushForActivity(
     notify_push_enabled?: boolean | null;
     ghl_token?: string | null;
     ghl_location_id?: string | null;
+    internal_recipients?: string | null;
   } | null;
 
   // The owner's master push switch (0021). Only an explicit false silences the
@@ -156,6 +158,25 @@ export async function sendPushForActivity(
   const rows = selectRecipients(allRows, audience, activity.assigned_user_id);
   if (rows.length === 0) return;
 
+  // Resolved, because a client linked through the Marketplace app holds the
+  // 'app' sentinel here. No key means no lookups, never a failed push.
+  const creds =
+    activity.contact_id && prefs?.ghl_token
+      ? await resolveTenantGhl(
+          { ghl_location_id: prefs.ghl_location_id ?? "", ghl_token: prefs.ghl_token },
+          appMinter(client, env),
+        )
+      : null;
+
+  // The Inbox's rule: a staff notification number is never a lead. The thread
+  // endpoint refuses to open one, so a push for it opened straight into "Could
+  // not load messages". fetchContact returns null on any failure, and null is
+  // not internal, so a GHL hiccup still lets a real lead's buzz through.
+  if (creds && activity.contact_id) {
+    const contact = await fetchContact(creds, activity.contact_id);
+    if (isInternalRecipient(contact, parseInternalRecipients(prefs?.internal_recipients))) return;
+  }
+
   // One title per kind shouldPush lets through. The body carries the detail:
   // for a message that is the sender and their text, so the owner can judge
   // from the lock screen whether to stop what they are doing.
@@ -168,15 +189,8 @@ export async function sendPushForActivity(
   // Only worth a call for a message: a new lead and a booked appointment both
   // already say everything the owner needs.
   let body = activity.summary;
-  if (activity.kind === "message_in" && activity.contact_id && prefs?.ghl_token) {
-    // Resolved, because a client linked through the Marketplace app holds the
-    // 'app' sentinel here. No key means no enrichment, never a failed push: the
-    // summary the webhook carried is already a usable notification.
-    const creds = await resolveTenantGhl(
-      { ghl_location_id: prefs.ghl_location_id ?? "", ghl_token: prefs.ghl_token },
-      appMinter(client, env),
-    );
-    const described = creds ? await describeInboundMessage(creds, activity.contact_id) : null;
+  if (activity.kind === "message_in" && activity.contact_id && creds) {
+    const described = await describeInboundMessage(creds, activity.contact_id);
     if (described) body = described;
   }
 

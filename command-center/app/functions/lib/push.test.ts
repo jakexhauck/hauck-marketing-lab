@@ -12,6 +12,7 @@ vi.mock("./ghl", () => ({
     if (ghlThrows) return Promise.reject(new Error("ghl down"));
     return Promise.resolve({ conversations });
   },
+  fetchContact: () => Promise.resolve(contactRecord),
 }));
 
 import { sendPushForActivity, type PushActivity } from "./push";
@@ -26,6 +27,7 @@ let pushStatus = 201;
 let sentPayloads: { title: string; body: string; url: string }[] = [];
 let conversations: Record<string, unknown>[] = [];
 let ghlThrows = false;
+let contactRecord: Record<string, unknown> | null = null;
 
 const env = {
   VAPID_PUBLIC_KEY: "pub",
@@ -99,6 +101,7 @@ beforeEach(() => {
   sentPayloads = [];
   conversations = [];
   ghlThrows = false;
+  contactRecord = { id: "c1", phone: "+15550001111", email: "lead@example.com" };
   globalThis.fetch = vi.fn((url: unknown) => {
     pushedTo.push(String(url));
     return Promise.resolve({ status: pushStatus } as Response);
@@ -251,5 +254,52 @@ describe("inbound message notifications", () => {
   it("deep-links to the conversation when there is no opportunity", async () => {
     await sendPushForActivity(env, "t1", message);
     expect(sentPayloads[0].url).toBe("/conversations/c1");
+  });
+});
+
+// The Inbox never shows a staff notification number, and the thread endpoint
+// refuses to open one. A push for one opened straight into "Could not load
+// messages" (Jake texting Willis from his own phone, 2026-10-10). So the push
+// follows the Inbox's rule: an internal recipient never buzzes anybody.
+describe("internal notification recipients", () => {
+  const message: PushActivity = {
+    kind: "message_in",
+    summary: "New message",
+    opportunity_id: null,
+    contact_id: "c1",
+    assigned_user_id: null,
+  };
+
+  it("sends nothing for a message from a number on the internal list", async () => {
+    tenantRow = { ...tenantRow, internal_recipients: "(555) 000-1111" };
+    await sendPushForActivity(env, "t1", message);
+    expect(pushedTo).toEqual([]);
+  });
+
+  it("sends nothing for a lead whose email is on the internal list", async () => {
+    tenantRow = { ...tenantRow, internal_recipients: "Lead@Example.com" };
+    await sendPushForActivity(env, "t1", { ...activity, contact_id: "c1" });
+    expect(pushedTo).toEqual([]);
+  });
+
+  it("sends nothing for a GHL notification sink", async () => {
+    contactRecord = { id: "c1", source: "NOTIFICATION" };
+    await sendPushForActivity(env, "t1", message);
+    expect(pushedTo).toEqual([]);
+  });
+
+  it("still buzzes for a real lead", async () => {
+    tenantRow = { ...tenantRow, internal_recipients: "+15559999999" };
+    await sendPushForActivity(env, "t1", message);
+    expect(pushedTo).toEqual(["https://push.example/1"]);
+  });
+
+  // Fail open: a contact GHL could not return is not proof it is internal, and
+  // a missed lead costs more than one extra buzz.
+  it("still buzzes when the contact cannot be read", async () => {
+    tenantRow = { ...tenantRow, internal_recipients: "+15550001111" };
+    contactRecord = null;
+    await sendPushForActivity(env, "t1", message);
+    expect(pushedTo).toEqual(["https://push.example/1"]);
   });
 });
