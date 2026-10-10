@@ -1,10 +1,12 @@
 import { useWiringQuery } from "../../../hooks/useSopApi";
 import { CopyButton, SopCard, SopError, SopHeading } from "./sopKit";
+import { ownerLinkText } from "../../../lib/ownerLinkText";
 
 // Client > GHL > Outcome Wiring. The three owner links (Call Now, Lead Outcome, Phone
 // Appointment Call Now) with this client's key in them, each beside the custom
-// value it belongs in, for pasting into GHL by hand. Linking the sub-account and
-// Provision write the same three.
+// value it belongs in, for pasting into GHL by hand. The tag is copied with the
+// lead's contact id on the end (lib/ownerLinkText.ts), the form the text needs.
+// Linking the sub-account and Provision write the same three.
 
 export default function WiringPanel({ tenantId }: { tenantId: string }) {
   const q = useWiringQuery(tenantId);
@@ -29,8 +31,8 @@ export default function WiringPanel({ tenantId }: { tenantId: string }) {
             <div className="mb-1 flex items-center justify-between gap-2">
               <span className="text-[13.5px] font-semibold text-text">{l.name}</span>
               <span className="flex items-center gap-1.5">
-                <code className="font-data text-[12px] text-faint">{l.merge}</code>
-                <CopyButton text={l.merge} label="Copy tag" />
+                <code className="font-data text-[12px] text-faint">{ownerLinkText(l.merge)}</code>
+                <CopyButton text={ownerLinkText(l.merge)} label="Copy for text" />
               </span>
             </div>
             <div className="flex items-center gap-2">

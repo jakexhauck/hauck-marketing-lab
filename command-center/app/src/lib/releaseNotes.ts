@@ -26,6 +26,12 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-wiring-text-line",
+    date: "10 October 2026",
+    title: "Outcome Wiring copies the full text line",
+    items: ["Each owner link now copies with the lead's ID on the end, ready to paste into the GHL text."],
+  },
+  {
     id: "2026-10-10-client-accounts",
     date: "10 October 2026",
     title: "Accounts page on every client",
