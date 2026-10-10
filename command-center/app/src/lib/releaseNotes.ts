@@ -26,6 +26,12 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-white-screen",
+    date: "10 October 2026",
+    title: "White screen after an update fixed",
+    items: ["The app no longer goes blank when an update lands mid-deploy."],
+  },
+  {
     id: "2026-10-10-client-rail",
     date: "10 October 2026",
     title: "Client pages reshuffled",

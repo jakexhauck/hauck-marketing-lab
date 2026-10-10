@@ -1,10 +1,11 @@
 /// <reference lib="webworker" />
 import { clientsClaim } from "workbox-core";
-import { createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
+import { addPlugins, createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
 import { NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 import { APP_BRAND } from "./lib/appBrand";
+import { isPoisonedPrecache } from "./lib/precacheGuard";
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -15,6 +16,21 @@ declare const self: ServiceWorkerGlobalScope;
 // (react-query refetches on focus), so a mid-session swap is safe.
 self.skipWaiting();
 clientsClaim();
+
+// Never store the HTML fallback page under a script or stylesheet address
+// (lib/precacheGuard.ts has the white-screen story). Returning null makes the
+// precache fetch fail, so this worker does not install and the old one stays.
+// A custom cacheWillUpdate replaces Workbox's own "status < 400" check, so the
+// response.ok test is carried here.
+addPlugins([
+  {
+    cacheWillUpdate: async ({ request, response }) =>
+      !response.ok ||
+      isPoisonedPrecache({ url: request.url, contentType: response.headers.get("content-type") })
+        ? null
+        : response,
+  },
+]);
 
 // Injected by vite-plugin-pwa at build. Preserves the existing precache
 // behaviour we had under the old generateSW strategy.
