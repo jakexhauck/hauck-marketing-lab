@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-no-outcome-yet",
+    date: "10 October 2026",
+    title: "Lead Tracker shows leads with no outcome",
+    items: [
+      "On a board client, a lead still on Lead with nothing logged on the outcome page reads No Outcome Yet in the Status column.",
+      "It switches to the stage as soon as the owner answers, or the lead is moved on the board.",
+    ],
+  },
+  {
     id: "2026-10-10-outcome-alert",
     date: "10 October 2026",
     title: "Client phones buzz when an outcome is logged",

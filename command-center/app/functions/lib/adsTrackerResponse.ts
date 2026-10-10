@@ -34,6 +34,8 @@ import { dateStringInZone } from "./tz";
 import { loadEstimateCalendars, loadEstimateContacts } from "./estimateTracking";
 import { loadContactTouches } from "./leadPickupSync";
 import { countPickups, type ContactTouches } from "./leadPickups";
+import { selectAllPages } from "./pagedSelect";
+import type { TrackerStage } from "./leadBoard";
 
 // The one Paid Ads tracker payload, shared by the client's own page and the
 // admin cockpit's view of that client.
@@ -81,6 +83,31 @@ export type LeadTrackerStatus = ClientLeadStatus;
 export function displayStatus(status: ClientLeadStatus, lost: boolean): LeadTrackerStatus {
   if (status === "won") return "won";
   return lost ? "lost" : status;
+}
+
+// A board lead the owner has not answered yet: still sitting on Lead, with no
+// row in lead_link_outcomes. The Status cell says so instead of "Lead", which
+// is what tells the client a lead is waiting on them. A lead the board has
+// moved on is not flagged: somebody already acted on it.
+export function awaitingOutcome(
+  stage: TrackerStage | null | undefined,
+  hasOutcome: boolean,
+): boolean {
+  return stage?.key === "lead" && !hasOutcome;
+}
+
+// Every contact with an outcome logged on the outcome page. Paged, since a
+// plain select stops at 1000 rows without a word.
+async function loadOutcomeContacts(client: SupabaseClient, tenantId: string): Promise<Set<string>> {
+  const rows = await selectAllPages<Record<string, unknown>>((from, to) =>
+    client
+      .from("lead_link_outcomes")
+      .select("ghl_contact_id")
+      .eq("tenant_id", tenantId)
+      .order("ghl_contact_id", { ascending: true })
+      .range(from, to),
+  );
+  return new Set(rows.map((r) => String(r.ghl_contact_id ?? "")).filter(Boolean));
 }
 
 // Which model the `status` on each lead row belongs to. The two have different
@@ -252,6 +279,16 @@ export async function buildTrackerResponse(input: TrackerResponseInput) {
     : stageKpis;
   const rows = breakdown(leads, data.spendRows, level, window, data.entities, zone);
 
+  // Only a board client has outcome-page answers to check. A failed read shows
+  // the plain stage rather than calling every lead unanswered.
+  const outcomeContacts =
+    data.stageByContact.size > 0
+      ? await loadOutcomeContacts(client, tenantId).catch((err) => {
+          console.warn("[ads/tracker] lead_link_outcomes read failed", err);
+          return null;
+        })
+      : null;
+
   // CRM leads inside the window carrying no ad id.
   //
   // This used to exist to explain why the Results row and the breakdown
@@ -283,6 +320,9 @@ export async function buildTrackerResponse(input: TrackerResponseInput) {
         // pipeline. When present it is what the Status column prints, read-only;
         // `status` below still drives the When column and the Won value cell.
         stage: data.stageByContact.get(l.contactId) ?? null,
+        awaitingOutcome:
+          outcomeContacts !== null &&
+          awaitingOutcome(data.stageByContact.get(l.contactId), outcomeContacts.has(l.contactId)),
         // On a manual tenant the typed status is the only status. A card in the
         // Trash pipeline no longer forces Lost either: nobody is moving those
         // cards, so a stale one would overrule the owner who just said Won.

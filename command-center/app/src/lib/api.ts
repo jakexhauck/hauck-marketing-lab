@@ -861,6 +861,9 @@ export interface LeadTrackerLead {
   // When set, the Status cell prints this instead of `status`, read-only.
   // `key` (the board's name for the stage) picks the colour.
   stage?: { name: string; key: LeadBoardStageKey | null } | null;
+  // True while a board lead sits on Lead with no outcome logged on the outcome
+  // page. The Status cell then reads "No Outcome Yet" instead of the stage.
+  awaitingOutcome?: boolean;
   when: LeadTrackerWhen | null;
   // Dollars. Null on a manual tenant means nobody has typed a job value yet,
   // which is not the same as a job worth nothing.

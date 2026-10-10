@@ -52,9 +52,12 @@ function WhenCell({ when }: { when: LeadTrackerWhen | null }) {
 
 // The status chip, shared by the card and the table so the two can never colour
 // a status differently. A client on the Test v2 pipeline sees their GHL stage
-// name here instead, so the tracker and the pipeline never disagree.
+// name here instead, so the tracker and the pipeline never disagree, except
+// that a lead still on Lead with no outcome logged says so.
 function StatusChip({ lead }: { lead: LeadTrackerLead }) {
-  const { label, chip } = lead.stage
+  const { label, chip } = lead.awaitingOutcome
+    ? { label: "No Outcome Yet", chip: "bg-warning/10 text-warning" }
+    : lead.stage
     ? {
         label: lead.stage.name,
         chip: lead.stage.key ? STAGE_CHIP[lead.stage.key] : STAGE_CHIP_DEFAULT,
