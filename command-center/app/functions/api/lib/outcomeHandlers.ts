@@ -20,8 +20,10 @@ import {
   stageKeyFor,
   type FormAnswers,
   type Outcome,
+  type OutcomeInput,
 } from "../../lib/outcome";
 import { moveLeadByContact } from "../../lib/outcomeMove";
+import { sendPushForActivity } from "../../lib/push";
 import { answersFromContact, formFieldIds, saveAnswers } from "../../lib/outcomeFields";
 
 // GET / POST / slots for the universal outcome page (lib/outcome.ts), shared by
@@ -101,6 +103,37 @@ function bookedJob(
     if (mine && !mine.status.startsWith("cancel")) return mine;
   }
   return jobCalendarId ? openAppointment(appts, jobCalendarId) : null;
+}
+
+// The client team's phone alert when an outcome is logged (Jake, 2026-10-10):
+// "Marcus Bell: Estimate booked Tue, Oct 14, 10:00 AM".
+export function outcomePushLine(
+  name: string,
+  input: OutcomeInput,
+  zone: string,
+  extra: { callBackAt: string | null; attempts: number },
+): string {
+  const what = (() => {
+    switch (input.outcome) {
+      case "estimate_booked":
+        return `Estimate booked ${formatWhen(input.slot, zone)}`;
+      case "job_closed":
+        return `Job closed ${money(input.amountCents)}, booked ${formatWhen(input.slot, zone)}`;
+      case "call_back":
+        return extra.callBackAt ? `Call back ${formatWhen(extra.callBackAt, zone)}` : "Call back";
+      case "no_answer":
+        return `No answer (${extra.attempts})`;
+      case "not_interested":
+        return `Not interested: ${input.reason}`;
+      case "job_done":
+        return `Job done ${money(input.amountCents)}`;
+      case "job_rescheduled":
+        return `Job moved to ${formatWhen(input.slot, zone)}`;
+      case "job_cancelled":
+        return "Job cancelled";
+    }
+  })();
+  return `${name}: ${what}`;
 }
 
 // Call-back days in the client's zone, and which of today's times are gone.
@@ -360,6 +393,19 @@ export function outcomeHandlers(purpose: string) {
       { onConflict: "tenant_id,ghl_contact_id" },
     );
     if (error) return fail("Could not save. Try again.", 500);
+
+    // Tell the client's team. After the response, so a slow push service
+    // never holds up the owner's Save.
+    ctx.waitUntil(
+      sendPushForActivity(ctx.env, tenantId, {
+        kind: "lead_outcome",
+        summary: outcomePushLine(name, input, zone, { callBackAt, attempts }),
+        opportunity_id: null,
+        contact_id: contactId,
+        assigned_user_id: null,
+        url: "/sales",
+      }).catch((err) => logErrorBestEffort(ctx.env, "outcome", `push: ${String(err).slice(0, 200)}`, { contactId })),
+    );
 
     if (input.outcome === "job_closed" && jobAppointmentId) {
       const meta = await reportSaleToMeta(client, tenantId, jobAppointmentId, input.amountCents, {

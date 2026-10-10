@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-outcome-alert",
+    date: "10 October 2026",
+    title: "Client phones buzz when an outcome is logged",
+    items: [
+      "When the owner answers the outcome page, everyone on the client's app gets a phone alert naming the lead and what happened.",
+      "Tapping it opens their Leads board.",
+    ],
+  },
+  {
     id: "2026-10-10-board-books-ghl",
     date: "10 October 2026",
     title: "Board bookings land on the GHL calendars",

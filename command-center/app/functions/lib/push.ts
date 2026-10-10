@@ -17,6 +17,8 @@ export interface PushActivity {
   opportunity_id: string | null;
   contact_id: string | null;
   assigned_user_id: string | null;
+  // Where a tap opens, when it is not the lead or the thread.
+  url?: string;
 }
 
 // One row of the push_subscriptions table. The browser PushSubscription is
@@ -184,6 +186,7 @@ export async function sendPushForActivity(
     lead_created: "New lead",
     message_in: "New message",
     appointment_create: "Appointment booked",
+    lead_outcome: "Outcome logged",
   };
   // Fill in the sender and their words when the webhook did not carry them.
   // Only worth a call for a message: a new lead and a booked appointment both
@@ -197,7 +200,9 @@ export async function sendPushForActivity(
   const payloadData = JSON.stringify({
     title: titles[activity.kind] ?? activity.summary,
     body,
-    url: activity.opportunity_id
+    url: activity.url
+      ? activity.url
+      : activity.opportunity_id
       ? `/lead/${activity.opportunity_id}`
       : activity.contact_id
         ? `/conversations/${activity.contact_id}`
