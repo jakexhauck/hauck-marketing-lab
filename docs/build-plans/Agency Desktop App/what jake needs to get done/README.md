@@ -682,3 +682,13 @@ Your action items:
 2. Drag it to Job Booked and pick a time. Check the Job calendar.
 3. Open its outcome link and try Job done (and once on another lead, Job cancelled).
 4. Turn New Ads Dashboard on for each client you want on the new numbers (AAG when ready).
+
+## Client Accounts page (10 October 2026)
+
+What's in the app now: each client has an Accounts page at the top of its sidebar. Ten rows, green or red, each red one with a fix button.
+
+Your action items:
+1. Open any client > Accounts.
+2. Press each red row's button and fix it.
+3. Press Check again until it reads 10 / 10.
+4. Tell me if an Open in GHL button lands on a blank page.
