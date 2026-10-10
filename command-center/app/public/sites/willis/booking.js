@@ -46,7 +46,7 @@
     photo: "https://app.hauckmarketing.com/sites/willis/pole.webp",
 
     // Jake's calendar, from the embed code GHL generated.
-    calendarId: "Jlr88qZDp0Sth1H5Sjzf",
+    calendarId: "530GrGptIPhOmkd8vPC6",
     widgetBase: "https://link.hauckmarketing.com/widget/booking/",
 
     // GHL's own resize script. Without it the iframe never grows past the
