@@ -672,3 +672,13 @@ Your action items:
 3. In the owner texts, use `{{custom_values.outcome_link}}&c={{contact.id}}`.
 4. Re-save the Test v2 snapshot.
 5. Open one real link on a test lead and try each answer once.
+
+## Board books GHL calendars, Ads Dashboard switch, job answers (10 October 2026)
+
+What's in the app now: booking an estimate or job on the Leads board books it on the GHL Home Estimate / Job calendar (open times only). Each client sheet has a New Ads Dashboard switch. The outcome page shows Job done / Job rescheduled / Job cancelled once a job is booked.
+
+Your action items:
+1. On Test v2, book a test lead's estimate from the Leads board. Check it shows on the Home Estimate calendar.
+2. Drag it to Job Booked and pick a time. Check the Job calendar.
+3. Open its outcome link and try Job done (and once on another lead, Job cancelled).
+4. Turn New Ads Dashboard on for each client you want on the new numbers (AAG when ready).
