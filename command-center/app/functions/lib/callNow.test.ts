@@ -56,3 +56,10 @@ describe("linkKey", () => {
     expect(await linkKey("s3cret", "estimate-outcome", LOC)).not.toBe(await callNowKey("s3cret", LOC));
   });
 });
+
+describe("CALL_NOW_TAG", () => {
+  it("is the tag the New Lead Auto Call workflow listens for", async () => {
+    const { CALL_NOW_TAG } = await import("./callNow");
+    expect(CALL_NOW_TAG).toBe("call now");
+  });
+});

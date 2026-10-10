@@ -2,7 +2,7 @@
 //
 // The owner dials from their personal cell otherwise, and a personal-cell call
 // is invisible: no recording, no pickup on the dashboard. So the text carries a
-// link instead of the lead's number. Tapping it tags the lead `call-now`, and a
+// link instead of the lead's number. Tapping it tags the lead `call now`, and a
 // GoHighLevel "Call Now" workflow (Call action) rings the owner and bridges them
 // to the lead on the business number. GoHighLevel places the call; this app only
 // applies the tag, because a link in an internal SMS cannot tell GoHighLevel
@@ -15,7 +15,10 @@
 // so there is nothing extra to store or rotate. The worst a leaked key does is
 // ring that client's owner about one of their own leads.
 
-export const CALL_NOW_TAG = "call-now";
+// With a space: the tag Jake's "New Lead Auto Call" workflow triggers on
+// (2026-10-10). Only the TAG; the link key's purpose below stays "call-now",
+// or every key already pasted into GoHighLevel would stop working.
+export const CALL_NOW_TAG = "call now";
 
 const ID = /^[A-Za-z0-9]{8,64}$/;
 

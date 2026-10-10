@@ -620,7 +620,7 @@ Your action items (Test v2 first, then snapshot):
 4. Test v2 > GHL > Custom Values: press Push (creates Call Now Link, Lead Outcome Link, Estimate Outcome Link).
 5. New Lead Text workflow: Contact Created > Assign User > Call (owner) > SMS to owner: `New lead: {{contact.name}}` / `Call: {{custom_values.call_now_link}}&c={{contact.id}}` / `Log outcome: {{custom_values.lead_outcome_link}}&c={{contact.id}}`.
 6. Missed Call Text workflow: Call Details trigger, Outbound, No Answer / Busy / Canceled / Voicemail > SMS owner with the same two links.
-7. Call Now workflow: tag `call-now` added > Call (owner) > Remove tag `call-now`.
+7. Call Now workflow (New Lead Auto Call): tag `call now` (with a space) added > Call (owner) > Remove tag `call now`. New Lead Text adds `call now` as its first step so the ring happens.
 8. Call Back Reminder workflow: tag `call-back-due` added > SMS owner `Call back {{contact.name}} now.` with both links > Remove tag `call-back-due`.
 9. Estimate Outcome workflow: Customer Booked Appointment on Home Estimate > Wait 1 hour after appointment start > SMS owner `How did {{contact.name}}'s estimate go? {{custom_values.estimate_outcome_link}}&c={{contact.id}}`. Allow re-entry.
 10. Add `&h_ad_id={{ad.id}}` to the Meta URL parameters.
