@@ -36,6 +36,7 @@ import { loadContactTouches } from "./leadPickupSync";
 import { countPickups, type ContactTouches } from "./leadPickups";
 import { selectAllPages } from "./pagedSelect";
 import type { TrackerStage } from "./leadBoard";
+import { loadMetaFormLeads, mergeMetaLeads } from "./metaFormLeads";
 
 // The one Paid Ads tracker payload, shared by the client's own page and the
 // admin cockpit's view of that client.
@@ -176,6 +177,8 @@ export interface TrackerResponseInput {
   // tenants.meta_timezone (0108): the ad account's own reporting zone, which is
   // the only zone in which this page's date ranges agree with Ads Manager.
   metaTimezone?: string | null;
+  // META_SYSTEM_USER_TOKEN, for a tenant with meta_form_leads on.
+  metaToken?: string;
 }
 
 export async function buildTrackerResponse(input: TrackerResponseInput) {
@@ -192,8 +195,41 @@ export async function buildTrackerResponse(input: TrackerResponseInput) {
     input.metaTimezone !== undefined
       ? Promise.resolve({ data: { meta_timezone: input.metaTimezone } })
       : client.from("tenants").select("meta_timezone").eq("id", tenantId).maybeSingle(),
-    client.from("tenants").select("estimate_tracking").eq("id", tenantId).maybeSingle(),
+    client
+      .from("tenants")
+      .select("estimate_tracking, meta_form_leads, meta_ad_account_id, meta_form_leads_synced_at")
+      .eq("id", tenantId)
+      .maybeSingle(),
   ]);
+
+  // Leads straight off the Meta forms, for a client whose GHL does not take
+  // them all in (lib/metaFormLeads.ts). Added before anything counts, so the
+  // table, the KPIs and the breakdown all see the same leads. Never fails the
+  // page: no Meta leads beats no tracker.
+  if (switchRow?.data?.meta_form_leads === true) {
+    try {
+      const metaLeads = await loadMetaFormLeads(
+        client,
+        {
+          id: tenantId,
+          metaAdAccountId: switchRow.data.meta_ad_account_id ?? null,
+          syncedAt: switchRow.data.meta_form_leads_synced_at ?? null,
+        },
+        input.metaToken,
+      );
+      const merged = mergeMetaLeads({ leads: data.leads, contacts: [...data.contactById.values()], metaLeads });
+      // A closed-out job wins outright, as in assembleLeads.
+      for (const l of merged.leads) {
+        const value = data.jobValueByContact.get(l.contactId);
+        if (value !== undefined) Object.assign(l, { level: "sale", status: "won", value });
+      }
+      data.leads.push(...merged.leads);
+      for (const c of merged.contacts) data.contactById.set(c.id, c);
+      for (const [id, att] of merged.attribution) data.attributionByContact.set(id, att);
+    } catch (err) {
+      console.warn("[ads/tracker] meta form leads failed", err);
+    }
+  }
   const estimateModel = switchRow?.data?.estimate_tracking === true;
 
   const zone = (zoneRow?.data?.meta_timezone ?? "").trim() || DEFAULT_ZONE;

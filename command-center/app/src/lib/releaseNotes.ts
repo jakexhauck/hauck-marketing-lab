@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-meta-form-leads",
+    date: "10 October 2026",
+    title: "Lead Tracker reads Meta lead forms",
+    items: [
+      "Above All Garage Doors' Lead Tracker now lists every lead from their Meta forms, even ones GHL never received, with the ad they came from.",
+      "A lead GHL already has is not listed twice.",
+    ],
+  },
+  {
     id: "2026-10-10-wiring-text-line",
     date: "10 October 2026",
     title: "Outcome Wiring copies the full text line",

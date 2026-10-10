@@ -34,6 +34,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       range: params.range,
       level: params.level,
       manualStatus: t.manual_lead_status === true,
+      metaToken: ctx.env.META_SYSTEM_USER_TOKEN,
     });
     return Response.json(body);
   } catch (err) {

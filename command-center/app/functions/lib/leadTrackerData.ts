@@ -48,6 +48,9 @@ export interface TrackerData {
   // Contacts with at least one closed-out job, $0 ones included. The estimate
   // model counts Jobs from this alone.
   jobContacts: Set<string>;
+  // Dollars per contact from customer_jobs, for leads added after assembly
+  // (lib/metaFormLeads.ts) that assembleLeads never saw.
+  jobValueByContact: Map<string, number>;
   // True while a contact belongs to an internal notification recipient, so
   // callers can drop those from lead lists and counts.
   isInternal: (x: { contactId?: string }) => boolean;
@@ -215,6 +218,7 @@ export async function loadTrackerData(
     adMeta,
     opportunitiesCount: opportunities.length,
     jobContacts: new Set(jobValueByContact.keys()),
+    jobValueByContact,
     isInternal: makeInternalConversationFilter(contacts, internalRecipients),
     stageByContact: board ? stageByContact(board, boardOpps) : new Map(),
   };

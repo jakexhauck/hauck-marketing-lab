@@ -47,6 +47,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       // the same way. Left off, this view would show a client's leads all
       // sitting on New while their own page shows what they actually typed.
       manualStatus: tenant.manual_lead_status === true,
+      metaToken: ctx.env.META_SYSTEM_USER_TOKEN,
     });
     return Response.json(body);
   } catch (err) {
