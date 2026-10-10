@@ -19,11 +19,17 @@
 // (2026-10-10). Only the TAG; the link key's purpose below stays "call-now",
 // or every key already pasted into GoHighLevel would stop working.
 export const CALL_NOW_TAG = "call now";
+export const CALL_NOW_PURPOSE = "call-now";
+
+// The same link for a lead with a phone appointment (Jake, 2026-10-10): its own
+// tag, so its own GHL workflow rings, and its own key.
+export const PHONE_APPT_CALL_TAG = "phone appt call now";
+export const PHONE_APPT_CALL_PURPOSE = "phone-appt-call";
 
 const ID = /^[A-Za-z0-9]{8,64}$/;
 
 export async function callNowKey(secret: string, locationId: string): Promise<string> {
-  return linkKey(secret, "call-now", locationId);
+  return linkKey(secret, CALL_NOW_PURPOSE, locationId);
 }
 
 // The same per-location key for any owner link texted from a workflow, scoped by

@@ -6,8 +6,8 @@ import { mergeTag, ownerLinkValues, type WiringLink } from "../../../../lib/ghlP
 // GET /api/admin/clients/:tenantId/wiring
 //   -> { links: [{ name, merge, value }] }   or { links: [] } before a sub-account
 //
-// Client > GHL > Wiring: the three owner links (Call Now, Lead Outcome,
-// Estimate Outcome) with this client's key already in them, to paste into the
+// Client > GHL > Wiring: the four owner links (Call Now, Lead Outcome,
+// Estimate Outcome, Phone Appointment Call Now) with this client's key already in them, to paste into the
 // matching GHL custom values. Same values Link and Push write
 // (lib/ghlProvision.ts), so a pasted one and a pushed one can never differ.
 //

@@ -652,3 +652,13 @@ Your action items:
 Still parked:
 - Self-booking (GHL calendar webhook into `lead_bookings`) until a client books themselves.
 - Willis and Made Better stay on the old Leads page until moved by hand.
+
+## Phone Appointment Call Now Link (10 October 2026)
+
+What's in the app now: a fourth owner link, `{{custom_values.phone_appointment_call_now_link}}`. Tapping it tags the lead `phone appt call now`.
+
+Your action items:
+1. In Test v2, build a workflow: trigger Contact Tag Added `phone appt call now`, then the same Call steps as New Lead Auto Call, then Remove Tag `phone appt call now`.
+2. In the phone appointment reminder text to the owner, add: `{{custom_values.phone_appointment_call_now_link}}&c={{contact.id}}`
+3. Press Push on Custom Values for each client so the new value lands in their GHL (or copy it from Client > GHL > Wiring).
+4. Re-save the Test v2 snapshot so every sub-account gets the workflow.

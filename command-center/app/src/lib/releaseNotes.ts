@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-phone-appt-call-link",
+    date: "10 October 2026",
+    title: "Phone Appointment Call Now Link",
+    items: [
+      "A fourth owner link for a lead with a phone appointment. Tapping it rings the owner and connects them to the lead, like Call Now.",
+      "It tags the lead phone appt call now, so its own GHL workflow fires.",
+      "Client > GHL > Wiring shows it with its merge tag. Push on Custom Values writes it into the client's GHL.",
+    ],
+  },
+  {
     id: "2026-10-10-leads-board",
     date: "10 October 2026",
     title: "Leads is a drag board",

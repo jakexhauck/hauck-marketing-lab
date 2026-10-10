@@ -62,7 +62,14 @@ describe("estimate model", () => {
 describe("ownerLinkValues", () => {
   it("puts the key in the link and never a localhost origin", async () => {
     const live = await ownerLinkValues("http://localhost:8788", "s3cret", "yVfX127fswQ03fydxBQg");
-    expect(live.map((v) => v.name)).toEqual(["Call Now Link", "Estimate Outcome Link", "Lead Outcome Link"]);
+    expect(live.map((v) => v.name)).toEqual([
+      "Call Now Link",
+      "Estimate Outcome Link",
+      "Lead Outcome Link",
+      "Phone Appointment Call Now Link",
+    ]);
+    expect(live[3].value).toMatch(/\/api\/phone-appt-call\?l=yVfX127fswQ03fydxBQg&k=[0-9a-f]{32}$/);
+    expect(live[3].value.split("k=")[1]).not.toBe(live[0].value.split("k=")[1]);
     expect(live[2].value).toMatch(/\/api\/lead-outcome\?l=yVfX127fswQ03fydxBQg&k=[0-9a-f]{32}$/);
     expect(live[0].value).toMatch(
       /^https:\/\/app\.hauckmarketing\.com\/api\/call-now\?l=yVfX127fswQ03fydxBQg&k=[0-9a-f]{32}$/,
@@ -78,5 +85,6 @@ describe("mergeTag", () => {
     expect(mergeTag("Call Now Link")).toBe("{{custom_values.call_now_link}}");
     expect(mergeTag("Lead Outcome Link")).toBe("{{custom_values.lead_outcome_link}}");
     expect(mergeTag("Estimate Outcome Link")).toBe("{{custom_values.estimate_outcome_link}}");
+    expect(mergeTag("Phone Appointment Call Now Link")).toBe("{{custom_values.phone_appointment_call_now_link}}");
   });
 });

@@ -1,10 +1,10 @@
 import { useWiringQuery } from "../../../hooks/useSopApi";
 import { CopyButton, SopCard, SopError, SopHeading } from "./sopKit";
 
-// Client > GHL > Wiring. The three owner links (Call Now, Lead Outcome,
-// Estimate Outcome) with this client's key in them, each beside the custom
+// Client > GHL > Wiring. The four owner links (Call Now, Lead Outcome,
+// Estimate Outcome, Phone Appointment Call Now) with this client's key in them, each beside the custom
 // value it belongs in, for pasting into GHL by hand. Push on Custom Values
-// writes the same three; this is for when Jake wants to see or copy them.
+// writes the same four; this is for when Jake wants to see or copy them.
 
 export default function WiringPanel({ tenantId }: { tenantId: string }) {
   const q = useWiringQuery(tenantId);
