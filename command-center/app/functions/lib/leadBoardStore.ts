@@ -3,6 +3,7 @@
 // Every write is scoped by tenant_id; the endpoints resolve it from the session.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { clockZone } from "./tz";
 import type { BookingKind, LostReason, MovePlan } from "./leadBoard";
 
 export interface TenantBoardRow {
@@ -17,7 +18,7 @@ export async function loadTenantForBoard(
 ): Promise<TenantBoardRow | null> {
   const { data } = await client.from("tenants").select("id, meta_timezone").eq("slug", slug).maybeSingle();
   if (!data) return null;
-  return { id: data.id as string, zone: (data.meta_timezone as string | null) || fallbackZone };
+  return { id: data.id as string, zone: clockZone(data.meta_timezone as string | null, fallbackZone) };
 }
 
 export interface BoardRows {

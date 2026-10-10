@@ -83,3 +83,24 @@ export function zonedTimeToUtcMs(
   guess = asUtc - zoneOffsetMs(zone, guess);
   return guess;
 }
+
+// Meta reports some ad accounts in a fixed zone ("EST" is UTC-5 all year).
+// Right for counting ad days, wrong for anything an owner reads or books on a
+// clock: in summer every time lands an hour off. Owner-facing times go
+// through this so they follow daylight saving.
+const FIXED_TO_REGION: Record<string, string> = {
+  EST: "America/New_York",
+  EST5EDT: "America/New_York",
+  CST: "America/Chicago",
+  CST6CDT: "America/Chicago",
+  MST: "America/Denver",
+  MST7MDT: "America/Denver",
+  PST: "America/Los_Angeles",
+  PST8PDT: "America/Los_Angeles",
+};
+
+export function clockZone(zone: string | null | undefined, fallback = "America/New_York"): string {
+  const z = (zone ?? "").trim();
+  if (!z) return fallback;
+  return FIXED_TO_REGION[z.toUpperCase()] ?? z;
+}

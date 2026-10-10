@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { clockZone } from "./tz";
 import type { Env } from "./env";
 import type { GhlContext } from "./ghl";
 import { getServiceClient } from "./supabase";
@@ -66,7 +67,7 @@ export async function resolveOutcomeLink(
     contactId: params.contactId,
     appointmentId: /^[A-Za-z0-9]{8,64}$/.test(a) ? a : null,
     calendars,
-    zone: String(tenant.meta_timezone ?? "").trim() || FALLBACK_ZONE,
+    zone: clockZone(tenant.meta_timezone as string | null, FALLBACK_ZONE),
     query: `?l=${encodeURIComponent(params.locationId)}&c=${encodeURIComponent(params.contactId)}&k=${params.key}${
       a ? `&a=${encodeURIComponent(a)}` : ""
     }`,
