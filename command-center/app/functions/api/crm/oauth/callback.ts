@@ -5,6 +5,7 @@ import {
   exchangeCode,
   loadAgencyInstall,
   saveInstall,
+  expireLocationTokens,
   verifyInstallState,
 } from "../../../lib/ghlApp";
 
@@ -90,6 +91,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     }
 
     await saveInstall(client, companyId, "", token, null);
+    await expireLocationTokens(client, companyId);
     console.log("[crm] agency install stored for company", companyId);
     return back(origin, { install: "ok" });
   } catch (err) {

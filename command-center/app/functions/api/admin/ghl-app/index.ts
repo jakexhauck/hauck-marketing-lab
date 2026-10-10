@@ -1,6 +1,6 @@
 import type { Env } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { createInstallState, installUrl, loadAgencyInstall } from "../../../lib/ghlApp";
+import { createInstallState, installUrl, loadAgencyInstall, missingScopes } from "../../../lib/ghlApp";
 
 // GET /api/admin/ghl-app
 //
@@ -24,5 +24,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     ? `${base}&state=${encodeURIComponent(await createInstallState(ctx.env))}`
     : null;
 
-  return Response.json({ installed: Boolean(agency), installUrl: url });
+  // An install missing a scope the app now asks for counts as not installed,
+  // so Client setup shows Install app again until it is re-approved.
+  const installed = Boolean(agency) && missingScopes(agency?.scopes).length === 0;
+  return Response.json({ installed, installUrl: url });
 };

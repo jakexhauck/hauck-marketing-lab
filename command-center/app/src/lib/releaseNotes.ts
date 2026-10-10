@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-ghl-app-scopes",
+    date: "10 October 2026",
+    title: "Install the GHL app once more",
+    items: [
+      "The app now asks GHL for booking appointments, reading forms and reading custom fields.",
+      "Install app shows again on a client's Onboarding page until the agency approves it. Approve it once, for all sub-accounts.",
+    ],
+  },
+  {
     id: "2026-10-10-phone-appt-call-link",
     date: "10 October 2026",
     title: "Phone Appointment Call Now Link",

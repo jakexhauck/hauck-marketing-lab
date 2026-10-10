@@ -58,7 +58,13 @@ export const APP_SCOPES = [
   "conversations.readonly",
   "conversations/message.readonly",
   "calendars.readonly",
+  "calendars.write",
   "calendars/events.readonly",
+  // Booking estimates and jobs from the owner's outcome link.
+  "calendars/events.write",
+  // Reading the booking form's questions, and the custom fields they fill.
+  "forms.readonly",
+  "locations/customFields.readonly",
   "invoices.readonly",
   "locations.readonly",
   "locations/customValues.readonly",
@@ -71,6 +77,26 @@ export const APP_SCOPES = [
   "oauth.readonly",
   "oauth.write",
 ] as const;
+
+// Scopes the app asks for that the saved agency install was not granted. An
+// install keeps the scopes it was approved with, so adding one here does
+// nothing until the agency installs again.
+export function missingScopes(granted: string | null | undefined): string[] {
+  const have = new Set((granted ?? "").split(/\s+/).filter(Boolean));
+  return APP_SCOPES.filter((s) => !have.has(s));
+}
+
+// After a re-install, the cached sub-account tokens still carry the old scopes,
+// and refreshing one keeps them. Expire them and drop the refresh token, so the
+// next request re-mints each from the new agency token.
+export async function expireLocationTokens(client: SupabaseClient, companyId: string): Promise<void> {
+  const { error } = await client
+    .from("ghl_installs")
+    .update({ expires_at: new Date(0).toISOString(), refresh_token: null, updated_at: new Date().toISOString() })
+    .eq("company_id", companyId)
+    .neq("location_id", "");
+  if (error) console.warn("[crm] expiring sub-account tokens failed", error.message);
+}
 
 export function installUrl(env: Env, origin: string): string | null {
   const clientId = (env.GHL_APP_CLIENT_ID ?? "").trim();
