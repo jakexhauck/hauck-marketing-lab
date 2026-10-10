@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-inbox-ad-leads-open",
+    date: "10 October 2026",
+    title: "Ad leads open in the client Inbox again",
+    items: [
+      "Ad leads listed in a client's Inbox opened to \"Could not load messages\" and could not be replied to. They open and send now.",
+    ],
+  },
+  {
     id: "2026-10-10-outcome-page",
     date: "10 October 2026",
     title: "One outcome page for every lead",

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   resolveClientInboxScope,
   buildVisibleContactIds,
@@ -10,6 +10,7 @@ import {
   adLeadContactIds,
   contactCameFromAd,
   contactCarriesTag,
+  isClientVisibleContact,
 } from "./handoffScope";
 
 // The live Willis pipeline list, pulled from `ghl opportunities pipelines`
@@ -236,5 +237,75 @@ describe("the ad-lead widening", () => {
       "handed",
       "tagged",
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The thread guard must admit every contact the Inbox list admits.
+//
+// The list reads the BULK contact roster, where the ad click sits in
+// attributions[]. Opening a thread reads ONE contact, and GHL's single-contact
+// reply has no attributions[] at all: the ad click is on lastAttributionSource
+// instead. Read only attributions[] and every ad lead in Willis's Inbox opened
+// to "Could not load messages" (2026-10-10). Shape copied from Maryjo, live.
+
+describe("an ad lead read one contact at a time", () => {
+  const single = {
+    id: "pbX2nh5BJO5rP3Gsm2H2",
+    attributionSource: { sessionSource: "CRM Workflows", medium: "Manual" },
+    lastAttributionSource: { sessionSource: "Social media", adId: "120252284690830415" },
+  };
+
+  it("counts the ad click on lastAttributionSource", () => {
+    expect(contactCameFromAd(single)).toBe(true);
+  });
+
+  it("counts the ad click on attributionSource", () => {
+    expect(contactCameFromAd({ id: "a", attributionSource: { adId: "1202" } })).toBe(true);
+  });
+
+  it("leaves a single contact with no ad id out", () => {
+    expect(contactCameFromAd({ id: "b", lastAttributionSource: { sessionSource: "Direct" } })).toBe(false);
+    expect(contactCameFromAd({ id: "c", lastAttributionSource: { adId: "  " } })).toBe(false);
+  });
+});
+
+describe("isClientVisibleContact", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const gctx = { token: "tok", locationId: "OznT3yyuwK3dqVXDsCaD" };
+
+  function stubGhl(contact: Record<string, unknown>) {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.includes("/opportunities/pipelines")) {
+          return Response.json({ pipelines: WILLIS });
+        }
+        if (url.includes("/opportunities/search")) {
+          // In 1) Leads only: the hand-off rule alone says no.
+          return Response.json({
+            opportunities: [{ id: "o1", pipelineId: "jrQQItCcwN6p7VUIhdRC", contact: { id: contact.id } }],
+          });
+        }
+        if (url.includes("/contacts/")) return Response.json({ contact });
+        return new Response("not stubbed", { status: 500 });
+      }),
+    );
+  }
+
+  it("opens an ad lead the Inbox lists, from the single-contact shape", async () => {
+    stubGhl({
+      id: "pbX2nh5BJO5rP3Gsm2H2",
+      lastAttributionSource: { sessionSource: "Social media", adId: "120252284690830415" },
+    });
+    await expect(
+      isClientVisibleContact(gctx, null, "pbX2nh5BJO5rP3Gsm2H2", null, true),
+    ).resolves.toBe(true);
+  });
+
+  it("still refuses a lead that is neither handed off nor from an ad", async () => {
+    stubGhl({ id: "x1", lastAttributionSource: { sessionSource: "Direct" } });
+    await expect(isClientVisibleContact(gctx, null, "x1", null, true)).resolves.toBe(false);
   });
 });

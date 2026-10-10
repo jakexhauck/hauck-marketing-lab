@@ -157,12 +157,22 @@ export function contactIsInScope(
 // 'Facebook Ad' and 'facebook ads - july' all resolve, the same looseness
 // adsRevenue.ts uses on the same tag for the same reason.
 
+interface SingleContactTouch {
+  adId?: string | null;
+  sessionSource?: string | null;
+  medium?: string | null;
+}
+
 export interface TaggedContactLike {
   id?: string | null;
   tags?: string[] | null;
   // GHL's own touch history. Present on the bulk contacts list, and the only
   // reliable answer to "did this person come from an ad".
   attributions?: GhlAttribution[] | null;
+  // The SINGLE-contact reply carries no attributions[]. Its touch history is
+  // these two: the first touch and the latest one, each with the Meta adId.
+  attributionSource?: SingleContactTouch | null;
+  lastAttributionSource?: SingleContactTouch | null;
 }
 
 export function contactCarriesTag(
@@ -202,8 +212,14 @@ export function tagVisibleContactIds(
 // client sees in their Inbox and the same lead on their tracker can never
 // disagree about where it came from.
 
+// Reads both shapes GHL hands out, because the Inbox list (bulk roster) and the
+// thread guard (one contact) must give the same answer for the same lead. Read
+// attributions[] alone and the guard refused every ad lead the list showed.
 export function contactCameFromAd(contact: TaggedContactLike): boolean {
-  return firstTouchAttribution(contact.attributions ?? null) !== null;
+  if (firstTouchAttribution(contact.attributions ?? null) !== null) return true;
+  return [contact.attributionSource, contact.lastAttributionSource].some(
+    (touch) => typeof touch?.adId === "string" && touch.adId.trim() !== "",
+  );
 }
 
 export function adLeadContactIds(contacts: TaggedContactLike[]): Set<string> {
