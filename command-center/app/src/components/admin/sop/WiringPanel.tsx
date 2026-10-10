@@ -1,7 +1,7 @@
 import { useWiringQuery } from "../../../hooks/useSopApi";
 import { CopyButton, SopCard, SopError, SopHeading } from "./sopKit";
 
-// Client > GHL > Wiring. The three owner links (Call Now, Lead Outcome, Phone
+// Client > GHL > Outcome Wiring. The three owner links (Call Now, Lead Outcome, Phone
 // Appointment Call Now) with this client's key in them, each beside the custom
 // value it belongs in, for pasting into GHL by hand. Linking the sub-account and
 // Provision write the same three.
@@ -13,7 +13,7 @@ export default function WiringPanel({ tenantId }: { tenantId: string }) {
   if (q.isError || !q.data) {
     return (
       <SopCard className="max-w-[760px]">
-        <SopHeading>Wiring</SopHeading>
+        <SopHeading>Outcome Wiring</SopHeading>
         <SopError error={q.error ?? new Error("Wiring did not load.")} />
       </SopCard>
     );
@@ -22,7 +22,7 @@ export default function WiringPanel({ tenantId }: { tenantId: string }) {
 
   return (
     <SopCard className="max-w-[760px]">
-      <SopHeading>Wiring</SopHeading>
+      <SopHeading>Outcome Wiring</SopHeading>
       <div className="flex flex-col gap-5">
         {q.data.links.map((l) => (
           <div key={l.name}>

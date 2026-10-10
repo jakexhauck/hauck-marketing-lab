@@ -26,7 +26,7 @@ import {
   type SubTabDef,
 } from "./fulfillmentPages";
 
-export type ClientPageId = "onboarding" | "software" | "paid-ads" | "ghl" | "setter" | "management";
+export type ClientPageId = "onboarding" | "info" | "software" | "paid-ads" | "ghl" | "management";
 
 // What the gates read off a client. AdminClient satisfies it.
 export interface ClientGateInfo {
@@ -49,12 +49,16 @@ export interface ClientNavGroup {
   rows: ClientNavRow[];
 }
 
+// Jake, 2026-10-10: Onboarding reads as Setup Checklist (the id stays, so old
+// links and the "setup" landing still work), the onboarding form answers got
+// their own Client Information page, and Setter Suite left the client rail (it
+// is still the agency's /admin/setter).
 const PAGE_LABELS: Record<ClientPageId, string> = {
-  onboarding: "Onboarding",
+  onboarding: "Setup Checklist",
+  info: "Client Information",
   software: "Software",
   "paid-ads": "Paid Ads",
   ghl: "GHL",
-  setter: "Setter Suite",
   management: "Management",
 };
 
@@ -80,10 +84,10 @@ const subRows = (c: ClientGateInfo, page: ClientPageId): ClientNavRow[] =>
 
 export function clientNavGroups(c: ClientGateInfo): ClientNavGroup[] {
   return [
-    { caption: null, rows: [single("onboarding"), single("software")] },
+    { caption: null, rows: [single("onboarding"), single("info"), single("software")] },
     { caption: "Paid Ads", rows: subRows(c, "paid-ads") },
     { caption: "GHL", rows: subRows(c, "ghl") },
-    { caption: null, rule: true, rows: [single("setter"), single("management")] },
+    { caption: null, rule: true, rows: [single("management")] },
   ];
 }
 
@@ -149,7 +153,7 @@ export function switchTarget(
 // An old Fulfillment / Delivery cockpit page id mapped to its client page.
 // Sub-pages are carried as given; ClientPage corrects any that are gated.
 export function legacyClientPath(page: string | null, sub: string | null, tenantId: string): string {
-  if (page === "onboarding" || page === "setter") return clientPath(tenantId, page);
+  if (page === "onboarding" || page === "setter") return clientPath(tenantId, "onboarding");
   const mapped = isFulfillmentPage(page) ? page : legacyFulfillmentPage(page);
   return clientPath(tenantId, mapped, isFulfillmentPage(page) ? sub : null);
 }

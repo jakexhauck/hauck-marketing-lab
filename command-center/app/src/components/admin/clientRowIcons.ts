@@ -9,11 +9,12 @@ import {
   Image,
   LayoutDashboard,
   ListChecks,
+  ListTodo,
   PenLine,
   PhoneCall,
   Plug,
   Sparkles,
-  UserPlus,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
 import type { ClientNavRow } from "../../lib/clientNav";
@@ -22,7 +23,8 @@ import type { ClientNavRow } from "../../lib/clientNav";
 // sheet. Keyed by sub-page where there is one, else by page. Presentation only,
 // so it lives beside the chrome rather than in lib/clientNav.
 const ICONS: Record<string, LucideIcon> = {
-  onboarding: UserPlus,
+  onboarding: ListTodo,
+  info: UserRound,
   software: AppWindow,
   dashboard: LayoutDashboard,
   leads: ListChecks,

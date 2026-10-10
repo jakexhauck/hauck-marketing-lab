@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-client-rail",
+    date: "10 October 2026",
+    title: "Client pages reshuffled",
+    items: [
+      "Onboarding is now Setup Checklist: every step in one list, top of each client.",
+      "New Client Information page holds everything from their onboarding form.",
+      "Wiring is now Outcome Wiring.",
+      "Setter Suite is off each client's pages. The agency Setter Suite is unchanged.",
+    ],
+  },
+  {
     id: "2026-10-10-ghl-trim",
     date: "10 October 2026",
     title: "GHL pages trimmed",

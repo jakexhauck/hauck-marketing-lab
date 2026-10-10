@@ -18,19 +18,19 @@ const labels = (c: ClientGateInfo) =>
 describe("clientNavGroups", () => {
   it("lists every page for a fully wired client", () => {
     expect(labels(linked)).toEqual([
-      [null, ["Onboarding", "Software"]],
+      [null, ["Setup Checklist", "Client Information", "Software"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
-      ["GHL", ["Conversion Assets", "Follow-up Texts", "CAPI", "Wiring", "Calendars"]],
-      [null, ["Setter Suite", "Management"]],
+      ["GHL", ["Conversion Assets", "Follow-up Texts", "CAPI", "Outcome Wiring", "Calendars"]],
+      [null, ["Management"]],
     ]);
   });
 
   it("gates Paid Ads and GHL until they are connected", () => {
     expect(labels(bare)).toEqual([
-      [null, ["Onboarding", "Software"]],
+      [null, ["Setup Checklist", "Client Information", "Software"]],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
-      ["GHL", ["Connect GHL", "Conversion Assets", "Follow-up Texts", "CAPI", "Wiring"]],
-      [null, ["Setter Suite", "Management"]],
+      ["GHL", ["Connect GHL", "Conversion Assets", "Follow-up Texts", "CAPI", "Outcome Wiring"]],
+      [null, ["Management"]],
     ]);
   });
 
@@ -139,6 +139,7 @@ describe("legacyClientPath", () => {
 
   it("maps onboarding and unknown pages", () => {
     expect(legacyClientPath("onboarding", null, "t1")).toBe("/admin/client/t1/onboarding");
+    expect(legacyClientPath("setter", null, "t1")).toBe("/admin/client/t1/onboarding");
     expect(legacyClientPath(null, null, "t1")).toBe("/admin/client/t1/software");
     expect(legacyClientPath("nonsense", "x", "t1")).toBe("/admin/client/t1/software");
   });

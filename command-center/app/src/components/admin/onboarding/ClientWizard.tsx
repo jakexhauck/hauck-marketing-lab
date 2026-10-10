@@ -1,7 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "../../ui/Button";
-import { ClientSheet } from "./OnboardingSheet";
 import SoftwareDialog from "./SoftwareDialog";
 import {
   useAdminOnboardingChecklistQuery,
@@ -9,7 +8,6 @@ import {
   useAdminOnboardingChecklistValue,
   useAdminOnboardingDriveFolder,
   useAdminOnboardingGoLive,
-  useAdminOnboardingQuery,
 } from "../../../hooks/useApi";
 import { useFillClientDocs } from "../../../hooks/useSopApi";
 import type { AdminOnboardingListItem } from "../../../lib/api";
@@ -22,19 +20,13 @@ import {
 } from "../../../lib/setupSteps";
 import { bundleLabel, dialerLabel, pillarProgress, type Progress } from "../../../lib/onboardingWizard";
 
-// One client's onboarding, in either view.
-//
-// Stepper walks the pillars one at a time with Back and Next; Scroll lays them
-// all out, finished ones folded shut. Same data, same controls: the view is
-// only how much of it is on screen at once.
+// One client's setup checklist: every pillar in one list.
 //
 // The header carries Software setup (a pop-up, SoftwareDialog), Create client
 // folder (clientDriveFolder.ts) and Go live.
 // Go live is never locked (Jake, 2026-08-15): the judgement of when a client is
-// ready is his, not a count's. Under the header, the client's form answers sit
-// folded into one line until opened.
-
-export type WizardView = "stepper" | "scroll";
+// ready is his, not a count's. The client's form answers moved to their own
+// Client Information page (2026-10-10).
 
 type Pillar = { id: SetupSection; label: string };
 const PILLARS: Pillar[] = SETUP_SECTIONS;
@@ -43,12 +35,10 @@ export default function ClientWizard({
   client,
   subtitle,
   steps,
-  view,
 }: {
   client: AdminOnboardingListItem;
   subtitle: string;
   steps: SetupStepRow[];
-  view: WizardView;
 }) {
   const checklist = useAdminOnboardingChecklistQuery(client.id);
   const toggle = useAdminOnboardingChecklistToggle(client.id);
@@ -81,7 +71,6 @@ export default function ClientWizard({
     );
 
   const header = (
-    <>
     <div className="flex flex-wrap items-center gap-3 px-5 py-4">
       <span
         className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius)] font-display text-[12px] font-bold text-white"
@@ -107,17 +96,11 @@ export default function ClientWizard({
         Go live
       </Button>
     </div>
-    <FormAnswers tenantId={client.id} />
-    </>
   );
 
   return (
     <>
-      {view === "stepper" ? (
-        <StepperView header={header} progressOf={progressOf} body={body} />
-      ) : (
-        <ScrollView header={header} progressOf={progressOf} body={body} />
-      )}
+      <ListView header={header} progressOf={progressOf} body={body} />
       {software && <SoftwareDialog client={client} onClose={() => setSoftware(false)} />}
     </>
   );
@@ -203,41 +186,11 @@ function FolderButton({ client }: { client: AdminOnboardingListItem }) {
   );
 }
 
-// The client's form answers, folded to one line (who, phone, email) until
-// opened. Open, it is the full copyable sheet with the sub-account card.
-function FormAnswers({ tenantId }: { tenantId: string }) {
-  const [open, setOpen] = useState(false);
-  const record = useAdminOnboardingQuery(tenantId);
-  const intake = record.data?.intake ?? {};
-  const summary = [intake.contactName, intake.contactPhone, intake.contactEmail]
-    .map((v) => (v ?? "").trim())
-    .filter(Boolean)
-    .join(" · ");
+// ---------- List ----------
 
-  return (
-    <div className="border-t border-divider">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-surface-2"
-      >
-        <span className="label-cap shrink-0">Form answers</span>
-        <span className="min-w-0 flex-1 truncate text-[13px] text-muted">{summary}</span>
-        <ChevronDown
-          size={16}
-          aria-hidden
-          className={"shrink-0 text-faint transition-transform " + (open ? "rotate-180" : "")}
-        />
-      </button>
-      {open && <ClientSheet tenantId={tenantId} />}
-    </div>
-  );
-}
-
-// ---------- Stepper ----------
-
-function StepperView({
+// Every pillar on one page, one after another (Jake, 2026-10-10: a simple
+// checklist of what still needs doing). Replaced the Stepper / Scroll views.
+function ListView({
   header,
   progressOf,
   body,
@@ -246,150 +199,26 @@ function StepperView({
   progressOf: (id: Pillar["id"]) => Progress;
   body: (id: Pillar["id"]) => ReactNode;
 }) {
-  const [index, setIndex] = useState(0);
-  const pillar = PILLARS[index];
-  const last = index === PILLARS.length - 1;
-
-  return (
-    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-      {header}
-      <nav aria-label="Steps" className="flex gap-1 overflow-x-auto border-y border-divider p-1.5">
-        {PILLARS.map((p, i) => {
-          const pr = progressOf(p.id);
-          const complete = pr.total > 0 && pr.done === pr.total;
-          const on = i === index;
-          return (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setIndex(i)}
-              aria-current={on ? "step" : undefined}
-              className={
-                "min-w-[118px] flex-1 rounded-[var(--radius)] px-3 py-2.5 text-left transition-colors " +
-                (on ? "bg-surface-3" : "hover:bg-surface-2")
-              }
-            >
-              <span
-                className={
-                  "flex items-center gap-1.5 text-[11.5px] tabular-nums " +
-                  (complete ? "text-brand-text" : "text-faint")
-                }
-              >
-                <span
-                  className={
-                    "grid h-[18px] w-[18px] place-items-center rounded-full text-[10px] font-bold " +
-                    (complete ? "bg-brand text-brand-fg" : "bg-surface-3 text-muted") +
-                    (on ? " ring-[1.5px] ring-brand" : "")
-                  }
-                >
-                  {complete ? <Check size={11} strokeWidth={3} aria-hidden /> : i + 1}
-                </span>
-                {pr.done}/{pr.total}
-              </span>
-              <span className="mt-0.5 block whitespace-nowrap text-[13.5px] font-semibold text-text">
-                {p.label}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
-      <div className="min-h-[360px] px-3 py-4 sm:px-4">{body(pillar.id)}</div>
-      <div className="flex items-center justify-between border-t border-divider px-5 py-3">
-        <Button variant="secondary" size="sm" disabled={index === 0} onClick={() => setIndex(index - 1)}>
-          Back
-        </Button>
-        {!last && (
-          <Button variant="primary" size="sm" onClick={() => setIndex(index + 1)}>
-            Next
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ---------- Scroll ----------
-
-function ScrollView({
-  header,
-  progressOf,
-  body,
-}: {
-  header: ReactNode;
-  progressOf: (id: Pillar["id"]) => Progress;
-  body: (id: Pillar["id"]) => ReactNode;
-}) {
-  // Null until touched: until then a pillar is open exactly while unfinished,
-  // so finishing one folds it away. Once Jake opens or closes one by hand, his
-  // choice holds for every pillar.
-  const [open, setOpen] = useState<Record<string, boolean> | null>(null);
-  const isOpen = (id: string) => {
-    if (open) return open[id];
-    const pr = progressOf(id as Pillar["id"]);
-    return !(pr.total > 0 && pr.done === pr.total);
-  };
-  const flip = (id: string) => {
-    const base = open ?? Object.fromEntries(PILLARS.map((p) => [p.id, isOpen(p.id)]));
-    setOpen({ ...base, [id]: !base[id] });
-  };
-  const jump = (id: string) => {
-    if (!isOpen(id)) flip(id);
-    requestAnimationFrame(() =>
-      document.getElementById(`pillar-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
-  };
-
   return (
     <div className="flex flex-col gap-3">
       <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
         {header}
       </div>
-      <nav
-        aria-label="Pillars"
-        className="sticky top-2 z-10 flex gap-1 overflow-x-auto rounded-[var(--radius-lg)] border border-border bg-surface p-1.5 shadow-[var(--shadow-sm)]"
-      >
-        {PILLARS.map((p) => {
-          const pr = progressOf(p.id);
-          return (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => jump(p.id)}
-              className="flex shrink-0 items-center gap-2 rounded-[var(--radius)] px-2.5 py-1.5 text-[13px] font-medium text-text hover:bg-surface-2"
-            >
-              <Ring progress={pr} size={20} />
-              {p.label}
-            </button>
-          );
-        })}
-      </nav>
       {PILLARS.map((p) => {
         const pr = progressOf(p.id);
-        const shown = isOpen(p.id);
         return (
           <section
             key={p.id}
-            id={`pillar-${p.id}`}
-            className="scroll-mt-20 overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]"
+            className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]"
           >
-            <button
-              type="button"
-              onClick={() => flip(p.id)}
-              aria-expanded={shown}
-              className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-2/50"
-            >
+            <div className="flex items-center gap-3 px-4 pt-3.5">
               <Ring progress={pr} size={24} />
               <h3 className="flex-1 font-display text-[15px] font-semibold text-text">{p.label}</h3>
               <span className="text-[12px] tabular-nums text-faint">
                 {pr.done}/{pr.total}
               </span>
-              <ChevronDown
-                size={16}
-                aria-hidden
-                className={"text-faint transition-transform " + (shown ? "" : "-rotate-90")}
-              />
-            </button>
-            {shown && <div className="px-2 pb-3 sm:px-3">{body(p.id)}</div>}
+            </div>
+            <div className="px-2 pb-3 sm:px-3">{body(p.id)}</div>
           </section>
         );
       })}

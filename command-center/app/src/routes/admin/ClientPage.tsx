@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Eye } from "lucide-react";
 import ClientOnboarding from "../../components/admin/onboarding/ClientOnboarding";
+import { ClientSheet } from "../../components/admin/onboarding/OnboardingSheet";
 import GhlTab from "../../components/admin/cockpit/ghl/GhlTab";
 import ManagementTab from "../../components/admin/cockpit/ManagementTab";
 import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
 import SoftwareTab from "../../components/admin/cockpit/software/SoftwareTab";
-import SetterSuite from "./SetterSuite";
 import { adminHomeFor } from "./AdminLayout";
 import { useAuth } from "../../context/AuthContext";
 import { useAdminClientsQuery } from "../../hooks/useApi";
@@ -103,6 +103,15 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
   switch (page) {
     case "onboarding":
       return <ClientOnboarding tenantId={client.id} home={OWNER_HOME} />;
+    case "info":
+      // Everything the onboarding form collected, copyable line by line, with
+      // the sub-account, dialing and estimate cards above it.
+      return (
+        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+          <h2 className="px-5 py-4 font-display text-[17px] font-semibold text-text">{client.name}</h2>
+          <ClientSheet tenantId={client.id} />
+        </div>
+      );
     case "software":
       return <SoftwareTab tenantId={client.id} />;
     case "paid-ads":
@@ -126,8 +135,6 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
           onSelectSub={go("ghl")}
         />
       );
-    case "setter":
-      return <SetterSuite key={client.id} lockedTenantId={client.id} />;
     case "management":
       return <ManagementTab tenantId={client.id} />;
   }
