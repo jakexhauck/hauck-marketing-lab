@@ -22,6 +22,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async () => {
       base: "/api/admin/outcome-preview",
       query: "?preview=1",
       hasJobCalendar: true,
+      // Sample booked job, so the preview shows the job answers too.
+      job: "Job Tue, Oct 14, 10:00 AM",
+      jobAmount: 4200,
       form: PREVIEW_FORM,
       ...callBackDays(ZONE, now),
       noAnswerAt: clock(noAnswerDue(now)),

@@ -3901,6 +3901,28 @@ export function useSetSelfDial(tenantId: string) {
   });
 }
 
+// Admin: is this client on the new Ads Dashboard? (tenants.estimate_tracking)
+export function useEstimateTrackingQuery(tenantId: string) {
+  return useQuery({
+    queryKey: ["admin", "estimate-tracking", tenantId],
+    enabled: !!tenantId,
+    staleTime: 30_000,
+    queryFn: () => api<{ on: boolean }>(`/api/admin/clients/${tenantId}/estimate-tracking`),
+  });
+}
+
+export function useSetEstimateTracking(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (on: boolean) =>
+      api<{ on: boolean }>(`/api/admin/clients/${tenantId}/estimate-tracking`, {
+        method: "PUT",
+        body: JSON.stringify({ on }),
+      }),
+    onSuccess: (data) => qc.setQueryData(["admin", "estimate-tracking", tenantId], data),
+  });
+}
+
 // --- Management > Contract rail (0148) ---------------------------------------
 
 const contractKey = (tenantId: string) => ["admin", "clients", tenantId, "contract"] as const;

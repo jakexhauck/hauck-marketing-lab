@@ -24,6 +24,9 @@ describe("parseOutcomeBody", () => {
       time: "13:00",
     });
     expect(parseOutcomeBody({ outcome: "no_answer" })).toEqual({ outcome: "no_answer" });
+    expect(parseOutcomeBody({ outcome: "job_done", amount: "$5,000" })).toEqual({ outcome: "job_done", amountCents: 500000 });
+    expect(parseOutcomeBody({ outcome: "job_rescheduled", slot: SLOT })).toEqual({ outcome: "job_rescheduled", slot: SLOT });
+    expect(parseOutcomeBody({ outcome: "job_cancelled" })).toEqual({ outcome: "job_cancelled" });
     expect(parseOutcomeBody({ outcome: "not_interested", reason: "Spam" })).toEqual({
       outcome: "not_interested",
       reason: "Spam",
@@ -37,6 +40,8 @@ describe("parseOutcomeBody", () => {
     expect(parseOutcomeBody({ outcome: "call_back", date: "2026-10-14", time: "13:30" })).toHaveProperty("error");
     expect(parseOutcomeBody({ outcome: "not_interested", reason: "Nope" })).toHaveProperty("error");
     expect(parseOutcomeBody({ outcome: "sold" })).toHaveProperty("error");
+    expect(parseOutcomeBody({ outcome: "job_done", amount: 0 })).toHaveProperty("error");
+    expect(parseOutcomeBody({ outcome: "job_rescheduled" })).toHaveProperty("error");
   });
 
   it("missing form answers come back blank, never undefined", () => {
@@ -52,6 +57,9 @@ describe("where each answer lands", () => {
     expect(stageKeyFor("call_back")).toBe("followUp");
     expect(stageKeyFor("no_answer")).toBe("noAnswer");
     expect(stageKeyFor("not_interested")).toBe("lost");
+    expect(stageKeyFor("job_done")).toBe("won");
+    expect(stageKeyFor("job_rescheduled")).toBe("job");
+    expect(stageKeyFor("job_cancelled")).toBe("cancelled");
     expect(lostReasonFor("Went with someone else")).toBe("competitor");
     expect(lostReasonFor("Spam")).toBe("other");
   });
@@ -74,6 +82,8 @@ describe("outcomePage", () => {
       base: "/api/lead-outcome",
       query: "?l=1&c=2&k=3",
       hasJobCalendar: true,
+      job: "",
+      jobAmount: null,
       form: { address: "1 Elm St", services: "", notes: "" },
       days: [{ date: "2026-10-10", label: "Today" }],
       pastToday: [],
@@ -86,6 +96,30 @@ describe("outcomePage", () => {
     for (const o of ["estimate_booked", "job_closed", "call_back", "no_answer", "not_interested"]) {
       expect(page).toContain(`data-outcome="${o}"`);
     }
+    expect(page).not.toContain('data-outcome="job_done"');
+  });
+
+  it("shows the job answers only once a job is booked, amount prefilled", () => {
+    const page = outcomePage({
+      name: "Marcus",
+      booked: "",
+      current: "",
+      base: "/api/outcome",
+      query: "?l=1&c=2&k=3",
+      hasJobCalendar: true,
+      job: "Job Tue, Oct 14, 10:00 AM",
+      jobAmount: 4200,
+      form: { address: "", services: "", notes: "" },
+      days: [{ date: "2026-10-10", label: "Today" }],
+      pastToday: [],
+      noAnswerAt: "2:15 PM",
+    });
+    for (const o of ["job_done", "job_rescheduled", "job_cancelled"]) {
+      expect(page).toContain(`data-outcome="${o}"`);
+    }
+    expect(page).toContain("Job Tue, Oct 14, 10:00 AM");
+    expect(page).toContain('id="doneAmount" inputmode="decimal" placeholder="$0" autocomplete="off" value="4200"');
+    expect(page).toContain('data-picker="jobr"');
   });
 
   it("labels times", () => {

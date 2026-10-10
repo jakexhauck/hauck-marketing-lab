@@ -10,6 +10,14 @@
 //   No answer        No Answer stage, call again this time tomorrow
 //   Not interested   a reason; Lost
 //
+// Once a job is booked, three more (Jake, 2026-10-10):
+//
+//   Job done         the amount (prefilled); Job Completed, the job's amount
+//                    corrected rather than counted twice
+//   Job rescheduled  a new time on the Job calendar; stays Job Booked
+//   Job cancelled    Job/Estimate Cancelled; the appointment cancelled and the
+//                    job taken back out of Revenue
+//
 // The lead moves through the Leads board's own move (lib/outcomeMove.ts), never
 // a tag, so the board and this page cannot disagree. Tags only fire workflows.
 //
@@ -21,7 +29,19 @@ import type { LostReason, StageKey } from "./leadBoard";
 
 export const OUTCOME_LINK_PURPOSE = "outcome";
 
-export type Outcome = "estimate_booked" | "job_closed" | "call_back" | "no_answer" | "not_interested";
+export type Outcome =
+  | "estimate_booked"
+  | "job_closed"
+  | "call_back"
+  | "no_answer"
+  | "not_interested"
+  | "job_done"
+  | "job_rescheduled"
+  | "job_cancelled";
+
+// The answers that leave a booked job standing. Any other answer after a job
+// takes it back out (the appointment cancelled, the job off Revenue).
+export const KEEPS_JOB: readonly Outcome[] = ["job_closed", "job_done", "job_rescheduled"];
 
 // Each reason the owner sees, and the board's lost reason it is stored as.
 export const NOT_INTERESTED_REASONS: { label: string; lost: LostReason }[] = [
@@ -52,7 +72,10 @@ export type OutcomeInput =
   | { outcome: "job_closed"; amountCents: number; slot: string; form: FormAnswers }
   | { outcome: "call_back"; date: string; time: string }
   | { outcome: "no_answer" }
-  | { outcome: "not_interested"; reason: string };
+  | { outcome: "not_interested"; reason: string }
+  | { outcome: "job_done"; amountCents: number }
+  | { outcome: "job_rescheduled"; slot: string }
+  | { outcome: "job_cancelled" };
 
 const ISO_SLOT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
 const MAX_TEXT = 2000;
@@ -69,17 +92,30 @@ function readForm(b: Record<string, unknown>): FormAnswers {
 export function parseOutcomeBody(body: unknown): OutcomeInput | { error: string } {
   const b = (body ?? {}) as Record<string, unknown>;
   const slot = typeof b.slot === "string" ? b.slot.trim() : "";
+  const amount = (): { cents: number } | { error: string } => {
+    const dollars = typeof b.amount === "number" ? b.amount : Number(String(b.amount ?? "").replace(/[$,\s]/g, ""));
+    if (!Number.isFinite(dollars) || dollars <= 0) return { error: "Enter the job amount." };
+    if (dollars > MAX_AMOUNT) return { error: "That amount looks too big." };
+    return { cents: Math.round(dollars * 100) };
+  };
   switch (b.outcome) {
+    case "job_done": {
+      const a = amount();
+      return "error" in a ? a : { outcome: "job_done", amountCents: a.cents };
+    }
+    case "job_rescheduled":
+      return ISO_SLOT.test(slot) ? { outcome: "job_rescheduled", slot } : { error: "Pick a new time for the job." };
+    case "job_cancelled":
+      return { outcome: "job_cancelled" };
     case "estimate_booked":
       return ISO_SLOT.test(slot)
         ? { outcome: "estimate_booked", slot, form: readForm(b) }
         : { error: "Pick a time for the estimate." };
     case "job_closed": {
-      const dollars = typeof b.amount === "number" ? b.amount : Number(String(b.amount ?? "").replace(/[$,\s]/g, ""));
-      if (!Number.isFinite(dollars) || dollars <= 0) return { error: "Enter the job amount." };
-      if (dollars > MAX_AMOUNT) return { error: "That amount looks too big." };
+      const a = amount();
+      if ("error" in a) return a;
       if (!ISO_SLOT.test(slot)) return { error: "Pick a time for the job." };
-      return { outcome: "job_closed", amountCents: Math.round(dollars * 100), slot, form: readForm(b) };
+      return { outcome: "job_closed", amountCents: a.cents, slot, form: readForm(b) };
     }
     case "call_back": {
       const date = typeof b.date === "string" ? b.date.trim() : "";
@@ -114,6 +150,12 @@ export function stageKeyFor(outcome: Outcome): StageKey {
       return "noAnswer";
     case "not_interested":
       return "lost";
+    case "job_done":
+      return "won";
+    case "job_rescheduled":
+      return "job";
+    case "job_cancelled":
+      return "cancelled";
   }
 }
 
@@ -128,6 +170,9 @@ export const STAGE_LABEL: Record<Outcome, string> = {
   call_back: "Follow Up",
   no_answer: "No Answer",
   not_interested: "Lost",
+  job_done: "Job Completed",
+  job_rescheduled: "Job Booked",
+  job_cancelled: "Job/Estimate Cancelled",
 };
 
 // "13:00" -> "1 PM", "13:30" -> "1:30 PM".
@@ -147,6 +192,11 @@ export interface OutcomePageInput {
   base: string;
   query: string;
   hasJobCalendar: boolean;
+  // "Job Tue, Oct 14, 10:00 AM" when a job is booked: shows the job answers.
+  // Empty hides them.
+  job: string;
+  // The job's amount in dollars, to prefill Job done.
+  jobAmount: number | null;
   // Form answers already on the contact, to prefill.
   form: FormAnswers;
   // Call-back days in the client's zone, and today's times already gone.
@@ -172,12 +222,20 @@ export function outcomePage(p: OutcomePageInput): string {
   ).join("");
   const chips =
     (p.booked ? `<span class="chip">${escapeHtml(p.booked)}</span>` : "") +
+    (p.job ? `<span class="chip">${escapeHtml(p.job)}</span>` : "") +
     (p.current ? `<span class="chip on">${escapeHtml(p.current)}</span>` : "");
   const body = `
 <div id="ask">
 <h1>${escapeHtml(p.name)}</h1>
 ${chips}
 <div class="list" style="margin-top:20px">
+${
+  p.job
+    ? `<button type="button" data-outcome="job_done">Job done</button>
+<button type="button" data-outcome="job_rescheduled">Job rescheduled</button>
+<button type="button" data-outcome="job_cancelled">Job cancelled</button>`
+    : ""
+}
 <button type="button" data-outcome="estimate_booked">Estimate booked</button>
 <button type="button" data-outcome="job_closed">Job closed</button>
 <button type="button" data-outcome="call_back">Call back later</button>
@@ -208,6 +266,20 @@ ${formHtml("job", p.form)}
 <h2>Call again tomorrow at ${escapeHtml(p.noAnswerAt)}</h2>
 <button type="button" class="save" id="saveNa">Save</button>
 </section>
+<section id="job_done" class="hide">
+<h2>Final amount</h2>
+<input id="doneAmount" inputmode="decimal" placeholder="$0" autocomplete="off" value="${p.jobAmount ? escapeHtml(String(p.jobAmount)) : ""}">
+<button type="button" class="save" id="saveDone"${p.jobAmount ? "" : " disabled"}>Save</button>
+</section>
+<section id="job_rescheduled" class="hide">
+<h2>New job time</h2>
+${p.hasJobCalendar ? `<div data-picker="jobr"></div>` : `<p class="empty">No Job calendar in this account.</p>`}
+<button type="button" class="save" id="saveResched" disabled>Save</button>
+</section>
+<section id="job_cancelled" class="hide">
+<h2>Cancel the job</h2>
+<button type="button" class="save" id="saveCancel">Save</button>
+</section>
 <section id="not_interested" class="hide"><h2>Why not?</h2><div class="list">${reasons}</div></section>
 <div class="err" id="err"></div>
 </div>
@@ -218,25 +290,27 @@ ${formHtml("job", p.form)}
 var BASE=${JSON.stringify(p.base)},q=${JSON.stringify(p.query)};
 var DAYS=${JSON.stringify(p.days)},TIMES=${JSON.stringify(CALL_BACK_TIMES)},PAST=${JSON.stringify(p.pastToday)};
 var LABELS=${JSON.stringify(Object.fromEntries(CALL_BACK_TIMES.map((t) => [t, timeLabel(t)])))};
-var state={estimate:null,job:null,date:null,time:null};
+var state={estimate:null,job:null,jobr:null,date:null,time:null};
 var $=function(id){return document.getElementById(id)};
 function err(m){$("err").textContent=m||""}
 ${SLOT_PICKER_JS}
 var loaded={};
-function load(cal,onPick){
-  var box=document.querySelector('[data-picker="'+cal+'"]');
-  if(!box||loaded[cal])return;loaded[cal]=true;
-  pickSlots(box,BASE+"/slots"+q+"&cal="+cal,onPick,function(){loaded[cal]=false});
+function load(picker,cal,onPick){
+  var box=document.querySelector('[data-picker="'+picker+'"]');
+  if(!box||loaded[picker])return;loaded[picker]=true;
+  pickSlots(box,BASE+"/slots"+q+"&cal="+cal,onPick,function(){loaded[picker]=false});
 }
 function amount(){return Number(($("amount").value||"").replace(/[$,\\s]/g,""))}
+function doneAmount(){return Number(($("doneAmount").value||"").replace(/[$,\\s]/g,""))}
 function syncJob(){var s=$("saveJob");if(s)s.disabled=!(amount()>0&&state.job)}
 function form(prefix){var o={};document.querySelectorAll('[data-form="'+prefix+'"]').forEach(function(el){o[el.getAttribute("data-key")]=el.value});return o}
 function show(o){
   err("");
   document.querySelectorAll("[data-outcome]").forEach(function(b){b.classList.toggle("pick",b.getAttribute("data-outcome")===o)});
-  ["estimate_booked","job_closed","call_back","no_answer","not_interested"].forEach(function(id){$(id).classList.toggle("hide",id!==o)});
-  if(o==="estimate_booked")load("estimate",function(s){state.estimate=s;$("saveEst").disabled=!s});
-  if(o==="job_closed")load("job",function(s){state.job=s;syncJob()});
+  ["estimate_booked","job_closed","call_back","no_answer","not_interested","job_done","job_rescheduled","job_cancelled"].forEach(function(id){$(id).classList.toggle("hide",id!==o)});
+  if(o==="estimate_booked")load("estimate","estimate",function(s){state.estimate=s;$("saveEst").disabled=!s});
+  if(o==="job_closed")load("job","job",function(s){state.job=s;syncJob()});
+  if(o==="job_rescheduled")load("jobr","job",function(s){state.jobr=s;$("saveResched").disabled=!s});
 }
 function drawTimes(first){
   var box=$("cbTimes");box.innerHTML="";state.time=null;$("saveCb").disabled=true;
@@ -262,6 +336,10 @@ $("saveEst").onclick=function(){send({outcome:"estimate_booked",slot:state.estim
 $("saveJob").onclick=function(){send({outcome:"job_closed",amount:amount(),slot:state.job,form:form("job")},$("saveJob"))};
 $("saveCb").onclick=function(){send({outcome:"call_back",date:state.date,time:state.time},$("saveCb"))};
 $("saveNa").onclick=function(){send({outcome:"no_answer"},$("saveNa"))};
+$("doneAmount").oninput=function(){$("saveDone").disabled=!(doneAmount()>0)};
+$("saveDone").onclick=function(){send({outcome:"job_done",amount:doneAmount()},$("saveDone"))};
+$("saveResched").onclick=function(){send({outcome:"job_rescheduled",slot:state.jobr},$("saveResched"))};
+$("saveCancel").onclick=function(){send({outcome:"job_cancelled"},$("saveCancel"))};
 })();
 </script>`;
   return pageShell(body, script, "Outcome");

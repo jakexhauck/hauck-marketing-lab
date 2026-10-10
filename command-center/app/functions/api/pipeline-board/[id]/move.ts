@@ -7,15 +7,18 @@ import { putOpportunity } from "../../lib/writes";
 import { planMove, type MoveInput } from "../../../lib/leadBoard";
 import { copyBookingToContact, loadBoardPipeline } from "../../../lib/leadBoardGhl";
 import { applyPlanWrites, loadTenantForBoard } from "../../../lib/leadBoardStore";
+import { bookOnCalendar } from "../../../lib/boardBooking";
 
 // POST /api/pipeline-board/:id/move  { stageId, at?, note?, value?, lostReason? }
 //
 // One endpoint for every drop and every tap, so the rules cannot differ
 // between desktop drag and phone tap. Order matters:
 //   1. plan (lib/leadBoard.ts): refuses a move missing what its stage needs
-//   2. GHL stage move: if GHL refuses, nothing is written and the card snaps back
-//   3. app rows (0150): bookings, follow-up, lost reason, won amount
-//   4. copy a booking's date to the contact's fields (best effort, reminders)
+//   2. a booking goes on the GHL calendar (lib/boardBooking.ts): a taken time
+//      or a missing calendar stops here, before the card moves
+//   3. GHL stage move: if GHL refuses, nothing is written and the card snaps back
+//   4. app rows (0150): bookings, follow-up, lost reason, won amount
+//   5. copy a booking's date to the contact's fields (best effort, reminders)
 
 export const onRequestPost: PagesFunction<Env, "id", ApiData> = async (ctx) => {
   const t = ctx.data.tenant;
@@ -46,6 +49,17 @@ export const onRequestPost: PagesFunction<Env, "id", ApiData> = async (ctx) => {
     return Response.json({ error: "not_on_board" }, { status: 404 });
   }
   const contactId = opp.contactId ?? opp.contact?.id ?? null;
+
+  if (plan.booking) {
+    if (!contactId) return Response.json({ error: "This lead has no contact to book." }, { status: 409 });
+    const booked = await bookOnCalendar(gctx, {
+      kind: plan.booking.kind,
+      contactId,
+      name: opp.contact?.name || opp.name || "Lead",
+      slot: plan.booking.startsAt,
+    });
+    if (!booked.ok) return Response.json({ error: booked.error }, { status: booked.status });
+  }
 
   const moved = await putOpportunity(gctx, id, plan.ghl);
   if (!moved.ok) return Response.json({ error: "ghl_error", status: moved.status }, { status: 502 });

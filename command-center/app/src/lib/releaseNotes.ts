@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-board-books-ghl",
+    date: "10 October 2026",
+    title: "Board bookings land on the GHL calendars",
+    items: [
+      "Booking an estimate on the Leads board now books it on the Home Estimate calendar. A job goes on the Job calendar.",
+      "The board only offers times those calendars have open. Booking again moves the existing appointment.",
+      "Board estimates now count on the Ads Dashboard.",
+      "New switch on each client sheet: New Ads Dashboard.",
+      "The outcome page asks Job done, Job rescheduled or Job cancelled once a job is booked.",
+    ],
+  },
+  {
     id: "2026-10-10-mark-outcome",
     date: "10 October 2026",
     title: "Mark outcome on the Leads board",

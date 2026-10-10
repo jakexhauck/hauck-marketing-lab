@@ -3,6 +3,7 @@ import { Check, Copy } from "lucide-react";
 import { Button } from "../../ui/Button";
 import SubaccountCard from "./SubaccountCard";
 import SelfDialCard from "./SelfDialCard";
+import EstimateTrackingCard from "./EstimateTrackingCard";
 import { useAdminOnboardingQuery, useClientSecrets } from "../../../hooks/useApi";
 import { useIntakeSubmission } from "../../../hooks/useIntake";
 import { sheetSections, sheetText, type SheetSection } from "../../../lib/onboardingSheet";
@@ -41,6 +42,7 @@ export function ClientSheet({ tenantId }: { tenantId: string }) {
           isLive={record.data?.onboardingStatus !== "setup"}
         />
         <SelfDialCard tenantId={tenantId} />
+        <EstimateTrackingCard tenantId={tenantId} />
       </div>
       <SheetView
         sections={sections}

@@ -7,9 +7,12 @@ import { outcomeMessagePage, slotDate, slotEnd } from "../../lib/estimateOutcome
 import { fetchContactAppointments, reportSaleToMeta } from "../../lib/estimateOutcomeGhl";
 import { formatWhen, resolveOutcomeLink, type OutcomeLink } from "../../lib/estimateOutcomeLink";
 import { upcomingEstimate } from "../../lib/leadOutcome";
+import { openAppointment } from "../../lib/boardBooking";
+import type { ContactAppointment } from "../../lib/estimateOutcome";
 import {
   CALL_BACK_DAYS,
   CALL_BACK_TIMES,
+  KEEPS_JOB,
   STAGE_LABEL,
   lostReasonFor,
   outcomePage,
@@ -77,7 +80,27 @@ function rowLabel(row: Row | null, zone: string): string {
       return row.attempts ? `No answer (${row.attempts})` : "No answer";
     case "not_interested":
       return row.reason ?? "Not interested";
+    case "job_done":
+      return row.amount_cents ? `Job done ${money(row.amount_cents)}` : "Job done";
+    case "job_rescheduled":
+      return "Job rescheduled";
+    case "job_cancelled":
+      return "Job cancelled";
   }
+}
+
+// The lead's booked job: the one the outcome page booked, else the live one on
+// the Job calendar (a job booked from the Leads board or inside GHL).
+function bookedJob(
+  row: Row | null,
+  appts: ContactAppointment[],
+  jobCalendarId: string | null,
+): ContactAppointment | null {
+  if (row && KEEPS_JOB.includes(row.outcome) && row.job_appointment_id) {
+    const mine = appts.find((a) => a.id === row.job_appointment_id && !a.deleted);
+    if (mine && !mine.status.startsWith("cancel")) return mine;
+  }
+  return jobCalendarId ? openAppointment(appts, jobCalendarId) : null;
 }
 
 // Call-back days in the client's zone, and which of today's times are gone.
@@ -119,6 +142,7 @@ export function outcomeHandlers(purpose: string) {
       ]);
       if (!contact) return html(outcomeMessagePage("This lead is not in the account any more."), 404);
       const next = upcomingEstimate(appts, link.calendars.estimate.id, now);
+      const job = bookedJob(row, appts, link.calendars.job?.id ?? null);
       return html(
         outcomePage({
           name: contactName(contact),
@@ -127,6 +151,8 @@ export function outcomeHandlers(purpose: string) {
           base: url.pathname.replace(/\/$/, ""),
           query: link.query,
           hasJobCalendar: link.calendars.job !== null,
+          job: job ? `Job ${formatWhen(job.startTime, link.zone)}` : "",
+          jobAmount: row && KEEPS_JOB.includes(row.outcome) && row.amount_cents ? row.amount_cents / 100 : null,
           form: answersFromContact(contact as never, ids),
           ...callBackDays(link.zone, now),
           noAnswerAt: clock(noAnswerDue(now), link.zone),
@@ -156,7 +182,8 @@ export function outcomeHandlers(purpose: string) {
     if (!contact) return fail("This lead is not in the account any more.", 404);
     const name = contactName(contact);
 
-    let jobAppointmentId = prev?.outcome === "job_closed" ? prev.job_appointment_id : null;
+    const prevKeptJob = prev ? KEEPS_JOB.includes(prev.outcome) : false;
+    let jobAppointmentId = prevKeptJob ? (prev?.job_appointment_id ?? null) : null;
     let customerJobId = prev?.customer_job_id ?? null;
     let appointmentId: string | null = null;
     let callBackAt: string | null = null;
@@ -198,8 +225,33 @@ export function outcomeHandlers(purpose: string) {
       detail = ` ${input.outcome === "job_closed" ? `${money(input.amountCents)} on` : "for"} ${formatWhen(input.slot, zone)}.`;
     }
 
-    // A change of mind away from Job closed takes the sale back out.
-    if (input.outcome !== "job_closed" && prev?.outcome === "job_closed") {
+    // The job answers act on the booked job, wherever it was booked.
+    const jobAnswer =
+      input.outcome === "job_done" || input.outcome === "job_rescheduled" || input.outcome === "job_cancelled";
+    if (jobAnswer && !jobAppointmentId && calendars.job) {
+      const appts = await fetchContactAppointments(gctx, contactId).catch(() => []);
+      jobAppointmentId = openAppointment(appts, calendars.job.id)?.id ?? null;
+    }
+    if (input.outcome === "job_rescheduled") {
+      if (!jobAppointmentId || !calendars.job) return fail("No job booked for this lead.");
+      const meta = await getCalendar(gctx, calendars.job.id);
+      const moved = await rescheduleAppointment(
+        gctx,
+        jobAppointmentId,
+        input.slot,
+        slotEnd(input.slot, meta?.slotDuration, meta?.slotDurationUnit),
+      );
+      if (!moved.ok) return fail("That time is not free any more. Pick another.");
+      detail = ` Job moved to ${formatWhen(input.slot, zone)}.`;
+    }
+    if (input.outcome === "job_done") detail = ` ${money(input.amountCents)}.`;
+    if (input.outcome === "job_cancelled" && !jobAppointmentId && !prevKeptJob) {
+      return fail("No job booked for this lead.");
+    }
+
+    // A change of mind away from a booked job takes the sale back out: the
+    // appointment cancelled, the job off Revenue.
+    if (!KEEPS_JOB.includes(input.outcome) && (prevKeptJob || input.outcome === "job_cancelled")) {
       if (customerJobId) await client.from("customer_jobs").delete().eq("id", customerJobId);
       if (jobAppointmentId) await cancelAppointment(gctx, jobAppointmentId);
       customerJobId = null;
@@ -230,14 +282,19 @@ export function outcomeHandlers(purpose: string) {
       zone,
       key: stageKeyFor(input.outcome),
       input:
-        input.outcome === "estimate_booked" || input.outcome === "job_closed"
+        input.outcome === "estimate_booked" || input.outcome === "job_closed" || input.outcome === "job_rescheduled"
           ? { at: input.slot }
-          : input.outcome === "call_back"
-            ? { at: callBackAt as string, note: "Call back" }
-            : input.outcome === "no_answer"
-              ? { at: callBackAt as string, note: `No answer (${attempts})` }
-              : { lostReason: lostReasonFor(input.reason) },
-      monetaryValue: input.outcome === "job_closed" ? input.amountCents / 100 : undefined,
+          : input.outcome === "job_done"
+            ? { value: input.amountCents / 100 }
+            : input.outcome === "job_cancelled"
+              ? {}
+              : input.outcome === "call_back"
+                ? { at: callBackAt as string, note: "Call back" }
+                : input.outcome === "no_answer"
+                  ? { at: callBackAt as string, note: `No answer (${attempts})` }
+                  : { lostReason: lostReasonFor(input.reason) },
+      monetaryValue: input.outcome === "job_closed" || input.outcome === "job_done" ? input.amountCents / 100 : undefined,
+      noJobRow: input.outcome === "job_done" && customerJobId !== null,
       by: BY,
     });
     if (!move.moved) logErrorBestEffort(ctx.env, "outcome", `stage: ${move.why}`, { contactId, outcome: input.outcome });
@@ -266,6 +323,20 @@ export function outcomeHandlers(purpose: string) {
       }
     }
 
+    // Job done corrects the job row Job closed wrote: the final amount, done
+    // today. (No row, e.g. a job booked on the board: the move wrote one.)
+    if (input.outcome === "job_done" && customerJobId) {
+      await client
+        .from("customer_jobs")
+        .update({
+          value_cents: input.amountCents,
+          completed_on: dateStringInZone(zone, now),
+          source_opportunity_id: move.moved ? move.opportunityId : undefined,
+          updated_at: new Date(now).toISOString(),
+        })
+        .eq("id", customerJobId);
+    }
+
     const { error } = await client.from("lead_link_outcomes").upsert(
       {
         tenant_id: tenantId,
@@ -275,7 +346,12 @@ export function outcomeHandlers(purpose: string) {
         appointment_id: input.outcome === "estimate_booked" ? appointmentId : null,
         call_back_at: callBackAt,
         reminded_at: null,
-        amount_cents: input.outcome === "job_closed" ? input.amountCents : null,
+        amount_cents:
+          input.outcome === "job_closed" || input.outcome === "job_done"
+            ? input.amountCents
+            : input.outcome === "job_rescheduled"
+              ? (prev?.amount_cents ?? null)
+              : null,
         job_appointment_id: jobAppointmentId,
         customer_job_id: customerJobId,
         attempts,

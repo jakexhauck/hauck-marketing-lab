@@ -48,6 +48,10 @@ export async function moveLeadByContact(opts: {
   input: Omit<MoveInput, "stageId">;
   // Opportunity value to set, in dollars (Job closed).
   monetaryValue?: number;
+  // The caller already holds this lead's customer_jobs row (the outcome page's
+  // Job closed) and corrects it itself, so a move to Job Completed must not
+  // write a second one.
+  noJobRow?: boolean;
   by: string;
 }): Promise<MoveResult> {
   const { client, gctx, contactId } = opts;
@@ -101,7 +105,7 @@ export async function moveLeadByContact(opts: {
     }
 
     const who = { tenantId: opts.tenantId, opportunityId, contactId, by: opts.by, zone: opts.zone };
-    await applyPlanWrites(client, who, plan);
+    await applyPlanWrites(client, who, opts.noJobRow ? { ...plan, wonValue: undefined } : plan);
     if (opts.key === "noAnswer") await bumpAttempts(client, opts.tenantId, opportunityId);
     if (plan.booking) await copyBookingToContact(gctx, contactId, plan.booking.kind, plan.booking.startsAt, opts.zone);
     return { moved: true, opportunityId, stageName: stage.name };

@@ -4,7 +4,7 @@ import Avatar from "../Avatar";
 import { cn } from "../../lib/cn";
 import { useToast } from "../../context/ToastContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
-import { useMoveLead, useNoAnswer } from "../../hooks/useLeadBoard";
+import { useBoardSlots, useMoveLead, useNoAnswer } from "../../hooks/useLeadBoard";
 import {
   LOST_REASONS,
   askFor,
@@ -26,7 +26,8 @@ import {
 // The Leads board: the client's GHL "Sales Pipeline" as columns. Drag a card,
 // or tap it and pick, and the same rules run either way (Jake, 2026-10-08):
 //   Follow Up        day + time (+ note); red once past
-//   Estimate/Job     day + time. No GHL calendar: the app holds the booking
+//   Estimate/Job     an open time on the GHL "Home Estimate" / "Job" calendar,
+//                    booked there as a real appointment (Jake, 2026-10-10)
 //   Won              dollar amount
 //   Lost             one-tap reason
 //   Cancelled        a plain move; bookings untouched
@@ -95,8 +96,13 @@ export default function PipelineBoard({ data }: { data: BoardPayload }) {
   const flagsOf = (l: BoardLead) => leadFlags(l, keyOf(l), now);
 
   const fail = () => showToast("Could not move that lead. Try again.");
+  // A booking refusal (time taken, no calendar) carries its own message.
+  const failMove = (e: unknown) => {
+    const msg = e instanceof Error ? e.message : "";
+    showToast(/calendar|time|book/i.test(msg) ? msg : "Could not move that lead. Try again.");
+  };
 
-  const send = (m: MoveRequest, onDone?: () => void) => move.mutate(m, { onError: fail, onSuccess: onDone });
+  const send = (m: MoveRequest, onDone?: () => void) => move.mutate(m, { onError: failMove, onSuccess: onDone });
 
   // Every move, drag or tap, starts here.
   const requestMove = (leadId: string, stageId: string) => {
@@ -1059,8 +1065,19 @@ function AskSheet({
   if (ask === "value") return <WonSheet lead={lead} title={stage.name} onClose={onClose} onConfirm={(value) => onConfirm({ value })} />;
   if (ask === "reason")
     return <LostSheet lead={lead} title={stage.name} onClose={onClose} onConfirm={(lostReason) => onConfirm({ lostReason })} />;
+  if (stage.key === "estimate" || stage.key === "job") {
+    return (
+      <SlotSheet
+        lead={lead}
+        title={stage.name}
+        kind={stage.key}
+        onClose={onClose}
+        onConfirm={(at) => onConfirm({ at })}
+      />
+    );
+  }
   const isFollow = ask === "followUp";
-  const confirm = stage.key === "estimate" ? "Book estimate" : stage.key === "job" ? "Book job" : "Set follow up";
+  const confirm = "Set follow up";
   return (
     <DateTimeSheet
       lead={lead}
@@ -1209,6 +1226,92 @@ function DateTimeSheet({
       <ConfirmButton disabled={!time} onClick={() => onConfirm(when(), note.trim())}>
         {confirm}
       </ConfirmButton>
+    </Sheet>
+  );
+}
+
+// "2026-10-14T09:00:00-04:00" -> "9:00 AM", read off the slot itself so the
+// time is the calendar's wall clock, not this browser's.
+const slotTime = (s: string) => {
+  const h = Number(s.slice(11, 13));
+  return `${h % 12 || 12}:${s.slice(14, 16)} ${h < 12 ? "AM" : "PM"}`;
+};
+const slotDay = (d: string) =>
+  new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+
+function SlotSheet({
+  lead,
+  title,
+  kind,
+  onClose,
+  onConfirm,
+}: {
+  lead: BoardLead;
+  title: string;
+  kind: "estimate" | "job";
+  onClose: () => void;
+  onConfirm: (slot: string) => void;
+}) {
+  const slots = useBoardSlots(kind);
+  const days = slots.data?.days ?? [];
+  const [dayIdx, setDayIdx] = useState(0);
+  const [slot, setSlot] = useState<string | null>(null);
+  const day = days[Math.min(dayIdx, Math.max(days.length - 1, 0))];
+  const empty = slots.isError
+    ? "Could not load times."
+    : slots.data?.error || (slots.data && days.length === 0 ? "No open times in the next 3 weeks." : null);
+
+  return (
+    <Sheet label={`${title}: ${lead.name}`} onClose={onClose}>
+      <SheetHead lead={lead} title={title} onClose={onClose} />
+      {slots.isLoading ? (
+        <p className="px-5 pb-5 text-[13.5px] font-medium text-[var(--text-muted)]">Loading times...</p>
+      ) : empty ? (
+        <p className="px-5 pb-5 text-[13.5px] font-medium text-[var(--text-muted)]">{empty}</p>
+      ) : (
+        <>
+          <div className="flex gap-2 overflow-x-auto px-5 pb-3">
+            {days.map((d, i) => (
+              <button
+                key={d.date}
+                type="button"
+                onClick={() => {
+                  setDayIdx(i);
+                  setSlot(null);
+                }}
+                className={cn(
+                  "shrink-0 rounded-xl border px-3 py-2 text-[12.5px] font-semibold",
+                  i === dayIdx
+                    ? "border-[var(--brand-primary)] bg-[var(--brand-tint)] text-[var(--text)]"
+                    : "border-[var(--border)] text-[var(--text-muted)]",
+                )}
+              >
+                {slotDay(d.date)}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-2 px-5 pb-4">
+            {(day?.slots ?? []).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setSlot(s)}
+                className={cn(
+                  "h-10 rounded-xl border text-[13px] font-semibold tnum",
+                  s === slot
+                    ? "border-transparent bg-[var(--text)] text-[var(--surface)]"
+                    : "border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-2)]",
+                )}
+              >
+                {slotTime(s)}
+              </button>
+            ))}
+          </div>
+          <ConfirmButton disabled={!slot} onClick={() => slot && onConfirm(slot)}>
+            {kind === "estimate" ? "Book estimate" : "Book job"}
+          </ConfirmButton>
+        </>
+      )}
     </Sheet>
   );
 }

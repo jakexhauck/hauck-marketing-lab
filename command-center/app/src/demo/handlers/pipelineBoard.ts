@@ -68,7 +68,24 @@ function move(id: string, m: MoveRequest) {
   leads = book().map((l) => (l.id === id ? applyMoveLocally(l, key, m) : l));
 }
 
+// Weekday times for three weeks, shaped like GHL's free-slots answer.
+function demoSlots() {
+  const days: { date: string; slots: string[] }[] = [];
+  for (let i = 1; days.length < 15; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    if (d.getDay() === 0 || d.getDay() === 6) continue;
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    days.push({ date, slots: [9, 11, 13, 15].map((h) => `${date}T${String(h).padStart(2, "0")}:00:00-04:00`) });
+  }
+  return days;
+}
+
 export const routes: DemoRoute[] = [
+  {
+    match: (clean) => clean === "/api/pipeline-board/slots",
+    respond: () => ({ days: demoSlots(), zone: "America/Detroit" }),
+  },
   {
     match: (clean) => clean === "/api/pipeline-board",
     respond: () => ({ stages: STAGES, leads: book(), timezone: "America/Detroit" }),

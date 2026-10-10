@@ -25,6 +25,25 @@ const ANSWERS: { label: string; asks: string; does: string[] }[] = [
     ],
   },
   {
+    label: "Job done",
+    asks: "Final amount (filled in), only once a job is booked",
+    does: ["Moves the lead to Job Completed", "Corrects the job's amount on the Ads Dashboard"],
+  },
+  {
+    label: "Job rescheduled",
+    asks: "New job day and time, only once a job is booked",
+    does: ["Moves the job on the Job calendar", "Keeps the lead in Job Booked"],
+  },
+  {
+    label: "Job cancelled",
+    asks: "Nothing, only once a job is booked",
+    does: [
+      "Cancels the job on the Job calendar",
+      "Takes the job out of the Ads Dashboard",
+      "Moves the lead to Job/Estimate Cancelled",
+    ],
+  },
+  {
     label: "Call back later",
     asks: "Day and time",
     does: ["Moves the lead to Follow Up at that time", "Texts the owner a reminder when it comes round"],

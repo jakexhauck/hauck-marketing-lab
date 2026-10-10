@@ -44,6 +44,22 @@ function useOptimistic() {
   };
 }
 
+// Open times on the client's GHL "Home Estimate" or "Job" calendar. The board
+// books on that calendar, so it only offers times the calendar has free.
+export interface BoardSlots {
+  days: { date: string; slots: string[] }[];
+  error?: string;
+}
+
+export function useBoardSlots(kind: "estimate" | "job" | null) {
+  return useQuery({
+    queryKey: ["pipeline-board", "slots", kind],
+    enabled: kind !== null,
+    staleTime: 0,
+    queryFn: () => api<BoardSlots>(`/api/pipeline-board/slots?cal=${kind}`),
+  });
+}
+
 export function useMoveLead() {
   const o = useOptimistic();
   return useMutation({
