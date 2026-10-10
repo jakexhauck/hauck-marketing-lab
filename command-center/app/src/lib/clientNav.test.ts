@@ -18,7 +18,7 @@ const labels = (c: ClientGateInfo) =>
 describe("clientNavGroups", () => {
   it("lists every page for a fully wired client", () => {
     expect(labels(linked)).toEqual([
-      [null, ["Setup Checklist", "Client Information", "Software"]],
+      [null, ["Accounts", "Setup Checklist", "Client Information", "Software"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Conversion Assets", "Follow-up Texts", "CAPI", "Outcome Wiring", "Calendars"]],
       [null, ["Management"]],
@@ -27,7 +27,7 @@ describe("clientNavGroups", () => {
 
   it("gates Paid Ads and GHL until they are connected", () => {
     expect(labels(bare)).toEqual([
-      [null, ["Setup Checklist", "Client Information", "Software"]],
+      [null, ["Accounts", "Setup Checklist", "Client Information", "Software"]],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Connect GHL", "Conversion Assets", "Follow-up Texts", "CAPI", "Outcome Wiring"]],
       [null, ["Management"]],

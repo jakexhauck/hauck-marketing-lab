@@ -26,7 +26,7 @@ import {
   type SubTabDef,
 } from "./fulfillmentPages";
 
-export type ClientPageId = "onboarding" | "info" | "software" | "paid-ads" | "ghl" | "management";
+export type ClientPageId = "accounts" | "onboarding" | "info" | "software" | "paid-ads" | "ghl" | "management";
 
 // What the gates read off a client. AdminClient satisfies it.
 export interface ClientGateInfo {
@@ -53,7 +53,11 @@ export interface ClientNavGroup {
 // links and the "setup" landing still work), the onboarding form answers got
 // their own Client Information page, and Setter Suite left the client rail (it
 // is still the agency's /admin/setter).
+//
+// Jake, 2026-10-10 (later): Accounts sits at the very top, one green/red row
+// per thing the client needs connected, each red one with its fix.
 const PAGE_LABELS: Record<ClientPageId, string> = {
+  accounts: "Accounts",
   onboarding: "Setup Checklist",
   info: "Client Information",
   software: "Software",
@@ -84,7 +88,7 @@ const subRows = (c: ClientGateInfo, page: ClientPageId): ClientNavRow[] =>
 
 export function clientNavGroups(c: ClientGateInfo): ClientNavGroup[] {
   return [
-    { caption: null, rows: [single("onboarding"), single("info"), single("software")] },
+    { caption: null, rows: [single("accounts"), single("onboarding"), single("info"), single("software")] },
     { caption: "Paid Ads", rows: subRows(c, "paid-ads") },
     { caption: "GHL", rows: subRows(c, "ghl") },
     { caption: null, rule: true, rows: [single("management")] },

@@ -4,6 +4,7 @@ import { Eye } from "lucide-react";
 import ClientOnboarding from "../../components/admin/onboarding/ClientOnboarding";
 import { ClientSheet } from "../../components/admin/onboarding/OnboardingSheet";
 import GhlTab from "../../components/admin/cockpit/ghl/GhlTab";
+import AccountsTab from "../../components/admin/cockpit/AccountsTab";
 import ManagementTab from "../../components/admin/cockpit/ManagementTab";
 import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
 import SoftwareTab from "../../components/admin/cockpit/software/SoftwareTab";
@@ -101,6 +102,8 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
   const go = (p: ClientPageId) => (next: string) => navigate(clientPath(client.id, p, next));
 
   switch (page) {
+    case "accounts":
+      return <AccountsTab client={client} />;
     case "onboarding":
       return <ClientOnboarding tenantId={client.id} home={OWNER_HOME} />;
     case "info":

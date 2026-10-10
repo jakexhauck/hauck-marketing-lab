@@ -9,6 +9,7 @@ import type { HealthResponse as ConnectionHealthResponse } from "../lib/connecti
 // so the form cannot drift from what the server will accept.
 import type { AdWorkspace, AdWorkspacePatch } from "../../functions/lib/adWorkspace";
 import type { ContractDto } from "../../functions/lib/clientContract";
+import type { AccountCheck } from "../../functions/lib/clientAccounts";
 // The lead form's shape, from the module the endpoints validate with (0090).
 import type { LeadForm, LeadFormPatch } from "../../functions/lib/adLeadForms";
 // The follow-up page's shape, from the module the endpoints validate with (0093).
@@ -3920,6 +3921,36 @@ export function useSetEstimateTracking(tenantId: string) {
         body: JSON.stringify({ on }),
       }),
     onSuccess: (data) => qc.setQueryData(["admin", "estimate-tracking", tenantId], data),
+  });
+}
+
+// --- Client > Accounts ---------------------------------------------------------
+
+export interface ClientAccountsView {
+  locationId: string | null;
+  checks: AccountCheck[];
+}
+
+const accountsKey = (tenantId: string) => ["admin", "clients", tenantId, "accounts"] as const;
+
+export function useClientAccountsQuery(tenantId: string) {
+  return useQuery({
+    queryKey: accountsKey(tenantId),
+    enabled: !!tenantId,
+    staleTime: 30_000,
+    queryFn: () => api<ClientAccountsView>(`/api/admin/clients/${tenantId}/accounts`),
+  });
+}
+
+export function useFixOwnerLinks(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<ClientAccountsView>(`/api/admin/clients/${tenantId}/accounts`, {
+        method: "POST",
+        body: JSON.stringify({ fix: "owner-links" }),
+      }),
+    onSuccess: (data) => qc.setQueryData(accountsKey(tenantId), data),
   });
 }
 

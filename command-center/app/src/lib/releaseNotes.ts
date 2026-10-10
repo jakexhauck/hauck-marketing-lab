@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-client-accounts",
+    date: "10 October 2026",
+    title: "Accounts page on every client",
+    items: [
+      "Client > Accounts shows every account and GHL piece as green or red: Marketplace app, Meta ad account, Facebook Page, CAPI, Sales Pipeline, calendars, owner links, owner phone, app login, phone alerts.",
+      "Each red row has a fix button.",
+    ],
+  },
+  {
     id: "2026-10-10-white-screen",
     date: "10 October 2026",
     title: "White screen after an update fixed",
