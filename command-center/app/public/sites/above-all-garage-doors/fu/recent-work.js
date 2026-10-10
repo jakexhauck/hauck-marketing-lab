@@ -702,7 +702,7 @@ body { margin:0 !important; padding:0 !important; }
             // Pasted exactly as GHL generated it. The script tag that came with
             // it is appended in JS instead, because a script inserted through
             // innerHTML never runs.
-            '<iframe src="https://link.hauckmarketing.com/widget/booking/hkjjkLgjYeDJeBonSWDy" allow="payment" style="width: 100%;border:none;overflow: hidden;" scrolling="no" id="hkjjkLgjYeDJeBonSWDy_1790281781566"></iframe><br>' +
+            '<iframe src="https://link.hauckmarketing.com/widget/booking/I1Zgswy0fAO3opVcomta" allow="payment" style="width: 100%;border:none;overflow: hidden;" scrolling="no" id="I1Zgswy0fAO3opVcomta_1791667180847"></iframe><br>' +
           "</div>" +
         "</div>" +
       "</section>" +
