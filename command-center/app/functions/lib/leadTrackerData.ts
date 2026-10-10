@@ -27,6 +27,7 @@ import {
   type TrackerSpendRow,
 } from "./adTrackerMetrics";
 import type { ClientLeadStatus } from "./leadStatus";
+import { resolveBoardPipeline, stageByContact, type TrackerStage } from "./leadBoard";
 
 export interface TrackerData {
   leads: TrackerLead[];
@@ -50,12 +51,16 @@ export interface TrackerData {
   // True while a contact belongs to an internal notification recipient, so
   // callers can drop those from lead lists and counts.
   isInternal: (x: { contactId?: string }) => boolean;
+  // Each contact's stage on the Test v2 "Sales Pipeline", which the tracker's
+  // Status column mirrors word for word. Empty for a client still on the older
+  // pipelines, who keep the 12-status labels.
+  stageByContact: Map<string, TrackerStage>;
 }
 
 interface PipelineDef {
   id: string;
   name?: string;
-  stages?: { id: string; name?: string }[];
+  stages?: { id: string; name?: string; position?: number }[];
 }
 
 // Load everything the KPI/breakdown/lead-list math needs. Spend is fetched in
@@ -70,6 +75,14 @@ export async function loadTrackerData(
   const { pipelines = [] } = await ghlJson<{ pipelines?: PipelineDef[] }>(
     gctx,
     `/opportunities/pipelines?locationId=${encodeURIComponent(gctx.locationId)}`,
+  );
+
+  const board = resolveBoardPipeline(
+    pipelines.map((p) => ({
+      id: p.id,
+      name: p.name ?? "",
+      stages: (p.stages ?? []).map((s) => ({ id: s.id, name: s.name ?? "", position: s.position })),
+    })),
   );
 
   const stageNames = new Map<string, string>();
@@ -132,6 +145,7 @@ export async function loadTrackerData(
   const lostContacts = new Set<string>();
   const oppIdByContact = new Map<string, string>();
   const opportunities: TrackerOpportunity[] = [];
+  const boardOpps: { contactId: string; pipelineId: string; pipelineStageId: string; createdAt: string }[] = [];
   wanted.forEach((p, i) => {
     for (const o of oppSets[i]) {
       const contactId = (o.contactId ?? o.contact?.id ?? "").trim();
@@ -142,6 +156,14 @@ export async function loadTrackerData(
         createdAt: o.createdAt ?? "",
       });
       if (!contactId) continue;
+      if (p.id === board?.pipelineId) {
+        boardOpps.push({
+          contactId,
+          pipelineId: p.id,
+          pipelineStageId: o.pipelineStageId ?? "",
+          createdAt: o.createdAt ?? "",
+        });
+      }
       if (p.role === "trash") lostContacts.add(contactId);
       // Prefer a lead-journey card for the close-out link, else keep the first.
       if (p.role === "lead" || !oppIdByContact.has(contactId)) {
@@ -194,5 +216,6 @@ export async function loadTrackerData(
     opportunitiesCount: opportunities.length,
     jobContacts: new Set(jobValueByContact.keys()),
     isInternal: makeInternalConversationFilter(contacts, internalRecipients),
+    stageByContact: board ? stageByContact(board, boardOpps) : new Map(),
   };
 }

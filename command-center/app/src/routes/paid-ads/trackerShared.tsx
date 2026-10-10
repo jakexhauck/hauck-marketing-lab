@@ -2,6 +2,7 @@ import { ChevronDown, Search } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { formatMoney, formatMoneyExact } from "../../lib/formatMoney";
 import type { AdTrackerLevel, AdTrackerRange, LeadTrackerStatus } from "../../lib/api";
+import type { StageKey as LeadBoardStageKey } from "../../lib/leadBoard";
 
 // Shared bits across the Paid Ads tracker tabs (Dashboard, Lead Tracker,
 // Pipeline Stats), ported from the client tracking sheet. Formatting rules
@@ -63,6 +64,22 @@ export const STATUS_META: Record<LeadTrackerStatus, { label: string; chip: strin
   appointment_booked: { label: "Appointment Booked", chip: "bg-brand/20 text-brand" },
   quoted: { label: "Quoted", chip: "bg-info-tint text-info" },
 };
+
+// The Test v2 pipeline stages, coloured with the same four families as the
+// statuses above so a client moving from the old labels reads them the same way.
+// A stage the board does not name gets the quiet chip and its own GHL name.
+export const STAGE_CHIP: Record<LeadBoardStageKey, string> = {
+  lead: "bg-surface-2 text-muted",
+  followUp: "bg-warning/10 text-warning",
+  nurture: "bg-surface-2 text-faint",
+  estimate: "bg-brand/20 text-brand",
+  job: "bg-brand/20 text-brand",
+  won: "bg-positive-tint text-positive",
+  lost: "bg-danger-tint text-danger",
+  cancelled: "bg-warning/10 text-warning",
+  trash: "bg-surface-2 text-faint",
+};
+export const STAGE_CHIP_DEFAULT = "bg-surface-2 text-muted";
 
 export function pct(value: number | null): string {
   return value === null ? "-" : `${(value * 100).toFixed(1)}%`;

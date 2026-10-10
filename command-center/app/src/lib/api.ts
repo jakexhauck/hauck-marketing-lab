@@ -3,6 +3,7 @@ import { handleDemoRequest } from "../demo/handler";
 import { previewHeaders } from "./previewFrame";
 import type { BusinessHealthInputs, PeriodType } from "./businessHealth";
 import type { BudgetInputs } from "./coldSmsBudget";
+import type { StageKey as LeadBoardStageKey } from "./leadBoard";
 import type { SheetCall } from "../../functions/lib/salesSheetRows";
 
 // What one reconciliation against the agency's GoHighLevel calendars did.
@@ -856,6 +857,10 @@ export interface LeadTrackerLead {
   phone: string;
   createdAt: string;
   status: LeadTrackerStatus;
+  // The GHL stage, word for word, on a client running the Test v2 pipeline.
+  // When set, the Status cell prints this instead of `status`, read-only.
+  // `key` (the board's name for the stage) picks the colour.
+  stage?: { name: string; key: LeadBoardStageKey | null } | null;
   when: LeadTrackerWhen | null;
   // Dollars. Null on a manual tenant means nobody has typed a job value yet,
   // which is not the same as a job worth nothing.

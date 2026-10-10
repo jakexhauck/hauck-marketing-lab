@@ -26,6 +26,20 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-leads-board",
+    date: "10 October 2026",
+    title: "Leads is a drag board",
+    items: [
+      "A client on the Test v2 Sales Pipeline now gets Leads as a board: Lead, Estimate Booked, Job Booked, Job Completed, Job/Estimate Cancelled and Lost.",
+      "Follow Up and Long Term Nurture sit in a rail on the right. Drop a card on either, or drag a row back onto the board.",
+      "Moving a lead asks only what that stage needs: a day and time, a dollar amount, or a lost reason. GHL moves with it.",
+      "Trash is gone from the app. A dead lead goes to Lost.",
+      "Paid Ads > Lead Tracker shows that client's pipeline stage as the status.",
+      "The Google Calendar step is no longer asked of new clients.",
+      "Clients on the older pipelines keep the old Leads page until they are moved over.",
+    ],
+  },
+  {
     id: "2026-10-10-ghl-wiring",
     date: "10 October 2026",
     title: "Wiring page for each client's text links",

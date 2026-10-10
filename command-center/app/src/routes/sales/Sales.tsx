@@ -9,6 +9,8 @@ import { useTenantQuery, useUpdateHandoff } from "../../hooks/useApi";
 import { useAuth } from "../../context/AuthContext";
 import { demoMode } from "../../demo/demoMode";
 import SelfDialLeadsBoard from "../../components/leads/SelfDialLeadsBoard";
+import PipelineBoard from "../../components/leads/PipelineBoard";
+import { useLeadBoardQuery } from "../../hooks/useLeadBoard";
 import type { ApiHandoff } from "../../lib/api";
 
 // Leads and Schedule. "Leads" is the handoff outcomes board; "Schedule" is the
@@ -67,6 +69,11 @@ export default function Sales() {
   const { session } = useAuth();
   const tenant = useTenantQuery(demoMode() || Boolean(session));
   const selfDial = tenant.data?.tenant?.selfDial === true;
+  // A client whose GHL sub-account carries the board's "Sales Pipeline" (the
+  // Test v2 template) gets the drag board. Everyone else keeps the board they
+  // had: the endpoint answers configError and the old branch renders.
+  const leadBoard = useLeadBoardQuery(tab === "leads" && (demoMode() || Boolean(session)));
+  const onBoard = Boolean(leadBoard.data && !leadBoard.data.configError);
 
   // The URL is the tab, so switching pages is a navigation. replace: true so
   // the booking journey (Leads -> Schedule -> back to Leads) does not leave
@@ -140,7 +147,9 @@ export default function Sales() {
           {tab === "leads" ? (
             // Wait for the answer rather than flash the hand-off board at a
             // self-dial client and then swap it out.
-            tenant.isLoading ? null : selfDial ? (
+            tenant.isLoading || leadBoard.isLoading ? null : onBoard ? (
+              <PipelineBoard data={leadBoard.data!} />
+            ) : selfDial ? (
               <SelfDialLeadsBoard />
             ) : (
               <HandoffsBoard onBook={startBooking} />

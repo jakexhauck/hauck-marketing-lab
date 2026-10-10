@@ -110,6 +110,18 @@ function adsetOf(lead: AdLead): string {
   return `${PLATFORM_META[lead.platform]?.label ?? "Facebook"} Feed`;
 }
 
+// The demo client runs the Test v2 pipeline, so its Status column mirrors those
+// stages the way a real snapshot client's does.
+const STATUS_TO_STAGE: Partial<Record<LeadTrackerStatus, NonNullable<LeadTrackerLead["stage"]>>> = {
+  phone_follow_up: { name: "Follow Up", key: "followUp" },
+  follow_up: { name: "Follow Up", key: "followUp" },
+  long_term_nurture: { name: "Long Term Nurture", key: "nurture" },
+  estimate_booked: { name: "Estimate Booked", key: "estimate" },
+  job_booked: { name: "Job Booked", key: "job" },
+  won: { name: "Job Completed", key: "won" },
+  lost: { name: "Lost", key: "lost" },
+};
+
 function demoLeadRows(): LeadTrackerLead[] {
   return PAID_ADS_DEMO.map((lead) => {
     const status = STAGE_TO_STATUS[lead.stage as string] ?? "new";
@@ -121,6 +133,7 @@ function demoLeadRows(): LeadTrackerLead[] {
       phone: lead.phone,
       createdAt: createdAtOf(lead),
       status,
+      stage: STATUS_TO_STAGE[status] ?? { name: "Lead", key: "lead" },
       when: null,
       // The board already carries a real quote on the leads that have one; use
       // it rather than inventing a second set of numbers.

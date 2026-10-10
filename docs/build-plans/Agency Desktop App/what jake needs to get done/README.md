@@ -638,3 +638,17 @@ Still parked:
 - Unknown whether GHL re-runs the estimate Wait after a reschedule; if no second text arrives, add an Appointment Status: Rescheduled trigger.
 - No admin on/off switch for the new dashboard yet.
 - Call-back reminders go out within the hour after the time picked.
+
+## Leads drag board (10 October 2026)
+
+What's in the app now: a client whose GHL has the Test v2 "Sales Pipeline" gets Leads as a drag board (six columns, Follow Up + Long Term Nurture in a right rail, no Trash). Everyone else keeps the old Leads page.
+
+Your action items:
+1. Move Above All Garage Doors onto the Test v2 "Sales Pipeline" (its GHL still has the old 1) Leads / 2) No Answer / 3) Sales / 4) Trash pipelines).
+2. Link Clear Choice Windows' GHL sub-account once it is built from the Test v2 snapshot.
+3. Fix Doppler `GHL_APP_CLIENT_SECRET` so localhost can mint GHL app keys.
+4. Confirm the Estimate and Job reminder workflows exist in Test v2 (Custom Date Reminder on Estimate Date / Job Date), then publish them.
+
+Still parked:
+- Self-booking (GHL calendar webhook into `lead_bookings`) until a client books themselves.
+- Willis and Made Better stay on the old Leads page until moved by hand.

@@ -113,6 +113,9 @@ const RULES: PermRule[] = [
   { pattern: /^\/api\/organic(\/|$)/, methods: ["GET"], any: [need("organic", "view")] },
 
   // Shared lookups used by multiple surfaces
+  // The Leads board (0150): read with pipeline view, every move needs edit.
+  { pattern: /^\/api\/pipeline-board\/?$/, methods: ["GET"], any: [need("pipeline", "view")] },
+  { pattern: /^\/api\/pipeline-board\/[^/]+\/(move|no-answer)\/?$/, methods: ["POST"], any: [need("pipeline", "edit")] },
   { pattern: /^\/api\/pipelines\/?$/, any: [need("overview", "view"), need("pipeline", "view"), need("calendar", "view")] },
   { pattern: /^\/api\/summary\/?$/, any: [need("overview", "view"), need("pipeline", "view")] },
 

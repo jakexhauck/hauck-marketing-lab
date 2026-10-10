@@ -8,6 +8,8 @@ import {
   type ManualLeadStatus,
 } from "../../../lib/api";
 import {
+  STAGE_CHIP,
+  STAGE_CHIP_DEFAULT,
   STATUS_META,
   formatLeadDate,
   formatWhen,
@@ -49,17 +51,23 @@ function WhenCell({ when }: { when: LeadTrackerWhen | null }) {
 }
 
 // The status chip, shared by the card and the table so the two can never colour
-// a status differently.
-function StatusChip({ status }: { status: LeadTrackerLead["status"] }) {
-  const meta = STATUS_META[status];
+// a status differently. A client on the Test v2 pipeline sees their GHL stage
+// name here instead, so the tracker and the pipeline never disagree.
+function StatusChip({ lead }: { lead: LeadTrackerLead }) {
+  const { label, chip } = lead.stage
+    ? {
+        label: lead.stage.name,
+        chip: lead.stage.key ? STAGE_CHIP[lead.stage.key] : STAGE_CHIP_DEFAULT,
+      }
+    : STATUS_META[lead.status];
   return (
     <span
       className={cn(
         "inline-flex shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-        meta.chip,
+        chip,
       )}
     >
-      {meta.label}
+      {label}
     </span>
   );
 }
@@ -184,13 +192,13 @@ function LeadCard({ lead, marking }: { lead: LeadTrackerLead; marking?: LeadMark
         <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-text">
           {lead.name}
         </span>
-        {marking ? (
+        {marking && !lead.stage ? (
           <StatusSelect
             status={lead.status}
             onChange={(next) => marking.onStatus(lead.contactId, next)}
           />
         ) : (
-          <StatusChip status={lead.status} />
+          <StatusChip lead={lead} />
         )}
       </div>
 
@@ -333,14 +341,14 @@ export default function LeadTrackerTable({
                     <div className="truncate text-text">{lead.email || "-"}</div>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2.5">
-                    {marking ? (
+                    {marking && !lead.stage ? (
                       <StatusSelect
                         status={lead.status}
                         onChange={(next) => marking.onStatus(lead.contactId, next)}
                       />
                     ) : (
                       <>
-                        <StatusChip status={lead.status} />
+                        <StatusChip lead={lead} />
                         {lead.status === "won" && (lead.value ?? 0) > 0 && (
                           <span className="ml-2 font-semibold text-text tnum">
                             {formatMoneyExact(lead.value as number)}

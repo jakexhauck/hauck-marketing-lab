@@ -279,6 +279,10 @@ export async function buildTrackerResponse(input: TrackerResponseInput) {
         email: c?.email ?? "",
         phone: c?.phone ?? "",
         createdAt: l.createdAt,
+        // The GHL stage, word for word, on a client running the Test v2
+        // pipeline. When present it is what the Status column prints, read-only;
+        // `status` below still drives the When column and the Won value cell.
+        stage: data.stageByContact.get(l.contactId) ?? null,
         // On a manual tenant the typed status is the only status. A card in the
         // Trash pipeline no longer forces Lost either: nobody is moving those
         // cards, so a stale one would overrule the owner who just said Won.

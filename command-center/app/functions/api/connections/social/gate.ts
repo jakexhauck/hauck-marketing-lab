@@ -1,5 +1,4 @@
 import type { Env, ApiData } from "../../../lib/env";
-import { getServiceClient } from "../../../lib/supabase";
 import { isPlaceholder } from "../../../lib/tenantGhl";
 import { composioUserId, getConnection } from "../../../lib/googleCalendar";
 
@@ -27,20 +26,11 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     return open("not_configured");
   }
 
-  // Every tenant that existed before the calendar step shipped was
-  // grandfathered by migration 0101; new clients are gated from the day they
-  // are created. social_gate_waived (0094) stays the admin's full override.
-  const client = getServiceClient(ctx.env);
-  let calendarRequired = false;
-  if (client) {
-    const { data } = await client
-      .from("tenants")
-      .select("social_gate_waived, calendar_gate_waived")
-      .eq("slug", t.slug)
-      .maybeSingle();
-    if (data?.social_gate_waived) return open("waived");
-    calendarRequired = data ? !data.calendar_gate_waived : false;
-  }
+  // Optional since 2026-10-08 (Jake): no client is held for a Google Calendar.
+  // Bookings live in the app now (0150), so the app works without one; the
+  // owner can still connect it under Settings > Integrations. The
+  // calendar_gate_waived column stays, unread, so this is a one-line revert.
+  const calendarRequired = false;
   if (!calendarRequired) return open("not_required");
 
   // A failed read comes back as "not connected", which holds the gate shut
