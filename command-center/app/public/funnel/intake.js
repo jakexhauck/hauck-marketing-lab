@@ -197,9 +197,6 @@ a.hm-btn{display:inline-block;text-decoration:none}
     // deploy that shipped it. Nothing to keep in step by hand, and a preview
     // deploy talks to itself rather than to production.
     apiBase: window.__HM_FUNNEL_ORIGIN,
-    // Step 2 of the funnel: the onboarding calendar. Sending them there is the
-    // whole point of finishing this form, so it is a full page navigation.
-    nextUrl: "https://www.hauckmarketing.com/onboarding-calendar",
     // LIVE by default. Add ?dry=1 to the funnel URL to walk the whole thing
     // without saving anything, which is how you check a copy change without
     // creating a real client. A flag that has to be edited and re-pasted to
@@ -563,17 +560,9 @@ a.hm-btn{display:inline-block;text-decoration:none}
       return;
     }
     if (state.done) {
-      // Normally nobody reads this: the submit handler sends them straight to the
-      // calendar. It is what they see if that navigation is blocked or slow, so
-      // it has to carry the same next step under its own steam.
+      // The form ends here. No onboarding call to book (Jake cut it 2026-10-10).
       slot.innerHTML = '<div class="hm-final"><div class="hm-final-mark">&#10003;</div>' +
-        "<h2>That is everything, thank you</h2>" +
-        (HM_CONFIG.nextUrl
-          ? "<p>One thing left: pick a time for your onboarding call.</p>" +
-            '<p style="margin-top:18px"><a class="hm-btn hm-btn-primary" href="' +
-            esc(HM_CONFIG.nextUrl) + '">Book your call</a></p>'
-          : "<p>We have got what we need and we are setting your account up now. You will hear from us shortly with your login and the next steps.</p>") +
-        "</div>";
+        "<h2>Thank you for submitting the onboarding form</h2></div>";
       reassure.textContent = "";
       return;
     }
@@ -690,14 +679,6 @@ a.hm-btn{display:inline-block;text-decoration:none}
         }
         else if (state.step < REVIEW_STEP) { state.step++; state.errors = {}; }
         render(); top();
-        // Step 2 is a page of its own, so the hand-off is a navigation. Fired
-        // AFTER the render on purpose: the confirmation is already painted, so a
-        // browser that blocks or delays the move leaves them on a screen that
-        // tells them what to do next rather than on a filled-in form.
-        if (submitting && HM_CONFIG.nextUrl) {
-          try { window.top.location.assign(HM_CONFIG.nextUrl); }
-          catch (e) { window.location.assign(HM_CONFIG.nextUrl); }
-        }
       });
     });
   }
