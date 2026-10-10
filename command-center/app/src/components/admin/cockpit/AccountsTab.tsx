@@ -115,7 +115,9 @@ function CheckRow({
   locationId: string | null;
 }) {
   const [open, setOpen] = useState(false);
-  const fixable = check.state === "missing" || (check.id === "ghl" && check.state !== "ok");
+  // The Facebook Page can always be changed, even once one is picked.
+  const fixable =
+    check.state === "missing" || (check.id === "ghl" && check.state !== "ok") || check.id === "meta-page";
   const panel = open ? <FixPanel id={check.id} client={client} /> : null;
 
   return (
@@ -131,6 +133,7 @@ function CheckRow({
             id={check.id}
             client={client}
             locationId={locationId}
+            done={check.state === "ok"}
             open={open}
             onToggle={() => setOpen((v) => !v)}
           />
@@ -148,12 +151,14 @@ function FixButton({
   id,
   client,
   locationId,
+  done,
   open,
   onToggle,
 }: {
   id: AccountCheckId;
   client: AdminClient;
   locationId: string | null;
+  done: boolean;
   open: boolean;
   onToggle: () => void;
 }) {
@@ -164,8 +169,8 @@ function FixButton({
 
   if (INLINE.includes(id)) {
     return (
-      <Button size="sm" variant={open ? "subtle" : "primary"} onClick={onToggle}>
-        {open ? "Close" : id === "ghl" ? "Link" : "Pick"}
+      <Button size="sm" variant={open ? "subtle" : done ? "secondary" : "primary"} onClick={onToggle}>
+        {open ? "Close" : id === "ghl" ? "Link" : done ? "Change" : "Pick"}
       </Button>
     );
   }
@@ -248,7 +253,9 @@ function MetaPagePicker({ tenantId }: { tenantId: string }) {
   const page = useMetaPage(tenantId);
   const setPage = useSetMetaPage(tenantId);
   const accounts = useClientAccountsQuery(tenantId);
-  const [chosen, setChosen] = useState("");
+  const current = page.data?.pageId ?? "";
+  const [picked, setPicked] = useState<string | null>(null);
+  const chosen = picked ?? current;
   const pages = page.data?.pages ?? [];
 
   if (page.isLoading) return <div className="text-[13px] text-muted">Loading...</div>;
@@ -258,7 +265,7 @@ function MetaPagePicker({ tenantId }: { tenantId: string }) {
     <div className="flex flex-wrap items-center gap-2">
       <select
         value={chosen}
-        onChange={(e) => setChosen(e.target.value)}
+        onChange={(e) => setPicked(e.target.value)}
         aria-label="Facebook Page"
         className="min-w-[220px] rounded-[var(--radius)] border border-border bg-surface px-2 py-2 text-[13px] text-text"
       >
@@ -272,9 +279,16 @@ function MetaPagePicker({ tenantId }: { tenantId: string }) {
       <Button
         size="sm"
         variant="primary"
-        disabled={!chosen}
+        disabled={!chosen || chosen === current}
         loading={setPage.isPending}
-        onClick={() => setPage.mutate(chosen, { onSuccess: () => void accounts.refetch() })}
+        onClick={() =>
+          setPage.mutate(chosen, {
+            onSuccess: () => {
+              setPicked(null);
+              void accounts.refetch();
+            },
+          })
+        }
       >
         Save
       </Button>

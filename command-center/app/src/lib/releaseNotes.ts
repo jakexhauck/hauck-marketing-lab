@@ -38,6 +38,7 @@ export const RELEASES: Release[] = [
     items: [
       "Client > Accounts shows every account and GHL piece as green or red: Marketplace app, Meta ad account, Facebook Page, CAPI, Sales Pipeline, calendars, owner links, owner phone, app login, phone alerts.",
       "Each red row has a fix button.",
+      "The Facebook Page can be changed any time, even after one is picked.",
     ],
   },
   {
