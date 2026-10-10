@@ -16,6 +16,7 @@
 
 import {
   hasTrust,
+  offersDiscount,
   wholeJobs,
   type ConversionAsset,
   type Review,
@@ -193,9 +194,9 @@ export function previewClose(asset: ConversionAsset): PreviewClose {
   return { kind: "book", cta: previewCta(asset), hasCalendar: !!asset.calendarEmbed };
 }
 
-// The gift, on the one page that promised it.
+// The discount, on every page that books.
 export function previewCoupon(asset: ConversionAsset): PreviewCoupon | null {
-  if (asset.kind !== "owner-story" || !asset.couponOffer.trim()) return null;
+  if (!offersDiscount(asset.kind) || !asset.couponOffer.trim()) return null;
   return {
     offer: asset.couponOffer.trim(),
     code: asset.couponCode.trim(),

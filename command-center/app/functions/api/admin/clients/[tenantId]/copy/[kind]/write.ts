@@ -34,7 +34,7 @@ export const onRequestPost: PagesFunction<Env, Params, ApiData> = async (ctx) =>
   const facts = await loadClientFacts(client, tenantId);
   if (!facts) return Response.json({ error: "Client not found" }, { status: 404 });
 
-  const current = await readCopy(client, tenantId, kind, facts.businessName);
+  const current = await readCopy(client, tenantId, kind);
   const { system, input } = copyPrompt(kind, facts, current.settings);
   const result = await writeWithClaude(ctx.env, {
     system,
@@ -60,7 +60,7 @@ export const onRequestPost: PagesFunction<Env, Params, ApiData> = async (ctx) =>
   });
   try {
     await saveCopy(client, tenantId, kind, { items, settings: current.settings, written: true });
-    return Response.json(await readCopy(client, tenantId, kind, facts.businessName));
+    return Response.json(await readCopy(client, tenantId, kind));
   } catch (err) {
     return Response.json({ error: (err as Error).message }, { status: 500 });
   }

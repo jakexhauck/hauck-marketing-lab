@@ -23,7 +23,7 @@ import {
   DESIGN_SOURCE_LABELS,
   JOB_CAP,
   asksForBooking,
-  usesOfferCalendar,
+  CONVERSION_ASSET_CALENDAR,
   contentIsComplete,
   hasOwnerMedia,
   hasTrust,
@@ -228,14 +228,12 @@ export function buildPrompt(
       lines.push("Drop this calendar embed into the page exactly as it is, unedited:");
       lines.push("");
       for (const line of asset.calendarEmbed.split("\n")) lines.push(`    ${line}`);
-      if (kind && usesOfferCalendar(kind)) {
-        lines.push("");
-        lines.push(
-          "This is the client's offer calendar, a different calendar from the one " +
-            "on the Recent Work page. Bookings landing on it are how the agency knows " +
-            "the lead came for the gift, so never swap in the other embed.",
-        );
-      }
+      lines.push("");
+      lines.push(
+        `This is the client's ${CONVERSION_ASSET_CALENDAR} in GHL. Bookings landing on ` +
+          "it are how the agency knows the lead came off a conversion asset, so never " +
+          "swap in another calendar's embed.",
+      );
     } else {
       lines.push(
         `Calendar embed: ${NOT_ANSWERED}. Leave a clearly marked placeholder ` +
@@ -295,9 +293,7 @@ function contentLines(asset: ConversionAsset): string[] {
       // that sends them here says there is a gift on the website.
       out.push("THE GIFT. The text that sent them here already promised this, so the");
       out.push("page has to hand it over high up and unmissably, above the booking:");
-      out.push(`  Offer: ${asset.couponOffer || NOT_ANSWERED}`);
-      if (asset.couponCode) out.push(`  Code: ${asset.couponCode}`);
-      if (asset.couponTerms) out.push(`  Terms: ${asset.couponTerms}`);
+      out.push(...discountLines(asset));
       return out;
 
     case "unique-mechanism":
@@ -372,6 +368,9 @@ function contentLines(asset: ConversionAsset): string[] {
       out.push(
         `Trust: ${hasTrust(asset.trust) ? trustLine(asset) : "none given, leave the strip out entirely"}`,
       );
+      out.push("");
+      out.push("THE DISCOUNT. Hand it over plainly, after the proof and above the booking:");
+      out.push(...discountLines(asset));
       return out;
     }
 
@@ -379,6 +378,13 @@ function contentLines(asset: ConversionAsset): string[] {
       out.push(NOT_ANSWERED);
       return out;
   }
+}
+
+function discountLines(asset: ConversionAsset): string[] {
+  const out = [`  Offer: ${asset.couponOffer || NOT_ANSWERED}`];
+  if (asset.couponCode) out.push(`  Code: ${asset.couponCode}`);
+  if (asset.couponTerms) out.push(`  Terms: ${asset.couponTerms}`);
+  return out;
 }
 
 function trustLine(asset: ConversionAsset): string {
@@ -416,7 +422,8 @@ export function missingFields(asset: ConversionAsset): string[] {
       }
       if (!asset.couponOffer.trim()) missing.push("The gift the text promised");
     } else {
-      missing.push("A whole before/after job");
+      if (wholeJobs(asset.jobs).length === 0) missing.push("A whole before/after job");
+      if (!asset.couponOffer.trim()) missing.push("The discount");
     }
   }
 

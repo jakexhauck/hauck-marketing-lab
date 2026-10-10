@@ -15,7 +15,6 @@ export async function readCopy(
   client: SupabaseClient,
   tenantId: string,
   kind: CopyKind,
-  businessName: string,
 ): Promise<CopyRecord> {
   const { data, error } = await client
     .from("client_copy")
@@ -32,7 +31,7 @@ export async function readCopy(
   } | null;
   return {
     kind,
-    items: normaliseItems(kind, Array.isArray(row?.items) ? row!.items! : [], businessName),
+    items: normaliseItems(kind, Array.isArray(row?.items) ? row!.items! : []),
     settings: row?.settings ?? {},
     writtenAt: row?.written_at ?? null,
     editedAt: row?.edited_at ?? null,

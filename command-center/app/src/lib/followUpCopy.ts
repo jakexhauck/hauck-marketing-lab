@@ -6,7 +6,7 @@
 // Lead form: only the first text, SMS 3 and the Hail Mary are per client (Jake,
 // 2026-10-06). The enquiry confirmation, outside-hours text and the Recent Work
 // and Owner Story texts are universal and live in the GHL snapshot, so they are
-// not here. The two alerts are fixed templates with the client's name in.
+// not here. The new-lead alerts left this page 2026-10-10 (Jake: not needed).
 
 export type CopyKind = "ltn" | "lead_fu";
 
@@ -37,8 +37,6 @@ export const COPY_ITEMS: Record<CopyKind, CopyItemDef[]> = {
     { key: "sms3", label: "SMS 3", when: "24 hours after the Owner Story text", ai: true },
     { key: "sms3Photo", label: "SMS 3 photo", when: "Sent with SMS 3", ai: true, note: true },
     { key: "hailMary", label: "Hail Mary", when: "2 days after SMS 3", ai: true },
-    { key: "clientAlert", label: "Client alert", when: "To the client, on every new lead", ai: false },
-    { key: "agencyAlert", label: "Agency alert", when: "To the dialer, on every new lead", ai: false },
   ],
 };
 
@@ -61,26 +59,13 @@ export interface CopyRecord {
   editedAt: string | null;
 }
 
-// The two alerts, exactly as the SOP's workflow carries them.
-export function clientAlert(): string {
-  return "🔥 New Lead\n\n🧑 {{contact.name}}\n📞 {{contact.phone}}\n✉️ {{contact.email}}\n\nThis lead is being dialed and followed up with right now!";
-}
-
-export function agencyAlert(businessName: string): string {
-  return `🔥 New Lead For ${businessName.trim() || "this client"}\n\n🧑 {{contact.name}}\n📞 {{contact.phone}}\n✉️ {{contact.email}}\n\nDial This Lead NOW!`;
-}
-
 /** Keys Claude writes for a kind (everything marked ai). */
 export function aiKeys(kind: CopyKind): string[] {
   return COPY_ITEMS[kind].filter((i) => i.ai).map((i) => i.key);
 }
 
-/** Put items in the defined order, keep only known keys, fill the template ones. */
-export function normaliseItems(kind: CopyKind, items: CopyItem[], businessName: string): CopyItem[] {
+/** Put items in the defined order and keep only known keys. */
+export function normaliseItems(kind: CopyKind, items: CopyItem[]): CopyItem[] {
   const byKey = new Map(items.map((i) => [i.key, i.text]));
-  return COPY_ITEMS[kind].map((def) => {
-    if (def.key === "clientAlert") return { key: def.key, text: clientAlert() };
-    if (def.key === "agencyAlert") return { key: def.key, text: agencyAlert(businessName) };
-    return { key: def.key, text: byKey.get(def.key) ?? "" };
-  });
+  return COPY_ITEMS[kind].map((def) => ({ key: def.key, text: byKey.get(def.key) ?? "" }));
 }

@@ -34,7 +34,7 @@ export const onRequestPost: PagesFunction<Env, "tenantId", ApiData> = async (ctx
     );
   }
 
-  // The owner links (Call Now Link, Estimate Outcome Link) are created when
+  // The owner links (Call Now Link, Lead Outcome Link, Phone Appointment Call Now Link) are created when
   // missing, unlike the mapped values above, so the snapshot never has to
   // carry them. Reported in the same written/failed lists.
   const links = await provisionOwnerLinks(

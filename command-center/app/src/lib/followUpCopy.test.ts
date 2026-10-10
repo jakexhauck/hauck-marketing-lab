@@ -1,16 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { agencyAlert, aiKeys, clientAlert, normaliseItems } from "./followUpCopy";
-import { checkSms } from "./smsRules";
-
-describe("alerts", () => {
-  it("names the client in the agency alert", () => {
-    expect(agencyAlert("Made Better LC")).toContain("New Lead For Made Better LC");
-  });
-  it("keep their merge fields and pass the SMS checks", () => {
-    expect(clientAlert()).toContain("{{contact.phone}}");
-    expect(checkSms(agencyAlert("Willis Windows"), { maxSegments: 4 })).toEqual([]);
-  });
-});
+import { aiKeys, normaliseItems } from "./followUpCopy";
 
 describe("aiKeys", () => {
   it("lists what Claude writes", () => {
@@ -20,7 +9,7 @@ describe("aiKeys", () => {
 });
 
 describe("normaliseItems", () => {
-  it("orders, drops unknown keys and fills the templates", () => {
+  it("orders and drops unknown keys", () => {
     const items = normaliseItems(
       "lead_fu",
       [
@@ -28,11 +17,9 @@ describe("normaliseItems", () => {
         { key: "junk", text: "x" },
         { key: "first", text: "Hi" },
       ],
-      "AAG",
     );
-    expect(items.map((i) => i.key)).toEqual(["first", "sms3", "sms3Photo", "hailMary", "clientAlert", "agencyAlert"]);
+    expect(items.map((i) => i.key)).toEqual(["first", "sms3", "sms3Photo", "hailMary"]);
     expect(items[0].text).toBe("Hi");
     expect(items[1].text).toBe("");
-    expect(items[5].text).toContain("New Lead For AAG");
   });
 });

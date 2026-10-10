@@ -32,7 +32,7 @@ import {
   TRUST_FIELDS,
   asksForBooking,
   carryForward,
-  usesOfferCalendar,
+  CONVERSION_ASSET_CALENDAR,
   emptyConversionAsset,
   jobIsWhole,
   needsColors,
@@ -56,8 +56,8 @@ import { buildPrompt, missingFields } from "../../../../lib/conversionAssetPromp
 // pages, so this is not a wizard that invents a page, it is a checklist that
 // fills three known ones:
 //
-//   recent-work        new lead, text 1    books
-//   owner-story        new lead, text 2    books, and hands over the gift
+//   recent-work        new lead, text 1    books, and offers the discount
+//   owner-story        new lead, text 2    books, and offers the discount
 //   unique-mechanism   estimate reminder   asks for NOTHING
 //
 // WHAT THIS SCREEN NO LONGER DOES: write the SMS. The follow-up messages are
@@ -781,6 +781,7 @@ function ContentStep({
           <JobsField draft={draft} patch={patch} tenantId={tenantId} />
           <ReviewsField draft={draft} patch={patch} />
           <TrustField draft={draft} patch={patch} />
+          <DiscountField draft={draft} patch={patch} />
         </>
       )}
     </div>
@@ -922,42 +923,53 @@ function OwnerStoryFields({
         />
       </div>
 
-      {/* The text that sends them here promises a gift on the website. This is
-          that gift, so it is required: a page that does not hand it over is a
-          broken promise the lead notices before we do. */}
-      <div className="rounded-lg border border-border bg-surface-2 p-3.5">
-        <SectionLabel hint="the text promises this">The gift</SectionLabel>
-        <LineInput
-          value={draft.couponOffer}
-          onChange={(v) => patch({ couponOffer: v })}
-          onBlur={() => {}}
-          maxLength={LIMITS.couponOffer}
-          ariaLabel="The offer"
-          placeholder={DEFAULT_COUPON_OFFER}
-        />
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <div>
-            <SectionLabel>Code</SectionLabel>
-            <LineInput
-              value={draft.couponCode}
-              onChange={(v) => patch({ couponCode: v })}
-              onBlur={() => {}}
-              maxLength={LIMITS.couponCode}
-              ariaLabel="Coupon code"
-              placeholder="optional"
-            />
-          </div>
-          <div>
-            <SectionLabel>Terms</SectionLabel>
-            <LineInput
-              value={draft.couponTerms}
-              onChange={(v) => patch({ couponTerms: v })}
-              onBlur={() => {}}
-              maxLength={LIMITS.couponTerms}
-              ariaLabel="Coupon terms"
-              placeholder="optional"
-            />
-          </div>
+      <DiscountField draft={draft} patch={patch} />
+    </div>
+  );
+}
+
+// The discount, on both booking pages (Jake, 2026-10-10). Required: the owner
+// story's text promises it, and Recent Work hands it over beside the proof.
+function DiscountField({
+  draft,
+  patch,
+}: {
+  draft: ConversionAsset;
+  patch: (fields: Partial<ConversionAsset>) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-surface-2 p-3.5">
+      <SectionLabel hint={draft.kind === "owner-story" ? "the text promises this" : undefined}>Discount</SectionLabel>
+      <LineInput
+        value={draft.couponOffer}
+        onChange={(v) => patch({ couponOffer: v })}
+        onBlur={() => {}}
+        maxLength={LIMITS.couponOffer}
+        ariaLabel="Discount"
+        placeholder={DEFAULT_COUPON_OFFER}
+      />
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div>
+          <SectionLabel>Code</SectionLabel>
+          <LineInput
+            value={draft.couponCode}
+            onChange={(v) => patch({ couponCode: v })}
+            onBlur={() => {}}
+            maxLength={LIMITS.couponCode}
+            ariaLabel="Coupon code"
+            placeholder="optional"
+          />
+        </div>
+        <div>
+          <SectionLabel>Terms</SectionLabel>
+          <LineInput
+            value={draft.couponTerms}
+            onChange={(v) => patch({ couponTerms: v })}
+            onBlur={() => {}}
+            maxLength={LIMITS.couponTerms}
+            ariaLabel="Coupon terms"
+            placeholder="optional"
+          />
         </div>
       </div>
     </div>
@@ -1253,7 +1265,7 @@ function BookingStep({
 
       <div>
         <SectionLabel>
-          {usesOfferCalendar(draft.kind) ? `${draft.couponOffer || "Offer"} calendar embed` : "GHL calendar embed"}
+          {`${CONVERSION_ASSET_CALENDAR} embed`}
         </SectionLabel>
         <BlockInput
           value={draft.calendarEmbed}

@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import type { Sheet } from "../lib/customValuesSheet";
 import type { CopyItem, CopyKind, CopyRecord, CopySettings } from "../lib/followUpCopy";
 import type { LeadForm } from "../../functions/lib/adLeadForms";
 import type { WiringLink } from "../../functions/lib/ghlProvision";
@@ -9,43 +8,6 @@ import type { WiringLink } from "../../functions/lib/ghlProvision";
 // Kept out of useApi.ts so these pages are one file to read.
 
 const enc = encodeURIComponent;
-
-// ---- Custom Values -------------------------------------------------------
-
-export function useCustomValuesSheet(tenantId: string) {
-  return useQuery({
-    queryKey: ["sop", "custom-values", tenantId],
-    queryFn: () => api<{ sheet: Sheet; linked: boolean }>(`/api/admin/clients/${enc(tenantId)}/custom-values`),
-  });
-}
-
-export function useSaveCustomValue(tenantId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { key: string; value: string }) =>
-      api<{ ok: true }>(`/api/admin/clients/${enc(tenantId)}/custom-values`, {
-        method: "PATCH",
-        body: JSON.stringify(input),
-      }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["sop", "custom-values", tenantId] }),
-  });
-}
-
-export interface PushResult {
-  ok: boolean;
-  written: string[];
-  failed: { name: string; status: number }[];
-  notFound: string[];
-}
-
-export function usePushCustomValues(tenantId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () =>
-      api<PushResult>(`/api/admin/clients/${enc(tenantId)}/custom-values/push`, { method: "POST" }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["sop", "custom-values", tenantId] }),
-  });
-}
 
 // ---- CAPI ----------------------------------------------------------------
 

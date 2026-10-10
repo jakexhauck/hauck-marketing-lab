@@ -185,6 +185,20 @@ describe("missingFields", () => {
     expect(missing).not.toContain("Owner photo or video, and notes");
   });
 
+  it("names a missing discount on Recent Work", () => {
+    const missing = missingFields(asset("recent-work", { jobs: [PAIR], couponOffer: "", colors: ["#123456"] }));
+    expect(missing).toContain("The discount");
+    expect(missing).not.toContain("A whole before/after job");
+  });
+
+  it("puts the discount and the Conversion Asset Calendar in the Recent Work prompt", () => {
+    const out = prompt("recent-work", { jobs: [PAIR], calendarEmbed: "<iframe></iframe>", couponCode: "SAVE10" });
+    expect(out).toContain("THE DISCOUNT");
+    expect(out).toContain("Offer: 10% off");
+    expect(out).toContain("Code: SAVE10");
+    expect(out).toContain("Conversion Asset Calendar");
+  });
+
   it("names what the owner story is short of", () => {
     expect(missingFields(asset("owner-story", { colors: ["#123456"] }))).toContain(
       "Owner photo or video, and notes",

@@ -84,6 +84,10 @@ describe("content completeness", () => {
     expect(contentIsComplete(asset("recent-work", { jobs: [PAIR] }))).toBe(true);
   });
 
+  it("wants the discount on Recent Work too", () => {
+    expect(contentIsComplete(asset("recent-work", { jobs: [PAIR], couponOffer: "" }))).toBe(false);
+  });
+
   // The text that sends them there promises a gift by name, so a page without
   // it is a broken promise rather than a thinner page.
   it("wants the photo, the notes AND the gift on the owner story", () => {
@@ -106,9 +110,10 @@ describe("content completeness", () => {
     expect(contentIsComplete({ ...withVideo, ownerVideoUrl: "" })).toBe(false);
   });
 
-  it("pre-fills the gift on the owner story and nowhere else", () => {
+  it("pre-fills the discount on both booking pages and not on the process page", () => {
     expect(asset("owner-story").couponOffer).toBe(DEFAULT_COUPON_OFFER);
-    expect(asset("recent-work").couponOffer).toBe("");
+    expect(asset("recent-work").couponOffer).toBe(DEFAULT_COUPON_OFFER);
+    expect(asset("unique-mechanism").couponOffer).toBe("");
   });
 
   // Deliberate. The client may have no photos and no documented process, and
@@ -185,15 +190,13 @@ describe("cleaners", () => {
 describe("carrying one asset's answers into the next", () => {
   const embed = '<iframe src="https://x/widget/booking/normal"></iframe>';
 
-  it("hands the normal calendar from Recent Work to nothing but another normal page", () => {
-    const from = asset("recent-work", { calendarEmbed: embed, appointmentType: "Estimate" });
-    expect(carryForward(from, "recent-work").calendarEmbed).toBe(embed);
-    expect(carryForward(from, "owner-story").calendarEmbed).toBe("");
+  it("shares the one Conversion Asset Calendar between both booking pages", () => {
+    expect(carryForward(asset("recent-work", { calendarEmbed: embed }), "owner-story").calendarEmbed).toBe(embed);
+    expect(carryForward(asset("owner-story", { calendarEmbed: embed }), "recent-work").calendarEmbed).toBe(embed);
   });
 
-  it("never lends the offer calendar to Recent Work", () => {
-    const from = asset("owner-story", { calendarEmbed: embed });
-    expect(carryForward(from, "recent-work").calendarEmbed).toBe("");
+  it("gives the process page no calendar", () => {
+    expect(carryForward(asset("recent-work", { calendarEmbed: embed }), "unique-mechanism").calendarEmbed).toBe("");
   });
 
   it("still carries the look and the appointment either way", () => {

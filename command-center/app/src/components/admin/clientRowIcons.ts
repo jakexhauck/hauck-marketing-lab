@@ -1,6 +1,5 @@
 import {
   AppWindow,
-  Braces,
   Briefcase,
   MessageSquareText,
   Radio,
@@ -36,7 +35,6 @@ const ICONS: Record<string, LucideIcon> = {
   "conversion-assets": Sparkles,
   calendars: CalendarDays,
   "follow-ups": MessageSquareText,
-  "custom-values": Braces,
   capi: Radio,
   setter: PhoneCall,
   management: Briefcase,

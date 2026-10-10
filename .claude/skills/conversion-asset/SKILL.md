@@ -9,7 +9,7 @@ The page a follow-up text sends a lead to. Every client gets the same three.
 
 | Kind | Path | Sent when | Job | Ends with |
 |---|---|---|---|---|
-| `recent-work` | `/recent-work` | New lead, text 1 | Proof, before they have met anybody | Book |
+| `recent-work` | `/recent-work` | New lead, text 1 | Proof, before they have met anybody, plus the discount | Book |
 | `owner-story` | `/meet-the-owner` | New lead, text 2 | Who they are hiring, plus the gift | Book |
 | `unique-mechanism` | `/our-process` | Estimate reminder | Their process, named | Nothing |
 
@@ -41,7 +41,8 @@ Per kind, what the page needs:
 
 - **recent-work** up to five before/after pairs, the reviews as typed, and the
   six trust facts (licensed, insured, years, jobs completed, warranty, service
-  area). An empty trust field means leave it off, not "find out".
+  area). An empty trust field means leave it off, not "find out". Plus **the
+  discount**.
 - **owner-story** owner's name, a photo and/or a video of them, bullet
   notes, and **the gift**. A video leads the story as a native `<video>`
   (controls, playsinline, no autoplay with sound), the photo as its poster. **You write the story from the notes;** they are raw material, never
@@ -49,11 +50,11 @@ Per kind, what the page needs:
 - **unique-mechanism** a method name and steering notes, both optional. See
   below: this one is built out of positioning, not assets.
 
-## The owner story owes them a gift
+## Both booking pages carry the discount
 
-The universal text tells the lead there is something for them on the website.
-It is a discount, 10% by default, and the brief carries the exact offer, the
-code and any terms.
+Recent Work and the owner story both offer a discount, 10% by default, and the
+brief carries the exact offer, the code and any terms. On the owner story it
+is the gift the universal text already promised.
 
 **Build the page so the gift is impossible to miss and needs no hunting.** It
 sits above the calendar, not in a footer. A lead who clicked for a discount and
@@ -104,7 +105,8 @@ GHL holds a two-line pointer stub at the path. Copy and design edits ship by
 deploy, in git, with no page builder.
 
 **The booking kinds carry the GHL calendar EMBED, not a link to a booking
-page.** The lead reads the page and books on it. One page, one click, done. The
+page.** It is always the client's **Conversion Asset Calendar**, the same
+calendar on both pages. The lead reads the page and books on it. One page, one click, done. The
 calendar collects their name, email and phone fresh, so there is no PII in any
 URL and no prefill to break.
 

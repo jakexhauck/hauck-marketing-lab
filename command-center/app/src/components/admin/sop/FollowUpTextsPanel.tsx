@@ -9,8 +9,7 @@ import { CopyButton, SOP_FIELD, SopButton, SopCard, SopError, SopHeading } from 
 // Client > GHL > Follow-up Texts. Two sections, each a set of texts Claude
 // writes for this client and Jake copies into the GHL workflow:
 //   Long Term Nurture   the four LTN texts
-//   Lead Form           first text, SMS 3 (+ photo idea), Hail Mary, and the
-//                       two alerts (templates, no Claude)
+//   Lead Form           first text, SMS 3 (+ photo idea), Hail Mary
 // Every text is editable in place and saved on blur. The checks under a text
 // are warnings (src/lib/smsRules.ts), never blocks.
 

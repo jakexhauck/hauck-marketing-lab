@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-10-ghl-trim",
+    date: "10 October 2026",
+    title: "GHL pages trimmed",
+    items: [
+      "Custom Values is gone from each client's GHL pages.",
+      "Wiring shows three links: Call Now Link, Lead Outcome Link and Phone Appointment Call Now Link.",
+      "Follow-up Texts no longer shows the client and agency alerts.",
+      "Recent Work and Owner Story both offer a discount, and both book into the Conversion Asset Calendar.",
+    ],
+  },
+  {
     id: "2026-10-10-no-outcome-yet",
     date: "10 October 2026",
     title: "Lead Tracker shows leads with no outcome",

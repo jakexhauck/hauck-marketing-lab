@@ -8,7 +8,8 @@
 //   owner-story        new lead, text 2    who they are hiring, plus the gift
 //   unique-mechanism   estimate reminder   their process, named
 //
-// The first two book. The third does not: it rides along with the estimate
+// The first two book into the Conversion Asset Calendar and both offer a
+// discount. The third does not: it rides along with the estimate
 // reminders, so its reader already has an appointment.
 //
 // THE SMS IS NOT HERE, DELIBERATELY. The follow-up messages are universal now:
@@ -163,13 +164,24 @@ export const TRUST_FIELDS = [
   { key: "serviceArea", label: "Service area", placeholder: "Cape May County" },
 ] as const;
 
-// The gift. The universal text for the owner story PROMISES something on the
-// website, so the page has to hand it over. That makes the offer the only
-// required thing on that page besides the owner themselves.
+// The discount. Jake, 2026-10-10: Recent Work and the owner story both offer
+// one, so both booking pages carry it and both require it. The owner story's
+// text promises it by name; Recent Work hands it over next to the proof.
 //
 // The amount is a field rather than a constant because a client can decide
 // their own discount, but it starts where the message says it is.
 export const DEFAULT_COUPON_OFFER = "10% off";
+
+// Every page that books carries the discount. unique-mechanism books nothing
+// and offers nothing: its reader already has an appointment.
+export function offersDiscount(kind: AssetKind | ""): boolean {
+  return kind === "recent-work" || kind === "owner-story";
+}
+
+// The one GHL calendar every conversion asset books into, in every client's
+// sub-account. Same name everywhere (Jake, 2026-10-10), so a booking landing
+// on it is how the agency knows the lead came off a conversion asset.
+export const CONVERSION_ASSET_CALENDAR = "Conversion Asset Calendar";
 
 // How many jobs each kind draws. Only recent-work carries any: the owner story
 // is a person, and the mechanism is a process.
@@ -259,7 +271,7 @@ export interface ConversionAsset {
   // Optional alongside the photo; either one makes the page buildable.
   ownerVideoUrl: string;
   storyNotes: string;
-  // The gift the owner-story text promised. See DEFAULT_COUPON_OFFER.
+  // The discount on both booking pages. See DEFAULT_COUPON_OFFER.
   couponOffer: string;
   couponCode: string;
   couponTerms: string;
@@ -501,8 +513,8 @@ export function stepsFor(kind: AssetKind | ""): WizardStep[] {
 //
 // Only what BREAKS without it. recent-work needs one whole job to be worth
 // opening; the reviews and the trust facts are what make it good, not what make
-// it possible. The owner story needs the person AND the gift, because the text
-// that sends them there promised the gift by name.
+// it possible. Both booking pages need the discount (DEFAULT_COUPON_OFFER), and
+// the owner story needs the person too.
 //
 // unique-mechanism requires NOTHING, and that is deliberate rather than an
 // oversight. The whole point of that page is that it is built out of
@@ -517,7 +529,7 @@ export function hasOwnerMedia(asset: Pick<ConversionAsset, "ownerPhotoUrl" | "ow
 export function contentIsComplete(asset: ConversionAsset): boolean {
   switch (asset.kind) {
     case "recent-work":
-      return wholeJobs(asset.jobs).length > 0;
+      return wholeJobs(asset.jobs).length > 0 && asset.couponOffer.trim().length > 0;
     case "owner-story":
       return (
         hasOwnerMedia(asset) &&
@@ -665,7 +677,7 @@ export function emptyConversionAsset(tenantId: string, kind: AssetKind): Convers
     // Pre-filled, because the universal text already told the lead what the
     // gift is. Typing it again per client is asking somebody to restate a
     // decision that has already been made everywhere else.
-    couponOffer: kind === "owner-story" ? DEFAULT_COUPON_OFFER : "",
+    couponOffer: offersDiscount(kind) ? DEFAULT_COUPON_OFFER : "",
     couponCode: "",
     couponTerms: "",
     mechanismName: "",
@@ -682,22 +694,14 @@ export function emptyConversionAsset(tenantId: string, kind: AssetKind): Convers
   };
 }
 
-// The owner story books into the client's own offer calendar, a separate GHL
-// calendar from the one Recent Work uses. A booking landing there is how the
-// agency knows the lead came for the 10% off, so the two must never share.
-export function usesOfferCalendar(kind: AssetKind | ""): boolean {
-  return kind === "owner-story";
-}
-
 // What a second asset for the same client inherits from one already filled in.
 // The look, the logo, the appointment and the calendar are settled once per
 // client, and asking again is asking Jake to repeat himself.
 //
 // Deliberately NOT carried: the kind, the slug, and every content field. Those
-// are the entire difference between the three. The calendar crosses only
-// between pages on the same side of the offer line.
+// are the entire difference between the three. Every booking page uses the one
+// Conversion Asset Calendar, so its embed carries between them.
 export function carryForward(from: ConversionAsset, to: AssetKind): Partial<ConversionAsset> {
-  const sameCalendar = usesOfferCalendar(from.kind) === usesOfferCalendar(to);
   return {
     designSource: from.designSource,
     designRef: from.designRef,
@@ -707,7 +711,7 @@ export function carryForward(from: ConversionAsset, to: AssetKind): Partial<Conv
     logoUrl: from.logoUrl,
     ownerName: from.ownerName,
     appointmentType: from.appointmentType,
-    calendarEmbed: sameCalendar ? from.calendarEmbed : "",
+    calendarEmbed: asksForBooking(to) ? from.calendarEmbed : "",
   };
 }
 

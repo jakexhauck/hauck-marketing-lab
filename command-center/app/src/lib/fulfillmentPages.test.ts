@@ -124,7 +124,6 @@ describe("ghlSubTabs", () => {
     expect(ghlSubTabs(subs, true).map((s) => s.id)).toEqual([
       "conversion-assets",
       "follow-ups",
-      "custom-values",
       "capi",
       "wiring",
       "calendars",
@@ -137,7 +136,6 @@ describe("ghlSubTabs", () => {
       GHL_SETUP_SUB,
       "conversion-assets",
       "follow-ups",
-      "custom-values",
       "capi",
       "wiring",
     ]);

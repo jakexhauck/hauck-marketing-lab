@@ -64,7 +64,7 @@ const ANSWERS: { label: string; asks: string; does: string[] }[] = [
   },
 ];
 
-const LINK = "{{custom_values.outcome_link}}&c={{contact.id}}";
+const LINK = "{{custom_values.lead_outcome_link}}&c={{contact.id}}";
 
 export default function OutcomePageTab() {
   return (
