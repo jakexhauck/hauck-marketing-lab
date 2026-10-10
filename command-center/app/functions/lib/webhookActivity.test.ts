@@ -19,10 +19,31 @@ describe("InboundCall webhook mapping", () => {
   });
 });
 
+// Jake, 2026-10-10: the phone buzzes for a new text message and nothing else.
 describe("what wakes the phone", () => {
-  it("pushes on a new lead and a booked appointment", () => {
+  function inbound(messageType?: string) {
+    return toActivity("t1", { type: "InboundMessage", contactId: "c1", messageType } as any)!;
+  }
+
+  it("pushes on an inbound text", () => {
+    expect(shouldPush(inbound("SMS"))).toBe(true);
+    expect(shouldPush(inbound("TYPE_SMS"))).toBe(true);
+  });
+
+  // A workflow payload carries no messageType at all, and those were texts.
+  it("pushes on an inbound message that does not say its channel", () => {
+    expect(shouldPush(inbound())).toBe(true);
+  });
+
+  it("stays silent on inbound email, Facebook and calls", () => {
+    for (const t of ["Email", "TYPE_EMAIL", "FB", "TYPE_INSTAGRAM", "CALL", "TYPE_CALL"]) {
+      expect(shouldPush(inbound(t))).toBe(false);
+    }
+  });
+
+  it("stays silent on a new lead and a booked appointment", () => {
     for (const type of ["OpportunityCreate", "AppointmentCreate"]) {
-      expect(shouldPush(toActivity("t1", { type, contactId: "c1" } as any)!)).toBe(true);
+      expect(shouldPush(toActivity("t1", { type, contactId: "c1" } as any)!)).toBe(false);
     }
   });
 

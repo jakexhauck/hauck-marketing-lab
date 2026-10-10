@@ -86,7 +86,7 @@ describe("connection registry", () => {
     // names all of them, so "why is this empty" has one place to be answered.
     // Push alerts need the webhook to fire AND the push keys to deliver, and a
     // failure in either looks identical from the outside.
-    const push = groups.find((g) => g.surface.label === "New lead push alerts");
+    const push = groups.find((g) => g.surface.label === "Text message push alerts");
     expect(push?.requires.map((d) => d.id).sort()).toEqual(["ghl-webhook", "web-push"]);
   });
 

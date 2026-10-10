@@ -428,7 +428,7 @@ export const CONNECTIONS: ConnectionDef[] = [
       },
     ],
     surfaces: [
-      { label: "New lead push alerts", audience: "client" },
+      { label: "Text message push alerts", audience: "client" },
       { label: "Connection health alerts", audience: "admin" },
     ],
     remediation:
@@ -664,7 +664,7 @@ export const CONNECTIONS: ConnectionDef[] = [
     ],
     surfaces: [
       { label: "Inbox freshness", to: "/conversations", audience: "client" },
-      { label: "New lead push alerts", audience: "client" },
+      { label: "Text message push alerts", audience: "client" },
     ],
     remediation:
       "A rotated secret makes GHL's calls fail silently on their side, so the app just looks stale. Update the workflow's header in GHL in the same sitting.",

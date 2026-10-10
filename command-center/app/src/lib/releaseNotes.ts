@@ -42,7 +42,8 @@ export const RELEASES: Release[] = [
     items: [
       "Ad leads listed in a client's Inbox opened to \"Could not load messages\" and could not be replied to. They open and send now.",
       "No phone alert for a text from a staff notification number. Those never show in the Inbox, so the alert opened to \"Could not load messages\".",
-      "Willis now takes its GHL events from the Marketplace app, so alerts for new texts, leads and bookings reach the phone.",
+      "Willis now takes its GHL events from the Marketplace app, so text alerts reach the phone.",
+      "Phone alerts are for new text messages only. New leads, bookings, calls, emails and Facebook messages no longer buzz.",
     ],
   },
   {

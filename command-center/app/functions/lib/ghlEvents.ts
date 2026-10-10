@@ -9,6 +9,8 @@
 // The mapping below is the legacy one, verbatim. The app-specific part of this
 // file is normalizeAppEvent + APP_COVERED_TYPES at the bottom.
 
+import { normalizeMessageType } from "./messaging";
+
 export interface GhlWebhookEvent {
   type?: string;
   locationId?: string;
@@ -190,18 +192,16 @@ export function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | nul
   }
 }
 
-// Kinds that wake the client's phone: work that has just arrived and needs a
-// human. Everything else stays in the feed without buzzing.
-//
-// Inbound calls and wins are deliberately NOT here. The phone is already
-// ringing for a call, so a push is a second alert for one event, and a win is
-// something the owner did rather than something waiting on them.
+// The one thing that wakes the client's phone: a new text from a lead (Jake,
+// 2026-10-10). New leads, bookings, calls, emails and social messages all stay
+// in the feed without buzzing. GHL sends calls and emails as InboundMessage
+// too, so the channel decides. A payload that names no channel is a text: the
+// workflow webhook never carried one, and texts are what it sent.
 export function shouldPush(activity: Activity): boolean {
-  return (
-    activity.kind === "message_in" ||
-    activity.kind === "lead_created" ||
-    activity.kind === "appointment_create"
-  );
+  if (activity.kind !== "message_in") return false;
+  const messageType = (activity.raw as { messageType?: unknown } | null)?.messageType;
+  if (typeof messageType !== "string" || !messageType) return true;
+  return normalizeMessageType({ messageType }) === "SMS";
 }
 
 // ---------------------------------------------------------------------------

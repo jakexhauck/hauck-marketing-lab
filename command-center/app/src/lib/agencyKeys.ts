@@ -27,7 +27,7 @@ export const KEY_GROUPS: KeyGroup[] = [
   { id: "calendars", label: "Calendars", blurb: "Two-way sync onto each client's real Google Calendar." },
   { id: "email", label: "Email", blurb: "Internal notification email relayed from GoHighLevel workflows." },
   { id: "drive", label: "Drive and assets", blurb: "The Assets hub, the SOP Hub, and each new client's folder." },
-  { id: "push", label: "Push notifications", blurb: "Browser alerts on a new lead. Entirely ours, no vendor." },
+  { id: "push", label: "Push notifications", blurb: "Phone alerts on a new text message. Entirely ours, no vendor." },
   { id: "signin", label: "Sign-in", blurb: "The shared password and the signed session cookie." },
   { id: "crons", label: "Scheduled jobs", blurb: "The health watchdog and the nightly ad spend refresh." },
   { id: "buildlab", label: "Build Lab", blurb: "Reads the build plans out of the repo." },
