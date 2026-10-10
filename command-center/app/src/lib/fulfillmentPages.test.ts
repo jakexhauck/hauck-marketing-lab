@@ -126,6 +126,7 @@ describe("ghlSubTabs", () => {
       "follow-ups",
       "custom-values",
       "capi",
+      "wiring",
       "calendars",
     ]);
   });
@@ -138,6 +139,7 @@ describe("ghlSubTabs", () => {
       "follow-ups",
       "custom-values",
       "capi",
+      "wiring",
     ]);
     expect(gated[0].label).toBe("Connect GHL");
   });

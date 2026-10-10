@@ -84,6 +84,8 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
       { id: "follow-ups", label: "Follow-up Texts", ready: true },
       { id: "custom-values", label: "Custom Values", ready: true },
       { id: "capi", label: "CAPI", ready: true },
+      // The three owner text links to paste into GHL custom values (2026-10-10).
+      { id: "wiring", label: "Wiring", ready: true },
       { id: "calendars", label: "Calendars", ready: true },
     ],
   },

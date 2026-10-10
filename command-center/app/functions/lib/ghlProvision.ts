@@ -91,6 +91,20 @@ export const LEAD_OUTCOME_LINK_NAME = "Lead Outcome Link";
 
 const LIVE_ORIGIN = "https://app.hauckmarketing.com";
 
+// One owner link as Client > GHL > Wiring shows it.
+export interface WiringLink {
+  name: string;
+  // The merge tag a workflow uses, e.g. {{custom_values.call_now_link}}.
+  merge: string;
+  value: string;
+}
+
+// GoHighLevel's own rule for a custom value's merge key: lowercase, spaces to
+// underscores.
+export function mergeTag(name: string): string {
+  return `{{custom_values.${name.trim().toLowerCase().replace(/\s+/g, "_")}}}`;
+}
+
 export async function ownerLinkValues(
   origin: string,
   secret: string,

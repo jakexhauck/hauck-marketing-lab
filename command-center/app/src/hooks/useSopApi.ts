@@ -3,6 +3,7 @@ import { api } from "../lib/api";
 import type { Sheet } from "../lib/customValuesSheet";
 import type { CopyItem, CopyKind, CopyRecord, CopySettings } from "../lib/followUpCopy";
 import type { LeadForm } from "../../functions/lib/adLeadForms";
+import type { WiringLink } from "../../functions/lib/ghlProvision";
 
 // Data hooks for the client setup pages built from the Client Setup SOP.
 // Kept out of useApi.ts so these pages are one file to read.
@@ -53,6 +54,15 @@ export interface CapiView {
   token: string;
   hasToken: boolean;
   updatedAt: string | null;
+}
+
+// ---- Wiring --------------------------------------------------------------
+
+export function useWiringQuery(tenantId: string) {
+  return useQuery({
+    queryKey: ["sop", "wiring", tenantId],
+    queryFn: () => api<{ links: WiringLink[] }>(`/api/admin/clients/${enc(tenantId)}/wiring`),
+  });
 }
 
 export function useCapiQuery(tenantId: string) {

@@ -71,3 +71,12 @@ describe("ownerLinkValues", () => {
     expect(live[0].value.split("k=")[1]).not.toBe(live[1].value.split("k=")[1]);
   });
 });
+
+describe("mergeTag", () => {
+  it("matches GoHighLevel's merge key for each link", async () => {
+    const { mergeTag } = await import("./ghlProvision");
+    expect(mergeTag("Call Now Link")).toBe("{{custom_values.call_now_link}}");
+    expect(mergeTag("Lead Outcome Link")).toBe("{{custom_values.lead_outcome_link}}");
+    expect(mergeTag("Estimate Outcome Link")).toBe("{{custom_values.estimate_outcome_link}}");
+  });
+});

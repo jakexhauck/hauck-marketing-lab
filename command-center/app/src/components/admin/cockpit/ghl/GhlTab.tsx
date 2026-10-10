@@ -4,6 +4,7 @@ import GhlSetupWizard from "./GhlSetupWizard";
 import CapiPanel from "../../sop/CapiPanel";
 import CustomValuesPanel from "../../sop/CustomValuesPanel";
 import FollowUpTextsPanel from "../../sop/FollowUpTextsPanel";
+import WiringPanel from "../../sop/WiringPanel";
 import { GHL_SETUP_SUB, placeholderCopy, subTabsFor } from "../../../../lib/fulfillmentPages";
 
 // Fulfillment > GHL. Everything the operator builds to be pasted INTO a
@@ -56,6 +57,8 @@ export default function GhlTab({
       return <CustomValuesPanel tenantId={tenantId} />;
     case "capi":
       return <CapiPanel tenantId={tenantId} />;
+    case "wiring":
+      return <WiringPanel tenantId={tenantId} />;
     case "calendars":
       return (
         <CalendarPanel

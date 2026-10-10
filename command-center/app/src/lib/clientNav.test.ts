@@ -20,7 +20,7 @@ describe("clientNavGroups", () => {
     expect(labels(linked)).toEqual([
       [null, ["Onboarding", "Software"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
-      ["GHL", ["Conversion Assets", "Follow-up Texts", "Custom Values", "CAPI", "Calendars"]],
+      ["GHL", ["Conversion Assets", "Follow-up Texts", "Custom Values", "CAPI", "Wiring", "Calendars"]],
       [null, ["Setter Suite", "Management"]],
     ]);
   });
@@ -29,7 +29,7 @@ describe("clientNavGroups", () => {
     expect(labels(bare)).toEqual([
       [null, ["Onboarding", "Software"]],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
-      ["GHL", ["Connect GHL", "Conversion Assets", "Follow-up Texts", "Custom Values", "CAPI"]],
+      ["GHL", ["Connect GHL", "Conversion Assets", "Follow-up Texts", "Custom Values", "CAPI", "Wiring"]],
       [null, ["Setter Suite", "Management"]],
     ]);
   });
