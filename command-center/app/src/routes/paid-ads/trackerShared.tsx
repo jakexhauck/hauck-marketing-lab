@@ -8,14 +8,13 @@ import type { StageKey as LeadBoardStageKey } from "../../lib/leadBoard";
 // Pipeline Stats), ported from the client tracking sheet. Formatting rules
 // match the sheet: a null ratio renders "-", never a fabricated zero.
 
-// Ads Manager's presets, named the way Ads Manager names them.
+// Ads Manager's presets, named the way Ads Manager names them. Unlike Meta's,
+// every "Last N days" runs through today, so a lead from an hour ago counts
+// (Jake, 2026-10-12).
 //
-// Was All Time / 7 / 30 / 90 Days, which looked like Meta's ranges and was not
-// one of them: Meta's "Last 7 days" ends yesterday, ours ran to today, and
-// nothing on either screen said the two were covering different days.
-//
-// DEFAULT_RANGE is last_30d, matching what Ads Manager opens on, so a client
-// comparing the two screens is comparing the same window by default.
+// DEFAULT_RANGE (Ads Dashboard) is last_30d, what Ads Manager opens on. The
+// Lead Tracker opens on Maximum instead: it is a list of people, and nobody
+// should go missing because they came in 31 days ago.
 export const RANGES: { id: AdTrackerRange; label: string }[] = [
   { id: "today", label: "Today" },
   { id: "yesterday", label: "Yesterday" },
@@ -28,6 +27,7 @@ export const RANGES: { id: AdTrackerRange; label: string }[] = [
 ];
 
 export const DEFAULT_RANGE: AdTrackerRange = "last_30d";
+export const LEAD_TRACKER_RANGE: AdTrackerRange = "maximum";
 
 export const LEVELS: { id: AdTrackerLevel; label: string }[] = [
   { id: "campaign", label: "Campaign" },

@@ -2483,6 +2483,7 @@ interface SendChannelMessageInput {
   channel: string;
   body: string;
   subject?: string;
+  attachments?: string[];
 }
 
 // Channel-aware send for the conversations path (SMS, Email, FB, IG, ...).
@@ -2498,6 +2499,7 @@ export function useSendConversationMessage() {
             channel: input.channel,
             body: input.body,
             subject: input.subject,
+            attachments: input.attachments,
           }),
         },
       ),

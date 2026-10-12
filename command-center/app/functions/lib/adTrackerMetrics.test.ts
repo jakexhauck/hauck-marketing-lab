@@ -328,23 +328,23 @@ describe("rangeWindow matches Ads Manager's presets", () => {
     });
   });
 
-  it("ends the last_Nd presets YESTERDAY, the way Meta does", () => {
+  it("runs the last_Nd presets through TODAY, so today's leads count", () => {
+    // Jake, 2026-10-12: "Last 30 days" is today plus the 29 days before it.
     expect(rangeWindow("last_7d", now, EST)).toEqual({
-      start: "2026-08-06",
-      end: "2026-08-12",
+      start: "2026-08-07",
+      end: "2026-08-13",
     });
     expect(rangeWindow("last_14d", now, EST)).toEqual({
-      start: "2026-07-30",
-      end: "2026-08-12",
+      start: "2026-07-31",
+      end: "2026-08-13",
     });
     expect(rangeWindow("last_30d", now, EST)).toEqual({
-      start: "2026-07-14",
-      end: "2026-08-12",
+      start: "2026-07-15",
+      end: "2026-08-13",
     });
   });
 
-  it("includes today in this_month, which last_7d does not", () => {
-    // Meta's own inconsistency, reproduced on purpose.
+  it("includes today in this_month too", () => {
     expect(rangeWindow("this_month", now, EST)).toEqual({
       start: "2026-08-01",
       end: "2026-08-13",
@@ -370,8 +370,8 @@ describe("rangeWindow matches Ads Manager's presets", () => {
   it("counts back over a month boundary without landing on day zero", () => {
     const mar1 = new Date("2026-03-01T18:00:00Z");
     expect(rangeWindow("last_7d", mar1, EST)).toEqual({
-      start: "2026-02-22",
-      end: "2026-02-28",
+      start: "2026-02-23",
+      end: "2026-03-01",
     });
   });
 });

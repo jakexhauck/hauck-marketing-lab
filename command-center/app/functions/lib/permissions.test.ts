@@ -40,6 +40,22 @@ describe("page capabilities", () => {
     expect(checkStaffAccess(path, "PATCH", view("pipeline")).allowed).toBe(false);
   });
 
+  it("the Call button needs edit on a page that shows it", () => {
+    const path = "/api/contacts/abc123def456/call";
+    const edit = (c: string) => ({ [c]: { view: true, edit: true } });
+    for (const c of ["pipeline", "inbox", "paid_ads", "contacts"]) {
+      expect(checkStaffAccess(path, "POST", edit(c)).allowed).toBe(true);
+    }
+    expect(checkStaffAccess(path, "POST", view("pipeline", "inbox", "paid_ads")).allowed).toBe(false);
+    expect(checkStaffAccess(path, "POST", edit("calendar")).allowed).toBe(false);
+  });
+
+  it("an Inbox photo upload takes Inbox edit", () => {
+    const path = "/api/conversations/abc123/upload";
+    expect(checkStaffAccess(path, "POST", { inbox: { view: true, edit: true } }).allowed).toBe(true);
+    expect(checkStaffAccess(path, "POST", view("inbox")).allowed).toBe(false);
+  });
+
   it("organic needs the organic grant, detail included", () => {
     expect(checkStaffAccess("/api/organic", "GET", view("inbox")).allowed).toBe(false);
     expect(checkStaffAccess("/api/organic/abc", "GET", view("organic")).allowed).toBe(true);

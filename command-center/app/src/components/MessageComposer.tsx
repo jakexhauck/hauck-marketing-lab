@@ -4,6 +4,7 @@ import {
   useSendConversationMessage,
   useSendLeadMessage,
 } from "../hooks/useApi";
+import { uploadConversationPhoto } from "../lib/api";
 import ChannelComposer, { type SendChannelInput } from "./ChannelComposer";
 
 // One composer for both data sources: a lead id (LeadDetail) or a contact id
@@ -51,6 +52,8 @@ export default function MessageComposer({
       smsDisabled={disabled}
       lockChannel={lockChannel}
       onSend={onSend}
+      // Photos ride on texts in the Inbox (contact threads) only.
+      onUploadPhoto={contactId ? (file) => uploadConversationPhoto(contactId, file) : undefined}
     />
   );
 }

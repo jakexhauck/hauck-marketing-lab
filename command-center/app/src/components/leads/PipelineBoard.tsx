@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { CalendarPlus, Clock3, HelpCircle, Phone, PhoneMissed, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { CalendarPlus, Check, Clock3, Hammer, HelpCircle, MessageSquare, Phone, PhoneMissed, X } from "lucide-react";
 import Avatar from "../Avatar";
+import { canBridgeCall, useBridgeCall } from "../CallButton";
 import { cn } from "../../lib/cn";
 import { useToast } from "../../context/ToastContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
@@ -90,6 +92,19 @@ export default function PipelineBoard({ data }: { data: BoardPayload }) {
   const now = Date.now();
   const isMobile = useIsMobile();
   const [dragging, setDragging] = useState(false);
+  const bridge = useBridgeCall();
+
+  // Every Call button on the board (row, card, rail, sheet) lands here. A GHL
+  // contact gets the two-way call: the owner's phone rings, then the lead
+  // (Jake, 2026-10-12). Anything else falls back to the phone's dialer.
+  // Either way "What happened?" follows, as it always has.
+  const callLead = (id: string) => {
+    const lead = leads.find((l) => l.id === id);
+    if (!lead?.phone) return;
+    if (canBridgeCall(lead.contactId)) void bridge.call(lead.contactId);
+    else window.location.href = `tel:${lead.phone}`;
+    setCalling(id);
+  };
 
   const byKey = (k: StageKey) => stages.find((s) => s.key === k) ?? null;
   const keyOf = (l: BoardLead) => stageKeyOf(stages, l.stageId);
@@ -191,7 +206,7 @@ export default function PipelineBoard({ data }: { data: BoardPayload }) {
             focused={focus !== null}
             now={now}
             onOpen={openLead}
-            onCall={setCalling}
+            onCall={callLead}
           />
         </>
       ) : (
@@ -207,6 +222,7 @@ export default function PipelineBoard({ data }: { data: BoardPayload }) {
           now={now}
           onOpen={openLead}
           onMove={requestMove}
+          onCall={callLead}
         />
       )}
 
@@ -214,9 +230,11 @@ export default function PipelineBoard({ data }: { data: BoardPayload }) {
         <LeadSheet
           lead={open}
           stages={stages}
+          stageKey={keyOf(open)}
+          now={now}
           onClose={() => setOpenId(null)}
           onMove={(s) => requestMove(open.id, s)}
-          onCall={() => setCalling(open.id)}
+          onCall={() => callLead(open.id)}
         />
       )}
 
@@ -510,14 +528,14 @@ function MobileRow({
         </div>
       </button>
       {lead.phone && (
-        <a
-          href={`tel:${lead.phone}`}
+        <button
+          type="button"
           onClick={onCall}
           aria-label={`Call ${lead.name}`}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--surface-2)] text-[var(--brand-text)] active:bg-[var(--brand-tint)]"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-600 text-white active:bg-emerald-700 dark:bg-emerald-500"
         >
           <Phone size={17} strokeWidth={2.2} />
-        </a>
+        </button>
       )}
     </li>
   );
@@ -537,6 +555,7 @@ function RailBoard({
   now,
   onOpen,
   onMove,
+  onCall,
 }: {
   stages: BoardStage[];
   leads: BoardLead[];
@@ -549,6 +568,7 @@ function RailBoard({
   now: number;
   onOpen: (id: string) => void;
   onMove: (id: string, stageId: string) => void;
+  onCall: (id: string) => void;
 }) {
   const boardStages = stages.filter((s) => !PARKED.includes(s.key as ParkedKey));
   const stageOf = (k: ParkedKey) => stages.find((s) => s.key === k) ?? null;
@@ -570,7 +590,7 @@ function RailBoard({
     >
       <NeedsStrip counts={counts} value={focus} onChange={onFocus} />
       <div className="flex min-h-0 flex-1 pr-4">
-        <Columns stages={boardStages} leads={shown} now={now} onOpen={onOpen} onMove={onMove} />
+        <Columns stages={boardStages} leads={shown} now={now} onOpen={onOpen} onMove={onMove} onCall={onCall} />
         <aside className="flex w-[280px] shrink-0 flex-col gap-1.5 pb-6 pt-1">
           {PARKED.map((k) => {
             const st = stageOf(k);
@@ -595,7 +615,7 @@ function RailBoard({
                   </span>
                 </header>
                 <div className="mx-1.5 mb-1.5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-                  <RailList stageKey={k} leads={parkedLeads(k, shown)} now={now} onOpen={onOpen} />
+                  <RailList stageKey={k} leads={parkedLeads(k, shown)} now={now} onOpen={onOpen} onCall={onCall} />
                 </div>
               </DropZone>
             );
@@ -661,11 +681,13 @@ function RailList({
   leads,
   now,
   onOpen,
+  onCall,
 }: {
   stageKey: ParkedKey;
   leads: BoardLead[];
   now: number;
   onOpen: (id: string) => void;
+  onCall: (id: string) => void;
 }) {
   if (leads.length === 0) return <div className="px-4 py-8 text-center text-[13px] text-[var(--text-muted)]">No leads.</div>;
   return (
@@ -712,6 +734,7 @@ function RailList({
             ) : (
               <span className="shrink-0 text-[11.5px] text-[var(--text-faint)] tnum">{fmtDate(l.createdAt)}</span>
             )}
+            {l.phone && <CardCall name={l.name} onCall={() => onCall(l.id)} />}
           </li>
         );
       })}
@@ -768,12 +791,14 @@ function Columns({
   now,
   onOpen,
   onMove,
+  onCall,
 }: {
   stages: BoardStage[];
   leads: BoardLead[];
   now: number;
   onOpen: (id: string) => void;
   onMove: (id: string, stageId: string) => void;
+  onCall: (id: string) => void;
 }) {
   const [over, setOver] = useState<string | null>(null);
   return (
@@ -838,7 +863,7 @@ function Columns({
             </header>
             <div className="flex min-h-[80px] flex-1 flex-col gap-2 overflow-y-auto px-2.5 pb-2.5 lg:gap-1.5 lg:px-1.5 lg:pb-1.5">
               {col.map((l, i) => (
-                <LeadCard key={l.id} lead={l} stageKey={s.key} flags={flags[i]} now={now} onOpen={() => onOpen(l.id)} />
+                <LeadCard key={l.id} lead={l} stageKey={s.key} flags={flags[i]} now={now} onOpen={() => onOpen(l.id)} onCall={() => onCall(l.id)} />
               ))}
             </div>
           </section>
@@ -854,23 +879,31 @@ function LeadCard({
   flags,
   now,
   onOpen,
+  onCall,
 }: {
   lead: BoardLead;
   stageKey: StageKey | null;
   flags: ReturnType<typeof leadFlags>;
   now: number;
   onOpen: () => void;
+  onCall: () => void;
 }) {
   const booking = currentBooking(lead, stageKey);
   const showFollow = carriesFollowUp(stageKey) && lead.followUp;
+  // The Call icon sits beside the card button, never inside it: a button in a
+  // button is invalid and the inner click would open the card too.
   return (
+    <div className="relative">
     <button
       type="button"
       draggable
       onDragStart={(e) => e.dataTransfer.setData("text/plain", lead.id)}
       onClick={onOpen}
       title={lead.name}
-      className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-left shadow-[var(--shadow-sm)] transition-transform active:scale-[0.98] lg:rounded-lg lg:px-2 lg:py-2"
+      className={cn(
+        "w-full min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-left shadow-[var(--shadow-sm)] transition-transform active:scale-[0.98] lg:rounded-lg lg:px-2 lg:py-2",
+        lead.phone && "pr-11 lg:pr-8",
+      )}
     >
       <div className="flex items-center justify-between gap-2 lg:flex-col lg:items-start lg:gap-0">
         <span className="max-w-full truncate font-display text-[14px] font-bold text-[var(--text)] lg:line-clamp-2 lg:whitespace-normal lg:break-words lg:text-[12.5px] lg:leading-tight">{lead.name}</span>
@@ -932,6 +965,28 @@ function LeadCard({
         </div>
       ) : null}
     </button>
+    {lead.phone && <CardCall name={lead.name} onCall={onCall} className="absolute right-1.5 top-1.5" />}
+    </div>
+  );
+}
+
+function CardCall({ name, onCall, className }: { name: string; onCall: () => void; className?: string }) {
+  return (
+    <button
+      type="button"
+      aria-label={`Call ${name}`}
+      title="Call"
+      onClick={(e) => {
+        e.stopPropagation();
+        onCall();
+      }}
+      className={cn(
+        "grid h-7 w-7 shrink-0 place-items-center rounded-full bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500",
+        className,
+      )}
+    >
+      <Phone size={13} strokeWidth={2.4} />
+    </button>
   );
 }
 
@@ -973,79 +1028,192 @@ function SheetHead({ lead, title, onClose }: { lead: BoardLead; title?: string; 
   );
 }
 
+// Option A, "Call first" (Jake, 2026-10-12): Call on top, the next booking in
+// its own box, then the facts, then every stage as a button. Every move is a
+// tap; each stage still asks what it needs (time, slot, amount, reason).
 function LeadSheet({
   lead,
   stages,
+  stageKey,
+  now,
   onClose,
   onMove,
   onCall,
 }: {
   lead: BoardLead;
   stages: BoardStage[];
+  stageKey: StageKey | null;
+  now: number;
   onClose: () => void;
   onMove: (stageId: string) => void;
   onCall: () => void;
 }) {
+  const navigate = useNavigate();
   const est = stages.find((s) => s.key === "estimate");
   const job = stages.find((s) => s.key === "job");
+  const won = stages.find((s) => s.key === "won");
+  const lost = stages.find((s) => s.key === "lost");
+  const booking = currentBooking(lead, stageKey);
+  const follow = carriesFollowUp(stageKey) ? lead.followUp : null;
+  const first = lead.name.split(" ")[0] || lead.name;
+  // Won and Lost get their own pair at the bottom, so the grid skips them.
+  const moveStages = stages.filter((s) => s.key !== "won" && s.key !== "lost");
   return (
     <Sheet label={lead.name} onClose={onClose}>
       <SheetHead lead={lead} onClose={onClose} />
-      <div className="grid grid-cols-3 gap-2 px-5">
-        {lead.phone ? (
-          <a
-            href={`tel:${lead.phone}`}
+      <div className="flex flex-col gap-3.5 px-5 pb-5">
+        {lead.phone && (
+          <button
+            type="button"
             onClick={onCall}
-            className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] text-[14px] font-semibold text-[var(--brand-text)]"
+            className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-emerald-600 text-[15.5px] font-semibold text-white hover:bg-emerald-700 active:scale-[0.99] dark:bg-emerald-500"
           >
-            <Phone size={16} strokeWidth={2.3} />
-            Call
-          </a>
-        ) : (
-          <span />
-        )}
-        {est && (
-          <button
-            type="button"
-            onClick={() => onMove(est.id)}
-            className="flex h-11 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[14px] font-semibold text-white"
-          >
-            Estimate
+            <Phone size={18} strokeWidth={2.3} />
+            Call {first}
           </button>
         )}
-        {job && (
-          <button
-            type="button"
-            onClick={() => onMove(job.id)}
-            className="flex h-11 items-center justify-center rounded-xl border border-[var(--border)] text-[14px] font-semibold text-[var(--text)]"
-          >
-            Job
-          </button>
+        <div className="grid grid-cols-3 gap-2">
+          <SheetAction
+            disabled={!lead.contactId}
+            onClick={() => lead.contactId && navigate(`/conversations/${encodeURIComponent(lead.contactId)}`)}
+            icon={<MessageSquare size={16} strokeWidth={2.3} />}
+            label="Text"
+          />
+          {est && (
+            <SheetAction
+              onClick={() => onMove(est.id)}
+              icon={<CalendarPlus size={16} strokeWidth={2.3} />}
+              label="Estimate"
+              brand
+            />
+          )}
+          {job && (
+            <SheetAction onClick={() => onMove(job.id)} icon={<Hammer size={16} strokeWidth={2.3} />} label="Job" />
+          )}
+        </div>
+
+        {(booking || follow) && (
+          <div className="flex items-center gap-3 rounded-[14px] bg-[var(--brand-tint)] px-3.5 py-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[var(--surface)] text-[var(--brand-text)]">
+              {booking ? <CalendarPlus size={16} strokeWidth={2.3} /> : <Clock3 size={16} strokeWidth={2.3} />}
+            </span>
+            <div className="min-w-0">
+              <div className="text-[14px] font-semibold text-[var(--text)]">
+                {booking
+                  ? `${booking.kind === "job" ? "Job" : "Estimate"}, ${fmtWhen(booking.at)}`
+                  : `Follow up, ${fmtWhen(follow!.at)}`}
+              </div>
+              {follow?.note && <div className="truncate text-[12.5px] text-[var(--text-muted)]">{follow.note}</div>}
+            </div>
+          </div>
         )}
-      </div>
-      <div className="px-5 pb-2 pt-4 text-[12px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">Stage</div>
-      <div className="grid grid-cols-1 gap-1.5 px-5 pb-5 sm:grid-cols-2">
-        {stages.map((s) => {
-          const active = s.id === lead.stageId;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => onMove(s.id)}
-              className={cn(
-                "flex h-10 items-center gap-2 rounded-xl border px-3 text-left text-[13.5px] font-semibold transition-colors",
-                active
-                  ? "border-[var(--brand-primary)] bg-[var(--brand-tint)] text-[var(--text)]"
-                  : "border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]",
-              )}
-            >
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color ?? "var(--text-faint)" }} />
-              <span className="truncate">{s.name}</span>
-            </button>
-          );
-        })}
+
+        <dl className="flex flex-col border-t border-[var(--divider)] text-[13.5px]">
+          <SheetFact
+            label="Came in"
+            value={stageKey === "lead" ? `${fmtWhen(lead.createdAt)} (${ago(lead.createdAt, now)})` : fmtWhen(lead.createdAt)}
+          />
+          <SheetFact label="Call tries" value={String(lead.attempts)} />
+          <SheetFact label="Value" value={lead.value ? `$${lead.value.toLocaleString()}` : "None yet"} />
+          {stageKey === "lost" && lead.lostReason && <SheetFact label="Lost" value={lostLabel(lead.lostReason)} />}
+        </dl>
+
+        <div className="flex flex-col gap-2">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-faint)]">Stage</div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {moveStages.map((s) => {
+              const active = s.id === lead.stageId;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => onMove(s.id)}
+                  aria-pressed={active}
+                  className={cn(
+                    "flex h-10 min-w-0 items-center gap-2 rounded-xl border px-3 text-left text-[13px] font-semibold transition-colors",
+                    active
+                      ? "border-[var(--brand-primary)] bg-[var(--brand-tint)] text-[var(--text)]"
+                      : "border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]",
+                  )}
+                >
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color ?? "var(--text-faint)" }} />
+                  <span className="truncate">{s.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {(won || lost) && (
+          <div className="grid grid-cols-2 gap-2">
+            {won && (
+              <button
+                type="button"
+                onClick={() => onMove(won.id)}
+                className={cn(
+                  "flex h-11 items-center justify-center gap-1.5 rounded-xl border text-[14px] font-semibold text-emerald-700 dark:text-emerald-400",
+                  stageKey === "won" ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950" : "border-[var(--border)]",
+                )}
+              >
+                <Check size={16} strokeWidth={2.4} />
+                {won.name}
+              </button>
+            )}
+            {lost && (
+              <button
+                type="button"
+                onClick={() => onMove(lost.id)}
+                className={cn(
+                  "flex h-11 items-center justify-center gap-1.5 rounded-xl border text-[14px] font-semibold text-rose-700 dark:text-rose-400",
+                  stageKey === "lost" ? "border-rose-500 bg-rose-50 dark:bg-rose-950" : "border-[var(--border)]",
+                )}
+              >
+                <X size={16} strokeWidth={2.4} />
+                {lost.name}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </Sheet>
+  );
+}
+
+function SheetAction({
+  icon,
+  label,
+  onClick,
+  brand,
+  disabled,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  brand?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] text-[14px] font-semibold disabled:opacity-40",
+        brand ? "text-[var(--brand-text)]" : "text-[var(--text)]",
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function SheetFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--divider)] py-2.5">
+      <dt className="text-[var(--text-muted)]">{label}</dt>
+      <dd className="text-right font-semibold text-[var(--text)] tnum">{value}</dd>
+    </div>
   );
 }
 

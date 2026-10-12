@@ -1,8 +1,10 @@
 import {
+  useRef,
   useState,
   type FormEvent,
   type KeyboardEvent,
 } from "react";
+import { ImagePlus, Loader2, X } from "lucide-react";
 import BrandedButton from "./BrandedButton";
 import { haptic } from "../lib/haptics";
 import { useChannelFilter } from "../context/ChannelFilterContext";
@@ -26,7 +28,17 @@ export interface SendChannelInput {
   channel: string;
   body: string;
   subject?: string;
+  attachments?: string[];
 }
+
+// A picked photo: local preview while GHL takes it, then its hosted URL.
+interface Photo {
+  key: number;
+  preview: string;
+  url: string | null;
+}
+
+const MAX_PHOTOS = 5;
 
 interface Props {
   availableChannels: string[];
@@ -40,6 +52,8 @@ interface Props {
   // page never sends over Email and no other medium leaks in.
   lockChannel?: string;
   onSend: (input: SendChannelInput) => Promise<unknown>;
+  // When set, texts can carry photos (MMS). Returns the uploaded URL.
+  onUploadPhoto?: (file: File) => Promise<string>;
 }
 
 export default function ChannelComposer({
@@ -50,6 +64,7 @@ export default function ChannelComposer({
   smsDisabled,
   lockChannel,
   onSend,
+  onUploadPhoto,
 }: Props) {
   const channels = lockChannel
     ? [lockChannel]
@@ -64,14 +79,48 @@ export default function ChannelComposer({
   const channel = lockChannel ?? selected ?? defaultChannel;
   const [text, setText] = useState("");
   const [subject, setSubject] = useState("");
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const keyRef = useRef(0);
 
   const isEmail = channel === "Email";
   const blocked = channel === "SMS" && smsDisabled;
+  const canPhoto = Boolean(onUploadPhoto) && channel === "SMS";
+  const uploading = photos.some((p) => p.url === null);
+  const ready = photos.filter((p) => p.url).map((p) => p.url as string);
   const canSend =
-    !!text.trim() &&
+    (!!text.trim() || (canPhoto && ready.length > 0)) &&
+    !uploading &&
     !isPending &&
     !blocked &&
     (!isEmail || subject.trim().length > 0);
+
+  const addPhotos = (files: FileList | null) => {
+    if (!files || !onUploadPhoto) return;
+    setPhotoError(null);
+    const picked = Array.from(files).slice(0, MAX_PHOTOS - photos.length);
+    for (const file of picked) {
+      const key = ++keyRef.current;
+      const preview = URL.createObjectURL(file);
+      setPhotos((cur) => [...cur, { key, preview, url: null }]);
+      onUploadPhoto(file).then(
+        (url) => setPhotos((cur) => cur.map((p) => (p.key === key ? { ...p, url } : p))),
+        () => {
+          URL.revokeObjectURL(preview);
+          setPhotos((cur) => cur.filter((p) => p.key !== key));
+          setPhotoError("That photo did not upload. Try another.");
+        },
+      );
+    }
+  };
+
+  const removePhoto = (key: number) =>
+    setPhotos((cur) => {
+      const gone = cur.find((p) => p.key === key);
+      if (gone) URL.revokeObjectURL(gone.preview);
+      return cur.filter((p) => p.key !== key);
+    });
 
   const submit = () => {
     if (!canSend) return;
@@ -80,9 +129,12 @@ export default function ChannelComposer({
       channel,
       body: text.trim(),
       subject: isEmail ? subject.trim() : undefined,
+      attachments: canPhoto && ready.length > 0 ? ready : undefined,
     }).then(() => {
       setText("");
       setSubject("");
+      photos.forEach((p) => URL.revokeObjectURL(p.preview));
+      setPhotos([]);
     });
   };
 
@@ -133,9 +185,56 @@ export default function ChannelComposer({
         />
       )}
 
+      {canPhoto && photos.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-0.5">
+          {photos.map((p) => (
+            <div key={p.key} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-[var(--border)]">
+              <img src={p.preview} alt="" className="h-full w-full object-cover" />
+              {p.url === null && (
+                <div className="absolute inset-0 grid place-items-center bg-black/40 text-white">
+                  <Loader2 size={18} className="animate-spin" />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => removePhoto(p.key)}
+                aria-label="Remove photo"
+                className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Message box and Send on one row. Send used to sit on its own line
           under the box, which doubled the composer's height for one button. */}
       <div className="flex items-stretch gap-2">
+        {canPhoto && (
+          <>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                addPhotos(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={isPending || photos.length >= MAX_PHOTOS}
+              aria-label="Add photo"
+              className="grid w-11 shrink-0 place-items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] disabled:opacity-50"
+            >
+              <ImagePlus size={18} />
+            </button>
+          </>
+        )}
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
@@ -161,6 +260,7 @@ export default function ChannelComposer({
           No phone number on file. Pick another channel to reach this contact.
         </p>
       )}
+      {photoError && <p className="text-xs text-rose-600 dark:text-rose-400">{photoError}</p>}
       {error && (
         <p className="text-xs text-rose-600 dark:text-rose-400">
           Send failed: {error.message}

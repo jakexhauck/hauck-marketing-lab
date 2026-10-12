@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useConversationMessagesQuery,
   useMessagesQuery,
@@ -64,6 +64,36 @@ function dayLabel(iso: string): string {
   if (diffDays === 1) return "Yesterday";
   if (d.getFullYear() === now.getFullYear()) return fullDateFmt.format(d);
   return datedFmt.format(d);
+}
+
+// A picture on a text, either direction. Tap opens it full size in a new tab.
+// Not every attachment is a picture (a contact card, a PDF): one that will not
+// render as an image falls back to a plain link.
+function MessageAttachment({ url, out }: { url: string; out: boolean }) {
+  const [broken, setBroken] = useState(false);
+  if (broken) {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className={`text-[13px] font-semibold underline ${out ? "text-white" : "text-[var(--brand-text)]"}`}
+      >
+        Attachment
+      </a>
+    );
+  }
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl">
+      <img
+        src={url}
+        alt="Photo"
+        loading="lazy"
+        onError={() => setBroken(true)}
+        className="max-h-60 w-auto max-w-[220px] object-cover"
+      />
+    </a>
+  );
 }
 
 function dayKey(iso: string): string {
@@ -169,7 +199,14 @@ export default function ConversationThread({ leadId, contactId, fill }: Props) {
                   out ? { backgroundColor: "var(--brand-primary)" } : undefined
                 }
               >
-                {m.body || (m.type !== "SMS" ? `[${m.type}]` : "")}
+                {(m.attachments?.length ?? 0) > 0 && (
+                  <div className={`flex flex-wrap gap-1.5 ${m.body ? "mb-1.5" : ""}`}>
+                    {m.attachments!.map((url) => (
+                      <MessageAttachment key={url} url={url} out={out} />
+                    ))}
+                  </div>
+                )}
+                {m.body || ((m.attachments?.length ?? 0) === 0 && m.type !== "SMS" ? `[${m.type}]` : "")}
                 <div
                   className={`mt-1 text-[11px] ${
                     out ? "text-white/70" : "text-[var(--text-faint)]"

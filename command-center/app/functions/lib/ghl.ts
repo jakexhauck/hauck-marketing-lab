@@ -568,3 +568,33 @@ export function shapeOpportunity(o: GhlOpportunity): ApiLead {
     assignedUserId: o.assignedTo ?? null,
   };
 }
+
+// Upload one picture for a text (MMS). GHL hosts it and hands back the URL,
+// which then rides on the send as `attachments`. Its own fetch rather than
+// ghlFetch: the body is multipart, so the content-type must be left to fetch
+// to set with the boundary. Limit 5 MB per file (GHL's).
+//   POST /conversations/messages/upload  form: fileAttachment, contactId, locationId
+//   200 { uploadedFiles: { "<name>": "<url>" } }
+export async function ghlUploadAttachment(
+  ctx: GhlContext,
+  contactId: string,
+  file: File,
+): Promise<string[]> {
+  if (ctx.token === "app") {
+    throw new Error("ghlUploadAttachment: tenant token not resolved (app-linked)");
+  }
+  const form = new FormData();
+  form.append("fileAttachment", file, file.name || "photo.jpg");
+  form.append("contactId", contactId);
+  form.append("locationId", ctx.locationId);
+  const res = await fetch(`${BASE}/conversations/messages/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${ctx.token}`, Version: VERSION, Accept: "application/json" },
+    body: form,
+  });
+  if (!res.ok) throw new Error(`upload ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const json = (await res.json()) as { uploadedFiles?: Record<string, unknown> };
+  return Object.values(json.uploadedFiles ?? {}).filter(
+    (u): u is string => typeof u === "string" && /^https:\/\//.test(u),
+  );
+}

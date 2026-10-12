@@ -242,6 +242,16 @@ export async function handleDemoRequest<T>(
     return r({ ok: true });
   }
 
+  // ----- Inbox photo button: no GHL to host it in the demo -----
+  if (seg[0] === "api" && seg[1] === "conversations" && seg[2] && seg[3] === "upload" && method === "POST") {
+    return r({ url: "/icon-512.png" });
+  }
+
+  // ----- In-app Call button: nothing to ring in the demo -----
+  if (seg[0] === "api" && seg[1] === "contacts" && seg[2] && seg[3] === "call" && method === "POST") {
+    return r({ ok: true });
+  }
+
   // ----- Contact notes -----
   if (seg[0] === "api" && seg[1] === "contacts" && seg[2] && seg[3] === "notes") {
     const contactId = seg[2];

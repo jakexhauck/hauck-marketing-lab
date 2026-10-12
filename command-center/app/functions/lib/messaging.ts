@@ -49,6 +49,18 @@ export interface SendInput {
   channel: string;
   body: string;
   subject?: string;
+  // Picture URLs from ghlUploadAttachment, sent as an MMS. Texts only.
+  attachments?: string[];
+}
+
+const MAX_ATTACHMENTS = 5;
+
+// Only https URLs ride along, at most five (GHL's per-message cap).
+export function cleanAttachments(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((u): u is string => typeof u === "string" && /^https:\/\/\S+$/.test(u))
+    .slice(0, MAX_ATTACHMENTS);
 }
 
 // Build the GHL message payload for a channel. Email carries subject + html;
@@ -58,11 +70,14 @@ function buildMessage(
   channel: Channel,
   body: string,
   subject?: string,
+  attachments: string[] = [],
 ): Record<string, unknown> {
   if (channel === "Email") {
     return { type: "Email", contactId, subject: subject ?? "", html: body };
   }
-  return { type: channel, contactId, message: body };
+  return attachments.length > 0
+    ? { type: channel, contactId, message: body, attachments }
+    : { type: channel, contactId, message: body };
 }
 
 // Validate + send. Returns a Response on validation failure (caller returns it),
@@ -72,13 +87,14 @@ export async function sendChannelMessage(
   contactId: string,
   input: SendInput,
 ): Promise<{ error: { code: string; status: number } } | SendResponse> {
-  const body = input.body?.trim();
-  if (!body) return { error: { code: "empty_message", status: 400 } };
-
+  const body = input.body?.trim() ?? "";
   const channel = (input.channel ?? "SMS").trim();
   if (!isAllowedChannel(channel)) {
     return { error: { code: "invalid_channel", status: 400 } };
   }
+  // A picture with no words is a whole text; an email still needs a body.
+  const attachments = channel === "Email" ? [] : cleanAttachments(input.attachments);
+  if (!body && attachments.length === 0) return { error: { code: "empty_message", status: 400 } };
   if (channel === "Email" && !input.subject?.trim()) {
     return { error: { code: "subject_required", status: 400 } };
   }
@@ -86,7 +102,7 @@ export async function sendChannelMessage(
   return ghlJson<SendResponse>(ctx, `/conversations/messages`, {
     method: "POST",
     body: JSON.stringify(
-      buildMessage(contactId, channel, body, input.subject?.trim()),
+      buildMessage(contactId, channel, body, input.subject?.trim(), attachments),
     ),
   });
 }
@@ -175,6 +191,7 @@ interface ThreadMessagesResp {
       dateAdded?: string;
       type?: unknown;
       messageType?: unknown;
+      attachments?: unknown;
     }[];
   };
 }
@@ -185,6 +202,8 @@ export interface ThreadMessage {
   direction: string;
   type: string;
   at: string;
+  // Picture (or file) URLs on an MMS, both directions. Empty on a plain text.
+  attachments?: string[];
 }
 
 export interface ContactThread {
@@ -273,6 +292,7 @@ export async function fetchContactThread(
       direction: (m.direction ?? "outbound").toLowerCase(),
       type: type || "SMS",
       at: m.dateAdded ?? new Date().toISOString(),
+      attachments: cleanAttachments(m.attachments),
     });
   }
   messages.sort((a, b) => +new Date(a.at) - +new Date(b.at));

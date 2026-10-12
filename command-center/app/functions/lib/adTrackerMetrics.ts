@@ -243,13 +243,8 @@ export interface TrackerSpendRow {
 
 // Ads Manager's own date presets, not ours.
 //
-// Was "all" | "7" | "30" | "90", which looked like Meta's ranges and was not
-// one of them. Meta's "Last 7 days" ENDS YESTERDAY; ours ran to today and
-// started a day earlier, so the dashboard and Ads Manager were comparing seven
-// different days and disagreeing for a reason no one could see on the screen.
-//
-// Every boundary below was measured against the live Willis account on
-// 2026-08-13 rather than taken from the docs. See rangeWindow().
+// Named like Ads Manager's presets. The last_Nd ones run through today rather
+// than ending yesterday the way Meta's do (Jake, 2026-10-12). See rangeWindow().
 export type TrackerRange =
   | "today"
   | "yesterday"
@@ -358,20 +353,20 @@ function shiftDate(iso: string, days: number): string {
 // impression after 7pm local landed on the next day in our numbers and the
 // previous one in Meta's.
 //
-// Boundaries verified against act_27110669075184924 on 2026-08-13, one call per
-// preset with time_increment=1, reading the real first and last date_start:
+// Meta's own last_Nd presets end YESTERDAY (verified against
+// act_27110669075184924 on 2026-08-13: last_7d = 08-06..08-12). Ours run
+// through TODAY instead (Jake, 2026-10-12): a client opening the tracker wants
+// the lead that came in an hour ago, so "Last 30 days" is today plus the 29
+// days before it. The cost is that these windows no longer match Ads
+// Manager's presets of the same name exactly; that was accepted.
 //
 //   today       2026-08-13 .. 2026-08-13
 //   yesterday   2026-08-12 .. 2026-08-12
-//   last_7d     2026-08-06 .. 2026-08-12   <- ends YESTERDAY, not today
-//   last_14d    2026-07-30 .. 2026-08-12
-//   last_30d    2026-07-15 .. 2026-08-12   (window opens 07-14; no delivery that day)
-//   this_month  2026-08-01 .. 2026-08-13   <- this one DOES include today
+//   last_7d     2026-08-07 .. 2026-08-13
+//   last_14d    2026-07-31 .. 2026-08-13
+//   last_30d    2026-07-15 .. 2026-08-13
+//   this_month  2026-08-01 .. 2026-08-13
 //   last_month  2026-07-01 .. 2026-07-31
-//
-// That last_7d/this_month inconsistency is Meta's, not a mistake here. Do not
-// "tidy" it: the moment this function is self-consistent it stops agreeing with
-// Ads Manager, which is the only thing it is for.
 export function rangeWindow(
   range: TrackerRange,
   now: Date,
@@ -387,11 +382,11 @@ export function rangeWindow(
       return { start: y, end: y };
     }
     case "last_7d":
-      return { start: shiftDate(today, -7), end: shiftDate(today, -1) };
+      return { start: shiftDate(today, -6), end: today };
     case "last_14d":
-      return { start: shiftDate(today, -14), end: shiftDate(today, -1) };
+      return { start: shiftDate(today, -13), end: today };
     case "last_30d":
-      return { start: shiftDate(today, -30), end: shiftDate(today, -1) };
+      return { start: shiftDate(today, -29), end: today };
     case "this_month":
       return { start: `${today.slice(0, 7)}-01`, end: today };
     case "last_month": {

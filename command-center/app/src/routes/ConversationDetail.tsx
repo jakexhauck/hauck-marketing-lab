@@ -5,6 +5,7 @@ import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
 import { HeroIconButton } from "../components/HeroUi";
 import Avatar from "../components/Avatar";
+import CallButton from "../components/CallButton";
 import ConversationThread from "../components/ConversationThread";
 import MessageComposer from "../components/MessageComposer";
 import { ChannelFilterProvider } from "../context/ChannelFilterContext";
@@ -73,6 +74,7 @@ export default function ConversationDetail() {
                 {name}
               </div>
             </div>
+            <CallButton contactId={contactId} variant="icon" label={`Call ${name}`} />
           </div>
         </NavyHero>
 

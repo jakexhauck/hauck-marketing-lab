@@ -51,7 +51,7 @@ export const CAPABILITIES: CapabilityDef[] = [
   { key: "meta_data", label: "Meta Data", hasEdit: false },
   { key: "creatives", label: "Creatives", hasEdit: false },
   { key: "organic", label: "Organic", hasEdit: false },
-  { key: "pipeline", label: "Leads", hasEdit: true },
+  { key: "pipeline", label: "Sales", hasEdit: true },
   { key: "calendar", label: "Schedule", hasEdit: true },
   { key: "inbox", label: "Inbox", hasEdit: true },
   { key: "contacts", label: "Contacts", hasEdit: true },
@@ -120,9 +120,13 @@ const RULES: PermRule[] = [
   { pattern: /^\/api\/summary\/?$/, any: [need("overview", "view"), need("pipeline", "view")] },
 
   // Inbox / conversations
-  { pattern: /^\/api\/conversations\/[^/]+\/(send|sms)\/?$/, methods: ["POST"], any: [need("inbox", "edit")] },
+  { pattern: /^\/api\/conversations\/[^/]+\/(send|sms|upload)\/?$/, methods: ["POST"], any: [need("inbox", "edit")] },
   { pattern: /^\/api\/conversations\/[^/]+\/messages\/?$/, methods: ["GET"], any: [need("inbox", "view")] },
   { pattern: /^\/api\/conversations\/?$/, methods: ["GET"], any: [need("inbox", "view"), need("overview", "view")] },
+
+  // The Call button (Sales card, Inbox, Lead Tracker): rings the owner, then
+  // the lead. Any page that shows the button may press it.
+  { pattern: /^\/api\/contacts\/[^/]+\/call\/?$/, methods: ["POST"], any: [need("pipeline", "edit"), need("inbox", "edit"), need("paid_ads", "edit"), need("contacts", "edit")] },
 
   // Contacts. Notes/tasks live under /api/contacts/<id>/... and double as the
   // lead drawer's notes/tasks, so pipeline rights also grant them.

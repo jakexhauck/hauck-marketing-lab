@@ -123,7 +123,7 @@ export const TOUR_STEPS: TourStep[] = [
     version: 2,
     route: "/sales",
     target: { desktop: "[data-tour='nav-sales']", mobile: "[data-tour='bottomnav-sales']" },
-    title: "Leads",
+    title: "Sales",
     body: "Every lead by where they stand, from first call to closed job. Book an estimate straight from the card.",
     capability: "pipeline",
     placement: "right",

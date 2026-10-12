@@ -156,7 +156,7 @@ export const NAV: NavEntry[] = [
   // page, so the bar named a destination the app does not have. Both say Leads
   // now. It sits beside "Tracker" (Lead Tracker) without ambiguity, because
   // that one is the ads lead list and this one is the sales board.
-  { to: "/sales", label: "Leads", shortLabel: "Leads", icon: Handshake, capability: "pipeline", bottomNav: 4 },
+  { to: "/sales", label: "Sales", shortLabel: "Sales", icon: Handshake, capability: "pipeline", bottomNav: 4 },
   { to: "/sales/schedule", label: "Schedule", icon: CalendarDays, capability: "calendar" },
   // Only the services we actively sell get a row. Six channels are
   // back-burnered (hidden here, routes still registered in App.tsx): to

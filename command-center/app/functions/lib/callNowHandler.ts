@@ -11,6 +11,28 @@ import { callNowPage, keysMatch, linkKey, parseCallNowParams, type CallNowParams
 //
 // Each link has its own key purpose, so a leaked key opens only its own link.
 
+// Tags the contact so the sub-account's Call Now workflow rings the owner and
+// bridges them to the lead. Shared by the texted owner links and the in-app
+// Call buttons (api/contacts/[contactId]/call.ts). Throws on a GHL failure.
+export async function fireCallTag(
+  ghl: { token: string; locationId: string },
+  contactId: string,
+  tag: string,
+): Promise<void> {
+  const path = `/contacts/${encodeURIComponent(contactId)}/tags`;
+  // Off then on, so a tag left behind by a call that never connected (the
+  // workflow's Remove Tag step did not run) cannot stop this tap re-firing
+  // the Tag Added trigger.
+  await ghlFetch(ghl, path, { method: "DELETE", body: JSON.stringify({ tags: [tag] }) });
+  const res = await ghlFetch(
+    ghl,
+    path,
+    { method: "POST", body: JSON.stringify({ tags: [tag] }) },
+    { idempotentPost: true },
+  );
+  if (!res.ok) throw new Error(`tag ${res.status}: ${(await res.text()).slice(0, 300)}`);
+}
+
 export interface CallLink {
   // Key purpose. Never change one already live: every key pasted into GHL
   // would stop working.
@@ -65,19 +87,8 @@ export function callLinkHandlers(link: CallLink): {
     if (!creds) return BAD_LINK();
 
     const ghl = { token: creds.token, locationId: creds.locationId };
-    const path = `/contacts/${encodeURIComponent(params.contactId)}/tags`;
     try {
-      // Off then on, so a tag left behind by a call that never connected (the
-      // workflow's Remove Tag step did not run) cannot stop this tap re-firing
-      // the Tag Added trigger.
-      await ghlFetch(ghl, path, { method: "DELETE", body: JSON.stringify({ tags: [link.tag] }) });
-      const res = await ghlFetch(
-        ghl,
-        path,
-        { method: "POST", body: JSON.stringify({ tags: [link.tag] }) },
-        { idempotentPost: true },
-      );
-      if (!res.ok) throw new Error(`tag ${res.status}: ${(await res.text()).slice(0, 300)}`);
+      await fireCallTag(ghl, params.contactId, link.tag);
     } catch (err) {
       logErrorBestEffort(ctx.env, link.source, String(err), {
         locationId: params.locationId,

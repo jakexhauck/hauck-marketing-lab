@@ -38,7 +38,7 @@ export const CAPABILITIES: CapabilityDef[] = [
   { key: "meta_data", label: "Meta Data", hasEdit: false },
   { key: "creatives", label: "Creatives", hasEdit: false },
   { key: "organic", label: "Organic", hasEdit: false },
-  { key: "pipeline", label: "Leads", hasEdit: true },
+  { key: "pipeline", label: "Sales", hasEdit: true },
   { key: "calendar", label: "Schedule", hasEdit: true },
   { key: "inbox", label: "Inbox", hasEdit: true },
   { key: "contacts", label: "Contacts", hasEdit: true },

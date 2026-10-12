@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
 import { Button } from "../ui/Button";
 import Avatar from "../Avatar";
+import CallButton from "../CallButton";
 import ConversationThread from "../ConversationThread";
 import MessageComposer from "../MessageComposer";
 import { ChannelFilterProvider } from "../../context/ChannelFilterContext";
@@ -40,10 +41,13 @@ export default function ConversationDetailDesktop() {
         </span>
       }
       actions={
-        <Button variant="secondary" onClick={() => navigate("/conversations")}>
-          <ArrowLeft size={16} />
-          Inbox
-        </Button>
+        <div className="flex items-center gap-2">
+          <CallButton contactId={contactId} className="h-9.5 px-4 text-sm" />
+          <Button variant="secondary" onClick={() => navigate("/conversations")}>
+            <ArrowLeft size={16} />
+            Inbox
+          </Button>
+        </div>
       }
     >
       <div

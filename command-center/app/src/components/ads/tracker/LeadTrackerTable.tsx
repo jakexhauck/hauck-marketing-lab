@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { cn } from "../../../lib/cn";
+import CallButton from "../../CallButton";
 import { formatMoneyExact } from "../../../lib/formatMoney";
 import {
   MANUAL_LEAD_STATUSES,
@@ -186,7 +187,7 @@ function JobValueCell({
 // the dates. Phone and email are real tel:/mailto: links here, which the table
 // never bothered with because a desktop user has the number in their CRM
 // anyway; on a phone, tapping the number IS the next action.
-function LeadCard({ lead, marking }: { lead: LeadTrackerLead; marking?: LeadMarking }) {
+function LeadCard({ lead, marking, canCall }: { lead: LeadTrackerLead; marking?: LeadMarking; canCall?: boolean }) {
   const when = lead.when ? formatWhen(lead.when.at) : "";
   const overdue = Boolean(lead.when && lead.when.kind === "follow_up" && isOverdue(lead.when.at));
   return (
@@ -224,9 +225,12 @@ function LeadCard({ lead, marking }: { lead: LeadTrackerLead; marking?: LeadMark
 
       <div className="mt-2 flex flex-col gap-1 text-[13px]">
         {lead.phone && (
-          <a href={`tel:${lead.phone}`} className="-my-1 truncate py-1.5 text-brand tnum">
-            {lead.phone}
-          </a>
+          <div className="flex items-center justify-between gap-2">
+            <a href={`tel:${lead.phone}`} className="-my-1 min-w-0 truncate py-1.5 text-brand tnum">
+              {lead.phone}
+            </a>
+            {canCall && <CallButton contactId={lead.contactId} phone={lead.phone} />}
+          </div>
         )}
         {lead.email && (
           <a href={`mailto:${lead.email}`} className="-my-1 truncate py-1.5 text-brand">
@@ -266,6 +270,7 @@ export default function LeadTrackerTable({
   leads,
   emptyLabel,
   sampleNotice = false,
+  canCall = false,
   marking,
 }: {
   leads: LeadTrackerLead[];
@@ -277,6 +282,9 @@ export default function LeadTrackerTable({
   // DEV-only sample set; the cockpit never does, because an operator reading
   // fabricated leads for a named client is worse than an empty table.
   sampleNotice?: boolean;
+  // The two-way Call button. The client's own page only: the cockpit has no
+  // tenant session to ring the owner from.
+  canCall?: boolean;
 }) {
   if (leads.length === 0) {
     return (
@@ -303,7 +311,7 @@ export default function LeadTrackerTable({
           half). */}
       <div className="flex shrink-0 flex-col gap-2 lg:hidden">
         {leads.map((lead) => (
-          <LeadCard key={lead.contactId} lead={lead} marking={marking} />
+          <LeadCard key={lead.contactId} lead={lead} marking={marking} canCall={canCall} />
         ))}
       </div>
 
@@ -337,8 +345,13 @@ export default function LeadTrackerTable({
                   <td className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap px-3 py-2.5 font-medium text-text">
                     {lead.name}
                   </td>
-                  <td className="max-w-[220px] px-3 py-2.5">
-                    <div className="truncate text-text">{lead.phone || "-"}</div>
+                  <td className="max-w-[260px] px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="min-w-0 truncate text-text">{lead.phone || "-"}</span>
+                      {canCall && lead.phone && (
+                        <CallButton contactId={lead.contactId} phone={lead.phone} className="h-7 px-2 text-[12px]" />
+                      )}
+                    </div>
                   </td>
                   <td className="max-w-[240px] px-3 py-2.5">
                     <div className="truncate text-text">{lead.email || "-"}</div>

@@ -9,7 +9,7 @@ import AdsComingSoon from "../../components/ads/AdsComingSoon";
 import type { AdTrackerRange, LeadTrackerLead } from "../../lib/api";
 import type { LeadMarking } from "../../components/ads/tracker/LeadTrackerTable";
 import {
-  DEFAULT_RANGE,
+  LEAD_TRACKER_RANGE,
   ErrorNote,
   LeadSearch,
   RANGES,
@@ -26,7 +26,7 @@ import { SAMPLE_LEADS } from "./sampleLeads";
 
 export default function AdsLeadTracker() {
   const { session } = useAuth();
-  const [range, setRange] = useState<AdTrackerRange>(DEFAULT_RANGE);
+  const [range, setRange] = useState<AdTrackerRange>(LEAD_TRACKER_RANGE);
   const [search, setSearch] = useState("");
   // Level is irrelevant to the lead list; keep it at the cheap default.
   const status = useAdsStatusQuery(Boolean(session));
@@ -89,6 +89,7 @@ export default function AdsLeadTracker() {
             leads={visible}
             marking={marking}
             sampleNotice={usingSample}
+            canCall
             emptyLabel={
               search.trim() ? "No leads match your search." : "No leads in this range yet."
             }

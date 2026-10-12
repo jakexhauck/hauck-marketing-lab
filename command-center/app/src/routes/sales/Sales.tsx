@@ -133,7 +133,7 @@ export default function Sales() {
         <div className="px-5 pt-5 lg:px-6">
           <PageBar
             tabs={[]}
-            section={tab === "schedule" ? "Schedule" : "Leads"}
+            section={tab === "schedule" ? "Schedule" : "Sales"}
             actions={
               controlsInHeader ? (
                 <JobsViewControls value={jobsView} onChange={setJobsView} />

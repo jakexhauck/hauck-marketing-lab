@@ -48,7 +48,8 @@ export async function api<T>(
   if (demoMode()) return handleDemoRequest<T>(path, init);
 
   const headers = new Headers(init.headers);
-  if (init.body && !headers.has("content-type")) {
+  // FormData sets its own multipart content-type, boundary included.
+  if (init.body && !(init.body instanceof FormData) && !headers.has("content-type")) {
     headers.set("content-type", "application/json");
   }
   // Inside the admin Software tab's preview frame this carries the read-only
@@ -226,6 +227,8 @@ export interface ApiMessage {
   direction: string;
   type: string;
   at: string;
+  // Picture URLs on an MMS. Optional: older cached threads lack it.
+  attachments?: string[];
 }
 
 export interface ApiContact {
@@ -1220,6 +1223,47 @@ export async function setSalesCallExcluded(id: string, excluded: boolean): Promi
     method: "PATCH",
     body: JSON.stringify({ id, excluded }),
   });
+}
+
+// The Inbox photo button. Shrinks the picture in the browser first (a phone
+// camera shot is often over GHL's 5 MB cap, and a text does not need 12 MP),
+// then hands it to GHL via the Worker. Returns the hosted URL to send.
+export async function uploadConversationPhoto(contactId: string, file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", await shrinkPhoto(file));
+  const res = await api<{ url: string }>(`/api/conversations/${encodeURIComponent(contactId)}/upload`, {
+    method: "POST",
+    body: form,
+  });
+  return res.url;
+}
+
+const PHOTO_MAX_EDGE = 1600;
+
+// Longest edge to 1600px, re-encoded as JPEG. Anything the browser cannot
+// decode (HEIC on desktop Chrome) goes up as it is and GHL takes it or not.
+async function shrinkPhoto(file: File): Promise<File> {
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, PHOTO_MAX_EDGE / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    canvas.getContext("2d")?.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    bmp.close();
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+    if (!blob) return file;
+    const name = (file.name || "photo").replace(/\.[^.]+$/, "") + ".jpg";
+    return new File([blob], name, { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
+// The in-app Call button: rings the owner's phone, then bridges the lead on
+// the business number (functions/api/contacts/[contactId]/call.ts).
+export async function callContact(contactId: string): Promise<void> {
+  await api<{ ok: true }>(`/api/contacts/${encodeURIComponent(contactId)}/call`, { method: "POST" });
 }
 
 // Business Health (0030): the agency's own numbers, one row per period key.
