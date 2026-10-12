@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-12-cold-sms-pipeline",
+    date: "12 October 2026",
+    title: "Cold SMS Pipeline board",
+    items: [
+      "Cold SMS has a Pipeline tab: your GHL Cold SMS pipeline as a board. Drag a card to move it in GHL.",
+      "Claude reads every reply and marks the card Positive, Negative, Check or Stop. Filter by any of them.",
+      "Click a card for the business, the SMS variation they got, the full text thread and a reply box.",
+      "Book call opens a week view with your Google Calendar, booked demos and open slots, showing their local time next to yours.",
+    ],
+  },
+  {
     id: "2026-10-12-outcome-call-button",
     date: "12 October 2026",
     title: "One owner link: Open Lead",

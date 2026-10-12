@@ -5,8 +5,11 @@ import SmsMonthlySheet from "./SmsMonthlySheet";
 import SmsScriptSheet from "./SmsScriptSheet";
 import SmsBudgetSheet from "./SmsBudgetSheet";
 import SmsLeadsSheet from "./SmsLeadsSheet";
+import SmsPipelineBoard from "./SmsPipelineBoard";
 
-// Acquisition > Cold SMS. Two tabs (Jake, 2026-10-06): Tracker and Leads.
+// Acquisition > Cold SMS. Tabs: Tracker and Leads (Jake, 2026-10-06), then
+// Pipeline (Jake, 2026-10-12): the GHL Cold SMS pipeline as a board, with
+// Claude sorting the replies (SmsPipelineBoard).
 //
 // Tracker is the SMS Tracking tab of the Master Data Tracker Google Sheet,
 // rebuilt so Jake types his SMS numbers here instead (Jake, 2026-10-01):
@@ -22,6 +25,7 @@ import SmsLeadsSheet from "./SmsLeadsSheet";
 const VIEWS = [
   { id: "tracker", label: "Tracker" },
   { id: "leads", label: "Leads" },
+  { id: "pipeline", label: "Pipeline" },
 ] as const;
 
 function TabsStyle() {
@@ -44,7 +48,8 @@ function TabsStyle() {
 
 export default function ColdSmsPage() {
   const [params, setParams] = useSearchParams();
-  const view = params.get("view") === "leads" ? "leads" : "tracker";
+  const raw = params.get("view");
+  const view = raw === "leads" || raw === "pipeline" ? raw : "tracker";
 
   const pick = (id: string) =>
     setParams(
@@ -77,7 +82,9 @@ export default function ColdSmsPage() {
           ))}
         </div>
 
-        {view === "leads" ? (
+        {view === "pipeline" ? (
+          <SmsPipelineBoard />
+        ) : view === "leads" ? (
           <SmsLeadsSheet />
         ) : (
           <>

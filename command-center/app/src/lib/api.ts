@@ -2505,3 +2505,140 @@ export async function recordMeetingOutcome(input: {
     body: JSON.stringify(input),
   });
 }
+
+// ---------------------------------------------------------------------------
+// Cold SMS > Pipeline (functions/api/admin/cold-sms/*). The agency's "Cold SMS"
+// pipeline in GHL, read live; Claude's verdict on each reply rides on the card.
+
+export type ColdSmsVerdict = "positive" | "negative" | "stop" | "check";
+
+export interface ColdSmsCard {
+  id: string;
+  contactId: string;
+  business: string;
+  person: string;
+  phone: string;
+  tags: string[];
+  variation: string | null;
+  stageId: string;
+  movedAt: string | null;
+  reply: { body: string; at: number } | null;
+  verdict: ColdSmsVerdict | null;
+}
+
+export interface ColdSmsStage {
+  id: string;
+  name: string;
+  total: number;
+  cursor: string | null;
+  cards: ColdSmsCard[];
+}
+
+export interface ColdSmsPipelineRef {
+  id: string;
+  name: string;
+  stages: { id: string; name: string }[];
+}
+
+export interface ColdSmsBoard {
+  configured: boolean;
+  missing?: boolean;
+  locationId?: string;
+  pipeline?: { id: string; name: string };
+  pipelines?: ColdSmsPipelineRef[];
+  stages?: ColdSmsStage[];
+}
+
+export function getColdSmsBoard(): Promise<ColdSmsBoard> {
+  return api("/api/admin/cold-sms/board");
+}
+
+export function getColdSmsStagePage(
+  stageId: string,
+  cursor: string,
+): Promise<{ cards: ColdSmsCard[]; cursor: string | null; total: number }> {
+  return api(
+    `/api/admin/cold-sms/board?stageId=${encodeURIComponent(stageId)}&cursor=${encodeURIComponent(cursor)}`,
+  );
+}
+
+export function classifyColdSmsReplies(): Promise<{
+  classified: { contactId: string; verdict: ColdSmsVerdict }[];
+  remaining: number;
+}> {
+  return api("/api/admin/cold-sms/classify", { method: "POST" });
+}
+
+export function moveColdSmsCard(input: {
+  opportunityId: string;
+  pipelineId: string;
+  stageId: string;
+}): Promise<{ ok: true }> {
+  return api("/api/admin/cold-sms/move", { method: "POST", body: JSON.stringify(input) });
+}
+
+export interface ColdSmsProspect {
+  contact: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    business: string;
+    email: string;
+    phone: string;
+    city: string;
+    state: string;
+    website: string;
+    service: string;
+    tags: string[];
+    variation: string | null;
+  };
+  zone: { zone: string | null; source: "contact" | "state" | "area_code" | null };
+  verdict: ColdSmsVerdict | null;
+  messages: { id: string; body: string; direction: string; type: string; at: string; attachments?: string[] }[];
+  threadFailed: boolean;
+}
+
+export function getColdSmsProspect(contactId: string): Promise<ColdSmsProspect> {
+  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}`);
+}
+
+export function sendColdSmsText(contactId: string, body: string): Promise<{ ok: true }> {
+  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/send`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+}
+
+export interface ColdSmsWeek {
+  timezone: string;
+  calendar: { id: string; name: string; minutes: number } | null;
+  slotsFailed: boolean;
+  slots: string[];
+  demos: { id: string; title: string; start: string; end: string }[];
+  google: { connected: boolean; events: { title: string; start: string; end: string }[] };
+}
+
+export function getColdSmsWeek(start: number, end: number): Promise<ColdSmsWeek> {
+  return api(`/api/admin/cold-sms/week?start=${start}&end=${end}`);
+}
+
+export function connectColdSmsGoogle(): Promise<{ redirectUrl: string }> {
+  return api("/api/admin/cold-sms/google", { method: "POST" });
+}
+
+export function disconnectColdSmsGoogle(): Promise<{ ok: true }> {
+  return api("/api/admin/cold-sms/google", { method: "DELETE" });
+}
+
+export function bookColdSmsCall(input: {
+  contactId: string;
+  startTime: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  business: string;
+  timezone: string;
+  notes: string;
+}): Promise<{ ok: true; appointmentId: string; startTime: string; endTime: string; calendarName: string }> {
+  return api("/api/admin/cold-sms/book", { method: "POST", body: JSON.stringify(input) });
+}

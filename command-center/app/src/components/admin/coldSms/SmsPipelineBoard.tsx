@@ -1,0 +1,262 @@
+import { useMemo, useRef, useState } from "react";
+import { Loader2, Search } from "lucide-react";
+import BoardScrollbar from "../../BoardScrollbar";
+import Toast from "../../Toast";
+import { stageTone } from "../../../lib/setterModel";
+import { timeAgo } from "../../../lib/timeAgo";
+import { ApiError, type ColdSmsCard, type ColdSmsVerdict } from "../../../lib/api";
+import {
+  useColdSmsBoardQuery,
+  useLoadMoreStage,
+  useMoveCard,
+  useReplyClassifier,
+} from "../../../hooks/useColdSmsBoard";
+import SmsProspectPanel from "./SmsProspectPanel";
+import { VerdictBadge } from "./VerdictBadge";
+
+// Cold SMS > Pipeline (Jake, 2026-10-12). The agency's "Cold SMS" pipeline in
+// GoHighLevel as a board: drag a card to move it in GHL, click it for the
+// prospect, the thread, a reply box and the booking wizard.
+//
+// GHL's workflow moves a prospect to Replied when they text back. Claude reads
+// the reply and the card wears its verdict; Jake drags the positives into his
+// Positive Reply stage himself. Nothing here moves a card on its own.
+
+type Filter = "all" | ColdSmsVerdict;
+
+const FILTERS: { id: Filter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "positive", label: "Positive" },
+  { id: "negative", label: "Negative" },
+  { id: "check", label: "Check" },
+  { id: "stop", label: "Stop" },
+];
+
+export default function SmsPipelineBoard() {
+  const board = useColdSmsBoardQuery();
+  const classifier = useReplyClassifier(Boolean(board.data?.stages));
+  const more = useLoadMoreStage();
+  const move = useMoveCard();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [query, setQuery] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [overStage, setOverStage] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const now = Date.now();
+
+  const stages = board.data?.stages ?? [];
+  const pipelineId = board.data?.pipeline?.id ?? "";
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const digits = q.replace(/\D/g, "");
+    return (c: ColdSmsCard) => {
+      if (filter !== "all" && c.verdict !== filter) return false;
+      if (!q) return true;
+      return (
+        c.business.toLowerCase().includes(q) ||
+        c.person.toLowerCase().includes(q) ||
+        (digits.length >= 3 && c.phone.replace(/\D/g, "").includes(digits))
+      );
+    };
+  }, [filter, query]);
+
+  const openCard = useMemo(() => {
+    for (const s of stages) for (const c of s.cards) if (c.id === openId) return c;
+    return null;
+  }, [stages, openId]);
+
+  const doMove = (card: ColdSmsCard, toPipeline: string, toStage: string, label: string) => {
+    if (toPipeline === pipelineId && toStage === card.stageId) return;
+    move.mutate(
+      { card, pipelineId: toPipeline, stageId: toStage },
+      {
+        onSuccess: () => setToast(`Moved to ${label}`),
+        onError: (e) =>
+          setToast(e instanceof ApiError && e.status === 400 ? "That stage no longer exists in GHL" : "GHL did not take the move. Put back."),
+      },
+    );
+  };
+
+  if (board.isLoading) return <div className="pk-empty">Reading the board...</div>;
+  if (board.isError) {
+    const upstream = board.error instanceof ApiError && board.error.status === 502;
+    return <div className="pk-empty">{upstream ? "GoHighLevel did not answer. Try again in a minute." : "The board did not load."}</div>;
+  }
+  if (!board.data?.configured) return <div className="pk-empty">The agency GoHighLevel account is not connected.</div>;
+  if (board.data.missing) return <div className="pk-empty">No pipeline named "Cold SMS" in GoHighLevel.</div>;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="relative flex items-center">
+          <Search size={14} aria-hidden className="pointer-events-none absolute left-3 text-faint" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search business or phone"
+            aria-label="Search business or phone"
+            className="w-[260px] rounded-xl border border-[var(--border)] bg-surface py-2 pl-8 pr-3 text-[13px] text-text outline-none focus:border-[var(--brand)]"
+          />
+        </label>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Reply filter">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              aria-pressed={filter === f.id}
+              className={`rounded-full border px-3 py-1 text-[12.5px] font-semibold transition-colors ${
+                filter === f.id
+                  ? "border-[var(--brand)] bg-[var(--brand-tint)] text-text"
+                  : "border-[var(--border)] bg-surface text-muted hover:text-text"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        {classifier.running && (
+          <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-faint">
+            <Loader2 size={13} className="animate-spin" aria-hidden />
+            Sorting replies{classifier.remaining ? ` (${classifier.remaining})` : ""}
+          </span>
+        )}
+        {classifier.failed && <span className="text-[12px] font-semibold text-[var(--warning)]">Replies not sorted</span>}
+      </div>
+
+      <div ref={scrollRef} className="no-scrollbar flex items-start gap-3 overflow-x-auto pb-2">
+        {stages.map((stage) => {
+          const tone = stageTone(stage.name);
+          const shown = stage.cards.filter(matches);
+          return (
+            <section key={stage.id} className="flex w-[290px] shrink-0 flex-col gap-2">
+              <header className="flex items-baseline justify-between gap-2 px-1">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: tone }} aria-hidden />
+                  <span className="truncate font-display text-[14px] font-bold text-text" title={stage.name}>
+                    {stage.name}
+                  </span>
+                </span>
+                <span
+                  className="font-data shrink-0 rounded-full px-1.5 text-[12px] font-bold"
+                  style={{ color: tone, background: `color-mix(in srgb, ${tone} 12%, transparent)` }}
+                >
+                  {stage.total.toLocaleString()}
+                </span>
+              </header>
+
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (overStage !== stage.id) setOverStage(stage.id);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOverStage(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setOverStage(null);
+                  const id = e.dataTransfer.getData("text/plain");
+                  const card = stages.flatMap((s) => s.cards).find((c) => c.id === id);
+                  if (card) doMove(card, pipelineId, stage.id, stage.name);
+                }}
+                className="flex max-h-[calc(100vh-260px)] min-h-[110px] flex-col gap-2 overflow-y-auto rounded-2xl bg-surface-2 p-2 transition-[outline-color]"
+                style={{
+                  boxShadow: `inset 0 3px 0 ${tone}`,
+                  outline: overStage === stage.id ? "2px dashed var(--brand)" : "2px dashed transparent",
+                  outlineOffset: -2,
+                }}
+              >
+                {shown.length === 0 ? (
+                  <p className="px-2 py-6 text-center text-[12px] text-faint">
+                    {stage.cards.length ? "No match" : "Empty"}
+                  </p>
+                ) : (
+                  shown.map((card) => (
+                    <BoardCard
+                      key={card.id}
+                      card={card}
+                      tone={tone}
+                      now={now}
+                      selected={card.id === openId}
+                      onOpen={() => setOpenId(card.id)}
+                    />
+                  ))
+                )}
+                {stage.cursor && (
+                  <button
+                    type="button"
+                    disabled={more.loading === stage.id}
+                    onClick={() => more.load(stage.id, stage.cursor!)}
+                    className="rounded-xl py-2 text-[12px] font-semibold text-muted hover:bg-surface hover:text-text disabled:opacity-60"
+                  >
+                    {more.loading === stage.id ? "Loading..." : `Load more (${(stage.total - stage.cards.length).toLocaleString()})`}
+                  </button>
+                )}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+      <BoardScrollbar scrollRef={scrollRef} className="px-1" />
+
+      {openCard && (
+        <SmsProspectPanel
+          card={openCard}
+          pipelines={board.data.pipelines ?? []}
+          boardPipelineId={pipelineId}
+          onMove={(toPipeline, toStage, label) => doMove(openCard, toPipeline, toStage, label)}
+          onClose={() => setOpenId(null)}
+          onToast={setToast}
+        />
+      )}
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+    </div>
+  );
+}
+
+function BoardCard({
+  card,
+  tone,
+  now,
+  selected,
+  onOpen,
+}: {
+  card: ColdSmsCard;
+  tone: string;
+  now: number;
+  selected: boolean;
+  onOpen: () => void;
+}) {
+  const when = card.reply?.at ? timeAgo(new Date(card.reply.at).toISOString(), now) : card.movedAt ? timeAgo(card.movedAt, now) : "";
+  return (
+    <button
+      type="button"
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", card.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onClick={onOpen}
+      className={`block w-full cursor-grab rounded-xl bg-surface p-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--surface)_85%,var(--brand))] active:cursor-grabbing ${
+        selected ? "ring-2 ring-[var(--brand)]" : ""
+      }`}
+      style={{ boxShadow: `inset 2px 0 0 ${tone}` }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 text-[13px] font-semibold leading-snug text-text">{card.business}</span>
+        {card.verdict && <VerdictBadge verdict={card.verdict} />}
+      </div>
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-faint">
+        {card.variation && (
+          <span className="rounded-md bg-surface-2 px-1.5 font-semibold text-muted">{card.variation}</span>
+        )}
+        {card.person && <span className="text-muted">{card.person}</span>}
+        {when && <span>{when}</span>}
+      </div>
+      {card.reply?.body && <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-snug text-muted">{card.reply.body}</p>}
+    </button>
+  );
+}
