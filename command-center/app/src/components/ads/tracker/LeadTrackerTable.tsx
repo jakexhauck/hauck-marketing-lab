@@ -183,8 +183,8 @@ function JobValueCell({
 //
 // Ordered by what the client actually does with the row rather than by the
 // table's column order: who it is and where they are in the pipeline first, then
-// how to reach them (phone above email, because these leads get called), then
-// the dates. Phone and email are real tel:/mailto: links here, which the table
+// how to reach them (the phone; no email, since the forms do not collect one,
+// Jake 2026-10-12), then the dates. The phone is a real tel: link here, which the table
 // never bothered with because a desktop user has the number in their CRM
 // anyway; on a phone, tapping the number IS the next action.
 function LeadCard({ lead, marking, canCall }: { lead: LeadTrackerLead; marking?: LeadMarking; canCall?: boolean }) {
@@ -232,13 +232,8 @@ function LeadCard({ lead, marking, canCall }: { lead: LeadTrackerLead; marking?:
             {canCall && <CallButton contactId={lead.contactId} phone={lead.phone} />}
           </div>
         )}
-        {lead.email && (
-          <a href={`mailto:${lead.email}`} className="-my-1 truncate py-1.5 text-brand">
-            {lead.email}
-          </a>
-        )}
-        {!lead.phone && !lead.email && (
-          <span className="text-faint">No phone or email on this lead.</span>
+        {!lead.phone && (
+          <span className="text-faint">No phone on this lead.</span>
         )}
       </div>
 
@@ -323,7 +318,6 @@ export default function LeadTrackerTable({
               <th className="px-3 py-2.5 text-left font-semibold">Date</th>
               <th className="px-3 py-2.5 text-left font-semibold">Lead</th>
               <th className="px-3 py-2.5 text-left font-semibold">Phone</th>
-              <th className="px-3 py-2.5 text-left font-semibold">Email</th>
               <th className="px-3 py-2.5 text-left font-semibold">Status</th>
               {/* Its own column rather than a number tucked beside the status:
                   it is a box to type in, and a typeable cell hiding inside
@@ -352,9 +346,6 @@ export default function LeadTrackerTable({
                         <CallButton contactId={lead.contactId} phone={lead.phone} className="h-7 px-2 text-[12px]" />
                       )}
                     </div>
-                  </td>
-                  <td className="max-w-[240px] px-3 py-2.5">
-                    <div className="truncate text-text">{lead.email || "-"}</div>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2.5">
                     {marking && !lead.stage ? (
