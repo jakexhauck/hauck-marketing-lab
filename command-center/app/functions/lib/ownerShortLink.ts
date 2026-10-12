@@ -16,6 +16,9 @@ import { LEAD_KEY_PURPOSE } from "./leadOutcome";
 export interface OwnerLinkTarget {
   purpose: string;
   path: string;
+  // "app": a page in the client app behind its own login, opened as
+  // <path>/<contactId> with no key. Absent: a keyed public owner page.
+  kind?: "app";
 }
 
 // Order is the order Outcome Wiring and the custom values list them.
@@ -23,6 +26,8 @@ export const OWNER_LINK_TARGETS: OwnerLinkTarget[] = [
   { purpose: CALL_NOW_PURPOSE, path: "/api/call-now" },
   { purpose: LEAD_KEY_PURPOSE, path: "/api/lead-outcome" },
   { purpose: PHONE_APPT_CALL_PURPOSE, path: "/api/phone-appt-call" },
+  // "Text Them Here": the lead's conversation in the client app (2026-10-12).
+  { purpose: "text-them", path: "/conversations", kind: "app" },
 ];
 
 const CODE_LENGTH = 10;

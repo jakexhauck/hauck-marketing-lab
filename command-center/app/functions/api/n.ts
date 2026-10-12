@@ -7,7 +7,9 @@ import { resolveShortCode } from "../lib/ownerShortLink";
 //
 // The short owner link texted from a GHL workflow. Finds which client and link
 // the code is, then redirects to the long link with its key, so every owner page
-// and its checks stay exactly as they were. See lib/ownerShortLink.ts.
+// and its checks stay exactly as they were. The Text Them link redirects to the
+// lead's conversation in the client app instead, which has its own login. See
+// lib/ownerShortLink.ts.
 
 const ID = /^[A-Za-z0-9]{8,64}$/;
 
@@ -34,6 +36,11 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
   const hit = await resolveShortCode(secret, code, locations);
   if (!hit) return bad();
+
+  if (hit.target.kind === "app") {
+    const to = new URL(`${hit.target.path}/${encodeURIComponent(contactId)}`, url.origin);
+    return new Response(null, { status: 302, headers: { location: to.toString(), "cache-control": "no-store" } });
+  }
 
   const key = await linkKey(secret, hit.target.purpose, hit.locationId);
   const to = new URL(hit.target.path, url.origin);

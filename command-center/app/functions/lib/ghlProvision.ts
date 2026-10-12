@@ -80,12 +80,14 @@ async function upsertCustomValue(
 //   Tap to call: {{custom_values.call_now_link}}&c={{contact.id}}
 //   Log outcome: {{custom_values.lead_outcome_link}}&c={{contact.id}}
 //   Phone appointment: {{custom_values.phone_appointment_call_now_link}}&c={{contact.id}}
+//   Text Them Here: {{custom_values.text_them_link}}&c={{contact.id}}
 //
 // GoHighLevel derives the merge key from the name, so these names are the
 // contract with the snapshot. Do not rename them.
 export const CALL_NOW_LINK_NAME = "Call Now Link";
 export const LEAD_OUTCOME_LINK_NAME = "Lead Outcome Link";
 export const PHONE_APPT_CALL_LINK_NAME = "Phone Appointment Call Now Link";
+export const TEXT_THEM_LINK_NAME = "Text Them Link";
 
 const LIVE_ORIGIN = "https://app.hauckmarketing.com";
 
@@ -116,7 +118,9 @@ export async function ownerLinkValues(
   // Jake, 2026-10-12: the short form (lib/ownerShortLink.ts). It already has a
   // query string, so the text's "&c={{contact.id}}" still appends cleanly. The
   // long /api/call-now?l=..&k=.. links stay valid.
-  const names = [CALL_NOW_LINK_NAME, LEAD_OUTCOME_LINK_NAME, PHONE_APPT_CALL_LINK_NAME];
+  // Jake, 2026-10-12: a fourth, Text Them Link, opens the lead's conversation
+  // in the client app.
+  const names = [CALL_NOW_LINK_NAME, LEAD_OUTCOME_LINK_NAME, PHONE_APPT_CALL_LINK_NAME, TEXT_THEM_LINK_NAME];
   return Promise.all(
     OWNER_LINK_TARGETS.map(async (t, i) => ({
       name: names[i],

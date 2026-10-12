@@ -2,8 +2,8 @@ import { useWiringQuery } from "../../../hooks/useSopApi";
 import { CopyButton, SopCard, SopError, SopHeading } from "./sopKit";
 import { ownerLinkText } from "../../../lib/ownerLinkText";
 
-// Client > GHL > Outcome Wiring. The three owner links (Call Now, Lead Outcome, Phone
-// Appointment Call Now) with this client's key in them, each beside the custom
+// Client > GHL > Outcome Wiring. The four owner links (Call Now, Lead Outcome, Phone
+// Appointment Call Now, Text Them) with this client's key in them, each beside the custom
 // value it belongs in, for pasting into GHL by hand. The tag is copied with the
 // lead's contact id on the end (lib/ownerLinkText.ts), the form the text needs.
 // Linking the sub-account and Provision write the same three.

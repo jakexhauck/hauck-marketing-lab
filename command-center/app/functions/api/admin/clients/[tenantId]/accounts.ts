@@ -134,7 +134,7 @@ export const onRequestGet: PagesFunction<Env, "tenantId", ApiData> = async (ctx)
   return Response.json(r.body, { headers: { "Cache-Control": "no-store" } });
 };
 
-// The one fix done on this endpoint: write the three owner links into GHL.
+// The one fix done on this endpoint: write the four owner links into GHL.
 // Every other fix button reuses the endpoint that already owns that setting.
 export const onRequestPost: PagesFunction<Env, "tenantId", ApiData> = async (ctx) => {
   const admin = ctx.data.admin;

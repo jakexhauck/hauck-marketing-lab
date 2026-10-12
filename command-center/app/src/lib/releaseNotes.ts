@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-12-text-them-link",
+    date: "12 October 2026",
+    title: "Text Them link for owner texts",
+    items: [
+      "A fourth owner link, Text Them Link, opens that lead's conversation in the client app.",
+      "If the owner is logged out, they land back on the conversation after logging in.",
+      "Press the owner links fix on Client > Accounts once per client to add it.",
+    ],
+  },
+  {
     id: "2026-10-12-app-event-source",
     date: "12 October 2026",
     title: "Every client reports through the GHL app",

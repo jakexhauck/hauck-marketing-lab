@@ -98,10 +98,15 @@ import { CLIENT_HOME, landingFor } from "./lib/nav";
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { status, currentUser, needsIdentity, setIdentity, isAdmin, crmConnected } =
     useAuth();
+  const location = useLocation();
   if (status === "loading") return null;
   // A super-admin has no tenant and never belongs on a client surface.
   if (isAdmin) return <Navigate to="/admin" replace />;
-  if (!currentUser) return <Navigate to="/login" replace />;
+  // Carries the page along so login can send the owner back to it, e.g. the
+  // conversation a "Text Them" link opened (loginReturn.ts).
+  if (!currentUser) {
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
+  }
   // Signed in, but their GoHighLevel sub-account does not exist yet. Ahead of
   // the identity picker: choosing who you are is pointless in an app you cannot
   // open yet. The API refuses every tenant surface in this state regardless, so

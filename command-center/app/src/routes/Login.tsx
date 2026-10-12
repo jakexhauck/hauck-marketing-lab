@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { adminReturnPath } from "../lib/loginReturn";
+import { adminReturnPath, clientReturnPath } from "../lib/loginReturn";
 import { useAuth } from "../context/AuthContext";
 import { APP_BRAND } from "../lib/appBrand";
 import { CLIENT_HOME } from "../lib/nav";
@@ -61,7 +61,9 @@ export default function Login() {
       ? await signInAsAdmin(trimmedEmail, trimmedPw)
       : await signInAsStaff(trimmedEmail, trimmedPw, "live");
     if (res.ok) {
-      navigate(isAdmin ? (returnTo ?? "/admin/clients") : CLIENT_HOME, { replace: true });
+      navigate(isAdmin ? (returnTo ?? "/admin/clients") : (clientReturnPath(location.state) ?? CLIENT_HOME), {
+        replace: true,
+      });
     } else {
       setPhase("error");
       setErrorMsg(res.error ?? "Sign-in failed");
