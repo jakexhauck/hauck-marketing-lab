@@ -1,10 +1,9 @@
-// The URL Jake pastes into a GHL Trigger Link for one of the three owner links.
+// What goes in the GHL text to the owner for one of the three owner links.
 //
-// The link value only names the client (location + key). Which lead the tap
+// The custom value only names the client (location + key). Which lead the tap
 // is about has to ride on the end, or /api/call-now and friends answer with an
-// invalid-link page (parseCallNowParams needs c). GHL fills {{contact.id}} per
-// contact when the trigger link is sent, so the owner text uses the trigger
-// link instead of the custom value tag (2026-10-12).
-export function ownerLinkText(url: string): string {
-  return `${url}&c={{contact.id}}`;
+// invalid-link page (parseCallNowParams needs c). Pasting the bare tag was the
+// easy mistake, so Outcome Wiring copies this line instead (2026-10-10).
+export function ownerLinkText(merge: string): string {
+  return `${merge}&c={{contact.id}}`;
 }

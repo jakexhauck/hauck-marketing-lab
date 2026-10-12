@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-12-short-owner-links",
+    date: "12 October 2026",
+    title: "Shorter owner links",
+    items: [
+      "Call Now, Lead Outcome and Phone Appointment Call Now links are now about half as long in the owner's text.",
+      "Outcome Wiring is back to copying the custom value line for the text. Press the owner links fix on Client > Accounts once per client to switch it over.",
+    ],
+  },
+  {
     id: "2026-10-12-trigger-link-urls",
     date: "12 October 2026",
     title: "Owner links copy as trigger link URLs",

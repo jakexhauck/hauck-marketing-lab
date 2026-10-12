@@ -1,6 +1,5 @@
 import { ghlJson, type GhlContext } from "./ghl";
-import { PHONE_APPT_CALL_PURPOSE, linkKey } from "./callNow";
-import { LEAD_KEY_PURPOSE } from "./leadOutcome";
+import { OWNER_LINK_TARGETS, shortCode } from "./ownerShortLink";
 
 // Everything the Connection page's Provision button writes INTO a client's
 // GoHighLevel sub-account.
@@ -109,26 +108,21 @@ export async function ownerLinkValues(
   secret: string,
   locationId: string,
 ): Promise<{ name: string; value: string }[]> {
-  const l = encodeURIComponent(locationId);
   // A press on localhost must not text a client's owner a localhost link.
   if (/^https?:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(origin)) origin = LIVE_ORIGIN;
   // Jake, 2026-10-10: three custom values, no more. Estimate Outcome Link and
   // Outcome Link are no longer written; their routes stay up so links already
   // texted keep opening.
-  return [
-    {
-      name: CALL_NOW_LINK_NAME,
-      value: `${origin}/api/call-now?l=${l}&k=${await linkKey(secret, "call-now", locationId)}`,
-    },
-    {
-      name: LEAD_OUTCOME_LINK_NAME,
-      value: `${origin}/api/lead-outcome?l=${l}&k=${await linkKey(secret, LEAD_KEY_PURPOSE, locationId)}`,
-    },
-    {
-      name: PHONE_APPT_CALL_LINK_NAME,
-      value: `${origin}/api/phone-appt-call?l=${l}&k=${await linkKey(secret, PHONE_APPT_CALL_PURPOSE, locationId)}`,
-    },
-  ];
+  // Jake, 2026-10-12: the short form (lib/ownerShortLink.ts). It already has a
+  // query string, so the text's "&c={{contact.id}}" still appends cleanly. The
+  // long /api/call-now?l=..&k=.. links stay valid.
+  const names = [CALL_NOW_LINK_NAME, LEAD_OUTCOME_LINK_NAME, PHONE_APPT_CALL_LINK_NAME];
+  return Promise.all(
+    OWNER_LINK_TARGETS.map(async (t, i) => ({
+      name: names[i],
+      value: `${origin}/api/n?o=${await shortCode(secret, t.purpose, locationId)}`,
+    })),
+  );
 }
 
 // Just the owner links, for the Provision button (which does not touch the
