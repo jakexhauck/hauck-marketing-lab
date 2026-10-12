@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanAttachments, sendChannelMessage } from "./messaging";
+import { cleanAttachments, conversationPreview, sendChannelMessage } from "./messaging";
 
 const ctx = { token: "tok", locationId: "loc" };
 
@@ -47,5 +47,19 @@ describe("sendChannelMessage with photos", () => {
     const sent = stubFetch();
     await sendChannelMessage(ctx, "contact1", { channel: "SMS", body: "hello" });
     expect(sent()).toEqual({ type: "SMS", contactId: "contact1", message: "hello" });
+  });
+});
+
+describe("conversationPreview", () => {
+  it("names a picture text by which way it went", () => {
+    expect(conversationPreview({ lastMessageBody: "", lastMessageType: "TYPE_SMS", lastMessageDirection: "outbound" })).toBe("Photo Sent");
+    expect(conversationPreview({ lastMessageBody: "", lastMessageType: "TYPE_SMS", lastMessageDirection: "inbound" })).toBe("Photo Received");
+  });
+  it("keeps a real body as it is", () => {
+    expect(conversationPreview({ lastMessageBody: "See you Tuesday", lastMessageType: "TYPE_SMS", lastMessageDirection: "outbound" })).toBe("See you Tuesday");
+  });
+  it("stays empty for system activity and calls", () => {
+    expect(conversationPreview({ lastMessageBody: "Stage changed", lastMessageType: "TYPE_ACTIVITY_OPPORTUNITY" })).toBe("");
+    expect(conversationPreview({ lastMessageBody: "", lastMessageType: "TYPE_CALL", lastMessageDirection: "outbound" })).toBe("");
   });
 });

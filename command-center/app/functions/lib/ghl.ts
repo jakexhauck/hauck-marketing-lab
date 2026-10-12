@@ -253,6 +253,8 @@ export interface GhlConversation {
   lastMessageType?: string | number;
   // Epoch millis in raw search responses, but tolerate ISO strings.
   lastMessageDate?: string | number;
+  // "inbound" | "outbound" on the newest message.
+  lastMessageDirection?: string;
   unreadCount?: number;
   type?: string;
 }

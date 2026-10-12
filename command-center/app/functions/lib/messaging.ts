@@ -323,3 +323,23 @@ export function channelMeta(messages: ShapedMessage[]): {
     availableChannels: [...seen].filter(isAllowedChannel),
   };
 }
+
+// The one-line preview under a name in an inbox list. A picture text has no
+// body, which used to read "No recent message" (Jake, 2026-10-12): an empty
+// text says which way the photo went instead. Empty for system activity, and
+// for anything that is not a text (a call has no body either).
+export function conversationPreview(c: {
+  lastMessageBody?: string;
+  lastMessageType?: string | number;
+  lastMessageDirection?: string;
+}): string {
+  const raw = typeof c.lastMessageType === "string" ? c.lastMessageType.toUpperCase() : "";
+  if (raw.includes("ACTIVITY") || raw.includes("OPPORTUNITY")) return "";
+  const body = (c.lastMessageBody ?? "").trim();
+  if (body) return c.lastMessageBody ?? "";
+  if (normalizeMessageType({ type: c.lastMessageType }) !== "SMS") return "";
+  const dir = (c.lastMessageDirection ?? "").toLowerCase();
+  if (dir === "outbound") return "Photo Sent";
+  if (dir === "inbound") return "Photo Received";
+  return "Photo";
+}

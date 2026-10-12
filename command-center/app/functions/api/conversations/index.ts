@@ -14,6 +14,7 @@ import {
 import { classifyOrigin, normalizeChannel } from "../../lib/origin";
 import type { OriginKey, ChannelKey } from "../../lib/origin";
 import { makeInternalConversationFilter } from "../../lib/internalRecipients";
+import { conversationPreview } from "../../lib/messaging";
 import {
   resolveClientInboxScope,
   buildVisibleContactIds,
@@ -71,11 +72,6 @@ interface PipelinesResponse {
   }[];
 }
 
-function isSystemActivity(t?: string | number): boolean {
-  if (typeof t !== "string" || !t) return false;
-  const upper = t.toUpperCase();
-  return upper.includes("ACTIVITY") || upper.includes("OPPORTUNITY");
-}
 
 // The opportunities the visibility gate should be built from, or null to leave
 // the gate off and return the feed unchanged.
@@ -216,8 +212,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     .map((c) => {
       const contact = byContact.get(c.contactId as string);
       const name = c.fullName || c.contactName || c.email || c.phone || "Unknown";
-      const previewRaw = c.lastMessageBody ?? "";
-      const preview = isSystemActivity(c.lastMessageType) ? "" : previewRaw;
+      const preview = conversationPreview(c);
       const atMs =
         typeof c.lastMessageDate === "number"
           ? c.lastMessageDate

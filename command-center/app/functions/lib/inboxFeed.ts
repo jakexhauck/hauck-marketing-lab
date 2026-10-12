@@ -9,7 +9,7 @@ import {
 } from "./ghl";
 import { readContactDnd, type ContactDnd } from "./dnd";
 import { makeInternalConversationFilter } from "./internalRecipients";
-import { normalizeMessageType, type ThreadMessage } from "./messaging";
+import { conversationPreview, normalizeMessageType, type ThreadMessage } from "./messaging";
 
 // One page of a GoHighLevel inbox, for any account.
 //
@@ -122,11 +122,6 @@ export function matchesQuery(c: GhlConversation, q: string): boolean {
   return false;
 }
 
-function isSystemActivity(t: string): boolean {
-  const upper = t.toUpperCase();
-  return upper.includes("ACTIVITY") || upper.includes("OPPORTUNITY");
-}
-
 function lastMessageMs(c: GhlConversation): number {
   if (typeof c.lastMessageDate === "number") return c.lastMessageDate;
   if (c.lastMessageDate) {
@@ -141,7 +136,6 @@ export function shapeThread(
   placement?: Map<string, ThreadPlacement>,
   dnd?: Map<string, ContactDnd>,
 ): ApiInboxThread {
-  const rawType = typeof c.lastMessageType === "string" ? c.lastMessageType : "";
   const type = normalizeMessageType({ type: c.lastMessageType });
   const ms = lastMessageMs(c);
   const where = placement?.get(c.contactId as string) ?? null;
@@ -151,7 +145,7 @@ export function shapeThread(
     // A stage-move activity has a body that reads like a message but is not
     // one; showing it as the preview makes the CRM look like it talked to the
     // customer.
-    preview: isSystemActivity(rawType) ? "" : (c.lastMessageBody ?? ""),
+    preview: conversationPreview(c),
     lastMessageAt: new Date(ms || Date.now()).toISOString(),
     lastMessageType: type,
     unreadCount: c.unreadCount ?? 0,
