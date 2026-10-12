@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-12-outcome-call-button",
+    date: "12 October 2026",
+    title: "One link in the new-lead text",
+    items: [
+      "The owner outcome page now opens with a Call button and a line telling them to text from the app.",
+      "Outcome Wiring shows the new-lead text to copy into the owner workflow, with the Lead Outcome Link in it.",
+      "Text Them Link is no longer shown on Outcome Wiring.",
+    ],
+  },
+  {
     id: "2026-10-12-text-them-link",
     date: "12 October 2026",
     title: "Text Them link for owner texts",
