@@ -58,12 +58,11 @@ describe("the phone app grid", () => {
   });
 
   it("reaches every surface the bottom bar dropped", () => {
-    // Inbox is not on the bar. The grid is what stops that being the same thing
-    // as removing it from the phone. (Chat used to be asserted here too; it
-    // left the nav entirely on 2026-08-05, so there is nothing to cover.)
+    // Contacts is not on the bar (Inbox took its slot 2026-10-12). The grid is
+    // what stops that being the same thing as removing it from the phone.
     const covered = new Set(routesOf(groupAppTiles(everything)));
     const bar = new Set(bottomNavItems(NAV).map((i) => i.to));
-    for (const route of ["/conversations"]) {
+    for (const route of ["/contacts"]) {
       expect(bar.has(route)).toBe(false);
       expect(covered.has(route)).toBe(true);
     }

@@ -93,7 +93,7 @@ describe("client nav structure", () => {
       "/marketing/paid-ads",
       "/apps",
       "/sales",
-      "/contacts",
+      "/conversations",
     ]);
     expect(bottom).not.toContain("/home");
   });
@@ -121,13 +121,12 @@ describe("client nav structure", () => {
     expect(bottom.map((i) => i.to)).not.toContain("/marketing/paid-ads/creatives");
   });
 
-  it("keeps the agency chat and the inbox off the phone bottom bar", () => {
-    // Chat removed 2026-07-31 (it was the far-right tab); Inbox removed
-    // 2026-08-02, its slot taken by Ads Dashboard. Both routes stay registered
-    // and both are on the /apps grid, so neither is unreachable on a phone.
+  it("keeps the agency chat and Contacts off the phone bottom bar", () => {
+    // Chat removed 2026-07-31 (it was the far-right tab). Contacts gave its slot
+    // to Inbox 2026-10-12; it stays on the /apps grid.
     const bottom = bottomNavItems(NAV).map((i) => i.to);
     expect(bottom).not.toContain("/comms");
-    expect(bottom).not.toContain("/conversations");
+    expect(bottom).not.toContain("/contacts");
   });
 
   it("centres the raised All features FAB in the bottom bar", () => {

@@ -40,10 +40,8 @@ export default function BottomNav() {
   // refetches and the badge updates via react-query's cache subscription.
   // No data yet means no badge (we never fabricate a count).
   //
-  // Gated on the Inbox tab actually being in the bar. It came out 2026-08-02, so
-  // without this the app would keep polling every 30s on every phone page to
-  // feed a badge that can no longer render. Re-slot Inbox in nav.ts and the poll
-  // (and the badge) come back on their own.
+  // Gated on the Inbox tab actually being in the bar, so a staff member without
+  // Inbox access never polls for a badge they cannot see.
   const hasInboxTab = items.some((item) => item.to === "/conversations");
   const conversations = useConversationsQuery(Boolean(session) && hasInboxTab);
   // Counts the Inbox, not the payload: the same feed also carries the client's
@@ -68,8 +66,9 @@ export default function BottomNav() {
         {items.map((item) => {
           const isActive = isActiveRoute(item.to);
           const Icon = item.icon;
-          // iOS Mail-style unread pill on the Chats tab only. Cap large counts
-          // at "9+" so the pill stays round and legible in the small bar.
+          // Red unread pill on the Inbox tab: one per unread text, so two
+          // unread texts read "2" (Jake, 2026-10-12). Capped at "9+" so the
+          // pill stays round in the small bar.
           const showBadge =
             item.to === "/conversations" && unreadConversations > 0;
           const badgeText =
@@ -127,10 +126,10 @@ export default function BottomNav() {
                     <Icon size={22} strokeWidth={isActive ? 2.4 : 2} />
                     {showBadge && (
                       <span
-                        aria-label={`${unreadConversations} unread conversations`}
+                        aria-label={`${unreadConversations} unread texts`}
                         className="absolute -right-2.5 -top-2 flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white"
                         style={{
-                          backgroundColor: "var(--brand-primary)",
+                          backgroundColor: "#e11d48",
                           boxShadow: "0 0 0 2px var(--surface)",
                         }}
                       >

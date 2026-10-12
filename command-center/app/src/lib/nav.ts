@@ -174,16 +174,14 @@ export const NAV: NavEntry[] = [
   // do; nav.test.ts fails if the FAB stops being the midpoint.
   // Sidebar-hidden (desktop has the full sidebar).
   { to: "/apps", label: "All features", shortLabel: "All", icon: LayoutGrid, bottomNav: 3, sidebarHidden: true },
-  // Inbox came off the phone bar 2026-08-02 and Ads Dashboard took its slot: the
-  // client opens the app to read ad results, and Chats was the tab nobody
-  // pressed. Still on the /apps grid and still in the desktop sidebar, so it
-  // costs one tap rather than being hidden. To put the tab back, give this row a
-  // bottomNav slot and re-slot the rest so /apps stays the midpoint.
-  { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox" },
+  // Inbox back on the phone bar in Contacts' slot (Jake, 2026-10-12), with a
+  // red unread-texts badge (BottomNav). Contacts stays in the sidebar and on the
+  // /apps grid.
+  { to: "/conversations", label: "Inbox", icon: MessageSquare, capability: "inbox", bottomNav: 5 },
   // No Leads row: the whole Leads section retired 2026-07-23. The client
   // tracking sheet it hosted was rebuilt tab-for-tab inside Paid Ads (Dashboard
   // / Lead Tracker / Meta Data / Pipeline Stats / How to Use).
-  { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: 5 },
+  { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts" },
   // No Customers row: retired from the nav 2026-07-31. The /customers and
   // /customers/:contactId routes stay registered, so a bookmark still resolves
   // and Close Out Job can still send you there after logging a job, but nothing
