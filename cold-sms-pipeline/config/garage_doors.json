@@ -59,7 +59,7 @@
   "max_reviews": 1500,
 
   "service_field": "service",
-  "service_default": "garage door",
+  "service_default": "garage door installation",
   "service_rules": [],
 
   "_line_types": "Twilio line_type_intelligence types that get a text.",
