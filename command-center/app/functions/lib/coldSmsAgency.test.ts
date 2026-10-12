@@ -11,7 +11,8 @@ const card = shapeCard({
 describe("shapeCard", () => {
   it("names the card by the company, keeps the person apart", () => {
     expect(card).toMatchObject({ business: "Pro Doors", person: "Mike Smith", variation: "sms v2", contactId: "c1" });
-    expect(shapeCard({ id: "o", createdAt: "2026-10-08T14:00:00Z" }).firstContactedAt).toBe("2026-10-08T14:00:00Z");
+    // The import date is not the first text; the board fills this from 0159.
+    expect(shapeCard({ id: "o", createdAt: "2026-10-08T14:00:00Z" }).firstContactedAt).toBeNull();
   });
   it("drops the person when it is just the company again", () => {
     expect(shapeCard({ id: "o", contact: { id: "c", name: "Pro Doors", companyName: "Pro Doors" } }).person).toBe("");

@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Loader2, Search } from "lucide-react";
 import BoardScrollbar from "../../BoardScrollbar";
 import Toast from "../../Toast";
 import { stageTone } from "../../../lib/setterModel";
 import { timeAgo } from "../../../lib/timeAgo";
+import { dayKeyOf } from "../../../lib/coldSmsWeek";
 import { ApiError, type ColdSmsCard, type ColdSmsVerdict } from "../../../lib/api";
 import {
   useColdSmsBoardQuery,
@@ -34,8 +36,34 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: "stop", label: "Stop" },
 ];
 
+// "Today", "Yesterday", else "Thu, Oct 9". The key is a calendar date already in
+// Jake's zone, so it is formatted as UTC to keep it from shifting a day.
+function dayLabel(day: string, zone: string): string {
+  const today = dayKeyOf(Date.now(), zone);
+  const yesterday = dayKeyOf(Date.now() - 864e5, zone);
+  if (day === today) return "Today";
+  if (day === yesterday) return "Yesterday";
+  return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }).format(
+    new Date(`${day}T12:00:00Z`),
+  );
+}
+
 export default function SmsPipelineBoard() {
-  const board = useColdSmsBoardQuery();
+  // The day filter rides in ?day= so a refresh stays on it. Days are by the
+  // first text sent, in Jake's zone (Jake, 2026-10-12).
+  const [params, setParams] = useSearchParams();
+  const day = /^d{4}-d{2}-d{2}$/.test(params.get("day") ?? "") ? params.get("day")! : "";
+  const setDay = (d: string) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (d) next.set("day", d);
+        else next.delete("day");
+        return next;
+      },
+      { replace: true },
+    );
+  const board = useColdSmsBoardQuery(day);
   const classifier = useReplyClassifier(Boolean(board.data?.stages));
   const more = useLoadMoreStage();
   const move = useMoveCard();
@@ -92,6 +120,20 @@ export default function SmsPipelineBoard() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={day}
+          onChange={(e) => setDay(e.target.value)}
+          aria-label="First texted"
+          className="rounded-xl border border-[var(--border)] bg-surface px-3 py-2 text-[13px] font-semibold text-text outline-none focus:border-[var(--brand)]"
+        >
+          <option value="">All days</option>
+          {(board.data.days ?? []).map((d) => (
+            <option key={d.day} value={d.day}>
+              {dayLabel(d.day, board.data?.timezone ?? "America/New_York")} · {d.texted.toLocaleString()}
+            </option>
+          ))}
+        </select>
+        {board.isFetching && !board.isLoading && <Loader2 size={14} className="animate-spin text-faint" aria-label="Loading" />}
         <label className="relative flex items-center">
           <Search size={14} aria-hidden className="pointer-events-none absolute left-3 text-faint" />
           <input

@@ -2548,10 +2548,17 @@ export interface ColdSmsBoard {
   pipeline?: { id: string; name: string };
   pipelines?: ColdSmsPipelineRef[];
   stages?: ColdSmsStage[];
+  // Jake's zone, and every day a first cold text went out in it, newest first.
+  timezone?: string;
+  days?: { day: string; texted: number }[];
+  // Set when the board is filtered to one day of first texts.
+  day?: string;
+  truncated?: boolean;
 }
 
-export function getColdSmsBoard(): Promise<ColdSmsBoard> {
-  return api("/api/admin/cold-sms/board");
+// day = YYYY-MM-DD (Jake's zone): only prospects first texted that day.
+export function getColdSmsBoard(day?: string): Promise<ColdSmsBoard> {
+  return api("/api/admin/cold-sms/board" + (day ? `?day=${encodeURIComponent(day)}` : ""));
 }
 
 export function getColdSmsStagePage(

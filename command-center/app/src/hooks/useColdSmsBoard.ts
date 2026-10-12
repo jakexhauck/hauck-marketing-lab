@@ -16,10 +16,13 @@ import {
 
 export const COLD_SMS_BOARD_KEY = ["admin", "cold-sms", "board"] as const;
 
-export function useColdSmsBoardQuery() {
+// One cache entry per view: the whole board, or one day of first texts. Every
+// write below patches all of them, so a verdict or a move shows in both.
+export function useColdSmsBoardQuery(day: string) {
   return useQuery({
-    queryKey: COLD_SMS_BOARD_KEY,
-    queryFn: getColdSmsBoard,
+    queryKey: [...COLD_SMS_BOARD_KEY, day || "all"],
+    queryFn: () => getColdSmsBoard(day || undefined),
+    placeholderData: (prev) => prev,
     staleTime: 15_000,
     refetchOnWindowFocus: true,
   });
@@ -58,7 +61,7 @@ export function useReplyClassifier(ready: boolean) {
         }
         const verdicts = new Map<string, ColdSmsVerdict>(res.classified.map((c) => [c.contactId, c.verdict]));
         if (verdicts.size) {
-          qc.setQueryData<ColdSmsBoard>(COLD_SMS_BOARD_KEY, (b) =>
+          qc.setQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY }, (b) =>
             patchCards(b, (c) => (verdicts.has(c.contactId) && c.reply ? { ...c, verdict: verdicts.get(c.contactId)! } : c)),
           );
         }
@@ -83,7 +86,7 @@ export function useLoadMoreStage() {
     setLoading(stageId);
     try {
       const page = await getColdSmsStagePage(stageId, cursor);
-      qc.setQueryData<ColdSmsBoard>(COLD_SMS_BOARD_KEY, (b) => {
+      qc.setQueryData<ColdSmsBoard>([...COLD_SMS_BOARD_KEY, "all"], (b) => {
         if (!b?.stages) return b;
         return {
           ...b,
@@ -110,8 +113,8 @@ export function useMoveCard() {
       moveColdSmsCard({ opportunityId: v.card.id, pipelineId: v.pipelineId, stageId: v.stageId }),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: COLD_SMS_BOARD_KEY });
-      const before = qc.getQueryData<ColdSmsBoard>(COLD_SMS_BOARD_KEY);
-      qc.setQueryData<ColdSmsBoard>(COLD_SMS_BOARD_KEY, (b) => {
+      const before = qc.getQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY });
+      qc.setQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY }, (b) => {
         if (!b?.stages) return b;
         const onThisBoard = b.pipeline?.id === v.pipelineId;
         return {
@@ -131,7 +134,7 @@ export function useMoveCard() {
       return { before };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.before) qc.setQueryData(COLD_SMS_BOARD_KEY, ctx.before);
+      for (const [key, data] of ctx?.before ?? []) qc.setQueryData(key, data);
     },
   });
 }

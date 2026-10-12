@@ -85,10 +85,9 @@ export interface BoardCard {
   variation: string | null;
   stageId: string;
   movedAt: string | null;
-  // When the prospect was added to the pipeline, which is when the cold text
-  // went out (the import creates the card and the workflow texts it). Read off
-  // the opportunity rather than the thread: a thread per card is a request per
-  // card.
+  // When the first cold text went out: the contact's earliest outbound message
+  // (cold_sms_first_texts, 0159). NOT the opportunity's createdAt, which is the
+  // import, and a batch imported at 4pm is often texted the next morning.
   firstContactedAt: string | null;
   reply: ReplyInfo | null;
   verdict: Verdict | null;
@@ -114,13 +113,43 @@ export function shapeCard(o: RawOpp): BoardCard {
     variation: variationOf(c.tags),
     stageId: o.pipelineStageId ?? "",
     movedAt: o.lastStageChangeAt ?? o.updatedAt ?? o.createdAt ?? null,
-    firstContactedAt: o.createdAt ?? null,
+    firstContactedAt: null,
     reply: null,
     verdict: null,
   };
 }
 
 // The cursor is GHL's own (startAfterId|startAfter), handed back verbatim.
+// Every card on the pipeline, for the day filter: GHL cannot filter by when a
+// contact was first texted, so the whole board is read and filtered here. Page
+// one says the total; the rest are fetched side by side by page number.
+const ALL_PAGES_CAP = 25;
+
+export async function fetchAllCards(
+  agency: GhlContext,
+  pipelineId: string,
+): Promise<{ cards: BoardCard[]; truncated: boolean }> {
+  const path = (p: number) =>
+    `/opportunities/search?location_id=${encodeURIComponent(agency.locationId)}` +
+    `&pipeline_id=${encodeURIComponent(pipelineId)}&limit=100&page=${p}`;
+  const first = await ghlJson<OppSearch>(agency, path(1));
+  const total = first.meta?.total ?? 0;
+  const pageCount = Math.min(ALL_PAGES_CAP, Math.ceil(total / 100));
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(0, pageCount - 1) }, (_, i) => ghlJson<OppSearch>(agency, path(i + 2))),
+  );
+  const seen = new Set<string>();
+  const cards: BoardCard[] = [];
+  for (const page of [first, ...rest]) {
+    for (const o of page.opportunities ?? []) {
+      if (seen.has(o.id)) continue;
+      seen.add(o.id);
+      cards.push(shapeCard(o));
+    }
+  }
+  return { cards, truncated: Math.ceil(total / 100) > ALL_PAGES_CAP };
+}
+
 export async function fetchStagePage(
   agency: GhlContext,
   pipelineId: string,
