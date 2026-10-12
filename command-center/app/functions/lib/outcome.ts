@@ -18,9 +18,10 @@
 //   Job cancelled    Job/Estimate Cancelled; the appointment cancelled and the
 //                    job taken back out of Revenue
 //
-// Under the name (Jake, 2026-10-12): everything GHL holds on the lead, the
-// contact's own fields then every filled custom field by its name (the lead
-// form's answers), so the owner walks into the call knowing the job.
+// Under the name (Jake, 2026-10-12): what the owner needs before the call.
+// Phone, when they came in, source, every filled custom field by its name, and
+// the Meta lead form's own answers when the lead came off one. Email and
+// address left off on purpose (Jake).
 //
 // Above the answers (Jake, 2026-10-12): a Call button (the same call now tag as
 // the Call Now link, so the owner's phone rings, then the lead's) and a line
@@ -213,12 +214,59 @@ function usPhone(raw: string): string {
   return m ? `(${m[1]}) ${m[2]}-${m[3]}` : raw;
 }
 
+// Meta's own form keys that are the contact itself, already shown or left off.
+const CONTACT_KEYS = new Set([
+  "full_name",
+  "first_name",
+  "last_name",
+  "phone_number",
+  "phone",
+  "email",
+  "street_address",
+  "address",
+  "city",
+  "state",
+  "province",
+  "zip_code",
+  "post_code",
+  "postal_code",
+  "country",
+]);
+
+// "what_type_of_door_do_you_need?" -> "What type of door do you need?"
+function questionLabel(key: string): string {
+  const t = key.replace(/_+/g, " ").replace(/\s+/g, " ").trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+// Meta sends picked options as keys: "within_a_month" -> "Within a month",
+// "asap" -> "ASAP". Typed answers keep their own case.
+function answerText(v: string): string {
+  if (!/^[a-z0-9_]+$/.test(v)) return v;
+  if (v === "asap") return "ASAP";
+  const t = v.replace(/_+/g, " ").trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+// The lead form's answers (meta_form_leads.answers), contact keys left out.
+export function formAnswerRows(answers: Record<string, unknown> | null | undefined): InfoRow[] {
+  const rows: InfoRow[] = [];
+  for (const [key, v] of Object.entries(answers ?? {})) {
+    if (CONTACT_KEYS.has(key.toLowerCase())) continue;
+    const value = answerText(fieldText(v)).slice(0, MAX_VALUE);
+    if (value) rows.push({ label: questionLabel(key), value });
+  }
+  return rows;
+}
+
 // The lead's information rows: contact fields first, then every custom field
-// with a value, named by this sub-account's field names. Empty rows are left out.
+// with a value, named by this sub-account's field names, then the lead form's
+// answers not already shown. Empty rows are left out.
 export function leadInfoRows(
   contact: Record<string, unknown> | null,
   fieldNames: Map<string, string>,
   cameIn: (iso: string) => string,
+  formAnswers: InfoRow[] = [],
 ): InfoRow[] {
   if (!contact) return [];
   const rows: InfoRow[] = [];
@@ -227,20 +275,22 @@ export function leadInfoRows(
     if (value) rows.push({ label, value });
   };
   add("Phone", usPhone(fieldText(contact.phone)));
-  add("Email", contact.email);
-  const place = [contact.city, [contact.state, contact.postalCode].map(fieldText).filter(Boolean).join(" ")]
-    .map(fieldText)
-    .filter(Boolean)
-    .join(", ");
-  add("Address", [fieldText(contact.address1), place].filter(Boolean).join(", "));
   add("Company", contact.companyName);
   if (typeof contact.dateAdded === "string") add("Came in", cameIn(contact.dateAdded));
   add("Source", contact.source);
   const custom = Array.isArray(contact.customFields) ? (contact.customFields as { id?: unknown; value?: unknown }[]) : [];
   for (const f of custom) {
     const name = fieldNames.get(String(f.id ?? ""));
-    if (!name || HIDDEN_FIELD.test(name)) continue;
+    if (!name || HIDDEN_FIELD.test(name) || /address|e-?mail/i.test(name)) continue;
     add(name, f.value);
+  }
+  const seen = new Set(rows.map((r) => r.label.toLowerCase().replace(/[^a-z0-9]/g, "")));
+  for (const r of formAnswers) {
+    const k = r.label.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!seen.has(k)) {
+      seen.add(k);
+      rows.push(r);
+    }
   }
   return rows;
 }

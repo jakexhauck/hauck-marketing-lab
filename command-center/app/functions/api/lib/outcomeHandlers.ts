@@ -14,6 +14,7 @@ import {
   CALL_BACK_TIMES,
   KEEPS_JOB,
   STAGE_LABEL,
+  formAnswerRows,
   leadInfoRows,
   lostReasonFor,
   outcomePage,
@@ -110,6 +111,31 @@ function bookedJob(
 
 // The client team's phone alert when an outcome is logged (Jake, 2026-10-10):
 // "Marcus Bell: Estimate booked Tue, Oct 14, 10:00 AM".
+// The lead form's answers when this lead came off a Meta form the app reads
+// (meta_form_leads, AAG today): matched on the last 10 phone digits, else the
+// email; newest form wins. Empty for every other lead.
+const digits10 = (s: unknown) => String(s ?? "").replace(/\D/g, "").slice(-10);
+
+async function metaFormAnswers(
+  link: OutcomeLink,
+  contact: { phone?: string; email?: string } | null,
+): Promise<Record<string, string> | null> {
+  const phone = digits10(contact?.phone);
+  const email = String(contact?.email ?? "").trim().toLowerCase();
+  if (phone.length < 10 && !email) return null;
+  const { data } = await link.client
+    .from("meta_form_leads")
+    .select("phone, email, answers")
+    .eq("tenant_id", link.tenantId)
+    .order("created_time", { ascending: false })
+    .limit(1000);
+  const hit = (data ?? []).find(
+    (r: { phone?: string; email?: string }) =>
+      (phone.length === 10 && digits10(r.phone) === phone) || (!!email && String(r.email ?? "").toLowerCase() === email),
+  );
+  return (hit?.answers as Record<string, string> | undefined) ?? null;
+}
+
 export function outcomePushLine(
   name: string,
   input: OutcomeInput,
@@ -178,12 +204,18 @@ export function outcomeHandlers(purpose: string) {
         contactFieldNames(link.gctx).catch(() => new Map<string, string>()),
       ]);
       if (!contact) return html(outcomeMessagePage("This lead is not in the account any more."), 404);
+      const answers = await metaFormAnswers(link, contact).catch(() => null);
       const next = upcomingEstimate(appts, link.calendars.estimate.id, now);
       const job = bookedJob(row, appts, link.calendars.job?.id ?? null);
       return html(
         outcomePage({
           name: contactName(contact),
-          info: leadInfoRows(contact as unknown as Record<string, unknown>, fieldNames, (iso) => formatWhen(iso, link.zone)),
+          info: leadInfoRows(
+            contact as unknown as Record<string, unknown>,
+            fieldNames,
+            (iso) => formatWhen(iso, link.zone),
+            formAnswerRows(answers),
+          ),
           booked: next ? `Estimate ${formatWhen(next.startTime, link.zone)}` : "",
           current: rowLabel(row, link.zone),
           base: url.pathname.replace(/\/$/, ""),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { leadInfoRows, lostReasonFor, outcomePage, parseOutcomeBody, stageKeyFor, timeLabel } from "./outcome";
+import { formAnswerRows, leadInfoRows, lostReasonFor, outcomePage, parseOutcomeBody, stageKeyFor, timeLabel } from "./outcome";
 import { planMove, stageKeyFor as boardKey, type BoardStage } from "./leadBoard";
 
 const SLOT = "2026-10-14T10:00:00-04:00";
@@ -180,7 +180,6 @@ describe("leadInfoRows", () => {
     );
     expect(rows).toEqual([
       { label: "Phone", value: "(586) 555-0173" },
-      { label: "Address", value: "1428 Elm St, Allen Park, MI 48101" },
       { label: "Came in", value: "Mon, Oct 12, 9:14 AM" },
       { label: "Source", value: "facebook" },
       { label: "What do you need help with?", value: "New install" },
@@ -205,5 +204,37 @@ describe("leadInfoRows", () => {
     });
     expect(page).toContain('<dl class="info">');
     expect(page).not.toContain("<b>hi</b>");
+  });
+});
+
+describe("formAnswerRows", () => {
+  it("turns Meta form keys into questions and leaves the contact keys out", () => {
+    expect(
+      formAnswerRows({
+        full_name: "Marcus Bell",
+        phone_number: "+15865550173",
+        email: "m@x.com",
+        zip_code: "48101",
+        "what_type_of_service_do_you_need?": "new_door_install",
+        when_do_you_need_it: "",
+      }),
+    ).toEqual([{ label: "What type of service do you need?", value: "New door install" }]);
+    expect(formAnswerRows({ "how_soon?": "asap", "are_you_the_homeowner?": "yes", notes: "Side door, Rusty" })).toEqual([
+      { label: "How soon?", value: "ASAP" },
+      { label: "Are you the homeowner?", value: "Yes" },
+      { label: "Notes", value: "Side door, Rusty" },
+    ]);
+  });
+  it("adds them after the contact rows, skipping a question already shown", () => {
+    const rows = leadInfoRows(
+      { phone: "5865550173", customFields: [{ id: "f1", value: "Install" }] },
+      new Map([["f1", "What type of service do you need?"]]),
+      () => "",
+      [
+        { label: "What type of service do you need?", value: "new door install" },
+        { label: "Door size", value: "16x7" },
+      ],
+    );
+    expect(rows.map((r) => r.label)).toEqual(["Phone", "What type of service do you need?", "Door size"]);
   });
 });
