@@ -26,6 +26,12 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-12-trigger-link-urls",
+    date: "12 October 2026",
+    title: "Owner links copy as trigger link URLs",
+    items: ["Outcome Wiring now copies each owner link as the full URL with the lead's ID on the end, ready to paste into a GHL Trigger Link."],
+  },
+  {
     id: "2026-10-10-meta-form-leads",
     date: "10 October 2026",
     title: "Lead Tracker reads Meta lead forms",
