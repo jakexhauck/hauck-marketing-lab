@@ -99,6 +99,27 @@ describe("outcomePage", () => {
     expect(page).not.toContain('data-outcome="job_done"');
   });
 
+  it("leads with a Call button and points to the app for texting, no send box", () => {
+    const page = outcomePage({
+      name: "Marcus Bell",
+      booked: "",
+      current: "",
+      base: "/api/outcome",
+      query: "?l=1&c=2&k=3",
+      hasJobCalendar: false,
+      job: "",
+      jobAmount: null,
+      form: { address: "", services: "", notes: "" },
+      days: [{ date: "2026-10-10", label: "Today" }],
+      pastToday: [],
+      noAnswerAt: "2:15 PM",
+    });
+    expect(page).toContain('id="callBtn">Call Marcus</button>');
+    expect(page).toContain('action:"call"');
+    expect(page).toContain("To Text This Lead Open The Command Center App!");
+    expect(page.indexOf("callBtn")).toBeLessThan(page.indexOf('data-outcome="estimate_booked"'));
+  });
+
   it("shows the job answers only once a job is booked, amount prefilled", () => {
     const page = outcomePage({
       name: "Marcus",

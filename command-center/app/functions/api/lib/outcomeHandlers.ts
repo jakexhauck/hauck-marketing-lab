@@ -25,6 +25,8 @@ import {
 import { moveLeadByContact } from "../../lib/outcomeMove";
 import { sendPushForActivity } from "../../lib/push";
 import { answersFromContact, formFieldIds, saveAnswers } from "../../lib/outcomeFields";
+import { CALL_NOW_TAG } from "../../lib/callNow";
+import { fireCallTag } from "../../lib/callNowHandler";
 
 // GET / POST / slots for the universal outcome page (lib/outcome.ts), shared by
 // every route that opens it: /api/outcome (Outcome Link) and the older
@@ -206,6 +208,17 @@ export function outcomeHandlers(purpose: string) {
     } catch {
       return fail("Could not read that. Try again.");
     }
+    // The page's Call button: same call now tag as the Call Now link.
+    if ((raw as { action?: unknown } | null)?.action === "call") {
+      try {
+        await fireCallTag(link.gctx, link.contactId, CALL_NOW_TAG);
+      } catch (err) {
+        logErrorBestEffort(ctx.env, "outcome-call", String(err), { contactId: link.contactId });
+        return fail("Could not start the call. Try again.", 502);
+      }
+      return Response.json({ ok: true });
+    }
+
     const input = parseOutcomeBody(raw);
     if ("error" in input) return fail(input.error);
 

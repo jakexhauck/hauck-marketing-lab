@@ -18,6 +18,11 @@
 //   Job cancelled    Job/Estimate Cancelled; the appointment cancelled and the
 //                    job taken back out of Revenue
 //
+// Above the answers (Jake, 2026-10-12): a Call button (the same call now tag as
+// the Call Now link, so the owner's phone rings, then the lead's) and a line
+// pointing them to the app to text. No send box here on purpose: this page has
+// no login, so the conversation stays behind the app's.
+//
 // The lead moves through the Leads board's own move (lib/outcomeMove.ts), never
 // a tag, so the board and this page cannot disagree. Tags only fire workflows.
 //
@@ -228,6 +233,9 @@ export function outcomePage(p: OutcomePageInput): string {
 <div id="ask">
 <h1>${escapeHtml(p.name)}</h1>
 ${chips}
+<button type="button" class="save call" id="callBtn">Call ${escapeHtml(p.name.split(" ")[0] || "them")}</button>
+<p class="callMsg" id="callMsg"></p>
+<p class="note">To Text This Lead Open The Command Center App!</p>
 <div class="list" style="margin-top:20px">
 ${
   p.job
@@ -329,6 +337,14 @@ function send(body,btn){
     $("ask").classList.add("hide");$("done").classList.remove("hide");$("doneTitle").textContent=x.d.message||"Saved."})
   .catch(function(){err("Could not save. Try again.");if(btn)btn.disabled=false});
 }
+$("callBtn").onclick=function(){
+  var b=$("callBtn");b.disabled=true;$("callMsg").textContent="";
+  fetch(BASE+q,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"call"})})
+  .then(function(r){return r.json().then(function(d){return{ok:r.ok&&d.ok,d:d}})})
+  .then(function(x){$("callMsg").textContent=x.ok?"Ringing your phone now.":((x.d&&x.d.error)||"Could not start the call. Try again.")})
+  .catch(function(){$("callMsg").textContent="Could not start the call. Try again."})
+  .then(function(){setTimeout(function(){b.disabled=false},4000)});
+};
 document.querySelectorAll("[data-outcome]").forEach(function(b){b.onclick=function(){show(b.getAttribute("data-outcome"))}});
 document.querySelectorAll("[data-reason]").forEach(function(b){b.onclick=function(){send({outcome:"not_interested",reason:b.getAttribute("data-reason")},b)}});
 var am=$("amount");if(am)am.oninput=syncJob;

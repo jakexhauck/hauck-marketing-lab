@@ -34,7 +34,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async () => {
 };
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
-  const input = parseOutcomeBody(await ctx.request.json().catch(() => null));
+  const raw = await ctx.request.json().catch(() => null);
+  // The Call button: nothing rings in the preview.
+  if ((raw as { action?: unknown } | null)?.action === "call") return Response.json({ ok: true });
+  const input = parseOutcomeBody(raw);
   if ("error" in input) return Response.json({ ok: false, error: input.error }, { status: 400 });
   const extra =
     input.outcome === "no_answer"
