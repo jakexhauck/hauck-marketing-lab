@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-12-app-event-source",
+    date: "12 October 2026",
+    title: "Every client reports through the GHL app",
+    items: [
+      "Above All Garage Doors, Made Better and Test v2 now get live leads, replies, stage moves and bookings from the Hauck Marketing GHL app.",
+      "New clients start on the app automatically. The old webhook workflows in Internal Systems are no longer used.",
+    ],
+  },
+  {
     id: "2026-10-12-short-owner-links",
     date: "12 October 2026",
     title: "Shorter owner links",

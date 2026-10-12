@@ -30,9 +30,10 @@ export async function bumpEventSeen(
   }
 }
 
-// Which source this tenant's reporting is cut over to. Defaults to 'workflow',
-// which is what every client ran before the Marketplace app existed, so an
-// un-migrated database or a missing row leaves behaviour exactly as it was.
+// Which source this tenant's reporting is cut over to. Defaults to 'app'
+// (Jake, 2026-10-12): every client is connected through our Marketplace app,
+// and the old workflow webhooks pointed at a dead domain. Only a row that says
+// 'workflow' outright (the agency's own sub-account) stays on it.
 export async function eventSourceForTenant(
   client: SupabaseClient,
   tenantId: string,
@@ -42,6 +43,6 @@ export async function eventSourceForTenant(
     .select("ghl_event_source")
     .eq("id", tenantId)
     .maybeSingle();
-  if (error || !data) return "workflow";
-  return data.ghl_event_source === "app" ? "app" : "workflow";
+  if (error || !data) return "app";
+  return data.ghl_event_source === "workflow" ? "workflow" : "app";
 }

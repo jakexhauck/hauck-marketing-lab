@@ -214,7 +214,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
   return Response.json({
     locationId,
-    source: tenant.ghl_event_source === "app" ? "app" : "workflow",
+    source: tenant.ghl_event_source === "workflow" ? "workflow" : "app",
     install: {
       configured: Boolean(url),
       agencyInstalled: Boolean(agency),
