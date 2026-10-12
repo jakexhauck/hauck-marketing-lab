@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lostReasonFor, outcomePage, parseOutcomeBody, stageKeyFor, timeLabel } from "./outcome";
+import { leadInfoRows, lostReasonFor, outcomePage, parseOutcomeBody, stageKeyFor, timeLabel } from "./outcome";
 import { planMove, stageKeyFor as boardKey, type BoardStage } from "./leadBoard";
 
 const SLOT = "2026-10-14T10:00:00-04:00";
@@ -146,5 +146,64 @@ describe("outcomePage", () => {
   it("labels times", () => {
     expect(timeLabel("13:00")).toBe("1 PM");
     expect(timeLabel("09:30")).toBe("9:30 AM");
+  });
+});
+
+describe("leadInfoRows", () => {
+  const names = new Map([
+    ["f1", "What do you need help with?"],
+    ["f2", "utm_campaign"],
+    ["f3", "Door size"],
+    ["f4", "Empty one"],
+  ]);
+  it("lists the contact fields, then every filled custom field by name, no tracking ids", () => {
+    const rows = leadInfoRows(
+      {
+        phone: "+15865550173",
+        email: "",
+        address1: "1428 Elm St",
+        city: "Allen Park",
+        state: "MI",
+        postalCode: "48101",
+        dateAdded: "2026-10-12T13:14:00Z",
+        source: "facebook",
+        customFields: [
+          { id: "f1", value: "New install" },
+          { id: "f2", value: "fall-promo" },
+          { id: "f3", value: ["16x7", "Insulated"] },
+          { id: "f4", value: "" },
+          { id: "unknown", value: "x" },
+        ],
+      },
+      names,
+      () => "Mon, Oct 12, 9:14 AM",
+    );
+    expect(rows).toEqual([
+      { label: "Phone", value: "(586) 555-0173" },
+      { label: "Address", value: "1428 Elm St, Allen Park, MI 48101" },
+      { label: "Came in", value: "Mon, Oct 12, 9:14 AM" },
+      { label: "Source", value: "facebook" },
+      { label: "What do you need help with?", value: "New install" },
+      { label: "Door size", value: "16x7, Insulated" },
+    ]);
+  });
+  it("escapes what it shows on the page", () => {
+    const page = outcomePage({
+      name: "M",
+      info: [{ label: "Notes", value: "<b>hi</b>" }],
+      booked: "",
+      current: "",
+      base: "/api/outcome",
+      query: "?a=1",
+      hasJobCalendar: false,
+      job: "",
+      jobAmount: null,
+      form: { address: "", services: "", notes: "" },
+      days: [{ date: "2026-10-10", label: "Today" }],
+      pastToday: [],
+      noAnswerAt: "2:15 PM",
+    });
+    expect(page).toContain('<dl class="info">');
+    expect(page).not.toContain("<b>hi</b>");
   });
 });

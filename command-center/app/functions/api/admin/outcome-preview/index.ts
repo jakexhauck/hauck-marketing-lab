@@ -17,6 +17,13 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async () => {
   return new Response(
     outcomePage({
       name: "Marcus Bell",
+      info: [
+        { label: "Phone", value: "(586) 555-0173" },
+        { label: "Email", value: "marcus.bell@gmail.com" },
+        { label: "Address", value: "1428 Elm St, Allen Park, MI 48101" },
+        { label: "Came in", value: "Mon, Oct 12, 9:14 AM" },
+        { label: "What do you need help with?", value: "New garage door install" },
+      ],
       booked: "",
       current: "",
       base: "/api/admin/outcome-preview",

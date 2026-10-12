@@ -219,6 +219,11 @@ input{width:100%;font:600 22px Poppins,Inter,system-ui,sans-serif;background:var
 .save{width:100%;margin-top:20px;background:var(--brand);color:var(--bg);border-color:var(--brand)}
 .err{color:var(--bad);font-size:14px;margin-top:12px;min-height:18px}
 .call{margin-top:16px}
+.info{margin:12px 0 0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 14px}
+.info div{padding:10px 0;border-top:1px solid var(--line)}
+.info div:first-child{border-top:0}
+.info dt{color:var(--mute);font-size:12px;margin:0 0 2px}
+.info dd{margin:0;font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere}
 .callMsg{color:var(--mute);font-size:14px;margin:8px 0 0;min-height:18px;text-align:center}
 .note{color:var(--mute);font-size:14px;margin:4px 0 0;text-align:center;font-weight:600}
 .hide{display:none}

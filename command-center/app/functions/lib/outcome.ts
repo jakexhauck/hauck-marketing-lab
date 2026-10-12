@@ -18,6 +18,10 @@
 //   Job cancelled    Job/Estimate Cancelled; the appointment cancelled and the
 //                    job taken back out of Revenue
 //
+// Under the name (Jake, 2026-10-12): everything GHL holds on the lead, the
+// contact's own fields then every filled custom field by its name (the lead
+// form's answers), so the owner walks into the call knowing the job.
+//
 // Above the answers (Jake, 2026-10-12): a Call button (the same call now tag as
 // the Call Now link, so the owner's phone rings, then the lead's) and a line
 // pointing them to the app to text. No send box here on purpose: this page has
@@ -187,8 +191,64 @@ export function timeLabel(hhmm: string): string {
   return `${h % 12 || 12}${m === "00" ? "" : `:${m}`} ${h < 12 ? "AM" : "PM"}`;
 }
 
+export interface InfoRow {
+  label: string;
+  value: string;
+}
+
+// Ad tracking ids are noise to an owner.
+const HIDDEN_FIELD = /utm|clid|campaign id|ad ?set id|^ad id$|fbp|fbc/i;
+const MAX_VALUE = 500;
+
+function fieldText(v: unknown): string {
+  if (typeof v === "string") return v.trim();
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  if (Array.isArray(v)) return v.map(fieldText).filter(Boolean).join(", ");
+  return "";
+}
+
+// "+15865550173" -> "(586) 555-0173". Anything not a US number stays as is.
+function usPhone(raw: string): string {
+  const m = /^(?:\+?1)?(\d{3})(\d{3})(\d{4})$/.exec(raw.replace(/[^\d+]/g, ""));
+  return m ? `(${m[1]}) ${m[2]}-${m[3]}` : raw;
+}
+
+// The lead's information rows: contact fields first, then every custom field
+// with a value, named by this sub-account's field names. Empty rows are left out.
+export function leadInfoRows(
+  contact: Record<string, unknown> | null,
+  fieldNames: Map<string, string>,
+  cameIn: (iso: string) => string,
+): InfoRow[] {
+  if (!contact) return [];
+  const rows: InfoRow[] = [];
+  const add = (label: string, v: unknown) => {
+    const value = fieldText(v).slice(0, MAX_VALUE);
+    if (value) rows.push({ label, value });
+  };
+  add("Phone", usPhone(fieldText(contact.phone)));
+  add("Email", contact.email);
+  const place = [contact.city, [contact.state, contact.postalCode].map(fieldText).filter(Boolean).join(" ")]
+    .map(fieldText)
+    .filter(Boolean)
+    .join(", ");
+  add("Address", [fieldText(contact.address1), place].filter(Boolean).join(", "));
+  add("Company", contact.companyName);
+  if (typeof contact.dateAdded === "string") add("Came in", cameIn(contact.dateAdded));
+  add("Source", contact.source);
+  const custom = Array.isArray(contact.customFields) ? (contact.customFields as { id?: unknown; value?: unknown }[]) : [];
+  for (const f of custom) {
+    const name = fieldNames.get(String(f.id ?? ""));
+    if (!name || HIDDEN_FIELD.test(name)) continue;
+    add(name, f.value);
+  }
+  return rows;
+}
+
 export interface OutcomePageInput {
   name: string;
+  // Everything on the lead (leadInfoRows). Empty hides the card.
+  info?: InfoRow[];
   // Chips: an estimate already on the calendar, and what was logged last.
   booked: string;
   current: string;
@@ -233,6 +293,13 @@ export function outcomePage(p: OutcomePageInput): string {
 <div id="ask">
 <h1>${escapeHtml(p.name)}</h1>
 ${chips}
+${
+  p.info && p.info.length
+    ? `<dl class="info">${p.info
+        .map((r) => `<div><dt>${escapeHtml(r.label)}</dt><dd>${escapeHtml(r.value)}</dd></div>`)
+        .join("")}</dl>`
+    : ""
+}
 <button type="button" class="save call" id="callBtn">Call ${escapeHtml(p.name.split(" ")[0] || "them")}</button>
 <p class="callMsg" id="callMsg"></p>
 <p class="note">To Text This Lead Open The Command Center App!</p>

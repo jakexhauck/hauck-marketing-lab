@@ -14,6 +14,7 @@ import {
   CALL_BACK_TIMES,
   KEEPS_JOB,
   STAGE_LABEL,
+  leadInfoRows,
   lostReasonFor,
   outcomePage,
   parseOutcomeBody,
@@ -24,7 +25,7 @@ import {
 } from "../../lib/outcome";
 import { moveLeadByContact } from "../../lib/outcomeMove";
 import { sendPushForActivity } from "../../lib/push";
-import { answersFromContact, formFieldIds, saveAnswers } from "../../lib/outcomeFields";
+import { answersFromContact, contactFieldNames, formFieldIds, saveAnswers } from "../../lib/outcomeFields";
 import { CALL_NOW_TAG } from "../../lib/callNow";
 import { fireCallTag } from "../../lib/callNowHandler";
 
@@ -169,11 +170,12 @@ export function outcomeHandlers(purpose: string) {
     if ("message" in link) return html(outcomeMessagePage(link.message), link.status);
     try {
       const now = Date.now();
-      const [contact, appts, row, ids] = await Promise.all([
+      const [contact, appts, row, ids, fieldNames] = await Promise.all([
         fetchContact(link.gctx, link.contactId),
         fetchContactAppointments(link.gctx, link.contactId).catch(() => []),
         loadRow(link),
         formFieldIds(link.gctx).catch(() => new Map<string, string>()),
+        contactFieldNames(link.gctx).catch(() => new Map<string, string>()),
       ]);
       if (!contact) return html(outcomeMessagePage("This lead is not in the account any more."), 404);
       const next = upcomingEstimate(appts, link.calendars.estimate.id, now);
@@ -181,6 +183,7 @@ export function outcomeHandlers(purpose: string) {
       return html(
         outcomePage({
           name: contactName(contact),
+          info: leadInfoRows(contact as unknown as Record<string, unknown>, fieldNames, (iso) => formatWhen(iso, link.zone)),
           booked: next ? `Estimate ${formatWhen(next.startTime, link.zone)}` : "",
           current: rowLabel(row, link.zone),
           base: url.pathname.replace(/\/$/, ""),

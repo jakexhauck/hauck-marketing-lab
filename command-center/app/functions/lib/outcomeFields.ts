@@ -8,12 +8,11 @@ import { FORM_FIELDS, type FormAnswers } from "./outcome";
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-const cache = new Map<string, { ids: Map<string, string>; expiresAt: number }>();
+const cache = new Map<string, { ids: Map<string, string>; names: Map<string, string>; expiresAt: number }>();
 
-// Form key -> custom field id, for the fields this sub-account has.
-export async function formFieldIds(gctx: GhlContext): Promise<Map<string, string>> {
+async function loadFields(gctx: GhlContext) {
   const hit = cache.get(gctx.locationId);
-  if (hit && hit.expiresAt > Date.now()) return hit.ids;
+  if (hit && hit.expiresAt > Date.now()) return hit;
   const { customFields = [] } = await ghlJson<{ customFields?: { id: string; name: string; model?: string }[] }>(
     gctx,
     `/locations/${encodeURIComponent(gctx.locationId)}/customFields?model=contact`,
@@ -24,8 +23,20 @@ export async function formFieldIds(gctx: GhlContext): Promise<Map<string, string
     const id = byName.get(norm(f.name));
     if (id) ids.set(f.key, id);
   }
-  cache.set(gctx.locationId, { ids, expiresAt: Date.now() + 10 * 60_000 });
-  return ids;
+  const names = new Map(customFields.map((f) => [f.id, f.name]));
+  const entry = { ids, names, expiresAt: Date.now() + 10 * 60_000 };
+  cache.set(gctx.locationId, entry);
+  return entry;
+}
+
+// Form key -> custom field id, for the fields this sub-account has.
+export async function formFieldIds(gctx: GhlContext): Promise<Map<string, string>> {
+  return (await loadFields(gctx)).ids;
+}
+
+// Custom field id -> its name, for showing every answer on the lead.
+export async function contactFieldNames(gctx: GhlContext): Promise<Map<string, string>> {
+  return (await loadFields(gctx)).names;
 }
 
 // What the contact already has in those fields, to prefill the page.
