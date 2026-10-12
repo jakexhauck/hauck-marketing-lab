@@ -24,6 +24,8 @@ import { VerdictBadge } from "./VerdictBadge";
 
 type Filter = "all" | ColdSmsVerdict;
 
+const FIRST = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
+
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "positive", label: "Positive" },
@@ -257,6 +259,9 @@ function BoardCard({
         {when && <span>{when}</span>}
       </div>
       {card.reply?.body && <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-snug text-muted">{card.reply.body}</p>}
+      {card.firstContactedAt && (
+        <p className="mt-1.5 text-[11px] text-faint">First contacted {FIRST.format(new Date(card.firstContactedAt))}</p>
+      )}
     </button>
   );
 }

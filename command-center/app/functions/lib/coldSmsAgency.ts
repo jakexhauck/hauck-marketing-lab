@@ -85,6 +85,11 @@ export interface BoardCard {
   variation: string | null;
   stageId: string;
   movedAt: string | null;
+  // When the prospect was added to the pipeline, which is when the cold text
+  // went out (the import creates the card and the workflow texts it). Read off
+  // the opportunity rather than the thread: a thread per card is a request per
+  // card.
+  firstContactedAt: string | null;
   reply: ReplyInfo | null;
   verdict: Verdict | null;
 }
@@ -109,6 +114,7 @@ export function shapeCard(o: RawOpp): BoardCard {
     variation: variationOf(c.tags),
     stageId: o.pipelineStageId ?? "",
     movedAt: o.lastStageChangeAt ?? o.updatedAt ?? o.createdAt ?? null,
+    firstContactedAt: o.createdAt ?? null,
     reply: null,
     verdict: null,
   };

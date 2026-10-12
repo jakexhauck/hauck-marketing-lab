@@ -2522,6 +2522,7 @@ export interface ColdSmsCard {
   variation: string | null;
   stageId: string;
   movedAt: string | null;
+  firstContactedAt: string | null;
   reply: { body: string; at: number } | null;
   verdict: ColdSmsVerdict | null;
 }

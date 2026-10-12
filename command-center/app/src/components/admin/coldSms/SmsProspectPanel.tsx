@@ -138,6 +138,9 @@ export default function SmsProspectPanel({
           {place && <Fact label="City" value={place} />}
           {c?.service && <Fact label="Service" value={c.service} />}
           {variation && <Fact label="Variation" value={variation} />}
+          {card.firstContactedAt && (
+            <Fact label="First contacted" value={fmt.format(new Date(card.firstContactedAt))} />
+          )}
           {c?.email && <Fact label="Email" value={c.email} />}
           {c?.website && <Fact label="Website" value={c.website} />}
           <dt className="text-faint">Reply</dt>

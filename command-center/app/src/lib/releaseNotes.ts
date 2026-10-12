@@ -33,6 +33,7 @@ export const RELEASES: Release[] = [
       "Cold SMS has a Pipeline tab: your GHL Cold SMS pipeline as a board. Drag a card to move it in GHL.",
       "Claude reads every reply and marks the card Positive, Negative, Check or Stop. Filter by any of them.",
       "Click a card for the business, the SMS variation they got, the full text thread and a reply box.",
+      "Every card shows the date the prospect was first contacted.",
       "Book call opens a week view with your Google Calendar, booked demos and open slots, showing their local time next to yours.",
     ],
   },
