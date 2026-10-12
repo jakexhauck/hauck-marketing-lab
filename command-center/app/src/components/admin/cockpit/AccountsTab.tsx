@@ -25,7 +25,7 @@ const LABELS: Record<AccountCheckId, string> = {
   capi: "Meta CAPI",
   pipeline: "Sales Pipeline",
   calendars: "Calendars",
-  "owner-links": "Owner links",
+  "owner-links": "Open Lead link",
   "owner-phone": "Owner phone",
   login: "Client app login",
   push: "Phone alerts",

@@ -21,7 +21,9 @@ export interface OwnerLinkTarget {
   kind?: "app";
 }
 
-// Order is the order Outcome Wiring and the custom values list them.
+// Every short link ever written. Only the Lead Outcome one is still written
+// (as Open Lead, lib/ghlProvision.ts); the rest stay so texts already sent
+// keep opening.
 export const OWNER_LINK_TARGETS: OwnerLinkTarget[] = [
   { purpose: CALL_NOW_PURPOSE, path: "/api/call-now" },
   { purpose: LEAD_KEY_PURPOSE, path: "/api/lead-outcome" },

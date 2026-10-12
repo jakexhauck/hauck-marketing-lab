@@ -108,7 +108,7 @@ const PUBLIC_PATHS = new Set([
   // The owner's new-lead link (book an estimate, call back, not interested).
   "/api/lead-outcome",
   "/api/lead-outcome/slots",
-  // The short form of the three owner links above, a signed code that
+  // The short form of the owner links (Open Lead today), a signed code that
   // redirects to the long link. See api/n.ts.
   "/api/n",
 ]);

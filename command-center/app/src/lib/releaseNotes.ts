@@ -28,11 +28,12 @@ export const RELEASES: Release[] = [
   {
     id: "2026-10-12-outcome-call-button",
     date: "12 October 2026",
-    title: "One link in the new-lead text",
+    title: "One owner link: Open Lead",
     items: [
       "The owner outcome page now opens with a Call button and a line telling them to text from the app.",
-      "Outcome Wiring shows the new-lead text to copy into the owner workflow, with the Lead Outcome Link in it.",
-      "Text Them Link is no longer shown on Outcome Wiring.",
+      "Open Lead is the only owner link written into GHL now. Call Now, Lead Outcome, Phone Appointment Call Now and Text Them are no longer written, and old texts still open.",
+      "Outcome Wiring shows the new-lead text to copy into the owner workflow, plus the Open Lead value.",
+      "Press the owner links fix on Client > Accounts once per client to add Open Lead.",
     ],
   },
   {

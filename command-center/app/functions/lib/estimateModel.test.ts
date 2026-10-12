@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { estimateLevel, rollup, withPickups, type TrackerLead, type TrackerSpendRow } from "./adTrackerMetrics";
 import { ownerLinkValues } from "./ghlProvision";
+import { shortCode } from "./ownerShortLink";
+import { LEAD_KEY_PURPOSE } from "./leadOutcome";
 
 const spend = (date: string, leads: number, amount: number): TrackerSpendRow => ({
   date,
@@ -60,17 +62,11 @@ describe("estimate model", () => {
 });
 
 describe("ownerLinkValues", () => {
-  it("writes the four short links, signed, and never a localhost origin", async () => {
+  it("writes only Open Lead, the Lead Outcome short link, never a localhost origin", async () => {
     const live = await ownerLinkValues("http://localhost:8788", "s3cret", "yVfX127fswQ03fydxBQg");
-    expect(live.map((v) => v.name)).toEqual([
-      "Call Now Link",
-      "Lead Outcome Link",
-      "Phone Appointment Call Now Link",
-      "Text Them Link",
-    ]);
-    for (const v of live) expect(v.value).toMatch(/^https:\/\/app\.hauckmarketing\.com\/api\/n\?o=[0-9a-z]{10}$/);
-    const keys = live.map((v) => v.value.split("o=")[1]);
-    expect(new Set(keys).size).toBe(4);
+    expect(live.map((v) => v.name)).toEqual(["Open Lead"]);
+    const code = await shortCode("s3cret", LEAD_KEY_PURPOSE, "yVfX127fswQ03fydxBQg");
+    expect(live[0].value).toBe(`https://app.hauckmarketing.com/api/n?o=${code}`);
   });
 });
 

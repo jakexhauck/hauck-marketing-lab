@@ -1,5 +1,6 @@
 import { ghlJson, type GhlContext } from "./ghl";
-import { OWNER_LINK_TARGETS, shortCode } from "./ownerShortLink";
+import { shortCode } from "./ownerShortLink";
+import { LEAD_KEY_PURPOSE } from "./leadOutcome";
 
 // Everything the Connection page's Provision button writes INTO a client's
 // GoHighLevel sub-account.
@@ -74,20 +75,15 @@ async function upsertCustomValue(
   }
 }
 
-// The owner links texted by the snapshot's workflows, each with this client's
-// key already in it, so the workflow text is identical in every sub-account:
+// The one owner link texted by the snapshot's new-lead workflow, with this
+// client's key already in it, so the workflow text is identical in every
+// sub-account:
 //
-//   Tap to call: {{custom_values.call_now_link}}&c={{contact.id}}
-//   Log outcome: {{custom_values.lead_outcome_link}}&c={{contact.id}}
-//   Phone appointment: {{custom_values.phone_appointment_call_now_link}}&c={{contact.id}}
-//   Text Them Here: {{custom_values.text_them_link}}&c={{contact.id}}
+//   Open lead: {{custom_values.open_lead}}&c={{contact.id}}
 //
-// GoHighLevel derives the merge key from the name, so these names are the
-// contract with the snapshot. Do not rename them.
-export const CALL_NOW_LINK_NAME = "Call Now Link";
-export const LEAD_OUTCOME_LINK_NAME = "Lead Outcome Link";
-export const PHONE_APPT_CALL_LINK_NAME = "Phone Appointment Call Now Link";
-export const TEXT_THEM_LINK_NAME = "Text Them Link";
+// GoHighLevel derives the merge key from the name, so this name is the
+// contract with the snapshot. Do not rename it.
+export const OPEN_LEAD_LINK_NAME = "Open Lead";
 
 const LIVE_ORIGIN = "https://app.hauckmarketing.com";
 
@@ -118,15 +114,17 @@ export async function ownerLinkValues(
   // Jake, 2026-10-12: the short form (lib/ownerShortLink.ts). It already has a
   // query string, so the text's "&c={{contact.id}}" still appends cleanly. The
   // long /api/call-now?l=..&k=.. links stay valid.
-  // Jake, 2026-10-12: a fourth, Text Them Link, opens the lead's conversation
-  // in the client app.
-  const names = [CALL_NOW_LINK_NAME, LEAD_OUTCOME_LINK_NAME, PHONE_APPT_CALL_LINK_NAME, TEXT_THEM_LINK_NAME];
-  return Promise.all(
-    OWNER_LINK_TARGETS.map(async (t, i) => ({
-      name: names[i],
-      value: `${origin}/api/n?o=${await shortCode(secret, t.purpose, locationId)}`,
-    })),
-  );
+  // Jake, 2026-10-12, later: one link only, Open Lead. It opens the outcome
+  // page, which now has the Call button, so Call Now Link, Lead Outcome Link,
+  // Phone Appointment Call Now Link and Text Them Link are no longer written.
+  // Open Lead carries the Lead Outcome key, so it is the same link Lead Outcome
+  // Link already holds, and every value already in GHL keeps working.
+  return [
+    {
+      name: OPEN_LEAD_LINK_NAME,
+      value: `${origin}/api/n?o=${await shortCode(secret, LEAD_KEY_PURPOSE, locationId)}`,
+    },
+  ];
 }
 
 // Just the owner links, for the Provision button (which does not touch the
