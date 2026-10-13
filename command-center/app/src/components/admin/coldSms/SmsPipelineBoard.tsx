@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
-import { Check, Loader2, Search, X } from "lucide-react";
+import { Check, ChevronsLeft, Loader2, Search, X } from "lucide-react";
 import BoardScrollbar from "../../BoardScrollbar";
 import Toast from "../../Toast";
 import { stageTone } from "../../../lib/setterModel";
@@ -50,6 +50,27 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: "stop", label: "Stop" },
 ];
 
+// Collapsed columns (Jake, 2026-10-13: hide the stages he does not need). A
+// per-viewer convenience, so browser storage; the board works without it.
+const COLLAPSED_KEY = "coldSms.collapsedStages";
+
+function readCollapsed(): Set<string> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? "[]");
+    return new Set(Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveCollapsed(ids: Set<string>) {
+  try {
+    localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...ids]));
+  } catch {
+    /* private window or storage off: collapse still works until reload */
+  }
+}
+
 // "Today", "Yesterday", else "Thu, Oct 9". The key is a calendar date already in
 // Jake's zone, so it is formatted as UTC to keep it from shifting a day.
 function dayLabel(day: string, zone: string): string {
@@ -87,6 +108,15 @@ export default function SmsPipelineBoard() {
   const followUp = useFollowUp();
   const [menu, setMenu] = useState<{ card: ColdSmsCard; x: number; y: number } | null>(null);
   const [editing, setEditing] = useState<ColdSmsCard | null>(null);
+  const [collapsed, setCollapsed] = useState<Set<string>>(readCollapsed);
+  const toggleCollapsed = (stageId: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(stageId)) next.delete(stageId);
+      else next.add(stageId);
+      saveCollapsed(next);
+      return next;
+    });
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -134,6 +164,24 @@ export default function SmsPipelineBoard() {
         onError: () => setToast("Follow up did not save"),
       },
     );
+
+  // Drag targets: an open column's card list, or a collapsed column's strip.
+  const dropProps = (stage: { id: string; name: string }) => ({
+    onDragOver: (e: React.DragEvent) => {
+      e.preventDefault();
+      if (overStage !== stage.id) setOverStage(stage.id);
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOverStage(null);
+    },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      setOverStage(null);
+      const id = e.dataTransfer.getData("text/plain");
+      const card = stages.flatMap((s) => s.cards).find((c) => c.id === id);
+      if (card) doMove(card, pipelineId, stage.id, stage.name);
+    },
+  });
 
   const doMove = (card: ColdSmsCard, toPipeline: string, toStage: string, label: string) => {
     if (toPipeline === pipelineId && toStage === card.stageId) return;
@@ -212,6 +260,38 @@ export default function SmsPipelineBoard() {
         {stages.map((stage) => {
           const tone = stageTone(stage.name);
           const shown = stage.cards.filter(matches);
+          if (collapsed.has(stage.id)) {
+            return (
+              <button
+                key={stage.id}
+                type="button"
+                onClick={() => toggleCollapsed(stage.id)}
+                aria-label={`Expand ${stage.name}`}
+                title={stage.name}
+                {...dropProps(stage)}
+                className="flex w-[44px] shrink-0 flex-col items-center gap-2 rounded-2xl bg-surface-2 py-3 hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--brand))]"
+                style={{
+                  boxShadow: `inset 0 3px 0 ${tone}`,
+                  outline: overStage === stage.id ? "2px dashed var(--brand)" : "2px dashed transparent",
+                  outlineOffset: -2,
+                  minHeight: 220,
+                }}
+              >
+                <span
+                  className="font-data rounded-full px-1.5 text-[12px] font-bold"
+                  style={{ color: tone, background: `color-mix(in srgb, ${tone} 12%, transparent)` }}
+                >
+                  {stage.total.toLocaleString()}
+                </span>
+                <span
+                  className="font-display text-[13px] font-bold text-text"
+                  style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+                >
+                  {stage.name}
+                </span>
+              </button>
+            );
+          }
           return (
             <section key={stage.id} className="flex w-[290px] shrink-0 flex-col gap-2">
               <header className="flex items-baseline justify-between gap-2 px-1">
@@ -221,29 +301,27 @@ export default function SmsPipelineBoard() {
                     {stage.name}
                   </span>
                 </span>
-                <span
-                  className="font-data shrink-0 rounded-full px-1.5 text-[12px] font-bold"
-                  style={{ color: tone, background: `color-mix(in srgb, ${tone} 12%, transparent)` }}
-                >
-                  {stage.total.toLocaleString()}
+                <span className="flex shrink-0 items-center gap-1">
+                  <span
+                    className="font-data rounded-full px-1.5 text-[12px] font-bold"
+                    style={{ color: tone, background: `color-mix(in srgb, ${tone} 12%, transparent)` }}
+                  >
+                    {stage.total.toLocaleString()}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => toggleCollapsed(stage.id)}
+                    aria-label={`Collapse ${stage.name}`}
+                    title="Collapse"
+                    className="grid h-6 w-6 place-items-center rounded-md text-faint hover:bg-surface-2 hover:text-text"
+                  >
+                    <ChevronsLeft size={14} />
+                  </button>
                 </span>
               </header>
 
               <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (overStage !== stage.id) setOverStage(stage.id);
-                }}
-                onDragLeave={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOverStage(null);
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setOverStage(null);
-                  const id = e.dataTransfer.getData("text/plain");
-                  const card = stages.flatMap((s) => s.cards).find((c) => c.id === id);
-                  if (card) doMove(card, pipelineId, stage.id, stage.name);
-                }}
+                {...dropProps(stage)}
                 className="flex max-h-[calc(100vh-260px)] min-h-[110px] flex-col gap-2 overflow-y-auto rounded-2xl bg-surface-2 p-2 transition-[outline-color]"
                 style={{
                   boxShadow: `inset 0 3px 0 ${tone}`,
