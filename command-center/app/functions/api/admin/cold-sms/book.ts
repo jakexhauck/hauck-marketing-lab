@@ -4,6 +4,7 @@ import { ghlFetch } from "../../../lib/ghl";
 import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../lib/agencyGhl";
 import { createAppointment, getCalendar, isCalendarNotFound, listCalendars } from "../../lib/appointments";
 import { pickColdSmsCalendar } from "../../../lib/coldSmsBoard";
+import { removeColdSmsCards } from "../../../lib/coldSmsAgency";
 
 // POST /api/admin/cold-sms/book  (owner only)
 // { contactId, startTime, firstName?, lastName?, email?, business?, timezone?, notes? }
@@ -15,9 +16,10 @@ import { pickColdSmsCalendar } from "../../../lib/coldSmsBoard";
 //      calendar's own slot length, never from the browser.
 //   3. The notes, as a contact note.
 //
-// The card is NOT moved: Jake's GHL workflow moves it to Sales > Call Booked when
-// the appointment lands (Jake, 2026-10-12). Two systems moving one card is how a
-// pipeline ends up lying.
+//   4. The prospect's Cold SMS card is DELETED (Jake, 2026-10-13). Jake's GHL
+//      workflow opens a NEW card in Sales > Call Booked when the appointment
+//      lands, so the Cold SMS one used to sit there for good. Only Cold SMS
+//      cards go; the contact and the Sales card are untouched.
 //
 // Step 1 failing does not stop the booking (a meeting with a stale name beats no
 // meeting); step 2 failing stops everything after it. Never retried: a resent
@@ -117,8 +119,17 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     if (!n.ok) console.warn("[cold-sms/book] note", n.status);
   }
 
+  // 4. Off the Cold SMS board. Best effort: the booking stands either way.
+  let removed: string[] = [];
+  try {
+    removed = await removeColdSmsCards(agency, contactId);
+  } catch (err) {
+    console.warn("[cold-sms/book] remove card", err instanceof Error ? err.message : err);
+  }
+
   return Response.json({
     ok: true,
+    removed,
     appointmentId: appt.id,
     startTime: new Date(start).toISOString(),
     endTime: new Date(start + mins * 60_000).toISOString(),

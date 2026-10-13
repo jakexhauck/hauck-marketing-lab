@@ -2664,6 +2664,13 @@ export function bookColdSmsCall(input: {
   business: string;
   timezone: string;
   notes: string;
-}): Promise<{ ok: true; appointmentId: string; startTime: string; endTime: string; calendarName: string }> {
+}): Promise<{
+  ok: true;
+  removed?: string[];
+  appointmentId: string;
+  startTime: string;
+  endTime: string;
+  calendarName: string;
+}> {
   return api("/api/admin/cold-sms/book", { method: "POST", body: JSON.stringify(input) });
 }

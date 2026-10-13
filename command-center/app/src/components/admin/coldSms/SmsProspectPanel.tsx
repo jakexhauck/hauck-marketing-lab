@@ -35,6 +35,7 @@ export default function SmsProspectPanel({
   onMove,
   onClose,
   onToast,
+  onRemoved,
 }: {
   card: ColdSmsCard;
   pipelines: ColdSmsPipelineRef[];
@@ -42,6 +43,7 @@ export default function SmsProspectPanel({
   onMove: (pipelineId: string, stageId: string, label: string) => void;
   onClose: () => void;
   onToast: (msg: string) => void;
+  onRemoved: (opportunityIds: string[]) => void;
 }) {
   const qc = useQueryClient();
   const key = ["admin", "cold-sms", "prospect", card.contactId];
@@ -327,10 +329,12 @@ export default function SmsProspectPanel({
           prospect={prospect.data}
           card={card}
           onClose={() => setBooking(false)}
-          onBooked={(label) => {
+          onBooked={(label, removed) => {
             setBooking(false);
             onToast(`Booked ${label}`);
             void qc.invalidateQueries({ queryKey: key });
+            // The server took the card off the Cold SMS board; match it here.
+            if (removed.length) onRemoved(removed);
           }}
         />
       )}

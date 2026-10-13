@@ -11,6 +11,7 @@ import {
   useColdSmsBoardQuery,
   useLoadMoreStage,
   useMoveCard,
+  useRemoveCards,
   useReplyClassifier,
 } from "../../../hooks/useColdSmsBoard";
 import SmsProspectPanel from "./SmsProspectPanel";
@@ -68,6 +69,7 @@ export default function SmsPipelineBoard() {
   const classifier = useReplyClassifier(Boolean(board.data?.stages));
   const more = useLoadMoreStage();
   const move = useMoveCard();
+  const removeCards = useRemoveCards();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -256,6 +258,10 @@ export default function SmsPipelineBoard() {
           onMove={(toPipeline, toStage, label) => doMove(openCard, toPipeline, toStage, label)}
           onClose={() => setOpenId(null)}
           onToast={setToast}
+          onRemoved={(ids) => {
+            removeCards(ids);
+            setOpenId(null);
+          }}
         />
       )}
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}

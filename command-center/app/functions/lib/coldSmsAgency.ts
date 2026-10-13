@@ -66,6 +66,7 @@ export function pickColdSmsPipeline(pipelines: ShapedPipeline[]): ShapedPipeline
 interface RawOpp {
   id: string;
   name?: string;
+  pipelineId?: string;
   pipelineStageId?: string;
   contactId?: string;
   lastStageChangeAt?: string;
@@ -326,4 +327,31 @@ export async function applySort(
     for (const r of results) if (r) done.push(r);
   }
   return done;
+}
+
+// ---------------------------------------------------------------------------
+// A booked prospect leaves the Cold SMS board (Jake, 2026-10-13): every Cold SMS
+// opportunity on the contact is deleted. Other pipelines' cards (Sales > Call
+// Booked) are never touched. Returns the ids GHL deleted.
+
+export async function removeColdSmsCards(agency: GhlContext, contactId: string): Promise<string[]> {
+  const board = pickColdSmsPipeline(await listPipelines(agency));
+  if (!board) return [];
+  const res = await ghlJson<OppSearch>(
+    agency,
+    `/opportunities/search?location_id=${encodeURIComponent(agency.locationId)}` +
+      `&contact_id=${encodeURIComponent(contactId)}&pipeline_id=${encodeURIComponent(board.id)}&limit=20`,
+  );
+  // GHL has ignored filters before (dates on this same search), so the pipeline
+  // and contact are checked here too rather than trusted.
+  const mine = (res.opportunities ?? []).filter(
+    (o) => o.pipelineId === board.id && (o.contactId ?? o.contact?.id) === contactId,
+  );
+  const gone: string[] = [];
+  for (const o of mine) {
+    const del = await ghlFetch(agency, `/opportunities/${encodeURIComponent(o.id)}`, { method: "DELETE" });
+    if (del.ok) gone.push(o.id);
+    else console.warn("[coldSmsAgency] remove card", o.id, del.status, (await del.text()).slice(0, 200));
+  }
+  return gone;
 }

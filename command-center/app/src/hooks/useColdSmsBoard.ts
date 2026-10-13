@@ -188,3 +188,22 @@ export function useMoveCard() {
     },
   });
 }
+
+// Cards the server deleted from the Cold SMS pipeline (a booked prospect, Jake
+// 2026-10-13), taken off every cached view with the column totals kept right.
+export function useRemoveCards() {
+  const qc = useQueryClient();
+  return (ids: string[]) => {
+    const gone = new Set(ids);
+    qc.setQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY }, (b) => {
+      if (!b?.stages) return b;
+      return {
+        ...b,
+        stages: b.stages.map((s) => {
+          const cards = s.cards.filter((c) => !gone.has(c.id));
+          return { ...s, cards, total: Math.max(0, s.total - (s.cards.length - cards.length)) };
+        }),
+      };
+    });
+  };
+}

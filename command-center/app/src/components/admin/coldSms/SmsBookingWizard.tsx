@@ -46,7 +46,7 @@ export default function SmsBookingWizard({
   prospect: ColdSmsProspect;
   card: ColdSmsCard;
   onClose: () => void;
-  onBooked: (label: string) => void;
+  onBooked: (label: string, removed: string[]) => void;
 }) {
   const qc = useQueryClient();
   const [step, setStep] = useState<Step>(1);
@@ -105,9 +105,12 @@ export default function SmsBookingWizard({
         timezone: theirZone,
         notes: form.notes,
       }),
-    onSuccess: () => {
+    onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: ["admin", "cold-sms", "week"] });
-      onBooked(`${formatDay(pick!, viewZone)} at ${formatTime(pick!, viewZone)} ${zoneShort(viewZone, pick!)}`);
+      onBooked(
+        `${formatDay(pick!, viewZone)} at ${formatTime(pick!, viewZone)} ${zoneShort(viewZone, pick!)}`,
+        res.removed ?? [],
+      );
     },
   });
 
