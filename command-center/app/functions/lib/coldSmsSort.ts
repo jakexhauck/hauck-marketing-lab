@@ -19,7 +19,9 @@ export function findSortStages(stages: { id: string; name: string }[]): SortStag
   const find = (re: RegExp) => stages.find((s) => re.test(s.name))?.id;
   const replied = find(/replied/i);
   const positive = find(/positive/i);
-  const negative = find(/negative/i);
+  // Jake folded negatives into "Not Responded/Negative Reply" (2026-10-13); a
+  // stage named for both wins over a plain "Negative Reply" still on the board.
+  const negative = find(/not responded.*negative|negative.*not responded/i) ?? find(/negative/i);
   return replied && positive && negative ? { replied, positive, negative } : null;
 }
 

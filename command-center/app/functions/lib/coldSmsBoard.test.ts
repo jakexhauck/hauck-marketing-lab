@@ -123,6 +123,11 @@ describe("auto-sort", () => {
     expect(findSortStages(stages)).toEqual({ replied: "rep", positive: "pos", negative: "neg" });
   });
 
+  it("prefers the merged Not Responded/Negative Reply stage", () => {
+    const merged = [...stages, { id: "nrn", name: "❌ Not Responded/Negative Reply" }];
+    expect(findSortStages(merged)?.negative).toBe("nrn");
+  });
+
   it("is null when a stage is missing", () => {
     expect(findSortStages(stages.filter((s) => s.id !== "neg"))).toBeNull();
   });
