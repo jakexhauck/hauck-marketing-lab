@@ -302,7 +302,10 @@ function BoardCard({
         {card.person && <span className="text-muted">{card.person}</span>}
         {when && <span>{when}</span>}
       </div>
-      {card.reply?.body && <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-snug text-muted">{card.reply.body}</p>}
+      {/* Their whole last message, never clipped (Jake, 2026-10-13). */}
+      {card.reply?.body && (
+        <p className="mt-1.5 whitespace-pre-wrap break-words text-[12.5px] leading-snug text-muted">{card.reply.body}</p>
+      )}
       {card.firstContactedAt && (
         <p className="mt-1.5 text-[11px] text-faint">First contacted {FIRST.format(new Date(card.firstContactedAt))}</p>
       )}

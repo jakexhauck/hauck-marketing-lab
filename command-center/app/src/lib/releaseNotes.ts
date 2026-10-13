@@ -34,6 +34,7 @@ export const RELEASES: Release[] = [
       "A text GHL refuses shows Not sent with Retry and Remove.",
       "New replies show within about 10 seconds while a prospect is open (was 20).",
       "Opening a prospect is quicker.",
+      "Pipeline cards show the prospect's whole last message, not just two lines.",
     ],
   },
   {
