@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { DISPOSITION_STATUSES } from "./salesDisposition";
-import { onboardingMove, resolveFormRoute } from "./salesFormRoute";
+import { planCardMove, resolveFormRoute, type FormRouteOk } from "./salesFormRoute";
 
-// The Hauck sub-account on 2026-10-13, emoji and all.
+// The Hauck sub-account on 2026-10-13, with PIF and Deposit taken off Sales
+// (Jake: closes move to Onboarding).
 const LIVE = [
   { id: "cold", name: "Cold SMS ", stages: [{ id: "c1", name: "📨 SMS Sent" }] },
   {
@@ -11,8 +12,6 @@ const LIVE = [
     stages: [
       { id: "s-hot", name: "🔥 Hot Lead" },
       { id: "s-booked", name: "✅ Call Booked" },
-      { id: "s-pif", name: "💰 PIF" },
-      { id: "s-dep", name: "💵 Deposit" },
       { id: "s-fu", name: "🔁 Follow Up" },
       { id: "s-can", name: "❌ Cancelled (needs reschedule)" },
       { id: "s-unq", name: "👎 Unqualified" },
@@ -32,67 +31,72 @@ const LIVE = [
   },
 ];
 
+const route = (k: Parameters<typeof resolveFormRoute>[0]) => {
+  const r = resolveFormRoute(k, LIVE);
+  if (!r.ok) throw new Error(r.error);
+  return r;
+};
+
 describe("resolveFormRoute", () => {
-  it("finds a Sales stage for every answer on the live board", () => {
-    for (const s of DISPOSITION_STATUSES) {
-      const r = resolveFormRoute(s.key, LIVE);
-      expect(r.ok, s.key).toBe(true);
-    }
+  it("has a column for every answer", () => {
+    for (const s of DISPOSITION_STATUSES) expect(resolveFormRoute(s.key, LIVE).ok, s.key).toBe(true);
   });
 
   it("sends each answer to its own column", () => {
-    const stage = (k: Parameters<typeof resolveFormRoute>[0]) => {
-      const r = resolveFormRoute(k, LIVE);
-      return r.ok ? r.sales.stageId : null;
-    };
-    expect(stage("pif")).toBe("s-pif");
-    expect(stage("deposit")).toBe("s-dep");
-    expect(stage("noclose")).toBe("s-nc");
-    expect(stage("noshow")).toBe("s-ns");
-    expect(stage("followup")).toBe("s-fu");
-    expect(stage("unqualified")).toBe("s-unq");
-    expect(stage("cancelled")).toBe("s-can");
-  });
-
-  it("adds PIF and Deposit to Onboarding, nothing else", () => {
-    const pif = resolveFormRoute("pif", LIVE);
-    const dep = resolveFormRoute("deposit", LIVE);
-    const nc = resolveFormRoute("noclose", LIVE);
-    expect(pif.ok && pif.onboarding).toEqual({ pipelineId: "onb", stageId: "o-pif", closeStageIds: ["o-pif", "o-dep"] });
-    expect(dep.ok && dep.onboarding?.stageId).toBe("o-dep");
-    expect(nc.ok && nc.onboarding).toBeNull();
+    expect(route("pif").target).toEqual({ pipelineId: "onb", stageId: "o-pif" });
+    expect(route("deposit").target).toEqual({ pipelineId: "onb", stageId: "o-dep" });
+    expect(route("noclose").target).toEqual({ pipelineId: "sales", stageId: "s-nc" });
+    expect(route("noshow").target.stageId).toBe("s-ns");
+    expect(route("followup").target.stageId).toBe("s-fu");
+    expect(route("unqualified").target.stageId).toBe("s-unq");
+    expect(route("cancelled").target.stageId).toBe("s-can");
   });
 
   it("says which column is missing instead of guessing", () => {
     const noFollowUp = LIVE.map((p) =>
       p.id === "sales" ? { ...p, stages: p.stages.filter((s) => s.id !== "s-fu") } : p,
     );
-    const r = resolveFormRoute("followup", noFollowUp);
-    expect(r).toEqual({ ok: false, error: "Sales pipeline has no Follow Up stage" });
+    expect(resolveFormRoute("followup", noFollowUp)).toEqual({ ok: false, error: "Sales pipeline has no Follow Up stage" });
   });
 
-  it("fails when there is no Onboarding pipeline for a close", () => {
-    const r = resolveFormRoute("pif", LIVE.filter((p) => p.id !== "onb"));
-    expect(r).toEqual({ ok: false, error: "No Onboarding pipeline" });
+  it("fails a close when there is no Onboarding pipeline", () => {
+    const noOnb = LIVE.filter((p) => p.id !== "onb");
+    expect(resolveFormRoute("pif", noOnb)).toEqual({ ok: false, error: "No Onboarding pipeline" });
+    expect(resolveFormRoute("noshow", noOnb).ok).toBe(true);
   });
 });
 
-describe("onboardingMove", () => {
-  const target = { pipelineId: "onb", stageId: "o-dep", closeStageIds: ["o-pif", "o-dep"] };
+describe("planCardMove", () => {
+  const pif: FormRouteOk = route("pif");
+  const fu: FormRouteOk = route("followup");
 
-  it("creates a card when the contact has none", () => {
-    expect(onboardingMove(target, [])).toEqual({ kind: "create" });
+  it("moves the Sales card to Onboarding on a close", () => {
+    expect(planCardMove(pif, [{ id: "a", stageId: "s-booked" }], [], null)).toEqual({ kind: "move", opportunityId: "a" });
   });
 
-  it("switches a card between PIF and Deposit", () => {
-    expect(onboardingMove(target, [{ id: "op1", stageId: "o-pif" }])).toEqual({ kind: "move", opportunityId: "op1" });
+  it("creates an Onboarding card when there is no card at all", () => {
+    expect(planCardMove(pif, [], [], null)).toEqual({ kind: "create" });
   });
 
-  it("leaves a card that is already further along", () => {
-    expect(onboardingMove(target, [{ id: "op1", stageId: "o-active" }])).toEqual({ kind: "none" });
+  it("switches PIF to Deposit on the Onboarding card", () => {
+    expect(planCardMove(route("deposit"), [], [{ id: "a", stageId: "o-pif" }], null)).toEqual({ kind: "move", opportunityId: "a" });
   });
 
-  it("does nothing when it is already there", () => {
-    expect(onboardingMove(target, [{ id: "op1", stageId: "o-dep" }])).toEqual({ kind: "none" });
+  it("never drags a client back from Being Setup", () => {
+    expect(planCardMove(pif, [], [{ id: "a", stageId: "o-setup" }], null)).toEqual({ kind: "none", opportunityId: "a" });
+    expect(planCardMove(fu, [], [{ id: "a", stageId: "o-active" }], null)).toEqual({ kind: "create" });
+  });
+
+  it("brings a corrected close back to Sales", () => {
+    expect(planCardMove(fu, [], [{ id: "a", stageId: "o-dep" }], null)).toEqual({ kind: "move", opportunityId: "a" });
+  });
+
+  it("prefers the card this meeting moved last", () => {
+    const cards = [{ id: "a", stageId: "s-hot" }, { id: "b", stageId: "s-booked" }];
+    expect(planCardMove(fu, cards, [], "b")).toEqual({ kind: "move", opportunityId: "b" });
+  });
+
+  it("does nothing when the card is already there", () => {
+    expect(planCardMove(fu, [{ id: "a", stageId: "s-fu" }], [], null)).toEqual({ kind: "none", opportunityId: "a" });
   });
 });

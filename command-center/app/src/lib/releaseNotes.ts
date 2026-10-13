@@ -31,7 +31,7 @@ export const RELEASES: Release[] = [
     title: "The post-call form moves the lead in GHL",
     items: [
       "Saving the form moves the lead to the matching column on the Sales pipeline.",
-      "PIF and Deposit also add the lead to Onboarding.",
+      "PIF and Deposit move the lead off Sales and onto Onboarding.",
     ],
   },
   {

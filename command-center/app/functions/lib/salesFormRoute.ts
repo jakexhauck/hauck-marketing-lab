@@ -2,8 +2,9 @@ import type { DispositionStatus } from "./salesDisposition";
 import { findStage, normalizeStageName, pickSalesPipeline } from "./salesPipeline";
 
 // Where the post-call form puts the lead in the Hauck sub-account (Jake,
-// 2026-10-13). Each answer has a column of the same name on the Sales board;
-// a PIF or Deposit also starts them on the Onboarding board.
+// 2026-10-13). Each answer has a column of the same name on the Sales board,
+// except PIF and Deposit: a close leaves Sales and its card moves to the
+// Onboarding board's PIF or Deposit column.
 //
 // Matched by NAME, the house rule (salesPipeline.ts): the live columns carry
 // emoji ("💰 PIF") that normalizeStageName strips, and "Cancelled" finds
@@ -11,9 +12,7 @@ import { findStage, normalizeStageName, pickSalesPipeline } from "./salesPipelin
 //
 // Pure. The GHL calls live in salesFormRouteGhl.ts.
 
-const SALES_STAGE: Record<DispositionStatus, string> = {
-  pif: "PIF",
-  deposit: "Deposit",
+const SALES_STAGE: Partial<Record<DispositionStatus, string>> = {
   noclose: "No-Close",
   noshow: "No-Show",
   followup: "Follow Up",
@@ -32,62 +31,98 @@ interface Pipeline {
   stages: { id: string; name: string }[];
 }
 
-export interface SalesTarget {
-  pipelineId: string;
-  stageId: string;
+export interface FormRouteOk {
+  ok: true;
+  // Where the card goes.
+  target: { pipelineId: string; stageId: string };
+  close: boolean;
+  salesPipelineId: string;
+  // The Onboarding columns a close lands in. A card in one of these may be
+  // moved by a corrected form; a card anywhere else on Onboarding has moved on.
+  // Null when the account has no Onboarding board and this is not a close.
+  onboarding: { pipelineId: string; closeStageIds: string[] } | null;
 }
 
-export interface OnboardingTarget extends SalesTarget {
-  // The Onboarding columns a close can land in. A card in one of these may be
-  // switched by a corrected form; a card anywhere else has moved on.
-  closeStageIds: string[];
-}
-
-export type FormRoute =
-  | { ok: true; sales: SalesTarget; onboarding: OnboardingTarget | null }
-  | { ok: false; error: string };
+export type FormRoute = FormRouteOk | { ok: false; error: string };
 
 export function resolveFormRoute(status: DispositionStatus, pipelines: readonly Pipeline[]): FormRoute {
   const sales = pickSalesPipeline(pipelines);
   if (!sales) return { ok: false, error: "No Sales pipeline" };
-  const salesStage = findStage(sales.stages, SALES_STAGE[status]);
-  if (!salesStage) return { ok: false, error: `Sales pipeline has no ${SALES_STAGE[status]} stage` };
+
+  const onbPipeline = pipelines.find((p) => normalizeStageName(p.name) === "onboarding") ?? null;
+  const closeStages = onbPipeline
+    ? Object.values(ONBOARDING_STAGE).map((n) => findStage(onbPipeline.stages, n!))
+    : [];
+  const onboarding =
+    onbPipeline && closeStages.every(Boolean)
+      ? { pipelineId: onbPipeline.id, closeStageIds: closeStages.map((s) => s!.id) }
+      : null;
 
   const onbName = ONBOARDING_STAGE[status];
-  if (!onbName) {
-    return { ok: true, sales: { pipelineId: sales.id, stageId: salesStage.id }, onboarding: null };
+  if (onbName) {
+    if (!onbPipeline) return { ok: false, error: "No Onboarding pipeline" };
+    const stage = findStage(onbPipeline.stages, onbName);
+    if (!stage || !onboarding) return { ok: false, error: `Onboarding pipeline has no ${onbName} stage` };
+    return {
+      ok: true,
+      target: { pipelineId: onbPipeline.id, stageId: stage.id },
+      close: true,
+      salesPipelineId: sales.id,
+      onboarding,
+    };
   }
-  const onb = pipelines.find((p) => normalizeStageName(p.name) === "onboarding");
-  if (!onb) return { ok: false, error: "No Onboarding pipeline" };
-  const closeStages = Object.values(ONBOARDING_STAGE).map((n) => findStage(onb.stages, n!));
-  const onbStage = findStage(onb.stages, onbName);
-  if (!onbStage || closeStages.some((s) => !s)) {
-    return { ok: false, error: `Onboarding pipeline has no ${onbName} stage` };
-  }
+
+  const salesName = SALES_STAGE[status]!;
+  const stage = findStage(sales.stages, salesName);
+  if (!stage) return { ok: false, error: `Sales pipeline has no ${salesName} stage` };
   return {
     ok: true,
-    sales: { pipelineId: sales.id, stageId: salesStage.id },
-    onboarding: {
-      pipelineId: onb.id,
-      stageId: onbStage.id,
-      closeStageIds: closeStages.map((s) => s!.id),
-    },
+    target: { pipelineId: sales.id, stageId: stage.id },
+    close: false,
+    salesPipelineId: sales.id,
+    onboarding,
   };
 }
 
-export type OnboardingMove =
+export interface Card {
+  id: string;
+  stageId: string;
+}
+
+export type CardMove =
   | { kind: "create" }
   | { kind: "move"; opportunityId: string }
-  | { kind: "none" };
+  | { kind: "none"; opportunityId: string };
 
-// What to do with the contact's Onboarding cards. Re-saving the form must never
-// drag a client who is Being Setup or Active back to PIF.
-export function onboardingMove(
-  target: OnboardingTarget,
-  existing: readonly { id: string; stageId: string }[],
-): OnboardingMove {
-  if (existing.length === 0) return { kind: "create" };
-  if (existing.some((o) => o.stageId === target.stageId)) return { kind: "none" };
-  const atClose = existing.find((o) => target.closeStageIds.includes(o.stageId));
-  return atClose ? { kind: "move", opportunityId: atClose.id } : { kind: "none" };
+// Which card to move, given the contact's cards on each board.
+//
+// The form is an editor, so a corrected answer has to undo the last one: a
+// close moves the Sales card to Onboarding, and changing it back to Follow Up
+// brings that card home again. Only a card still at PIF or Deposit is ever
+// taken off Onboarding; a client Being Setup is left where they are.
+export function planCardMove(
+  route: FormRouteOk,
+  salesCards: readonly Card[],
+  onboardingCards: readonly Card[],
+  preferredId: string | null,
+): CardMove {
+  const { stageId } = route.target;
+  const closeIds = route.onboarding?.closeStageIds ?? [];
+  const pick = (cards: readonly Card[]) => cards.find((c) => c.id === preferredId) ?? cards[0];
+  const moveTo = (c: Card): CardMove =>
+    c.stageId === stageId ? { kind: "none", opportunityId: c.id } : { kind: "move", opportunityId: c.id };
+
+  if (route.close) {
+    if (onboardingCards.length > 0) {
+      const there = onboardingCards.find((c) => c.stageId === stageId);
+      if (there) return { kind: "none", opportunityId: there.id };
+      const atClose = onboardingCards.find((c) => closeIds.includes(c.stageId));
+      return atClose ? moveTo(atClose) : { kind: "none", opportunityId: onboardingCards[0].id };
+    }
+    return salesCards.length > 0 ? moveTo(pick(salesCards)!) : { kind: "create" };
+  }
+
+  if (salesCards.length > 0) return moveTo(pick(salesCards)!);
+  const atClose = onboardingCards.filter((c) => closeIds.includes(c.stageId));
+  return atClose.length > 0 ? moveTo(pick(atClose)!) : { kind: "create" };
 }

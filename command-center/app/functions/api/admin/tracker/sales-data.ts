@@ -288,8 +288,8 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   }
   if (!("disposition_status" in update)) return Response.json({ ok: true });
 
-  // The answer moves the lead on the Sales board (and onto Onboarding for a
-  // close), salesFormRoute.ts. A failed move never undoes the save: the row
+  // The answer moves the lead on the Sales board (a close moves it to
+  // Onboarding), salesFormRoute.ts. A failed move never undoes the save: the row
   // keeps the reason in ghl_error and the form says it was not moved.
   const row = data[0] as {
     ghl_contact_id: string | null;
@@ -297,7 +297,7 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     prospect_name: string | null;
     business_name: string | null;
   };
-  let routed: { ok: true; salesOpportunityId: string } | { ok: false; error: string };
+  let routed: { ok: true; opportunityId: string } | { ok: false; error: string };
   if (!row.ghl_contact_id) routed = { ok: false, error: "meeting has no GHL contact" };
   else if (!isAgencyGhlConfigured(ctx.env)) routed = { ok: false, error: "agency GHL not configured" };
   else {
@@ -313,7 +313,7 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     .from("sales_calls")
     .update(
       routed.ok
-        ? { ghl_opportunity_id: routed.salesOpportunityId, ghl_error: null }
+        ? { ghl_opportunity_id: routed.opportunityId, ghl_error: null }
         : { ghl_error: routed.error },
     )
     .eq("id", id);
