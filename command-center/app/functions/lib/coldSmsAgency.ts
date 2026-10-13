@@ -132,34 +132,49 @@ export function shapeCard(o: RawOpp): BoardCard {
 }
 
 // The cursor is GHL's own (startAfterId|startAfter), handed back verbatim.
+//
 // Every card on the pipeline, for the day filter: GHL cannot filter by when a
-// contact was first texted, so the whole board is read and filtered here. Page
-// one says the total; the rest are fetched side by side by page number.
-const ALL_PAGES_CAP = 25;
+// contact was first texted, so the whole board is read and filtered here. The
+// pipeline is past 30 pages and Cloudflare allows 50 outside calls per request,
+// so the day view reads it in PARTS, one request each, side by side (2026-10-13,
+// the board hung on "Reading the board" once a day's view crossed the cap).
 
-export async function fetchAllCards(
+export const OPP_PAGE = 100;
+export const PAGES_PER_PART = 10;
+
+const oppPagePath = (agency: GhlContext, pipelineId: string, page: number, limit = OPP_PAGE) =>
+  `/opportunities/search?location_id=${encodeURIComponent(agency.locationId)}` +
+  `&pipeline_id=${encodeURIComponent(pipelineId)}&limit=${limit}&page=${page}`;
+
+// How many GHL pages the pipeline is, from one tiny read.
+export async function countCardPages(agency: GhlContext, pipelineId: string): Promise<number> {
+  const first = await ghlJson<OppSearch>(agency, oppPagePath(agency, pipelineId, 1, 1));
+  return Math.ceil((first.meta?.total ?? 0) / OPP_PAGE);
+}
+
+// Part k: GHL pages k*PAGES_PER_PART+1 up to `pageCount`, read side by side.
+export async function fetchCardPart(
   agency: GhlContext,
   pipelineId: string,
-): Promise<{ cards: BoardCard[]; truncated: boolean }> {
-  const path = (p: number) =>
-    `/opportunities/search?location_id=${encodeURIComponent(agency.locationId)}` +
-    `&pipeline_id=${encodeURIComponent(pipelineId)}&limit=100&page=${p}`;
-  const first = await ghlJson<OppSearch>(agency, path(1));
-  const total = first.meta?.total ?? 0;
-  const pageCount = Math.min(ALL_PAGES_CAP, Math.ceil(total / 100));
-  const rest = await Promise.all(
-    Array.from({ length: Math.max(0, pageCount - 1) }, (_, i) => ghlJson<OppSearch>(agency, path(i + 2))),
+  part: number,
+  pageCount: number,
+): Promise<BoardCard[]> {
+  const from = part * PAGES_PER_PART + 1;
+  const to = Math.min(pageCount, from + PAGES_PER_PART - 1);
+  if (to < from) return [];
+  const pages = await Promise.all(
+    Array.from({ length: to - from + 1 }, (_, i) => ghlJson<OppSearch>(agency, oppPagePath(agency, pipelineId, from + i))),
   );
   const seen = new Set<string>();
   const cards: BoardCard[] = [];
-  for (const page of [first, ...rest]) {
+  for (const page of pages) {
     for (const o of page.opportunities ?? []) {
       if (seen.has(o.id)) continue;
       seen.add(o.id);
       cards.push(shapeCard(o));
     }
   }
-  return { cards, truncated: Math.ceil(total / 100) > ALL_PAGES_CAP };
+  return cards;
 }
 
 export async function fetchStagePage(

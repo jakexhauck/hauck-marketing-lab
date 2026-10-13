@@ -2,8 +2,10 @@ import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { agencyTimezone, getAgencyGhlContext, isAgencyGhlConfigured } from "../../../lib/agencyGhl";
 import {
+  PAGES_PER_PART,
+  countCardPages,
   decorate,
-  fetchAllCards,
+  fetchCardPart,
   fetchLatestReplies,
   fetchStagePage,
   listPipelines,
@@ -21,7 +23,10 @@ import {
 } from "../../../lib/coldSmsFirstTexts";
 
 // GET /api/admin/cold-sms/board                     -> every column, first page each
-// GET /api/admin/cold-sms/board?day=YYYY-MM-DD      -> every card first texted that day
+// GET /api/admin/cold-sms/board?day=YYYY-MM-DD      -> the columns, and how many parts to read
+// GET /api/admin/cold-sms/board?day=&part=k&pages=n -> part k of that day's cards
+//   (the client reads every part side by side; one request for the whole pipeline
+//   went past Cloudflare's 50 outside calls, see coldSmsAgency.ts)
 // GET /api/admin/cold-sms/board?stageId=&cursor=    -> the next page of one column
 //
 // Owner only (no role rule in adminRoles.ts, so every other role is refused).
@@ -51,6 +56,12 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const cursor = (params.get("cursor") ?? "").trim() || null;
   const day = (params.get("day") ?? "").trim();
   if (day && !DAY.test(day)) return Response.json({ error: "bad_day" }, { status: 400 });
+  const partRaw = params.get("part");
+  const part = partRaw === null ? null : Number(partRaw);
+  const pageCount = Number(params.get("pages") ?? "0");
+  if (part !== null && (!day || !Number.isInteger(part) || part < 0 || !Number.isInteger(pageCount) || pageCount < 0)) {
+    return Response.json({ error: "bad_part" }, { status: 400 });
+  }
 
   const withFirst = async (cards: BoardCard[]) => {
     const firsts = await loadFirstTexts(db, cards.map((c) => c.contactId));
@@ -61,6 +72,21 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     const pipelines = await listPipelines(agency);
     const board = pickColdSmsPipeline(pipelines);
     if (!board) return Response.json({ configured: true, missing: true, pipelines });
+
+    // One part of a day: its pages, kept to the prospects first texted that day.
+    if (part !== null) {
+      const range = zoneDayRange(day, zone);
+      const [texted, cards, replies] = await Promise.all([
+        contactsTextedBetween(db, range.start, range.end),
+        fetchCardPart(agency, board.id, part, pageCount),
+        fetchLatestReplies(agency),
+      ]);
+      const mine = cards
+        .filter((c) => texted.has(c.contactId))
+        .map((c) => ({ ...c, firstContactedAt: texted.get(c.contactId)! }));
+      const stored = await loadVerdicts(db, mine.map((c) => c.contactId));
+      return Response.json({ cards: await withFollowUps(db, decorate(mine, replies, stored)) });
+    }
 
     if (stageId) {
       if (!board.stages.some((s) => s.id === stageId)) {
@@ -84,8 +110,26 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     const synced = syncFirstTexts(db, agency, { pages: SYNC_PAGES }).catch((e) =>
       console.warn("[cold-sms/board] first-text sync", e instanceof Error ? e.message : e),
     );
-    const allCards = day ? fetchAllCards(agency, board.id) : null;
-    const stagePages = day ? null : Promise.all(board.stages.map((s) => fetchStagePage(agency, board.id, s.id)));
+    if (day) {
+      const [days, pages] = await Promise.all([
+        synced.then(() => firstTextDays(db, zone)),
+        countCardPages(agency, board.id),
+      ]);
+      return Response.json({
+        configured: true,
+        locationId: agency.locationId,
+        pipeline: { id: board.id, name: board.name },
+        pipelines,
+        timezone: zone,
+        days,
+        day,
+        pages,
+        parts: Math.ceil(pages / PAGES_PER_PART),
+        stages: board.stages.map((s) => ({ id: s.id, name: s.name, total: 0, cursor: null, cards: [] })),
+      });
+    }
+
+    const stagePages = Promise.all(board.stages.map((s) => fetchStagePage(agency, board.id, s.id)));
     const [days, replies] = await Promise.all([synced.then(() => firstTextDays(db, zone)), fetchLatestReplies(agency)]);
 
     const common = {
@@ -98,26 +142,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       days,
     };
 
-    if (day) {
-      const range = zoneDayRange(day, zone);
-      const [texted, all] = await Promise.all([contactsTextedBetween(db, range.start, range.end), allCards!]);
-      const cards = all.cards
-        .filter((c) => texted.has(c.contactId))
-        .map((c) => ({ ...c, firstContactedAt: texted.get(c.contactId)! }));
-      const stored = await loadVerdicts(db, cards.map((c) => c.contactId));
-      const shown = await withFollowUps(db, decorate(cards, replies, stored));
-      return Response.json({
-        ...common,
-        day,
-        truncated: all.truncated,
-        stages: board.stages.map((s) => {
-          const inStage = shown.filter((c) => c.stageId === s.id);
-          return { id: s.id, name: s.name, total: inStage.length, cursor: null, cards: inStage };
-        }),
-      });
-    }
-
-    const pages = await stagePages!;
+    const pages = await stagePages;
     const stored = await loadVerdicts(db, pages.flatMap((p) => p.cards.map((c) => c.contactId)));
     const firsts = await loadFirstTexts(db, pages.flatMap((p) => p.cards.map((c) => c.contactId)));
     const follow = new Map(

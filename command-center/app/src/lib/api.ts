@@ -2558,9 +2558,29 @@ export interface ColdSmsBoard {
   truncated?: boolean;
 }
 
-// day = YYYY-MM-DD (Jake's zone): only prospects first texted that day.
-export function getColdSmsBoard(day?: string): Promise<ColdSmsBoard> {
-  return api("/api/admin/cold-sms/board" + (day ? `?day=${encodeURIComponent(day)}` : ""));
+// day = YYYY-MM-DD (Jake's zone): only prospects first texted that day. The
+// server hands back the columns and a part count; every part is read side by
+// side and the cards dropped into their columns (one request for the whole
+// pipeline hit Cloudflare's per-request cap, 2026-10-13).
+export async function getColdSmsBoard(day?: string): Promise<ColdSmsBoard> {
+  if (!day) return api("/api/admin/cold-sms/board");
+  const q = `?day=${encodeURIComponent(day)}`;
+  const head = await api<ColdSmsBoard & { parts?: number; pages?: number }>(`/api/admin/cold-sms/board${q}`);
+  if (!head.stages || !head.parts) return head;
+  const parts = await Promise.all(
+    Array.from({ length: head.parts }, (_, k) =>
+      api<{ cards: ColdSmsCard[] }>(`/api/admin/cold-sms/board${q}&part=${k}&pages=${head.pages ?? 0}`),
+    ),
+  );
+  const seen = new Set<string>();
+  const cards = parts.flatMap((p) => p.cards).filter((c) => !seen.has(c.id) && seen.add(c.id));
+  return {
+    ...head,
+    stages: head.stages.map((s) => {
+      const mine = cards.filter((c) => c.stageId === s.id);
+      return { ...s, cards: mine, total: mine.length };
+    }),
+  };
 }
 
 export function getColdSmsStagePage(
