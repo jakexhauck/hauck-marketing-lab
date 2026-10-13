@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarPlus, Send, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarPlus, Loader2, Phone, Send, X } from "lucide-react";
 import {
   ApiError,
+  callColdSmsProspect,
   getColdSmsProspect,
   getColdSmsThread,
   sendColdSmsText,
@@ -81,6 +82,12 @@ export default function SmsProspectPanel({
   const threadRef = useRef<HTMLDivElement>(null);
   const nextTemp = useRef(0);
 
+  const call = useMutation({
+    mutationFn: () => callColdSmsProspect(card.contactId),
+    onSuccess: (res) => onToast(res.ok ? "Calling your phone" : (res.message ?? "GoHighLevel did not place the call")),
+    onError: () => onToast("GoHighLevel did not place the call"),
+  });
+
   const patch = (tempId: string, change: Partial<PendingText>) =>
     setPending((list) => list.map((p) => (p.tempId === tempId ? { ...p, ...change } : p)));
 
@@ -142,6 +149,15 @@ export default function SmsProspectPanel({
               {[c ? `${c.firstName} ${c.lastName}`.trim() : card.person, c?.phone || card.phone].filter(Boolean).join(" · ")}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => call.mutate()}
+            disabled={call.isPending || !(c?.phone || card.phone)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-surface-2 px-3.5 py-2 text-[13px] font-bold text-text disabled:opacity-50"
+          >
+            {call.isPending ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Phone size={15} aria-hidden />}
+            Call
+          </button>
           <button
             type="button"
             onClick={() => setBooking(true)}

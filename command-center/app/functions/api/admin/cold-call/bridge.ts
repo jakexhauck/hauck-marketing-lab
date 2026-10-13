@@ -1,21 +1,10 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { readJsonBody } from "../../../lib/body";
 import { getServiceClient } from "../../../lib/supabase";
-import { ghlJson } from "../../../lib/ghl";
-import {
-  agencyGhlUserId,
-  getAgencyGhlContext,
-  isAgencyGhlConfigured,
-} from "../../../lib/agencyGhl";
-import { readableError, toE164, upsertAgencyContact, type LeadForPush } from "../../../lib/agencyCrm";
-import {
-  bridgeFailureMessage,
-  bridgeWorkflowName,
-  ghlEventStartTime,
-  pickBridgeWorkflow,
-  type BridgeFailure,
-  type GhlWorkflowSummary,
-} from "../../../lib/coldCallBridge";
+import { isAgencyGhlConfigured } from "../../../lib/agencyGhl";
+import { ringAndBridge } from "../../../lib/bridgeDial";
+import { toE164, upsertAgencyContact, type LeadForPush } from "../../../lib/agencyCrm";
+import { bridgeFailureMessage, bridgeWorkflowName, type BridgeFailure } from "../../../lib/coldCallBridge";
 
 // POST /api/admin/cold-call/bridge (admin session gated in _middleware.ts).
 //
@@ -36,10 +25,6 @@ import {
 
 interface Body {
   leadId?: string;
-}
-
-interface WorkflowsResponse {
-  workflows?: GhlWorkflowSummary[];
 }
 
 // The failure shape, identical whichever step fell over, so the card has one
@@ -114,53 +99,14 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     await client.from("leads").update({ ghl_contact_id: contactId }).eq("id", leadId);
   }
 
-  const ghl = getAgencyGhlContext(ctx.env);
-
-  // The Call action rings THE USER ASSIGNED TO THE CONTACT, and falls back to the
-  // company phone number when nobody is assigned. That is GHL's rule and there is
-  // no way to pass a recipient with the enrolment, so the assignment IS the
-  // routing: set it first or the call rings the main line instead of the person
-  // who pressed the button.
-  const userId = agencyGhlUserId(ctx.env);
-  let assignError: string | null = null;
-  try {
-    await ghlJson(ghl, `/contacts/${encodeURIComponent(contactId)}`, {
-      method: "PUT",
-      body: JSON.stringify({ assignedTo: userId }),
-    });
-  } catch (err) {
-    // Not fatal. An unassigned contact still gets called, just from the company
-    // number, and a caller who hears their phone ring does not care which of the
-    // two placed it. Reported so a wrong recipient is diagnosable.
-    assignError = readableError(err);
+  const rung = await ringAndBridge(ctx.env, contactId);
+  if (!rung.ok) {
+    if (rung.error === "enroll_failed") {
+      return failed("enroll_failed", workflowName, detailWith(upsertError, rung.detail ?? ""));
+    }
+    return failed(rung.error, workflowName);
   }
-
-  let workflows: GhlWorkflowSummary[];
-  try {
-    const res = await ghlJson<WorkflowsResponse>(
-      ghl,
-      `/workflows/?locationId=${encodeURIComponent(ghl.locationId)}`,
-    );
-    workflows = res.workflows ?? [];
-  } catch (err) {
-    return failed("enroll_failed", workflowName, detailWith(upsertError, readableError(err)));
-  }
-
-  const pick = pickBridgeWorkflow(workflows, workflowName);
-  if (!pick.ok) return failed(pick.error, workflowName);
-
-  try {
-    await ghlJson(
-      ghl,
-      `/contacts/${encodeURIComponent(contactId)}/workflow/${encodeURIComponent(pick.id)}`,
-      {
-        method: "POST",
-        body: JSON.stringify({ eventStartTime: ghlEventStartTime(new Date()) }),
-      },
-    );
-  } catch (err) {
-    return failed("enroll_failed", workflowName, detailWith(upsertError, readableError(err)));
-  }
+  const assignError = rung.assignError;
 
   // startedAt is handed back so the outcome press can ask GoHighLevel for calls
   // no older than this one. Without it, a prospect dialled last week would stamp

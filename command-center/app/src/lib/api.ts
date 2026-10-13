@@ -2621,6 +2621,11 @@ export function getColdSmsThread(contactId: string, conversationId: string | nul
   return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}?${qs}`);
 }
 
+// Rings Jake's phone, then bridges the prospect from the agency number.
+export function callColdSmsProspect(contactId: string): Promise<{ ok: boolean; message?: string }> {
+  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/call`, { method: "POST" });
+}
+
 export function sendColdSmsText(contactId: string, body: string): Promise<{ ok: true; messageId: string | null }> {
   return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/send`, {
     method: "POST",
