@@ -51,14 +51,22 @@ export function useReplyClassifier(ready: boolean) {
     let cancelled = false;
     (async () => {
       setState({ running: true, remaining: 0, failed: false });
+      // The server moves sorted cards in GHL; re-read the board once at the end
+      // so they show in their new column.
+      let moved = 0;
+      const reread = () => {
+        if (moved > 0 && !cancelled) void qc.invalidateQueries({ queryKey: COLD_SMS_BOARD_KEY });
+      };
       for (let round = 0; round < 15 && !cancelled; round++) {
         let res;
         try {
           res = await classifyColdSmsReplies();
         } catch {
           if (!cancelled) setState((s) => ({ ...s, running: false, failed: true }));
+          reread();
           return;
         }
+        moved += res.moved ?? 0;
         const verdicts = new Map<string, ColdSmsVerdict>(res.classified.map((c) => [c.contactId, c.verdict]));
         if (verdicts.size) {
           qc.setQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY }, (b) =>
@@ -69,6 +77,7 @@ export function useReplyClassifier(ready: boolean) {
         if (res.remaining === 0 || verdicts.size === 0) break;
       }
       if (!cancelled) setState((s) => ({ ...s, running: false }));
+      reread();
     })();
     return () => {
       cancelled = true;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ClaudeCreate } from "./claude";
-import { classifyReplies, pickColdSmsCalendar, prospectZone, replyKey, stateCode, variationOf } from "./coldSmsBoard";
+import { autoSortMoves, classifyReplies, findSortStages, pickColdSmsCalendar, prospectZone, replyKey, stateCode, variationOf } from "./coldSmsBoard";
 
 const answer = (obj: unknown): ClaudeCreate => async () => ({
   stop_reason: "end_turn",
@@ -107,5 +107,56 @@ describe("pickColdSmsCalendar", () => {
       "Hauck Marketing Demo Call",
     );
     expect(pickColdSmsCalendar([{ name: "Onboarding Call" }])).toBeNull();
+  });
+});
+
+describe("auto-sort", () => {
+  const stages = [
+    { id: "sent", name: "SMS Sent" },
+    { id: "rep", name: "Replied 💬" },
+    { id: "neg", name: "Negative Reply ❌" },
+    { id: "nr", name: "Not Responded ❌" },
+    { id: "pos", name: "✅ Positive Reply" },
+  ];
+
+  it("finds the three stages by name", () => {
+    expect(findSortStages(stages)).toEqual({ replied: "rep", positive: "pos", negative: "neg" });
+  });
+
+  it("is null when a stage is missing", () => {
+    expect(findSortStages(stages.filter((s) => s.id !== "neg"))).toBeNull();
+  });
+
+  it("moves positives up, negatives and stops down, leaves check", () => {
+    const sort = findSortStages(stages)!;
+    const moves = autoSortMoves(
+      [
+        { id: "a", stageId: "rep", verdict: "positive" },
+        { id: "b", stageId: "rep", verdict: "negative" },
+        { id: "c", stageId: "rep", verdict: "stop" },
+        { id: "d", stageId: "rep", verdict: "check" },
+        { id: "e", stageId: "rep", verdict: null },
+      ],
+      sort,
+    );
+    expect(moves).toEqual([
+      { id: "a", stageId: "pos" },
+      { id: "b", stageId: "neg" },
+      { id: "c", stageId: "neg" },
+    ]);
+  });
+
+  it("never touches a card outside Replied", () => {
+    const sort = findSortStages(stages)!;
+    expect(
+      autoSortMoves(
+        [
+          { id: "a", stageId: "sent", verdict: "positive" },
+          { id: "b", stageId: "pos", verdict: "negative" },
+          { id: "c", stageId: "neg", verdict: "positive" },
+        ],
+        sort,
+      ),
+    ).toEqual([]);
   });
 });

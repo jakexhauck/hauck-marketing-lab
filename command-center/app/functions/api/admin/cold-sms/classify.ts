@@ -1,7 +1,7 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../lib/agencyGhl";
-import { fetchLatestReplies, loadVerdicts } from "../../../lib/coldSmsAgency";
+import { fetchLatestReplies, loadVerdicts, sortRepliedCards } from "../../../lib/coldSmsAgency";
 import { classifyReplies, replyKey } from "../../../lib/coldSmsBoard";
 
 // POST /api/admin/cold-sms/classify  (owner only)
@@ -11,7 +11,9 @@ import { classifyReplies, replyKey } from "../../../lib/coldSmsBoard";
 // and again while `remaining` is above zero, so the first visit after a quiet
 // week labels a backlog a batch at a time instead of one slow request.
 //
-// Labels only. Nothing here moves a card or writes to GHL.
+// Then the sort: every Replied card with a verdict moves to Positive Reply or
+// Negative Reply in GHL (Jake, 2026-10-13). Check stays put for Jake. A failed
+// sort never fails the labelling; the next load tries again.
 
 const BATCH = 25;
 const PER_CALL = 75; // three Claude batches per request
@@ -65,10 +67,17 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     for (const r of results) done.push({ contactId: r.key, verdict: r.verdict });
   }
 
+  let moved = 0;
+  try {
+    moved = await sortRepliedCards(db, agency, replies);
+  } catch (err) {
+    console.error("[cold-sms/classify] sort", err instanceof Error ? err.message : err);
+  }
+
   // Claude down or refusing: say so, so the board stops asking rather than
   // looping on a batch that will never label.
   if (now.length > 0 && done.length === 0) {
-    return Response.json({ error: "claude_failed", classified: [], remaining: todo.length }, { status: 502 });
+    return Response.json({ error: "claude_failed", classified: [], remaining: todo.length, moved }, { status: 502 });
   }
-  return Response.json({ classified: done, remaining: Math.max(0, todo.length - done.length) });
+  return Response.json({ classified: done, remaining: Math.max(0, todo.length - done.length), moved });
 };

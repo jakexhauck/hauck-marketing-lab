@@ -2573,6 +2573,7 @@ export function getColdSmsStagePage(
 export function classifyColdSmsReplies(): Promise<{
   classified: { contactId: string; verdict: ColdSmsVerdict }[];
   remaining: number;
+  moved?: number;
 }> {
   return api("/api/admin/cold-sms/classify", { method: "POST" });
 }

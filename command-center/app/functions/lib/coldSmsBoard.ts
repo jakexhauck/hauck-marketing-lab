@@ -3,8 +3,9 @@
 // The board is the agency's "Cold SMS" pipeline in GoHighLevel, read live. GHL's
 // own workflow moves a prospect to Replied when they text back; what GHL cannot
 // do is tell "yes, how much?" from "stop texting me". Claude reads each reply and
-// stamps a verdict on the card. It only LABELS: Jake drags positives into his own
-// Positive Reply stage (Jake, 2026-10-12), so nothing here ever moves a card.
+// stamps a verdict on the card, and the sort below moves Replied cards on by it:
+// positive to Positive Reply, negative and stop to Negative Reply, check stays
+// for Jake (Jake, 2026-10-13; it only labelled before).
 //
 // Pure, so the verdict guard, the zone guess and the variation pick are unit
 // tested without GHL or Claude.
@@ -224,4 +225,44 @@ export function replyKey(lastInboundAt: string | number | null | undefined): str
   if (lastInboundAt == null || lastInboundAt === "") return null;
   const ms = typeof lastInboundAt === "number" ? lastInboundAt : +new Date(lastInboundAt);
   return Number.isFinite(ms) ? String(ms) : null;
+}
+
+// ---------------------------------------------------------------------------
+// The auto-sort (Jake, 2026-10-13). Only a card sitting in Replied moves: that
+// is where GHL's workflow drops a fresh reply, so a card Jake placed anywhere
+// else, or one already sorted, is never pulled back out. Stages are found by
+// name, so the board keeps working if Jake renames the emoji.
+
+export interface SortStages {
+  replied: string;
+  positive: string;
+  negative: string;
+}
+
+export function findSortStages(stages: { id: string; name: string }[]): SortStages | null {
+  const find = (re: RegExp) => stages.find((s) => re.test(s.name))?.id;
+  const replied = find(/replied/i);
+  const positive = find(/positive/i);
+  const negative = find(/negative/i);
+  return replied && positive && negative ? { replied, positive, negative } : null;
+}
+
+const TARGET: Record<Verdict, keyof SortStages | null> = {
+  positive: "positive",
+  negative: "negative",
+  stop: "negative",
+  check: null,
+};
+
+export function autoSortMoves(
+  cards: { id: string; stageId: string; verdict: Verdict | null }[],
+  stages: SortStages,
+): { id: string; stageId: string }[] {
+  const out: { id: string; stageId: string }[] = [];
+  for (const c of cards) {
+    if (c.stageId !== stages.replied || !c.verdict) continue;
+    const to = TARGET[c.verdict];
+    if (to) out.push({ id: c.id, stageId: stages[to] });
+  }
+  return out;
 }

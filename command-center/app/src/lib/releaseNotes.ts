@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-13-cold-sms-auto-sort",
+    date: "13 October 2026",
+    title: "Cold SMS replies sort themselves",
+    items: [
+      "Positive replies move from Replied to Positive Reply in GHL on their own.",
+      "Negative replies and opt-outs move to Negative Reply.",
+      "Unclear replies (Check) stay in Replied for you.",
+      "The First texted day filter on the Pipeline board now sticks when you pick a day.",
+    ],
+  },
+  {
     id: "2026-10-12-cold-sms-pipeline",
     date: "12 October 2026",
     title: "Cold SMS Pipeline board",

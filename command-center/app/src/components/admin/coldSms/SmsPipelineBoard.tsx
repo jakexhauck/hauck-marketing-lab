@@ -21,8 +21,9 @@ import { VerdictBadge } from "./VerdictBadge";
 // prospect, the thread, a reply box and the booking wizard.
 //
 // GHL's workflow moves a prospect to Replied when they text back. Claude reads
-// the reply and the card wears its verdict; Jake drags the positives into his
-// Positive Reply stage himself. Nothing here moves a card on its own.
+// the reply, the card wears its verdict, and the server moves it on: positive to
+// Positive Reply, negative and stop to Negative Reply (Jake, 2026-10-13). Check
+// stays in Replied for Jake.
 
 type Filter = "all" | ColdSmsVerdict;
 
@@ -52,7 +53,7 @@ export default function SmsPipelineBoard() {
   // The day filter rides in ?day= so a refresh stays on it. Days are by the
   // first text sent, in Jake's zone (Jake, 2026-10-12).
   const [params, setParams] = useSearchParams();
-  const day = /^d{4}-d{2}-d{2}$/.test(params.get("day") ?? "") ? params.get("day")! : "";
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(params.get("day") ?? "") ? params.get("day")! : "";
   const setDay = (d: string) =>
     setParams(
       (prev) => {

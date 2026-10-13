@@ -6,8 +6,16 @@
 // moved it out of ten minutes ago.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ghlJson, type GhlContext, type GhlConversation } from "./ghl";
-import { COLD_SMS_PIPELINE, isVerdict, replyKey, variationOf, type Verdict } from "./coldSmsBoard";
+import { ghlFetch, ghlJson, type GhlContext, type GhlConversation } from "./ghl";
+import {
+  COLD_SMS_PIPELINE,
+  autoSortMoves,
+  findSortStages,
+  isVerdict,
+  replyKey,
+  variationOf,
+  type Verdict,
+} from "./coldSmsBoard";
 
 export const STAGE_PAGE = 50;
 
@@ -258,4 +266,51 @@ export function decorate(
     if (row) return { ...c, reply: { body: row.reply_body, at: Number(row.reply_key) || 0 }, verdict: row.verdict };
     return c;
   });
+}
+
+// ---------------------------------------------------------------------------
+// The auto-sort: every card in Replied whose current reply has a verdict moves
+// to Positive Reply or Negative Reply in GHL (rule in coldSmsBoard.ts). Run after
+// each labelling round, so a backlog labelled before the sort existed is swept
+// on the next board load too. Returns how many moved.
+
+const REPLIED_PAGES = 10;
+const MOVES_AT_ONCE = 5;
+
+export async function sortRepliedCards(
+  db: SupabaseClient,
+  agency: GhlContext,
+  replies: Map<string, ReplyInfo>,
+): Promise<number> {
+  const board = pickColdSmsPipeline(await listPipelines(agency));
+  const stages = board ? findSortStages(board.stages) : null;
+  if (!board || !stages) return 0;
+
+  const cards: BoardCard[] = [];
+  let cursor: string | null = null;
+  for (let i = 0; i < REPLIED_PAGES; i++) {
+    const page = await fetchStagePage(agency, board.id, stages.replied, cursor);
+    cards.push(...page.cards);
+    cursor = page.cursor;
+    if (!cursor) break;
+  }
+  if (cards.length === 0) return 0;
+
+  const stored = await loadVerdicts(db, cards.map((c) => c.contactId));
+  const moves = autoSortMoves(decorate(cards, replies, stored), stages);
+  let moved = 0;
+  for (let i = 0; i < moves.length; i += MOVES_AT_ONCE) {
+    const results = await Promise.all(
+      moves.slice(i, i + MOVES_AT_ONCE).map(async (m) => {
+        const res = await ghlFetch(agency, `/opportunities/${encodeURIComponent(m.id)}`, {
+          method: "PUT",
+          body: JSON.stringify({ pipelineId: board.id, pipelineStageId: m.stageId }),
+        });
+        if (!res.ok) console.warn("[coldSmsAgency] sort move", m.id, res.status, (await res.text()).slice(0, 200));
+        return res.ok;
+      }),
+    );
+    moved += results.filter(Boolean).length;
+  }
+  return moved;
 }
