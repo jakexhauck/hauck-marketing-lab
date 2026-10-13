@@ -11,6 +11,7 @@ import {
   hasContacted,
   useColdSmsBoardQuery,
   useContactedToggle,
+  useFollowUp,
   useLoadMoreStage,
   useMoveCard,
   useRemoveCards,
@@ -18,6 +19,7 @@ import {
 } from "../../../hooks/useColdSmsBoard";
 import SmsProspectPanel from "./SmsProspectPanel";
 import { VerdictBadge } from "./VerdictBadge";
+import { addDays, followUpLabel, followUpState } from "../../../../functions/lib/coldSmsFollowUp";
 
 // Cold SMS > Pipeline (Jake, 2026-10-12). The agency's "Cold SMS" pipeline in
 // GoHighLevel as a board: drag a card to move it in GHL, click it for the
@@ -73,6 +75,7 @@ export default function SmsPipelineBoard() {
   const move = useMoveCard();
   const removeCards = useRemoveCards();
   const contacted = useContactedToggle();
+  const followUp = useFollowUp();
   const [menu, setMenu] = useState<{ card: ColdSmsCard; x: number; y: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<Filter>("all");
@@ -81,6 +84,8 @@ export default function SmsPipelineBoard() {
   const [overStage, setOverStage] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const now = Date.now();
+  const zone = board.data?.timezone ?? "America/New_York";
+  const today = dayKeyOf(now, zone);
 
   const stages = board.data?.stages ?? [];
   const pipelineId = board.data?.pipeline?.id ?? "";
@@ -231,6 +236,7 @@ export default function SmsPipelineBoard() {
                       card={card}
                       tone={tone}
                       now={now}
+                      today={today}
                       selected={card.id === openId}
                       onOpen={() => setOpenId(card.id)}
                       onMenu={(x, y) => setMenu({ card, x, y })}
@@ -276,6 +282,24 @@ export default function SmsPipelineBoard() {
           stages={stages}
           currentStage={menu.card.stageId}
           contacted={hasContacted(menu.card.tags)}
+          today={today}
+          followUpOn={menu.card.followUpOn ?? null}
+          onFollowUp={(day) =>
+            followUp.mutate(
+              { card: menu.card, day },
+              {
+                onSuccess: (res) =>
+                  setToast(
+                    res.taskFailed
+                      ? "Follow up saved. GHL did not take the task."
+                      : day
+                        ? `Follow up ${followUpLabel(day)}`
+                        : "Follow up cleared",
+                  ),
+                onError: () => setToast("Follow up did not save"),
+              },
+            )
+          }
           onMove={(stageId, name) => doMove(menu.card, pipelineId, stageId, name)}
           onContacted={(on) =>
             contacted.mutate(
@@ -295,6 +319,7 @@ function BoardCard({
   card,
   tone,
   now,
+  today,
   selected,
   onOpen,
   onMenu,
@@ -302,6 +327,7 @@ function BoardCard({
   card: ColdSmsCard;
   tone: string;
   now: number;
+  today: string;
   selected: boolean;
   onOpen: () => void;
   onMenu: (x: number, y: number) => void;
@@ -340,6 +366,7 @@ function BoardCard({
         {when && <span>{when}</span>}
       </div>
       {/* Their whole last message, never clipped (Jake, 2026-10-13). */}
+      {card.followUpOn && <FollowUpLine day={card.followUpOn} today={today} />}
       {card.reply?.body && (
         <p className="mt-1.5 whitespace-pre-wrap break-words text-[12.5px] leading-snug text-muted">{card.reply.body}</p>
       )}
@@ -358,8 +385,11 @@ function CardMenu({
   stages,
   currentStage,
   contacted,
+  today,
+  followUpOn,
   onMove,
   onContacted,
+  onFollowUp,
   onClose,
 }: {
   x: number;
@@ -367,6 +397,9 @@ function CardMenu({
   stages: { id: string; name: string }[];
   currentStage: string;
   contacted: boolean;
+  today: string;
+  followUpOn: string | null;
+  onFollowUp: (day: string | null) => void;
   onMove: (stageId: string, name: string) => void;
   onContacted: (on: boolean) => void;
   onClose: () => void;
@@ -429,6 +462,61 @@ function CardMenu({
         Contacted
       </button>
       <div className="my-1 h-px bg-[var(--border)]" />
+      <p className="px-2.5 pb-1 pt-0.5 text-[11px] font-bold uppercase tracking-wider text-faint">
+        Follow up{followUpOn ? ` · ${followUpLabel(followUpOn)}` : ""}
+      </p>
+      {[
+        { label: "Tomorrow", day: addDays(today, 1) },
+        { label: "In 3 days", day: addDays(today, 3) },
+        { label: "In 1 week", day: addDays(today, 7) },
+      ].map((o) => (
+        <button
+          key={o.label}
+          type="button"
+          role="menuitemradio"
+          aria-checked={followUpOn === o.day}
+          className={item}
+          onClick={() => {
+            onFollowUp(o.day);
+            onClose();
+          }}
+        >
+          <span className="grid w-4 place-items-center">{followUpOn === o.day && <Check size={14} />}</span>
+          {o.label}
+          <span className="ml-auto pl-3 text-[11.5px] font-medium text-faint">{followUpLabel(o.day)}</span>
+        </button>
+      ))}
+      <label className={`${item} cursor-pointer`}>
+        <span className="w-4" />
+        Pick a date
+        <input
+          type="date"
+          min={today}
+          value={followUpOn ?? ""}
+          onChange={(e) => {
+            if (e.target.value) {
+              onFollowUp(e.target.value);
+              onClose();
+            }
+          }}
+          className="ml-auto rounded-md border border-[var(--border)] bg-surface-2 px-1.5 py-0.5 text-[12px] text-text"
+        />
+      </label>
+      {followUpOn && (
+        <button
+          type="button"
+          role="menuitem"
+          className={item}
+          onClick={() => {
+            onFollowUp(null);
+            onClose();
+          }}
+        >
+          <span className="w-4" />
+          Clear follow up
+        </button>
+      )}
+      <div className="my-1 h-px bg-[var(--border)]" />
       <p className="px-2.5 pb-1 pt-0.5 text-[11px] font-bold uppercase tracking-wider text-faint">Move to</p>
       {stages.map((s) => (
         <button
@@ -447,5 +535,16 @@ function CardMenu({
         </button>
       ))}
     </div>
+  );
+}
+
+// "Follow up Fri, Oct 16": quiet before the day, amber on it, red once past.
+function FollowUpLine({ day, today }: { day: string; today: string }) {
+  const state = followUpState(day, today);
+  const color = state === "overdue" ? "var(--danger)" : state === "due" ? "var(--warning)" : "var(--text-muted)";
+  return (
+    <p className="mt-1.5 text-[11.5px] font-semibold" style={{ color }}>
+      Follow up {state === "due" ? "today" : followUpLabel(day)}
+    </p>
   );
 }

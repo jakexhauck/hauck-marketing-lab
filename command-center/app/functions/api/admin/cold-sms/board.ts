@@ -9,6 +9,7 @@ import {
   listPipelines,
   loadVerdicts,
   pickColdSmsPipeline,
+  withFollowUps,
   type BoardCard,
 } from "../../../lib/coldSmsAgency";
 import {
@@ -30,6 +31,7 @@ import {
 // Every card carries the prospect's latest reply, Claude's verdict on it when one
 // is on file (./classify fills the rest), and the day the first text went out.
 // The day filter is by that first text, in Jake's zone (Jake, 2026-10-12).
+// Each card also carries its follow-up day (0161), set from the right-click menu.
 
 // Export pages read per board load to keep first-text dates current. Today's
 // texts are a handful of pages; a fresh table backfills over a few loads.
@@ -52,7 +54,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   const withFirst = async (cards: BoardCard[]) => {
     const firsts = await loadFirstTexts(db, cards.map((c) => c.contactId));
-    return cards.map((c) => ({ ...c, firstContactedAt: firsts.get(c.contactId) ?? null }));
+    return withFollowUps(db, cards.map((c) => ({ ...c, firstContactedAt: firsts.get(c.contactId) ?? null })));
   };
 
   try {
@@ -103,7 +105,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         .filter((c) => texted.has(c.contactId))
         .map((c) => ({ ...c, firstContactedAt: texted.get(c.contactId)! }));
       const stored = await loadVerdicts(db, cards.map((c) => c.contactId));
-      const shown = decorate(cards, replies, stored);
+      const shown = await withFollowUps(db, decorate(cards, replies, stored));
       return Response.json({
         ...common,
         day,
@@ -118,6 +120,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     const pages = await stagePages!;
     const stored = await loadVerdicts(db, pages.flatMap((p) => p.cards.map((c) => c.contactId)));
     const firsts = await loadFirstTexts(db, pages.flatMap((p) => p.cards.map((c) => c.contactId)));
+    const follow = new Map(
+      (await withFollowUps(db, pages.flatMap((p) => p.cards))).map((c) => [c.contactId, c.followUpOn]),
+    );
 
     return Response.json({
       ...common,
@@ -129,6 +134,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         cards: decorate(pages[i].cards, replies, stored).map((c) => ({
           ...c,
           firstContactedAt: firsts.get(c.contactId) ?? null,
+          followUpOn: follow.get(c.contactId) ?? null,
         })),
       })),
     });

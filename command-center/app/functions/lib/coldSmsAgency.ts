@@ -101,6 +101,8 @@ export interface BoardCard {
   firstContactedAt: string | null;
   reply: ReplyInfo | null;
   verdict: Verdict | null;
+  // Follow-up day (YYYY-MM-DD in Jake's zone) from cold_sms_followups (0161).
+  followUpOn?: string | null;
 }
 
 export interface StagePage {
@@ -354,4 +356,27 @@ export async function removeColdSmsCards(agency: GhlContext, contactId: string):
     else console.warn("[coldSmsAgency] remove card", o.id, del.status, (await del.text()).slice(0, 200));
   }
   return gone;
+}
+
+// contactId -> follow-up day, for the cards on screen (0161).
+export async function loadFollowUps(db: SupabaseClient, contactIds: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const ids = [...new Set(contactIds.filter(Boolean))];
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data, error } = await db
+      .from("cold_sms_followups")
+      .select("contact_id, follow_up_on")
+      .in("contact_id", ids.slice(i, i + 150));
+    if (error) throw new Error(`cold_sms_followups read failed: ${error.message}`);
+    for (const r of (data ?? []) as { contact_id: string; follow_up_on: string }[]) out.set(r.contact_id, r.follow_up_on);
+  }
+  return out;
+}
+
+export async function withFollowUps<T extends { contactId: string }>(
+  db: SupabaseClient,
+  cards: T[],
+): Promise<(T & { followUpOn: string | null })[]> {
+  const days = await loadFollowUps(db, cards.map((c) => c.contactId));
+  return cards.map((c) => ({ ...c, followUpOn: days.get(c.contactId) ?? null }));
 }

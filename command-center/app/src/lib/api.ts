@@ -2525,6 +2525,8 @@ export interface ColdSmsCard {
   firstContactedAt: string | null;
   reply: { body: string; at: number } | null;
   verdict: ColdSmsVerdict | null;
+  // Follow-up day, YYYY-MM-DD in Jake's zone (0161).
+  followUpOn?: string | null;
 }
 
 export interface ColdSmsStage {
@@ -2620,6 +2622,18 @@ export function getColdSmsThread(contactId: string, conversationId: string | nul
   const qs = new URLSearchParams({ only: "thread" });
   if (conversationId) qs.set("conversationId", conversationId);
   return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}?${qs}`);
+}
+
+// Sets (day) or clears (null) the prospect's follow-up; GHL gets a task too.
+export function setColdSmsFollowUp(
+  contactId: string,
+  day: string | null,
+  business: string,
+): Promise<{ ok: true; day: string | null; taskFailed?: boolean }> {
+  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/followup`, {
+    method: "POST",
+    body: JSON.stringify({ day, business }),
+  });
 }
 
 // A board tag on the prospect (right-click menu): only "contacted" today.

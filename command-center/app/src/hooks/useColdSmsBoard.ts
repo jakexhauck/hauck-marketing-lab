@@ -5,6 +5,7 @@ import {
   getColdSmsBoard,
   getColdSmsStagePage,
   moveColdSmsCard,
+  setColdSmsFollowUp,
   setColdSmsTag,
   type ColdSmsBoard,
   type ColdSmsCard,
@@ -230,6 +231,26 @@ export function useContactedToggle() {
           const rest = c.tags.filter((t) => t.trim().toLowerCase() !== CONTACTED_TAG);
           return { ...c, tags: v.on ? [...rest, CONTACTED_TAG] : rest };
         }),
+      );
+      return { before };
+    },
+    onError: (_e, _v, ctx) => {
+      for (const [key, data] of ctx?.before ?? []) qc.setQueryData(key, data);
+    },
+  });
+}
+
+// Follow-up day on or off for one prospect: on the card at once, saved (and a
+// GHL task made) by the server, put back if the save fails.
+export function useFollowUp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { card: ColdSmsCard; day: string | null }) => setColdSmsFollowUp(v.card.contactId, v.day, v.card.business),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: COLD_SMS_BOARD_KEY });
+      const before = qc.getQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY });
+      qc.setQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY }, (b) =>
+        patchCards(b, (c) => (c.contactId === v.card.contactId ? { ...c, followUpOn: v.day } : c)),
       );
       return { before };
     },
