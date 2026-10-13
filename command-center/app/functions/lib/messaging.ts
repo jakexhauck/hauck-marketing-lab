@@ -233,27 +233,38 @@ const THREAD_MAX_PAGES = 5;
 // default page render fully. Sends need no conversation choice at all:
 // POST /conversations/messages is keyed by contactId and GHL threads it
 // server-side.
+//
+// `knownConversationId` skips the search: a caller polling a thread it already
+// loaded saves a GHL round trip per refresh (Cold SMS panel). unreadCount is 0
+// then, since only the search reports it.
 export async function fetchContactThread(
   ctx: GhlContext,
   contactId: string,
+  knownConversationId?: string | null,
 ): Promise<ContactThread> {
-  const search = await ghlJson<ThreadSearchResp>(
-    ctx,
-    `/conversations/search?locationId=${encodeURIComponent(ctx.locationId)}&contactId=${encodeURIComponent(contactId)}`,
-  );
+  let conv: { id: string };
+  let unreadCount = 0;
+  if (knownConversationId) {
+    conv = { id: knownConversationId };
+  } else {
+    const search = await ghlJson<ThreadSearchResp>(
+      ctx,
+      `/conversations/search?locationId=${encodeURIComponent(ctx.locationId)}&contactId=${encodeURIComponent(contactId)}`,
+    );
 
-  const convs = (search.conversations ?? []).filter((c) => Boolean(c.id));
-  if (convs.length === 0) {
-    return { conversationId: null, messages: [], truncated: false, unreadCount: 0 };
+    const convs = (search.conversations ?? []).filter((c) => Boolean(c.id));
+    if (convs.length === 0) {
+      return { conversationId: null, messages: [], truncated: false, unreadCount: 0 };
+    }
+
+    const sortKey = (c: ThreadConversation): number => {
+      if (typeof c.lastMessageDate === "number") return c.lastMessageDate;
+      const t = +new Date(c.lastMessageDate ?? 0);
+      return Number.isFinite(t) ? t : 0;
+    };
+    conv = [...convs].sort((a, b) => sortKey(b) - sortKey(a))[0];
+    unreadCount = convs.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
   }
-
-  const sortKey = (c: ThreadConversation): number => {
-    if (typeof c.lastMessageDate === "number") return c.lastMessageDate;
-    const t = +new Date(c.lastMessageDate ?? 0);
-    return Number.isFinite(t) ? t : 0;
-  };
-  const conv = [...convs].sort((a, b) => sortKey(b) - sortKey(a))[0];
-  const unreadCount = convs.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
 
   const raw: NonNullable<NonNullable<ThreadMessagesResp["messages"]>["messages"]> = [];
   const seenIds = new Set<string>();

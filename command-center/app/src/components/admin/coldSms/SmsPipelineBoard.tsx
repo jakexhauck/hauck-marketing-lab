@@ -249,6 +249,7 @@ export default function SmsPipelineBoard() {
 
       {openCard && (
         <SmsProspectPanel
+          key={openCard.id}
           card={openCard}
           pipelines={board.data.pipelines ?? []}
           boardPipelineId={pipelineId}

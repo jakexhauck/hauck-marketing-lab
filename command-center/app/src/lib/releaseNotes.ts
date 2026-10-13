@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-13-cold-sms-fast-chat",
+    date: "13 October 2026",
+    title: "Faster texting on Cold SMS",
+    items: [
+      "Your text shows in the thread the moment you hit Send, and the box is free for the next one.",
+      "A text GHL refuses shows Not sent with Retry and Remove.",
+      "New replies show within about 10 seconds while a prospect is open (was 20).",
+      "Opening a prospect is quicker.",
+    ],
+  },
+  {
     id: "2026-10-13-cold-sms-auto-sort",
     date: "13 October 2026",
     title: "Cold SMS replies sort themselves",

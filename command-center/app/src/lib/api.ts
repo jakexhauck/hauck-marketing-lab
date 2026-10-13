@@ -2603,15 +2603,25 @@ export interface ColdSmsProspect {
   };
   zone: { zone: string | null; source: "contact" | "state" | "area_code" | null };
   verdict: ColdSmsVerdict | null;
+  conversationId: string | null;
   messages: { id: string; body: string; direction: string; type: string; at: string; attachments?: string[] }[];
   threadFailed: boolean;
 }
+
+export type ColdSmsThread = Pick<ColdSmsProspect, "conversationId" | "messages" | "threadFailed">;
 
 export function getColdSmsProspect(contactId: string): Promise<ColdSmsProspect> {
   return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}`);
 }
 
-export function sendColdSmsText(contactId: string, body: string): Promise<{ ok: true }> {
+// The thread alone: one GHL call when the conversation id is already known.
+export function getColdSmsThread(contactId: string, conversationId: string | null): Promise<ColdSmsThread> {
+  const qs = new URLSearchParams({ only: "thread" });
+  if (conversationId) qs.set("conversationId", conversationId);
+  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}?${qs}`);
+}
+
+export function sendColdSmsText(contactId: string, body: string): Promise<{ ok: true; messageId: string | null }> {
   return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/send`, {
     method: "POST",
     body: JSON.stringify({ body }),

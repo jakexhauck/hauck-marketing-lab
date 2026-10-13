@@ -1,20 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarPlus, Loader2, Send, X } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarPlus, Send, X } from "lucide-react";
 import {
   ApiError,
   getColdSmsProspect,
+  getColdSmsThread,
   sendColdSmsText,
   type ColdSmsCard,
+  type ColdSmsThread,
   type ColdSmsPipelineRef,
 } from "../../../lib/api";
+import { stillPending, type PendingText } from "../../../lib/coldSmsChat";
 import { VerdictBadge } from "./VerdictBadge";
 import SmsBookingWizard from "./SmsBookingWizard";
 
 // The card's side panel: who they are, the variation they were sent, the whole
 // text thread with a reply box, a move-to menu for any pipeline, and the booking
 // wizard behind "Book call".
+//
+// Chat speed (Jake, 2026-10-13): a sent text shows the instant Send is hit and
+// the box is free for the next one; the thread is refreshed on its own (one GHL
+// call) right after each send and every 10 seconds while the panel is open.
+
+const THREAD_POLL_MS = 10_000;
 
 const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
@@ -35,25 +44,64 @@ export default function SmsProspectPanel({
 }) {
   const qc = useQueryClient();
   const key = ["admin", "cold-sms", "prospect", card.contactId];
+  const threadKey = [...key, "thread"];
+  // The full read also seeds the thread, so opening the panel is one request.
   const prospect = useQuery({
     queryKey: key,
-    queryFn: () => getColdSmsProspect(card.contactId),
+    queryFn: async () => {
+      const d = await getColdSmsProspect(card.contactId);
+      qc.setQueryData<ColdSmsThread>(threadKey, {
+        conversationId: d.conversationId,
+        messages: d.messages,
+        threadFailed: d.threadFailed,
+      });
+      return d;
+    },
     enabled: Boolean(card.contactId),
-    refetchInterval: 20_000,
   });
+  const conversationId = useRef<string | null>(null);
+  const thread = useQuery({
+    queryKey: threadKey,
+    // A failed refresh throws so the last good thread stays on screen.
+    queryFn: async () => {
+      const t = await getColdSmsThread(card.contactId, conversationId.current);
+      if (t.threadFailed) throw new Error("thread_failed");
+      return t;
+    },
+    retry: false,
+    enabled: Boolean(prospect.data),
+    staleTime: 5_000,
+    refetchInterval: THREAD_POLL_MS,
+  });
+  conversationId.current = thread.data?.conversationId ?? prospect.data?.conversationId ?? null;
+
   const [draft, setDraft] = useState("");
+  const [pending, setPending] = useState<PendingText[]>([]);
   const [booking, setBooking] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
+  const nextTemp = useRef(0);
 
-  const send = useMutation({
-    mutationFn: (text: string) => sendColdSmsText(card.contactId, text),
-    onSuccess: () => {
-      setDraft("");
-      void qc.invalidateQueries({ queryKey: key });
-    },
-    onError: (e) =>
-      onToast(e instanceof ApiError && e.status === 409 ? "They opted out of texts" : "Text did not send"),
-  });
+  const patch = (tempId: string, change: Partial<PendingText>) =>
+    setPending((list) => list.map((p) => (p.tempId === tempId ? { ...p, ...change } : p)));
+
+  // Never retried on its own: a resent text is a second text on a stranger's
+  // phone. A failed one waits for Jake to tap Retry.
+  const sendText = (body: string, tempId = `t${++nextTemp.current}`) => {
+    setPending((list) => [
+      ...list.filter((p) => p.tempId !== tempId),
+      { tempId, body, at: new Date().toISOString(), status: "sending" },
+    ]);
+    sendColdSmsText(card.contactId, body).then(
+      (res) => {
+        patch(tempId, { status: "sent", messageId: res.messageId });
+        void qc.invalidateQueries({ queryKey: threadKey, exact: true });
+      },
+      (e) => {
+        patch(tempId, { status: "failed" });
+        onToast(e instanceof ApiError && e.status === 409 ? "They opted out of texts" : "Text did not send");
+      },
+    );
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -63,11 +111,14 @@ export default function SmsProspectPanel({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, booking]);
 
-  const messages = (prospect.data?.messages ?? []).filter((m) => m.body || m.attachments?.length);
+  const messages = (thread.data?.messages ?? prospect.data?.messages ?? []).filter(
+    (m) => m.body || m.attachments?.length,
+  );
+  const shownPending = stillPending(pending, messages);
   useEffect(() => {
     const el = threadRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+  }, [messages.length, shownPending.length]);
 
   const c = prospect.data?.contact;
   const variation = c?.variation ?? card.variation;
@@ -149,7 +200,9 @@ export default function SmsProspectPanel({
 
         <div ref={threadRef} className="flex flex-1 flex-col gap-2.5 overflow-y-auto bg-[var(--bg)] px-5 py-4">
           {prospect.isLoading && <p className="m-auto text-[13px] text-faint">Loading...</p>}
-          {prospect.data?.threadFailed && <p className="m-auto text-[13px] text-faint">The thread did not load.</p>}
+          {(thread.data ?? prospect.data)?.threadFailed && messages.length === 0 && (
+            <p className="m-auto text-[13px] text-faint">The thread did not load.</p>
+          )}
           {messages.map((m, i) => {
             const out = m.direction === "outbound";
             return (
@@ -175,6 +228,36 @@ export default function SmsProspectPanel({
               </div>
             );
           })}
+          {shownPending.map((p) => (
+            <div key={p.tempId} className="flex max-w-[84%] flex-col items-end self-end">
+              <div
+                className={`whitespace-pre-wrap rounded-2xl rounded-br-md bg-[var(--brand)] px-3 py-2 text-[13.5px] leading-snug text-[var(--brand-fg,#fff)] ${
+                  p.status === "sending" ? "opacity-70" : ""
+                } ${p.status === "failed" ? "opacity-50" : ""}`}
+              >
+                {p.body}
+              </div>
+              {p.status === "failed" ? (
+                <span className="mt-0.5 flex gap-2 text-[10.5px] font-semibold">
+                  <span className="text-[var(--danger)]">Not sent</span>
+                  <button type="button" onClick={() => sendText(p.body, p.tempId)} className="text-text underline">
+                    Retry
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPending((list) => list.filter((x) => x.tempId !== p.tempId))}
+                    className="text-muted underline"
+                  >
+                    Remove
+                  </button>
+                </span>
+              ) : (
+                <span className="mt-0.5 text-[10.5px] text-faint">
+                  {p.status === "sending" ? "Sending" : fmt.format(new Date(p.at))}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
 
         <form
@@ -182,7 +265,9 @@ export default function SmsProspectPanel({
           onSubmit={(e) => {
             e.preventDefault();
             const t = draft.trim();
-            if (t && !send.isPending) send.mutate(t);
+            if (!t) return;
+            setDraft("");
+            sendText(t);
           }}
         >
           <textarea
@@ -201,11 +286,11 @@ export default function SmsProspectPanel({
           />
           <button
             type="submit"
-            disabled={!draft.trim() || send.isPending}
+            disabled={!draft.trim()}
             aria-label="Send"
             className="grid w-12 place-items-center rounded-xl bg-[var(--brand)] text-[var(--brand-fg,#fff)] disabled:opacity-40"
           >
-            {send.isPending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            <Send size={16} />
           </button>
         </form>
       </aside>

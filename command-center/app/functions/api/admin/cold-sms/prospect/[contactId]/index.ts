@@ -7,10 +7,16 @@ import { loadVerdicts } from "../../../../../lib/coldSmsAgency";
 import { prospectZone, variationOf } from "../../../../../lib/coldSmsBoard";
 
 // GET /api/admin/cold-sms/prospect/:contactId  (owner only)
+// GET /api/admin/cold-sms/prospect/:contactId?only=thread&conversationId=...
 //
 // Everything the card's side panel shows: who they are, the variation they were
 // sent, the whole text thread, Claude's verdict, and which timezone they are in
 // (for the booking wizard's "their time").
+//
+// Speed matters here (Jake, 2026-10-13: as little chat delay as possible). The
+// GHL reads run side by side, and the panel's refresh after a send and its poll
+// ask for the thread alone, keyed by the conversation it already has, which is
+// one GHL call instead of four.
 
 interface RawContact {
   id: string;
@@ -33,36 +39,44 @@ export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (ctx
   const contactId = String(ctx.params.contactId ?? "").trim();
   if (!contactId) return Response.json({ error: "missing_contact_id" }, { status: 400 });
   const agency = getAgencyGhlContext(ctx.env);
+  const params = new URL(ctx.request.url).searchParams;
 
-  let contact: RawContact | undefined;
-  try {
-    contact = (await ghlJson<{ contact?: RawContact }>(agency, `/contacts/${encodeURIComponent(contactId)}`)).contact;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "";
-    if (/ 404|400/.test(msg)) return Response.json({ error: "not_found" }, { status: 404 });
+  if (params.get("only") === "thread") {
+    const known = (params.get("conversationId") ?? "").trim() || null;
+    try {
+      const thread = await fetchContactThread(agency, contactId, known);
+      return Response.json({ conversationId: thread.conversationId, messages: thread.messages, threadFailed: false });
+    } catch {
+      return Response.json({ conversationId: known, messages: [], threadFailed: true });
+    }
+  }
+
+  const contactRead = ghlJson<{ contact?: RawContact }>(agency, `/contacts/${encodeURIComponent(contactId)}`).then(
+    (r) => ({ contact: r.contact }),
+    (err: unknown) => ({ error: err instanceof Error ? err.message : "" }),
+  );
+  // A failed definitions read just leaves the Service line out.
+  const defsRead = customFieldDefs(agency).catch(() => []);
+  const threadRead = fetchContactThread(agency, contactId).catch(() => null);
+  const storedRead = (async () => {
+    const db = getServiceClient(ctx.env);
+    return db ? loadVerdicts(db, [contactId]).catch(() => new Map()) : new Map();
+  })();
+
+  const [read, defs, thread, stored] = await Promise.all([contactRead, defsRead, threadRead, storedRead]);
+  if ("error" in read) {
+    if (/ 404|400/.test(read.error)) return Response.json({ error: "not_found" }, { status: 404 });
     return Response.json({ error: "ghl_unavailable" }, { status: 502 });
   }
+  const contact = read.contact;
   if (!contact) return Response.json({ error: "not_found" }, { status: 404 });
 
   // The "Service" custom field (what the cold text pitched), by name, since the
-  // field id is the account's own. A failed definitions read just leaves it out.
+  // field id is the account's own.
   let service = "";
-  try {
-    const defs = await customFieldDefs(agency);
-    const id = defs.find((d) => (d.name ?? "").trim().toLowerCase() === "service")?.id;
-    const v = id ? contact.customFields?.find((f) => f.id === id)?.value : undefined;
-    if (typeof v === "string") service = v.trim();
-  } catch {
-    /* cosmetic */
-  }
-
-  const [thread, stored] = await Promise.all([
-    fetchContactThread(agency, contactId).catch(() => null),
-    (async () => {
-      const db = getServiceClient(ctx.env);
-      return db ? loadVerdicts(db, [contactId]).catch(() => new Map()) : new Map();
-    })(),
-  ]);
+  const serviceId = defs.find((d) => (d.name ?? "").trim().toLowerCase() === "service")?.id;
+  const v = serviceId ? contact.customFields?.find((f) => f.id === serviceId)?.value : undefined;
+  if (typeof v === "string") service = v.trim();
 
   const zone = prospectZone({ timezone: contact.timezone, state: contact.state, phone: contact.phone });
   const row = stored.get(contactId);
@@ -84,6 +98,7 @@ export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (ctx
     },
     zone,
     verdict: row?.verdict ?? null,
+    conversationId: thread?.conversationId ?? null,
     messages: thread?.messages ?? [],
     threadFailed: thread === null,
   });
