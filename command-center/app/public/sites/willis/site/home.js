@@ -418,16 +418,13 @@
     <div class="ww-hero__in">
       <div class="ww-eyebrow">Residential &amp; commercial · Metro Detroit</div>
       <h1>Windows so clean the <em>glass disappears</em>.</h1>
-      <p>We clean with water filtered in three stages down to 0 PPM, applied from the ground with water-fed poles. No minerals means no spots. No ladders means nothing leaning on your gutters, siding, or landscaping.</p>
       <div class="ww-hero__cta">
         <a class="ww-btn ww-btn--primary" href="https://williswindows.com/contact">Get a free estimate</a>
         <a class="ww-btn ww-btn--ghost" href="tel:3134053227">Call (313) 405-3227</a>
       </div>
       <div class="ww-hero__badges">
         <span class="ww-chip">Licensed &amp; insured</span>
-        <span class="ww-chip">4.9★ from 14 Google reviews</span>
-        <span class="ww-chip">0 PPM pure water</span>
-        <span class="ww-chip">No ladders</span>
+        <span class="ww-chip">4.9★ from 18 Google reviews</span>
       </div>
     </div>
   </div>
@@ -572,7 +569,7 @@
     <div class="ww-eyebrow">Reviews</div>
     <h2>What Metro Detroit homeowners say</h2>
     <div class="ww-rating">
-      <span class="ww-stars">★★★★★</span> <b>4.9</b> <span>from 14 Google reviews</span>
+      <span class="ww-stars">★★★★★</span> <b>4.9</b> <span>from 18 Google reviews</span>
     </div>
     <div class="ww-reviews">
   <article class="ww-review">
