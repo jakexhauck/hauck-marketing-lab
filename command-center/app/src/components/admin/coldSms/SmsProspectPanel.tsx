@@ -1,18 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarPlus, Loader2, Phone, Send, X } from "lucide-react";
+import { CalendarPlus, Loader2, Pencil, Phone, Send, X } from "lucide-react";
 import {
   ApiError,
   callColdSmsProspect,
   getColdSmsProspect,
   getColdSmsThread,
   sendColdSmsText,
+  setColdSmsPhone,
+  type ColdSmsBoard,
+  type ColdSmsProspect,
   type ColdSmsCard,
   type ColdSmsThread,
   type ColdSmsPipelineRef,
 } from "../../../lib/api";
 import { stillPending, type PendingText } from "../../../lib/coldSmsChat";
+import { COLD_SMS_BOARD_KEY } from "../../../hooks/useColdSmsBoard";
 import { VerdictBadge } from "./VerdictBadge";
 import SmsBookingWizard from "./SmsBookingWizard";
 
@@ -84,6 +88,37 @@ export default function SmsProspectPanel({
   const threadRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
   const nextTemp = useRef(0);
+
+  // Replace the number (Jake, 2026-10-13): saved on the GHL contact, then shown
+  // in the panel and on the card without a re-read.
+  const [phoneDraft, setPhoneDraft] = useState<string | null>(null);
+  const savePhone = useMutation({
+    mutationFn: (phone: string) => setColdSmsPhone(card.contactId, phone),
+    onSuccess: (res) => {
+      setPhoneDraft(null);
+      qc.setQueryData<ColdSmsProspect>(key, (d) => (d ? { ...d, contact: { ...d.contact, phone: res.phone } } : d));
+      qc.setQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY }, (b) =>
+        b?.stages
+          ? {
+              ...b,
+              stages: b.stages.map((st) => ({
+                ...st,
+                cards: st.cards.map((x) => (x.contactId === card.contactId ? { ...x, phone: res.phone } : x)),
+              })),
+            }
+          : b,
+      );
+      onToast("Number saved");
+    },
+    onError: (e) =>
+      onToast(
+        e instanceof ApiError && e.status === 409
+          ? "Another contact already has that number"
+          : e instanceof ApiError && e.status === 400
+            ? "That is not a phone number"
+            : "Number did not save",
+      ),
+  });
 
   const call = useMutation({
     mutationFn: () => callColdSmsProspect(card.contactId),
@@ -157,9 +192,52 @@ export default function SmsProspectPanel({
         <header className="flex items-start gap-3 border-b border-[var(--border)] px-5 py-4">
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-[17px] font-semibold leading-snug text-text">{card.business}</h2>
-            <p className="mt-0.5 text-[12.5px] text-muted">
-              {[c ? `${c.firstName} ${c.lastName}`.trim() : card.person, c?.phone || card.phone].filter(Boolean).join(" · ")}
-            </p>
+            {phoneDraft === null ? (
+              <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[12.5px] text-muted">
+                {[c ? `${c.firstName} ${c.lastName}`.trim() : card.person, c?.phone || card.phone].filter(Boolean).join(" · ")}
+                <button
+                  type="button"
+                  onClick={() => setPhoneDraft(c?.phone || card.phone || "")}
+                  aria-label="Change phone number"
+                  title="Change phone number"
+                  className="grid h-6 w-6 place-items-center rounded-md text-faint hover:bg-surface-2 hover:text-text"
+                >
+                  <Pencil size={12} />
+                </button>
+              </p>
+            ) : (
+              <form
+                className="mt-1.5 flex items-center gap-1.5"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (phoneDraft.trim() && !savePhone.isPending) savePhone.mutate(phoneDraft.trim());
+                }}
+              >
+                <input
+                  autoFocus
+                  type="tel"
+                  value={phoneDraft}
+                  onChange={(e) => setPhoneDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Escape" && (e.stopPropagation(), setPhoneDraft(null))}
+                  aria-label="Phone number"
+                  className="w-[170px] rounded-lg border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-[13px] text-text outline-none focus:border-[var(--brand)]"
+                />
+                <button
+                  type="submit"
+                  disabled={!phoneDraft.trim() || savePhone.isPending}
+                  className="rounded-lg bg-[var(--brand)] px-2.5 py-1 text-[12.5px] font-bold text-[var(--brand-fg,#fff)] disabled:opacity-50"
+                >
+                  {savePhone.isPending ? "Saving..." : "Save"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPhoneDraft(null)}
+                  className="rounded-lg px-2 py-1 text-[12.5px] font-semibold text-muted hover:text-text"
+                >
+                  Cancel
+                </button>
+              </form>
+            )}
           </div>
           <button
             type="button"

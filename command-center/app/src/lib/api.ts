@@ -2646,6 +2646,14 @@ export function getColdSmsThread(contactId: string, conversationId: string | nul
   return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}?${qs}`);
 }
 
+// Replaces the prospect's phone on the GHL contact; answers the saved +1 number.
+export function setColdSmsPhone(contactId: string, phone: string): Promise<{ ok: true; phone: string }> {
+  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/phone`, {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+}
+
 // Deletes the Cold SMS card of anyone booked (has a Sales card); the ids gone.
 export function sweepColdSmsBooked(): Promise<{ removed: string[]; remaining: number }> {
   return api("/api/admin/cold-sms/sweep-booked", { method: "POST" });
