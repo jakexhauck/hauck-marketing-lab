@@ -1,7 +1,7 @@
+import { COLD_SMS_BOARD_KEY } from "./useColdSmsBoard";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getSalesCalls,
-  getSalesPipeline,
   recordSalesCallOutcome,
   type SalesMeeting,
 } from "../lib/api";
@@ -30,26 +30,6 @@ export function useSalesCallsQuery() {
     refetchInterval: 120_000,
     refetchIntervalInBackground: false,
     queryFn: () => getSalesCalls(true),
-  });
-}
-
-// Sales > Sales Pipeline: the board those outcomes land on.
-//
-// Short staleTime and a refetch on focus, matching useAgencyPipelinesQuery: the
-// cards are moved by Jake's own hands in GoHighLevel as often as by this app,
-// so a board left sitting is a board that is wrong.
-const PIPELINE_KEY = ["admin", "sales", "pipeline"];
-
-export function useSalesPipelineQuery() {
-  return useQuery({
-    queryKey: PIPELINE_KEY,
-    staleTime: 15_000,
-    refetchOnWindowFocus: true,
-    // And a timer on top of the focus refetch, so a board left on screen while
-    // Jake works the deals in GoHighLevel catches up on its own.
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: false,
-    queryFn: () => getSalesPipeline(),
   });
 }
 
@@ -84,7 +64,7 @@ export function useRecordSalesCallOutcome() {
       // is stale the moment an outcome is recorded here.
       qc.invalidateQueries({ queryKey: ["admin", "cold-call", "meetings"] });
       // The outcome just moved a card, so the board is a column out of date.
-      qc.invalidateQueries({ queryKey: PIPELINE_KEY });
+      qc.invalidateQueries({ queryKey: [...COLD_SMS_BOARD_KEY, "sales"] });
     },
   });
 }

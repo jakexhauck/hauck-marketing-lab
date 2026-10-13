@@ -12,6 +12,7 @@ import {
   type ColdSmsCard,
   type ColdSmsFollowUpInput,
   type ColdSmsVerdict,
+  type PipelineBoardKind,
 } from "../lib/api";
 import { autoSortMoves, findSortStages } from "../../functions/lib/coldSmsSort";
 
@@ -23,14 +24,21 @@ export const COLD_SMS_BOARD_KEY = ["admin", "cold-sms", "board"] as const;
 
 // One cache entry per view: the whole board, or one day of first texts. Every
 // write below patches all of them, so a verdict or a move shows in both.
-export function useColdSmsBoardQuery(day: string) {
+//
+// The Sales board shares this cache prefix on purpose: a move, tag or follow-up
+// below patches it the same way, with no second set of hooks.
+export function useColdSmsBoardQuery(day: string, kind: PipelineBoardKind = "cold-sms") {
   return useQuery({
-    queryKey: [...COLD_SMS_BOARD_KEY, day || "all"],
-    queryFn: () => getColdSmsBoard(day || undefined),
+    queryKey: boardKey(day, kind),
+    queryFn: () => getColdSmsBoard(day || undefined, kind),
     placeholderData: (prev) => prev,
     staleTime: 15_000,
     refetchOnWindowFocus: true,
   });
+}
+
+function boardKey(day: string, kind: PipelineBoardKind) {
+  return [...COLD_SMS_BOARD_KEY, kind === "sales" ? "sales" : day || "all"];
 }
 
 function patchCards(board: ColdSmsBoard | undefined, fn: (c: ColdSmsCard) => ColdSmsCard): ColdSmsBoard | undefined {
@@ -132,15 +140,15 @@ export function useReplyClassifier(ready: boolean) {
   return state;
 }
 
-export function useLoadMoreStage() {
+export function useLoadMoreStage(kind: PipelineBoardKind = "cold-sms") {
   const qc = useQueryClient();
   const [loading, setLoading] = useState<string | null>(null);
   const load = async (stageId: string, cursor: string) => {
     if (loading) return;
     setLoading(stageId);
     try {
-      const page = await getColdSmsStagePage(stageId, cursor);
-      qc.setQueryData<ColdSmsBoard>([...COLD_SMS_BOARD_KEY, "all"], (b) => {
+      const page = await getColdSmsStagePage(stageId, cursor, kind);
+      qc.setQueryData<ColdSmsBoard>(boardKey("", kind), (b) => {
         if (!b?.stages) return b;
         return {
           ...b,

@@ -72,6 +72,7 @@ interface RawOpp {
   lastStageChangeAt?: string;
   updatedAt?: string;
   createdAt?: string;
+  monetaryValue?: number | null;
   contact?: { id?: string; name?: string; companyName?: string; phone?: string; tags?: string[] } | null;
 }
 
@@ -106,6 +107,8 @@ export interface BoardCard {
   followUpOn?: string | null;
   followUpTime?: string | null;
   followUpNote?: string;
+  // The opportunity's value in GHL, for the Sales board (0 or unset = null).
+  value?: number | null;
 }
 
 export interface StagePage {
@@ -131,6 +134,7 @@ export function shapeCard(o: RawOpp): BoardCard {
     firstContactedAt: null,
     reply: null,
     verdict: null,
+    value: typeof o.monetaryValue === "number" && o.monetaryValue > 0 ? o.monetaryValue : null,
   };
 }
 

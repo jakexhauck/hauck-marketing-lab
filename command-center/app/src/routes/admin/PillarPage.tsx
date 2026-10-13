@@ -11,7 +11,7 @@ import {
 import SalesDataTracker from "../../components/admin/tracker/SalesDataTracker";
 import SalesCallsSection from "../../components/admin/sales/SalesCallsSection";
 import PlaybookSection from "../../components/admin/sales/PlaybookSection";
-import SalesPipelineBoard from "../../components/admin/sales/SalesPipelineBoard";
+import SmsPipelineBoard from "../../components/admin/coldSms/SmsPipelineBoard";
 import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
 import InboxTab from "../../components/admin/operations/InboxTab";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
@@ -128,9 +128,10 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     // data itself is untouched and the call cockpit still reads it.
     case "playbook":
       return <PlaybookSection />;
-    // The board those outcomes land on, read live and read only.
+    // The agency's Sales pipeline on the Cold SMS board: drag, panel, call,
+    // follow-ups (Jake, 2026-10-13).
     case "pipeline":
-      return <SalesPipelineBoard />;
+      return <SmsPipelineBoard kind="sales" />;
     // The month in aggregate.
     case "sales-data":
       return <SalesDataTracker />;

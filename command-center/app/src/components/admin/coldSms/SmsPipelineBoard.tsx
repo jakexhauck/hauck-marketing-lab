@@ -7,7 +7,14 @@ import Toast from "../../Toast";
 import { stageTone } from "../../../lib/setterModel";
 import { timeAgo } from "../../../lib/timeAgo";
 import { dayKeyOf } from "../../../lib/coldSmsWeek";
-import { ApiError, type ColdSmsCard, type ColdSmsFollowUpInput, type ColdSmsVerdict } from "../../../lib/api";
+import {
+  ApiError,
+  type ColdSmsCard,
+  type ColdSmsFollowUpInput,
+  type ColdSmsVerdict,
+  type PipelineBoardKind,
+} from "../../../lib/api";
+import { formatMoneyExact } from "../../../lib/formatMoney";
 import {
   hasContacted,
   useColdSmsBoardQuery,
@@ -37,6 +44,11 @@ import {
 // the reply, the card wears its verdict, and the server moves it on: positive to
 // Positive Reply, negative and stop to Negative Reply (Jake, 2026-10-13). Check
 // stays in Replied for Jake.
+//
+// kind="sales" is Sales > Sales Pipeline (Jake, 2026-10-13: "do the same for our
+// sales pipeline"): the agency's Sales pipeline on this same board, panel and
+// menu. It drops what only cold outreach has: the day filter, Claude's reply
+// verdicts and auto-sort, the booked sweep and the Book call button.
 
 type Filter = "all" | ColdSmsVerdict;
 
@@ -54,18 +66,18 @@ const FILTERS: { id: Filter; label: string }[] = [
 // per-viewer convenience, so browser storage; the board works without it.
 const COLLAPSED_KEY = "coldSms.collapsedStages";
 
-function readCollapsed(): Set<string> {
+function readCollapsed(key: string): Set<string> {
   try {
-    const raw = JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? "[]");
+    const raw = JSON.parse(localStorage.getItem(key) ?? "[]");
     return new Set(Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : []);
   } catch {
     return new Set();
   }
 }
 
-function saveCollapsed(ids: Set<string>) {
+function saveCollapsed(key: string, ids: Set<string>) {
   try {
-    localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...ids]));
+    localStorage.setItem(key, JSON.stringify([...ids]));
   } catch {
     /* private window or storage off: collapse still works until reload */
   }
@@ -83,7 +95,8 @@ function dayLabel(day: string, zone: string): string {
   );
 }
 
-export default function SmsPipelineBoard() {
+export default function SmsPipelineBoard({ kind = "cold-sms" }: { kind?: PipelineBoardKind } = {}) {
+  const sales = kind === "sales";
   // The day filter rides in ?day= so a refresh stays on it. Days are by the
   // first text sent, in Jake's zone (Jake, 2026-10-12).
   const [params, setParams] = useSearchParams();
@@ -98,23 +111,24 @@ export default function SmsPipelineBoard() {
       },
       { replace: true },
     );
-  const board = useColdSmsBoardQuery(day);
-  const classifier = useReplyClassifier(Boolean(board.data?.stages));
-  useBookedSweep(Boolean(board.data?.stages));
-  const more = useLoadMoreStage();
+  const board = useColdSmsBoardQuery(sales ? "" : day, kind);
+  const classifier = useReplyClassifier(!sales && Boolean(board.data?.stages));
+  useBookedSweep(!sales && Boolean(board.data?.stages));
+  const more = useLoadMoreStage(kind);
   const move = useMoveCard();
   const removeCards = useRemoveCards();
   const contacted = useContactedToggle();
   const followUp = useFollowUp();
   const [menu, setMenu] = useState<{ card: ColdSmsCard; x: number; y: number } | null>(null);
   const [editing, setEditing] = useState<ColdSmsCard | null>(null);
-  const [collapsed, setCollapsed] = useState<Set<string>>(readCollapsed);
+  const collapsedKey = sales ? "salesBoard.collapsedStages" : COLLAPSED_KEY;
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => readCollapsed(collapsedKey));
   const toggleCollapsed = (stageId: string) =>
     setCollapsed((prev) => {
       const next = new Set(prev);
       if (next.has(stageId)) next.delete(stageId);
       else next.add(stageId);
-      saveCollapsed(next);
+      saveCollapsed(collapsedKey, next);
       return next;
     });
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -203,24 +217,28 @@ export default function SmsPipelineBoard() {
     return <div className="pk-empty">{upstream ? "GoHighLevel did not answer. Try again in a minute." : "The board did not load."}</div>;
   }
   if (!board.data?.configured) return <div className="pk-empty">The agency GoHighLevel account is not connected.</div>;
-  if (board.data.missing) return <div className="pk-empty">No pipeline named "Cold SMS" in GoHighLevel.</div>;
+  if (board.data.missing) {
+    return <div className="pk-empty">No pipeline named "{sales ? "Sales" : "Cold SMS"}" in GoHighLevel.</div>;
+  }
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={day}
-          onChange={(e) => setDay(e.target.value)}
-          aria-label="First texted"
-          className="rounded-xl border border-[var(--border)] bg-surface px-3 py-2 text-[13px] font-semibold text-text outline-none focus:border-[var(--brand)]"
-        >
-          <option value="">All days</option>
-          {(board.data.days ?? []).map((d) => (
-            <option key={d.day} value={d.day}>
-              {dayLabel(d.day, board.data?.timezone ?? "America/New_York")} · {d.texted.toLocaleString()}
-            </option>
-          ))}
-        </select>
+        {!sales && (
+          <select
+            value={day}
+            onChange={(e) => setDay(e.target.value)}
+            aria-label="First texted"
+            className="rounded-xl border border-[var(--border)] bg-surface px-3 py-2 text-[13px] font-semibold text-text outline-none focus:border-[var(--brand)]"
+          >
+            <option value="">All days</option>
+            {(board.data.days ?? []).map((d) => (
+              <option key={d.day} value={d.day}>
+                {dayLabel(d.day, board.data?.timezone ?? "America/New_York")} · {d.texted.toLocaleString()}
+              </option>
+            ))}
+          </select>
+        )}
         {board.isFetching && !board.isLoading && <Loader2 size={14} className="animate-spin text-faint" aria-label="Loading" />}
         <label className="relative flex items-center">
           <Search size={14} aria-hidden className="pointer-events-none absolute left-3 text-faint" />
@@ -232,23 +250,25 @@ export default function SmsPipelineBoard() {
             className="w-[260px] rounded-xl border border-[var(--border)] bg-surface py-2 pl-8 pr-3 text-[13px] text-text outline-none focus:border-[var(--brand)]"
           />
         </label>
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Reply filter">
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFilter(f.id)}
-              aria-pressed={filter === f.id}
-              className={`rounded-full border px-3 py-1 text-[12.5px] font-semibold transition-colors ${
-                filter === f.id
-                  ? "border-[var(--brand)] bg-[var(--brand-tint)] text-text"
-                  : "border-[var(--border)] bg-surface text-muted hover:text-text"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {!sales && (
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Reply filter">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setFilter(f.id)}
+                aria-pressed={filter === f.id}
+                className={`rounded-full border px-3 py-1 text-[12.5px] font-semibold transition-colors ${
+                  filter === f.id
+                    ? "border-[var(--brand)] bg-[var(--brand-tint)] text-text"
+                    : "border-[var(--border)] bg-surface text-muted hover:text-text"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
         {classifier.running && (
           <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-faint">
             <Loader2 size={13} className="animate-spin" aria-hidden />
@@ -372,6 +392,7 @@ export default function SmsPipelineBoard() {
           card={openCard}
           pipelines={board.data.pipelines ?? []}
           boardPipelineId={pipelineId}
+          sales={sales}
           onMove={(toPipeline, toStage, label) => doMove(openCard, toPipeline, toStage, label)}
           onClose={() => setOpenId(null)}
           onToast={setToast}
@@ -464,6 +485,9 @@ function BoardCard({
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 text-[13px] font-semibold leading-snug text-text">{card.business}</span>
         {card.verdict && <VerdictBadge verdict={card.verdict} />}
+        {card.value ? (
+          <span className="font-data shrink-0 text-[12px] font-bold text-text">{formatMoneyExact(card.value)}</span>
+        ) : null}
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-faint">
         {hasContacted(card.tags) && (

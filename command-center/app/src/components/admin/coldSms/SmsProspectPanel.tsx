@@ -31,11 +31,19 @@ import SmsBookingWizard from "./SmsBookingWizard";
 const THREAD_POLL_MS = 10_000;
 
 const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+const APPT = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
 
 export default function SmsProspectPanel({
   card,
   pipelines,
   boardPipelineId,
+  sales = false,
   onMove,
   onClose,
   onToast,
@@ -44,6 +52,8 @@ export default function SmsProspectPanel({
   card: ColdSmsCard;
   pipelines: ColdSmsPipelineRef[];
   boardPipelineId: string;
+  // Sales board: the call is already booked, and its replies carry no verdict.
+  sales?: boolean;
   onMove: (pipelineId: string, stageId: string, label: string) => void;
   onClose: () => void;
   onToast: (msg: string) => void;
@@ -56,7 +66,7 @@ export default function SmsProspectPanel({
   const prospect = useQuery({
     queryKey: key,
     queryFn: async () => {
-      const d = await getColdSmsProspect(card.contactId);
+      const d = await getColdSmsProspect(card.contactId, sales);
       qc.setQueryData<ColdSmsThread>(threadKey, {
         conversationId: d.conversationId,
         messages: d.messages,
@@ -248,15 +258,17 @@ export default function SmsProspectPanel({
             {call.isPending ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Phone size={15} aria-hidden />}
             Call
           </button>
-          <button
-            type="button"
-            onClick={() => setBooking(true)}
-            disabled={!prospect.data}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[var(--brand)] px-3.5 py-2 text-[13px] font-bold text-[var(--brand-fg,#fff)] disabled:opacity-50"
-          >
-            <CalendarPlus size={15} aria-hidden />
-            Book call
-          </button>
+          {!sales && (
+            <button
+              type="button"
+              onClick={() => setBooking(true)}
+              disabled={!prospect.data}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[var(--brand)] px-3.5 py-2 text-[13px] font-bold text-[var(--brand-fg,#fff)] disabled:opacity-50"
+            >
+              <CalendarPlus size={15} aria-hidden />
+              Book call
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -267,41 +279,58 @@ export default function SmsProspectPanel({
           </button>
         </header>
 
-        <div className="border-b border-[var(--border)] px-5 py-3">
-          <select
-            aria-label="Move to"
-            value={currentValue}
-            onChange={(e) => {
-              const [p, s] = e.target.value.split("|");
-              const pipe = pipelines.find((x) => x.id === p);
-              const stage = pipe?.stages.find((x) => x.id === s);
-              if (pipe && stage) onMove(p, s, pipe.id === boardPipelineId ? stage.name : `${pipe.name} › ${stage.name}`);
-            }}
-            className="w-full rounded-xl border border-[var(--border)] bg-surface-2 px-3 py-2 text-[13px] font-semibold text-text"
-          >
-            {pipelines.map((p) => (
-              <optgroup key={p.id} label={p.name}>
-                {p.stages.map((s) => (
-                  <option key={s.id} value={`${p.id}|${s.id}`}>
-                    {p.name} › {s.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </div>
+        {/* Sales cards move by drag or right-click; no menu here (Jake, 2026-10-13). */}
+        {!sales && (
+          <div className="border-b border-[var(--border)] px-5 py-3">
+            <select
+              aria-label="Move to"
+              value={currentValue}
+              onChange={(e) => {
+                const [p, s] = e.target.value.split("|");
+                const pipe = pipelines.find((x) => x.id === p);
+                const stage = pipe?.stages.find((x) => x.id === s);
+                if (pipe && stage) onMove(p, s, pipe.id === boardPipelineId ? stage.name : `${pipe.name} › ${stage.name}`);
+              }}
+              className="w-full rounded-xl border border-[var(--border)] bg-surface-2 px-3 py-2 text-[13px] font-semibold text-text"
+            >
+              {pipelines.map((p) => (
+                <optgroup key={p.id} label={p.name}>
+                  {p.stages.map((s) => (
+                    <option key={s.id} value={`${p.id}|${s.id}`}>
+                      {p.name} › {s.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+        )}
 
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-b border-[var(--border)] px-5 py-3 text-[13px]">
+          {/* Sales: when the call is and who it is with, first (Jake, 2026-10-13). */}
+          {sales && (
+            <Fact
+              label="Appointment"
+              value={prospect.data?.appointmentAt ? APPT.format(new Date(prospect.data.appointmentAt)) : prospect.data ? "None" : ""}
+            />
+          )}
+          {sales && <Fact label="Business" value={c?.business || card.business} />}
+          {sales && (c?.firstName || card.person) && <Fact label="First name" value={c?.firstName || card.person} />}
+          {sales && (c?.phone || card.phone) && <Fact label="Phone" value={c?.phone || card.phone} />}
           {place && <Fact label="City" value={place} />}
-          {c?.service && <Fact label="Service" value={c.service} />}
+          {!sales && c?.service && <Fact label="Service" value={c.service} />}
           {variation && <Fact label="Variation" value={variation} />}
           {card.firstContactedAt && (
             <Fact label="First contacted" value={fmt.format(new Date(card.firstContactedAt))} />
           )}
           {c?.email && <Fact label="Email" value={c.email} />}
           {c?.website && <Fact label="Website" value={c.website} />}
-          <dt className="text-faint">Reply</dt>
-          <dd className="m-0">{verdict ? <VerdictBadge verdict={verdict} /> : <span className="text-faint">None</span>}</dd>
+          {!sales && (
+            <>
+              <dt className="text-faint">Reply</dt>
+              <dd className="m-0">{verdict ? <VerdictBadge verdict={verdict} /> : <span className="text-faint">None</span>}</dd>
+            </>
+          )}
         </dl>
 
         <div ref={threadRef} className="flex flex-1 flex-col gap-2.5 overflow-y-auto bg-[var(--bg)] px-5 py-4">

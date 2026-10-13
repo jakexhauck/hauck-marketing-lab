@@ -2418,36 +2418,6 @@ export async function getSalesCalls(sync = true): Promise<SalesCallsResponse> {
   return api("/api/admin/sales/calls" + (sync ? "" : "?sync=0"));
 }
 
-// Sales > Sales Pipeline: the agency's own Sales board, read live and read
-// only. Reuses the card shape Cold Call > Pipelines already publishes
-// (AgencyPipelineCard), because it is the same account and the same board type.
-export interface SalesPipelineColumn {
-  id: string;
-  name: string;
-  cards: AgencyPipelineCard[];
-}
-
-export interface SalesPipelineResponse {
-  // False when the agency GoHighLevel account is not connected at all.
-  configured: boolean;
-  // Null when connected but no board on the account answers to "Sales".
-  pipeline: {
-    id: string;
-    name: string;
-    // Stages the console can write that this board has no column for.
-    missing: string[];
-  } | null;
-  locationId?: string;
-  columns: SalesPipelineColumn[];
-  // True when the card fetch hit its page cap, so the board is showing some of
-  // the deals rather than all of them.
-  truncated: boolean;
-}
-
-export async function getSalesPipeline(): Promise<SalesPipelineResponse> {
-  return api("/api/admin/sales/pipeline");
-}
-
 export async function recordSalesCallOutcome(input: {
   id: string;
   outcome: NonNullable<SalesMeeting["outcome"]>;
@@ -2531,7 +2501,13 @@ export interface ColdSmsCard {
   followUpOn?: string | null;
   followUpTime?: string | null;
   followUpNote?: string;
+  // The opportunity's value in GHL (Sales board).
+  value?: number | null;
 }
+
+// Which GHL pipeline the board reads: Cold SMS, or the agency's Sales pipeline
+// (Sales > Sales Pipeline, same board).
+export type PipelineBoardKind = "cold-sms" | "sales";
 
 export interface ColdSmsStage {
   id: string;
@@ -2566,7 +2542,8 @@ export interface ColdSmsBoard {
 // server hands back the columns and a part count; every part is read side by
 // side and the cards dropped into their columns (one request for the whole
 // pipeline hit Cloudflare's per-request cap, 2026-10-13).
-export async function getColdSmsBoard(day?: string): Promise<ColdSmsBoard> {
+export async function getColdSmsBoard(day?: string, kind: PipelineBoardKind = "cold-sms"): Promise<ColdSmsBoard> {
+  if (kind === "sales") return api("/api/admin/cold-sms/board?board=sales");
   if (!day) return api("/api/admin/cold-sms/board");
   const q = `?day=${encodeURIComponent(day)}`;
   const head = await api<ColdSmsBoard & { parts?: number; pages?: number }>(`/api/admin/cold-sms/board${q}`);
@@ -2590,9 +2567,11 @@ export async function getColdSmsBoard(day?: string): Promise<ColdSmsBoard> {
 export function getColdSmsStagePage(
   stageId: string,
   cursor: string,
+  kind: PipelineBoardKind = "cold-sms",
 ): Promise<{ cards: ColdSmsCard[]; cursor: string | null; total: number }> {
   return api(
-    `/api/admin/cold-sms/board?stageId=${encodeURIComponent(stageId)}&cursor=${encodeURIComponent(cursor)}`,
+    `/api/admin/cold-sms/board?stageId=${encodeURIComponent(stageId)}&cursor=${encodeURIComponent(cursor)}` +
+      (kind === "sales" ? "&board=sales" : ""),
   );
 }
 
@@ -2630,6 +2609,8 @@ export interface ColdSmsProspect {
   };
   zone: { zone: string | null; source: "contact" | "state" | "area_code" | null };
   verdict: ColdSmsVerdict | null;
+  // Sales board only: their next appointment, else the latest (ISO).
+  appointmentAt?: string | null;
   conversationId: string | null;
   messages: { id: string; body: string; direction: string; type: string; at: string; attachments?: string[] }[];
   threadFailed: boolean;
@@ -2637,8 +2618,10 @@ export interface ColdSmsProspect {
 
 export type ColdSmsThread = Pick<ColdSmsProspect, "conversationId" | "messages" | "threadFailed">;
 
-export function getColdSmsProspect(contactId: string): Promise<ColdSmsProspect> {
-  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}`);
+export function getColdSmsProspect(contactId: string, withAppointment = false): Promise<ColdSmsProspect> {
+  return api(
+    `/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}${withAppointment ? "?appointment=1" : ""}`,
+  );
 }
 
 // The thread alone: one GHL call when the conversation id is already known.

@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-13-sales-pipeline-board",
+    date: "13 October 2026",
+    title: "Sales Pipeline works like Cold SMS",
+    items: [
+      "Drag a card to move it in GHL, or right-click it to move it, mark it Contacted or set a follow-up.",
+      "Click a card for the text thread, a reply box and the Call button.",
+      "The panel shows the appointment date and time, business, first name and phone.",
+    ],
+  },
+  {
     id: "2026-10-13-agency-off-strip",
     date: "13 October 2026",
     title: "Test v2 and Hauck Marketing off the client list",

@@ -5,6 +5,8 @@ import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../../../lib/a
 import { fetchContactThread } from "../../../../../lib/messaging";
 import { loadVerdicts } from "../../../../../lib/coldSmsAgency";
 import { prospectZone, variationOf } from "../../../../../lib/coldSmsBoard";
+import { fetchContactAppointments } from "../../../../../lib/estimateOutcomeGhl";
+import { pickSalesAppointment } from "../../../../../lib/salesAppointment";
 
 // GET /api/admin/cold-sms/prospect/:contactId  (owner only)
 // GET /api/admin/cold-sms/prospect/:contactId?only=thread&conversationId=...
@@ -17,6 +19,9 @@ import { prospectZone, variationOf } from "../../../../../lib/coldSmsBoard";
 // GHL reads run side by side, and the panel's refresh after a send and its poll
 // ask for the thread alone, keyed by the conversation it already has, which is
 // one GHL call instead of four.
+//
+// ?appointment=1 (the Sales board) also reads their appointment, one more GHL
+// call side by side; a failed read just leaves it off.
 
 interface RawContact {
   id: string;
@@ -58,12 +63,24 @@ export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (ctx
   // A failed definitions read just leaves the Service line out.
   const defsRead = customFieldDefs(agency).catch(() => []);
   const threadRead = fetchContactThread(agency, contactId).catch(() => null);
+  const apptRead =
+    params.get("appointment") === "1"
+      ? fetchContactAppointments(agency, contactId)
+          .then((a) => pickSalesAppointment(a, Date.now()))
+          .catch(() => null)
+      : Promise.resolve(null);
   const storedRead = (async () => {
     const db = getServiceClient(ctx.env);
     return db ? loadVerdicts(db, [contactId]).catch(() => new Map()) : new Map();
   })();
 
-  const [read, defs, thread, stored] = await Promise.all([contactRead, defsRead, threadRead, storedRead]);
+  const [read, defs, thread, stored, appointmentAt] = await Promise.all([
+    contactRead,
+    defsRead,
+    threadRead,
+    storedRead,
+    apptRead,
+  ]);
   if ("error" in read) {
     if (/ 404|400/.test(read.error)) return Response.json({ error: "not_found" }, { status: 404 });
     return Response.json({ error: "ghl_unavailable" }, { status: 502 });
@@ -98,6 +115,7 @@ export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (ctx
     },
     zone,
     verdict: row?.verdict ?? null,
+    appointmentAt,
     conversationId: thread?.conversationId ?? null,
     messages: thread?.messages ?? [],
     threadFailed: thread === null,

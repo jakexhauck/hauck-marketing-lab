@@ -21,6 +21,7 @@ import {
   syncFirstTexts,
   zoneDayRange,
 } from "../../../lib/coldSmsFirstTexts";
+import { pickSalesPipeline } from "../../../lib/salesPipeline";
 
 // GET /api/admin/cold-sms/board                     -> every column, first page each
 // GET /api/admin/cold-sms/board?day=YYYY-MM-DD      -> the columns, and how many parts to read
@@ -28,6 +29,10 @@ import {
 //   (the client reads every part side by side; one request for the whole pipeline
 //   went past Cloudflare's 50 outside calls, see coldSmsAgency.ts)
 // GET /api/admin/cold-sms/board?stageId=&cursor=    -> the next page of one column
+// Add &board=sales to any of the column reads for the agency's Sales pipeline
+// instead (Sales > Sales Pipeline, Jake 2026-10-13: the same board, same panel,
+// same menu). Sales has no day filter and no Claude verdicts: its cards are
+// booked meetings, not cold replies.
 //
 // Owner only (no role rule in adminRoles.ts, so every other role is refused).
 // Read live from the agency's "Cold SMS" pipeline. Columns are GHL's stages, so a
@@ -59,6 +64,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const partRaw = params.get("part");
   const part = partRaw === null ? null : Number(partRaw);
   const pageCount = Number(params.get("pages") ?? "0");
+  const sales = params.get("board") === "sales";
+  if (sales && day) return Response.json({ error: "bad_day" }, { status: 400 });
   if (part !== null && (!day || !Number.isInteger(part) || part < 0 || !Number.isInteger(pageCount) || pageCount < 0)) {
     return Response.json({ error: "bad_part" }, { status: 400 });
   }
@@ -70,7 +77,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   try {
     const pipelines = await listPipelines(agency);
-    const board = pickColdSmsPipeline(pipelines);
+    const board = sales ? pickSalesPipeline(pipelines) : pickColdSmsPipeline(pipelines);
     if (!board) return Response.json({ configured: true, missing: true, pipelines });
 
     // One part of a day: its pages, kept to the prospects first texted that day.
@@ -96,11 +103,38 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         fetchLatestReplies(agency),
         fetchStagePage(agency, board.id, stageId, cursor),
       ]);
-      const stored = await loadVerdicts(db, page.cards.map((c) => c.contactId));
+      const stored = sales ? new Map() : await loadVerdicts(db, page.cards.map((c) => c.contactId));
       return Response.json({
         cards: await withFirst(decorate(page.cards, replies, stored)),
         cursor: page.cursor,
         total: page.total,
+      });
+    }
+
+    if (sales) {
+      const [pages, replies] = await Promise.all([
+        Promise.all(board.stages.map((s) => fetchStagePage(agency, board.id, s.id))),
+        fetchLatestReplies(agency),
+      ]);
+      const follow = new Map((await withFollowUps(db, pages.flatMap((p) => p.cards))).map((c) => [c.contactId, c]));
+      return Response.json({
+        configured: true,
+        locationId: agency.locationId,
+        pipeline: { id: board.id, name: board.name },
+        pipelines,
+        timezone: zone,
+        stages: board.stages.map((s, i) => ({
+          id: s.id,
+          name: s.name,
+          total: pages[i].total,
+          cursor: pages[i].cursor,
+          cards: decorate(pages[i].cards, replies, new Map()).map((c) => ({
+            ...c,
+            followUpOn: follow.get(c.contactId)?.followUpOn ?? null,
+            followUpTime: follow.get(c.contactId)?.followUpTime ?? null,
+            followUpNote: follow.get(c.contactId)?.followUpNote ?? "",
+          })),
+        })),
       });
     }
 
