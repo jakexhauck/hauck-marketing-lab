@@ -26,6 +26,12 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-13-sales-one-page",
+    date: "13 October 2026",
+    title: "Sales is one page",
+    items: ["Sales is one row in the sidebar. Pipeline and Data are tabs at the top of the page."],
+  },
+  {
     id: "2026-10-13-sales-pipeline-board",
     date: "13 October 2026",
     title: "Sales Pipeline works like Cold SMS",

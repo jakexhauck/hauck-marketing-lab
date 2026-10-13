@@ -28,7 +28,7 @@ const VIEWS = [
   { id: "pipeline", label: "Pipeline" },
 ] as const;
 
-function TabsStyle() {
+export function TabsStyle() {
   return (
     <style>{`
       .pk-kit .cs-tabs {

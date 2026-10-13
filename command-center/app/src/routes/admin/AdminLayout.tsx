@@ -14,7 +14,6 @@ import {
   PanelLeftOpen,
   Target,
   SquareKanban,
-  ChartColumn,
   Layers,
   type LucideIcon,
   MessagesSquare,
@@ -129,12 +128,10 @@ const PILLAR_GROUPS: RailGroup[] = [
     ],
   },
   {
-    // Sales: two pages. Short names because each stands alone as a rail row.
+    // Sales: one page, Pipeline and Data are tabs inside it (Jake, 2026-10-13).
+    // No ?tab= on the row, so it lights up on either tab.
     caption: "Sales",
-    rows: [
-      pillarRow("Pipeline", "sales", "pipeline", SquareKanban),
-      pillarRow("Data", "sales", "sales-data", ChartColumn),
-    ],
+    rows: [{ to: "/admin/pillar/sales", label: "Sales", icon: SquareKanban }],
   },
 ];
 

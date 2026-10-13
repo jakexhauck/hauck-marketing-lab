@@ -8,10 +8,9 @@ import {
   placeholderCopy,
   type PillarTabDef,
 } from "../../lib/adminPillars";
-import SalesDataTracker from "../../components/admin/tracker/SalesDataTracker";
 import SalesCallsSection from "../../components/admin/sales/SalesCallsSection";
 import PlaybookSection from "../../components/admin/sales/PlaybookSection";
-import SmsPipelineBoard from "../../components/admin/coldSms/SmsPipelineBoard";
+import SalesPage from "../../components/admin/sales/SalesPage";
 import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
 import InboxTab from "../../components/admin/operations/InboxTab";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
@@ -128,13 +127,10 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     // data itself is untouched and the call cockpit still reads it.
     case "playbook":
       return <PlaybookSection />;
-    // The agency's Sales pipeline on the Cold SMS board: drag, panel, call,
-    // follow-ups (Jake, 2026-10-13).
+    // One Sales page, Pipeline and Data as tabs inside it (Jake, 2026-10-13).
     case "pipeline":
-      return <SmsPipelineBoard kind="sales" />;
-    // The month in aggregate.
     case "sales-data":
-      return <SalesDataTracker />;
+      return <SalesPage tab={tab.id} />;
     case "business-health":
       return <BusinessHealthTab />;
     // The agency's own GoHighLevel messages, read and answered by text.
