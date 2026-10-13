@@ -80,6 +80,7 @@ export default function SmsProspectPanel({
   const [pending, setPending] = useState<PendingText[]>([]);
   const [booking, setBooking] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<HTMLTextAreaElement>(null);
   const nextTemp = useRef(0);
 
   const call = useMutation({
@@ -117,6 +118,15 @@ export default function SmsProspectPanel({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, booking]);
+
+  // The reply box grows with the text (Jake, 2026-10-13), up to half the
+  // screen, then scrolls. Back to two lines once sent.
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight + 2, window.innerHeight * 0.5)}px`;
+  }, [draft]);
 
   const messages = (thread.data?.messages ?? prospect.data?.messages ?? []).filter(
     (m) => m.body || m.attachments?.length,
@@ -277,7 +287,7 @@ export default function SmsProspectPanel({
         </div>
 
         <form
-          className="flex gap-2 border-t border-[var(--border)] px-5 py-3"
+          className="flex items-end gap-2 border-t border-[var(--border)] px-5 py-3"
           onSubmit={(e) => {
             e.preventDefault();
             const t = draft.trim();
@@ -287,6 +297,7 @@ export default function SmsProspectPanel({
           }}
         >
           <textarea
+            ref={boxRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
@@ -298,13 +309,13 @@ export default function SmsProspectPanel({
             rows={2}
             placeholder={`Text ${c?.firstName || card.business}`}
             aria-label="Message"
-            className="flex-1 resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-[13.5px] text-text outline-none focus:border-[var(--brand)]"
+            className="max-h-[50vh] flex-1 resize-none overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-[13.5px] leading-snug text-text outline-none focus:border-[var(--brand)]"
           />
           <button
             type="submit"
             disabled={!draft.trim()}
             aria-label="Send"
-            className="grid w-12 place-items-center rounded-xl bg-[var(--brand)] text-[var(--brand-fg,#fff)] disabled:opacity-40"
+            className="grid h-[54px] w-12 shrink-0 place-items-center rounded-xl bg-[var(--brand)] text-[var(--brand-fg,#fff)] disabled:opacity-40"
           >
             <Send size={16} />
           </button>
