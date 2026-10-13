@@ -32,3 +32,26 @@ export function addDays(today: string, n: number): string {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 }
+
+// A follow-up's optional time, "HH:MM" on a 24-hour clock in Jake's zone.
+const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+export function isTime(v: unknown): v is string {
+  return typeof v === "string" && TIME.test(v);
+}
+
+// "14:05" -> "2:05 PM".
+export function timeLabel(time: string): string {
+  const m = TIME.exec(time);
+  if (!m) return "";
+  const h = Number(m[1]);
+  return `${h % 12 || 12}:${m[2]} ${h < 12 ? "AM" : "PM"}`;
+}
+
+// Minutes after midnight the GHL task is due: the time given, else 9am.
+export function dueMinutes(time: string | null | undefined): number {
+  const m = time ? TIME.exec(time) : null;
+  return m ? Number(m[1]) * 60 + Number(m[2]) : 9 * 60;
+}
+
+export const FOLLOW_UP_NOTE_MAX = 500;

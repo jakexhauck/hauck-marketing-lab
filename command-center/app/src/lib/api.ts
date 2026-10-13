@@ -2525,8 +2525,10 @@ export interface ColdSmsCard {
   firstContactedAt: string | null;
   reply: { body: string; at: number } | null;
   verdict: ColdSmsVerdict | null;
-  // Follow-up day, YYYY-MM-DD in Jake's zone (0161).
+  // Follow-up (0161, 0163): day YYYY-MM-DD in Jake's zone, optional "HH:MM", note.
   followUpOn?: string | null;
+  followUpTime?: string | null;
+  followUpNote?: string;
 }
 
 export interface ColdSmsStage {
@@ -2649,15 +2651,21 @@ export function sweepColdSmsBooked(): Promise<{ removed: string[]; remaining: nu
   return api("/api/admin/cold-sms/sweep-booked", { method: "POST" });
 }
 
-// Sets (day) or clears (null) the prospect's follow-up; GHL gets a task too.
+export interface ColdSmsFollowUpInput {
+  day: string | null; // null clears it
+  time: string | null;
+  note: string;
+}
+
+// Sets or clears the prospect's follow-up; GHL gets a task too.
 export function setColdSmsFollowUp(
   contactId: string,
-  day: string | null,
+  f: ColdSmsFollowUpInput,
   business: string,
 ): Promise<{ ok: true; day: string | null; taskFailed?: boolean }> {
   return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/followup`, {
     method: "POST",
-    body: JSON.stringify({ day, business }),
+    body: JSON.stringify({ ...f, business }),
   });
 }
 

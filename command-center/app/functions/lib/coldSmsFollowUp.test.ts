@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { addDays, followUpLabel, followUpState, isDay } from "./coldSmsFollowUp";
+import { addDays, dueMinutes, followUpLabel, followUpState, isDay, isTime, timeLabel } from "./coldSmsFollowUp";
 
 describe("cold SMS follow-ups", () => {
   it("knows due, overdue and later", () => {
@@ -19,5 +19,23 @@ describe("cold SMS follow-ups", () => {
     expect(isDay("2026-02-30")).toBe(false);
     expect(isDay("10/16/2026")).toBe(false);
     expect(isDay(null)).toBe(false);
+  });
+});
+
+describe("follow-up time", () => {
+  it("accepts only HH:MM", () => {
+    expect(isTime("14:05")).toBe(true);
+    expect(isTime("9:05")).toBe(false);
+    expect(isTime("24:00")).toBe(false);
+    expect(isTime(null)).toBe(false);
+  });
+  it("labels on a 12-hour clock", () => {
+    expect(timeLabel("14:05")).toBe("2:05 PM");
+    expect(timeLabel("00:30")).toBe("12:30 AM");
+    expect(timeLabel("12:00")).toBe("12:00 PM");
+  });
+  it("is due at the time given, else 9am", () => {
+    expect(dueMinutes("14:30")).toBe(870);
+    expect(dueMinutes(null)).toBe(540);
   });
 });

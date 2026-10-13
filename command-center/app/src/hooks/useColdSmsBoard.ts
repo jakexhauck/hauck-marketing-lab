@@ -10,6 +10,7 @@ import {
   setColdSmsTag,
   type ColdSmsBoard,
   type ColdSmsCard,
+  type ColdSmsFollowUpInput,
   type ColdSmsVerdict,
 } from "../lib/api";
 import { autoSortMoves, findSortStages } from "../../functions/lib/coldSmsSort";
@@ -246,12 +247,21 @@ export function useContactedToggle() {
 export function useFollowUp() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { card: ColdSmsCard; day: string | null }) => setColdSmsFollowUp(v.card.contactId, v.day, v.card.business),
+    mutationFn: (v: { card: ColdSmsCard; f: ColdSmsFollowUpInput }) => setColdSmsFollowUp(v.card.contactId, v.f, v.card.business),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: COLD_SMS_BOARD_KEY });
       const before = qc.getQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY });
       qc.setQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY }, (b) =>
-        patchCards(b, (c) => (c.contactId === v.card.contactId ? { ...c, followUpOn: v.day } : c)),
+        patchCards(b, (c) =>
+          c.contactId === v.card.contactId
+            ? {
+                ...c,
+                followUpOn: v.f.day,
+                followUpTime: v.f.day ? v.f.time : null,
+                followUpNote: v.f.day ? v.f.note : "",
+              }
+            : c,
+        ),
       );
       return { before };
     },

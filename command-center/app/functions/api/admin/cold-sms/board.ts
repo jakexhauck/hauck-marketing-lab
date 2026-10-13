@@ -145,9 +145,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     const pages = await stagePages;
     const stored = await loadVerdicts(db, pages.flatMap((p) => p.cards.map((c) => c.contactId)));
     const firsts = await loadFirstTexts(db, pages.flatMap((p) => p.cards.map((c) => c.contactId)));
-    const follow = new Map(
-      (await withFollowUps(db, pages.flatMap((p) => p.cards))).map((c) => [c.contactId, c.followUpOn]),
-    );
+    const follow = new Map((await withFollowUps(db, pages.flatMap((p) => p.cards))).map((c) => [c.contactId, c]));
 
     return Response.json({
       ...common,
@@ -159,7 +157,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         cards: decorate(pages[i].cards, replies, stored).map((c) => ({
           ...c,
           firstContactedAt: firsts.get(c.contactId) ?? null,
-          followUpOn: follow.get(c.contactId) ?? null,
+          followUpOn: follow.get(c.contactId)?.followUpOn ?? null,
+          followUpTime: follow.get(c.contactId)?.followUpTime ?? null,
+          followUpNote: follow.get(c.contactId)?.followUpNote ?? "",
         })),
       })),
     });

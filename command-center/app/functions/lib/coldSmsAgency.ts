@@ -101,8 +101,11 @@ export interface BoardCard {
   firstContactedAt: string | null;
   reply: ReplyInfo | null;
   verdict: Verdict | null;
-  // Follow-up day (YYYY-MM-DD in Jake's zone) from cold_sms_followups (0161).
+  // Follow-up from cold_sms_followups (0161, 0163): day in Jake's zone, optional
+  // "HH:MM", and Jake's note.
   followUpOn?: string | null;
+  followUpTime?: string | null;
+  followUpNote?: string;
 }
 
 export interface StagePage {
@@ -442,17 +445,25 @@ export async function sweepBookedFromColdSms(
   return { removed, remaining: todo.length - now.length };
 }
 
-// contactId -> follow-up day, for the cards on screen (0161).
-export async function loadFollowUps(db: SupabaseClient, contactIds: string[]): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
+export interface FollowUp {
+  day: string;
+  time: string | null;
+  note: string;
+}
+
+// contactId -> follow-up (day, time, note), for the cards on screen (0161, 0163).
+export async function loadFollowUps(db: SupabaseClient, contactIds: string[]): Promise<Map<string, FollowUp>> {
+  const out = new Map<string, FollowUp>();
   const ids = [...new Set(contactIds.filter(Boolean))];
   for (let i = 0; i < ids.length; i += 150) {
     const { data, error } = await db
       .from("cold_sms_followups")
-      .select("contact_id, follow_up_on")
+      .select("contact_id, follow_up_on, follow_up_time, note")
       .in("contact_id", ids.slice(i, i + 150));
     if (error) throw new Error(`cold_sms_followups read failed: ${error.message}`);
-    for (const r of (data ?? []) as { contact_id: string; follow_up_on: string }[]) out.set(r.contact_id, r.follow_up_on);
+    for (const r of (data ?? []) as { contact_id: string; follow_up_on: string; follow_up_time: string | null; note: string | null }[]) {
+      out.set(r.contact_id, { day: r.follow_up_on, time: r.follow_up_time ?? null, note: r.note ?? "" });
+    }
   }
   return out;
 }
@@ -460,7 +471,10 @@ export async function loadFollowUps(db: SupabaseClient, contactIds: string[]): P
 export async function withFollowUps<T extends { contactId: string }>(
   db: SupabaseClient,
   cards: T[],
-): Promise<(T & { followUpOn: string | null })[]> {
-  const days = await loadFollowUps(db, cards.map((c) => c.contactId));
-  return cards.map((c) => ({ ...c, followUpOn: days.get(c.contactId) ?? null }));
+): Promise<(T & { followUpOn: string | null; followUpTime: string | null; followUpNote: string })[]> {
+  const all = await loadFollowUps(db, cards.map((c) => c.contactId));
+  return cards.map((c) => {
+    const f = all.get(c.contactId);
+    return { ...c, followUpOn: f?.day ?? null, followUpTime: f?.time ?? null, followUpNote: f?.note ?? "" };
+  });
 }

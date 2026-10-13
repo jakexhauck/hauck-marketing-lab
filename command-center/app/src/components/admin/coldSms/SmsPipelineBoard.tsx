@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
-import { Check, Loader2, Search } from "lucide-react";
+import { Check, Loader2, Search, X } from "lucide-react";
 import BoardScrollbar from "../../BoardScrollbar";
 import Toast from "../../Toast";
 import { stageTone } from "../../../lib/setterModel";
 import { timeAgo } from "../../../lib/timeAgo";
 import { dayKeyOf } from "../../../lib/coldSmsWeek";
-import { ApiError, type ColdSmsCard, type ColdSmsVerdict } from "../../../lib/api";
+import { ApiError, type ColdSmsCard, type ColdSmsFollowUpInput, type ColdSmsVerdict } from "../../../lib/api";
 import {
   hasContacted,
   useColdSmsBoardQuery,
@@ -20,7 +21,13 @@ import {
 } from "../../../hooks/useColdSmsBoard";
 import SmsProspectPanel from "./SmsProspectPanel";
 import { VerdictBadge } from "./VerdictBadge";
-import { addDays, followUpLabel, followUpState } from "../../../../functions/lib/coldSmsFollowUp";
+import {
+  FOLLOW_UP_NOTE_MAX,
+  addDays,
+  followUpLabel,
+  followUpState,
+  timeLabel,
+} from "../../../../functions/lib/coldSmsFollowUp";
 
 // Cold SMS > Pipeline (Jake, 2026-10-12). The agency's "Cold SMS" pipeline in
 // GoHighLevel as a board: drag a card to move it in GHL, click it for the
@@ -79,6 +86,7 @@ export default function SmsPipelineBoard() {
   const contacted = useContactedToggle();
   const followUp = useFollowUp();
   const [menu, setMenu] = useState<{ card: ColdSmsCard; x: number; y: number } | null>(null);
+  const [editing, setEditing] = useState<ColdSmsCard | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -110,6 +118,22 @@ export default function SmsPipelineBoard() {
     for (const s of stages) for (const c of s.cards) if (c.id === openId) return c;
     return null;
   }, [stages, openId]);
+
+  const saveFollowUp = (card: ColdSmsCard, f: ColdSmsFollowUpInput) =>
+    followUp.mutate(
+      { card, f },
+      {
+        onSuccess: (res) =>
+          setToast(
+            res.taskFailed
+              ? "Follow up saved. GHL did not take the task."
+              : f.day
+                ? `Follow up ${followUpLabel(f.day)}${f.time ? `, ${timeLabel(f.time)}` : ""}`
+                : "Follow up cleared",
+          ),
+        onError: () => setToast("Follow up did not save"),
+      },
+    );
 
   const doMove = (card: ColdSmsCard, toPipeline: string, toStage: string, label: string) => {
     if (toPipeline === pipelineId && toStage === card.stageId) return;
@@ -286,22 +310,15 @@ export default function SmsPipelineBoard() {
           contacted={hasContacted(menu.card.tags)}
           today={today}
           followUpOn={menu.card.followUpOn ?? null}
+          // Quick days keep the time and note already on the card.
           onFollowUp={(day) =>
-            followUp.mutate(
-              { card: menu.card, day },
-              {
-                onSuccess: (res) =>
-                  setToast(
-                    res.taskFailed
-                      ? "Follow up saved. GHL did not take the task."
-                      : day
-                        ? `Follow up ${followUpLabel(day)}`
-                        : "Follow up cleared",
-                  ),
-                onError: () => setToast("Follow up did not save"),
-              },
-            )
+            saveFollowUp(menu.card, {
+              day,
+              time: menu.card.followUpTime ?? null,
+              note: menu.card.followUpNote ?? "",
+            })
           }
+          onFollowUpEdit={() => setEditing(menu.card)}
           onMove={(stageId, name) => doMove(menu.card, pipelineId, stageId, name)}
           onContacted={(on) =>
             contacted.mutate(
@@ -310,6 +327,17 @@ export default function SmsPipelineBoard() {
             )
           }
           onClose={() => setMenu(null)}
+        />
+      )}
+      {editing && (
+        <FollowUpDialog
+          card={editing}
+          today={today}
+          onSave={(f) => {
+            saveFollowUp(editing, f);
+            setEditing(null);
+          }}
+          onClose={() => setEditing(null)}
         />
       )}
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
@@ -368,7 +396,9 @@ function BoardCard({
         {when && <span>{when}</span>}
       </div>
       {/* Their whole last message, never clipped (Jake, 2026-10-13). */}
-      {card.followUpOn && <FollowUpLine day={card.followUpOn} today={today} />}
+      {card.followUpOn && (
+        <FollowUpLine day={card.followUpOn} time={card.followUpTime ?? null} note={card.followUpNote ?? ""} today={today} />
+      )}
       {card.reply?.body && (
         <p className="mt-1.5 whitespace-pre-wrap break-words text-[12.5px] leading-snug text-muted">{card.reply.body}</p>
       )}
@@ -392,6 +422,7 @@ function CardMenu({
   onMove,
   onContacted,
   onFollowUp,
+  onFollowUpEdit,
   onClose,
 }: {
   x: number;
@@ -402,6 +433,7 @@ function CardMenu({
   today: string;
   followUpOn: string | null;
   onFollowUp: (day: string | null) => void;
+  onFollowUpEdit: () => void;
   onMove: (stageId: string, name: string) => void;
   onContacted: (on: boolean) => void;
   onClose: () => void;
@@ -488,22 +520,18 @@ function CardMenu({
           <span className="ml-auto pl-3 text-[11.5px] font-medium text-faint">{followUpLabel(o.day)}</span>
         </button>
       ))}
-      <label className={`${item} cursor-pointer`}>
+      <button
+        type="button"
+        role="menuitem"
+        className={item}
+        onClick={() => {
+          onFollowUpEdit();
+          onClose();
+        }}
+      >
         <span className="w-4" />
-        Pick a date
-        <input
-          type="date"
-          min={today}
-          value={followUpOn ?? ""}
-          onChange={(e) => {
-            if (e.target.value) {
-              onFollowUp(e.target.value);
-              onClose();
-            }
-          }}
-          className="ml-auto rounded-md border border-[var(--border)] bg-surface-2 px-1.5 py-0.5 text-[12px] text-text"
-        />
-      </label>
+        Date, time and note...
+      </button>
       {followUpOn && (
         <button
           type="button"
@@ -540,13 +568,127 @@ function CardMenu({
   );
 }
 
-// "Follow up Fri, Oct 16": quiet before the day, amber on it, red once past.
-function FollowUpLine({ day, today }: { day: string; today: string }) {
+// "Follow up Fri, Oct 16, 2:00 PM" plus Jake's note: quiet before the day, amber
+// on it, red once past.
+function FollowUpLine({ day, time, note, today }: { day: string; time: string | null; note: string; today: string }) {
   const state = followUpState(day, today);
   const color = state === "overdue" ? "var(--danger)" : state === "due" ? "var(--warning)" : "var(--text-muted)";
   return (
-    <p className="mt-1.5 text-[11.5px] font-semibold" style={{ color }}>
-      Follow up {state === "due" ? "today" : followUpLabel(day)}
-    </p>
+    <div className="mt-1.5 rounded-lg px-2 py-1.5" style={{ background: `color-mix(in srgb, ${color} 10%, transparent)` }}>
+      <p className="text-[11.5px] font-semibold" style={{ color }}>
+        Follow up {state === "due" ? "today" : followUpLabel(day)}
+        {time ? `, ${timeLabel(time)}` : ""}
+      </p>
+      {note && <p className="mt-0.5 whitespace-pre-wrap break-words text-[12px] leading-snug text-text">{note}</p>}
+    </div>
+  );
+}
+
+// Right-click > Date, time and note: a follow-up with the detail Jake wants on
+// the card. Time is optional (the GHL task is due 9am without one).
+function FollowUpDialog({
+  card,
+  today,
+  onSave,
+  onClose,
+}: {
+  card: ColdSmsCard;
+  today: string;
+  onSave: (f: ColdSmsFollowUpInput) => void;
+  onClose: () => void;
+}) {
+  const [day, setDay] = useState(card.followUpOn ?? addDays(today, 1));
+  const [time, setTime] = useState(card.followUpTime ?? "");
+  const [note, setNote] = useState(card.followUpNote ?? "");
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    noteRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const field =
+    "rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-[14px] text-text outline-none focus:border-[var(--brand)]";
+
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[80] bg-black/40" onClick={onClose} aria-hidden />
+      <form
+        role="dialog"
+        aria-label={`Follow up ${card.business}`}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (day) onSave({ day, time: time || null, note: note.trim() });
+        }}
+        className="fixed left-1/2 top-1/2 z-[81] flex w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-2xl border border-[var(--border)] bg-surface p-5 shadow-2xl"
+      >
+        <header className="flex items-start justify-between gap-3">
+          <h2 className="font-display text-[16px] font-semibold leading-snug text-text">Follow up · {card.business}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-muted hover:text-text"
+          >
+            <X size={15} />
+          </button>
+        </header>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1.5 text-[12px] font-semibold text-faint">
+            Date
+            <input type="date" required min={today} value={day} onChange={(e) => setDay(e.target.value)} className={field} />
+          </label>
+          <label className="flex flex-col gap-1.5 text-[12px] font-semibold text-faint">
+            Time
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={field} />
+          </label>
+        </div>
+        <label className="flex flex-col gap-1.5 text-[12px] font-semibold text-faint">
+          Note
+          <textarea
+            ref={noteRef}
+            value={note}
+            maxLength={FOLLOW_UP_NOTE_MAX}
+            onChange={(e) => setNote(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) e.currentTarget.form?.requestSubmit();
+            }}
+            rows={4}
+            className={`${field} resize-y font-normal`}
+          />
+        </label>
+        <footer className="flex items-center gap-2">
+          {card.followUpOn && (
+            <button
+              type="button"
+              onClick={() => onSave({ day: null, time: null, note: "" })}
+              className="rounded-xl px-3 py-2 text-[13px] font-semibold text-[var(--danger)] hover:bg-surface-2"
+            >
+              Clear
+            </button>
+          )}
+          <span className="flex-1" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl px-3.5 py-2 text-[13px] font-semibold text-muted hover:text-text"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!day}
+            className="rounded-xl bg-[var(--brand)] px-4 py-2 text-[13px] font-bold text-[var(--brand-fg,#fff)] disabled:opacity-50"
+          >
+            Save
+          </button>
+        </footer>
+      </form>
+    </>,
+    document.body,
   );
 }
