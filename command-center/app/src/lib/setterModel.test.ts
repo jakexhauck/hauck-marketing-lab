@@ -173,6 +173,8 @@ describe("stageTone", () => {
 
   it("marks dead ends red", () => {
     expect(stageTone("Trash")).toBe("var(--danger)");
+    expect(stageTone("Not Qualified")).toBe("var(--danger)");
+    expect(stageTone("🔥 Hot Lead")).toBe("var(--brand)");
     expect(stageTone("❌ Not Responded/Negative Reply")).toBe("var(--danger)");
     expect(stageTone("Services Unqualified")).toBe("var(--danger)");
     expect(stageTone("Cancelled Appointments")).toBe("var(--danger)");
@@ -368,6 +370,8 @@ describe("stageTone on the Cold SMS board", () => {
     expect(stageTone("Not Responded ❌")).toBe("var(--text-faint)");
     expect(stageTone("Call No Answer")).toBe("var(--warning)");
     expect(stageTone("Trash")).toBe("var(--danger)");
+    expect(stageTone("Not Qualified")).toBe("var(--danger)");
+    expect(stageTone("🔥 Hot Lead")).toBe("var(--brand)");
     expect(stageTone("❌ Not Responded/Negative Reply")).toBe("var(--danger)");
     expect(stageTone("Replied 💬")).toBe("var(--brand)");
   });

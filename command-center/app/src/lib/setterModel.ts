@@ -109,7 +109,7 @@ export function stageTone(stageName: string): string {
   // "not responded" before the danger words: a prospect who never answered is
   // quiet, not lost (Cold SMS board, 2026-10-13).
   if (/not responded/.test(s) && !/negative/.test(s)) return "var(--text-faint)";
-  if (/trash|unqualified|uninterested|not interested|negative|cancel|lost|dead/.test(s)) return "var(--danger)";
+  if (/trash|unqualified|not qualified|uninterested|not interested|negative|cancel|lost|dead/.test(s)) return "var(--danger)";
   if (/no answer/.test(s)) return "var(--warning)";
   if (/positive/.test(s)) return "var(--positive)";
   if (/follow up|follow-up/.test(s)) return "#8b5cf6";
