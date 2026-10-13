@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-13-agency-off-strip",
+    date: "13 October 2026",
+    title: "Test v2 and Hauck Marketing off the client list",
+    items: [
+      "Test v2 is deleted from the app. It is still in GHL.",
+      "Hauck Marketing is the agency's own sub-account, so it no longer shows as a client.",
+    ],
+  },
+  {
     id: "2026-10-13-close-creates-client",
     date: "13 October 2026",
     title: "Closing a deal adds the client",

@@ -1,6 +1,6 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { isRetiredTenant } from "../../../lib/retiredTenant";
+import { isNotAClient } from "../../../lib/retiredTenant";
 import {
   BILLING_COLUMNS,
   emptyBillingDto,
@@ -19,8 +19,6 @@ import { PENDING_COLUMNS, type PendingRow } from "../../../lib/pendingClientsSto
 // Who counts: every tenant except a retired one, one deleted from Onboarding
 // (status 'removed'), and the agency's own "hauck-marketing" account, which
 // is Hauck Marketing's sub-account and not a client.
-
-const NOT_CLIENTS = new Set(["hauck-marketing"]);
 
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
@@ -42,7 +40,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       onboarding_status: string | null;
     }[]
   ).filter(
-    (t) => !isRetiredTenant(t) && !NOT_CLIENTS.has(t.slug) && t.onboarding_status !== "removed",
+    (t) => !isNotAClient(t) && t.onboarding_status !== "removed",
   );
 
   const { data: rows, error: billErr } = await client

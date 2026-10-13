@@ -1,6 +1,6 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { isRetiredTenant } from "../../../lib/retiredTenant";
+import { isNotAClient } from "../../../lib/retiredTenant";
 import { hashPassword } from "../../../lib/password";
 import { normalizeEmail } from "../../../lib/staff";
 import { logAdminAction } from "../../../lib/adminAuth";
@@ -34,7 +34,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     .order("created_at", { ascending: true });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  const live = (tenantRows ?? []).filter((t) => !isRetiredTenant(t as { name?: string }));
+  const live = (tenantRows ?? []).filter((t) => !isNotAClient(t as { name?: string; slug?: string }));
 
   const tenants = live as {
     id: string;

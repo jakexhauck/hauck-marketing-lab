@@ -1,6 +1,6 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { isRetiredTenant } from "../../../lib/retiredTenant";
+import { isNotAClient } from "../../../lib/retiredTenant";
 
 // GET /api/admin/onboarding  (admin-only, gated in _middleware.ts)
 //
@@ -83,7 +83,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     }[]
   )
     // Same rule as /api/admin/clients: a retired account is not a client.
-    .filter((t) => !isRetiredTenant(t))
+    .filter((t) => !isNotAClient(t))
     .map((t) => {
     const intake = intakeById.get(t.id) ?? {};
     return {
