@@ -15,6 +15,9 @@ import { FOLLOW_UP_NOTE_MAX, dueMinutes, followUpLabel, isDay, isTime } from "..
 //   { day: "YYYY-MM-DD" | null, time?: "HH:MM" | null, note?: string, business? }
 // (owner only)
 //
+// A note alone (day null, note given) is kept with no GHL task (0164); day null
+// and no note clears the row.
+//
 // Sets or clears a prospect's follow-up day from the card's right-click menu
 // (Jake, 2026-10-13). Saved in cold_sms_followups (0161), which is what the board
 // shows. A GHL task due that day (Jake's zone) at the time given, else 9am, with
@@ -57,9 +60,21 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (ct
   }
 
   if (day === null) {
-    const { error } = await db.from("cold_sms_followups").delete().eq("contact_id", contactId);
+    const { error } = note
+      ? await db.from("cold_sms_followups").upsert(
+          {
+            contact_id: contactId,
+            follow_up_on: null,
+            follow_up_time: null,
+            note,
+            ghl_task_id: null,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "contact_id" },
+        )
+      : await db.from("cold_sms_followups").delete().eq("contact_id", contactId);
     if (error) return Response.json({ error: "save_failed" }, { status: 500 });
-    return Response.json({ ok: true, day: null });
+    return Response.json({ ok: true, day: null, note });
   }
 
   let taskId: string | null = null;

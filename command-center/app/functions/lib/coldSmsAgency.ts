@@ -446,7 +446,7 @@ export async function sweepBookedFromColdSms(
 }
 
 export interface FollowUp {
-  day: string;
+  day: string | null; // null: a note with no follow-up date (0164)
   time: string | null;
   note: string;
 }
@@ -461,7 +461,7 @@ export async function loadFollowUps(db: SupabaseClient, contactIds: string[]): P
       .select("contact_id, follow_up_on, follow_up_time, note")
       .in("contact_id", ids.slice(i, i + 150));
     if (error) throw new Error(`cold_sms_followups read failed: ${error.message}`);
-    for (const r of (data ?? []) as { contact_id: string; follow_up_on: string; follow_up_time: string | null; note: string | null }[]) {
+    for (const r of (data ?? []) as { contact_id: string; follow_up_on: string | null; follow_up_time: string | null; note: string | null }[]) {
       out.set(r.contact_id, { day: r.follow_up_on, time: r.follow_up_time ?? null, note: r.note ?? "" });
     }
   }

@@ -258,7 +258,7 @@ export function useFollowUp() {
                 ...c,
                 followUpOn: v.f.day,
                 followUpTime: v.f.day ? v.f.time : null,
-                followUpNote: v.f.day ? v.f.note : "",
+                followUpNote: v.f.note,
               }
             : c,
         ),

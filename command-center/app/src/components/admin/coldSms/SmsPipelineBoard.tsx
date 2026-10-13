@@ -159,7 +159,9 @@ export default function SmsPipelineBoard() {
               ? "Follow up saved. GHL did not take the task."
               : f.day
                 ? `Follow up ${followUpLabel(f.day)}${f.time ? `, ${timeLabel(f.time)}` : ""}`
-                : "Follow up cleared",
+                : f.note
+                  ? "Note saved"
+                  : "Follow up cleared",
           ),
         onError: () => setToast("Follow up did not save"),
       },
@@ -474,8 +476,13 @@ function BoardCard({
         {when && <span>{when}</span>}
       </div>
       {/* Their whole last message, never clipped (Jake, 2026-10-13). */}
-      {card.followUpOn && (
-        <FollowUpLine day={card.followUpOn} time={card.followUpTime ?? null} note={card.followUpNote ?? ""} today={today} />
+      {(card.followUpOn || card.followUpNote) && (
+        <FollowUpLine
+          day={card.followUpOn ?? null}
+          time={card.followUpTime ?? null}
+          note={card.followUpNote ?? ""}
+          today={today}
+        />
       )}
       {card.reply?.body && (
         <p className="mt-1.5 whitespace-pre-wrap break-words text-[12.5px] leading-snug text-muted">{card.reply.body}</p>
@@ -647,23 +654,38 @@ function CardMenu({
 }
 
 // "Follow up Fri, Oct 16, 2:00 PM" plus Jake's note: quiet before the day, amber
-// on it, red once past.
-function FollowUpLine({ day, time, note, today }: { day: string; time: string | null; note: string; today: string }) {
-  const state = followUpState(day, today);
+// on it, red once past. A note with no date is just the note.
+function FollowUpLine({
+  day,
+  time,
+  note,
+  today,
+}: {
+  day: string | null;
+  time: string | null;
+  note: string;
+  today: string;
+}) {
+  const state = day ? followUpState(day, today) : "later";
   const color = state === "overdue" ? "var(--danger)" : state === "due" ? "var(--warning)" : "var(--text-muted)";
   return (
     <div className="mt-1.5 rounded-lg px-2 py-1.5" style={{ background: `color-mix(in srgb, ${color} 10%, transparent)` }}>
-      <p className="text-[11.5px] font-semibold" style={{ color }}>
-        Follow up {state === "due" ? "today" : followUpLabel(day)}
-        {time ? `, ${timeLabel(time)}` : ""}
-      </p>
-      {note && <p className="mt-0.5 whitespace-pre-wrap break-words text-[12px] leading-snug text-text">{note}</p>}
+      {day && (
+        <p className="text-[11.5px] font-semibold" style={{ color }}>
+          Follow up {state === "due" ? "today" : followUpLabel(day)}
+          {time ? `, ${timeLabel(time)}` : ""}
+        </p>
+      )}
+      {note && (
+        <p className={`${day ? "mt-0.5 " : ""}whitespace-pre-wrap break-words text-[12px] leading-snug text-text`}>{note}</p>
+      )}
     </div>
   );
 }
 
 // Right-click > Date, time and note: a follow-up with the detail Jake wants on
-// the card. Time is optional (the GHL task is due 9am without one).
+// the card. Time is optional (the GHL task is due 9am without one), and so is
+// the date: a note alone is kept on the card with no task (Jake, 2026-10-13).
 function FollowUpDialog({
   card,
   today,
@@ -675,7 +697,8 @@ function FollowUpDialog({
   onSave: (f: ColdSmsFollowUpInput) => void;
   onClose: () => void;
 }) {
-  const [day, setDay] = useState(card.followUpOn ?? addDays(today, 1));
+  // Opens on the day already set; a card with only a note opens with no date.
+  const [day, setDay] = useState(card.followUpOn ?? (card.followUpNote ? "" : addDays(today, 1)));
   const [time, setTime] = useState(card.followUpTime ?? "");
   const [note, setNote] = useState(card.followUpNote ?? "");
   const noteRef = useRef<HTMLTextAreaElement>(null);
@@ -700,7 +723,7 @@ function FollowUpDialog({
         aria-label={`Follow up ${card.business}`}
         onSubmit={(e) => {
           e.preventDefault();
-          if (day) onSave({ day, time: time || null, note: note.trim() });
+          if (day || note.trim()) onSave({ day: day || null, time: day && time ? time : null, note: note.trim() });
         }}
         className="fixed left-1/2 top-1/2 z-[81] flex w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-2xl border border-[var(--border)] bg-surface p-5 shadow-2xl"
       >
@@ -718,11 +741,17 @@ function FollowUpDialog({
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1.5 text-[12px] font-semibold text-faint">
             Date
-            <input type="date" required min={today} value={day} onChange={(e) => setDay(e.target.value)} className={field} />
+            <input type="date" min={today} value={day} onChange={(e) => setDay(e.target.value)} className={field} />
           </label>
           <label className="flex flex-col gap-1.5 text-[12px] font-semibold text-faint">
             Time
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={field} />
+            <input
+              type="time"
+              value={time}
+              disabled={!day}
+              onChange={(e) => setTime(e.target.value)}
+              className={`${field} disabled:opacity-50`}
+            />
           </label>
         </div>
         <label className="flex flex-col gap-1.5 text-[12px] font-semibold text-faint">
@@ -740,7 +769,7 @@ function FollowUpDialog({
           />
         </label>
         <footer className="flex items-center gap-2">
-          {card.followUpOn && (
+          {(card.followUpOn || card.followUpNote) && (
             <button
               type="button"
               onClick={() => onSave({ day: null, time: null, note: "" })}
@@ -759,7 +788,7 @@ function FollowUpDialog({
           </button>
           <button
             type="submit"
-            disabled={!day}
+            disabled={!day && !note.trim()}
             className="rounded-xl bg-[var(--brand)] px-4 py-2 text-[13px] font-bold text-[var(--brand-fg,#fff)] disabled:opacity-50"
           >
             Save

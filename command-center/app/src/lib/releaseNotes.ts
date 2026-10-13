@@ -37,6 +37,7 @@ export const RELEASES: Release[] = [
       "Pipeline cards show the prospect's whole last message, not just two lines.",
       "The reply box on a Cold SMS prospect grows as you type a long message.",
       "Sorted replies jump to Positive Reply or Negative Reply on screen as soon as Claude reads them, with no wait for GHL.",
+      "A note on a Cold SMS prospect no longer needs a date: leave Date blank in Date, time and note and the note sits on the card on its own.",
       "Change a Cold SMS prospect's phone number with the pencil next to it in their panel. It saves to GHL, so texts and calls go to the new number.",
       "Collapse any Cold SMS column you do not need with the arrow next to its count; click the strip to open it again. Cards can still be dropped on a collapsed column.",
       "Right-click a Cold SMS card > Date, time and note to set a specific follow up with a note. The card shows the date, time and note; the GHL task carries the note and is due at that time.",
