@@ -2622,6 +2622,14 @@ export function getColdSmsThread(contactId: string, conversationId: string | nul
   return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}?${qs}`);
 }
 
+// A board tag on the prospect (right-click menu): only "contacted" today.
+export function setColdSmsTag(contactId: string, tag: "contacted", on: boolean): Promise<{ ok: true }> {
+  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/tag`, {
+    method: "POST",
+    body: JSON.stringify({ tag, on }),
+  });
+}
+
 // Rings Jake's phone, then bridges the prospect from the agency number.
 export function callColdSmsProspect(contactId: string): Promise<{ ok: boolean; message?: string }> {
   return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/call`, { method: "POST" });

@@ -5,6 +5,7 @@ import {
   getColdSmsBoard,
   getColdSmsStagePage,
   moveColdSmsCard,
+  setColdSmsTag,
   type ColdSmsBoard,
   type ColdSmsCard,
   type ColdSmsVerdict,
@@ -206,4 +207,34 @@ export function useRemoveCards() {
       };
     });
   };
+}
+
+// Contacted on or off for one prospect: shown on the card at once, written to
+// GHL as the `contacted` tag, put back if GHL says no.
+export const CONTACTED_TAG = "contacted";
+
+export function hasContacted(tags: string[]): boolean {
+  return tags.some((t) => t.trim().toLowerCase() === CONTACTED_TAG);
+}
+
+export function useContactedToggle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { contactId: string; on: boolean }) => setColdSmsTag(v.contactId, CONTACTED_TAG, v.on),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: COLD_SMS_BOARD_KEY });
+      const before = qc.getQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY });
+      qc.setQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY }, (b) =>
+        patchCards(b, (c) => {
+          if (c.contactId !== v.contactId) return c;
+          const rest = c.tags.filter((t) => t.trim().toLowerCase() !== CONTACTED_TAG);
+          return { ...c, tags: v.on ? [...rest, CONTACTED_TAG] : rest };
+        }),
+      );
+      return { before };
+    },
+    onError: (_e, _v, ctx) => {
+      for (const [key, data] of ctx?.before ?? []) qc.setQueryData(key, data);
+    },
+  });
 }

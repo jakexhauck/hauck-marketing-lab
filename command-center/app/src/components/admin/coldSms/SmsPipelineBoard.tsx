@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Loader2, Search } from "lucide-react";
+import { Check, Loader2, Search } from "lucide-react";
 import BoardScrollbar from "../../BoardScrollbar";
 import Toast from "../../Toast";
 import { stageTone } from "../../../lib/setterModel";
@@ -8,7 +8,9 @@ import { timeAgo } from "../../../lib/timeAgo";
 import { dayKeyOf } from "../../../lib/coldSmsWeek";
 import { ApiError, type ColdSmsCard, type ColdSmsVerdict } from "../../../lib/api";
 import {
+  hasContacted,
   useColdSmsBoardQuery,
+  useContactedToggle,
   useLoadMoreStage,
   useMoveCard,
   useRemoveCards,
@@ -70,6 +72,8 @@ export default function SmsPipelineBoard() {
   const more = useLoadMoreStage();
   const move = useMoveCard();
   const removeCards = useRemoveCards();
+  const contacted = useContactedToggle();
+  const [menu, setMenu] = useState<{ card: ColdSmsCard; x: number; y: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -229,6 +233,7 @@ export default function SmsPipelineBoard() {
                       now={now}
                       selected={card.id === openId}
                       onOpen={() => setOpenId(card.id)}
+                      onMenu={(x, y) => setMenu({ card, x, y })}
                     />
                   ))
                 )}
@@ -264,6 +269,23 @@ export default function SmsPipelineBoard() {
           }}
         />
       )}
+      {menu && (
+        <CardMenu
+          x={menu.x}
+          y={menu.y}
+          stages={stages}
+          currentStage={menu.card.stageId}
+          contacted={hasContacted(menu.card.tags)}
+          onMove={(stageId, name) => doMove(menu.card, pipelineId, stageId, name)}
+          onContacted={(on) =>
+            contacted.mutate(
+              { contactId: menu.card.contactId, on },
+              { onError: () => setToast("GHL did not take the tag. Put back.") },
+            )
+          }
+          onClose={() => setMenu(null)}
+        />
+      )}
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </div>
   );
@@ -275,12 +297,14 @@ function BoardCard({
   now,
   selected,
   onOpen,
+  onMenu,
 }: {
   card: ColdSmsCard;
   tone: string;
   now: number;
   selected: boolean;
   onOpen: () => void;
+  onMenu: (x: number, y: number) => void;
 }) {
   const when = card.reply?.at ? timeAgo(new Date(card.reply.at).toISOString(), now) : card.movedAt ? timeAgo(card.movedAt, now) : "";
   return (
@@ -292,6 +316,10 @@ function BoardCard({
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={onOpen}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onMenu(e.clientX, e.clientY);
+      }}
       className={`block w-full cursor-grab rounded-xl bg-surface p-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--surface)_85%,var(--brand))] active:cursor-grabbing ${
         selected ? "ring-2 ring-[var(--brand)]" : ""
       }`}
@@ -302,6 +330,9 @@ function BoardCard({
         {card.verdict && <VerdictBadge verdict={card.verdict} />}
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-faint">
+        {hasContacted(card.tags) && (
+          <span className="rounded-md bg-[var(--brand-tint)] px-1.5 font-semibold text-text">Contacted</span>
+        )}
         {card.variation && (
           <span className="rounded-md bg-surface-2 px-1.5 font-semibold text-muted">{card.variation}</span>
         )}
@@ -316,5 +347,105 @@ function BoardCard({
         <p className="mt-1.5 text-[11px] text-faint">First contacted {FIRST.format(new Date(card.firstContactedAt))}</p>
       )}
     </button>
+  );
+}
+
+// Right-click on a card (Jake, 2026-10-13): move it to any column, or mark it
+// contacted. Kept inside the window, closed by any click, Escape or scroll.
+function CardMenu({
+  x,
+  y,
+  stages,
+  currentStage,
+  contacted,
+  onMove,
+  onContacted,
+  onClose,
+}: {
+  x: number;
+  y: number;
+  stages: { id: string; name: string }[];
+  currentStage: string;
+  contacted: boolean;
+  onMove: (stageId: string, name: string) => void;
+  onContacted: (on: boolean) => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ left: x, top: y });
+  // The parent hands a fresh onClose each render; read it through a ref so the
+  // effect below runs once per open, not on every board re-render.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (el) {
+      const r = el.getBoundingClientRect();
+      setPos({
+        left: Math.max(8, Math.min(x, window.innerWidth - r.width - 8)),
+        top: Math.max(8, Math.min(y, window.innerHeight - r.height - 8)),
+      });
+    }
+    const close = (e: Event) => {
+      if (e.type === "mousedown" && ref.current?.contains(e.target as Node)) return;
+      closeRef.current();
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
+    window.addEventListener("mousedown", close);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [x, y]);
+
+  const item =
+    "flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] font-semibold text-text hover:bg-surface-2 disabled:cursor-default disabled:text-faint disabled:hover:bg-transparent";
+
+  return (
+    <div
+      ref={ref}
+      role="menu"
+      onContextMenu={(e) => e.preventDefault()}
+      className="fixed z-[70] min-w-[220px] rounded-xl border border-[var(--border)] bg-surface p-1 shadow-2xl"
+      style={pos}
+    >
+      <button
+        type="button"
+        role="menuitemcheckbox"
+        aria-checked={contacted}
+        className={item}
+        onClick={() => {
+          onContacted(!contacted);
+          onClose();
+        }}
+      >
+        <span className="grid w-4 place-items-center">{contacted && <Check size={14} />}</span>
+        Contacted
+      </button>
+      <div className="my-1 h-px bg-[var(--border)]" />
+      <p className="px-2.5 pb-1 pt-0.5 text-[11px] font-bold uppercase tracking-wider text-faint">Move to</p>
+      {stages.map((s) => (
+        <button
+          key={s.id}
+          type="button"
+          role="menuitem"
+          disabled={s.id === currentStage}
+          className={item}
+          onClick={() => {
+            onMove(s.id, s.name);
+            onClose();
+          }}
+        >
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: stageTone(s.name) }} aria-hidden />
+          <span className="truncate">{s.name}</span>
+        </button>
+      ))}
+    </div>
   );
 }

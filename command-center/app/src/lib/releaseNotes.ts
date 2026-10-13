@@ -37,6 +37,8 @@ export const RELEASES: Release[] = [
       "Pipeline cards show the prospect's whole last message, not just two lines.",
       "The reply box on a Cold SMS prospect grows as you type a long message.",
       "Sorted replies jump to Positive Reply or Negative Reply on screen as soon as Claude reads them, with no wait for GHL.",
+      "Right-click a Cold SMS card to move it to any column or mark it Contacted (a contacted tag in GHL, shown on the card).",
+      "Negative replies now sort into Not Responded/Negative Reply.",
       "Booking a call from a Cold SMS prospect takes them off the Cold SMS board. Their Sales > Call Booked card stays.",
       "A Call button on every Cold SMS prospect: it tags them call now, so GHL rings your phone, then calls them from the GHL number.",
       "Book call shows the week in the prospect's own time zone (Central, Pacific and so on); your time is in the footer and on the confirm step.",
