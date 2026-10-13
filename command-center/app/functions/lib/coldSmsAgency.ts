@@ -353,16 +353,21 @@ export async function applySort(
 
 export async function removeColdSmsCards(agency: GhlContext, contactId: string): Promise<string[]> {
   const board = pickColdSmsPipeline(await listPipelines(agency));
-  if (!board) return [];
+  return board ? removeColdSmsCardsIn(agency, board.id, contactId) : [];
+}
+
+// The same, when the Cold SMS pipeline id is already known: one search plus one
+// delete per card.
+export async function removeColdSmsCardsIn(agency: GhlContext, pipelineId: string, contactId: string): Promise<string[]> {
   const res = await ghlJson<OppSearch>(
     agency,
     `/opportunities/search?location_id=${encodeURIComponent(agency.locationId)}` +
-      `&contact_id=${encodeURIComponent(contactId)}&pipeline_id=${encodeURIComponent(board.id)}&limit=20`,
+      `&contact_id=${encodeURIComponent(contactId)}&pipeline_id=${encodeURIComponent(pipelineId)}&limit=20`,
   );
   // GHL has ignored filters before (dates on this same search), so the pipeline
   // and contact are checked here too rather than trusted.
   const mine = (res.opportunities ?? []).filter(
-    (o) => o.pipelineId === board.id && (o.contactId ?? o.contact?.id) === contactId,
+    (o) => o.pipelineId === pipelineId && (o.contactId ?? o.contact?.id) === contactId,
   );
   const gone: string[] = [];
   for (const o of mine) {
@@ -371,6 +376,70 @@ export async function removeColdSmsCards(agency: GhlContext, contactId: string):
     else console.warn("[coldSmsAgency] remove card", o.id, del.status, (await del.text()).slice(0, 200));
   }
   return gone;
+}
+
+// ---------------------------------------------------------------------------
+// Booked prospects off the Cold SMS board, wherever they were booked (Jake,
+// 2026-10-13). Anyone with a card in the "Sales" pipeline was booked; their
+// Cold SMS card is deleted once and the contact remembered (0162), so a load
+// only looks up new bookings. Capped per call to stay under Cloudflare's 50
+// outside calls; the rest go on the next load.
+
+const SALES_PIPELINE = /^\s*sales\s*$/i;
+const SALES_PAGES = 5;
+const SWEEP_PER_CALL = 18;
+
+export async function sweepBookedFromColdSms(
+  db: SupabaseClient,
+  agency: GhlContext,
+): Promise<{ removed: string[]; remaining: number }> {
+  const pipelines = await listPipelines(agency);
+  const board = pickColdSmsPipeline(pipelines);
+  const sales = pipelines.find((p) => SALES_PIPELINE.test(p.name));
+  if (!board || !sales) return { removed: [], remaining: 0 };
+
+  const booked = new Set<string>();
+  for (let page = 1; page <= SALES_PAGES; page++) {
+    const res = await ghlJson<OppSearch>(
+      agency,
+      `/opportunities/search?location_id=${encodeURIComponent(agency.locationId)}` +
+        `&pipeline_id=${encodeURIComponent(sales.id)}&limit=100&page=${page}`,
+    );
+    const opps = res.opportunities ?? [];
+    for (const o of opps) {
+      const id = o.contactId ?? o.contact?.id;
+      if (id && o.pipelineId === sales.id) booked.add(id);
+    }
+    if (opps.length < 100) break;
+  }
+
+  const ids = [...booked];
+  const done = new Set<string>();
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data, error } = await db.from("cold_sms_booked_swept").select("contact_id").in("contact_id", ids.slice(i, i + 150));
+    if (error) throw new Error(`cold_sms_booked_swept read failed: ${error.message}`);
+    for (const r of (data ?? []) as { contact_id: string }[]) done.add(r.contact_id);
+  }
+  const todo = ids.filter((id) => !done.has(id));
+  const now = todo.slice(0, SWEEP_PER_CALL);
+
+  const removed: string[] = [];
+  const rows: { contact_id: string; removed: number; swept_at: string }[] = [];
+  for (const contactId of now) {
+    try {
+      const gone = await removeColdSmsCardsIn(agency, board.id, contactId);
+      removed.push(...gone);
+      rows.push({ contact_id: contactId, removed: gone.length, swept_at: new Date().toISOString() });
+    } catch (err) {
+      // Not remembered, so the next load tries this contact again.
+      console.warn("[coldSmsAgency] sweep", contactId, err instanceof Error ? err.message : err);
+    }
+  }
+  if (rows.length) {
+    const { error } = await db.from("cold_sms_booked_swept").upsert(rows, { onConflict: "contact_id" });
+    if (error) console.warn("[coldSmsAgency] sweep save", error.message);
+  }
+  return { removed, remaining: todo.length - now.length };
 }
 
 // contactId -> follow-up day, for the cards on screen (0161).

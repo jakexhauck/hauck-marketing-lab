@@ -2644,6 +2644,11 @@ export function getColdSmsThread(contactId: string, conversationId: string | nul
   return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}?${qs}`);
 }
 
+// Deletes the Cold SMS card of anyone booked (has a Sales card); the ids gone.
+export function sweepColdSmsBooked(): Promise<{ removed: string[]; remaining: number }> {
+  return api("/api/admin/cold-sms/sweep-booked", { method: "POST" });
+}
+
 // Sets (day) or clears (null) the prospect's follow-up; GHL gets a task too.
 export function setColdSmsFollowUp(
   contactId: string,

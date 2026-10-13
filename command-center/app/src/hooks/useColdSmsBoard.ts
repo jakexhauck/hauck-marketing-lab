@@ -6,6 +6,7 @@ import {
   getColdSmsStagePage,
   moveColdSmsCard,
   setColdSmsFollowUp,
+  sweepColdSmsBooked,
   setColdSmsTag,
   type ColdSmsBoard,
   type ColdSmsCard,
@@ -258,4 +259,29 @@ export function useFollowUp() {
       for (const [key, data] of ctx?.before ?? []) qc.setQueryData(key, data);
     },
   });
+}
+
+// Once the board is up: take booked prospects off it (their Cold SMS card is
+// deleted in GHL, see sweep-booked.ts) and drop those cards from the screen.
+// Rounds while the server says more are waiting, a few at most.
+export function useBookedSweep(ready: boolean) {
+  const removeCards = useRemoveCards();
+  const started = useRef(false);
+  useEffect(() => {
+    if (!ready || started.current) return;
+    started.current = true;
+    void (async () => {
+      for (let round = 0; round < 5; round++) {
+        try {
+          const res = await sweepColdSmsBooked();
+          if (res.removed.length) removeCards(res.removed);
+          if (res.remaining <= 0) break;
+        } catch {
+          break;
+        }
+      }
+    })();
+    // removeCards is rebuilt each render but only touches the query cache.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
 }

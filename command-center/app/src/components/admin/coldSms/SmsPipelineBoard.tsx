@@ -10,6 +10,7 @@ import { ApiError, type ColdSmsCard, type ColdSmsVerdict } from "../../../lib/ap
 import {
   hasContacted,
   useColdSmsBoardQuery,
+  useBookedSweep,
   useContactedToggle,
   useFollowUp,
   useLoadMoreStage,
@@ -71,6 +72,7 @@ export default function SmsPipelineBoard() {
     );
   const board = useColdSmsBoardQuery(day);
   const classifier = useReplyClassifier(Boolean(board.data?.stages));
+  useBookedSweep(Boolean(board.data?.stages));
   const more = useLoadMoreStage();
   const move = useMoveCard();
   const removeCards = useRemoveCards();

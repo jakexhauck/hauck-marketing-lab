@@ -40,7 +40,7 @@ export const RELEASES: Release[] = [
       "Right-click a Cold SMS card to set a follow up: tomorrow, 3 days, a week or any date. The card shows it, amber on the day and red when overdue, and GHL gets a task due 9am that day.",
       "Right-click a Cold SMS card to move it to any column or mark it Contacted (a contacted tag in GHL, shown on the card).",
       "Negative replies now sort into Not Responded/Negative Reply.",
-      "Booking a call from a Cold SMS prospect takes them off the Cold SMS board. Their Sales > Call Booked card stays.",
+      "Anyone booked comes off the Cold SMS board, however they were booked (Book call, GHL or Cold Call). Their Sales card stays.",
       "A Call button on every Cold SMS prospect: it tags them call now, so GHL rings your phone, then calls them from the GHL number.",
       "Book call shows the week in the prospect's own time zone (Central, Pacific and so on); your time is in the footer and on the confirm step.",
     ],
