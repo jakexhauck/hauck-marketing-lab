@@ -24,9 +24,10 @@ import {
 } from "../../../lib/coldSmsWeek";
 
 // Book call: a three-step wizard over the card panel.
-//   1. Time     Jake's week in HIS zone: Google Calendar (blue), demos already
-//               booked (purple), open slots on Demo Call - Cold SMS (green, each
-//               also showing the prospect's own time).
+//   1. Time     the week in the PROSPECT'S zone (Jake, 2026-10-13: a Central
+//               prospect gets the calendar in Central): Google Calendar (blue),
+//               demos already booked (purple), open slots (green). Jake's own
+//               time stays in the footer and on the confirm step.
 //   2. Details  name, email, business, notes (their reply pre-filled).
 //   3. Confirm  both times spelled out, then book.
 // Booking saves their zone on the GHL contact so GHL's reminders quote their time.
@@ -64,11 +65,13 @@ export default function SmsBookingWizard({
   // Week boundaries need the agency zone, which the server reports; New York
   // until the first answer lands (it is what the account is set to).
   const [zone, setZone] = useState(FALLBACK_ZONE);
-  const days = useMemo(() => weekOf(Date.now(), zone, offset), [zone, offset]);
+  // The grid runs in their zone; Jake's zone only when theirs is unknown.
+  const viewZone = theirZone || zone;
+  const days = useMemo(() => weekOf(Date.now(), viewZone, offset), [viewZone, offset]);
   const range = { start: days[0].start, end: days[6].start + 24 * 3600_000 };
 
   const week = useQuery({
-    queryKey: ["admin", "cold-sms", "week", zone, range.start],
+    queryKey: ["admin", "cold-sms", "week", viewZone, range.start],
     queryFn: () => getColdSmsWeek(range.start, range.end),
     staleTime: 30_000,
   });
@@ -76,8 +79,7 @@ export default function SmsBookingWizard({
     if (week.data?.timezone && week.data.timezone !== zone) setZone(week.data.timezone);
   }, [week.data?.timezone, zone]);
 
-  const prospectZone = theirZone || zone;
-  const sameZone = zoneShort(prospectZone) === zoneShort(zone);
+  const sameZone = zoneShort(viewZone) === zoneShort(zone);
 
   const google = useMutation({
     mutationFn: async (on: boolean) => {
@@ -105,7 +107,7 @@ export default function SmsBookingWizard({
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["admin", "cold-sms", "week"] });
-      onBooked(`${formatDay(pick!, zone)} at ${formatTime(pick!, zone)}`);
+      onBooked(`${formatDay(pick!, viewZone)} at ${formatTime(pick!, viewZone)} ${zoneShort(viewZone, pick!)}`);
     },
   });
 
@@ -119,7 +121,9 @@ export default function SmsBookingWizard({
 
   const minutes = week.data?.calendar?.minutes ?? 30;
   const whenMine = pick ? `${formatDay(pick, zone)}, ${formatTime(pick, zone)} ${zoneShort(zone, pick)}` : "";
-  const whenTheirs = pick ? `${formatTime(pick, prospectZone)} ${zoneShort(prospectZone, pick)}` : "";
+  const whenTheirs = pick
+    ? `${formatDay(pick, viewZone)}, ${formatTime(pick, viewZone)} ${zoneShort(viewZone, pick)}`
+    : "";
 
   const bookError = book.error instanceof ApiError ? (book.error.body as { error?: string } | null)?.error : book.error ? "x" : null;
   const bookErrorText =
@@ -192,7 +196,7 @@ export default function SmsBookingWizard({
                   <ChevronRight size={16} />
                 </button>
                 <b className="font-display text-[14px] font-semibold text-text">
-                  {formatDay(days[0].start + 12 * 3600_000, zone)} to {formatDay(days[6].start + 12 * 3600_000, zone)}
+                  {formatDay(days[0].start + 12 * 3600_000, viewZone)} to {formatDay(days[6].start + 12 * 3600_000, viewZone)}
                 </b>
                 <label className="ml-auto flex items-center gap-2 text-[12.5px] font-semibold text-muted">
                   Their zone
@@ -240,8 +244,8 @@ export default function SmsBookingWizard({
               ) : (
                 <WeekGrid
                   days={days}
-                  zone={zone}
-                  prospectZone={prospectZone}
+                  zone={viewZone}
+                  myZone={zone}
                   sameZone={sameZone}
                   minutes={minutes}
                   data={week.data}
@@ -277,8 +281,8 @@ export default function SmsBookingWizard({
             <dl className="mx-auto mt-8 grid w-full max-w-[540px] grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 rounded-2xl border border-[var(--border)] p-5 text-[14px]">
               <Row label="Who" value={`${form.firstName} ${form.lastName}`.trim() || "-"} />
               <Row label="Business" value={form.business} />
-              <Row label="You" value={whenMine} />
-              <Row label="Them" value={sameZone ? "Same zone" : `${whenTheirs}`} />
+              <Row label="Them" value={whenTheirs} />
+              <Row label="You" value={sameZone ? "Same zone" : whenMine} />
               <Row label="Length" value={`${minutes} min`} />
               <Row label="Calendar" value={week.data?.calendar?.name ?? ""} />
               <Row label="Phone" value={c.phone} />
@@ -290,7 +294,7 @@ export default function SmsBookingWizard({
 
         <footer className="flex flex-wrap items-center gap-2.5 border-t border-[var(--border)] px-5 py-3">
           <span className="text-[13.5px] font-semibold text-text">
-            {pick ? (sameZone ? whenMine : `${whenMine} · ${whenTheirs} for them`) : "Pick an open time"}
+            {pick ? (sameZone ? whenTheirs : `${whenTheirs} for them · ${formatTime(pick, zone)} ${zoneShort(zone, pick)} for you`) : "Pick an open time"}
           </span>
           {bookErrorText && <span className="text-[13px] font-semibold text-[var(--danger)]">{bookErrorText}</span>}
           <span className="flex-1" />
@@ -398,7 +402,7 @@ function Legend({ color, label, dashed }: { color: string; label: string; dashed
 function WeekGrid({
   days,
   zone,
-  prospectZone,
+  myZone,
   sameZone,
   minutes,
   data,
@@ -406,8 +410,8 @@ function WeekGrid({
   onPick,
 }: {
   days: ReturnType<typeof weekOf>;
-  zone: string;
-  prospectZone: string;
+  zone: string; // the zone the grid is drawn in: the prospect's
+  myZone: string;
   sameZone: boolean;
   minutes: number;
   data: ColdSmsWeek;
@@ -490,14 +494,14 @@ function WeekGrid({
               })}
               {daySlots.map((t) => {
                 const picked = pick === t;
-                const off = !sameZone && isOffHours(t, prospectZone);
+                const off = isOffHours(t, zone);
                 return (
                   <button
                     key={t}
                     type="button"
                     onClick={() => onPick(t)}
                     aria-pressed={picked}
-                    title={sameZone ? formatTime(t, zone) : `${formatTime(t, zone)} for you, ${formatTime(t, prospectZone)} for them`}
+                    title={sameZone ? formatTime(t, zone) : `${formatTime(t, zone)} for them, ${formatTime(t, myZone)} for you`}
                     className={`absolute left-[3px] right-[3px] z-[1] overflow-hidden rounded-lg px-1.5 text-left text-[11px] font-semibold leading-tight transition-colors ${
                       picked
                         ? "bg-[var(--positive)] text-white"
@@ -506,11 +510,6 @@ function WeekGrid({
                     style={{ top: top(t) + 1, height: slotH }}
                   >
                     {formatTime(t, zone)}
-                    {!sameZone && (
-                      <span className="block font-medium opacity-80">
-                        {formatTime(t, prospectZone)} {zoneShort(prospectZone, t)}
-                      </span>
-                    )}
                   </button>
                 );
               })}

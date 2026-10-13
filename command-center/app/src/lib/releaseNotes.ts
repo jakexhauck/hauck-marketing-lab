@@ -35,6 +35,7 @@ export const RELEASES: Release[] = [
       "New replies show within about 10 seconds while a prospect is open (was 20).",
       "Opening a prospect is quicker.",
       "Pipeline cards show the prospect's whole last message, not just two lines.",
+      "Book call shows the week in the prospect's own time zone (Central, Pacific and so on); your time is in the footer and on the confirm step.",
     ],
   },
   {
