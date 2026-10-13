@@ -35,6 +35,7 @@ export const RELEASES: Release[] = [
       "New replies show within about 10 seconds while a prospect is open (was 20).",
       "Opening a prospect is quicker.",
       "Pipeline cards show the prospect's whole last message, not just two lines.",
+      "Sorted replies jump to Positive Reply or Negative Reply on screen as soon as Claude reads them, with no wait for GHL.",
       "A Call button on every Cold SMS prospect: GHL rings your phone, then calls them from the agency number.",
       "Book call shows the week in the prospect's own time zone (Central, Pacific and so on); your time is in the footer and on the confirm step.",
     ],

@@ -227,42 +227,6 @@ export function replyKey(lastInboundAt: string | number | null | undefined): str
   return Number.isFinite(ms) ? String(ms) : null;
 }
 
-// ---------------------------------------------------------------------------
-// The auto-sort (Jake, 2026-10-13). Only a card sitting in Replied moves: that
-// is where GHL's workflow drops a fresh reply, so a card Jake placed anywhere
-// else, or one already sorted, is never pulled back out. Stages are found by
-// name, so the board keeps working if Jake renames the emoji.
-
-export interface SortStages {
-  replied: string;
-  positive: string;
-  negative: string;
-}
-
-export function findSortStages(stages: { id: string; name: string }[]): SortStages | null {
-  const find = (re: RegExp) => stages.find((s) => re.test(s.name))?.id;
-  const replied = find(/replied/i);
-  const positive = find(/positive/i);
-  const negative = find(/negative/i);
-  return replied && positive && negative ? { replied, positive, negative } : null;
-}
-
-const TARGET: Record<Verdict, keyof SortStages | null> = {
-  positive: "positive",
-  negative: "negative",
-  stop: "negative",
-  check: null,
-};
-
-export function autoSortMoves(
-  cards: { id: string; stageId: string; verdict: Verdict | null }[],
-  stages: SortStages,
-): { id: string; stageId: string }[] {
-  const out: { id: string; stageId: string }[] = [];
-  for (const c of cards) {
-    if (c.stageId !== stages.replied || !c.verdict) continue;
-    const to = TARGET[c.verdict];
-    if (to) out.push({ id: c.id, stageId: stages[to] });
-  }
-  return out;
-}
+// The auto-sort rule lives in coldSmsSort.ts so the board can run it in the
+// browser too (cards move on screen the moment a verdict is known).
+export { autoSortMoves, findSortStages, type SortStages } from "./coldSmsSort";

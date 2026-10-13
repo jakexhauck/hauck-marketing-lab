@@ -12,6 +12,7 @@ import {
   autoSortMoves,
   findSortStages,
   isVerdict,
+  type SortStages,
   replyKey,
   variationOf,
   type Verdict,
@@ -270,21 +271,24 @@ export function decorate(
 
 // ---------------------------------------------------------------------------
 // The auto-sort: every card in Replied whose current reply has a verdict moves
-// to Positive Reply or Negative Reply in GHL (rule in coldSmsBoard.ts). Run after
-// each labelling round, so a backlog labelled before the sort existed is swept
-// on the next board load too. Returns how many moved.
+// to Positive Reply or Negative Reply in GHL (rule in coldSmsSort.ts).
+//
+// Two halves so ./classify can read the Replied column WHILE Claude is labelling
+// (Jake, 2026-10-13: the sort felt laggy), then move everything in one go.
 
 const REPLIED_PAGES = 10;
-const MOVES_AT_ONCE = 5;
+const MOVES_AT_ONCE = 10;
 
-export async function sortRepliedCards(
-  db: SupabaseClient,
-  agency: GhlContext,
-  replies: Map<string, ReplyInfo>,
-): Promise<number> {
+export interface SortTarget {
+  pipelineId: string;
+  stages: SortStages;
+  cards: BoardCard[];
+}
+
+export async function loadSortTarget(agency: GhlContext): Promise<SortTarget | null> {
   const board = pickColdSmsPipeline(await listPipelines(agency));
   const stages = board ? findSortStages(board.stages) : null;
-  if (!board || !stages) return 0;
+  if (!board || !stages) return null;
 
   const cards: BoardCard[] = [];
   let cursor: string | null = null;
@@ -294,23 +298,32 @@ export async function sortRepliedCards(
     cursor = page.cursor;
     if (!cursor) break;
   }
-  if (cards.length === 0) return 0;
+  return { pipelineId: board.id, stages, cards };
+}
 
-  const stored = await loadVerdicts(db, cards.map((c) => c.contactId));
-  const moves = autoSortMoves(decorate(cards, replies, stored), stages);
-  let moved = 0;
+// Moves the cards and returns the ones GHL took, so the board can match.
+export async function applySort(
+  db: SupabaseClient,
+  agency: GhlContext,
+  target: SortTarget,
+  replies: Map<string, ReplyInfo>,
+): Promise<{ id: string; stageId: string }[]> {
+  if (target.cards.length === 0) return [];
+  const stored = await loadVerdicts(db, target.cards.map((c) => c.contactId));
+  const moves = autoSortMoves(decorate(target.cards, replies, stored), target.stages);
+  const done: { id: string; stageId: string }[] = [];
   for (let i = 0; i < moves.length; i += MOVES_AT_ONCE) {
     const results = await Promise.all(
       moves.slice(i, i + MOVES_AT_ONCE).map(async (m) => {
         const res = await ghlFetch(agency, `/opportunities/${encodeURIComponent(m.id)}`, {
           method: "PUT",
-          body: JSON.stringify({ pipelineId: board.id, pipelineStageId: m.stageId }),
+          body: JSON.stringify({ pipelineId: target.pipelineId, pipelineStageId: m.stageId }),
         });
         if (!res.ok) console.warn("[coldSmsAgency] sort move", m.id, res.status, (await res.text()).slice(0, 200));
-        return res.ok;
+        return res.ok ? m : null;
       }),
     );
-    moved += results.filter(Boolean).length;
+    for (const r of results) if (r) done.push(r);
   }
-  return moved;
+  return done;
 }

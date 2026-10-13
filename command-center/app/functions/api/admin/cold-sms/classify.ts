@@ -1,7 +1,7 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../lib/agencyGhl";
-import { fetchLatestReplies, loadVerdicts, sortRepliedCards } from "../../../lib/coldSmsAgency";
+import { applySort, fetchLatestReplies, loadSortTarget, loadVerdicts } from "../../../lib/coldSmsAgency";
 import { classifyReplies, replyKey } from "../../../lib/coldSmsBoard";
 
 // POST /api/admin/cold-sms/classify  (owner only)
@@ -27,6 +27,11 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   }
 
   const agency = getAgencyGhlContext(ctx.env);
+  // The Replied column is read alongside everything else, not after Claude.
+  const target = loadSortTarget(agency).catch((err) => {
+    console.error("[cold-sms/classify] sort read", err instanceof Error ? err.message : err);
+    return null;
+  });
   let replies;
   try {
     replies = await fetchLatestReplies(agency);
@@ -67,17 +72,19 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     for (const r of results) done.push({ contactId: r.key, verdict: r.verdict });
   }
 
-  let moved = 0;
+  let moves: { id: string; stageId: string }[] = [];
   try {
-    moved = await sortRepliedCards(db, agency, replies);
+    const t = await target;
+    if (t) moves = await applySort(db, agency, t, replies);
   } catch (err) {
     console.error("[cold-sms/classify] sort", err instanceof Error ? err.message : err);
   }
+  const moved = moves.length;
 
   // Claude down or refusing: say so, so the board stops asking rather than
   // looping on a batch that will never label.
   if (now.length > 0 && done.length === 0) {
-    return Response.json({ error: "claude_failed", classified: [], remaining: todo.length, moved }, { status: 502 });
+    return Response.json({ error: "claude_failed", classified: [], remaining: todo.length, moved, moves }, { status: 502 });
   }
-  return Response.json({ classified: done, remaining: Math.max(0, todo.length - done.length), moved });
+  return Response.json({ classified: done, remaining: Math.max(0, todo.length - done.length), moved, moves });
 };

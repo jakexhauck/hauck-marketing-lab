@@ -9,6 +9,7 @@ import {
   type ColdSmsCard,
   type ColdSmsVerdict,
 } from "../lib/api";
+import { autoSortMoves, findSortStages } from "../../functions/lib/coldSmsSort";
 
 // Cold SMS > Pipeline data. The board is GHL's, read live; the hook only keeps
 // what the screen needs between reads: extra pages a column has loaded, and the
@@ -33,6 +34,38 @@ function patchCards(board: ColdSmsBoard | undefined, fn: (c: ColdSmsCard) => Col
   return { ...board, stages: board.stages.map((s) => ({ ...s, cards: s.cards.map(fn) })) };
 }
 
+// One card to another column, totals kept right. A card already there, or not
+// on screen, is left alone.
+function moveInBoard(board: ColdSmsBoard, cardId: string, toStage: string): ColdSmsBoard {
+  if (!board.stages) return board;
+  const from = board.stages.find((s) => s.cards.some((c) => c.id === cardId));
+  if (!from || from.id === toStage || !board.stages.some((s) => s.id === toStage)) return board;
+  const card = from.cards.find((c) => c.id === cardId)!;
+  return {
+    ...board,
+    stages: board.stages.map((s) => {
+      if (s.id === from.id) return { ...s, cards: s.cards.filter((c) => c.id !== cardId), total: Math.max(0, s.total - 1) };
+      if (s.id === toStage) return { ...s, cards: [{ ...card, stageId: toStage }, ...s.cards], total: s.total + 1 };
+      return s;
+    }),
+  };
+}
+
+// The auto-sort on screen: the same rule the server applies in GHL
+// (functions/lib/coldSmsSort.ts), run the moment a verdict is known so a card
+// does not sit in Replied waiting for the round trip (Jake, 2026-10-13).
+function sortOnScreen(board: ColdSmsBoard | undefined, onMove: (id: string) => void): ColdSmsBoard | undefined {
+  if (!board?.stages) return board;
+  const stages = findSortStages(board.stages);
+  if (!stages) return board;
+  let out = board;
+  for (const m of autoSortMoves(board.stages.flatMap((s) => s.cards), stages)) {
+    out = moveInBoard(out, m.id, m.stageId);
+    onMove(m.id);
+  }
+  return out;
+}
+
 // Ask Claude for every reply without a verdict, a batch at a time, painting each
 // batch onto the cards as it lands. Stops when nothing is left, or when a round
 // labels nothing (Claude down), so it never spins.
@@ -51,11 +84,16 @@ export function useReplyClassifier(ready: boolean) {
     let cancelled = false;
     (async () => {
       setState({ running: true, remaining: 0, failed: false });
-      // The server moves sorted cards in GHL; re-read the board once at the end
-      // so they show in their new column.
-      let moved = 0;
+      // Cards are moved on screen ahead of GHL. Each server answer lists the moves
+      // GHL took; a card moved here that GHL never took means the screen is
+      // wrong, so only then is the board read again.
+      const shown = new Set<string>();
+      const taken = new Set<string>();
+      const onMove = (id: string) => shown.add(id);
+      qc.setQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY }, (b) => sortOnScreen(b, onMove));
       const reread = () => {
-        if (moved > 0 && !cancelled) void qc.invalidateQueries({ queryKey: COLD_SMS_BOARD_KEY });
+        if (cancelled) return;
+        if ([...shown].some((id) => !taken.has(id))) void qc.invalidateQueries({ queryKey: COLD_SMS_BOARD_KEY });
       };
       for (let round = 0; round < 15 && !cancelled; round++) {
         let res;
@@ -66,13 +104,16 @@ export function useReplyClassifier(ready: boolean) {
           reread();
           return;
         }
-        moved += res.moved ?? 0;
+        for (const m of res.moves ?? []) taken.add(m.id);
         const verdicts = new Map<string, ColdSmsVerdict>(res.classified.map((c) => [c.contactId, c.verdict]));
-        if (verdicts.size) {
-          qc.setQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY }, (b) =>
-            patchCards(b, (c) => (verdicts.has(c.contactId) && c.reply ? { ...c, verdict: verdicts.get(c.contactId)! } : c)),
-          );
-        }
+        qc.setQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY }, (b) => {
+          let next = verdicts.size
+            ? patchCards(b, (c) => (verdicts.has(c.contactId) && c.reply ? { ...c, verdict: verdicts.get(c.contactId)! } : c))
+            : b;
+          next = sortOnScreen(next, onMove);
+          for (const m of res.moves ?? []) if (next) next = moveInBoard(next, m.id, m.stageId);
+          return next;
+        });
         if (!cancelled) setState({ running: res.remaining > 0, remaining: res.remaining, failed: false });
         if (res.remaining === 0 || verdicts.size === 0) break;
       }
