@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-13-sop-checklists",
+    date: "13 October 2026",
+    title: "Setup and call checklists on every client",
+    items: [
+      "Full Setup Checklist, Onboarding Call and Launch Call now sit at the top of every client.",
+      "Each one is the list from the Client Setup SOP, ticked per client.",
+    ],
+  },
+  {
     id: "2026-10-13-cold-sms-fast-chat",
     date: "13 October 2026",
     title: "Faster texting on Cold SMS",

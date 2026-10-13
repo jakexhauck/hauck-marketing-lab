@@ -226,7 +226,7 @@ function ListView({
   );
 }
 
-function Ring({ progress, size }: { progress: Progress; size: number }) {
+export function Ring({ progress, size }: { progress: Progress; size: number }) {
   const frac = progress.total ? progress.done / progress.total : 0;
   const r = 10;
   const c = 2 * Math.PI * r;

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Eye } from "lucide-react";
 import ClientOnboarding from "../../components/admin/onboarding/ClientOnboarding";
+import SopChecklist from "../../components/admin/onboarding/SopChecklist";
 import { ClientSheet } from "../../components/admin/onboarding/OnboardingSheet";
 import GhlTab from "../../components/admin/cockpit/ghl/GhlTab";
 import AccountsTab from "../../components/admin/cockpit/AccountsTab";
@@ -102,6 +103,10 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
   const go = (p: ClientPageId) => (next: string) => navigate(clientPath(client.id, p, next));
 
   switch (page) {
+    case "full-setup":
+    case "onboarding-call":
+    case "launch-call":
+      return <SopChecklist key={page} tenantId={client.id} list={page} />;
     case "accounts":
       return <AccountsTab client={client} />;
     case "onboarding":

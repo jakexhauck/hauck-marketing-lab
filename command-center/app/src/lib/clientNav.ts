@@ -26,7 +26,11 @@ import {
   type SubTabDef,
 } from "./fulfillmentPages";
 
-export type ClientPageId = "accounts" | "onboarding" | "info" | "software" | "paid-ads" | "ghl" | "management";
+export type ClientPageId =
+  | "full-setup"
+  | "onboarding-call"
+  | "launch-call"
+  | "accounts" | "onboarding" | "info" | "software" | "paid-ads" | "ghl" | "management";
 
 // What the gates read off a client. AdminClient satisfies it.
 export interface ClientGateInfo {
@@ -56,7 +60,13 @@ export interface ClientNavGroup {
 //
 // Jake, 2026-10-10 (later): Accounts sits at the very top, one green/red row
 // per thing the client needs connected, each red one with its fix.
+//
+// Jake, 2026-10-13: Full Setup Checklist, Onboarding Call and Launch Call from
+// the Client Setup SOP doc go above everything (lib/sopChecklists.ts).
 const PAGE_LABELS: Record<ClientPageId, string> = {
+  "full-setup": "Full Setup Checklist",
+  "onboarding-call": "Onboarding Call",
+  "launch-call": "Launch Call",
   accounts: "Accounts",
   onboarding: "Setup Checklist",
   info: "Client Information",
@@ -88,7 +98,8 @@ const subRows = (c: ClientGateInfo, page: ClientPageId): ClientNavRow[] =>
 
 export function clientNavGroups(c: ClientGateInfo): ClientNavGroup[] {
   return [
-    { caption: null, rows: [single("accounts"), single("onboarding"), single("info"), single("software")] },
+    { caption: null, rows: [single("full-setup"), single("onboarding-call"), single("launch-call")] },
+    { caption: null, rule: true, rows: [single("accounts"), single("onboarding"), single("info"), single("software")] },
     { caption: "Paid Ads", rows: subRows(c, "paid-ads") },
     { caption: "GHL", rows: subRows(c, "ghl") },
     { caption: null, rule: true, rows: [single("management")] },

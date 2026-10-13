@@ -18,6 +18,7 @@ const labels = (c: ClientGateInfo) =>
 describe("clientNavGroups", () => {
   it("lists every page for a fully wired client", () => {
     expect(labels(linked)).toEqual([
+      [null, ["Full Setup Checklist", "Onboarding Call", "Launch Call"]],
       [null, ["Accounts", "Setup Checklist", "Client Information", "Software"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Conversion Assets", "Follow-up Texts", "CAPI", "Outcome Wiring", "Calendars"]],
@@ -27,6 +28,7 @@ describe("clientNavGroups", () => {
 
   it("gates Paid Ads and GHL until they are connected", () => {
     expect(labels(bare)).toEqual([
+      [null, ["Full Setup Checklist", "Onboarding Call", "Launch Call"]],
       [null, ["Accounts", "Setup Checklist", "Client Information", "Software"]],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Connect GHL", "Conversion Assets", "Follow-up Texts", "CAPI", "Outcome Wiring"]],
@@ -35,13 +37,13 @@ describe("clientNavGroups", () => {
   });
 
   it("treats a blank ad account id as not linked", () => {
-    const rows = clientNavGroups({ ...linked, metaAdAccountId: "  " })[1].rows;
+    const rows = clientNavGroups({ ...linked, metaAdAccountId: "  " })[2].rows;
     expect(rows[0].sub).toBe("setup");
   });
 
   it("marks the last group with a rule instead of a caption", () => {
     const groups = clientNavGroups(linked);
-    expect(groups[3].rule).toBe(true);
+    expect(groups[4].rule).toBe(true);
     expect(groups[0].rule).toBeFalsy();
   });
 });
