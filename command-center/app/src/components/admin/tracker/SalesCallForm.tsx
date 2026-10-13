@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "../../ui/Button";
-import { useSaveSalesCallForm } from "../../../hooks/useApi";
+import { useCloseClient, useSaveSalesCallForm } from "../../../hooks/useApi";
 import type { SalesCallFormInput } from "../../../lib/api";
 import type { SheetCall } from "../../../../functions/lib/salesSheetRows";
 import { DISPOSITION_STATUSES } from "../../../../functions/lib/salesDisposition";
@@ -13,9 +13,10 @@ import SalesCallTrackerStep from "./SalesCallTrackerStep";
 // sales-data). Opens on whatever was last saved, so reopening a meeting is how
 // a mistake gets fixed.
 //
-// Saving a PIF or Deposit moves on to a second step, the new client's Client
-// Tracker row (SalesCallTrackerStep.tsx), so Operations > Clients is never
-// behind a close.
+// Saving a PIF or Deposit makes the client there and then, under the Full
+// Name and Business Name given here (lib/closeClient.ts), and moves on to a
+// second step: their personal onboarding link and their Client Tracker row
+// (SalesCallTrackerStep.tsx).
 
 const FIELD =
   "w-full rounded-[var(--radius)] bg-surface-2 px-3.5 py-2.5 text-[13.5px] text-text outline-none " +
@@ -35,6 +36,8 @@ export default function SalesCallForm({
   onClose: () => void;
 }) {
   const save = useSaveSalesCallForm();
+  const close = useCloseClient();
+  const [names, setNames] = useState({ fullName: call.prospectName, businessName: call.businessName });
   const [step, setStep] = useState<"call" | "tracker">("call");
   const [form, setForm] = useState<SalesCallFormInput>(() => ({
     status: call.form.status,
@@ -55,10 +58,16 @@ export default function SalesCallForm({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const closing = isCloseStatus(form.status);
   const submit = () =>
     save.mutate(
       { id: call.id, form },
-      { onSuccess: () => (isCloseStatus(form.status) ? setStep("tracker") : onClose()) },
+      {
+        onSuccess: () => {
+          if (!closing) return onClose();
+          close.mutate({ callId: call.id, ...names }, { onSuccess: () => setStep("tracker") });
+        },
+      },
     );
 
   const header = (
@@ -140,6 +149,27 @@ export default function SalesCallForm({
           </div>
         </fieldset>
 
+        {closing && (
+          <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
+            <Field label="Full Name">
+              <input
+                className={FIELD}
+                autoComplete="off"
+                value={names.fullName}
+                onChange={(e) => setNames((n) => ({ ...n, fullName: e.target.value }))}
+              />
+            </Field>
+            <Field label="Business Name">
+              <input
+                className={FIELD}
+                autoComplete="off"
+                value={names.businessName}
+                onChange={(e) => setNames((n) => ({ ...n, businessName: e.target.value }))}
+              />
+            </Field>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
           <Field label="Cash Collected">
             <input
@@ -187,9 +217,9 @@ export default function SalesCallForm({
           />
         </Field>
 
-        {save.isError && (
+        {(save.isError || close.isError) && (
           <p className="text-[12.5px] font-medium text-danger">
-            {(save.error as Error)?.message || "That did not save."}
+            {((save.error ?? close.error) as Error)?.message || "That did not save."}
           </p>
         )}
 
@@ -197,7 +227,13 @@ export default function SalesCallForm({
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" size="sm" loading={save.isPending} disabled={!form.status}>
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            loading={save.isPending || close.isPending}
+            disabled={!form.status || (closing && !names.businessName.trim() && !names.fullName.trim())}
+          >
             Save
           </Button>
         </div>

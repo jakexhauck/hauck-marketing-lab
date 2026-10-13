@@ -21,6 +21,8 @@ function call(over: Partial<SheetCall> = {}): SheetCall {
     id: "call-1",
     scheduledAt: "2026-03-09T15:30:00Z",
     name: "Jake Hauck",
+    prospectName: "Jake Hauck",
+    businessName: "",
     closed: false,
     showed: false,
     noShow: false,

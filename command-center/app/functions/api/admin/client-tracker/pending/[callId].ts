@@ -11,13 +11,17 @@ import {
 } from "../../../../lib/clientBilling";
 import { trackerPrefill } from "../../../../lib/pendingClients";
 import { attachPendingClient, PENDING_COLUMNS, type PendingRow } from "../../../../lib/pendingClientsStore";
+import { onboardingLink, openFormToken } from "../../../../lib/closeClient";
+import { funnelUrl } from "../../../../lib/funnelUrl";
 
 // The Client Tracker row for one closed meeting (Sales Data's second step, and
 // the waiting rows on Operations > Clients).
 //
-// GET   -> { billing, saved, tenantId }   what the step opens with: the saved
-//          row, or a prefill off the meeting when nothing is saved yet. Once
-//          the row has moved onto a client it reads that client's billing.
+// GET   -> { billing, saved, tenantId, onboardingLink }   what the step opens
+//          with: the saved row, or a prefill off the meeting when nothing is
+//          saved yet. Once the row has moved onto a client it reads that
+//          client's billing, plus their personal onboarding link while their
+//          form is still open (lib/closeClient.ts).
 // PATCH -> { ok, billing }                saves the fields sent. Before a
 //          client exists they land on pending_clients; after, on client_billing.
 // POST  { tenantId } -> { ok }            links the row to a client by hand.
@@ -85,10 +89,12 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   if ("res" in s) return s.res;
 
   if (s.pending?.tenant_id) {
+    const token = await openFormToken(s.client, s.pending.tenant_id);
     return Response.json({
       billing: await tenantBilling(ctx, s.pending.tenant_id),
       saved: true,
       tenantId: s.pending.tenant_id,
+      onboardingLink: token ? onboardingLink(funnelUrl(ctx.env), token) : null,
     });
   }
   if (s.pending) {

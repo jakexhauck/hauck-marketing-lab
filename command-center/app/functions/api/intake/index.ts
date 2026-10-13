@@ -53,7 +53,7 @@ interface Body {
 }
 
 const SELECT =
-  "id, resume_token, answers, furthest_step, status, login_email, password_hash, tenant_id";
+  "id, resume_token, answers, furthest_step, status, login_email, password_hash, tenant_id, for_tenant_id";
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const client = getServiceClient(ctx.env);

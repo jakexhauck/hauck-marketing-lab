@@ -1,11 +1,13 @@
 import { useState } from "react";
+import { Check, Copy } from "lucide-react";
 import { Button } from "../../ui/Button";
 import { useCallTrackerQuery, useCallTrackerSave } from "../../../hooks/useApi";
 import { billingFormFrom, sanitizeBillingPatch, type BillingForm } from "../../../lib/billing";
 import type { AdminClientBilling } from "../../../lib/api";
 
 // The post-call form's second step on a PIF or Deposit (2026-10-09, Jake):
-// the Client Tracker row for the new client, asked for while the deal is
+// the new client's personal onboarding link (2026-10-13), then the Client
+// Tracker row for them, asked for while the deal is
 // fresh. Opens on what was saved, or on a prefill off the meeting (name, call
 // date, cash). Saves to pending_clients until the client exists, then to their
 // client_billing; functions/api/admin/client-tracker/pending/[callId].ts.
@@ -28,7 +30,35 @@ export default function SalesCallTrackerStep({ callId, onDone }: { callId: strin
   if (tracker.isError || !tracker.data) {
     return <p className="py-6 text-center text-[13px] text-danger">The tracker row did not load.</p>;
   }
-  return <TrackerFields callId={callId} initial={formFrom(tracker.data.billing)} onDone={onDone} />;
+  return (
+    <div className="grid gap-4">
+      {tracker.data.onboardingLink && <OnboardingLink url={tracker.data.onboardingLink} />}
+      <TrackerFields callId={callId} initial={formFrom(tracker.data.billing)} onDone={onDone} />
+    </div>
+  );
+}
+
+// The client's own onboarding form, made at the close. Submitting it fills
+// this client, so it is the only link to send them.
+function OnboardingLink({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    });
+  };
+  return (
+    <Field label="Onboarding Link">
+      <div className="flex gap-2">
+        <input className={FIELD} readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
+        <Button type="button" variant="primary" size="sm" onClick={copy}>
+          {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
+    </Field>
+  );
 }
 
 function TrackerFields({ callId, initial, onDone }: { callId: string; initial: Form; onDone: () => void }) {

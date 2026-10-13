@@ -3,6 +3,7 @@ import { approvalBlocker, type SubmissionRow } from "./intake";
 import { CreateTenantError, createTenantWithOwner, seedOnboardingRecord } from "./clientCreate";
 import { CHECKLIST_TASKS } from "../../src/lib/onboarding";
 import { attachOnApprove } from "./pendingClientsStore";
+import { seedOnboardingFields } from "./onboardingSeed";
 
 // Turning a finished submission into a client.
 //
@@ -65,6 +66,16 @@ export async function approveSubmission(
     };
   }
 
+  // A form made at the close fills the client the close already created.
+  if (row.for_tenant_id) {
+    const { data: tenant } = await client
+      .from("tenants")
+      .select("id, slug")
+      .eq("id", row.for_tenant_id)
+      .maybeSingle();
+    if (tenant) return adoptClosedClient(client, row, tenant as { id: string; slug: string }, actorId);
+  }
+
   let created;
   try {
     created = await createTenantWithOwner(client, {
@@ -123,4 +134,71 @@ export async function approveSubmission(
     onboardingWarning,
     trackerWarning,
   };
+}
+
+// The client already exists: Sales Data made it at the close (closeClient.ts)
+// and this form was its personal link. Give it the owner login and the answers.
+// The checklist is NOT reseeded, because ticks made since the close would be
+// reset, and the setup record's fields only fill blanks.
+async function adoptClosedClient(
+  client: SupabaseClient,
+  row: SubmissionRow,
+  tenant: { id: string; slug: string },
+  actorId: string | null,
+): Promise<ApproveResult> {
+  const answers = row.answers ?? {};
+  const contactName = typeof answers.contactName === "string" ? answers.contactName.trim() : "";
+  const niche = typeof answers.niche === "string" ? answers.niche.trim() : "";
+  const now = new Date().toISOString();
+
+  const { error: tenantErr } = await client
+    .from("tenants")
+    .update({
+      owner_password_hash: row.password_hash,
+      ...(niche ? { niche } : {}),
+    })
+    .eq("id", tenant.id);
+  if (tenantErr) return { ok: false, status: 500, error: tenantErr.message };
+
+  let ownerWarning: string | undefined;
+  const { error: ownerErr } = await client.from("staff_accounts").insert({
+    tenant_id: tenant.id,
+    ghl_user_id: null,
+    email: row.login_email,
+    name: contactName || "Owner",
+    role: "owner",
+    status: "active",
+    password_hash: row.password_hash,
+  });
+  if (ownerErr) ownerWarning = ownerErr.message;
+
+  let onboardingWarning: string | undefined;
+  const { data: existing } = await client
+    .from("onboarding")
+    .select("fields")
+    .eq("tenant_id", tenant.id)
+    .maybeSingle();
+  const { error: onbErr } = await client.from("onboarding").upsert(
+    {
+      tenant_id: tenant.id,
+      intake: answers,
+      fields: seedOnboardingFields(answers, ((existing as { fields?: Record<string, string> } | null)?.fields) ?? {}),
+      updated_at: now,
+    },
+    { onConflict: "tenant_id" },
+  );
+  if (onbErr) onboardingWarning = `The onboarding record could not be written: ${onbErr.message}`;
+
+  await client
+    .from("intake_submissions")
+    .update({
+      status: "approved",
+      tenant_id: tenant.id,
+      reviewed_by: actorId,
+      reviewed_at: now,
+      updated_at: now,
+    })
+    .eq("id", row.id);
+
+  return { ok: true, tenantId: tenant.id, slug: tenant.slug, ownerWarning, onboardingWarning };
 }

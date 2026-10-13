@@ -53,6 +53,8 @@ export interface SubmissionRow {
    */
   password_plain?: string | null;
   tenant_id: string | null;
+  /** The client this form was made for at the close (0165). Approval fills it. */
+  for_tenant_id?: string | null;
 }
 
 // 32 bytes of randomness, base64url so it survives being a query parameter

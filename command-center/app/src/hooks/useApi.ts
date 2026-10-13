@@ -1550,6 +1550,20 @@ export function useCallTrackerLink() {
   });
 }
 
+// A PIF or Deposit makes the client and its personal onboarding form.
+export function useCloseClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ callId, fullName, businessName }: { callId: string; fullName: string; businessName: string }) =>
+      api<{ ok: true; tenantId: string }>(`/api/admin/client-tracker/close/${callId}`, {
+        method: "POST",
+        body: JSON.stringify({ fullName, businessName }),
+      }),
+    // A new client touches the strip, the Clients sheet and Onboarding.
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
 // --- Onboarding (Fulfillment > Onboarding) -----------------------------------
 
 // Every client with their onboarding status and recorded progress, for the

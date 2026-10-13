@@ -82,6 +82,10 @@ export interface SheetCall {
   id: string;
   scheduledAt: string | null;
   name: string;
+  // The person and the business apart, for the close's Full Name and Business
+  // Name fields.
+  prospectName: string;
+  businessName: string;
   closed: boolean;
   // They turned up. The Calls column's "Live Call".
   showed: boolean;
@@ -145,6 +149,8 @@ export function toSheetCall(row: SalesCallRow): SheetCall {
     id: row.id,
     scheduledAt: row.scheduledAt,
     name: callLabel(row),
+    prospectName: row.prospectName.trim(),
+    businessName: row.businessName.trim(),
     closed: outcome === "closed",
     showed: meta?.showed ?? false,
     noShow: outcome === "no_show",

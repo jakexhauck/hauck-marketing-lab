@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-13-close-creates-client",
+    date: "13 October 2026",
+    title: "Closing a deal adds the client",
+    items: [
+      "The post-call form asks for Full Name and Business Name on a PIF or Deposit. Business Name carries over from the call.",
+      "Saving it adds the client to the app straight away.",
+      "The next step shows their own onboarding link with a Copy button. When they fill it in, it goes onto that client.",
+    ],
+  },
+  {
     id: "2026-10-13-setup-checklist-gone",
     date: "13 October 2026",
     title: "Setup Checklist removed",

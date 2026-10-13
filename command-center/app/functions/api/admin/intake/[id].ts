@@ -9,7 +9,7 @@ import { completeness } from "../../../../src/lib/intake";
 // Admin-only, gated in _middleware.ts.
 
 const SELECT =
-  "id, resume_token, answers, furthest_step, status, login_email, password_hash, password_plain, tenant_id, submitted_at, created_at";
+  "id, resume_token, answers, furthest_step, status, login_email, password_hash, password_plain, tenant_id, for_tenant_id, submitted_at, created_at";
 
 async function load(
   client: NonNullable<ReturnType<typeof getServiceClient>>,

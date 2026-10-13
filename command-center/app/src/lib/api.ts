@@ -582,6 +582,8 @@ export interface CallTrackerResponse {
   billing: AdminClientBilling;
   saved: boolean;
   tenantId: string | null;
+  // Their personal onboarding form while it is still open (0165).
+  onboardingLink?: string | null;
 }
 
 export interface AdminClientBillingResponse {
