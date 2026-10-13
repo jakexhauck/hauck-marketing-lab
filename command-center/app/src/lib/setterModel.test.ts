@@ -359,3 +359,14 @@ describe("ghlConversationsUrl", () => {
     expect(ghlConversationsUrl("   ")).toBeNull();
   });
 });
+
+describe("stageTone on the Cold SMS board", () => {
+  it("colours each Cold SMS stage by what it means", () => {
+    expect(stageTone("✅ Positive Reply")).toBe("var(--positive)");
+    expect(stageTone("Negative Reply ❌")).toBe("var(--danger)");
+    expect(stageTone("Not Responded ❌")).toBe("var(--text-faint)");
+    expect(stageTone("Call No Answer")).toBe("var(--warning)");
+    expect(stageTone("Trash")).toBe("var(--danger)");
+    expect(stageTone("Replied 💬")).toBe("var(--brand)");
+  });
+});

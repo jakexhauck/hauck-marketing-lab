@@ -106,8 +106,12 @@ export function orderByNumberPrefix<T extends { name: string }>(pipelines: T[]):
 // when present; this is the fallback and the "depending on what it is" rule.
 export function stageTone(stageName: string): string {
   const s = stageName.trim().toLowerCase();
-  if (/trash|unqualified|uninterested|cancel|lost|dead/.test(s)) return "var(--danger)";
+  // "not responded" before the danger words: a prospect who never answered is
+  // quiet, not lost (Cold SMS board, 2026-10-13).
+  if (/not responded/.test(s)) return "var(--text-faint)";
+  if (/trash|unqualified|uninterested|not interested|negative|cancel|lost|dead/.test(s)) return "var(--danger)";
   if (/no answer/.test(s)) return "var(--warning)";
+  if (/positive/.test(s)) return "var(--positive)";
   if (/follow up|follow-up/.test(s)) return "#8b5cf6";
   if (/nurture/.test(s)) return "var(--text-faint)";
   // Fresh incoming work BEFORE the positive keywords: "Survey Completed No
