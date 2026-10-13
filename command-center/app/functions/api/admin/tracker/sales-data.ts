@@ -1,9 +1,15 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { monthWindow } from "../../../lib/tracker";
-import { agencyTimezone, getAgencyGhlContext, AgencyGhlError } from "../../../lib/agencyGhl";
+import {
+  agencyTimezone,
+  getAgencyGhlContext,
+  isAgencyGhlConfigured,
+  AgencyGhlError,
+} from "../../../lib/agencyGhl";
 import { syncAgencyMeetings, type SyncResult } from "../../lib/salesCallSync";
-import { buildDispositionUpdate, type DispositionInput } from "../../../lib/salesDisposition";
+import { buildDispositionUpdate, type DispositionInput, type DispositionStatus } from "../../../lib/salesDisposition";
+import { routeSalesForm } from "../../../lib/salesFormRouteGhl";
 import {
   callsInMonth,
   toSheetCall,
@@ -272,7 +278,7 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     .from("sales_calls")
     .update({ ...update, updated_at: new Date().toISOString() })
     .eq("id", id)
-    .select("id");
+    .select("id, ghl_contact_id, ghl_opportunity_id, prospect_name, business_name");
   if (error) {
     console.error("[tracker/sales-data] save failed", error.message);
     return Response.json({ error: "could not save" }, { status: 500 });
@@ -280,5 +286,36 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   if (!data || data.length === 0) {
     return Response.json({ error: "meeting not found" }, { status: 404 });
   }
-  return Response.json({ ok: true });
+  if (!("disposition_status" in update)) return Response.json({ ok: true });
+
+  // The answer moves the lead on the Sales board (and onto Onboarding for a
+  // close), salesFormRoute.ts. A failed move never undoes the save: the row
+  // keeps the reason in ghl_error and the form says it was not moved.
+  const row = data[0] as {
+    ghl_contact_id: string | null;
+    ghl_opportunity_id: string | null;
+    prospect_name: string | null;
+    business_name: string | null;
+  };
+  let routed: { ok: true; salesOpportunityId: string } | { ok: false; error: string };
+  if (!row.ghl_contact_id) routed = { ok: false, error: "meeting has no GHL contact" };
+  else if (!isAgencyGhlConfigured(ctx.env)) routed = { ok: false, error: "agency GHL not configured" };
+  else {
+    routed = await routeSalesForm(getAgencyGhlContext(ctx.env), {
+      status: update.disposition_status as DispositionStatus,
+      contactId: row.ghl_contact_id,
+      opportunityId: row.ghl_opportunity_id,
+      name: row.business_name?.trim() || row.prospect_name?.trim() || "Sales call",
+    });
+  }
+  if (!routed.ok) console.warn("[tracker/sales-data] pipeline not moved", id, routed.error);
+  await client
+    .from("sales_calls")
+    .update(
+      routed.ok
+        ? { ghl_opportunity_id: routed.salesOpportunityId, ghl_error: null }
+        : { ghl_error: routed.error },
+    )
+    .eq("id", id);
+  return Response.json({ ok: true, routed: routed.ok });
 };

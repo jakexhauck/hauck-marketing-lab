@@ -39,6 +39,8 @@ export default function SalesCallForm({
   const close = useCloseClient();
   const [names, setNames] = useState({ fullName: call.prospectName, businessName: call.businessName });
   const [step, setStep] = useState<"call" | "tracker">("call");
+  // Saved, but the lead did not move in the GHL pipelines (salesFormRoute.ts).
+  const [notMoved, setNotMoved] = useState(false);
   const [form, setForm] = useState<SalesCallFormInput>(() => ({
     status: call.form.status,
     cashCollected: money(call.form.cashCollected),
@@ -63,8 +65,9 @@ export default function SalesCallForm({
     save.mutate(
       { id: call.id, form },
       {
-        onSuccess: () => {
-          if (!closing) return onClose();
+        onSuccess: ({ routed }) => {
+          setNotMoved(!routed);
+          if (!closing) return routed ? onClose() : undefined;
           close.mutate({ callId: call.id, ...names }, { onSuccess: () => setStep("tracker") });
         },
       },
@@ -221,6 +224,10 @@ export default function SalesCallForm({
           <p className="text-[12.5px] font-medium text-danger">
             {((save.error ?? close.error) as Error)?.message || "That did not save."}
           </p>
+        )}
+
+        {notMoved && !save.isPending && (
+          <p className="text-[12.5px] font-medium text-danger">Saved. Not moved in the pipeline.</p>
         )}
 
         <div className="flex justify-end gap-2">

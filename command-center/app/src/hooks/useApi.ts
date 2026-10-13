@@ -3141,7 +3141,7 @@ export function useSalesDataQuery(month: string) {
 
 // Both write onto sales_calls, so both refetch every month of Sales Data and
 // the Sales Calls list, which reads the same rows.
-function useSalesCallWrite<T>(fn: (input: T) => Promise<void>) {
+function useSalesCallWrite<T, R = void>(fn: (input: T) => Promise<R>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,

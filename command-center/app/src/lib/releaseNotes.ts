@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-13-sales-form-routes",
+    date: "13 October 2026",
+    title: "The post-call form moves the lead in GHL",
+    items: [
+      "Saving the form moves the lead to the matching column on the Sales pipeline.",
+      "PIF and Deposit also add the lead to Onboarding.",
+    ],
+  },
+  {
     id: "2026-10-13-sales-one-page",
     date: "13 October 2026",
     title: "Sales is one page",

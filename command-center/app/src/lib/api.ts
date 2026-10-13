@@ -1212,11 +1212,13 @@ export interface SalesCallFormInput {
   notes: string;
 }
 
-export async function saveSalesCallForm(id: string, form: SalesCallFormInput): Promise<void> {
-  await api<{ ok: true }>("/api/admin/tracker/sales-data", {
+// routed is false when the lead could not be moved in the GHL pipelines.
+export async function saveSalesCallForm(id: string, form: SalesCallFormInput): Promise<{ routed: boolean }> {
+  const res = await api<{ ok: true; routed?: boolean }>("/api/admin/tracker/sales-data", {
     method: "PATCH",
     body: JSON.stringify({ id, form }),
   });
+  return { routed: res.routed !== false };
 }
 
 // Exit a meeting out of the numbers, or bring it back.
