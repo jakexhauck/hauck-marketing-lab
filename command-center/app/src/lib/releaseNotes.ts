@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-13-setup-checklist-gone",
+    date: "13 October 2026",
+    title: "Setup Checklist removed",
+    items: [
+      "Setup Checklist is gone from every client. Use Full Setup Checklist.",
+      "Software setup, Client folder, Fill in docs, Go live and Delete are now at the top of Full Setup Checklist.",
+    ],
+  },
+  {
     id: "2026-10-13-sop-checklists",
     date: "13 October 2026",
     title: "Setup and call checklists on every client",

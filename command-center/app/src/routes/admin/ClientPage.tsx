@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Eye } from "lucide-react";
-import ClientOnboarding from "../../components/admin/onboarding/ClientOnboarding";
+import SetupActions from "../../components/admin/onboarding/SetupActions";
 import SopChecklist from "../../components/admin/onboarding/SopChecklist";
 import { ClientSheet } from "../../components/admin/onboarding/OnboardingSheet";
 import GhlTab from "../../components/admin/cockpit/ghl/GhlTab";
@@ -47,7 +47,7 @@ export default function ClientPage() {
   if (!client) return <Navigate to={OWNER_HOME} replace />;
 
   const resolved = resolveClientPage(client, page, sub ?? null);
-  if (!resolved) return <Navigate to={clientPath(client.id, "onboarding")} replace />;
+  if (!resolved) return <Navigate to={clientPath(client.id, "full-setup")} replace />;
   if (resolved.page !== page || resolved.sub !== (sub ?? null)) {
     return <Navigate to={clientPath(client.id, resolved.page, resolved.sub)} replace />;
   }
@@ -104,13 +104,19 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
 
   switch (page) {
     case "full-setup":
+      return (
+        <SopChecklist
+          key={page}
+          tenantId={client.id}
+          list={page}
+          actions={<SetupActions tenantId={client.id} home={OWNER_HOME} />}
+        />
+      );
     case "onboarding-call":
     case "launch-call":
       return <SopChecklist key={page} tenantId={client.id} list={page} />;
     case "accounts":
       return <AccountsTab client={client} />;
-    case "onboarding":
-      return <ClientOnboarding tenantId={client.id} home={OWNER_HOME} />;
     case "info":
       // Everything the onboarding form collected, copyable line by line, with
       // the sub-account, dialing and estimate cards above it.

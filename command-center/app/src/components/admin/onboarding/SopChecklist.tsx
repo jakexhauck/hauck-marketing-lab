@@ -1,14 +1,23 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Check } from "lucide-react";
-import { Ring } from "./ClientWizard";
+import type { Progress } from "../../../lib/onboardingWizard";
 import { useAdminOnboardingChecklistQuery, useAdminOnboardingChecklistToggle } from "../../../hooks/useApi";
 import { SOP_LISTS, sopKeys, sopTaskKey, type SopListId } from "../../../lib/sopChecklists";
 
 // Full Setup Checklist, Onboarding Call and Launch Call: one client's ticks on
 // a list from the Client Setup SOP doc (lib/sopChecklists.ts). Same look as
-// Setup Checklist, and the same saved checklist underneath.
+// the old Setup Checklist, and the same saved checklist underneath. Full Setup
+// Checklist also carries that page's buttons (SetupActions) as `actions`.
 
-export default function SopChecklist({ tenantId, list }: { tenantId: string; list: SopListId }) {
+export default function SopChecklist({
+  tenantId,
+  list,
+  actions,
+}: {
+  tenantId: string;
+  list: SopListId;
+  actions?: ReactNode;
+}) {
   const def = SOP_LISTS[list];
   const checklist = useAdminOnboardingChecklistQuery(tenantId);
   const toggle = useAdminOnboardingChecklistToggle(tenantId);
@@ -25,12 +34,13 @@ export default function SopChecklist({ tenantId, list }: { tenantId: string; lis
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3 overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface px-5 py-4 shadow-[var(--shadow-sm)]">
+      <div className="flex flex-wrap items-center gap-3 overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface px-5 py-4 shadow-[var(--shadow-sm)]">
         <Ring progress={overall} size={30} />
-        <h2 className="flex-1 font-display text-[17px] font-semibold tracking-[-0.015em] text-text">{def.title}</h2>
-        <span className="text-[12.5px] tabular-nums text-faint">
+        <h2 className="font-display text-[17px] font-semibold tracking-[-0.015em] text-text">{def.title}</h2>
+        <span className="flex-1 text-[12.5px] tabular-nums text-faint">
           {overall.done}/{overall.total}
         </span>
+        {actions}
       </div>
 
       {def.sections.map((s) => {
@@ -98,5 +108,39 @@ export default function SopChecklist({ tenantId, list }: { tenantId: string; lis
         );
       })}
     </div>
+  );
+}
+
+function Ring({ progress, size }: { progress: Progress; size: number }) {
+  const frac = progress.total ? progress.done / progress.total : 0;
+  const r = 10;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg width={size} height={size} viewBox="0 0 26 26" aria-hidden className="shrink-0">
+      <circle cx="13" cy="13" r={r} fill="none" stroke="var(--surface-3)" strokeWidth="3" />
+      <circle
+        cx="13"
+        cy="13"
+        r={r}
+        fill="none"
+        stroke="var(--brand)"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeDasharray={c}
+        strokeDashoffset={c * (1 - frac)}
+        transform="rotate(-90 13 13)"
+        style={{ transition: "stroke-dashoffset .3s ease" }}
+      />
+      {frac === 1 && (
+        <path
+          d="M9 13.2l2.6 2.6L17 10.4"
+          fill="none"
+          stroke="var(--brand)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+    </svg>
   );
 }

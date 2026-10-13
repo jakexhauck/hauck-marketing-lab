@@ -19,7 +19,7 @@ describe("clientNavGroups", () => {
   it("lists every page for a fully wired client", () => {
     expect(labels(linked)).toEqual([
       [null, ["Full Setup Checklist", "Onboarding Call", "Launch Call"]],
-      [null, ["Accounts", "Setup Checklist", "Client Information", "Software"]],
+      [null, ["Accounts", "Client Information", "Software"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Conversion Assets", "Follow-up Texts", "CAPI", "Outcome Wiring", "Calendars"]],
       [null, ["Management"]],
@@ -29,7 +29,7 @@ describe("clientNavGroups", () => {
   it("gates Paid Ads and GHL until they are connected", () => {
     expect(labels(bare)).toEqual([
       [null, ["Full Setup Checklist", "Onboarding Call", "Launch Call"]],
-      [null, ["Accounts", "Setup Checklist", "Client Information", "Software"]],
+      [null, ["Accounts", "Client Information", "Software"]],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Connect GHL", "Conversion Assets", "Follow-up Texts", "CAPI", "Outcome Wiring"]],
       [null, ["Management"]],
@@ -96,6 +96,11 @@ describe("resolveClientPage", () => {
     expect(resolveClientPage(linked, "software", "x")).toEqual({ page: "software", sub: null });
   });
 
+  it("sends the retired Setup Checklist to Full Setup Checklist", () => {
+    expect(resolveClientPage(linked, "onboarding", null)).toEqual({ page: "full-setup", sub: null });
+    expect(resolveClientPage(linked, "setter", null)).toEqual({ page: "full-setup", sub: null });
+  });
+
   it("drops the connect step once connected", () => {
     expect(resolveClientPage(linked, "paid-ads", "setup")).toEqual({ page: "paid-ads", sub: "dashboard" });
   });
@@ -120,8 +125,8 @@ describe("switchTarget", () => {
     );
   });
 
-  it("from agency, opens setup clients on Onboarding and live ones on Paid Ads", () => {
-    expect(switchTarget(null, { id: "t2", ...bare })).toBe("/admin/client/t2/onboarding");
+  it("from agency, opens setup clients on Full Setup Checklist and live ones on Paid Ads", () => {
+    expect(switchTarget(null, { id: "t2", ...bare })).toBe("/admin/client/t2/full-setup");
     expect(switchTarget(null, { id: "t2", ...linked })).toBe("/admin/client/t2/paid-ads/dashboard");
   });
 });
@@ -140,8 +145,8 @@ describe("legacyClientPath", () => {
   });
 
   it("maps onboarding and unknown pages", () => {
-    expect(legacyClientPath("onboarding", null, "t1")).toBe("/admin/client/t1/onboarding");
-    expect(legacyClientPath("setter", null, "t1")).toBe("/admin/client/t1/onboarding");
+    expect(legacyClientPath("onboarding", null, "t1")).toBe("/admin/client/t1/full-setup");
+    expect(legacyClientPath("setter", null, "t1")).toBe("/admin/client/t1/full-setup");
     expect(legacyClientPath(null, null, "t1")).toBe("/admin/client/t1/software");
     expect(legacyClientPath("nonsense", "x", "t1")).toBe("/admin/client/t1/software");
   });

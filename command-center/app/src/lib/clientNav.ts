@@ -30,7 +30,12 @@ export type ClientPageId =
   | "full-setup"
   | "onboarding-call"
   | "launch-call"
-  | "accounts" | "onboarding" | "info" | "software" | "paid-ads" | "ghl" | "management";
+  | "accounts"
+  | "info"
+  | "software"
+  | "paid-ads"
+  | "ghl"
+  | "management";
 
 // What the gates read off a client. AdminClient satisfies it.
 export interface ClientGateInfo {
@@ -62,13 +67,14 @@ export interface ClientNavGroup {
 // per thing the client needs connected, each red one with its fix.
 //
 // Jake, 2026-10-13: Full Setup Checklist, Onboarding Call and Launch Call from
-// the Client Setup SOP doc go above everything (lib/sopChecklists.ts).
+// the Client Setup SOP doc go above everything (lib/sopChecklists.ts), and
+// Setup Checklist is gone: its old id "onboarding" (and "setter") land on Full
+// Setup Checklist.
 const PAGE_LABELS: Record<ClientPageId, string> = {
   "full-setup": "Full Setup Checklist",
   "onboarding-call": "Onboarding Call",
   "launch-call": "Launch Call",
   accounts: "Accounts",
-  onboarding: "Setup Checklist",
   info: "Client Information",
   software: "Software",
   "paid-ads": "Paid Ads",
@@ -99,7 +105,7 @@ const subRows = (c: ClientGateInfo, page: ClientPageId): ClientNavRow[] =>
 export function clientNavGroups(c: ClientGateInfo): ClientNavGroup[] {
   return [
     { caption: null, rows: [single("full-setup"), single("onboarding-call"), single("launch-call")] },
-    { caption: null, rule: true, rows: [single("accounts"), single("onboarding"), single("info"), single("software")] },
+    { caption: null, rule: true, rows: [single("accounts"), single("info"), single("software")] },
     { caption: "Paid Ads", rows: subRows(c, "paid-ads") },
     { caption: "GHL", rows: subRows(c, "ghl") },
     { caption: null, rule: true, rows: [single("management")] },
@@ -134,11 +140,14 @@ export function parseClientPath(pathname: string): ParsedClientPath | null {
 // The address a client page should really be on. Null for a page that does not
 // exist. A missing, gated or stale sub-page becomes the first one on offer, so
 // AAG's Dashboard with no ad account lands on Connect ads.
+const RETIRED_SETUP = ["onboarding", "setter"];
+
 export function resolveClientPage(
   c: ClientGateInfo,
   page: string,
   sub: string | null,
 ): { page: ClientPageId; sub: string | null } | null {
+  if (RETIRED_SETUP.includes(page)) return { page: "full-setup", sub: null };
   if (!isClientPage(page)) return null;
   const subs = offeredSubs(c, page);
   if (subs.length === 0) return { page, sub: null };
@@ -149,7 +158,7 @@ export function resolveClientPage(
 // Where a strip chip goes. From another client: the same page and sub-page,
 // falling back inside the group (resolveClientPage). The connect steps are not
 // carried across, because a wired client has nothing to connect. From the
-// agency: a client still being set up opens on Onboarding, a live one on their
+// agency: a client still being set up opens on Full Setup Checklist, a live one on their
 // ads.
 export function switchTarget(
   from: { page: string; sub: string | null } | null,
@@ -160,7 +169,7 @@ export function switchTarget(
     const r = resolveClientPage(to, from.page, carried);
     if (r) return clientPath(to.id, r.page, r.sub);
   }
-  if (to.onboardingStatus === "setup") return clientPath(to.id, "onboarding");
+  if (to.onboardingStatus === "setup") return clientPath(to.id, "full-setup");
   const ads = resolveClientPage(to, "paid-ads", null);
   return clientPath(to.id, "paid-ads", ads?.sub);
 }
@@ -168,7 +177,7 @@ export function switchTarget(
 // An old Fulfillment / Delivery cockpit page id mapped to its client page.
 // Sub-pages are carried as given; ClientPage corrects any that are gated.
 export function legacyClientPath(page: string | null, sub: string | null, tenantId: string): string {
-  if (page === "onboarding" || page === "setter") return clientPath(tenantId, "onboarding");
+  if (page && RETIRED_SETUP.includes(page)) return clientPath(tenantId, "full-setup");
   const mapped = isFulfillmentPage(page) ? page : legacyFulfillmentPage(page);
   return clientPath(tenantId, mapped, isFulfillmentPage(page) ? sub : null);
 }
