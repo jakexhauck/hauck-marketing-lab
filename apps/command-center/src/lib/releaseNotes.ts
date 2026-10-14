@@ -31,7 +31,7 @@ export const RELEASES: Release[] = [
     title: "Open Lead fills itself in",
     items: [
       "Outcome Wiring is gone. The app writes the Open Lead custom value into each client's GHL by itself, and puts it back if it goes missing.",
-      "On Custom Values, Open Lead is locked. Its Copy button copies the version to paste into a text.",
+      "On Custom Values, Open Lead is locked.",
     ],
   },
   {

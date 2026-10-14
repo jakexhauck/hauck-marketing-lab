@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useCustomValues, useSaveCustomValue } from "../../../hooks/useSopApi";
 import type { MirrorValue } from "../../../../functions/lib/customValuesMirror";
-import { ownerLinkText } from "../../../lib/ownerLinkText";
 import { CopyButton, SOP_FIELD, SopButton, SopCard, SopError, SopHeading } from "./sopKit";
 
 // Client > GHL > Custom Values. A live mirror of the sub-account's own Custom
@@ -91,8 +90,8 @@ function ValueRow({
     setValue(ghlValue);
   }, [ghlName, ghlValue]);
 
-  // Open Lead is written by the app (server refuses edits too). Its copy is
-  // the text-ready form, contact id on the end (lib/ownerLinkText.ts).
+  // Open Lead is written by the app (server refuses edits too). Copy gives the
+  // plain tag: the automations add "&c={{contact.id}}" themselves (Jake).
   const locked = !!row?.locked;
   const dirty = !locked && (!row || name !== row.name || value !== row.value);
   const submit = () =>
@@ -114,7 +113,7 @@ function ValueRow({
             <code className="max-w-[260px] truncate font-data text-[12px] text-faint" title={row.merge}>
               {row.merge}
             </code>
-            <CopyButton text={locked ? ownerLinkText(row.merge) : row.merge} />
+            <CopyButton text={row.merge} />
           </span>
         )}
       </div>
