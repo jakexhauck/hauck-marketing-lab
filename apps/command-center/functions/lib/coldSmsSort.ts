@@ -46,6 +46,14 @@ export function findTrashStages(pipelines: readonly Pipeline[]): TrashStages | n
   return negative && unqualified ? { pipelineId: trash.id, negative, unqualified } : null;
 }
 
+// Sales > Hot Lead, for the right-click Hot Lead (Jake, 2026-10-14). The card
+// leaves Cold SMS for the Sales pipeline, like a negative leaves for Trash.
+export function findHotLeadStage(pipelines: readonly Pipeline[]): SortTo | null {
+  const sales = pipelines.find((p) => /^\s*sales\s*$/i.test(p.name));
+  const stageId = sales?.stages.find((s) => /hot/i.test(s.name))?.id;
+  return sales && stageId ? { pipelineId: sales.id, stageId } : null;
+}
+
 export function findSortStages(board: Pipeline, pipelines: readonly Pipeline[]): SortStages | null {
   const find = (re: RegExp) => board.stages.find((s) => re.test(s.name))?.id;
   const replied = find(/replied/i);

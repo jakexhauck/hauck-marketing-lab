@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ClaudeCreate } from "./claude";
-import { autoSortMoves, classifyReplies, findSortStages, findTrashStages, pickColdSmsCalendar, prospectZone, replyKey, stateCode, variationOf } from "./coldSmsBoard";
+import { autoSortMoves, classifyReplies, findHotLeadStage, findSortStages, findTrashStages, pickColdSmsCalendar, prospectZone, replyKey, stateCode, variationOf } from "./coldSmsBoard";
 
 const answer = (obj: unknown): ClaudeCreate => async () => ({
   stop_reason: "end_turn",
@@ -133,6 +133,13 @@ describe("auto-sort", () => {
     ],
   };
   const pipelines = [board, trash, { id: "sales", name: "Sales", stages: [{ id: "s-unq", name: "Unqualified" }] }];
+
+  it("finds Sales > Hot Lead by name", () => {
+    const sales = { id: "sales", name: "Sales", stages: [{ id: "s-hot", name: "🔥 Hot Lead" }, { id: "s-bk", name: "✅ Call Booked" }] };
+    expect(findHotLeadStage([board, trash, sales])).toEqual({ pipelineId: "sales", stageId: "s-hot" });
+    expect(findHotLeadStage(pipelines)).toBeNull();
+    expect(findHotLeadStage([board])).toBeNull();
+  });
 
   it("finds the Trash stages by name", () => {
     expect(findTrashStages(pipelines)).toEqual({ pipelineId: "trash", negative: "t-neg", unqualified: "t-unq" });

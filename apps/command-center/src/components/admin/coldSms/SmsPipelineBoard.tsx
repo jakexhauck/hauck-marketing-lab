@@ -7,7 +7,7 @@ import Toast from "../../Toast";
 import { stageTone } from "../../../lib/setterModel";
 import { timeAgo } from "../../../lib/timeAgo";
 import { dayKeyOf } from "../../../lib/coldSmsWeek";
-import { findTrashStages } from "../../../../functions/lib/coldSmsSort";
+import { findHotLeadStage, findTrashStages } from "../../../../functions/lib/coldSmsSort";
 import {
   ApiError,
   type ColdSmsCard,
@@ -147,6 +147,8 @@ export default function SmsPipelineBoard({ kind = "cold-sms" }: { kind?: Pipelin
   // Right-click Negative Reply / Unqualified send a prospect to Trash (Jake,
   // 2026-10-13). Cold SMS only.
   const trash = sales ? null : findTrashStages(board.data?.pipelines ?? []);
+  // Right-click Hot Lead sends a prospect to Sales > Hot Lead (Jake, 2026-10-14).
+  const hot = sales ? null : findHotLeadStage(board.data?.pipelines ?? []);
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -425,12 +427,17 @@ export default function SmsPipelineBoard({ kind = "cold-sms" }: { kind?: Pipelin
           }
           onFollowUpEdit={() => setEditing(menu.card)}
           onMove={(stageId, name) => doMove(menu.card, pipelineId, stageId, name)}
-          trash={
-            trash && [
-              { label: "Negative Reply", go: () => doMove(menu.card, trash.pipelineId, trash.negative, "Trash: Negative Reply") },
-              { label: "Unqualified", go: () => doMove(menu.card, trash.pipelineId, trash.unqualified, "Trash: Unqualified") },
-            ]
-          }
+          away={[
+            ...(hot
+              ? [{ label: "🔥 Hot Lead", tone: "#f59e0b", go: () => doMove(menu.card, hot.pipelineId, hot.stageId, "Sales: Hot Lead") }]
+              : []),
+            ...(trash
+              ? [
+                  { label: "Negative Reply", go: () => doMove(menu.card, trash.pipelineId, trash.negative, "Trash: Negative Reply") },
+                  { label: "Unqualified", go: () => doMove(menu.card, trash.pipelineId, trash.unqualified, "Trash: Unqualified") },
+                ]
+              : []),
+          ]}
           onContacted={(on) =>
             contacted.mutate(
               { contactId: menu.card.contactId, on },
@@ -539,7 +546,7 @@ function CardMenu({
   today,
   followUpOn,
   onMove,
-  trash,
+  away,
   onContacted,
   onFollowUp,
   onFollowUpEdit,
@@ -555,7 +562,8 @@ function CardMenu({
   onFollowUp: (day: string | null) => void;
   onFollowUpEdit: () => void;
   onMove: (stageId: string, name: string) => void;
-  trash: { label: string; go: () => void }[] | null;
+  // Moves off this board: Sales > Hot Lead, Trash. Danger red unless toned.
+  away: { label: string; tone?: string; go: () => void }[];
   onContacted: (on: boolean) => void;
   onClose: () => void;
 }) {
@@ -669,7 +677,7 @@ function CardMenu({
       )}
       <div className="my-1 h-px bg-[var(--border)]" />
       <p className="px-2.5 pb-1 pt-0.5 text-[11px] font-bold uppercase tracking-wider text-faint">Move to</p>
-      {trash?.map((t) => (
+      {away.map((t) => (
         <button
           key={t.label}
           type="button"
@@ -680,7 +688,7 @@ function CardMenu({
             onClose();
           }}
         >
-          <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--danger)]" aria-hidden />
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: t.tone ?? "var(--danger)" }} aria-hidden />
           <span className="truncate">{t.label}</span>
         </button>
       ))}

@@ -229,4 +229,4 @@ export function replyKey(lastInboundAt: string | number | null | undefined): str
 
 // The auto-sort rule lives in coldSmsSort.ts so the board can run it in the
 // browser too (cards move on screen the moment a verdict is known).
-export { autoSortMoves, findSortStages, findTrashStages, type SortStages } from "./coldSmsSort";
+export { autoSortMoves, findHotLeadStage, findSortStages, findTrashStages, type SortStages } from "./coldSmsSort";

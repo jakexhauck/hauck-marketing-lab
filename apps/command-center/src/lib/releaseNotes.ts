@@ -26,6 +26,12 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-14-cold-sms-hot-lead",
+    date: "14 October 2026",
+    title: "Cold SMS: right-click Hot Lead",
+    items: ["Right-click a prospect on Cold SMS > Pipeline and choose Hot Lead to move them to Sales > Hot Lead."],
+  },
+  {
     id: "2026-10-14-ghl-busy-retry",
     date: "14 October 2026",
     title: "Pages ride out a busy GHL",
