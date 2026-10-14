@@ -15,6 +15,7 @@ import {
   type PipelineBoardKind,
 } from "../lib/api";
 import { autoSortMoves, findSortStages } from "../../functions/lib/coldSmsSort";
+import { boardRefreshInterval } from "../lib/coldSmsBoardRefresh";
 
 // Cold SMS > Pipeline data. The board is GHL's, read live; the hook only keeps
 // what the screen needs between reads: extra pages a column has loaded, and the
@@ -28,14 +29,26 @@ export const COLD_SMS_BOARD_KEY = ["admin", "cold-sms", "board"] as const;
 // The Sales board shares this cache prefix on purpose: a move, tag or follow-up
 // below patches it the same way, with no second set of hooks.
 export function useColdSmsBoardQuery(day: string, kind: PipelineBoardKind = "cold-sms") {
+  const qc = useQueryClient();
+  const key = boardKey(day, kind);
   return useQuery({
-    queryKey: boardKey(day, kind),
-    queryFn: () => getColdSmsBoard(day || undefined, kind),
+    queryKey: key,
+    // A read while a drag is still being written keeps the screen as it is: GHL
+    // may not have the move yet, and the card would jump back to its old column.
+    queryFn: () => {
+      const shown = qc.getQueryData<ColdSmsBoard>(key);
+      if (shown && qc.isMutating({ mutationKey: MOVE_KEY })) return shown;
+      return getColdSmsBoard(day || undefined, kind);
+    },
     placeholderData: (prev) => prev,
     staleTime: 15_000,
     refetchOnWindowFocus: true,
+    // Only while the tab is showing (refetchIntervalInBackground stays off).
+    refetchInterval: (query) => boardRefreshInterval(query.state.data),
   });
 }
+
+const MOVE_KEY = [...COLD_SMS_BOARD_KEY, "move"];
 
 function boardKey(day: string, kind: PipelineBoardKind) {
   return [...COLD_SMS_BOARD_KEY, kind === "sales" ? "sales" : day || "all"];
@@ -180,6 +193,7 @@ export function useLoadMoreStage(kind: PipelineBoardKind = "cold-sms") {
 export function useMoveCard() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: MOVE_KEY,
     mutationFn: (v: { card: ColdSmsCard; pipelineId: string; stageId: string }) =>
       moveColdSmsCard({ opportunityId: v.card.id, pipelineId: v.pipelineId, stageId: v.stageId }),
     onMutate: async (v) => {

@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-14-board-refresh",
+    date: "14 October 2026",
+    title: "Pipeline boards stay current",
+    items: [
+      "The Cold SMS and Sales boards re-read GoHighLevel every 30 seconds while open, so bookings and moves made elsewhere show up on their own.",
+    ],
+  },
+  {
     id: "2026-10-14-sales-calendar-click",
     date: "14 October 2026",
     title: "Sales has a Calendar tab",
