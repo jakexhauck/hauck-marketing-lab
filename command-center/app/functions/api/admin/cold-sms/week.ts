@@ -78,7 +78,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     slots,
     demos: demos.events
       .filter((e) => e.startTime && e.endTime && !/cancel|invalid|noshow/i.test(e.status))
-      .map((e) => ({ id: e.id, title: e.contactName || e.title, start: e.startTime, end: e.endTime })),
+      .map((e) => ({ id: e.id, contactId: e.contactId, title: e.contactName || e.title, start: e.startTime, end: e.endTime })),
     google: {
       connected: gconn.connected,
       events: google.map((g) => ({ title: g.title || "Busy", start: g.start, end: g.end })),

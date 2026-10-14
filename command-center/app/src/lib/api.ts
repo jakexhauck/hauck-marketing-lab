@@ -2689,7 +2689,7 @@ export interface ColdSmsWeek {
   calendar: { id: string; name: string; minutes: number } | null;
   slotsFailed: boolean;
   slots: string[];
-  demos: { id: string; title: string; start: string; end: string }[];
+  demos: { id: string; contactId?: string; title: string; start: string; end: string }[];
   google: { connected: boolean; events: { title: string; start: string; end: string }[] };
 }
 

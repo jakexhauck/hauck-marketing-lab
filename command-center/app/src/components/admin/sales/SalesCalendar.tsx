@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { connectColdSmsGoogle, disconnectColdSmsGoogle, getColdSmsWeek } from "../../../lib/api";
+import {
+  connectColdSmsGoogle,
+  disconnectColdSmsGoogle,
+  getColdSmsWeek,
+  type ColdSmsCard,
+  type ColdSmsWeek,
+} from "../../../lib/api";
+import { useColdSmsBoardQuery } from "../../../hooks/useColdSmsBoard";
+import Toast from "../../Toast";
+import SmsProspectPanel from "../coldSms/SmsProspectPanel";
 import { PROSPECT_ZONES, formatDay, weekOf, zoneShort } from "../../../lib/coldSmsWeek";
 import { GoogleBar, WeekGrid } from "../coldSms/SmsBookingWizard";
 
@@ -10,6 +19,10 @@ import { GoogleBar, WeekGrid } from "../coldSms/SmsBookingWizard";
 // blue, booked demos in purple, open slots in green), read only: nobody is
 // being booked here, so the open slots are drawn but not clickable. Unlike the
 // wizard it may look back, to see the calls already taken this week.
+//
+// Clicking a booked call opens the same panel a card opens on Sales > Pipeline
+// (Jake, 2026-10-14): its Sales card when the board has it loaded, else one
+// built from the appointment, since the panel reads everything by contact.
 
 const FALLBACK_ZONE = "America/New_York";
 
@@ -18,6 +31,9 @@ export default function SalesCalendar() {
   const [offset, setOffset] = useState(0);
   const [zone, setZone] = useState(FALLBACK_ZONE);
   const [viewZone, setViewZone] = useState("");
+  const [open, setOpen] = useState<ColdSmsWeek["demos"][number] | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const salesBoard = useColdSmsBoardQuery("", "sales");
   const shown = viewZone || zone;
   const days = useMemo(() => weekOf(Date.now(), shown, offset), [shown, offset]);
   const range = { start: days[0].start, end: days[6].start + 24 * 3600_000 };
@@ -42,6 +58,28 @@ export default function SalesCalendar() {
       }
     },
   });
+
+  const openCard = useMemo<ColdSmsCard | null>(() => {
+    if (!open?.contactId) return null;
+    for (const st of salesBoard.data?.stages ?? []) {
+      const hit = st.cards.find((c) => c.contactId === open.contactId);
+      if (hit) return hit;
+    }
+    return {
+      id: "",
+      contactId: open.contactId,
+      business: open.title,
+      person: "",
+      phone: "",
+      tags: [],
+      variation: null,
+      stageId: "",
+      movedAt: null,
+      firstContactedAt: null,
+      reply: null,
+      verdict: null,
+    };
+  }, [open, salesBoard.data]);
 
   return (
     <div className="flex h-[calc(100vh-190px)] min-h-[560px] flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-surface">
@@ -118,8 +156,24 @@ export default function SalesCalendar() {
           minutes={week.data.calendar.minutes}
           data={week.data}
           pick={null}
+          onOpenDemo={setOpen}
         />
       )}
+
+      {openCard && (
+        <SmsProspectPanel
+          key={openCard.contactId}
+          card={openCard}
+          pipelines={salesBoard.data?.pipelines ?? []}
+          boardPipelineId={salesBoard.data?.pipeline?.id ?? ""}
+          sales
+          onMove={() => {}}
+          onClose={() => setOpen(null)}
+          onToast={setToast}
+          onRemoved={() => setOpen(null)}
+        />
+      )}
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </div>
   );
 }

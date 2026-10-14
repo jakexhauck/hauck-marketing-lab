@@ -411,6 +411,7 @@ export function WeekGrid({
   data,
   pick,
   onPick,
+  onOpenDemo,
 }: {
   days: ReturnType<typeof weekOf>;
   zone: string; // the zone the grid is drawn in: the prospect's
@@ -422,11 +423,21 @@ export function WeekGrid({
   // Left out on Sales > Calendar: there is no one to book, so open slots are
   // drawn but not clickable.
   onPick?: (ms: number) => void;
+  // Sales > Calendar: a booked demo opens its prospect panel, like a card on the
+  // Sales board. Google's copy of the same call (same start) opens it too.
+  onOpenDemo?: (demo: ColdSmsWeek["demos"][number]) => void;
 }) {
   const slots = data.slots.map((s) => +new Date(s));
+  const demoAt = new Map(data.demos.map((d) => [+new Date(d.start), d]));
   const blocks = [
-    ...data.google.events.map((e) => ({ kind: "google" as const, title: e.title, start: +new Date(e.start), end: +new Date(e.end) })),
-    ...data.demos.map((e) => ({ kind: "demo" as const, title: e.title, start: +new Date(e.start), end: +new Date(e.end) })),
+    ...data.google.events.map((e) => ({
+      kind: "google" as const,
+      title: e.title,
+      start: +new Date(e.start),
+      end: +new Date(e.end),
+      demo: demoAt.get(+new Date(e.start)),
+    })),
+    ...data.demos.map((e) => ({ kind: "demo" as const, title: e.title, start: +new Date(e.start), end: +new Date(e.end), demo: e })),
   ].filter((b) => Number.isFinite(b.start) && Number.isFinite(b.end) && b.end > b.start);
 
   // Hours shown: 8am to 6pm, stretched to fit anything earlier or later.
@@ -480,10 +491,26 @@ export function WeekGrid({
             >
               {dayBlocks.map((b, i) => {
                 const color = b.kind === "google" ? "#4f8cff" : "#a66cff";
+                const demo = onOpenDemo && b.demo?.contactId ? b.demo : null;
                 return (
                   <div
                     key={`${b.kind}-${i}`}
-                    className="absolute left-[3px] right-[3px] overflow-hidden rounded-lg px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-text"
+                    role={demo ? "button" : undefined}
+                    tabIndex={demo ? 0 : undefined}
+                    onClick={demo ? () => onOpenDemo!(demo) : undefined}
+                    onKeyDown={
+                      demo
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              onOpenDemo!(demo);
+                            }
+                          }
+                        : undefined
+                    }
+                    className={`absolute left-[3px] right-[3px] overflow-hidden rounded-lg px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-text ${
+                      demo ? "cursor-pointer hover:brightness-110" : ""
+                    }`}
                     style={{
                       top: top(b.start),
                       height: Math.max(18, ((b.end - b.start) / 3600_000) * PX - 2),
