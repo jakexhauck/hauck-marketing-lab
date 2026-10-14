@@ -25,7 +25,7 @@ export default function EstimateTrackingCard({ tenantId }: { tenantId: string })
         <h2 className="flex-1 font-display text-[16.5px] font-semibold text-text">
           New Ads Dashboard
         </h2>
-        {query.isError ? (
+        {query.isLoadingError ? (
           <span className="text-[12.5px] font-medium text-danger">Did not load</span>
         ) : (
           <Switch

@@ -144,7 +144,7 @@ export default function CreativeFilesSection({ tenantId }: { tenantId: string })
       )}
 
       <div className="mt-4">
-        {query.isError ? (
+        {query.isLoadingError ? (
           <ErrorNote message={(query.error as Error | null)?.message} />
         ) : query.isLoading && !query.data ? (
           <Spinner />

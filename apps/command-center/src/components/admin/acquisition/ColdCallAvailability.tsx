@@ -184,7 +184,7 @@ export default function ColdCallAvailability({
   }
 
   if (query.isLoading) return <div className="pk-empty">Loading availability...</div>;
-  if (query.isError) {
+  if (query.isLoadingError) {
     return (
       <div className="pk-empty">Could not load availability. Reload to try again.</div>
     );

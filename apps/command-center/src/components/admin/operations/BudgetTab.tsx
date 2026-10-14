@@ -161,7 +161,7 @@ export default function BudgetTab() {
           </button>
         </div>
       </div>
-      {isError || recurring.isError ? (
+      {isError || recurring.isLoadingError ? (
         <div className="pk-empty">Could not load the budget.</div>
       ) : isLoading || !data || !recurring.data ? null : (
         <BudgetBody month={month} rows={data.rows} recurring={recurring.data.items} />
@@ -478,7 +478,7 @@ function BudgetMonth({
           )}
         </div>
         {save.isError && <div className="bud-err">Could not save. Try again.</div>}
-        {(smsCost.isError || smsCost.data?.error) && <div className="bud-err">Could not sync cold SMS cost.</div>}
+        {(smsCost.isLoadingError || smsCost.data?.error) && <div className="bud-err">Could not sync cold SMS cost.</div>}
       </div>
     </>
   );

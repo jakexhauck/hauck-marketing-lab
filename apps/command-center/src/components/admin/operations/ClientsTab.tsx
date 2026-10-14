@@ -323,7 +323,7 @@ export default function ClientsTab() {
                   Loading...
                 </td>
               </tr>
-            ) : tracker.isError ? (
+            ) : tracker.isLoadingError ? (
               <tr>
                 <td className="empty" colSpan={COLS.length + 1}>
                   The list did not load.

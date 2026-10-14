@@ -30,7 +30,7 @@ export function useLeadPipeline(kind: LeadPipelineKind) {
   return {
     pipeline,
     isLoading: useReal && query.isLoading,
-    isError: useReal && query.isError,
+    isError: useReal && query.isLoadingError,
     error: (useReal && (query.error as Error | null)) || null,
   };
 }

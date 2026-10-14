@@ -265,7 +265,7 @@ export default function ColdCallManage({
   };
 
   if (leadsQuery.isLoading) return <div className="pk-empty">Loading the book...</div>;
-  if (leadsQuery.isError) {
+  if (leadsQuery.isLoadingError) {
     return <div className="pk-empty">Could not load the book. Reload to try again.</div>;
   }
 

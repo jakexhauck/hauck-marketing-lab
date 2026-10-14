@@ -67,7 +67,7 @@ export default function BillingTab({ tenantId }: { tenantId: string }) {
     return <div className="pk-empty">Loading billing...</div>;
   }
 
-  if (billingQuery.isError) {
+  if (billingQuery.isLoadingError) {
     return <div className="pk-empty">Could not load this client's billing record.</div>;
   }
 

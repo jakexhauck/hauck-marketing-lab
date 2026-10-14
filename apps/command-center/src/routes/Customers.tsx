@@ -213,7 +213,7 @@ export default function Customers() {
     return columns.find((c) => (matches.get(c.id)?.length ?? 0) > 0)?.id ?? current;
   }, [activeTab, columns, matches, trimmed]);
 
-  const noCustomers = !query.isLoading && !query.isError && totals.count === 0;
+  const noCustomers = !query.isLoading && !query.isLoadingError && totals.count === 0;
 
   return (
     <Shell>
@@ -223,7 +223,7 @@ export default function Customers() {
           count={totals.count > 0 ? totals.count : undefined}
         />
 
-        {query.isError ? (
+        {query.isLoadingError ? (
           <div className="flex flex-col items-start gap-3 rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
             <span>
               Failed to load customers. {(query.error as Error | null)?.message ?? ""}

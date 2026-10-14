@@ -92,7 +92,7 @@ export default function ReviewsChats() {
                 />
               </div>
 
-              {query.isError ? (
+              {query.isLoadingError ? (
                 <div className="m-3 rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
                   Failed to load conversations.
                 </div>
@@ -200,7 +200,7 @@ function MobileChats({
           />
         </div>
 
-        {query.isError ? (
+        {query.isLoadingError ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
             Failed to load conversations.
           </div>

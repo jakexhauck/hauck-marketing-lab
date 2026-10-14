@@ -181,7 +181,7 @@ export default function ColdCallSection() {
       html=""
       subtitle="Agency cold calling"
       isLoading={shelfQuery.isLoading}
-      isError={shelfQuery.isError}
+      isError={shelfQuery.isLoadingError}
       // Three different nothings, and telling them apart is the difference
       // between a useful hint and one that sends somebody to add a variation
       // they already added.

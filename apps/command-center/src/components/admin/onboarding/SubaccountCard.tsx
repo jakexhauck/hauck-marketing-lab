@@ -202,7 +202,7 @@ export default function SubaccountCard({ tenantId, clientName, isLive }: Props) 
             )}
           </div>
 
-          {locations.isError && (
+          {locations.isLoadingError && (
             <span className="text-[12.5px] font-medium text-danger">
               {(locations.error as Error)?.message ?? "That list did not load."}
             </span>

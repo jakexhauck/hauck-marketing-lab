@@ -150,7 +150,7 @@ export default function ScriptsPanel() {
 
       {query.isLoading ? (
         <p className="mt-4 text-[13px] text-muted">Loading the scripts...</p>
-      ) : query.isError ? (
+      ) : query.isLoadingError ? (
         <p className="mt-4 text-[13px] text-danger">Could not load the scripts.</p>
       ) : live.length === 0 && archived.length === 0 ? (
         <p className="mt-4 text-[13px] text-muted">

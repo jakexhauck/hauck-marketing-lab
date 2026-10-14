@@ -46,7 +46,7 @@ export default function ColdCallTeamAvailability() {
   if (query.isLoading) {
     return <div className="pk-empty">Loading the team&apos;s week...</div>;
   }
-  if (query.isError) {
+  if (query.isLoadingError) {
     return (
       <div className="pk-empty">
         Could not load the team&apos;s availability. Reload to try again.

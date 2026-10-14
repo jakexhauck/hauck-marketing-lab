@@ -87,7 +87,7 @@ export default function ActivityDesktop() {
           <NotificationsView
             notifications={notifications}
             isLoading={notificationsQuery.isLoading}
-            isError={notificationsQuery.isError}
+            isError={notificationsQuery.isLoadingError}
             error={notificationsQuery.error}
             onRetry={() => notificationsQuery.refetch()}
             onMarkRead={(id) => markRead.mutate({ id })}
@@ -96,7 +96,7 @@ export default function ActivityDesktop() {
           <ActivityLogView
             activity={activity}
             isLoading={activityQuery.isLoading}
-            isError={activityQuery.isError}
+            isError={activityQuery.isLoadingError}
             error={activityQuery.error}
             onRetry={() => activityQuery.refetch()}
           />

@@ -27,7 +27,7 @@ function formFrom(b: AdminClientBilling): Form {
 export default function SalesCallTrackerStep({ callId, onDone }: { callId: string; onDone: () => void }) {
   const tracker = useCallTrackerQuery(callId);
   if (tracker.isLoading) return <p className="py-6 text-center text-[13px] text-muted">Loading...</p>;
-  if (tracker.isError || !tracker.data) {
+  if (tracker.isLoadingError || !tracker.data) {
     return <p className="py-6 text-center text-[13px] text-danger">The tracker row did not load.</p>;
   }
   return (

@@ -20,7 +20,7 @@ export default function AdsCreatives() {
       <div className={PAID_ADS_CONTAINER}>
         <PageBar tabs={[]} section="Creatives" />
 
-        {query.isError ? (
+        {query.isLoadingError ? (
           <ErrorNote message={(query.error as Error | null)?.message} />
         ) : query.isLoading && !query.data ? (
           <Spinner />

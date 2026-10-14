@@ -32,7 +32,7 @@ export default function AdsDashboard() {
       <div className={PAID_ADS_CONTAINER}>
         <PageBar tabs={[]} section="Ads Dashboard" />
 
-        {status.isError ? (
+        {status.isLoadingError ? (
           <ErrorNote message={(status.error as Error | null)?.message} />
         ) : !status.data ? (
           // No answer yet, not "not launched". Offline with nothing saved, the
@@ -41,7 +41,7 @@ export default function AdsDashboard() {
           <Spinner />
         ) : !launched ? (
           <AdsComingSoon />
-        ) : query.isError ? (
+        ) : query.isLoadingError ? (
           <ErrorNote message={(query.error as Error | null)?.message} />
         ) : query.isLoading && !data ? (
           <Spinner />

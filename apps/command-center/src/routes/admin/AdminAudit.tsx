@@ -143,7 +143,7 @@ export default function AdminAudit() {
           </button>
         )}
 
-        {clientsQuery.isError && (
+        {clientsQuery.isLoadingError && (
           <span className="text-warning">Client names could not be loaded.</span>
         )}
       </div>
@@ -153,7 +153,7 @@ export default function AdminAudit() {
           failed, on a page whose whole job is proving what happened. */}
       {auditQuery.isLoading ? (
         <div className="pk-empty">Loading the audit log...</div>
-      ) : auditQuery.isError ? (
+      ) : auditQuery.isLoadingError ? (
         <div className="pk-empty">
           <p>Could not load the audit log. Nothing here is proof of anything until it loads.</p>
           <button

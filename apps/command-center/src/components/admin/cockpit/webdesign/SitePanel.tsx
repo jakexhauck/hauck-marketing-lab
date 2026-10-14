@@ -28,7 +28,7 @@ export default function SitePanel({ tenantId }: { tenantId: string }) {
   if (detailQuery.isLoading) {
     return <div className="pk-empty">Loading site...</div>;
   }
-  if (detailQuery.isError || !detailQuery.data) {
+  if (detailQuery.isLoadingError || !detailQuery.data) {
     return <div className="pk-empty">Could not load this client's site.</div>;
   }
 

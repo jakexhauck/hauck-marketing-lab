@@ -871,7 +871,7 @@ function BookingSlots({
     );
   }
   const data = slots.data;
-  if (slots.isError || (data && !data.ok)) {
+  if (slots.isLoadingError || (data && !data.ok)) {
     const needsStaff = data?.error === "calendar_needs_staff";
     const notFound = data?.error === "calendar_not_found";
     return (

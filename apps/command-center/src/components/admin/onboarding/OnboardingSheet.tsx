@@ -47,7 +47,7 @@ export function ClientSheet({ tenantId }: { tenantId: string }) {
       <SheetView
         sections={sections}
         loading={record.isLoading || secrets.isLoading}
-        error={record.isError ? "That client's record did not load." : null}
+        error={record.isLoadingError ? "That client's record did not load." : null}
       />
     </div>
   );
@@ -67,7 +67,7 @@ export function SubmissionSheet({ submissionId }: { submissionId: string }) {
       <SheetView
         sections={sections}
         loading={detail.isLoading}
-        error={detail.isError ? "That form did not load." : null}
+        error={detail.isLoadingError ? "That form did not load." : null}
       />
     </div>
   );

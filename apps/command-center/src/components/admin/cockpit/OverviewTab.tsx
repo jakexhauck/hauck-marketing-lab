@@ -36,7 +36,7 @@ export default function OverviewTab({
   if (detailQuery.isLoading) {
     return <div className="pk-empty">Loading overview...</div>;
   }
-  if (detailQuery.isError || !detailQuery.data) {
+  if (detailQuery.isLoadingError || !detailQuery.data) {
     return <div className="pk-empty">Could not load this client's overview.</div>;
   }
 

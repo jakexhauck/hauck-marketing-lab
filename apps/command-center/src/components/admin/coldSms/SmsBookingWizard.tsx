@@ -238,7 +238,7 @@ export default function SmsBookingWizard({
                 <div className="grid flex-1 place-items-center text-[13px] text-faint">
                   <Loader2 className="animate-spin" size={18} />
                 </div>
-              ) : week.isError ? (
+              ) : week.isLoadingError ? (
                 <div className="grid flex-1 place-items-center text-[13px] text-faint">The calendar did not load.</div>
               ) : !week.data?.calendar ? (
                 <div className="grid flex-1 place-items-center text-[13px] text-faint">

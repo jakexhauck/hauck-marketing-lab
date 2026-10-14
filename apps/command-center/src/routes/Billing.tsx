@@ -151,7 +151,7 @@ export default function Billing() {
 
       <main className="flex flex-1 flex-col gap-6 px-5 pb-28 pt-3">
         <section className="flex flex-col gap-2">
-          {invoicesQuery.isError ? (
+          {invoicesQuery.isLoadingError ? (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
               Failed to load invoices.{" "}
               {(invoicesQuery.error as Error | null)?.message ?? "Try again."}
@@ -298,7 +298,7 @@ function InvoiceDetailSheet({ invoiceId, enabled, onClose }: SheetProps) {
           <p className="py-8 text-center text-sm text-[var(--text-muted)]">
             Loading invoice.
           </p>
-        ) : query.isError || !inv ? (
+        ) : query.isLoadingError || !inv ? (
           <p className="py-8 text-center text-sm text-[var(--text-muted)]">
             Could not load this invoice.
           </p>

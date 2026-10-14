@@ -51,7 +51,7 @@ export default function OnboardingWizard() {
   if (forms.isLoading) {
     return <p className="mt-6 text-[13px] text-muted">Loading...</p>;
   }
-  if (forms.isError) {
+  if (forms.isLoadingError) {
     return <p className="mt-6 text-[13px] text-danger">Forms did not load.</p>;
   }
   if (rows.length === 0) {

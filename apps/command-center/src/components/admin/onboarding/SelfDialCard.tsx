@@ -26,7 +26,7 @@ export default function SelfDialCard({ tenantId }: { tenantId: string }) {
         <h2 className="flex-1 font-display text-[16.5px] font-semibold text-text">
           Client dials own leads
         </h2>
-        {query.isError ? (
+        {query.isLoadingError ? (
           <span className="text-[12.5px] font-medium text-danger">Did not load</span>
         ) : (
           <Switch

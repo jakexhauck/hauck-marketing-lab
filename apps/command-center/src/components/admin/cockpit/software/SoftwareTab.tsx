@@ -42,7 +42,7 @@ export default function SoftwareTab({ tenantId }: { tenantId: string }) {
   const selected = pages.find((p) => p.id === selectedId) ?? pages[0];
   const selectedPath = selected ? resolveRecordPath(selected, recordIds) : null;
 
-  const tokenError = tokenQuery.isError
+  const tokenError = tokenQuery.isLoadingError
     ? tokenQuery.error instanceof ApiError && tokenQuery.error.status === 404
       ? "This client could not be found."
       : "Could not start the preview. Try reloading the page."

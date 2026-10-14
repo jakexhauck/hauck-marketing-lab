@@ -42,7 +42,7 @@ export default function LeadFormsPanel({
     create.mutate(undefined, { onSuccess: ({ form }) => setOpenId(form.id) });
   };
 
-  if (query.isError) return <ErrorNote message={(query.error as Error | null)?.message} />;
+  if (query.isLoadingError) return <ErrorNote message={(query.error as Error | null)?.message} />;
   if (query.isLoading && !query.data) return <Spinner />;
 
   // The list is not refetched under an open editor, so the row this was opened

@@ -216,7 +216,7 @@ export default function SmsPipelineBoard({ kind = "cold-sms" }: { kind?: Pipelin
   };
 
   if (board.isLoading) return <div className="pk-empty">Reading the board...</div>;
-  if (board.isError) {
+  if (board.isLoadingError) {
     const upstream = board.error instanceof ApiError && board.error.status === 502;
     return <div className="pk-empty">{upstream ? "GoHighLevel did not answer. Try again in a minute." : "The board did not load."}</div>;
   }

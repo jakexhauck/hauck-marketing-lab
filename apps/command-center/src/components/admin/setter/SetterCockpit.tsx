@@ -421,7 +421,7 @@ export default function SetterCockpit({
               fold={sheet}
               meta={sheet && tags.length > 0 ? tags.length : undefined}
             >
-              {detailQuery.isError ? (
+              {detailQuery.isLoadingError ? (
                 <DetailLoadError what="tags" onRetry={() => detailQuery.refetch()} />
               ) : detailQuery.isLoading ? (
                 <p className="text-[12.5px] text-muted">Loading tags...</p>
@@ -456,7 +456,7 @@ export default function SetterCockpit({
         </CockpitSection>
 
         <CockpitSection title="Tags">
-          {detailQuery.isError ? (
+          {detailQuery.isLoadingError ? (
             <DetailLoadError what="tags" onRetry={() => detailQuery.refetch()} />
           ) : (
             <TagField tenantId={tenantId} contactId={lead.contactId} tags={tags} dials={dials} />
@@ -474,7 +474,7 @@ export default function SetterCockpit({
         >
           {detailQuery.isLoading ? (
             <p className="text-[12.5px] text-muted">Loading history...</p>
-          ) : detailQuery.isError ? (
+          ) : detailQuery.isLoadingError ? (
             <DetailLoadError what="call history" onRetry={() => detailQuery.refetch()} />
           ) : dials.length === 0 ? (
             <p className="text-[12.5px] text-faint">No dials logged yet.</p>

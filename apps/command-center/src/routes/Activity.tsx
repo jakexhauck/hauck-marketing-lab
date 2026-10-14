@@ -97,7 +97,7 @@ export function Activity() {
         <NotificationsView
           notifications={notifications}
           isLoading={notificationsQuery.isLoading}
-          isError={notificationsQuery.isError}
+          isError={notificationsQuery.isLoadingError}
           onRetry={() => notificationsQuery.refetch()}
           onMarkRead={markOne}
         />
@@ -105,7 +105,7 @@ export function Activity() {
         <ActivityLogView
           activity={activity}
           isLoading={activityQuery.isLoading}
-          isError={activityQuery.isError}
+          isError={activityQuery.isLoadingError}
           onRetry={() => activityQuery.refetch()}
         />
       )}

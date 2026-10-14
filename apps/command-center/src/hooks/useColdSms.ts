@@ -115,7 +115,7 @@ export function useColdSmsDailyRange(months: string[]) {
     combine: (results) => ({
       rows: results.flatMap((r) => r.data?.rows ?? []),
       isLoading: results.some((r) => r.isLoading),
-      isError: results.some((r) => r.isError),
+      isError: results.some((r) => r.isLoadingError),
     }),
   });
 }

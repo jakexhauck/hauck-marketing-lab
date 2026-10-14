@@ -28,7 +28,7 @@ export default function CreativesPanel({
       <CreativeFilesSection tenantId={tenantId} />
       <CreativeUploader tenantId={tenantId} library={libraryItems} disabled={!linked} />
       {linked &&
-        (library.isError ? (
+        (library.isLoadingError ? (
           <ErrorNote message={(library.error as Error | null)?.message} />
         ) : library.isLoading ? (
           <Spinner />

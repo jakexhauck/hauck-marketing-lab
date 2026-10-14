@@ -361,7 +361,7 @@ export default function QuickBook() {
           <>
             {slotsQ.isLoading || formQ.isLoading ? (
               <p className="px-1 text-[14px] text-muted">Loading times</p>
-            ) : slotsQ.isError ? (
+            ) : slotsQ.isLoadingError ? (
               <p className="px-1 text-[14px] text-danger">
                 {errorCode(slotsQ.error) === "needs_staff"
                   ? BOOK_ERRORS.needs_staff

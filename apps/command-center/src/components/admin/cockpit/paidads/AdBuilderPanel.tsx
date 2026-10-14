@@ -78,7 +78,7 @@ export default function AdBuilderPanel({ tenantId }: { tenantId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {query.isError ? (
+      {query.isLoadingError ? (
         <ErrorNote message={(query.error as Error | null)?.message} />
       ) : !draft || !saved.current ? (
         <Spinner />

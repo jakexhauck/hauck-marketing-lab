@@ -52,7 +52,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const gateEligible =
     status === "authenticated" && !isAdmin && !preview && !needsIdentity && crmConnected;
   const gate = useSocialGate(gateEligible && !demoMode());
-  const appVisible = gateEligible && (gate.isError || gate.data?.blocked === false);
+  const appVisible = gateEligible && (gate.isLoadingError || gate.data?.blocked === false);
   // Organic's step shows only where its sidebar row does.
   const hasData = useNavDataGates(appVisible);
 

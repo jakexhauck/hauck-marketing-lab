@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-14-ghl-busy-retry",
+    date: "14 October 2026",
+    title: "Pages ride out a busy GHL",
+    items: [
+      "When GHL is busy or a connection drops, the app now tries three times on the server and three times in your browser before it gives up. A short GHL hiccup no longer shows \"GoHighLevel did not answer\".",
+      "A page that already has data on screen keeps it if a background refresh fails, instead of swapping to an error.",
+    ],
+  },
+  {
     id: "2026-10-14-open-lead-auto",
     date: "14 October 2026",
     title: "Open Lead fills itself in",

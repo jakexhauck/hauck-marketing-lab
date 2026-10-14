@@ -89,7 +89,7 @@ export default function CallCockpit({
   // ticks are still real (normalizeCallState), so drawing the cockpit before it
   // lands would drop every tick from a call in progress on a mid-call refresh.
   if (playbook.isLoading) return <div className="pk-empty">Reading the playbook...</div>;
-  if (playbook.isError) {
+  if (playbook.isLoadingError) {
     return <div className="pk-empty">Could not load the playbook. Reload to try again.</div>;
   }
 

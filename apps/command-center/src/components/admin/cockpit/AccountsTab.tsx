@@ -59,7 +59,7 @@ export default function AccountsTab({ client }: { client: AdminClient }) {
       </header>
 
       {query.isLoading && <div className="pk-empty">Checking...</div>}
-      {query.isError && <div className="pk-empty">{(query.error as Error).message || "Could not check."}</div>}
+      {query.isLoadingError && <div className="pk-empty">{(query.error as Error).message || "Could not check."}</div>}
 
       {checks.length > 0 &&
         GROUPS.map((g) => (

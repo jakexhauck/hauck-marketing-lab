@@ -27,7 +27,7 @@ export default function ReviewsPipeline() {
         <ReviewsFunnelView
           data={funnel.data}
           isLoading={funnel.isLoading}
-          isError={funnel.isError}
+          isError={funnel.isLoadingError}
           onRetry={() => funnel.refetch()}
         />
       </div>

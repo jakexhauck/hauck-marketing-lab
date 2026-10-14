@@ -18,7 +18,7 @@ export default function AdsMetaDataPanel({ tenantId }: { tenantId: string }) {
   const rows = useMemo(() => query.data?.rows ?? [], [query.data]);
   const days = useMemo(() => groupMetaDaysByDate(rows), [rows]);
 
-  if (query.isError) {
+  if (query.isLoadingError) {
     return <ErrorNote message={(query.error as Error | null)?.message} />;
   }
   if (query.isLoading && !query.data) return <Spinner />;

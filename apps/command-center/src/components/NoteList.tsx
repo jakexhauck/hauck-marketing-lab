@@ -101,7 +101,7 @@ export default function NoteList({ contactId, onToast }: Props) {
 
       {notesQuery.isLoading ? (
         <p className="text-sm text-[var(--text-muted)]">Loading notes.</p>
-      ) : notesQuery.isError ? (
+      ) : notesQuery.isLoadingError ? (
         <p className="text-sm text-[var(--text-muted)]">
           Could not load notes.
         </p>

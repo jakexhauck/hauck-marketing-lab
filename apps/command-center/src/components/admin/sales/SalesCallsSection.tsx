@@ -157,7 +157,7 @@ export default function SalesCallsSection() {
   }, [allMeetings, openId]);
 
   if (query.isLoading) return <div className="pk-empty">Reading the calendar...</div>;
-  if (query.isError) {
+  if (query.isLoadingError) {
     return <div className="pk-empty">Could not load the sales calls. Reload to try again.</div>;
   }
 

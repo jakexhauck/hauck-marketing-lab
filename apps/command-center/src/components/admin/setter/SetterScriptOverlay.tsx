@@ -19,7 +19,7 @@ export default function SetterScriptOverlay({ tenantId, clientName, onClose }: P
       html={scriptQuery.data?.html ?? ""}
       subtitle={clientName}
       isLoading={scriptQuery.isLoading}
-      isError={scriptQuery.isError}
+      isError={scriptQuery.isLoadingError}
       emptyHint="No script yet. Write it in the Settings tab and it will show here."
       onClose={onClose}
     />

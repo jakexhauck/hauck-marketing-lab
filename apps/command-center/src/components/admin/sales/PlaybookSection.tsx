@@ -92,7 +92,7 @@ export default function PlaybookSection() {
   );
 
   if (query.isLoading) return <div className="pk-empty">Reading the playbook...</div>;
-  if (query.isError) {
+  if (query.isLoadingError) {
     return <div className="pk-empty">Could not load the playbook. Reload to try again.</div>;
   }
 

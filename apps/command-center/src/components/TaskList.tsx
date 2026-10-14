@@ -163,7 +163,7 @@ export default function TaskList({ contactId, onToast }: Props) {
 
       {tasksQuery.isLoading ? (
         <p className="text-sm text-[var(--text-muted)]">Loading tasks.</p>
-      ) : tasksQuery.isError ? (
+      ) : tasksQuery.isLoadingError ? (
         <p className="text-sm text-[var(--text-muted)]">Could not load tasks.</p>
       ) : tasks.length === 0 ? (
         <p className="text-sm text-[var(--text-muted)]">No tasks yet.</p>

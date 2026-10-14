@@ -96,7 +96,7 @@ export default function SetterSettings({ tenantId, clientName }: Props) {
         subtitle={`${clientName}'s full script. Setters open this from the lead cockpit.`}
         html={scriptQuery.data?.html}
         isLoading={scriptQuery.isLoading}
-        isError={scriptQuery.isError}
+        isError={scriptQuery.isLoadingError}
         save={(html) => saveMutation.mutateAsync({ tenantId, html })}
       />
     </div>

@@ -238,7 +238,7 @@ export default function PagesPanel({ tenantId }: { tenantId: string }) {
   if (detailQuery.isLoading || pagesQuery.isLoading) {
     return <div className="pk-empty">Loading pages...</div>;
   }
-  if (pagesQuery.isError || !pagesQuery.data) {
+  if (pagesQuery.isLoadingError || !pagesQuery.data) {
     return <div className="pk-empty">Could not load this client's pages.</div>;
   }
 

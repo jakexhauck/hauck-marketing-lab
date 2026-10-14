@@ -56,23 +56,35 @@ export async function ghlFetch(
     method === "DELETE" ||
     options.idempotentPost === true;
 
-  let res = await fetch(url, { ...init, headers });
-  if (!retryable) return res;
+  if (!retryable) return fetch(url, { ...init, headers });
 
-  if (res.status >= 500) {
-    await new Promise((r) => setTimeout(r, 1000));
-    res = await fetch(url, { ...init, headers });
-  } else if (res.status === 429) {
+  // Up to three tries, 1s then 2s apart. One retry was not enough: on
+  // 2026-10-14 the Cold SMS board showed "GoHighLevel did not answer" while the
+  // cold text workflows were bursting on the same location, and the busy patch
+  // outlasted a single 1s wait. A dropped connection (fetch rejects) is retried
+  // too; before, it went straight to the caller as a 502.
+  for (let attempt = 1; ; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(url, { ...init, headers });
+    } catch (err) {
+      if (attempt >= GHL_TRIES) throw err;
+      await sleep(attempt * 1000);
+      continue;
+    }
+    if (res.ok || attempt >= GHL_TRIES || (res.status < 500 && res.status !== 429)) return res;
     const retryAfter = Number(res.headers.get("retry-after"));
-    const waitMs = Math.min(
-      Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 1000,
-      2000,
-    );
-    await new Promise((r) => setTimeout(r, waitMs));
-    res = await fetch(url, { ...init, headers });
+    const waitMs =
+      res.status === 429 && Number.isFinite(retryAfter) && retryAfter > 0
+        ? Math.min(retryAfter * 1000, 4000)
+        : attempt * 1000;
+    await sleep(waitMs);
   }
-  return res;
 }
+
+const GHL_TRIES = 3;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function ghlJson<T>(
   ctx: GhlContext,

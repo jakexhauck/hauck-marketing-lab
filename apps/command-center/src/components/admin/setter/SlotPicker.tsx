@@ -136,7 +136,7 @@ export default function SlotPicker({ tenantId, contactId, leadName }: Props) {
   // problem to retry, the other is the client's setup. So neither renders a
   // select at all.
   const calendarsLoading = calendarsQuery.isLoading;
-  const calendarsFailed = calendarsQuery.isError;
+  const calendarsFailed = calendarsQuery.isLoadingError;
   const calendarsEmpty = !calendarsLoading && !calendarsFailed && calendars.length === 0;
   const canPickCalendar = !calendarsLoading && !calendarsFailed && calendars.length > 0;
 
@@ -240,20 +240,20 @@ export default function SlotPicker({ tenantId, contactId, leadName }: Props) {
         </div>
       )}
 
-      {!!calendarId && !slotsQuery.isLoading && slotsQuery.isError && !needsStaff && !notFound && (
+      {!!calendarId && !slotsQuery.isLoading && slotsQuery.isLoadingError && !needsStaff && !notFound && (
         <div className={noticeClass}>
           <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
           <span>Could not load available times. Try again.</span>
         </div>
       )}
 
-      {!!calendarId && !slotsQuery.isLoading && !slotsQuery.isError && days.length === 0 && (
+      {!!calendarId && !slotsQuery.isLoading && !slotsQuery.isLoadingError && days.length === 0 && (
         <p className="py-2 text-[12.5px] text-muted">
           No open times on this calendar in the next {DAYS_AHEAD} days.
         </p>
       )}
 
-      {!!calendarId && !slotsQuery.isLoading && !slotsQuery.isError && days.length > 0 && (
+      {!!calendarId && !slotsQuery.isLoading && !slotsQuery.isLoadingError && days.length > 0 && (
         <>
           <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
             {days.map((d) => {

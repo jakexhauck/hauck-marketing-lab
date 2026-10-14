@@ -90,7 +90,7 @@ export default function ConversationsDesktop() {
             </div>
           </div>
 
-          {query.isError ? (
+          {query.isLoadingError ? (
             <div className="m-3 rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
               Failed to load conversations.
             </div>

@@ -98,7 +98,7 @@ export default function SetterNotesTasks({ tenantId, contactId, leadName, fold }
         </Button>
       </div>
 
-      {notesQuery.isError ? (
+      {notesQuery.isLoadingError ? (
         <p className="mt-3 text-[12px] text-danger">Could not load notes.</p>
       ) : notesQuery.isLoading ? (
         <p className="mt-3 text-[12px] text-muted">Loading notes...</p>

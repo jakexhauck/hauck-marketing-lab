@@ -35,7 +35,7 @@ export default function AdsMetaData() {
           }
         />
 
-        {status.isError ? (
+        {status.isLoadingError ? (
           <ErrorNote message={(status.error as Error | null)?.message} />
         ) : !status.data ? (
           // No answer yet, not "not launched". Offline with nothing saved, the
@@ -44,7 +44,7 @@ export default function AdsMetaData() {
           <Spinner />
         ) : !launched ? (
           <AdsComingSoon />
-        ) : query.isError ? (
+        ) : query.isLoadingError ? (
           <ErrorNote message={(query.error as Error | null)?.message} />
         ) : query.isLoading && !query.data ? (
           <Spinner />

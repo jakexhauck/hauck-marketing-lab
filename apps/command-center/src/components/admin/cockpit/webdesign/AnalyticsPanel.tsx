@@ -55,7 +55,7 @@ export default function AnalyticsPanel({ tenantId }: { tenantId: string }) {
   if (query.isLoading) {
     return <div className="pk-empty">Loading analytics...</div>;
   }
-  if (query.isError || !query.data) {
+  if (query.isLoadingError || !query.data) {
     return <div className="pk-empty">Could not load this client's analytics.</div>;
   }
 

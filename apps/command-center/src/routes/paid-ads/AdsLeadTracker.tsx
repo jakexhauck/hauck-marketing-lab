@@ -39,7 +39,7 @@ export default function AdsLeadTracker() {
   // in production must never see fabricated leads (the golden rule). Vanishes the
   // moment real leads flow, and is never mixed with real leads.
   const usingSample =
-    import.meta.env.DEV && launched && !query.isLoading && !query.isError && realLeads.length === 0;
+    import.meta.env.DEV && launched && !query.isLoading && !query.isLoadingError && realLeads.length === 0;
   const leads = usingSample ? SAMPLE_LEADS : realLeads;
 
   const visible = useMemo(() => filterLeads(leads, search), [leads, search]);
@@ -71,7 +71,7 @@ export default function AdsLeadTracker() {
           filters={launched ? <LeadSearch value={search} onChange={setSearch} /> : undefined}
         />
 
-        {status.isError ? (
+        {status.isLoadingError ? (
           <ErrorNote message={(status.error as Error | null)?.message} />
         ) : !status.data ? (
           // No answer yet, not "not launched". Offline with nothing saved, the
@@ -80,7 +80,7 @@ export default function AdsLeadTracker() {
           <Spinner />
         ) : !launched ? (
           <AdsComingSoon />
-        ) : query.isError ? (
+        ) : query.isLoadingError ? (
           <ErrorNote message={(query.error as Error | null)?.message} />
         ) : query.isLoading && !data ? (
           <Spinner />

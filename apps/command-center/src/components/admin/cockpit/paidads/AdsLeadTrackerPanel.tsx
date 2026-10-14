@@ -39,7 +39,7 @@ export default function AdsLeadTrackerPanel({ tenantId }: { tenantId: string }) 
         <Segmented options={RANGES} value={range} onChange={setRange} label="Date range" />
       </div>
 
-      {query.isError ? (
+      {query.isLoadingError ? (
         <ErrorNote message={(query.error as Error | null)?.message} />
       ) : query.isLoading && !query.data ? (
         <Spinner />

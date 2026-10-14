@@ -155,7 +155,7 @@ export default function ContractRail({ tenantId }: { tenantId: string }) {
 
       {query.isLoading ? (
         <div className="ctr-muted">Loading...</div>
-      ) : query.isError ? (
+      ) : query.isLoadingError ? (
         <div className="ctr-err">Could not load the contract.</div>
       ) : read.isPending ? (
         <div className="ctr-reading" role="status">

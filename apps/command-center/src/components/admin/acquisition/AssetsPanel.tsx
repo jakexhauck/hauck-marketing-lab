@@ -189,7 +189,7 @@ export default function AssetsPanel({
 
       {query.isLoading ? (
         <p className="mt-4 text-[13px] text-muted">Loading...</p>
-      ) : query.isError ? (
+      ) : query.isLoadingError ? (
         <p className="mt-4 text-[13px] text-danger">Could not load these.</p>
       ) : groups.length === 0 ? (
         <p className="mt-4 text-[13px] text-muted">{text.emptyText}</p>

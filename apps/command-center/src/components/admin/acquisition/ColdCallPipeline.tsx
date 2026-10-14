@@ -50,7 +50,7 @@ export default function ColdCallPipeline() {
   const locationId = cards.data?.locationId ?? list.data?.locationId ?? "";
 
   if (list.isLoading) return <div className="pk-empty">Reading the board...</div>;
-  if (list.isError || cards.isError) {
+  if (list.isLoadingError || cards.isLoadingError) {
     // Say which side failed. This blamed GoHighLevel for everything, including
     // its own 401s, which is how a session being torn down by a database hiccup
     // came to look like the CRM being down and got debugged in the wrong

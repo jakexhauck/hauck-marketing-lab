@@ -243,7 +243,7 @@ function BookTheCall({ calendarId }: { calendarId: string }) {
     >
       {slots.isLoading ? (
         <p className="text-[13px] text-muted">Reading the calendar...</p>
-      ) : slots.isError ? (
+      ) : slots.isLoadingError ? (
         <p className="text-[13px] text-danger">
           Could not read the onboarding calendar&apos;s free times.
         </p>

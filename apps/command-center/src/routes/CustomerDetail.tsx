@@ -169,7 +169,7 @@ export default function CustomerDetail() {
               aria-hidden
             />
           </div>
-        ) : query.isError || !data ? (
+        ) : query.isLoadingError || !data ? (
           <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
             That customer could not be found.
           </div>

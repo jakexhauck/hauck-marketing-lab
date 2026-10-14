@@ -343,7 +343,7 @@ export default function SetterSuite({ lockedTenantId }: { lockedTenantId?: strin
 
       {clientsQuery.isLoading ? (
         <div className="pk-empty">Loading clients...</div>
-      ) : clientsQuery.isError ? (
+      ) : clientsQuery.isLoadingError ? (
         <div className="pk-empty">Could not load clients.</div>
       ) : clients.length === 0 ? (
         <div className="pk-empty">No clients yet.</div>
@@ -428,13 +428,13 @@ export default function SetterSuite({ lockedTenantId }: { lockedTenantId?: strin
 
               {pipelinesQuery.isLoading ? (
                 <div className="pk-empty">Loading pipelines...</div>
-              ) : pipelinesQuery.isError ? (
+              ) : pipelinesQuery.isLoadingError ? (
                 <div className="pk-empty">Could not load pipelines for {activeClient.name}.</div>
               ) : !activePipeline ? (
                 <div className="pk-empty">No pipelines found for {activeClient.name}.</div>
               ) : leadsQuery.isLoading ? (
                 <div className="pk-empty">Loading leads...</div>
-              ) : leadsQuery.isError ? (
+              ) : leadsQuery.isLoadingError ? (
                 <div className="pk-empty">Could not load leads for {activePipeline.name}.</div>
               ) : (
                 <div className="flex items-start gap-4">

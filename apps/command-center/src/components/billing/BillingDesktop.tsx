@@ -443,7 +443,7 @@ export default function BillingDesktop() {
             </div>
           </div>
 
-          {invoicesQuery.isError ? (
+          {invoicesQuery.isLoadingError ? (
             <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
               Failed to load invoices.{" "}
               {(invoicesQuery.error as Error | null)?.message ?? "Try again."}
@@ -545,7 +545,7 @@ export default function BillingDesktop() {
             : ""}
         </h2>
 
-        {txQuery.isError ? (
+        {txQuery.isLoadingError ? (
           <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
             Failed to load payments.{" "}
             {(txQuery.error as Error | null)?.message ?? "Try again."}

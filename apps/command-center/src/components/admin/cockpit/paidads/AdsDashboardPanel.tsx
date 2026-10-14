@@ -67,7 +67,7 @@ export default function AdsDashboardPanel({ tenantId }: { tenantId: string }) {
   const sync = useAdsSyncMutation();
   const data = query.data;
 
-  if (query.isError) {
+  if (query.isLoadingError) {
     return <ErrorNote message={(query.error as Error | null)?.message} />;
   }
   if (query.isLoading && !data) return <Spinner />;

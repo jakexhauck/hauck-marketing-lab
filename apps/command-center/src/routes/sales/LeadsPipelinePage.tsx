@@ -94,7 +94,7 @@ export default function LeadsPipelinePage({ kind }: { kind: LeadPipelineKind }) 
           }
         />
 
-        {leadsQuery.isError ? (
+        {leadsQuery.isLoadingError ? (
           <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
             Could not load this pipeline. {(leadsQuery.error as Error | null)?.message ?? ""}
           </div>

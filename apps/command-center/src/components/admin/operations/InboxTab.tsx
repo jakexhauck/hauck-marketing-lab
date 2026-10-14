@@ -65,7 +65,7 @@ export default function InboxTab() {
 
   // Loading, failed and empty stay three separate answers: an in-flight or
   // failed read must never render as "nobody has messaged you".
-  const listStatus = inboxQuery.isError ? "failed" : data ? "ready" : "loading";
+  const listStatus = inboxQuery.isLoadingError ? "failed" : data ? "ready" : "loading";
 
   const threadQuery = useAgencyThreadQuery(selected?.contactId ?? null, !!selected);
   // The thread's own copy is authoritative (the same record the send hits); the
@@ -75,7 +75,7 @@ export default function InboxTab() {
   const headerDnd = openDnd && (openDnd.all || openDnd.channels.length > 0) ? openDnd : null;
   const threadStatus = !selected
     ? "ready"
-    : threadQuery.isError
+    : threadQuery.isLoadingError
       ? "failed"
       : threadQuery.isPending || threadQuery.isFetching
         ? "loading"
@@ -110,7 +110,7 @@ export default function InboxTab() {
         onRetry={() => inboxQuery.refetch()}
         hasMore={data?.nextCursor != null && windowSize < MAX_INBOX_WINDOW}
         loadingMore={!!data && inboxQuery.isFetching}
-        moreError={!!data && inboxQuery.isError}
+        moreError={!!data && inboxQuery.isLoadingError}
         // Two ways this list stops short of the inbox, and both have to say so
         // or a capped read renders as a complete one: the server hit its
         // upstream cap, or the window hit its ceiling with more still beyond it.

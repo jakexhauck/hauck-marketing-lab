@@ -139,7 +139,7 @@ export default function ConversionAssetPanel({
   };
 
   if (query.isLoading) return <div className="pk-empty">Loading conversion assets...</div>;
-  if (query.isError) return <div className="pk-empty">Could not load conversion assets.</div>;
+  if (query.isLoadingError) return <div className="pk-empty">Could not load conversion assets.</div>;
 
   if (!draft) {
     return (

@@ -27,7 +27,7 @@ export default function SelfDialLeadsBoard() {
   return (
     <>
       <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-5 pb-6 pt-4 lg:px-6">
-        {!query.isLoading && !query.isError && (
+        {!query.isLoading && !query.isLoadingError && (
           <div className="mb-3 grid shrink-0 grid-cols-3 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] lg:max-w-md">
             <ScoreCell value={String(stats.total)} label="Leads" />
             <ScoreCell
@@ -49,7 +49,7 @@ export default function SelfDialLeadsBoard() {
           </div>
         )}
 
-        {query.isError ? (
+        {query.isLoadingError ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
             Failed to load leads.
           </div>

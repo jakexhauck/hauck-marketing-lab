@@ -1425,7 +1425,7 @@ function SlotSheet({
   const [dayIdx, setDayIdx] = useState(0);
   const [slot, setSlot] = useState<string | null>(null);
   const day = days[Math.min(dayIdx, Math.max(days.length - 1, 0))];
-  const empty = slots.isError
+  const empty = slots.isLoadingError
     ? "Could not load times."
     : slots.data?.error || (slots.data && days.length === 0 ? "No open times in the next 3 weeks." : null);
 

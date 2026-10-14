@@ -84,7 +84,7 @@ export default function CloseOutJob() {
   }, [prefill.data, seeded]);
 
   const data = prefill.data;
-  const notInQueue = prefill.isError && /409/.test(String(prefill.error));
+  const notInQueue = prefill.isLoadingError && /409/.test(String(prefill.error));
 
   // A card that is not in Job Completed cannot be closed out. Send them back to
   // the board rather than showing a form that can only fail.
@@ -159,7 +159,7 @@ export default function CloseOutJob() {
               aria-hidden
             />
           </div>
-        ) : prefill.isError || !data ? (
+        ) : prefill.isLoadingError || !data ? (
           <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
             That job could not be found.
           </div>

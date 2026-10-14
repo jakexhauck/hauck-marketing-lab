@@ -172,7 +172,7 @@ export default function SmsLeadsSheet() {
     }
   };
 
-  if (groups.isError) return <div className="sl-err">Could not load the leads.</div>;
+  if (groups.isLoadingError) return <div className="sl-err">Could not load the leads.</div>;
 
   const rows = preview.data?.rows ?? [];
   const batches = groups.data?.batches ?? [];

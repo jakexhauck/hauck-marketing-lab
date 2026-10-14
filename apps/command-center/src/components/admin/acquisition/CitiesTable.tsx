@@ -276,7 +276,7 @@ export default function CitiesTable({ picker }: { picker?: CityPicker } = {}) {
         </span>
       </div>
 
-      {query.isError ? (
+      {query.isLoadingError ? (
         <p className="lc-empty">Could not load the city list.</p>
       ) : (
         <div className="lc-scroll">

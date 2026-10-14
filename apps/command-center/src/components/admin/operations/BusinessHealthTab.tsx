@@ -478,7 +478,7 @@ export default function BusinessHealthTab() {
       </div>
 
       <div className="bh-foot">
-        {query.isError
+        {query.isLoadingError
           ? "Could not load this period."
           : query.isLoading
             ? "Loading this period..."
@@ -508,7 +508,7 @@ function BackgroundErrors() {
       </div>
     );
   }
-  if (query.isError || !query.data) {
+  if (query.isLoadingError || !query.data) {
     return (
       <div className="bh-foot" role="status">
         Background failure receipts did not load.

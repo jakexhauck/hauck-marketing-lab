@@ -49,7 +49,7 @@ export function HandoffsBoard({
             that failed to render. Hidden only while the numbers are unknown
             (loading / error), since flashing zeros that then jump to real
             figures is worse than showing nothing for a beat. */}
-        {!query.isLoading && !query.isError && (
+        {!query.isLoading && !query.isLoadingError && (
           // Phone: a three-column strip (number over label), with the
           // attention nudge on its own line above it. The old single line of
           // four inline stats wrapped at 390px and stranded "7 leads" alone,
@@ -78,7 +78,7 @@ export function HandoffsBoard({
           </div>
         )}
 
-        {query.isError ? (
+        {query.isLoadingError ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
             Failed to load handoffs.
           </div>

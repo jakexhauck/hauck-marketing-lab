@@ -30,7 +30,7 @@ export default function SopChecklist({
   const overall = count(sopKeys(def));
 
   if (checklist.isLoading) return <div className="pk-empty">Loading...</div>;
-  if (checklist.isError) return <div className="pk-empty">Checklist did not load.</div>;
+  if (checklist.isLoadingError) return <div className="pk-empty">Checklist did not load.</div>;
 
   return (
     <div className="flex flex-col gap-3">

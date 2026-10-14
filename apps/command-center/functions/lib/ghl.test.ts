@@ -102,3 +102,63 @@ describe("fetchAllOpportunities truncation reporting", () => {
     await expect(fetchAllOpportunities(ctx, { maxPages: 10 })).resolves.toHaveLength(1);
   });
 });
+
+describe("ghlFetch retries a busy or dropped GoHighLevel on reads", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const status = (s: number) => ({ ok: s < 400, status: s, headers: new Headers(), json: async () => ({}) });
+
+  async function run(p: Promise<Response>) {
+    await vi.runAllTimersAsync();
+    return p;
+  }
+
+  it("retries a GET twice through 5xx and 429 before giving up", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValueOnce(status(503)).mockResolvedValueOnce(status(429)).mockResolvedValueOnce(status(200));
+    vi.stubGlobal("fetch", fetchMock);
+    const res = await run(ghlFetch(ctx, "/x"));
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns the last failure after three tries", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(status(502));
+    vi.stubGlobal("fetch", fetchMock);
+    const res = await run(ghlFetch(ctx, "/x"));
+    expect(res.status).toBe(502);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("retries a GET whose connection dropped", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockRejectedValueOnce(new TypeError("Network connection lost.")).mockResolvedValueOnce(status(200));
+    vi.stubGlobal("fetch", fetchMock);
+    const res = await run(ghlFetch(ctx, "/x"));
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("never repeats a plain POST, even when the connection dropped", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("Network connection lost."));
+    vi.stubGlobal("fetch", fetchMock);
+    const p = ghlFetch(ctx, "/x", { method: "POST", body: "{}" });
+    const caught = p.catch((e) => e);
+    await vi.runAllTimersAsync();
+    expect(await caught).toBeInstanceOf(TypeError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry a 4xx", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(status(404));
+    vi.stubGlobal("fetch", fetchMock);
+    const res = await run(ghlFetch(ctx, "/x"));
+    expect(res.status).toBe(404);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

@@ -133,7 +133,7 @@ export default function SetterResults({ tenantId, clientName }: Props) {
   if (pipelinesQuery.isLoading || leadsQuery.isLoading) {
     return <div className="pk-empty">Loading results...</div>;
   }
-  if (pipelinesQuery.isError || leadsQuery.isError) {
+  if (pipelinesQuery.isLoadingError || leadsQuery.isLoadingError) {
     return <div className="pk-empty">Could not load results for {clientName}.</div>;
   }
   if (!salesPipeline) {

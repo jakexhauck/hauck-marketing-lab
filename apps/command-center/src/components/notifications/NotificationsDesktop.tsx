@@ -152,7 +152,7 @@ export default function NotificationsDesktop() {
         </>
       }
     >
-      {query.isError ? (
+      {query.isLoadingError ? (
         <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
           Failed to load notifications.{" "}
           {(query.error as Error | null)?.message ?? "Try again."}

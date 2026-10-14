@@ -37,7 +37,7 @@ export default function StagesPanel() {
   if (query.isLoading) {
     return <Frame>Checking the pipeline in GoHighLevel...</Frame>;
   }
-  if (query.isError) {
+  if (query.isLoadingError) {
     return <Frame>Could not reach GoHighLevel to compare the stages.</Frame>;
   }
   if (query.data && !query.data.configured) {

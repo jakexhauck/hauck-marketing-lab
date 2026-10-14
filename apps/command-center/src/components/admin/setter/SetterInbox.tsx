@@ -111,7 +111,7 @@ export default function SetterInbox({ tenantId, clientName, chatIntent, onChatHa
   // being present is the ONLY thing that earns "ready": deriving it from flags
   // alone let a warm-cache remount paint an empty list for one frame before the
   // cached page was read.
-  const listStatus = inboxQuery.isError
+  const listStatus = inboxQuery.isLoadingError
     ? "failed"
     : data
       ? "ready"
@@ -157,7 +157,7 @@ export default function SetterInbox({ tenantId, clientName, chatIntent, onChatHa
   const headerDnd = openDnd && (openDnd.all || openDnd.channels.length > 0) ? openDnd : null;
   const threadStatus = !selected
     ? "ready"
-    : threadQuery.isError
+    : threadQuery.isLoadingError
       ? "failed"
       : threadQuery.isPending || threadQuery.isFetching
         ? "loading"
@@ -176,7 +176,7 @@ export default function SetterInbox({ tenantId, clientName, chatIntent, onChatHa
         onRetry={() => inboxQuery.refetch()}
         hasMore={data?.nextCursor != null && windowSize < MAX_INBOX_WINDOW}
         loadingMore={fetchingMore}
-        moreError={!!data && inboxQuery.isError}
+        moreError={!!data && inboxQuery.isLoadingError}
         // Two different ways this list can stop short of the inbox, and BOTH
         // must say so or the cap renders as a complete list:
         //   1. the server hit its upstream read cap, or

@@ -15,7 +15,7 @@ export default function CustomValuesPanel({ tenantId }: { tenantId: string }) {
   const [adding, setAdding] = useState(false);
 
   if (q.isLoading) return <div className="pk-empty">Loading...</div>;
-  if (q.isError || !q.data) {
+  if (q.isLoadingError || !q.data) {
     return (
       <SopCard className="max-w-[900px]">
         <SopHeading>Custom Values</SopHeading>

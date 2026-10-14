@@ -248,7 +248,7 @@ export default function StageActions({
           >
             <CalendarPlus size={15} /> Book appointment
           </Button>
-          {calendarsQuery.isError && (
+          {calendarsQuery.isLoadingError && (
             <p className="mt-1.5 text-[11px] text-danger">Could not load appointment types.</p>
           )}
         </section>

@@ -43,7 +43,7 @@ export default function ColdCallSops() {
   const doc = assetHtml(selected, driveDocs);
 
   if (query.isLoading) return <div className="pk-empty">Loading SOPs...</div>;
-  if (query.isError) {
+  if (query.isLoadingError) {
     return <div className="pk-empty">Could not load the SOPs. Reload to try again.</div>;
   }
   if (sops.length === 0) {

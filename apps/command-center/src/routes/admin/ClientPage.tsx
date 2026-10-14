@@ -42,7 +42,7 @@ export default function ClientPage() {
   }, [client]);
 
   if (clientsQuery.isLoading) return <div className="pk-root"><div className="pk-empty">Loading...</div></div>;
-  if (clientsQuery.isError) return <div className="pk-root"><div className="pk-empty">Could not load clients.</div></div>;
+  if (clientsQuery.isLoadingError) return <div className="pk-root"><div className="pk-empty">Could not load clients.</div></div>;
   // A removed or mistyped client: back to the agency rather than a blank page.
   if (!client) return <Navigate to={OWNER_HOME} replace />;
 

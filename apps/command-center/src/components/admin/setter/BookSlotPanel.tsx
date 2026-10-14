@@ -179,7 +179,7 @@ export function BookSlotPanel({
     : null;
 
   const calendarsLoading = calendarsQuery.isLoading;
-  const calendarsFailed = calendarsQuery.isError;
+  const calendarsFailed = calendarsQuery.isLoadingError;
   const calendarsEmpty = !calendarsLoading && !calendarsFailed && calendars.length === 0;
   const canPickCalendar = !calendarsLoading && !calendarsFailed && calendars.length > 0;
 
@@ -323,20 +323,20 @@ export function BookSlotPanel({
               </div>
             )}
 
-            {!slotsQuery.isLoading && slotsQuery.isError && !slotsNeedsStaff && !slotsNotFound && (
+            {!slotsQuery.isLoading && slotsQuery.isLoadingError && !slotsNeedsStaff && !slotsNotFound && (
               <div className={noticeClass}>
                 <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
                 <span>Could not load available times. Try again.</span>
               </div>
             )}
 
-            {!slotsQuery.isLoading && !slotsQuery.isError && days.length === 0 && (
+            {!slotsQuery.isLoading && !slotsQuery.isLoadingError && days.length === 0 && (
               <p className="text-[12.5px] text-muted">
                 No open times on this calendar in the next {DAYS_AHEAD} days.
               </p>
             )}
 
-            {!slotsQuery.isLoading && !slotsQuery.isError && days.length > 0 && (
+            {!slotsQuery.isLoading && !slotsQuery.isLoadingError && days.length > 0 && (
               <>
                 <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
                   {days.map((d) => (
@@ -427,7 +427,7 @@ export function BookSlotPanel({
                 </div>
               )}
 
-              {contactsQuery.isError && (
+              {contactsQuery.isLoadingError && (
                 <div className={noticeClass}>
                   <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
                   <span>Could not search this client&apos;s contacts. Try again.</span>
@@ -435,7 +435,7 @@ export function BookSlotPanel({
               )}
 
               {!contactsQuery.isFetching &&
-                !contactsQuery.isError &&
+                !contactsQuery.isLoadingError &&
                 debounced.length >= MIN_QUERY &&
                 results.length === 0 && (
                   <p className="text-[12.5px] text-muted">

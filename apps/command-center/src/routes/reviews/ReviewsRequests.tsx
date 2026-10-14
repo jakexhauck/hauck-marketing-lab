@@ -107,7 +107,7 @@ export default function ReviewsRequests() {
               description="Once your Sales pipeline has a 'Job Completed' stage, finished jobs will show up here ready to request a review."
             />
           </Panel>
-        ) : query.isError ? (
+        ) : query.isLoadingError ? (
           <Panel className="px-4 py-8">
             <ErrorState
               title="Could not load reviews"

@@ -89,7 +89,7 @@ export default function ColdCallAgencyAvailability() {
   if (query.isLoading) {
     return <div className="pk-empty">Loading the agency&apos;s week...</div>;
   }
-  if (query.isError) {
+  if (query.isLoadingError) {
     return (
       <div className="pk-empty">
         Could not load the agency&apos;s availability. Reload to try again.

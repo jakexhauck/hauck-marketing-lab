@@ -8,10 +8,15 @@ export const queryClient = new QueryClient({
       gcTime: 24 * 60 * 60 * 1000,
       refetchOnWindowFocus: true,
       // Never retry 4xx responses (an expired session 401 will not heal by
-      // asking again); allow one retry for network failures and 5xx.
+      // asking again); allow two retries (1s, then 2s) for network failures and
+      // 5xx. One was not enough on 2026-10-14: a busy GoHighLevel outlasted it
+      // and the Cold SMS board showed "GoHighLevel did not answer".
+      //
+      // Pages gate their error screen on isLoadingError, not isError, so a
+      // failed background refresh keeps the data already on screen.
       retry: (count, err) =>
         !(err instanceof ApiError && err.status >= 400 && err.status < 500) &&
-        count < 1,
+        count < 2,
     },
     mutations: {
       retry: 0,
