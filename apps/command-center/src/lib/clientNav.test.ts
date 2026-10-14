@@ -21,7 +21,7 @@ describe("clientNavGroups", () => {
       [null, ["Full Setup Checklist", "Onboarding Call", "Launch Call"]],
       [null, ["Accounts", "Client Information", "Software"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
-      ["GHL", ["Conversion Assets", "Outcome Wiring", "Calendars"]],
+      ["GHL", ["Conversion Assets", "Custom Values", "Outcome Wiring", "Calendars"]],
       [null, ["Management"]],
     ]);
   });

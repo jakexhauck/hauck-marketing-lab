@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-14-custom-values-mirror",
+    date: "14 October 2026",
+    title: "Custom Values, live from GHL",
+    items: [
+      "Each client's GHL section has a Custom Values tab showing that sub-account's values live. Edit, add or delete them there and the change goes straight into GHL.",
+    ],
+  },
+  {
     id: "2026-10-14-ghl-trim",
     date: "14 October 2026",
     title: "Client GHL pages trimmed",

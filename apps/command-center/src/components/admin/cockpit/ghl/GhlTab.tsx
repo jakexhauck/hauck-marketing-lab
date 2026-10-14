@@ -2,6 +2,7 @@ import CalendarPanel from "./CalendarPanel";
 import ConversionAssetPanel from "./ConversionAssetPanel";
 import GhlSetupWizard from "./GhlSetupWizard";
 import WiringPanel from "../../sop/WiringPanel";
+import CustomValuesPanel from "../../sop/CustomValuesPanel";
 import { GHL_SETUP_SUB, placeholderCopy, subTabsFor } from "../../../../lib/fulfillmentPages";
 
 // Fulfillment > GHL. Everything the operator builds to be pasted INTO a
@@ -29,7 +30,7 @@ export default function GhlTab({
   // Belt and braces with the gate in FulfillmentPage: even reached directly, a
   // GHL-backed panel for an unwired client renders the wizard rather than an
   // empty account.
-  if (!ghlConnected && activeSub === "calendars") {
+  if (!ghlConnected && (activeSub === "calendars" || activeSub === "custom-values")) {
     return (
       <GhlSetupWizard tenantId={tenantId} clientName={clientName} onFinished={onSelectSub} />
     );
@@ -48,6 +49,8 @@ export default function GhlTab({
           clientSlug={clientSlug}
         />
       );
+    case "custom-values":
+      return <CustomValuesPanel tenantId={tenantId} />;
     case "wiring":
       return <WiringPanel tenantId={tenantId} />;
     case "calendars":

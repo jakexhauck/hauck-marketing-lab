@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import type { LeadForm } from "../../functions/lib/adLeadForms";
 import type { WiringLink } from "../../functions/lib/ghlProvision";
+import type { MirrorValue } from "../../functions/lib/customValuesMirror";
 
 // Data hooks for the client setup pages built from the Client Setup SOP.
 // Kept out of useApi.ts so these pages are one file to read.
@@ -14,6 +15,38 @@ export function useWiringQuery(tenantId: string) {
   return useQuery({
     queryKey: ["sop", "wiring", tenantId],
     queryFn: () => api<{ links: WiringLink[] }>(`/api/admin/clients/${enc(tenantId)}/wiring`),
+  });
+}
+
+// ---- Custom Values (live mirror of the sub-account) -----------------------
+
+const valuesKey = (tenantId: string) => ["sop", "custom-values", tenantId];
+
+export function useCustomValues(tenantId: string) {
+  return useQuery({
+    queryKey: valuesKey(tenantId),
+    queryFn: () => api<{ values: MirrorValue[] }>(`/api/admin/clients/${enc(tenantId)}/custom-values`),
+    // A mirror: re-read whenever the tab comes back into focus, since the
+    // values also change inside GHL itself.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useSaveCustomValue(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id?: string; name: string; value: string; remove?: boolean }) => {
+      const root = `/api/admin/clients/${enc(tenantId)}/custom-values`;
+      if (input.remove && input.id) {
+        return api<{ values: MirrorValue[] }>(`${root}/${enc(input.id)}`, { method: "DELETE" });
+      }
+      const body = JSON.stringify({ name: input.name, value: input.value });
+      return input.id
+        ? api<{ values: MirrorValue[] }>(`${root}/${enc(input.id)}`, { method: "PUT", body })
+        : api<{ values: MirrorValue[] }>(root, { method: "POST", body });
+    },
+    onSuccess: (data) => qc.setQueryData(valuesKey(tenantId), data),
   });
 }
 

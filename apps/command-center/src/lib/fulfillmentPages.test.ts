@@ -123,6 +123,7 @@ describe("ghlSubTabs", () => {
   it("offers no wiring screen once the client is connected", () => {
     expect(ghlSubTabs(subs, true).map((s) => s.id)).toEqual([
       "conversion-assets",
+      "custom-values",
       "wiring",
       "calendars",
     ]);

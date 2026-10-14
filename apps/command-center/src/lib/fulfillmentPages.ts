@@ -80,6 +80,8 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
     // (Jake: not needed).
     subTabs: [
       { id: "conversion-assets", label: "Conversion Assets", ready: true },
+      // A live mirror of the sub-account's Custom Values page (2026-10-14).
+      { id: "custom-values", label: "Custom Values", ready: true },
       // The Open Lead link to paste into the GHL custom value.
       { id: "wiring", label: "Outcome Wiring", ready: true },
       { id: "calendars", label: "Calendars", ready: true },
@@ -164,9 +166,9 @@ export const GHL_SETUP_SUB = "connect";
 // wiring screen at all.
 export function ghlSubTabs(subs: SubTabDef[], ghlConnected: boolean): SubTabDef[] {
   if (ghlConnected) return subs;
-  // Only Calendars needs the sub-account to read. Everything else is written
-  // here first.
-  const kept = subs.filter((s) => s.id !== "calendars");
+  // Calendars and Custom Values read the sub-account. Everything else is
+  // written here first.
+  const kept = subs.filter((s) => s.id !== "calendars" && s.id !== "custom-values");
   return [{ id: GHL_SETUP_SUB, label: "Connect GHL", ready: true }, ...kept];
 }
 
