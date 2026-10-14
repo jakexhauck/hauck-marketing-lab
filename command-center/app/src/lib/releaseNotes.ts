@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-13-cold-sms-trash",
+    date: "13 October 2026",
+    title: "Cold SMS negatives go to Trash",
+    items: [
+      "Right-click a prospect and choose Negative Reply or Unqualified to move them to the Trash pipeline.",
+      "Replies marked negative or stop now move to Trash > SMS Negative Reply on their own.",
+    ],
+  },
+  {
     id: "2026-10-13-sales-form-routes",
     date: "13 October 2026",
     title: "The post-call form moves the lead in GHL",

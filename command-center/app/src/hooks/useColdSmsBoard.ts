@@ -47,10 +47,19 @@ function patchCards(board: ColdSmsBoard | undefined, fn: (c: ColdSmsCard) => Col
 }
 
 // One card to another column, totals kept right. A card already there, or not
-// on screen, is left alone.
-function moveInBoard(board: ColdSmsBoard, cardId: string, toStage: string): ColdSmsBoard {
+// on screen, is left alone. A card sent to another pipeline (a negative to
+// Trash) leaves the board.
+function moveInBoard(board: ColdSmsBoard, cardId: string, toStage: string, toPipeline?: string): ColdSmsBoard {
   if (!board.stages) return board;
   const from = board.stages.find((s) => s.cards.some((c) => c.id === cardId));
+  if (from && toPipeline && board.pipeline && toPipeline !== board.pipeline.id) {
+    return {
+      ...board,
+      stages: board.stages.map((s) =>
+        s.id === from.id ? { ...s, cards: s.cards.filter((c) => c.id !== cardId), total: Math.max(0, s.total - 1) } : s,
+      ),
+    };
+  }
   if (!from || from.id === toStage || !board.stages.some((s) => s.id === toStage)) return board;
   const card = from.cards.find((c) => c.id === cardId)!;
   return {
@@ -67,12 +76,12 @@ function moveInBoard(board: ColdSmsBoard, cardId: string, toStage: string): Cold
 // (functions/lib/coldSmsSort.ts), run the moment a verdict is known so a card
 // does not sit in Replied waiting for the round trip (Jake, 2026-10-13).
 function sortOnScreen(board: ColdSmsBoard | undefined, onMove: (id: string) => void): ColdSmsBoard | undefined {
-  if (!board?.stages) return board;
-  const stages = findSortStages(board.stages);
+  if (!board?.stages || !board.pipeline) return board;
+  const stages = findSortStages({ ...board.pipeline, stages: board.stages }, board.pipelines ?? []);
   if (!stages) return board;
   let out = board;
   for (const m of autoSortMoves(board.stages.flatMap((s) => s.cards), stages)) {
-    out = moveInBoard(out, m.id, m.stageId);
+    out = moveInBoard(out, m.id, m.stageId, m.pipelineId);
     onMove(m.id);
   }
   return out;
@@ -123,7 +132,7 @@ export function useReplyClassifier(ready: boolean) {
             ? patchCards(b, (c) => (verdicts.has(c.contactId) && c.reply ? { ...c, verdict: verdicts.get(c.contactId)! } : c))
             : b;
           next = sortOnScreen(next, onMove);
-          for (const m of res.moves ?? []) if (next) next = moveInBoard(next, m.id, m.stageId);
+          for (const m of res.moves ?? []) if (next) next = moveInBoard(next, m.id, m.stageId, m.pipelineId);
           return next;
         });
         if (!cancelled) setState({ running: res.remaining > 0, remaining: res.remaining, failed: false });

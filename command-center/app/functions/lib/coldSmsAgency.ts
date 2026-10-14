@@ -311,8 +311,9 @@ export interface SortTarget {
 }
 
 export async function loadSortTarget(agency: GhlContext): Promise<SortTarget | null> {
-  const board = pickColdSmsPipeline(await listPipelines(agency));
-  const stages = board ? findSortStages(board.stages) : null;
+  const pipelines = await listPipelines(agency);
+  const board = pickColdSmsPipeline(pipelines);
+  const stages = board ? findSortStages(board, pipelines) : null;
   if (!board || !stages) return null;
 
   const cards: BoardCard[] = [];
@@ -332,17 +333,17 @@ export async function applySort(
   agency: GhlContext,
   target: SortTarget,
   replies: Map<string, ReplyInfo>,
-): Promise<{ id: string; stageId: string }[]> {
+): Promise<{ id: string; pipelineId: string; stageId: string }[]> {
   if (target.cards.length === 0) return [];
   const stored = await loadVerdicts(db, target.cards.map((c) => c.contactId));
   const moves = autoSortMoves(decorate(target.cards, replies, stored), target.stages);
-  const done: { id: string; stageId: string }[] = [];
+  const done: { id: string; pipelineId: string; stageId: string }[] = [];
   for (let i = 0; i < moves.length; i += MOVES_AT_ONCE) {
     const results = await Promise.all(
       moves.slice(i, i + MOVES_AT_ONCE).map(async (m) => {
         const res = await ghlFetch(agency, `/opportunities/${encodeURIComponent(m.id)}`, {
           method: "PUT",
-          body: JSON.stringify({ pipelineId: target.pipelineId, pipelineStageId: m.stageId }),
+          body: JSON.stringify({ pipelineId: m.pipelineId, pipelineStageId: m.stageId }),
         });
         if (!res.ok) console.warn("[coldSmsAgency] sort move", m.id, res.status, (await res.text()).slice(0, 200));
         return res.ok ? m : null;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ClaudeCreate } from "./claude";
-import { autoSortMoves, classifyReplies, findSortStages, pickColdSmsCalendar, prospectZone, replyKey, stateCode, variationOf } from "./coldSmsBoard";
+import { autoSortMoves, classifyReplies, findSortStages, findTrashStages, pickColdSmsCalendar, prospectZone, replyKey, stateCode, variationOf } from "./coldSmsBoard";
 
 const answer = (obj: unknown): ClaudeCreate => async () => ({
   stop_reason: "end_turn",
@@ -111,29 +111,53 @@ describe("pickColdSmsCalendar", () => {
 });
 
 describe("auto-sort", () => {
-  const stages = [
-    { id: "sent", name: "SMS Sent" },
-    { id: "rep", name: "Replied 💬" },
-    { id: "neg", name: "Negative Reply ❌" },
-    { id: "nr", name: "Not Responded ❌" },
-    { id: "pos", name: "✅ Positive Reply" },
-  ];
+  // The live account on 2026-10-13: negatives and unqualified now leave the
+  // Cold SMS board for the Trash pipeline.
+  const board = {
+    id: "cold",
+    name: "Cold SMS ",
+    stages: [
+      { id: "sent", name: "📨 SMS Sent" },
+      { id: "rep", name: "💬 Replied" },
+      { id: "pos", name: "✅ Positive Reply" },
+      { id: "cna", name: "📱 Call No Answer" },
+    ],
+  };
+  const trash = {
+    id: "trash",
+    name: "Trash",
+    stages: [
+      { id: "t-neg", name: "SMS Negative Reply" },
+      { id: "t-nr", name: "SMS No Reply" },
+      { id: "t-unq", name: "SMS Unqualified" },
+    ],
+  };
+  const pipelines = [board, trash, { id: "sales", name: "Sales", stages: [{ id: "s-unq", name: "Unqualified" }] }];
 
-  it("finds the three stages by name", () => {
-    expect(findSortStages(stages)).toEqual({ replied: "rep", positive: "pos", negative: "neg" });
+  it("finds the Trash stages by name", () => {
+    expect(findTrashStages(pipelines)).toEqual({ pipelineId: "trash", negative: "t-neg", unqualified: "t-unq" });
+    expect(findTrashStages([board])).toBeNull();
   });
 
-  it("prefers the merged Not Responded/Negative Reply stage", () => {
-    const merged = [...stages, { id: "nrn", name: "❌ Not Responded/Negative Reply" }];
-    expect(findSortStages(merged)?.negative).toBe("nrn");
+  it("sends negatives to Trash and positives up the board", () => {
+    expect(findSortStages(board, pipelines)).toEqual({
+      replied: "rep",
+      positive: { pipelineId: "cold", stageId: "pos" },
+      negative: { pipelineId: "trash", stageId: "t-neg" },
+    });
   });
 
-  it("is null when a stage is missing", () => {
-    expect(findSortStages(stages.filter((s) => s.id !== "neg"))).toBeNull();
+  it("still sorts positives with no Trash pipeline", () => {
+    expect(findSortStages(board, [board])?.negative).toBeNull();
   });
 
-  it("moves positives up, negatives and stops down, leaves check", () => {
-    const sort = findSortStages(stages)!;
+  it("is null without Replied or Positive Reply", () => {
+    const noPos = { ...board, stages: board.stages.filter((s) => s.id !== "pos") };
+    expect(findSortStages(noPos, [noPos, trash])).toBeNull();
+  });
+
+  it("moves positives up, negatives and stops to Trash, leaves check", () => {
+    const sort = findSortStages(board, pipelines)!;
     const moves = autoSortMoves(
       [
         { id: "a", stageId: "rep", verdict: "positive" },
@@ -145,20 +169,24 @@ describe("auto-sort", () => {
       sort,
     );
     expect(moves).toEqual([
-      { id: "a", stageId: "pos" },
-      { id: "b", stageId: "neg" },
-      { id: "c", stageId: "neg" },
+      { id: "a", pipelineId: "cold", stageId: "pos" },
+      { id: "b", pipelineId: "trash", stageId: "t-neg" },
+      { id: "c", pipelineId: "trash", stageId: "t-neg" },
     ]);
   });
 
+  it("leaves negatives in Replied when there is no Trash", () => {
+    const sort = findSortStages(board, [board])!;
+    expect(autoSortMoves([{ id: "b", stageId: "rep", verdict: "negative" }], sort)).toEqual([]);
+  });
+
   it("never touches a card outside Replied", () => {
-    const sort = findSortStages(stages)!;
+    const sort = findSortStages(board, pipelines)!;
     expect(
       autoSortMoves(
         [
           { id: "a", stageId: "sent", verdict: "positive" },
           { id: "b", stageId: "pos", verdict: "negative" },
-          { id: "c", stageId: "neg", verdict: "positive" },
         ],
         sort,
       ),

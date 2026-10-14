@@ -8,24 +8,58 @@ import type { Verdict } from "./coldSmsBoard";
 // is where GHL's workflow drops a fresh reply, so a card Jake placed anywhere
 // else, or one already sorted, is never pulled back out. Stages are found by
 // name, so the board keeps working if Jake renames the emoji.
+//
+// Negatives leave the board for the Trash pipeline (Jake, 2026-10-13: Cold SMS
+// lost its Negative and Unqualified columns). Positives stay on Cold SMS.
+
+interface Pipeline {
+  id: string;
+  name: string;
+  stages: { id: string; name: string }[];
+}
+
+export interface SortTo {
+  pipelineId: string;
+  stageId: string;
+}
 
 export interface SortStages {
   replied: string;
-  positive: string;
-  negative: string;
+  positive: SortTo;
+  // Null without a Trash pipeline: negatives then stay in Replied.
+  negative: SortTo | null;
 }
 
-export function findSortStages(stages: { id: string; name: string }[]): SortStages | null {
-  const find = (re: RegExp) => stages.find((s) => re.test(s.name))?.id;
+export interface TrashStages {
+  pipelineId: string;
+  negative: string;
+  unqualified: string;
+}
+
+// Trash > SMS Negative Reply and SMS Unqualified. Also what the right-click
+// menu offers.
+export function findTrashStages(pipelines: readonly Pipeline[]): TrashStages | null {
+  const trash = pipelines.find((p) => /^\s*trash\s*$/i.test(p.name));
+  if (!trash) return null;
+  const negative = trash.stages.find((s) => /negative/i.test(s.name))?.id;
+  const unqualified = trash.stages.find((s) => /unqualified/i.test(s.name))?.id;
+  return negative && unqualified ? { pipelineId: trash.id, negative, unqualified } : null;
+}
+
+export function findSortStages(board: Pipeline, pipelines: readonly Pipeline[]): SortStages | null {
+  const find = (re: RegExp) => board.stages.find((s) => re.test(s.name))?.id;
   const replied = find(/replied/i);
   const positive = find(/positive/i);
-  // Jake folded negatives into "Not Responded/Negative Reply" (2026-10-13); a
-  // stage named for both wins over a plain "Negative Reply" still on the board.
-  const negative = find(/not responded.*negative|negative.*not responded/i) ?? find(/negative/i);
-  return replied && positive && negative ? { replied, positive, negative } : null;
+  if (!replied || !positive) return null;
+  const trash = findTrashStages(pipelines);
+  return {
+    replied,
+    positive: { pipelineId: board.id, stageId: positive },
+    negative: trash ? { pipelineId: trash.pipelineId, stageId: trash.negative } : null,
+  };
 }
 
-const TARGET: Record<Verdict, keyof SortStages | null> = {
+const TARGET: Record<Verdict, "positive" | "negative" | null> = {
   positive: "positive",
   negative: "negative",
   stop: "negative",
@@ -35,12 +69,13 @@ const TARGET: Record<Verdict, keyof SortStages | null> = {
 export function autoSortMoves(
   cards: { id: string; stageId: string; verdict: Verdict | null }[],
   stages: SortStages,
-): { id: string; stageId: string }[] {
-  const out: { id: string; stageId: string }[] = [];
+): ({ id: string } & SortTo)[] {
+  const out: ({ id: string } & SortTo)[] = [];
   for (const c of cards) {
     if (c.stageId !== stages.replied || !c.verdict) continue;
-    const to = TARGET[c.verdict];
-    if (to) out.push({ id: c.id, stageId: stages[to] });
+    const key = TARGET[c.verdict];
+    const to = key ? stages[key] : null;
+    if (to) out.push({ id: c.id, ...to });
   }
   return out;
 }

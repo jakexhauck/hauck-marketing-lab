@@ -72,7 +72,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     for (const r of results) done.push({ contactId: r.key, verdict: r.verdict });
   }
 
-  let moves: { id: string; stageId: string }[] = [];
+  let moves: { id: string; pipelineId: string; stageId: string }[] = [];
   try {
     const t = await target;
     if (t) moves = await applySort(db, agency, t, replies);
