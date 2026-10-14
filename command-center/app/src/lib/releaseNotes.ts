@@ -32,6 +32,7 @@ export const RELEASES: Release[] = [
     items: [
       "Saving the form moves the lead to the matching column on the Sales pipeline.",
       "PIF and Deposit move the lead off Sales and onto Onboarding.",
+      "Sales Data shows Show Rate instead of No Show Rate, counted only over calls already taken.",
     ],
   },
   {

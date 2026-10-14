@@ -106,7 +106,9 @@ export interface BandTotals {
   // not close 0% of them: there was nothing to close, and the two are different
   // facts. Rendered as a dash.
   closingRate: number | null;
-  noShowRate: number | null;
+  // Showed out of the calls already taken: showed plus no-shows. A meeting
+  // still ahead, or past with no outcome saved, is in neither.
+  showRate: number | null;
 }
 
 // A rate with no denominator is null, not 0, and renders as a dash.
@@ -169,7 +171,9 @@ export function bandTotals(calls: SheetCall[]): BandTotals {
     // Over the calls that HAPPENED, not over the calendar: a month of no-shows
     // is a booking problem, and charging it to the close rate hides which.
     closingRate: rate(closed, liveCalls),
-    noShowRate: rate(noShows, totalCalls),
+    // Out of the calls already TAKEN (Jake, 2026-10-13), not the calendar:
+    // next week's bookings have not had the chance to show yet.
+    showRate: rate(liveCalls, liveCalls + noShows),
   };
 }
 
@@ -208,11 +212,11 @@ export const HEADLINE_TILES: HeadlineTile[] = [
     sub: (t) => (t.liveCalls > 0 ? `${t.closed} of ${t.liveCalls} live calls` : ""),
   },
   {
-    key: "noShowRate",
-    label: "No Show Rate",
+    key: "showRate",
+    label: "Show Rate",
     tone: "amber",
-    value: (t) => formatPct(t.noShowRate),
-    sub: (t) => (t.totalCalls > 0 ? `${t.noShows} of ${t.totalCalls} booked` : ""),
+    value: (t) => formatPct(t.showRate),
+    sub: (t) => (t.liveCalls + t.noShows > 0 ? `${t.liveCalls} of ${t.liveCalls + t.noShows} taken` : ""),
   },
 ];
 

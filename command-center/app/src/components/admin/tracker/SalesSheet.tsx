@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { DollarSign, Wallet, Target, UserX, X } from "lucide-react";
+import { DollarSign, Wallet, Target, UserCheck, X } from "lucide-react";
 import type { SheetCall } from "../../../../functions/lib/salesSheetRows";
 import {
   SHEET_COLUMNS,
@@ -29,7 +29,7 @@ const TILE_ICONS: Record<string, typeof DollarSign> = {
   revenue: DollarSign,
   cash: Wallet,
   closingRate: Target,
-  noShowRate: UserX,
+  showRate: UserCheck,
 };
 
 export default function SalesSheet({

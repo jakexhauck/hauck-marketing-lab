@@ -109,7 +109,7 @@ describe("bandTotals", () => {
     expect(t.unqualified).toBe(0);
     expect(t.followUp).toBe(0);
     expect(t.closingRate).toBeNull();
-    expect(t.noShowRate).toBeNull();
+    expect(t.showRate).toBeNull();
   });
 
   it("counts one closed live call", () => {
@@ -121,7 +121,7 @@ describe("bandTotals", () => {
     expect(t.closed).toBe(1);
     expect(t.noClose).toBe(0);
     expect(t.closingRate).toBe(1);
-    expect(t.noShowRate).toBe(0);
+    expect(t.showRate).toBe(1);
   });
 
   it("counts a no-show against the calendar, not against the close rate", () => {
@@ -129,7 +129,7 @@ describe("bandTotals", () => {
     expect(t.totalCalls).toBe(1);
     expect(t.liveCalls).toBe(0);
     expect(t.noShows).toBe(1);
-    expect(t.noShowRate).toBe(1);
+    expect(t.showRate).toBe(0);
     // Nobody turned up, so there was nothing to close.
     expect(t.closingRate).toBeNull();
   });
@@ -141,7 +141,15 @@ describe("bandTotals", () => {
     expect(t.cancelled).toBe(1);
     expect(t.totalCalls).toBe(1);
     expect(t.liveCalls).toBe(1);
-    expect(t.noShowRate).toBe(0);
+    expect(t.showRate).toBe(1);
+  });
+
+  // Show Rate is out of the calls already taken (Jake, 2026-10-13). A meeting
+  // still ahead, or past with nothing saved, has not shown or failed to.
+  it("leaves calls not taken yet out of the show rate", () => {
+    const t = bandTotals([CLOSED, call({ noShow: true }), call({}), call({})]);
+    expect(t.totalCalls).toBe(4);
+    expect(t.showRate).toBe(0.5);
   });
 
   it("counts the four things a live call becomes, each in one place", () => {
@@ -328,7 +336,7 @@ describe("the schema Jake asked for", () => {
       "Follow-Up",
       "Closed",
       "Closing Rate",
-      "No Show Rate",
+      "Show Rate",
     ]) {
       expect(labels).toContain(wanted);
     }
