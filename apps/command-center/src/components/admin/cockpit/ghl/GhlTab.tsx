@@ -1,8 +1,6 @@
 import CalendarPanel from "./CalendarPanel";
 import ConversionAssetPanel from "./ConversionAssetPanel";
 import GhlSetupWizard from "./GhlSetupWizard";
-import CapiPanel from "../../sop/CapiPanel";
-import FollowUpTextsPanel from "../../sop/FollowUpTextsPanel";
 import WiringPanel from "../../sop/WiringPanel";
 import { GHL_SETUP_SUB, placeholderCopy, subTabsFor } from "../../../../lib/fulfillmentPages";
 
@@ -50,10 +48,6 @@ export default function GhlTab({
           clientSlug={clientSlug}
         />
       );
-    case "follow-ups":
-      return <FollowUpTextsPanel tenantId={tenantId} />;
-    case "capi":
-      return <CapiPanel tenantId={tenantId} />;
     case "wiring":
       return <WiringPanel tenantId={tenantId} />;
     case "calendars":

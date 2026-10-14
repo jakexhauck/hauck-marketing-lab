@@ -76,14 +76,11 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
     id: "ghl",
     label: "GHL",
     ready: true,
-    // Follow-up Texts and CAPI came from the Client Setup SOP
-    // (2026-10-06): the texts and keys that used to be typed into GHL by hand
-    // from a Google Doc. Custom Values went 2026-10-10 (Jake: not needed).
+    // Custom Values went 2026-10-10, Follow-up Texts and CAPI 2026-10-14
+    // (Jake: not needed).
     subTabs: [
       { id: "conversion-assets", label: "Conversion Assets", ready: true },
-      { id: "follow-ups", label: "Follow-up Texts", ready: true },
-      { id: "capi", label: "CAPI", ready: true },
-      // The three owner text links to paste into GHL custom values (2026-10-10).
+      // The Open Lead link to paste into the GHL custom value.
       { id: "wiring", label: "Outcome Wiring", ready: true },
       { id: "calendars", label: "Calendars", ready: true },
     ],

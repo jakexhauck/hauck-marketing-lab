@@ -91,7 +91,6 @@ describe("baseChecks", () => {
     ghl: "app",
     metaAdAccountId: "act_1",
     metaPageId: "123456",
-    capi: { datasetId: true, token: true },
     hasLogin: true,
     pushDevices: 2,
   };
@@ -101,12 +100,8 @@ describe("baseChecks", () => {
   it("flags an old pasted token as not on the Marketplace app", () => {
     expect(baseChecks({ ...facts, ghl: "token" })[0]).toMatchObject({ state: "missing" });
   });
-  it("names the missing CAPI half", () => {
-    const capi = baseChecks({ ...facts, capi: { datasetId: true, token: false } }).find((c) => c.id === "capi");
-    expect(capi?.detail).toBe("Missing: token");
-  });
   it("sorts into page order", () => {
     const ids = sortChecks(baseChecks(facts)).map((c) => c.id);
-    expect(ids).toEqual(["ghl", "meta-ads", "meta-page", "capi", "login", "push"]);
+    expect(ids).toEqual(["ghl", "meta-ads", "meta-page", "login", "push"]);
   });
 });

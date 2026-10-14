@@ -13,7 +13,6 @@ export type AccountCheckId =
   | "ghl"
   | "meta-ads"
   | "meta-page"
-  | "capi"
   | "pipeline"
   | "calendars"
   | "owner-links"
@@ -102,7 +101,6 @@ export interface AccountFacts {
   ghl: "app" | "token" | "none" | "dead";
   metaAdAccountId: string | null;
   metaPageId: string | null;
-  capi: { datasetId: boolean; token: boolean };
   hasLogin: boolean;
   pushDevices: number;
 }
@@ -117,12 +115,10 @@ export function baseChecks(f: AccountFacts): AccountCheck[] {
         : f.ghl === "dead"
           ? missing("ghl", "Linked, but GHL refused the key")
           : missing("ghl", "Not linked");
-  const capiMissing = [!f.capi.datasetId && "Dataset ID", !f.capi.token && "token"].filter(Boolean);
   return [
     ghl,
     (f.metaAdAccountId ?? "").trim() ? ok("meta-ads") : missing("meta-ads", "Not connected"),
     (f.metaPageId ?? "").trim() ? ok("meta-page") : missing("meta-page", "Not picked"),
-    capiMissing.length ? missing("capi", `Missing: ${capiMissing.join(", ")}`) : ok("capi"),
     f.hasLogin ? ok("login") : missing("login", "No owner login"),
     f.pushDevices > 0 ? ok("push") : missing("push", "No phone turned on"),
   ];
@@ -142,7 +138,6 @@ export const CHECK_ORDER: AccountCheckId[] = [
   "ghl",
   "meta-ads",
   "meta-page",
-  "capi",
   "pipeline",
   "calendars",
   "owner-links",

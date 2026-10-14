@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-14-ghl-trim",
+    date: "14 October 2026",
+    title: "Client GHL pages trimmed",
+    items: [
+      "Follow-up Texts and CAPI are gone from each client's GHL pages.",
+      "Outcome Wiring shows only the Open Lead link.",
+      "Accounts no longer checks Meta CAPI.",
+    ],
+  },
+  {
     id: "2026-10-14-board-refresh",
     date: "14 October 2026",
     title: "Pipeline boards stay current",

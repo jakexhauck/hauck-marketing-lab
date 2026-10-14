@@ -67,13 +67,12 @@ async function runChecks(env: Env, tenantId: string, origin: string) {
   const client = getServiceClient(env);
   if (!client) return { error: "supabase not configured", status: 503 } as const;
 
-  const [tenantRes, capiRes, ownerRes, pushRes] = await Promise.all([
+  const [tenantRes, ownerRes, pushRes] = await Promise.all([
     client
       .from("tenants")
       .select("ghl_location_id, ghl_token, meta_ad_account_id, meta_page_id, owner_password_hash")
       .eq("id", tenantId)
       .maybeSingle(),
-    client.from("client_capi").select("dataset_id, access_token").eq("tenant_id", tenantId).maybeSingle(),
     client
       .from("staff_accounts")
       .select("id", { count: "exact", head: true })
@@ -86,7 +85,6 @@ async function runChecks(env: Env, tenantId: string, origin: string) {
   const t = tenantRes.data as TenantFacts | null;
   if (!t) return { error: "client not found", status: 404 } as const;
 
-  const capi = capiRes.data as { dataset_id?: string; access_token?: string } | null;
   const hasGhl = !isPlaceholder(t.ghl_location_id) && !isPlaceholder(t.ghl_token);
 
   let gctx: GhlContext | null = null;
@@ -111,7 +109,6 @@ async function runChecks(env: Env, tenantId: string, origin: string) {
     ghl,
     metaAdAccountId: t.meta_ad_account_id,
     metaPageId: t.meta_page_id,
-    capi: { datasetId: !!capi?.dataset_id?.trim(), token: !!capi?.access_token?.trim() },
     hasLogin: (ownerRes.count ?? 0) > 0 || !!t.owner_password_hash,
     pushDevices: pushRes.count ?? 0,
   };

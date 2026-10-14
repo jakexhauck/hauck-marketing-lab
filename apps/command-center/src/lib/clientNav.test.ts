@@ -21,7 +21,7 @@ describe("clientNavGroups", () => {
       [null, ["Full Setup Checklist", "Onboarding Call", "Launch Call"]],
       [null, ["Accounts", "Client Information", "Software"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
-      ["GHL", ["Conversion Assets", "Follow-up Texts", "CAPI", "Outcome Wiring", "Calendars"]],
+      ["GHL", ["Conversion Assets", "Outcome Wiring", "Calendars"]],
       [null, ["Management"]],
     ]);
   });
@@ -31,7 +31,7 @@ describe("clientNavGroups", () => {
       [null, ["Full Setup Checklist", "Onboarding Call", "Launch Call"]],
       [null, ["Accounts", "Client Information", "Software"]],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
-      ["GHL", ["Connect GHL", "Conversion Assets", "Follow-up Texts", "CAPI", "Outcome Wiring"]],
+      ["GHL", ["Connect GHL", "Conversion Assets", "Outcome Wiring"]],
       [null, ["Management"]],
     ]);
   });

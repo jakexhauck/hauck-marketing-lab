@@ -7,8 +7,3 @@
 export function ownerLinkText(merge: string): string {
   return `${merge}&c={{contact.id}}`;
 }
-
-// The one link the new-lead text to the owner carries (Jake, 2026-10-12): the
-// Open Lead custom value opens the outcome page, which has the Call button on top.
-export const NEW_LEAD_TEXT = `New lead: {{contact.name}}
-Open lead: ${ownerLinkText("{{custom_values.open_lead}}")}`;

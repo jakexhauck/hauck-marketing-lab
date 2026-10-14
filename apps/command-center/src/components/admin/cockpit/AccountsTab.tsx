@@ -22,7 +22,6 @@ const LABELS: Record<AccountCheckId, string> = {
   ghl: "GHL Marketplace app",
   "meta-ads": "Meta ad account",
   "meta-page": "Facebook Page",
-  capi: "Meta CAPI",
   pipeline: "Sales Pipeline",
   calendars: "Calendars",
   "owner-links": "Open Lead link",
@@ -32,7 +31,7 @@ const LABELS: Record<AccountCheckId, string> = {
 };
 
 const GROUPS: { caption: string; ids: AccountCheckId[] }[] = [
-  { caption: "Accounts", ids: ["ghl", "meta-ads", "meta-page", "capi"] },
+  { caption: "Accounts", ids: ["ghl", "meta-ads", "meta-page"] },
   { caption: "GHL", ids: ["pipeline", "calendars", "owner-links", "owner-phone"] },
   { caption: "Client", ids: ["login", "push"] },
 ];
@@ -195,8 +194,6 @@ function FixButton({
   switch (id) {
     case "meta-ads":
       return go("Connect", clientPath(client.id, "paid-ads", ADS_SETUP_SUB));
-    case "capi":
-      return go("Add", clientPath(client.id, "ghl", "capi"));
     case "login":
       return go("Add", clientPath(client.id, "management"));
     case "pipeline":

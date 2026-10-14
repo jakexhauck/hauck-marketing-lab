@@ -1,10 +1,10 @@
 import { useWiringQuery } from "../../../hooks/useSopApi";
 import { CopyButton, SopCard, SopError, SopHeading } from "./sopKit";
-import { NEW_LEAD_TEXT, ownerLinkText } from "../../../lib/ownerLinkText";
+import { ownerLinkText } from "../../../lib/ownerLinkText";
 
-// Client > GHL > Outcome Wiring. The new-lead text to paste into the owner
-// workflow, then the Open Lead custom value with this client's key in it, for
-// pasting into GHL by hand. The tag is copied with the lead's contact id on the
+// Client > GHL > Outcome Wiring. Only the Open Lead custom value with this
+// client's key in it, for pasting into GHL by hand (Jake, 2026-10-14: the
+// new-lead text block went). The tag is copied with the lead's contact id on the
 // end (lib/ownerLinkText.ts), the form the text needs. Linking the sub-account
 // and Provision write the same value.
 
@@ -26,13 +26,6 @@ export default function WiringPanel({ tenantId }: { tenantId: string }) {
     <SopCard className="max-w-[760px]">
       <SopHeading>Outcome Wiring</SopHeading>
       <div className="flex flex-col gap-5">
-        <div>
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <span className="text-[13.5px] font-semibold text-text">New lead text</span>
-            <CopyButton text={NEW_LEAD_TEXT} />
-          </div>
-          <pre className="whitespace-pre-wrap rounded-[var(--radius)] bg-surface-2 px-3 py-2 font-data text-[12.5px] text-text">{NEW_LEAD_TEXT}</pre>
-        </div>
         {q.data.links.map((l) => (
           <div key={l.name}>
             <div className="mb-1 flex items-center justify-between gap-2">

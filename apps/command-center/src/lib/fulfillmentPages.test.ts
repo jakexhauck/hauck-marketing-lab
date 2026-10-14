@@ -123,8 +123,6 @@ describe("ghlSubTabs", () => {
   it("offers no wiring screen once the client is connected", () => {
     expect(ghlSubTabs(subs, true).map((s) => s.id)).toEqual([
       "conversion-assets",
-      "follow-ups",
-      "capi",
       "wiring",
       "calendars",
     ]);
@@ -135,8 +133,6 @@ describe("ghlSubTabs", () => {
     expect(gated.map((s) => s.id)).toEqual([
       GHL_SETUP_SUB,
       "conversion-assets",
-      "follow-ups",
-      "capi",
       "wiring",
     ]);
     expect(gated[0].label).toBe("Connect GHL");
