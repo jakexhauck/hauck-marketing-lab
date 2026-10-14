@@ -12,10 +12,10 @@
 
 - Never use em dashes (—) anywhere: code, comments, UI copy. Use commas, periods, parentheses, or colons.
 - Never name GoHighLevel / GHL in any client-facing UI copy.
-- Client-facing copy only. This is the client app (`command-center/app`, package `client-dashboard`).
+- Client-facing copy only. This is the client app (`apps/command-center`, package `client-dashboard`).
 - Do NOT write read-state or anything else back to GHL. Unread clearing is client-side only ("pages before automations" standing rule).
 - Reuse the existing conversation components (`ConversationThread`, `MessageComposer`, `ChannelFilterProvider`) unchanged. Do not fork or duplicate them.
-- Typecheck command (run from `command-center/app`): `npm run typecheck`. Test command: `npm run test`. Build: `npm run build`.
+- Typecheck command (run from `apps/command-center`): `npm run typecheck`. Test command: `npm run test`. Build: `npm run build`.
 
 ## Scope / surfaces
 
@@ -37,8 +37,8 @@ The only pipeline surface that renders individual lead cards is `src/components/
 ### Task 1: Unread-derivation logic (`leadChat.ts`)
 
 **Files:**
-- Create: `command-center/app/src/lib/leadChat.ts`
-- Test: `command-center/app/src/lib/leadChat.test.ts`
+- Create: `apps/command-center/src/lib/leadChat.ts`
+- Test: `apps/command-center/src/lib/leadChat.test.ts`
 
 **Interfaces:**
 - Consumes: `ApiConversation` from `../lib/api` (`{ contactId, unreadCount, lastMessageAt, channel? }`).
@@ -52,7 +52,7 @@ The only pipeline surface that renders individual lead cards is `src/components/
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-// command-center/app/src/lib/leadChat.test.ts
+// apps/command-center/src/lib/leadChat.test.ts
 import { describe, it, expect } from "vitest";
 import { buildUnreadIndex, leadUnreadCount } from "./leadChat";
 import type { ApiConversation } from "./api";
@@ -123,7 +123,7 @@ Expected: FAIL ("Cannot find module './leadChat'" / exports not defined).
 - [ ] **Step 3: Write minimal implementation**
 
 ```ts
-// command-center/app/src/lib/leadChat.ts
+// apps/command-center/src/lib/leadChat.ts
 import type { ApiConversation } from "./api";
 
 export interface UnreadInfo {
@@ -177,7 +177,7 @@ Expected: PASS (all cases green).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/src/lib/leadChat.ts command-center/app/src/lib/leadChat.test.ts
+git add apps/command-center/src/lib/leadChat.ts apps/command-center/src/lib/leadChat.test.ts
 git commit -m "feat(leads): unread-derivation logic for pipeline lead cards"
 ```
 
@@ -186,7 +186,7 @@ git commit -m "feat(leads): unread-derivation logic for pipeline lead cards"
 ### Task 2: `useLeadUnread` hook
 
 **Files:**
-- Create: `command-center/app/src/hooks/useLeadUnread.ts`
+- Create: `apps/command-center/src/hooks/useLeadUnread.ts`
 
 **Interfaces:**
 - Consumes: `useConversationsQuery` from `./useApi`, `useAuth` from `../context/AuthContext`, and `buildUnreadIndex` / `leadUnreadCount` / `SeenMap` from `../lib/leadChat`.
@@ -197,7 +197,7 @@ git commit -m "feat(leads): unread-derivation logic for pipeline lead cards"
 - [ ] **Step 1: Write the hook**
 
 ```ts
-// command-center/app/src/hooks/useLeadUnread.ts
+// apps/command-center/src/hooks/useLeadUnread.ts
 import { useCallback, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "./useApi";
@@ -269,7 +269,7 @@ Expected: PASS (no errors from the new file).
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/src/hooks/useLeadUnread.ts
+git add apps/command-center/src/hooks/useLeadUnread.ts
 git commit -m "feat(leads): useLeadUnread hook joining conversations feed to cards"
 ```
 
@@ -278,7 +278,7 @@ git commit -m "feat(leads): useLeadUnread hook joining conversations feed to car
 ### Task 3: `LeadChatModal` popup component
 
 **Files:**
-- Create: `command-center/app/src/components/LeadChatModal.tsx`
+- Create: `apps/command-center/src/components/LeadChatModal.tsx`
 
 **Interfaces:**
 - Consumes: `ConversationThread` (`{ leadId, fill }`), `MessageComposer` (`{ leadId, disabled }`), `ChannelFilterProvider` from `../context/ChannelFilterContext`, `Avatar`.
@@ -289,7 +289,7 @@ git commit -m "feat(leads): useLeadUnread hook joining conversations feed to car
 - [ ] **Step 1: Write the component**
 
 ```tsx
-// command-center/app/src/components/LeadChatModal.tsx
+// apps/command-center/src/components/LeadChatModal.tsx
 import { useEffect } from "react";
 import { X } from "lucide-react";
 import Avatar from "./Avatar";
@@ -375,7 +375,7 @@ Expected: PASS. If `Avatar`'s `size` prop does not accept `"sm"`, read `src/comp
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/src/components/LeadChatModal.tsx
+git add apps/command-center/src/components/LeadChatModal.tsx
 git commit -m "feat(leads): LeadChatModal popup reusing the wired conversation stack"
 ```
 
@@ -384,7 +384,7 @@ git commit -m "feat(leads): LeadChatModal popup reusing the wired conversation s
 ### Task 4: Wire chat button + unread badge into `Board.tsx`
 
 **Files:**
-- Modify: `command-center/app/src/components/Board.tsx`
+- Modify: `apps/command-center/src/components/Board.tsx`
 
 **Interfaces:**
 - Consumes: `useLeadUnread` (Task 2), `LeadChatModal` (Task 3), existing `ApiLead` (`{ id, name, contactId, phone, ... }`).
@@ -494,7 +494,7 @@ Expected: PASS. Fix any type error against the real prop shapes (do not add `any
 - [ ] **Step 6: Commit**
 
 ```bash
-git add command-center/app/src/components/Board.tsx
+git add apps/command-center/src/components/Board.tsx
 git commit -m "feat(leads): inline chat button + unread badge on pipeline cards"
 ```
 
@@ -506,7 +506,7 @@ git commit -m "feat(leads): inline chat button + unread badge on pipeline cards"
 
 - [ ] **Step 1: Run the app and drive it**
 
-Start the client app (`npm run dev` in `command-center/app`, or the project run flow), sign in to a tenant with real leads (Willis), open the Pipeline.
+Start the client app (`npm run dev` in `apps/command-center`, or the project run flow), sign in to a tenant with real leads (Willis), open the Pipeline.
 
 - [ ] **Step 2: Verify against the acceptance checklist**
 

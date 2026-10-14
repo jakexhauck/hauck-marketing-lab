@@ -4,7 +4,7 @@
 
 **Goal:** Add an admin "Onboarding" tab to the command center that writes a client's 26 GHL custom values in one action and tracks launch-readiness with auto-checks + a manual checklist.
 
-**Architecture:** All in `command-center/app`. A pure field-map module in `src/lib/onboarding.ts` (unit-tested) defines the form fields and their 1:1 GHL custom-value names and the checklist tasks. Cloudflare Pages Functions under `functions/api/admin/onboarding/*` persist form state to two new Supabase tables and call GHL via the existing `functions/lib/ghl.ts` using the target tenant's token. Two React admin pages (list + per-client setup) consume those endpoints.
+**Architecture:** All in `apps/command-center`. A pure field-map module in `src/lib/onboarding.ts` (unit-tested) defines the form fields and their 1:1 GHL custom-value names and the checklist tasks. Cloudflare Pages Functions under `functions/api/admin/onboarding/*` persist form state to two new Supabase tables and call GHL via the existing `functions/lib/ghl.ts` using the target tenant's token. Two React admin pages (list + per-client setup) consume those endpoints.
 
 **Tech Stack:** React 19 + Vite + React Router 7 + Tailwind v4, Cloudflare Pages Functions (TypeScript), Supabase (Postgres, service-role), Vitest, GHL public API (`services.leadconnectorhq.com`, version 2021-07-28).
 
@@ -40,7 +40,7 @@
 ## Task 1: Database migration
 
 **Files:**
-- Create: `command-center/app/supabase/migrations/0018_onboarding.sql`
+- Create: `apps/command-center/supabase/migrations/0018_onboarding.sql`
 
 **Interfaces:**
 - Produces: tables `public.onboarding(tenant_id uuid pk, fields jsonb, status text, provision_result jsonb, provisioned_at timestamptz, updated_at timestamptz)` and `public.onboarding_checklist(tenant_id uuid, task_key text, done boolean, value text, done_at timestamptz, done_by text, pk(tenant_id, task_key))`.
@@ -78,13 +78,13 @@ alter table public.onboarding_checklist enable row level security;
 
 - [ ] **Step 2: Apply it**
 
-Run: `cd command-center/app && npm run db:migrate`
+Run: `cd apps/command-center && npm run db:migrate`
 Expected: output shows `0018_onboarding.sql` applied, no errors.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/supabase/migrations/0018_onboarding.sql
+git add apps/command-center/supabase/migrations/0018_onboarding.sql
 git commit -m "feat(onboarding): add onboarding + checklist tables (0018)"
 ```
 
@@ -93,8 +93,8 @@ git commit -m "feat(onboarding): add onboarding + checklist tables (0018)"
 ## Task 2: Field map and pure provision/readiness logic
 
 **Files:**
-- Create: `command-center/app/src/lib/onboarding.ts`
-- Test: `command-center/app/src/lib/onboarding.test.ts`
+- Create: `apps/command-center/src/lib/onboarding.ts`
+- Test: `apps/command-center/src/lib/onboarding.test.ts`
 
 **Interfaces:**
 - Produces:
@@ -114,7 +114,7 @@ git commit -m "feat(onboarding): add onboarding + checklist tables (0018)"
 - [ ] **Step 1: Write the failing test**
 
 ```typescript
-// command-center/app/src/lib/onboarding.test.ts
+// apps/command-center/src/lib/onboarding.test.ts
 import { describe, it, expect } from "vitest";
 import {
   ONBOARDING_FIELDS,
@@ -177,13 +177,13 @@ describe("summarizeReadiness", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd command-center/app && npm run test -- src/lib/onboarding.test.ts`
+Run: `cd apps/command-center && npm run test -- src/lib/onboarding.test.ts`
 Expected: FAIL (module `./onboarding` not found / exports undefined).
 
 - [ ] **Step 3: Write the implementation**
 
 ```typescript
-// command-center/app/src/lib/onboarding.ts
+// apps/command-center/src/lib/onboarding.ts
 
 export type FieldGroup = "connection" | "business" | "rep" | "calendars";
 
@@ -334,13 +334,13 @@ export function summarizeReadiness(input: ReadinessInput): ReadinessCheck[] {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd command-center/app && npm run test -- src/lib/onboarding.test.ts`
+Run: `cd apps/command-center && npm run test -- src/lib/onboarding.test.ts`
 Expected: PASS (all cases green).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/src/lib/onboarding.ts command-center/app/src/lib/onboarding.test.ts
+git add apps/command-center/src/lib/onboarding.ts apps/command-center/src/lib/onboarding.test.ts
 git commit -m "feat(onboarding): field map + provision/readiness logic with tests"
 ```
 
@@ -349,9 +349,9 @@ git commit -m "feat(onboarding): field map + provision/readiness logic with test
 ## Task 3: Onboarding CRUD endpoints (list, fields, checklist)
 
 **Files:**
-- Create: `command-center/app/functions/api/admin/onboarding/index.ts`
-- Create: `command-center/app/functions/api/admin/onboarding/[tenantId].ts`
-- Create: `command-center/app/functions/api/admin/onboarding/[tenantId]/checklist.ts`
+- Create: `apps/command-center/functions/api/admin/onboarding/index.ts`
+- Create: `apps/command-center/functions/api/admin/onboarding/[tenantId].ts`
+- Create: `apps/command-center/functions/api/admin/onboarding/[tenantId]/checklist.ts`
 
 **Interfaces:**
 - Consumes: `getServiceClient(ctx.env)` (from `functions/lib/supabase` — same import used in `functions/api/admin/clients/index.ts`), `ctx.data.admin` (guaranteed by middleware).
@@ -517,13 +517,13 @@ export const onRequestPut: PagesFunction<Env, "tenantId", ApiData> = async (ctx)
 
 - [ ] **Step 4: Typecheck**
 
-Run: `cd command-center/app && npm run typecheck`
+Run: `cd apps/command-center && npm run typecheck`
 Expected: PASS (no type errors). If `getServiceClient` import path differs, match the path used in `functions/api/admin/clients/index.ts`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/functions/api/admin/onboarding
+git add apps/command-center/functions/api/admin/onboarding
 git commit -m "feat(onboarding): CRUD endpoints for fields + checklist"
 ```
 
@@ -532,7 +532,7 @@ git commit -m "feat(onboarding): CRUD endpoints for fields + checklist"
 ## Task 4: Provision endpoint
 
 **Files:**
-- Create: `command-center/app/functions/api/admin/onboarding/[tenantId]/provision.ts`
+- Create: `apps/command-center/functions/api/admin/onboarding/[tenantId]/provision.ts`
 
 **Interfaces:**
 - Consumes: `getServiceClient`, `ghlFetch`, `ghlJson` (`functions/lib/ghl.ts`), `buildProvisionPlan`, `GhlCustomValue` (`src/lib/onboarding`).
@@ -615,13 +615,13 @@ export const onRequestPost: PagesFunction<Env, "tenantId", ApiData> = async (ctx
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd command-center/app && npm run typecheck`
+Run: `cd apps/command-center && npm run typecheck`
 Expected: PASS. If importing from `src/lib/onboarding` across the `functions/` boundary errors at build, move the pure map to a path both can import (e.g. `functions/lib/onboardingFields.ts`) and re-export it from `src/lib/onboarding.ts`; update Task 2 imports accordingly. Verify with the build in Task 8.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/functions/api/admin/onboarding/[tenantId]/provision.ts
+git add apps/command-center/functions/api/admin/onboarding/[tenantId]/provision.ts
 git commit -m "feat(onboarding): provision endpoint writes custom values to GHL"
 ```
 
@@ -630,7 +630,7 @@ git commit -m "feat(onboarding): provision endpoint writes custom values to GHL"
 ## Task 5: Readiness endpoint
 
 **Files:**
-- Create: `command-center/app/functions/api/admin/onboarding/[tenantId]/readiness.ts`
+- Create: `apps/command-center/functions/api/admin/onboarding/[tenantId]/readiness.ts`
 
 **Interfaces:**
 - Consumes: `getServiceClient`, `ghlFetch`, `summarizeReadiness`, `GhlCustomValue` (`src/lib/onboarding`).
@@ -686,13 +686,13 @@ export const onRequestGet: PagesFunction<Env, "tenantId", ApiData> = async (ctx)
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd command-center/app && npm run typecheck`
+Run: `cd apps/command-center && npm run typecheck`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/functions/api/admin/onboarding/[tenantId]/readiness.ts
+git add apps/command-center/functions/api/admin/onboarding/[tenantId]/readiness.ts
 git commit -m "feat(onboarding): readiness endpoint with live auto-checks"
 ```
 
@@ -701,9 +701,9 @@ git commit -m "feat(onboarding): readiness endpoint with live auto-checks"
 ## Task 6: Onboarding list page + nav + routes
 
 **Files:**
-- Create: `command-center/app/src/routes/admin/AdminOnboarding.tsx`
-- Modify: `command-center/app/src/routes/admin/AdminLayout.tsx:30-37`
-- Modify: `command-center/app/src/App.tsx` (imports + routes)
+- Create: `apps/command-center/src/routes/admin/AdminOnboarding.tsx`
+- Modify: `apps/command-center/src/routes/admin/AdminLayout.tsx:30-37`
+- Modify: `apps/command-center/src/App.tsx` (imports + routes)
 
 **Interfaces:**
 - Consumes: `GET /api/admin/onboarding`, `api<T>()`, `DesktopPage`.
@@ -799,13 +799,13 @@ Add routes alongside the other admin routes:
 
 - [ ] **Step 4: Typecheck (detail import will fail until Task 7)**
 
-Run: `cd command-center/app && npm run typecheck`
+Run: `cd apps/command-center && npm run typecheck`
 Expected: one error: cannot find `AdminOnboardingDetail`. That is resolved in Task 7. (If executing strictly task-by-task, create a one-line placeholder export now and replace it in Task 7.)
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/src/routes/admin/AdminOnboarding.tsx command-center/app/src/routes/admin/AdminLayout.tsx command-center/app/src/App.tsx
+git add apps/command-center/src/routes/admin/AdminOnboarding.tsx apps/command-center/src/routes/admin/AdminLayout.tsx apps/command-center/src/App.tsx
 git commit -m "feat(onboarding): list page, nav item, routes"
 ```
 
@@ -814,7 +814,7 @@ git commit -m "feat(onboarding): list page, nav item, routes"
 ## Task 7: Onboarding detail page (form + provision + readiness + checklist)
 
 **Files:**
-- Create: `command-center/app/src/routes/admin/AdminOnboardingDetail.tsx`
+- Create: `apps/command-center/src/routes/admin/AdminOnboardingDetail.tsx`
 
 **Interfaces:**
 - Consumes: `ONBOARDING_FIELDS`, `CHECKLIST_TASKS` (`src/lib/onboarding`), the four onboarding endpoints, `api<T>()`, `DesktopPage`.
@@ -984,13 +984,13 @@ export default function AdminOnboardingDetail() {
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd command-center/app && npm run typecheck`
+Run: `cd apps/command-center && npm run typecheck`
 Expected: PASS (the Task 6 import now resolves).
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/src/routes/admin/AdminOnboardingDetail.tsx
+git add apps/command-center/src/routes/admin/AdminOnboardingDetail.tsx
 git commit -m "feat(onboarding): detail page with form, provision, readiness, checklist"
 ```
 
@@ -1002,7 +1002,7 @@ git commit -m "feat(onboarding): detail page with form, provision, readiness, ch
 
 - [ ] **Step 1: Full typecheck + build + tests**
 
-Run: `cd command-center/app && npm run typecheck && npm run build && npm run test`
+Run: `cd apps/command-center && npm run typecheck && npm run build && npm run test`
 Expected: all PASS. If the cross-boundary import from `functions/` to `src/lib/onboarding` fails the build, apply the fallback from Task 4 Step 2 (move the pure map to `functions/lib/onboardingFields.ts`, re-export from `src/lib/onboarding.ts`), then re-run.
 
 - [ ] **Step 2: Real smoke test against the test subaccount**

@@ -11,7 +11,7 @@ Legend for each task:
 - `[DECISION]` blocked on a product decision from Jake (see Open Questions)
 - `[BLOCKED?]` may be infeasible with current data sources; flagged for feasibility
 
-Current-state facts below come from a live audit of `command-center/app`.
+Current-state facts below come from a live audit of `apps/command-center`.
 
 ---
 

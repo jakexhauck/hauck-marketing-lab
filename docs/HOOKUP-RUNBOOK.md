@@ -50,9 +50,9 @@ Goal: close the two real exposures and tighten tokens before they leak further.
 
 Goal: every gitignored secret file exists with real values, or that app runs blank/stub.
 
-13. **`command-center/app/.env.local`.** Copy `command-center/app/.env.example` → `.env.local`. Fill at minimum `SUPABASE_ACCESS_TOKEN` (Supabase → Account → Access Tokens, powers `npm run db:migrate`) and `CLOUDFLARE_API_TOKEN` (Cloudflare → My Profile → API Tokens → permission "Account: Cloudflare Pages: Edit", powers `npm run cf`).
+13. **`apps/command-center/.env.local`.** Copy `apps/command-center/.env.example` → `.env.local`. Fill at minimum `SUPABASE_ACCESS_TOKEN` (Supabase → Account → Access Tokens, powers `npm run db:migrate`) and `CLOUDFLARE_API_TOKEN` (Cloudflare → My Profile → API Tokens → permission "Account: Cloudflare Pages: Edit", powers `npm run cf`).
 14. **`intranet/.dev.vars`.** Copy `intranet/.dev.vars.example`. Fill `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (same project), and `SESSION_SECRET` matching Command Center's.
-15. **`gohighlevel-cli/.env`.** Copy `gohighlevel-cli/.env.example`. Fill `GHL_API_KEY` (Willis PIT), `GHL_LOCATION_ID`, and `GHL_FIREBASE_TOKEN` (get via the DevTools IndexedDB snippet in `gohighlevel-cli/README.md`).
+15. **`projects/gohighlevel-cli/.env`.** Copy `projects/gohighlevel-cli/.env.example`. Fill `GHL_API_KEY` (Willis PIT), `GHL_LOCATION_ID`, and `GHL_FIREBASE_TOKEN` (get via the DevTools IndexedDB snippet in `projects/gohighlevel-cli/README.md`).
 16. **`lead-scraper/credentials.json`.** The Google service account JSON key from step 10. Gitignored; place per machine.
 17. **`app/src-tauri/src/google_oauth_secrets.rs`.** Google Cloud → Credentials → Desktop OAuth client ID + secret (Calendar/Drive/Sheets via PKCE).
 18. **`app/src-tauri/src/meta_oauth_secrets.rs`.** Meta Business → Settings → System Users: App ID, App Secret, System User token.
@@ -66,7 +66,7 @@ Verify: each file above exists with real values. `build.rs` writes blank stubs f
 
 Goal: the client product builds, deploys, and reads live GHL data at app.hauckmarketing.com.
 
-20. **Run database migrations.** From `command-center/app`, run `npm run db:migrate`. This applies migrations 0001–0021 in order via the Management API + ledger. Never use the Supabase SQL editor. Verify: command reports all migrations applied, no errors.
+20. **Run database migrations.** From `apps/command-center`, run `npm run db:migrate`. This applies migrations 0001–0021 in order via the Management API + ledger. Never use the Supabase SQL editor. Verify: command reports all migrations applied, no errors.
 21. **Confirm the Pages project.** Cloudflare → Pages → `hauck-command-center` → Settings → Build: build command `pnpm build`, output dir `dist`, `NODE_VERSION=20`, `PNPM_VERSION=10`, pointed at this repo.
 22. **Set every server-side var.** Cloudflare → Pages → hauck-command-center → Settings → Variables and Secrets (or `npm run cf env:set KEY value --secret`). Required set:
     - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (Supabase → Settings → API).
@@ -118,7 +118,7 @@ Goal: the funnel actually fires for the live client, not just demo. Order is "wi
 
 ## Phase 5 — Real-time webhooks (instant events + phone push)
 
-Goal: per-record events arrive in ~2s and fire phone push, instead of on next refresh. Set up one GHL workflow per event in the Willis sub. Detail: `command-center/app/docs/connections/ghl-instant-sync.md`.
+Goal: per-record events arrive in ~2s and fire phone push, instead of on next refresh. Set up one GHL workflow per event in the Willis sub. Detail: `apps/archive/command-center-docs/connections/ghl-instant-sync.md`.
 
 Rules for every one: use Webhook action (POST) to `https://app.hauckmarketing.com/api/webhook?token=<WEBHOOK_SECRET>`; `locationId={{location.id}}` is mandatory on every payload; `type` strings are case-sensitive; leave `id` out.
 
@@ -159,7 +159,7 @@ Goal: the Assets page (`/company/documents`) moves from "Connect your Google Dri
 
 ## Phase 8 — Leads (highest-value sales surface)
 
-Goal: turn the shipped `/sales/leads` page from demo-complete into real Willis data. Reads through `useLeadsHub()` → `buildLeadsHub()` in `src/lib/leadsHub.ts`; keep that return shape. Detail: `command-center/app/docs/connections/leads.md`.
+Goal: turn the shipped `/sales/leads` page from demo-complete into real Willis data. Reads through `useLeadsHub()` → `buildLeadsHub()` in `src/lib/leadsHub.ts`; keep that return shape. Detail: `apps/archive/command-center-docs/connections/leads.md`.
 
 51. **Confirm the real follow-up sequences (do first, only truly missing info).** `SEQ.ad` and `SEQ.form` in `src/lib/leadsHub.ts` are PLACEHOLDERS. Read the real steps from live GHL (`ghl.ps1 opportunities pipelines` for stages + the workflow list for steps) and update:
     - [ ] Paid Ads SMS nurture (channel + label + delay per step).
@@ -180,7 +180,7 @@ Goal: turn the shipped `/sales/leads` page from demo-complete into real Willis d
 54. **Honour the automations (UI already promises them).**
     - [ ] A reply pauses the auto follow-ups (lead → "Needs a human").
     - [ ] Booking pauses the nurture so the two automations never collide, then fires the confirm text.
-    - [ ] Confirmation is automatic: the confirm link logs it + flips the Google Calendar title (existing webhook, `gohighlevel-cli/docs/duplicate-intro-call-funnel.md`). It's a tracker status, not a button.
+    - [ ] Confirmation is automatic: the confirm link logs it + flips the Google Calendar title (existing webhook, `projects/gohighlevel-cli/docs/duplicate-intro-call-funnel.md`). It's a tracker status, not a button.
 55. **Confirm token scope.** `GHL_TOKEN` must cover Conversations (send) + Opportunities (stage write) + **Workflows** (pause/enrol). The Workflows scope is the new one.
 56. **Flip the gates.** Point lead list + threads at the live feeds; wire Send reply / Call now / Book intro call / Schedule / Book visit / Not a fit to their endpoints. Until wired, each shows the gated toast.
 
@@ -188,7 +188,7 @@ Goal: turn the shipped `/sales/leads` page from demo-complete into real Willis d
 
 ## Phase 9 — Remaining demo surfaces (feature by feature)
 
-Goal: each surface shows sample data in `?demo=1` and an empty/not-connected state in real sessions today. Wire one at a time; each has a spec in `command-center/app/docs/connections/`.
+Goal: each surface shows sample data in `?demo=1` and an empty/not-connected state in real sessions today. Wire one at a time; each has a spec in `apps/archive/command-center-docs/connections/`.
 
 57. **Revenue / Ledger** (`/billing`): wire the 5 sample sections (12-mo trend, MoM %, YTD, avg invoice, top customers) to backend aggregates, then set `SHOW_UNWIRED_SECTIONS=false` and drop the sample banner.
 58. **Calendar streams** (`/calendar`): Jobs (GHL Sales Pipeline `6o9Gx6e0TXRFJdln5d01` at Job Booked + Completed), plus Social + Campaigns once those backends exist. Appointments already live. Specs: `jobs.md`, `calendar.md`.
@@ -212,7 +212,7 @@ Goal: in-app copy/caption drafting for Campaigns and Social. Server-side only, n
 64. **Desktop app** (`app/`, Tauri): place the three `*_secrets.rs` (Phase 2), install Claude CLI on PATH and log in (chat streams via `claude -p`), then set runtime keys in-app on the Settings page: Replicate token, Gemini key, GHL PIT + location. Per-client Meta creds go in `data/<slug>/credentials.yaml`.
 65. **Internal hub** (`intranet/`): set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`, `SESSION_SECRET` matching Command Center, and a separate Web Google OAuth client (redirect `https://internal.hauckmarketing.com/api/drive/oauth/callback`) as Cloudflare secrets on hauck-internal. Deploy: `cd intranet && npm run deploy`.
 66. **Blueprint** (`blueprint/`): set `BLUEPRINT_PASSWORD` as a Cloudflare Pages secret (fail-closed: 503 if unset). Any username, only the password is checked.
-67. **Marketing website** (`Hauck Marketing Website/`): confirm `vercel.json` rewrites keep `/privacy` and `/terms` working (Google Limited Use disclosure lives on `/privacy`). Deploys from main automatically.
+67. **Marketing website** (`agency/website/`): confirm `vercel.json` rewrites keep `/privacy` and `/terms` working (Google Limited Use disclosure lives on `/privacy`). Deploys from main automatically.
 68. **Media buying** (`media-buying/`): maintain `data/clients.yaml` (Meta ad account ids like `act_4396590353913166`, Drive/Sheet URLs, folder maps). Consumed by the desktop app.
 
 ---

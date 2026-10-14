@@ -13,6 +13,15 @@
 
 The Hauck Marketing Lab app (Tauri) auto-injects the About notes plus the active client's Profile + Memory into every chat turn via `app/src/lib/prompt.ts`. CLI Claude Code sessions read this file directly and should pull the vault notes themselves for the real rules.
 
+## Workspace layout
+
+- `apps/command-center/` : the client app AND the admin app (one codebase, CF Pages `hauck-command-center`, app.hauckmarketing.com)
+- `apps/workers/` : the app's cron Workers. `apps/blueprint/`, `apps/automations/` : internal pages
+- `projects/` : standalone tools (`cold-sms-pipeline`, `lead-scraper`, `gohighlevel-cli`, `scripts`)
+- `clients/<Name>/` : every asset for one client (sites, design kits, demos). Profile/Memory stay in `vault/Clients/<Name>/`
+- `agency/` : Hauck's own stuff (`brand`, `website`, `funnels`, `reference`, `screenshots`, `videos`)
+- `docs/` : build plans and runbooks. `archive/` : retired code and docs, never build from it
+
 ## Identity stub (for CLI sessions before the vault is read)
 
 - Address Jake as "Sir" (or "Ma'am" if specified).

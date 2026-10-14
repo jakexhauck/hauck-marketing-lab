@@ -28,7 +28,7 @@
 7. `functions/lib/coldCallDials.ts`: booked dials stop counting as meetings from the cutoff.
 8. `functions/lib/coldCallAgency.ts`, `functions/api/admin/tracker/cold-calls.ts`: read and merge calendar meetings.
 9. `functions/api/admin/cold-call/sync.ts`: 5th-minute meetings sync.
-10. `src/lib/releaseNotes.ts`, `blueprint/index.html`.
+10. `src/lib/releaseNotes.ts`, `apps/blueprint/index.html`.
 
 ## GHL side (after ship)
 

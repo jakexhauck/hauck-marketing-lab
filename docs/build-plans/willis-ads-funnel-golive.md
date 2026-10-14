@@ -22,11 +22,11 @@ and no contact is created.
 
 | File | GHL step | Mount |
 |---|---|---|
-| `command-center/app/public/sites/willis/quote.js` | the ad landing path, `/quote` | `#wwq` |
-| `command-center/app/public/sites/willis/booking.js` | `/book` | `#wwb` |
-| `command-center/app/public/sites/willis/thanks.js` | `/thank-you-quote` | `#wwt` |
+| `apps/command-center/public/sites/willis/quote.js` | the ad landing path, `/quote` | `#wwq` |
+| `apps/command-center/public/sites/willis/booking.js` | `/book` | `#wwb` |
+| `apps/command-center/public/sites/willis/thanks.js` | `/thank-you-quote` | `#wwt` |
 
-Stubs to paste: `willis-windows-landing/quote.html`, `book.html`,
+Stubs to paste: `clients/Willis Windows/landing-page/quote.html`, `book.html`,
 `thank-you-quote.html`. GHL holds two lines each; everything real ships by
 deploy.
 

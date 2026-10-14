@@ -49,24 +49,24 @@ Today this is ~20 minutes of manual clicking in GHL per client. Target: one form
 
 The app is already deeply GHL-integrated, so most plumbing exists.
 
-- **Backend:** Cloudflare Pages Functions at `command-center/app/functions/`.
-- **GHL HTTP layer:** `command-center/app/functions/lib/ghl.ts`
+- **Backend:** Cloudflare Pages Functions at `apps/command-center/functions/`.
+- **GHL HTTP layer:** `apps/command-center/functions/lib/ghl.ts`
   - `GhlContext { token, locationId }`, `ghlFetch()`, `ghlJson()`.
   - Important: `ghlFetch` retries GET/PUT/DELETE on 5xx/429 but **never retries
     POST** (avoids duplicate side effects). Our create-location call is a POST, so
     we own retry/idempotency ourselves.
   - API version pinned to `2021-07-28`, base `https://services.leadconnectorhq.com`.
-- **Client create endpoint:** `command-center/app/functions/api/admin/clients/index.ts`
+- **Client create endpoint:** `apps/command-center/functions/api/admin/clients/index.ts`
   - POST creates the tenant; when GHL creds are omitted it stores `ghl_location_id
     = "pending"`, `ghl_token = "pending"`.
-- **Admin UI:** `command-center/app/src/routes/admin/AdminClientDetail.tsx`
+- **Admin UI:** `apps/command-center/src/routes/admin/AdminClientDetail.tsx`
   (reads/writes `ghlLocationId` / `ghlToken`, shows Connected vs Not connected).
 - **Existing GHL-on-create-side precedent:** the import-staff endpoint
   (`functions/api/admin/clients/[tenantId]/import-staff.ts`) already reads a
   tenant's GHL token and calls GHL to list/import users. The provisioning users
   step mirrors this.
 - **Data store:** Supabase `tenants` table. Migrations in
-  `command-center/app/supabase/migrations/`, applied via `npm run db:migrate`.
+  `apps/command-center/supabase/migrations/`, applied via `npm run db:migrate`.
 - **Secrets:** Cloudflare Pages env vars (never in the browser bundle).
 
 ## The one real unknown — read this first (Phase 0)
@@ -130,7 +130,7 @@ Two-call shape (because we chose review-then-confirm):
 
 ## Data model changes
 
-New migration `command-center/app/supabase/migrations/0016_ghl_provisioning.sql`:
+New migration `apps/command-center/supabase/migrations/0016_ghl_provisioning.sql`:
 
 ```sql
 alter table public.tenants
@@ -157,7 +157,7 @@ alter table public.tenants
 - [ ] Document the confirmed request/response in this file before writing code.
 
 ### Phase 1 — Server: GHL provisioning lib
-File: `command-center/app/functions/lib/ghl-provision.ts` (new; keep separate from
+File: `apps/command-center/functions/lib/ghl-provision.ts` (new; keep separate from
 the data-plane `ghl.ts` so the agency-token surface is isolated).
 - [ ] `createSubAccount(agencyCtx, input)` → POST `/locations/` with snapshot.
       Own retry/idempotency (ghl.ts won't retry POSTs). Use an idempotency guard:
@@ -170,7 +170,7 @@ the data-plane `ghl.ts` so the agency-token surface is isolated).
 - [ ] Typed result object summarizing what was done / what failed per step.
 
 ### Phase 2 — Server: provision endpoint
-File: `command-center/app/functions/api/admin/clients/[tenantId]/provision-ghl.ts` (new).
+File: `apps/command-center/functions/api/admin/clients/[tenantId]/provision-ghl.ts` (new).
 - [ ] Admin-auth guard (copy the pattern from import-staff).
 - [ ] Set `ghl_provision_status = 'provisioning'`.
 - [ ] Read `GHL_PROVISIONING_TOKEN` from env; build agency `GhlContext`.
@@ -187,7 +187,7 @@ File: `command-center/app/functions/api/admin/clients/[tenantId]/provision-ghl.t
 - [ ] Optionally `GHL_DEFAULT_SNAPSHOT_ID` and `GHL_COMPANY_ID` as env defaults.
 
 ### Phase 4 — Admin UI: review + provision
-File: `command-center/app/src/routes/admin/AdminClientDetail.tsx` (extend).
+File: `apps/command-center/src/routes/admin/AdminClientDetail.tsx` (extend).
 - [ ] Add GHL provisioning fields to the create/detail form: snapshot picker
       (default from env), custom-value answers, users to add, tags.
 - [ ] Add a **review screen / confirm dialog** listing exactly what will be created.

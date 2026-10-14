@@ -1,6 +1,6 @@
 # Client App: What's Left
 
-Master tracker for the ONE responsive client app (`command-center/app`): desktop
+Master tracker for the ONE responsive client app (`apps/command-center`): desktop
 sidebar + mobile PWA, same routes and same data. Wiring a surface lights up both
 at once, so nothing here is "mobile only" or "desktop only" unless stated.
 
@@ -41,7 +41,7 @@ Verified: the token reaches Willis's account (200) with $0 spend / 0 campaigns
 (ads not launched), so once set the tabs correctly show zeros and fill in when
 ads run. Follow-ups (not blockers): real revenue/ROAS/"new customers" need a GHL
 job join; real ad thumbnails; a per-tenant `meta_ad_account_id` column. See
-`command-center/app/docs/connections/paid-ads-meta.md`.
+`apps/archive/command-center-docs/connections/paid-ads-meta.md`.
 
 ### Reviews content — set to "Coming soon" (GHL is a dead end)
 

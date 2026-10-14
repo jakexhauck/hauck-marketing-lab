@@ -8,7 +8,7 @@ economics and benchmark chips.
 Depends on Foundation (`00-foundation.md`): the old admin surfaces are removed and `AdminCommand`
 is the surface this plan fills. Read `_architecture.md` alongside.
 
-Reference mockup (implement THIS): `command-center/docs/mockups/admin-redesign/business-health-B.html`.
+Reference mockup (implement THIS): `archive/command-center-docs/mockups/admin-redesign/business-health-B.html`.
 
 ---
 
@@ -63,7 +63,7 @@ No em dashes in any copy.
 
 ## 3. Data model
 
-New migration **`command-center/app/supabase/migrations/0027_business_health.sql`**.
+New migration **`apps/command-center/supabase/migrations/0027_business_health.sql`**.
 
 > Sequence note: latest applied in this repo is `0026`; `_architecture.md` sets the next new number
 > to `0027`. If a higher-numbered migration already exists on the branch you build from, bump to the
@@ -113,7 +113,7 @@ No RLS policy needed — admin endpoints use the service-role client and are gat
 
 ## 4. API
 
-New endpoint **`command-center/app/functions/api/admin/tracker/business-health.ts`**
+New endpoint **`apps/command-center/functions/api/admin/tracker/business-health.ts`**
 (agency-global tracker path per `_architecture.md`). Model it on the whitelist + audit pattern in
 `functions/api/admin/clients/[tenantId].ts`.
 
@@ -302,16 +302,16 @@ light `functions/lib` test later, but Phase 1 leans on the pure lib per `_archit
 
 ## 7. File-by-file change list (ordered)
 
-1. `command-center/app/supabase/migrations/0027_business_health.sql` — new table (section 3).
-2. `command-center/app/functions/api/admin/tracker/business-health.ts` — new GET + PATCH (section 4).
-3. `command-center/app/src/lib/businessHealth.ts` — new pure lib: `periodKey`, `computeMetrics`,
+1. `apps/command-center/supabase/migrations/0027_business_health.sql` — new table (section 3).
+2. `apps/command-center/functions/api/admin/tracker/business-health.ts` — new GET + PATCH (section 4).
+3. `apps/command-center/src/lib/businessHealth.ts` — new pure lib: `periodKey`, `computeMetrics`,
    `benchmark`, types (section 5).
-4. `command-center/app/src/lib/businessHealth.test.ts` — new unit tests (section 6).
-5. `command-center/app/src/lib/api.ts` — add `BusinessHealthInputs`, `BusinessHealthResponse`,
+4. `apps/command-center/src/lib/businessHealth.test.ts` — new unit tests (section 6).
+5. `apps/command-center/src/lib/api.ts` — add `BusinessHealthInputs`, `BusinessHealthResponse`,
    `getBusinessHealth`, `saveBusinessHealth`.
-6. `command-center/app/src/hooks/useApi.ts` — add `useBusinessHealthQuery`,
+6. `apps/command-center/src/hooks/useApi.ts` — add `useBusinessHealthQuery`,
    `useSaveBusinessHealthMutation` (+ imports).
-7. `command-center/app/src/routes/admin/AdminCommand.tsx` — full rebuild into the two-panel dashboard
+7. `apps/command-center/src/routes/admin/AdminCommand.tsx` — full rebuild into the two-panel dashboard
    with period toggle + autosave + scoped `.bh-*` style block.
 8. Run `npm run db:migrate` to apply 0027.
 

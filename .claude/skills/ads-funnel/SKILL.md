@@ -6,7 +6,7 @@ description: Use when building a paid-traffic lead funnel for a client — trigg
 # Ads funnel (survey → booking → thank-you)
 
 The repeatable three-page funnel that cold Facebook traffic lands on. Willis
-Windows is the reference build: `command-center/app/public/sites/willis/`.
+Windows is the reference build: `apps/command-center/public/sites/willis/`.
 
 ## When to Use This Skill
 
@@ -28,7 +28,7 @@ Facebook ad
   → /thank-you-quote    thanks.js   confirmation. The Meta pixel fires HERE.
 ```
 
-Three served files in `command-center/app/public/sites/<client>/`. GHL holds a
+Three served files in `apps/command-center/public/sites/<client>/`. GHL holds a
 **two-line pointer stub** per step and nothing else, so every question, price
 and redirect ships by deploy instead of by reopening a page builder.
 
@@ -93,7 +93,7 @@ Copy the three Willis files and rework them. They are the template; there is no
 separate scaffold to drift out of date.
 
 ```
-command-center/app/public/sites/<client>/
+apps/command-center/public/sites/<client>/
   quote.js      mounts #<x>q
   booking.js    mounts #<x>b
   thanks.js     mounts #<x>t

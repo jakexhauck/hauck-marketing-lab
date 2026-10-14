@@ -84,11 +84,11 @@ Call `tabs_context_mcp` first, then open the live client URL to the finished pag
 Once Jake confirms at gate 4: commit, push to origin main, watch the Cloudflare deploy, and smoke-test the live URL yourself (grep the live JS bundle to confirm the new build is serving). Report the commit hash and live bundle name. "Push it" means full ship.
 
 ### 10. Write it down
-Update the page's connection doc under `command-center/app/docs/connections/` (and any build-plan) so the wiring, GHL pipeline/stages, and remaining follow-ups are recorded. Delete any build-plan that fully shipped.
+Update the page's connection doc under `apps/archive/command-center-docs/connections/` (and any build-plan) so the wiring, GHL pipeline/stages, and remaining follow-ups are recorded. Delete any build-plan that fully shipped.
 
 ## Key Facts
 
-- **App root:** `command-center/app/`. Frontend routes under `src/routes/`, hooks under `src/hooks/`, CF Pages Functions under `functions/api/`.
+- **App root:** `apps/command-center/`. Frontend routes under `src/routes/`, hooks under `src/hooks/`, CF Pages Functions under `functions/api/`.
 - **Doppler:** project `hauck-command-center`, config `prd`. Agent reads headless; blocked from writes.
 - **Cloudflare Pages project is `hauck-dashboard`** (not hauck-command-center). Live client app: app.hauckmarketing.com.
 - **Wiring contract:** real session -> `api()` -> GHL/Meta; demo -> `handleDemoRequest()` / `?demo=1`.

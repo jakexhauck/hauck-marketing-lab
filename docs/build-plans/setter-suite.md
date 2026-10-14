@@ -143,28 +143,28 @@ The cockpit shows the lead's current tags as removable chips plus a free input o
 ## File structure
 
 **Create**
-- `command-center/app/supabase/migrations/0027_setter_dials.sql`
-- `command-center/app/functions/lib/tenantGhl.ts` + `.test.ts` — the missing shared helper
-- `command-center/app/functions/lib/setterMetrics.ts` + `.test.ts` — pure derivation, no I/O
-- `command-center/app/functions/api/admin/setter/pipelines.ts`
-- `command-center/app/functions/api/admin/setter/leads.ts`
-- `command-center/app/functions/api/admin/setter/lead/[contactId].ts`
-- `command-center/app/functions/api/admin/setter/dials.ts` + `.test.ts`
-- `command-center/app/functions/api/admin/setter/tags.ts` + `.test.ts`
-- `command-center/app/functions/api/admin/setter/slots.ts`
-- `command-center/app/functions/api/admin/setter/book.ts`
-- `command-center/app/src/routes/admin/SetterSuite.tsx`
-- `command-center/app/src/components/admin/setter/SetterBoard.tsx`
-- `command-center/app/src/components/admin/setter/SetterCard.tsx`
-- `command-center/app/src/components/admin/setter/SetterCockpit.tsx`
-- `command-center/app/src/components/admin/setter/DialLogger.tsx`
-- `command-center/app/src/components/admin/setter/TagField.tsx`
-- `command-center/app/src/components/admin/setter/SlotPicker.tsx`
-- `command-center/app/src/lib/setterModel.ts` + `.test.ts` — shared types, `needsDialing()`
+- `apps/command-center/supabase/migrations/0027_setter_dials.sql`
+- `apps/command-center/functions/lib/tenantGhl.ts` + `.test.ts` — the missing shared helper
+- `apps/command-center/functions/lib/setterMetrics.ts` + `.test.ts` — pure derivation, no I/O
+- `apps/command-center/functions/api/admin/setter/pipelines.ts`
+- `apps/command-center/functions/api/admin/setter/leads.ts`
+- `apps/command-center/functions/api/admin/setter/lead/[contactId].ts`
+- `apps/command-center/functions/api/admin/setter/dials.ts` + `.test.ts`
+- `apps/command-center/functions/api/admin/setter/tags.ts` + `.test.ts`
+- `apps/command-center/functions/api/admin/setter/slots.ts`
+- `apps/command-center/functions/api/admin/setter/book.ts`
+- `apps/command-center/src/routes/admin/SetterSuite.tsx`
+- `apps/command-center/src/components/admin/setter/SetterBoard.tsx`
+- `apps/command-center/src/components/admin/setter/SetterCard.tsx`
+- `apps/command-center/src/components/admin/setter/SetterCockpit.tsx`
+- `apps/command-center/src/components/admin/setter/DialLogger.tsx`
+- `apps/command-center/src/components/admin/setter/TagField.tsx`
+- `apps/command-center/src/components/admin/setter/SlotPicker.tsx`
+- `apps/command-center/src/lib/setterModel.ts` + `.test.ts` — shared types, `needsDialing()`
 
 **Modify**
-- `command-center/app/src/App.tsx` — register `/admin/setter`
-- `command-center/app/src/routes/admin/AdminLayout.tsx` — point the Sales spine slot at it
+- `apps/command-center/src/App.tsx` — register `/admin/setter`
+- `apps/command-center/src/routes/admin/AdminLayout.tsx` — point the Sales spine slot at it
 
 **Refactor to use the new helper (Task 1)**
 - `functions/api/admin/onboarding/[tenantId]/readiness.ts:12-22`
@@ -207,8 +207,8 @@ If DELETE-with-body does not work, stop and report. The fallback is read-modify-
 ### Task 1: Shared tenant-to-GHL helper
 
 **Files:**
-- Create: `command-center/app/functions/lib/tenantGhl.ts`
-- Test: `command-center/app/functions/lib/tenantGhl.test.ts`
+- Create: `apps/command-center/functions/lib/tenantGhl.ts`
+- Test: `apps/command-center/functions/lib/tenantGhl.test.ts`
 - Modify: `functions/api/admin/onboarding/[tenantId]/readiness.ts:12-22`
 - Modify: `functions/api/admin/clients/[tenantId]/import-staff.ts:21-43`
 
@@ -240,7 +240,7 @@ describe("isPlaceholder", () => {
 
 - [ ] **Step 2: Run it and watch it fail**
 
-Run: `cd command-center/app && npx vitest run functions/lib/tenantGhl.test.ts`
+Run: `cd apps/command-center && npx vitest run functions/lib/tenantGhl.test.ts`
 Expected: FAIL, cannot resolve `./tenantGhl`.
 
 - [ ] **Step 3: Implement**
@@ -299,7 +299,7 @@ Expected: all green, no new failures.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add command-center/app/functions/lib/tenantGhl.ts command-center/app/functions/lib/tenantGhl.test.ts command-center/app/functions/api/admin/onboarding/ command-center/app/functions/api/admin/clients/
+git add apps/command-center/functions/lib/tenantGhl.ts apps/command-center/functions/lib/tenantGhl.test.ts apps/command-center/functions/api/admin/onboarding/ apps/command-center/functions/api/admin/clients/
 git commit -m "refactor(admin): extract getGhlContextForTenant, the missing shared helper"
 ```
 
@@ -308,16 +308,16 @@ git commit -m "refactor(admin): extract getGhlContextForTenant, the missing shar
 ### Task 2: The setter_dials table
 
 **Files:**
-- Create: `command-center/app/supabase/migrations/0027_setter_dials.sql`
+- Create: `apps/command-center/supabase/migrations/0027_setter_dials.sql`
 
 - [ ] **Step 1: Re-check the migration number**
 
-Run: `ls command-center/app/supabase/migrations/ | sort | tail -3`
+Run: `ls apps/command-center/supabase/migrations/ | sort | tail -3`
 If the max is no longer `0026`, rename accordingly. This numbering has collided before.
 
 - [ ] **Step 2: Read 0026 for conventions**
 
-Read `command-center/app/supabase/migrations/0026_tenant_ga4_property.sql` and match its RLS and grant style exactly. Do not invent a different convention.
+Read `apps/command-center/supabase/migrations/0026_tenant_ga4_property.sql` and match its RLS and grant style exactly. Do not invent a different convention.
 
 - [ ] **Step 3: Write the migration**
 
@@ -357,7 +357,7 @@ alter table public.setter_dials enable row level security;
 
 - [ ] **Step 4: Apply it**
 
-Run: `cd command-center/app && npm run db:migrate`
+Run: `cd apps/command-center && npm run db:migrate`
 Expected: `0027_setter_dials.sql` reported applied, and it appears in `public._hml_migrations`.
 
 - [ ] **Step 5: Prove it is idempotent**
@@ -368,7 +368,7 @@ Expected: skipped, no error.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add command-center/app/supabase/migrations/0027_setter_dials.sql
+git add apps/command-center/supabase/migrations/0027_setter_dials.sql
 git commit -m "feat(setter): add setter_dials, the per-dial event table"
 ```
 
@@ -379,8 +379,8 @@ git commit -m "feat(setter): add setter_dials, the per-dial event table"
 The riskiest logic in the feature, and the cheapest to test because it touches nothing.
 
 **Files:**
-- Create: `command-center/app/functions/lib/setterMetrics.ts`
-- Test: `command-center/app/functions/lib/setterMetrics.test.ts`
+- Create: `apps/command-center/functions/lib/setterMetrics.ts`
+- Test: `apps/command-center/functions/lib/setterMetrics.test.ts`
 
 **Interfaces:**
 - Produces: `rollUpByContact(dials): Map<string, ContactRollUp>`, `computeRates(leads, rollUps, appointments): Rates`
@@ -545,7 +545,7 @@ Expected: PASS, 7 tests.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/functions/lib/setterMetrics.ts command-center/app/functions/lib/setterMetrics.test.ts
+git add apps/command-center/functions/lib/setterMetrics.ts apps/command-center/functions/lib/setterMetrics.test.ts
 git commit -m "feat(setter): derive per-contact roll-ups and rates from dial events"
 ```
 
@@ -581,7 +581,7 @@ Run the dev server and curl both endpoints with a real admin session and the tes
 - [ ] **Step 4: Commit**
 
 ```bash
-git add command-center/app/functions/api/admin/setter/
+git add apps/command-center/functions/api/admin/setter/
 git commit -m "feat(setter): read endpoints for pipelines and board leads"
 ```
 
@@ -665,7 +665,7 @@ Re-read the contact afterwards and return its actual tag list, rather than echoi
 
 ```bash
 npm test && npm run typecheck
-git add command-center/app/functions/api/admin/setter/
+git add apps/command-center/functions/api/admin/setter/
 git commit -m "feat(setter): lead detail, dial logging, and tag add/remove"
 ```
 
@@ -696,7 +696,7 @@ Book a real slot on a test calendar, confirm in GHL, then cancel it there.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/functions/api/admin/setter/
+git add apps/command-center/functions/api/admin/setter/
 git commit -m "feat(setter): live slot lookup and booking via the existing appointments lib"
 ```
 
@@ -753,7 +753,7 @@ When the leads endpoint returns `truncated: true`, render a visible banner sayin
 
 ```bash
 npm test && npm run typecheck
-git add command-center/app/src/
+git add apps/command-center/src/
 git commit -m "feat(setter): pipeline board across all 8 pipelines"
 ```
 
@@ -791,7 +791,7 @@ A logged dial appears in the timeline immediately and increments the card's atte
 
 ```bash
 npm test && npm run typecheck
-git add command-center/app/src/components/admin/setter/
+git add apps/command-center/src/components/admin/setter/
 git commit -m "feat(setter): lead cockpit with dial logging, tags, and booking"
 ```
 
@@ -813,7 +813,7 @@ Show rate and Close rate use the existing `.pk-report-tile.pk-pending` treatment
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/src/routes/admin/SetterSuite.tsx
+git add apps/command-center/src/routes/admin/SetterSuite.tsx
 git commit -m "feat(setter): rate strip, with unavailable rates marked pending"
 ```
 
@@ -841,7 +841,7 @@ Log in as admin, open the Setter Suite against the test account, confirm all 8 p
 ```bash
 rm "C:/Users/games/Desktop/setter-suite-mockups.html"
 ```
-Update `blueprint/index.html` NODES and GAPS per the standing rule.
+Update `apps/blueprint/index.html` NODES and GAPS per the standing rule.
 
 - [ ] **Step 6: Delete this plan**
 

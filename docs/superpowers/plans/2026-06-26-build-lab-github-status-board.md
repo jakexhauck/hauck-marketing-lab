@@ -15,15 +15,15 @@
 - Tests live at `src/**/*.test.ts` (vitest include). Pure logic goes in `src/lib`.
 - Repo for all GitHub calls + URLs: `jakexhauck/hauck-marketing-lab`, branch `main`.
 - Board reads ONLY `vault/Plans/Builds/`. Statuses: `idea` | `building` | `ready` | `done`.
-- Verify before done: `npm run typecheck` and `npm run test` from `command-center/app`.
+- Verify before done: `npm run typecheck` and `npm run test` from `apps/command-center`.
 
 ---
 
 ### Task 1: Pure builds library (parse + group)
 
 **Files:**
-- Create: `command-center/app/src/lib/builds.ts`
-- Test: `command-center/app/src/lib/builds.test.ts`
+- Create: `apps/command-center/src/lib/builds.ts`
+- Test: `apps/command-center/src/lib/builds.test.ts`
 
 **Interfaces:**
 - Produces:
@@ -38,7 +38,7 @@
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-// command-center/app/src/lib/builds.test.ts
+// apps/command-center/src/lib/builds.test.ts
 import { describe, it, expect } from "vitest";
 import {
   parseBuildPlan,
@@ -111,13 +111,13 @@ describe("groupByStatus", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd command-center/app && npx vitest run src/lib/builds.test.ts`
+Run: `cd apps/command-center && npx vitest run src/lib/builds.test.ts`
 Expected: FAIL (Cannot find module './builds').
 
 - [ ] **Step 3: Write minimal implementation**
 
 ```ts
-// command-center/app/src/lib/builds.ts
+// apps/command-center/src/lib/builds.ts
 // Pure helpers for the admin Build Lab: parse a vault/Plans/Builds/*.md plan
 // file (flat YAML frontmatter) into a BuildItem, and group items into the four
 // status columns. No IO here so it stays unit-testable; the function endpoint
@@ -211,13 +211,13 @@ export function groupByStatus(items: BuildItem[]): Record<BuildStatus, BuildItem
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd command-center/app && npx vitest run src/lib/builds.test.ts`
+Run: `cd apps/command-center && npx vitest run src/lib/builds.test.ts`
 Expected: PASS (6 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/src/lib/builds.ts command-center/app/src/lib/builds.test.ts
+git add apps/command-center/src/lib/builds.ts apps/command-center/src/lib/builds.test.ts
 git commit -m "feat(build-lab): pure builds parser + status grouping"
 ```
 
@@ -226,8 +226,8 @@ git commit -m "feat(build-lab): pure builds parser + status grouping"
 ### Task 2: Backend endpoint + env
 
 **Files:**
-- Create: `command-center/app/functions/api/admin/builds.ts`
-- Modify: `command-center/app/functions/lib/env.ts` (add `GITHUB_TOKEN?` and `GITHUB_REPO?`)
+- Create: `apps/command-center/functions/api/admin/builds.ts`
+- Modify: `apps/command-center/functions/lib/env.ts` (add `GITHUB_TOKEN?` and `GITHUB_REPO?`)
 
 **Interfaces:**
 - Consumes: `Env`, `ApiData` from `functions/lib/env`.
@@ -235,7 +235,7 @@ git commit -m "feat(build-lab): pure builds parser + status grouping"
 
 - [ ] **Step 1: Add env fields**
 
-In `command-center/app/functions/lib/env.ts`, inside `interface Env`, after the `GOOGLE_OAUTH_*` block:
+In `apps/command-center/functions/lib/env.ts`, inside `interface Env`, after the `GOOGLE_OAUTH_*` block:
 
 ```ts
   // Build Lab reads vault/Plans/Builds/*.md from the repo over the GitHub REST
@@ -248,7 +248,7 @@ In `command-center/app/functions/lib/env.ts`, inside `interface Env`, after the 
 - [ ] **Step 2: Write the endpoint**
 
 ```ts
-// command-center/app/functions/api/admin/builds.ts
+// apps/command-center/functions/api/admin/builds.ts
 import type { Env, ApiData } from "../../../lib/env";
 
 // GET /api/admin/builds  (admin-only, gated in _middleware.ts)
@@ -330,13 +330,13 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
 - [ ] **Step 3: Typecheck**
 
-Run: `cd command-center/app && npm run typecheck`
+Run: `cd apps/command-center && npm run typecheck`
 Expected: PASS (no errors).
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add command-center/app/functions/api/admin/builds.ts command-center/app/functions/lib/env.ts
+git add apps/command-center/functions/api/admin/builds.ts apps/command-center/functions/lib/env.ts
 git commit -m "feat(build-lab): admin GitHub proxy endpoint for build plans"
 ```
 
@@ -345,21 +345,21 @@ git commit -m "feat(build-lab): admin GitHub proxy endpoint for build plans"
 ### Task 3: Rewrite AdminBuild.tsx as a live board, remove old buildLab
 
 **Files:**
-- Modify (full rewrite): `command-center/app/src/routes/admin/AdminBuild.tsx`
-- Delete: `command-center/app/src/lib/buildLab.ts`
+- Modify (full rewrite): `apps/command-center/src/routes/admin/AdminBuild.tsx`
+- Delete: `apps/command-center/src/lib/buildLab.ts`
 
 **Interfaces:**
 - Consumes: `parseBuildPlan`, `groupByStatus`, `BUILD_STATUS_ORDER`, `BUILD_STATUS_LABEL`, `type BuildItem`, `type BuildFile` from `../../lib/builds`.
 
 - [ ] **Step 1: Confirm no other importer of buildLab.ts**
 
-Run: `cd command-center/app && grep -rl "lib/buildLab" src` 
+Run: `cd apps/command-center && grep -rl "lib/buildLab" src` 
 Expected: only `src/routes/admin/AdminBuild.tsx` (which we replace). If anything else appears, stop and reassess.
 
 - [ ] **Step 2: Rewrite the page**
 
 ```tsx
-// command-center/app/src/routes/admin/AdminBuild.tsx
+// apps/command-center/src/routes/admin/AdminBuild.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles, Hammer, CheckCircle2, PackageCheck, ExternalLink, RefreshCw } from "lucide-react";
 import DesktopPage from "../../components/desktop/DesktopPage";
@@ -500,23 +500,23 @@ function BuildCardView({ item }: { item: BuildItem }) {
 }
 ```
 
-NOTE: `DesktopPage` props (`title`, `subtitle`, `actions`) must match the existing component. Before writing, open `command-center/app/src/components/desktop/DesktopPage.tsx` and adapt prop names/structure to whatever it actually exposes. Same for the styling tokens (`bg-surface`, `border-border`, `text-faint`, `var(--radius)`): use whatever the neighboring admin pages use.
+NOTE: `DesktopPage` props (`title`, `subtitle`, `actions`) must match the existing component. Before writing, open `apps/command-center/src/components/desktop/DesktopPage.tsx` and adapt prop names/structure to whatever it actually exposes. Same for the styling tokens (`bg-surface`, `border-border`, `text-faint`, `var(--radius)`): use whatever the neighboring admin pages use.
 
 - [ ] **Step 3: Delete the obsolete module**
 
 ```bash
-git rm command-center/app/src/lib/buildLab.ts
+git rm apps/command-center/src/lib/buildLab.ts
 ```
 
 - [ ] **Step 4: Typecheck + build + tests**
 
-Run: `cd command-center/app && npm run typecheck && npm run test`
+Run: `cd apps/command-center && npm run typecheck && npm run test`
 Expected: PASS, no references to the deleted `buildLab`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/src/routes/admin/AdminBuild.tsx
+git add apps/command-center/src/routes/admin/AdminBuild.tsx
 git commit -m "feat(build-lab): live read-only status board over Hermes pipeline"
 ```
 
@@ -528,7 +528,7 @@ git commit -m "feat(build-lab): live read-only status board over Hermes pipeline
 
 - [ ] **Step 1: Set the Cloudflare secret**
 
-Run (from `command-center/app`, token provided by Jake):
+Run (from `apps/command-center`, token provided by Jake):
 `node scripts/cf.mjs env:set GITHUB_TOKEN <token>`
 (Confirm the exact cf.mjs subcommand by reading the script first; match how other secrets are set.)
 

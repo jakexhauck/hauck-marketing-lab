@@ -30,7 +30,7 @@ sole job is to record "consider this lesson when we build checklists."
 
 ## Data model
 
-New migration `command-center/app/supabase/migrations/0017_admin_sop_flags.sql`:
+New migration `apps/command-center/supabase/migrations/0017_admin_sop_flags.sql`:
 
 ```sql
 create table if not exists public.admin_sop_flags (

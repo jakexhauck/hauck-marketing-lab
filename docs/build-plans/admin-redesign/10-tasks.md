@@ -1,6 +1,6 @@
 # 10 — Tasks (Operations)
 
-Approved mockup (implement THIS): `command-center/docs/mockups/admin-redesign/task-list-A.html`. Read `_architecture.md` + `00-foundation.md` first. This surface REUSES the existing `admin_tasks` table + `/api/admin/tasks` endpoints (migrations 0012 + 0020); it only adds two columns and retires the old standalone `/admin/tasks` route (00-foundation F1).
+Approved mockup (implement THIS): `archive/command-center-docs/mockups/admin-redesign/task-list-A.html`. Read `_architecture.md` + `00-foundation.md` first. This surface REUSES the existing `admin_tasks` table + `/api/admin/tasks` endpoints (migrations 0012 + 0020); it only adds two columns and retires the old standalone `/admin/tasks` route (00-foundation F1).
 
 ## 1. Goal / DoD
 Operations pillar tab "Tasks": an editable working checklist. One flat table of agency tasks with a Done checkbox, an editable Task title, a Notes/Files cell, a status pill (To do / Doing / Done), and an editable Updates cell. Add-a-row appends a blank task and focuses it; every cell edits inline and persists; the checkbox and status pill stay in sync (checking Done sets status Done; setting status Done checks Done; un-checking a Done row drops it to Doing). Header sub-line shows `N open, N done`. Manual entry; app DB is source of truth. The old `/admin/tasks` page is removed and folded into this tab.

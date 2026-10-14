@@ -1,6 +1,6 @@
 # SOP Hub - original seed backup
 
-Archived on swap to Local Ads School content. This is the previous static seed from `command-center/app/src/lib/sopData.ts`.
+Archived on swap to Local Ads School content. This is the previous static seed from `apps/command-center/src/lib/sopData.ts`.
 
 ## 📋 Onboarding
 

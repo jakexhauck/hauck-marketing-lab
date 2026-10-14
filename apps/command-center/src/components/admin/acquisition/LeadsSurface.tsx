@@ -1,0 +1,1502 @@
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  AlertTriangle,
+  Download,
+  Upload,
+  ExternalLink,
+  History,
+  Loader2,
+  PhoneForwarded,
+  Play,
+  MapPin,
+  Pause,
+  Radar,
+  Search,
+  Square,
+  Table2,
+  Undo2,
+  Clock,
+  CircleDot,
+  Layers,
+  Filter,
+} from "lucide-react";
+import { PillarTitleActions } from "../../pillars/PillarKit";
+import FilterPicker from "../FilterPicker";
+import CitiesTable from "./CitiesTable";
+import ImportLeadsPanel from "./ImportLeadsPanel";
+import { formatPhoneDashed } from "../../../lib/phone";
+import { CALL_ZONES } from "../../../../functions/lib/leadZones";
+// The same writer the SOP's export uses, so a file saved here and a file built by
+// the server quote a company name with a comma in it identically.
+import { DO_NOT_CONTACT, toCsv } from "../../../../functions/lib/leadScraper";
+import {
+  RUN_SIZES,
+  CAP_PRESETS,
+  addCities,
+  sizeCapLabel,
+  canSend,
+  channelLabel,
+  cityKey,
+  draftProblem,
+  emptyDraft,
+  formatRating,
+  isRunActive,
+  isRunHeld,
+  parseCapInput,
+  parseCityList,
+  runCap,
+  prettyDomain,
+  resolveRunRequest,
+  runStatusLine,
+  summariseSelection,
+  type Channel,
+  type RunDraft,
+  type RunSize,
+  type ScrapeRun,
+  type ScrapedLeadView,
+} from "../../../lib/leadScraper";
+import { useLeadCities } from "../../../hooks/useApi";
+import { indexCities, lookupCity } from "../../../lib/cityCoverage";
+import type { LeadCity } from "../../../lib/api";
+import {
+  useLeads,
+  useNichePresets,
+  useScrapeRuns,
+  useSendLeads,
+  useReturnFromDialer,
+  useMarkExported,
+  useStartRun,
+  useStopRun,
+  useHoldRun,
+  useResumeRun,
+  leadScraperKeys,
+  type LeadFilters,
+  type SendResult,
+  type SendProgress,
+  type ReturnResult,
+} from "../../../hooks/useLeadScraper";
+
+// Acquisition > Leads.
+//
+// A window onto the LIIGO SOP's scraper, which lives at projects/lead-scraper
+// and runs on Jake's own Mac and PC. This page does not scrape. It says what to
+// look for, shows what came back and why each row scored what it did, and hands the
+// ones Jake ticks to Cold Call or SMS as tagged GoHighLevel contacts.
+//
+// Three views. Leads is the table and the default, because most visits are to work
+// a list that is already there. New scrape is the wizard. Runs is the history.
+// An active run shows above all three, since "is it still going" is the question
+// you have on every one of them.
+//
+// Nothing here fabricates a number. Every score, reason, rating and count is read
+// from what the qualifier actually wrote.
+
+type View = "leads" | "import" | "dialer" | "new" | "runs" | "cities";
+
+export default function LeadsSurface() {
+  const [view, setView] = useState<View>("leads");
+  // Two lists, same table, told apart by `imported`. Separate filter state so
+  // that a niche or search typed on one page does not follow you to the other.
+  const [filters, setFilters] = useState<LeadFilters>({ sent: "0", imported: "0" });
+  const [importFilters, setImportFilters] = useState<LeadFilters>({ sent: "0", imported: "1" });
+  // The companies queued on GoHighLevel's power dialer that nobody has rung yet.
+  // `dialer` replaces the pending filter on the server rather than narrowing it,
+  // so `sent` has no meaning here and is deliberately absent.
+  const [dialerFilters, setDialerFilters] = useState<LeadFilters>({ dialer: "1" });
+
+  const runsQuery = useScrapeRuns();
+  const runs = runsQuery.data?.runs ?? [];
+  const activeRun = runs.find(isRunActive) ?? null;
+  // Parked runs, by Hold or by their cap. They scrape nothing and block nothing,
+  // so they sit under the active one with Continue rather than in its place.
+  const heldRuns = runs.filter(isRunHeld);
+
+  const leadsQuery = useLeads(filters);
+  const leads = leadsQuery.data?.leads ?? [];
+
+  const importQuery = useLeads(importFilters);
+  const importedLeads = importQuery.data?.leads ?? [];
+
+  const dialerQuery = useLeads(dialerFilters);
+  const dialerLeads = dialerQuery.data?.leads ?? [];
+
+  // The niches worth offering as a filter are the ones that have actually been
+  // scraped, read from the run history rather than the preset list: a niche
+  // renamed or deleted since its run still owns rows sitting in the table, and a
+  // preset that has never been run would filter to nothing. Presets only supply
+  // the nicer label when they still have one.
+  const presetsQuery = useNichePresets();
+  const niches = useMemo(() => {
+    const labels = new Map((presetsQuery.data?.presets ?? []).map((p) => [p.nicheId, p.label]));
+    const seen = new Map<string, string>();
+    for (const r of runs) {
+      if (!r.nicheId || seen.has(r.nicheId)) continue;
+      seen.set(r.nicheId, labels.get(r.nicheId) ?? r.nicheLabel ?? r.nicheId);
+    }
+    return [...seen].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [runs, presetsQuery.data]);
+
+  return (
+    <div className="ls">
+      <LeadsStyle />
+
+      <PillarTitleActions>
+        <nav className="ls-subnav" role="tablist" aria-label="Leads views">
+          <SubTab id="leads" view={view} onSelect={setView} icon={<Table2 size={15} />} label="Leads" count={leadsQuery.data?.total} />
+          {/* Next to Leads, because it is the same list arriving a different way. */}
+          <SubTab id="import" view={view} onSelect={setView} icon={<Upload size={15} />} label="Import leads" count={importQuery.data?.total} />
+          {/* Where a lead goes when it leaves this page, so the way back sits
+              beside the way out. */}
+          <SubTab id="dialer" view={view} onSelect={setView} icon={<PhoneForwarded size={15} />} label="Sent to dialer" count={dialerQuery.data?.total} />
+          <SubTab id="new" view={view} onSelect={setView} icon={<Radar size={15} />} label="New scrape" />
+          <SubTab id="runs" view={view} onSelect={setView} icon={<History size={15} />} label="Runs" count={runs.length || undefined} />
+          {/* Cities sits last: it is the planning view, read before starting a
+              scrape rather than while working the list. */}
+          <SubTab id="cities" view={view} onSelect={setView} icon={<MapPin size={15} />} label="Cities" />
+        </nav>
+      </PillarTitleActions>
+
+      {activeRun && <RunBanner run={activeRun} />}
+      {heldRuns.map((r) => <HeldBanner key={r.id} run={r} />)}
+
+      {view === "leads" && (
+        <LeadsTable
+          leads={leads}
+          total={leadsQuery.data?.total ?? 0}
+          loading={leadsQuery.isLoading}
+          filters={filters}
+          onFilters={setFilters}
+          runs={runs}
+          niches={niches}
+        />
+      )}
+      {view === "import" && (
+        <>
+          <ImportLeadsPanel />
+          <LeadsTable
+            leads={importedLeads}
+            total={importQuery.data?.total ?? 0}
+            loading={importQuery.isLoading}
+            filters={importFilters}
+            onFilters={setImportFilters}
+            runs={runs}
+            niches={niches}
+            imported
+          />
+        </>
+      )}
+      {view === "dialer" && (
+        <LeadsTable
+          leads={dialerLeads}
+          total={dialerQuery.data?.total ?? 0}
+          loading={dialerQuery.isLoading}
+          filters={dialerFilters}
+          onFilters={setDialerFilters}
+          runs={runs}
+          niches={niches}
+          dialer
+        />
+      )}
+      {view === "new" && (
+        <Wizard
+          disabled={!!activeRun}
+          onStarted={() => {
+            setView("leads");
+            setFilters({ sent: "0", imported: "0" });
+          }}
+        />
+      )}
+      {view === "runs" && <RunHistory runs={runs} loading={runsQuery.isLoading} />}
+      {view === "cities" && <CitiesTable />}
+    </div>
+  );
+}
+
+function SubTab({
+  id, view, onSelect, icon, label, count,
+}: {
+  id: View; view: View; onSelect: (v: View) => void;
+  icon: React.ReactNode; label: string; count?: number;
+}) {
+  const on = view === id;
+  return (
+    <button type="button" role="tab" aria-selected={on} className={`ls-subtab${on ? " on" : ""}`} onClick={() => onSelect(id)}>
+      {icon}
+      {label}
+      {count !== undefined && count > 0 && <span className="ls-cnt">{count}</span>}
+    </button>
+  );
+}
+
+// --- the active run ----------------------------------------------------------
+
+function RunBanner({ run }: { run: ScrapeRun }) {
+  const pending = run.status === "preparing" || run.status === "queued";
+  const stop = useStopRun();
+  const hold = useHoldRun();
+  // Armed on the first press, done on the second. An hour of scraping is too
+  // much to lose to a mis-click, and the button sits next to nothing else.
+  const [armed, setArmed] = useState(false);
+  // 'preparing' cannot be held: the CRM sweep flips it to 'queued' when it
+  // lands, which would quietly undo the hold (hold.ts).
+  const holdable = run.status === "queued" || run.status === "running";
+  const failed = stop.error ?? hold.error;
+  return (
+    <div className={`ls-banner${run.blocked ? " warn" : ""}`}>
+      <div className="ls-banner-top">
+        <div className="ls-banner-title">
+          {pending ? <Loader2 size={15} className="ls-spin" /> : <Radar size={15} />}
+          {run.nicheLabel}
+          <span className="ls-banner-where">
+            {run.states.length > 0 ? run.states.join(", ") : `${run.cities.length} cities`}
+          </span>
+        </div>
+        <div className="ls-banner-right">
+          {run.host && <span className="ls-banner-host">on {run.host}</span>}
+          {run.holdAt !== null && (
+            <span className="ls-banner-host">holds at {run.holdAt}</span>
+          )}
+          {holdable && (
+            <button
+              type="button"
+              className="ls-hold"
+              disabled={hold.isPending || stop.isPending}
+              onClick={() => hold.mutate(run.id)}
+            >
+              {hold.isPending ? <Loader2 size={13} className="ls-spin" /> : <Pause size={13} />}
+              Hold
+            </button>
+          )}
+          <button
+            type="button"
+            className={`ls-stop${armed ? " armed" : ""}`}
+            disabled={stop.isPending}
+            onClick={() => (armed ? stop.mutate(run.id) : setArmed(true))}
+            onBlur={() => setArmed(false)}
+          >
+            {stop.isPending ? <Loader2 size={13} className="ls-spin" /> : <Square size={13} />}
+            {armed ? "Stop the run?" : "Stop"}
+          </button>
+        </div>
+      </div>
+
+      {failed && (
+        <div className="ls-err">
+          {(failed as { body?: { error?: string } })?.body?.error ??
+            (stop.error ? "Could not stop that run." : "Could not hold that run.")}
+        </div>
+      )}
+
+      <div className="ls-bar" role="progressbar" aria-valuenow={run.percent} aria-valuemin={0} aria-valuemax={100}>
+        {/* Indeterminate until there is a real denominator: a bar sitting at 0%
+            for two minutes reads as broken, where a moving stripe reads as busy. */}
+        <div className={`ls-bar-fill${run.totalQueries === 0 ? " indet" : ""}`} style={run.totalQueries > 0 ? { width: `${run.percent}%` } : undefined} />
+      </div>
+
+      <div className="ls-banner-line">{runStatusLine(run)}</div>
+
+      {run.status === "running" && run.rawFound > 0 && (
+        <div className="ls-banner-stats">
+          <span><b>{run.rawFound}</b> found</span>
+          <span><b>{run.added}</b> added</span>
+          {run.hiddenAsDuplicates > 0 && <span><b>{run.hiddenAsDuplicates}</b> already in the CRM</span>}
+        </div>
+      )}
+
+      {run.crmSnapshotPartial && (
+        <div className="ls-note">
+          <AlertTriangle size={13} />
+          Duplicate hiding is partial for this run: the GoHighLevel sweep did not
+          finish, so some businesses you already have may still appear.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A run parked by Hold or by its cap. Continue puts it back on the queue with
+// the next hold point up by the cap; Stop ends it, same two presses as the
+// running banner. It resumes only on the machine that started it, because its
+// place is saved on that machine's disk, so the button says which one.
+function HeldBanner({ run }: { run: ScrapeRun }) {
+  const resume = useResumeRun();
+  const stop = useStopRun();
+  const [armed, setArmed] = useState(false);
+  const failed = resume.error ?? stop.error;
+  return (
+    <div className="ls-banner held">
+      <div className="ls-banner-top">
+        <div className="ls-banner-title">
+          <Pause size={15} />
+          {run.nicheLabel}
+          <span className="ls-banner-where">
+            {run.states.length > 0 ? run.states.join(", ") : `${run.cities.length} cities`}
+          </span>
+        </div>
+        <div className="ls-banner-right">
+          <button
+            type="button"
+            className="ls-primary sm"
+            disabled={resume.isPending || stop.isPending}
+            onClick={() => resume.mutate(run.id)}
+          >
+            {resume.isPending ? <Loader2 size={13} className="ls-spin" /> : <Play size={13} />}
+            {run.host ? `Continue on ${run.host}` : "Continue"}
+          </button>
+          <button
+            type="button"
+            className={`ls-stop${armed ? " armed" : ""}`}
+            disabled={stop.isPending || resume.isPending}
+            onClick={() => (armed ? stop.mutate(run.id) : setArmed(true))}
+            onBlur={() => setArmed(false)}
+          >
+            {stop.isPending ? <Loader2 size={13} className="ls-spin" /> : <Square size={13} />}
+            {armed ? "Stop the run?" : "Stop"}
+          </button>
+        </div>
+      </div>
+
+      {failed && (
+        <div className="ls-err">
+          {(failed as { body?: { error?: string } })?.body?.error ??
+            (resume.error ? "Could not continue that run." : "Could not stop that run.")}
+        </div>
+      )}
+
+      <div className="ls-bar" role="progressbar" aria-valuenow={run.percent} aria-valuemin={0} aria-valuemax={100}>
+        <div className="ls-bar-fill held" style={{ width: `${run.percent}%` }} />
+      </div>
+
+      <div className="ls-banner-line">{runStatusLine(run)}</div>
+
+      <div className="ls-banner-stats">
+        <span><b>{run.doneQueries}</b> of {run.totalQueries} searches</span>
+        {run.leadCap !== null && <span><b>{run.leadCap}</b> per stretch</span>}
+      </div>
+    </div>
+  );
+}
+
+// --- the wizard --------------------------------------------------------------
+
+// A city typed in that has never been scraped and is too small for the planning
+// list. It gets a row of its own so it can be ticked like any other; every
+// count on it is zero because that is the truth about it.
+function unknownCity(city: string, state: string): LeadCity {
+  return {
+    rank: null,
+    city,
+    stateName: state,
+    stateCode: state,
+    population: null,
+    growthPct: null,
+    runs: 0,
+    lastRunAt: null,
+    leads: 0,
+    totalRuns: 0,
+    totalLeads: 0,
+    niches: [],
+  };
+}
+
+function Wizard({ disabled, onStarted }: { disabled: boolean; onStarted: () => void }) {
+  const [draft, setDraft] = useState<RunDraft>(emptyDraft);
+  const [pasted, setPasted] = useState("");
+  // Cities typed in that the coverage list has never heard of. They have no
+  // history to show, which is not a reason to refuse them.
+  const [extra, setExtra] = useState<LeadCity[]>([]);
+  // How many cities the last action could not fit. Silently dropping the tail
+  // is the exact failure the cap exists to prevent, one step earlier.
+  const [dropped, setDropped] = useState(0);
+  // The typed cap, kept as text so a half-typed number is not thrown away.
+  const [capText, setCapText] = useState("");
+
+  const presets = useNichePresets();
+  const start = useStartRun();
+
+  // What has already been done in these cities, for the trade that is selected.
+  // Asked for only once a trade is picked, because until then the answer means
+  // nothing: a city is never "done", it is done for something.
+  const coverage = useLeadCities(draft.nicheId, !!draft.nicheId);
+  const index = useMemo(() => indexCities(coverage.data?.cities ?? []), [coverage.data]);
+
+  const cap = runCap(draft.size);
+  const problem = draftProblem(draft);
+
+  const chooseSize = (id: RunSize) => {
+    // A smaller size cannot carry the list that was picked under a bigger one.
+    setDropped(Math.max(0, draft.cities.length - runCap(id)));
+    setDraft((d) => ({ ...d, size: id, cities: d.cities.slice(0, runCap(id)) }));
+  };
+
+  const toggleCity = (c: { city: string; state: string }) => {
+    const key = cityKey(c.city, c.state);
+    setDropped(0);
+    setDraft((d) =>
+      d.cities.some((p) => cityKey(p.city, p.state) === key)
+        ? { ...d, cities: d.cities.filter((p) => cityKey(p.city, p.state) !== key) }
+        : { ...d, cities: addCities(d.cities, [c], cap).cities },
+    );
+  };
+
+  // A pasted list is resolved against the coverage table first, so "novi mi"
+  // ticks the Novi row and shows its history rather than becoming a second,
+  // historyless copy of the same city.
+  const addPasted = () => {
+    const wanted: { city: string; state: string }[] = [];
+    const unknown: LeadCity[] = [];
+    for (const c of parseCityList(pasted)) {
+      const known = lookupCity(index, c.city, c.state);
+      if (known) wanted.push({ city: known.city, state: known.stateCode });
+      else {
+        wanted.push(c);
+        unknown.push(unknownCity(c.city, c.state));
+      }
+    }
+    const next = addCities(draft.cities, wanted, cap);
+    const room = new Set(next.cities.map((p) => cityKey(p.city, p.state)));
+    setDraft((d) => ({ ...d, cities: next.cities }));
+    setExtra((rows) => {
+      const have = new Set(rows.map((r) => cityKey(r.city, r.stateCode)));
+      return [
+        ...rows,
+        ...unknown.filter(
+          (u) => !have.has(cityKey(u.city, u.stateCode)) && room.has(cityKey(u.city, u.stateCode)),
+        ),
+      ];
+    });
+    setDropped(next.dropped);
+    setPasted("");
+  };
+
+  const go = () => {
+    if (problem || disabled) return;
+    start.mutate(resolveRunRequest(draft), { onSuccess: onStarted });
+  };
+
+  return (
+    <div className="ls-wizard">
+      {disabled && (
+        <div className="ls-note warn">
+          <AlertTriangle size={13} />
+          A scrape is already running. Let it finish before starting another.
+        </div>
+      )}
+
+      <Step n={1} title="What are you looking for?">
+        {presets.isLoading && <div className="ls-muted">Loading niches...</div>}
+        {presets.data?.presets.length === 0 && (
+          <div className="ls-muted">
+            No niches yet. Run <code>node scripts/seed-niches.mjs</code> to load the built-in ones.
+          </div>
+        )}
+        <div className="ls-chips">
+          {(presets.data?.presets ?? []).map((p) => (
+            <button
+              key={p.nicheId}
+              type="button"
+              className={`ls-chip${draft.nicheId === p.nicheId ? " on" : ""}`}
+              onClick={() => setDraft((d) => ({ ...d, nicheId: p.nicheId }))}
+            >
+              <span className="ls-chip-label">{p.label}</span>
+              <span className="ls-chip-sub">
+                {p.summary.keywords} searches, {p.summary.denyTerms} things it rejects
+              </span>
+            </button>
+          ))}
+        </div>
+      </Step>
+
+      <Step n={2} title="How big a run?">
+        <div className="ls-sizes">
+          {RUN_SIZES.map((s) => (
+            <button key={s.id} type="button" className={`ls-size${draft.size === s.id ? " on" : ""}`} onClick={() => chooseSize(s.id)}>
+              <span className="ls-size-label">
+                {s.label}
+                <span className="ls-size-cap">{sizeCapLabel(s.cap)}</span>
+              </span>
+              <span className="ls-size-blurb">{s.blurb}</span>
+            </button>
+          ))}
+        </div>
+      </Step>
+
+      <Step n={3} title="Which cities?">
+        {!draft.nicheId ? (
+          <div className="ls-muted">Pick a niche first.</div>
+        ) : (
+          <>
+            <div className="ls-paste">
+              <textarea
+                className="ls-textarea"
+                rows={3}
+                placeholder={"Paste a list to tick it:\nPlano TX\nBoise ID\nFrisco / Southlake TX"}
+                value={pasted}
+                onChange={(e) => setPasted(e.target.value)}
+              />
+              <button type="button" className="ls-secondary" disabled={!pasted.trim()} onClick={addPasted}>
+                Add to the run
+              </button>
+            </div>
+
+            {dropped > 0 && (
+              <div className="ls-note warn">
+                <AlertTriangle size={13} />
+                {dropped} {dropped === 1 ? "city" : "cities"} over the {cap}
+                {cap === 1 ? " city" : " cities"} this size scrapes.
+              </div>
+            )}
+
+            <div className="ls-picktable">
+              <CitiesTable
+                picker={{
+                  niche: draft.nicheId,
+                  cap,
+                  picked: draft.cities,
+                  onToggle: toggleCity,
+                  extra,
+                }}
+              />
+            </div>
+          </>
+        )}
+      </Step>
+
+      <Step n={4} title="Cap">
+        <div className="ls-sizes">
+          <button
+            type="button"
+            className={`ls-size${draft.cap === null ? " on" : ""}`}
+            onClick={() => {
+              setCapText("");
+              setDraft((d) => ({ ...d, cap: null }));
+            }}
+          >
+            <span className="ls-size-label">No cap</span>
+          </button>
+          {CAP_PRESETS.map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={`ls-size${draft.cap === n && !capText ? " on" : ""}`}
+              onClick={() => {
+                setCapText("");
+                setDraft((d) => ({ ...d, cap: n }));
+              }}
+            >
+              <span className="ls-size-label">
+                {n}
+                <span className="ls-size-cap">leads</span>
+              </span>
+            </button>
+          ))}
+          <label className={`ls-size ls-cap-own${capText && draft.cap !== null ? " on" : ""}`}>
+            <input
+              className="ls-cap-input"
+              inputMode="numeric"
+              placeholder="Own number"
+              aria-label="Own cap"
+              value={capText}
+              onChange={(e) => {
+                setCapText(e.target.value);
+                const n = parseCapInput(e.target.value);
+                setDraft((d) => ({ ...d, cap: n }));
+              }}
+            />
+          </label>
+        </div>
+      </Step>
+
+      <div className="ls-go">
+        <button type="button" className="ls-primary" disabled={!!problem || disabled || start.isPending} onClick={go}>
+          {start.isPending ? <Loader2 size={15} className="ls-spin" /> : <Play size={15} />}
+          Start the scrape
+        </button>
+        {problem && <span className="ls-muted">{problem}</span>}
+        {start.isError && (
+          <span className="ls-err">{(start.error as { body?: { error?: string } })?.body?.error ?? "Could not start that run."}</span>
+        )}
+      </div>
+
+      <p className="ls-footnote">
+        The scraping runs on your Mac or PC, not here. Start the runner with{" "}
+        <code>bash run.sh --watch</code> in <code>projects/lead-scraper</code> and it will
+        pick this up.
+      </p>
+    </div>
+  );
+}
+
+function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <section className="ls-step">
+      <h3 className="ls-step-h">
+        <span className="ls-step-n">{n}</span>
+        {title}
+      </h3>
+      <div className="ls-step-body">{children}</div>
+    </section>
+  );
+}
+
+// --- the table ---------------------------------------------------------------
+
+function LeadsTable({
+  leads, total, loading, filters, onFilters, runs, niches, imported = false, dialer = false,
+}: {
+  leads: ScrapedLeadView[]; total: number; loading: boolean;
+  filters: LeadFilters; onFilters: (f: LeadFilters) => void; runs: ScrapeRun[];
+  niches: { id: string; label: string }[];
+  // The imported list. Same table, minus the controls that only mean something
+  // for a scrape: an imported row belongs to no run, and the CSV lives here now.
+  imported?: boolean;
+  // The Sent to dialer list. Same table read backwards: every row on it has
+  // already been sent, so the send buttons become one Return to leads button and
+  // the sent filter, which could only say one thing here, is gone.
+  dialer?: boolean;
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [result, setResult] = useState<SendResult | null>(null);
+  const [progress, setProgress] = useState<(SendProgress & { channel: Channel }) | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [csvError, setCsvError] = useState("");
+  const send = useSendLeads();
+  const back = useReturnFromDialer();
+  const markExported = useMarkExported();
+  // The rows the Leads CSV is about to write, held while Jake picks keep or
+  // remove. Frozen at the press so a list that refreshes underneath the question
+  // cannot change which leads go in the file or come off the list.
+  const [exportAsk, setExportAsk] = useState<ScrapedLeadView[] | null>(null);
+  const [returned, setReturned] = useState<ReturnResult | null>(null);
+  const qc = useQueryClient();
+
+  const summary = summariseSelection(leads, selected);
+  const allTicked = leads.length > 0 && leads.every((l) => selected.has(l.id));
+
+  const runsForNiche = filters.nicheId ? runs.filter((r) => r.nicheId === filters.nicheId) : runs;
+
+  const exportQuery = useMemo(() => {
+    const params = new URLSearchParams();
+    if (filters.runId) params.set("runId", filters.runId);
+    if (filters.nicheId) params.set("nicheId", filters.nicheId);
+    // The file has to be the list it was downloaded from. The button lives on
+    // Import leads now, so without this it would quietly hand back every scraped
+    // lead as well, and stamp them all as sent.
+    if (filters.imported) params.set("imported", filters.imported);
+    // Same rule as the niche filter: a file that does not match the list it was
+    // downloaded from stamps rows as sent that were never on screen.
+    if (filters.zone) params.set("zone", filters.zone);
+    const qs = params.toString();
+    return qs ? `?${qs}` : "";
+  }, [filters.runId, filters.nicheId, filters.imported, filters.zone]);
+
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleAll = () =>
+    setSelected(allTicked ? new Set() : new Set(leads.map((l) => l.id)));
+
+  // The CSV was a link until 21 August 2026, and the route behind it marks every
+  // row it hands over as sent. A link that permanently changes data is a link a
+  // browser is free to follow on its own, so it posts now and saves the answer.
+  const downloadCsv = async () => {
+    setDownloading(true);
+    setCsvError("");
+    try {
+      const res = await fetch(`/api/admin/leads/export${exportQuery}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        setCsvError(body?.error ?? "Could not build the file.");
+        return;
+      }
+      const blob = await res.blob();
+      const name =
+        /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? "leads.csv";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+      // Those rows are stamped now, so the list they came from is out of date.
+      void qc.invalidateQueries({ queryKey: leadScraperKeys.leads(filters) });
+    } catch {
+      setCsvError("Could not build the file.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // The plain export, and the reason there are two CSV buttons on this page.
+  //
+  // The one on Import leads posts to /api/admin/leads/export, which stamps every
+  // row it hands over as sent: that file is the SOP's batch, and a batch that
+  // reaches Jake unstamped is how a number goes out twice. This one is a file to
+  // read. It never leaves the browser, so it cannot stamp anything, cannot burn a
+  // batch and can be pressed as often as Jake likes.
+  //
+  // It writes what is on screen: the ticked rows, or the whole page when nothing
+  // is ticked. The table holds one page, same as the send buttons, so this is the
+  // list you can see rather than every row behind the filters.
+  //
+  // Since 21 September 2026 the Leads list asks first: keep the leads on the list
+  // (the file only, as before) or remove them (stamped csv_<date>_exported by
+  // /api/admin/leads/exported, THEN the file). The Sent to dialer list does not
+  // ask, because every row on it has already left the Leads list.
+  const exportRows = () => {
+    const ticked = leads.filter((l) => selected.has(l.id));
+    // The one row that never goes in a file: somebody on it asked not to be
+    // contacted, and a CSV is exactly how that number gets rung anyway.
+    return (ticked.length > 0 ? ticked : leads).filter((l) => l.sendStatus !== DO_NOT_CONTACT);
+  };
+
+  const pressCsv = () => {
+    const rows = exportRows();
+    if (rows.length === 0) return;
+    setCsvError("");
+    if (dialer) writeCsv(rows);
+    else setExportAsk(rows);
+  };
+
+  // Stamped first, file second, the same order the Import leads batch keeps: if
+  // the leads cannot be taken off the list, no file goes out that looks as if
+  // they were.
+  const removeAndExport = (rows: ScrapedLeadView[]) => {
+    markExported.mutate(rows.map((l) => l.id), {
+      onSuccess: () => {
+        writeCsv(rows);
+        setExportAsk(null);
+        setSelected(new Set());
+      },
+      onError: (err) => {
+        setExportAsk(null);
+        setCsvError(err instanceof Error ? err.message : "Could not take those leads off the list.");
+      },
+    });
+  };
+
+  const writeCsv = (rows: ScrapedLeadView[]) => {
+    const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const url = URL.createObjectURL(
+      new Blob([toCsv(rows, { lineType: true })], { type: "text/csv;charset=utf-8" }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads_${stamp}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // powerDialer is Cold Call plus the tag that puts them on GoHighLevel's dialer
+  // list. Same send, same book row, same stamp: the only difference is that they
+  // are next on the phone rather than waiting to be picked.
+  const doSend = (channel: Channel, powerDialer = false) => {
+    const ids = leads.filter((l) => selected.has(l.id)).map((l) => l.id);
+    if (ids.length === 0) return;
+    setResult(null);
+    send.mutate(
+      { ids, channel, powerDialer, onProgress: (p) => setProgress({ ...p, channel }) },
+      {
+        onSuccess: (res) => {
+          setResult(res);
+          setSelected(new Set());
+        },
+        onSettled: () => setProgress(null),
+      },
+    );
+  };
+
+  // Off the workflow, untagged, out of the call list and `pending` again. Four
+  // writes behind one button, because doing three of them is worse than doing
+  // none: a company reset here but left enrolled over there is dialled anyway
+  // and offered to be sent a second time.
+  const doReturn = () => {
+    const ids = leads.filter((l) => selected.has(l.id)).map((l) => l.id);
+    if (ids.length === 0) return;
+    setReturned(null);
+    back.mutate(ids, {
+      onSuccess: (res) => {
+        setReturned(res);
+        setSelected(new Set());
+      },
+    });
+  };
+
+  return (
+    <div className="ls-card">
+      <div className="ls-toolbar">
+        <div className="ls-search">
+          <Search size={14} />
+          <input
+            value={filters.q ?? ""}
+            placeholder="Search a business or city"
+            onChange={(e) => onFilters({ ...filters, q: e.target.value })}
+          />
+        </div>
+
+        {/* Every row here is already sent, so the filter could only ever say
+            one thing, which is the same reason the status column went. */}
+        {!dialer && (
+          <FilterPicker
+            kicker="Status"
+            icon={<CircleDot size={14} />}
+            value={filters.sent ?? ""}
+            options={[
+              { value: "0", label: "Ready to send" },
+              { value: "", label: "Everything" },
+            ]}
+            onChange={(v) => onFilters({ ...filters, sent: (v || null) as LeadFilters["sent"] })}
+          />
+        )}
+
+        {/* One list is never one timezone, and the hour where the prospect is
+            decides whether the number can be rung at all. Server-side (0118):
+            the table holds one page, so filtering here would filter the page. */}
+        <FilterPicker
+          kicker="Timezone"
+          icon={<Clock size={14} />}
+          value={filters.zone ?? ""}
+          options={[
+            { value: "", label: "Every timezone" },
+            ...CALL_ZONES.map((z) => ({ value: z.zone, label: z.label })),
+          ]}
+          onChange={(v) => onFilters({ ...filters, zone: v || null })}
+        />
+
+        {niches.length > 1 && (
+          <FilterPicker
+            kicker="Niche"
+            icon={<Filter size={14} />}
+            value={filters.nicheId ?? ""}
+            options={[{ value: "", label: "Every niche" }, ...niches.map((n) => ({ value: n.id, label: n.label }))]}
+            onChange={(v) => {
+              const nicheId = v || null;
+              // A run belongs to one niche, so keeping a run picked from another
+              // one would filter to an empty table with two controls both looking
+              // set. Dropping it is the only reading that can be right.
+              const runId = nicheId && runs.find((r) => r.id === filters.runId)?.nicheId !== nicheId
+                ? null
+                : filters.runId ?? null;
+              onFilters({ ...filters, nicheId, runId });
+            }}
+          />
+        )}
+
+        {/* An imported row belongs to no scrape, so the run picker would list
+            runs none of these leads came from. */}
+        {!imported && (
+          <FilterPicker
+            kicker="Run"
+            icon={<Layers size={14} />}
+            value={filters.runId ?? ""}
+            options={[
+              { value: "", label: "Every run" },
+              ...runsForNiche.map((r) => ({
+                value: r.id,
+                label: r.nicheLabel,
+                sub: `${new Date(r.createdAt).toLocaleDateString()}, ${r.added} added`,
+              })),
+            ]}
+            onChange={(v) => onFilters({ ...filters, runId: v || null })}
+          />
+        )}
+
+        {imported && (
+          <div className="ls-toolbar-right">
+            <button
+              type="button"
+              className="ls-ghost"
+              disabled={downloading}
+              onClick={downloadCsv}
+              title="Downloads the unsent leads and marks them as sent"
+            >
+              {downloading ? <Loader2 size={14} className="ls-spin" /> : <Download size={14} />}
+              CSV
+            </button>
+          </div>
+        )}
+
+        {!imported && (
+          <div className="ls-toolbar-right">
+            <button
+              type="button"
+              className="ls-ghost"
+              disabled={leads.length === 0 || markExported.isPending}
+              onClick={pressCsv}
+              title="Downloads the ticked leads, or the whole page"
+            >
+              <Download size={14} />
+              CSV
+            </button>
+          </div>
+        )}
+      </div>
+
+      {summary.ticked > 0 && !dialer && (
+        <div className="ls-actionbar">
+          <span className="ls-actionbar-count">
+            <b>{summary.sendable}</b> ready to send
+            {summary.reason && <em>{summary.reason}</em>}
+          </span>
+          <div className="ls-actionbar-btns">
+            {/* Send to SMS came off here on 21 September 2026, Jake's call.
+                The route still takes channel "sms"; nothing on this page asks. */}
+            <button type="button" className="ls-primary sm" disabled={!canSend(summary) || send.isPending} onClick={() => doSend("cold_call", true)}>
+              <PhoneForwarded size={14} />
+              Send to power dialer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {summary.ticked > 0 && dialer && (
+        <div className="ls-actionbar">
+          <span className="ls-actionbar-count">
+            <b>{summary.ticked}</b> ticked
+          </span>
+          <div className="ls-actionbar-btns">
+            <button type="button" className="ls-primary sm" disabled={back.isPending} onClick={doReturn}>
+              {back.isPending ? <Loader2 size={14} className="ls-spin" /> : <Undo2 size={14} />}
+              Return to leads
+            </button>
+          </div>
+        </div>
+      )}
+
+      {exportAsk && (
+        <div className="ls-actionbar">
+          <span className="ls-actionbar-count">
+            <b>{exportAsk.length}</b> {exportAsk.length === 1 ? "lead" : "leads"} to export
+          </span>
+          <div className="ls-actionbar-btns">
+            <button type="button" className="ls-linkbtn" disabled={markExported.isPending} onClick={() => setExportAsk(null)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="ls-primary sm alt"
+              disabled={markExported.isPending}
+              onClick={() => { writeCsv(exportAsk); setExportAsk(null); }}
+            >
+              <Download size={14} />
+              Keep on list
+            </button>
+            <button type="button" className="ls-primary sm" disabled={markExported.isPending} onClick={() => removeAndExport(exportAsk)}>
+              {markExported.isPending ? <Loader2 size={14} className="ls-spin" /> : <Download size={14} />}
+              Remove from list
+            </button>
+          </div>
+        </div>
+      )}
+
+      {returned && <ReturnReceipt result={returned} onDismiss={() => setReturned(null)} />}
+
+      {csvError && (
+        <div className="ls-receipt warn">
+          <div><b>{csvError}</b></div>
+          <button type="button" className="ls-linkbtn" onClick={() => setCsvError("")}>Dismiss</button>
+        </div>
+      )}
+
+      {progress && <SendProgressBar progress={progress} />}
+      {send.isError && !progress && (
+        <div className="ls-receipt warn">
+          <div>
+            <b>The send stopped early.</b>
+            <div className="ls-receipt-skipped">
+              {send.error instanceof Error ? send.error.message : "Something went wrong."} Anything sent before that is marked; tick the rest and send again.
+            </div>
+          </div>
+          <button type="button" className="ls-linkbtn" onClick={() => send.reset()}>Dismiss</button>
+        </div>
+      )}
+      {result && <SendReceipt result={result} onDismiss={() => setResult(null)} />}
+
+      <div className="ls-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th className="ls-tick"><input type="checkbox" checked={allTicked} onChange={toggleAll} aria-label="Select all" /></th>
+              <th>Business</th>
+              <th>Rating</th>
+              <th>Website</th>
+              <th>Where</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && <tr><td colSpan={5} className="ls-empty">Loading...</td></tr>}
+            {!loading && leads.length === 0 && (
+              <tr><td colSpan={5} className="ls-empty">
+                {dialer
+                  ? "Nothing waiting on the dialer. Companies already called stay where they are."
+                  : "Nothing here yet. Run a scrape and the results land in this table."}
+              </td></tr>
+            )}
+            {leads.map((lead) => (
+              <LeadRow
+                key={lead.id}
+                lead={lead}
+                ticked={selected.has(lead.id)}
+                expanded={expanded === lead.id}
+                onTick={() => toggle(lead.id)}
+                onExpand={() => setExpanded(expanded === lead.id ? null : lead.id)}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {total > leads.length && (
+        <div className="ls-foot">
+          Showing {leads.length} of {total}.
+          <button type="button" className="ls-linkbtn" onClick={() => onFilters({ ...filters, limit: total })}>
+            Show all {total}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// No score column and no status column, both by Jake's call on 21 August 2026.
+//
+// The score is gone from the row and from the panel underneath it. It still
+// orders the list, best first, which is the job it was actually doing.
+//
+// The status is gone because it could only ever say one thing. The list is
+// `send_status = pending` at the query, so every row on this page is a lead
+// nobody has contacted, and a column of one repeated value is a column of noise.
+// The tick box was disabled on that same dead condition, so that has gone too.
+function LeadRow({
+  lead, ticked, expanded, onTick, onExpand,
+}: {
+  lead: ScrapedLeadView; ticked: boolean; expanded: boolean;
+  onTick: () => void; onExpand: () => void;
+}) {
+  const domain = prettyDomain(lead.website);
+  return (
+    <>
+      <tr className={ticked ? "on" : undefined}>
+        <td className="ls-tick">
+          <input type="checkbox" checked={ticked} onChange={onTick} aria-label={`Select ${lead.businessName ?? lead.phoneE164}`} />
+        </td>
+        <td>
+          <button type="button" className="ls-name" onClick={onExpand} title="What the qualifier noticed">
+            {lead.businessName ?? "(no name)"}
+          </button>
+          <div className="ls-phone">{formatPhoneDashed(lead.phoneE164)}</div>
+        </td>
+        <td className="ls-dim">{formatRating(lead.rating, lead.reviewCount)}</td>
+        <td>
+          {domain ? (
+            <a className="ls-link" href={lead.website ?? "#"} target="_blank" rel="noreferrer">
+              {domain}
+              <ExternalLink size={11} />
+            </a>
+          ) : (
+            <span className="ls-dim">None</span>
+          )}
+        </td>
+        <td className="ls-dim">{[lead.city, lead.state].filter(Boolean).join(", ") || "-"}</td>
+      </tr>
+      {expanded && (
+        <tr className="ls-why">
+          <td />
+          <td colSpan={4}>
+            <div className="ls-why-box">
+              <b>What the qualifier noticed</b>
+              {lead.reasons.length > 0 ? (
+                <ul>{lead.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+              ) : (
+                <span className="ls-dim"> - nothing recorded. Imported leads never go past the qualifier.</span>
+              )}
+              <div className="ls-why-meta">
+                {lead.category && <span>Category: {lead.category}</span>}
+                {lead.sourceKeyword && <span>Found by: "{lead.sourceKeyword}"</span>}
+                {lead.source && <span>Source: {lead.source}</span>}
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+function SendProgressBar({ progress }: { progress: SendProgress & { channel: Channel } }) {
+  const { done, total, etaMs, channel } = progress;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  return (
+    <div className="ls-sending" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
+      <div className="ls-sending-line">
+        <span>
+          <Loader2 size={13} className="ls-spin" />
+          Sending to {channelLabel(channel)}
+        </span>
+        <span>
+          <b>{done}</b> of <b>{total}</b>
+          <em>{etaMs === null ? "working out the pace" : etaLabel(etaMs)}</em>
+        </span>
+      </div>
+      <div className="ls-bar">
+        <div className={`ls-bar-fill${etaMs === null ? " indet" : ""}`} style={etaMs === null ? undefined : { width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function etaLabel(ms: number): string {
+  const s = Math.ceil(ms / 1000);
+  if (s <= 3) return "nearly done";
+  if (s < 60) return `about ${s} sec left`;
+  const m = Math.ceil(s / 60);
+  return `about ${m} min left`;
+}
+
+function SendReceipt({ result, onDismiss }: { result: SendResult; onDismiss: () => void }) {
+  return (
+    <div className={`ls-receipt${result.sent === 0 && result.taggedForDialer === 0 ? " warn" : ""}`}>
+      <div>
+        <b>
+          {result.sent} sent to {channelLabel(result.channel)}
+          {result.addedToProspectBook > 0 && `, ${result.addedToProspectBook} added to the call list`}
+          {result.taggedForDialer > 0 && `, ${result.taggedForDialer} on the power dialer`}
+        </b>
+        {result.notConfigured && <div>GoHighLevel is not connected, so nothing was pushed.</div>}
+        {result.stoppedEarly && (
+          <div className="ls-receipt-skipped">
+            One batch did not answer: {result.stoppedEarly} The rest were still sent.
+          </div>
+        )}
+        {result.stampFailed && (
+          <div className="ls-receipt-skipped">
+            Some of these are in GoHighLevel but could not be marked as sent here, so
+            they may be offered again. Check before you send them a second time.
+          </div>
+        )}
+        {result.skipped.length > 0 && (
+          <div className="ls-receipt-skipped">
+            {result.skipped.length} skipped: {[...new Set(result.skipped.map((s) => s.reason))].join("; ")}
+          </div>
+        )}
+      </div>
+      <button type="button" className="ls-linkbtn" onClick={onDismiss}>Dismiss</button>
+    </div>
+  );
+}
+
+// The receipt for a return. Says what came off the dialer and, more usefully,
+// what did not and why: "already called" is the common one and it is not a
+// failure, it is the rule.
+function ReturnReceipt({ result, onDismiss }: { result: ReturnResult; onDismiss: () => void }) {
+  return (
+    <div className={`ls-receipt${result.returned === 0 ? " warn" : ""}`}>
+      <div>
+        <b>{result.returned} back on the leads list</b>
+        {result.notConfigured && <div>GoHighLevel is not connected, so nothing was taken off the dialer.</div>}
+        {result.resetFailed && (
+          <div className="ls-receipt-skipped">
+            Some of these came off the dialer but could not be reset here, so they still
+            read as sent. Press again and they will come back.
+          </div>
+        )}
+        {result.rejected.length > 0 && (
+          <div className="ls-receipt-skipped">
+            {result.rejected.length} left where they were: {[...new Set(result.rejected.map((r) => r.reason))].join("; ")}
+          </div>
+        )}
+      </div>
+      <button type="button" className="ls-linkbtn" onClick={onDismiss}>Dismiss</button>
+    </div>
+  );
+}
+
+// --- history -----------------------------------------------------------------
+
+function RunHistory({ runs, loading }: { runs: ScrapeRun[]; loading: boolean }) {
+  return (
+    <div className="ls-card">
+      <div className="ls-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>When</th><th>Niche</th><th>Where</th><th>Found</th><th>Added</th><th>Sent</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && <tr><td colSpan={7} className="ls-empty">Loading...</td></tr>}
+            {!loading && runs.length === 0 && (
+              <tr><td colSpan={7} className="ls-empty">No runs yet.</td></tr>
+            )}
+            {runs.map((r) => (
+              <tr key={r.id}>
+                <td>{new Date(r.createdAt).toLocaleString()}</td>
+                <td>{r.nicheLabel}</td>
+                <td className="ls-dim">{r.states.length > 0 ? r.states.join(", ") : `${r.cities.length} cities`}</td>
+                <td>{r.rawFound || "-"}</td>
+                <td>{r.added || "-"}</td>
+                <td>{r.sent || "-"}</td>
+                <td>
+                  <span className={`ls-status ${r.status}`}>{r.status}</span>
+                  {r.error && <div className="ls-err">{r.error}</div>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// --- styles ------------------------------------------------------------------
+
+// Scoped to .pk-kit so it reads the admin theme tokens in light and dark, matching
+// the Cold SMS surface next door. Indigo is the accent the pillar already uses.
+function LeadsStyle() {
+  return (
+    <style>{`
+      .pk-kit { --ls-indigo: #6366f1; --ls-indigo-tint: #eef0ff; --ls-head-bg: #fafbfc; --ls-hover: #fbfbfd; }
+      [data-theme="dark"] .pk-kit {
+        --ls-indigo-tint: rgba(99,102,241,.18);
+        --ls-head-bg: color-mix(in srgb, var(--surface) 80%, transparent);
+        --ls-hover: rgba(255,255,255,.03);
+      }
+
+      .pk-kit .ls-subnav { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+      .pk-kit .ls-subtab {
+        border: 0; background: transparent; cursor: pointer; font-family: inherit;
+        font-size: 13.5px; font-weight: 600; color: var(--text-faint); padding: 9px 2px;
+        border-bottom: 2.5px solid transparent; transition: .15s;
+        display: inline-flex; align-items: center; gap: 7px;
+      }
+      .pk-kit .ls-subtab:hover { color: var(--text); }
+      .pk-kit .ls-subtab.on { color: var(--ls-indigo); border-bottom-color: var(--ls-indigo); }
+      .pk-kit .ls-cnt {
+        font-size: 11px; font-weight: 700; background: var(--ls-indigo-tint);
+        color: var(--ls-indigo); padding: 1px 7px; border-radius: 999px;
+      }
+
+      .pk-kit .ls-card, .pk-kit .ls-wizard {
+        background: var(--surface); border: 1px solid var(--border); border-radius: 22px;
+        box-shadow: var(--shadow-md); overflow: hidden;
+      }
+      .pk-kit .ls-wizard { padding: 4px 0 20px; }
+
+      /* the run banner */
+      .pk-kit .ls-banner {
+        background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+        padding: 14px 18px; margin-bottom: 16px; box-shadow: var(--shadow-md);
+      }
+      .pk-kit .ls-banner.warn { border-color: #f59e0b; }
+      .pk-kit .ls-banner-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+      .pk-kit .ls-banner-title {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--text);
+      }
+      .pk-kit .ls-banner-where { font-size: 12px; font-weight: 500; color: var(--text-faint); }
+      .pk-kit .ls-banner-host { font-size: 11.5px; color: var(--text-faint); }
+      .pk-kit .ls-banner-right { display: flex; align-items: center; gap: 10px; }
+      .pk-kit .ls-stop {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
+        color: var(--text-muted); background: transparent;
+        border: 1px solid var(--border); cursor: pointer;
+        transition: color .12s ease, border-color .12s ease, background .12s ease;
+      }
+      .pk-kit .ls-stop:hover { color: #dc2626; border-color: #dc2626; }
+      .pk-kit .ls-stop.armed { color: #fff; background: #dc2626; border-color: #dc2626; }
+      .pk-kit .ls-stop:disabled { opacity: .6; cursor: default; }
+      .pk-kit .ls-hold {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
+        color: var(--text-muted); background: transparent;
+        border: 1px solid var(--border); cursor: pointer;
+        transition: color .12s ease, border-color .12s ease;
+      }
+      .pk-kit .ls-hold:hover:not(:disabled) { color: #d97706; border-color: #d97706; }
+      .pk-kit .ls-hold:disabled { opacity: .6; cursor: default; }
+      .pk-kit .ls-banner.held { border-color: #d97706; }
+      .pk-kit .ls-bar-fill.held { background: #d97706; }
+      .pk-kit .ls-bar { height: 6px; background: var(--ls-indigo-tint); border-radius: 999px; overflow: hidden; margin: 10px 0 8px; }
+      .pk-kit .ls-bar-fill { height: 100%; background: var(--ls-indigo); border-radius: 999px; transition: width .4s ease; }
+      .pk-kit .ls-bar-fill.indet { width: 34%; animation: ls-slide 1.4s ease-in-out infinite; }
+      @keyframes ls-slide { 0% { margin-left: -34%; } 100% { margin-left: 100%; } }
+      @media (prefers-reduced-motion: reduce) {
+        .pk-kit .ls-bar-fill.indet { animation: none; width: 100%; opacity: .4; }
+        .pk-kit .ls-spin { animation: none; }
+      }
+      .pk-kit .ls-banner-line { font-size: 13px; color: var(--text-muted); }
+      .pk-kit .ls-banner-stats { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; font-size: 12.5px; color: var(--text-faint); }
+      .pk-kit .ls-banner-stats b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+      .pk-kit .ls-spin { animation: ls-rot 1s linear infinite; }
+      @keyframes ls-rot { to { transform: rotate(360deg); } }
+
+      .pk-kit .ls-note {
+        display: flex; align-items: flex-start; gap: 8px; margin: 10px 18px;
+        font-size: 12.5px; color: var(--text-muted); background: var(--ls-hover);
+        border: 1px solid var(--border); border-radius: 12px; padding: 9px 12px;
+      }
+      .pk-kit .ls-note.warn { border-color: #f59e0b; }
+
+      /* the wizard */
+      .pk-kit .ls-step { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+      .pk-kit .ls-step:last-of-type { border-bottom: 0; }
+      .pk-kit .ls-step-h {
+        display: flex; align-items: center; gap: 10px; margin: 0 0 14px;
+        font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--text);
+      }
+      .pk-kit .ls-step-n {
+        width: 22px; height: 22px; border-radius: 999px; background: var(--ls-indigo-tint);
+        color: var(--ls-indigo); font-size: 12px; font-weight: 700;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      .pk-kit .ls-chips, .pk-kit .ls-sizes { display: flex; gap: 10px; flex-wrap: wrap; }
+      .pk-kit .ls-chip, .pk-kit .ls-size {
+        display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer;
+        border: 1px solid var(--border); background: var(--surface); border-radius: 15px;
+        padding: 10px 14px; font-family: inherit; color: var(--text); min-width: 180px;
+        box-shadow: var(--shadow-sm); transition: border-color .15s, box-shadow .15s, background .15s;
+      }
+      .pk-kit .ls-chip:hover, .pk-kit .ls-size:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
+      .pk-kit .ls-chip.on, .pk-kit .ls-size.on { border-color: var(--brand); background: var(--brand-tint); }
+      .pk-kit .ls-chip-label, .pk-kit .ls-size-label { font-family: var(--font-display); font-weight: 600; font-size: 13.5px; }
+      .pk-kit .ls-size-label { display: flex; align-items: baseline; gap: 6px; }
+      .pk-kit .ls-size-cap { font-family: var(--font-body, inherit); font-weight: 500; font-size: 11.5px; color: var(--text-faint); }
+      .pk-kit .ls-size.on .ls-size-cap { color: var(--brand-text); }
+      .pk-kit .ls-cap-own { min-width: 150px; justify-content: center; cursor: text; }
+      .pk-kit .ls-cap-input {
+        border: 0; background: transparent; outline: 0; font: inherit; width: 100%;
+        font-family: var(--font-display); font-weight: 600; font-size: 13.5px; color: var(--text);
+      }
+      .pk-kit .ls-cap-input::placeholder { color: var(--text-faint); font-weight: 500; }
+      .pk-kit .ls-chip-sub, .pk-kit .ls-size-blurb { font-size: 11.5px; color: var(--text-faint); }
+
+      .pk-kit .ls-textarea {
+        width: 100%; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+        border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 13px; resize: vertical;
+      }
+      .pk-kit .ls-textarea:focus { outline: 0; box-shadow: 0 0 0 2px var(--ls-indigo); }
+
+      .pk-kit .ls-paste { display: flex; align-items: flex-start; gap: 10px; }
+      .pk-kit .ls-paste .ls-textarea { flex: 1; }
+      .pk-kit .ls-secondary {
+        border: 1px solid var(--border); background: var(--surface); color: var(--text);
+        border-radius: 10px; padding: 9px 14px; font: inherit; font-size: 13px; font-weight: 600;
+        cursor: pointer; white-space: nowrap;
+      }
+      .pk-kit .ls-secondary:disabled { opacity: .45; cursor: not-allowed; }
+      .pk-kit .ls-picktable { margin-top: 12px; }
+
+      .pk-kit .ls-go { display: flex; align-items: center; gap: 12px; padding: 18px 22px 0; flex-wrap: wrap; }
+      .pk-kit .ls-primary {
+        display: inline-flex; align-items: center; gap: 7px; border: 0; cursor: pointer;
+        background: var(--ls-indigo); color: #fff; font-family: inherit; font-weight: 600;
+        font-size: 13.5px; padding: 10px 16px; border-radius: 12px;
+      }
+      .pk-kit .ls-primary.sm { font-size: 12.5px; padding: 8px 13px; }
+      .pk-kit .ls-primary.alt { background: var(--ls-indigo-tint); color: var(--ls-indigo); }
+      .pk-kit .ls-primary:hover:not(:disabled) { filter: brightness(.95); }
+      .pk-kit .ls-primary:disabled { opacity: .45; cursor: not-allowed; }
+      .pk-kit .ls-footnote { padding: 14px 22px 0; font-size: 12px; color: var(--text-faint); }
+      .pk-kit .ls-footnote code, .pk-kit .ls-muted code {
+        background: var(--ls-hover); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; font-size: 11.5px;
+      }
+
+      /* the table */
+      .pk-kit .ls-toolbar {
+        display: flex; align-items: center; gap: 10px; padding: 14px 18px;
+        border-bottom: 1px solid var(--border); flex-wrap: wrap;
+      }
+      .pk-kit .ls-toolbar-right { margin-left: auto; display: flex; gap: 8px; }
+      .pk-kit .ls-search { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border); border-radius: 10px; padding: 0 10px; background: var(--surface); }
+      .pk-kit .ls-search input { border: 0; background: transparent; color: var(--text); font: inherit; font-size: 12.5px; padding: 8px 0; min-width: 190px; }
+      .pk-kit .ls-search input:focus { outline: 0; }
+      .pk-kit .ls-select {
+        border: 1px solid var(--border); background: var(--surface); color: var(--text);
+        border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 12.5px;
+      }
+      .pk-kit .ls-ghost {
+        display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+        border: 1px solid var(--border); background: var(--surface); color: var(--text-muted);
+        border-radius: 10px; padding: 8px 12px; font-size: 12.5px; font-weight: 600;
+      }
+      .pk-kit .ls-ghost:hover { background: var(--ls-hover); color: var(--text); }
+
+      .pk-kit .ls-actionbar {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        padding: 11px 18px; background: var(--ls-indigo-tint); flex-wrap: wrap;
+      }
+      .pk-kit .ls-actionbar-count { font-size: 12.5px; color: var(--text); }
+      .pk-kit .ls-actionbar-count b { font-variant-numeric: tabular-nums; }
+      .pk-kit .ls-actionbar-count em { font-style: normal; color: var(--text-faint); margin-left: 8px; }
+      .pk-kit .ls-actionbar-btns { display: flex; gap: 8px; }
+
+      .pk-kit .ls-sending { padding: 10px 18px 12px; background: var(--ls-hover); border-bottom: 1px solid var(--border); }
+      .pk-kit .ls-sending-line { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12.5px; color: var(--text); }
+      .pk-kit .ls-sending-line span { display: inline-flex; align-items: center; gap: 6px; }
+      .pk-kit .ls-sending-line b { font-variant-numeric: tabular-nums; }
+      .pk-kit .ls-sending-line em { font-style: normal; color: var(--text-faint); margin-left: 8px; }
+      .pk-kit .ls-sending .ls-bar { margin: 8px 0 0; }
+
+      .pk-kit .ls-receipt {
+        display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+        padding: 11px 18px; font-size: 12.5px; color: var(--text);
+        border-bottom: 1px solid var(--border); background: var(--ls-hover);
+      }
+      .pk-kit .ls-receipt.warn { border-left: 3px solid #f59e0b; }
+      .pk-kit .ls-receipt-skipped { color: var(--text-faint); margin-top: 3px; }
+
+      .pk-kit .ls-scroll { overflow: auto; max-height: min(72vh, 900px); }
+      .pk-kit .ls-card table { width: 100%; border-collapse: collapse; }
+      .pk-kit .ls-card thead th {
+        position: sticky; top: 0; z-index: 2; background: var(--ls-head-bg);
+        font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+        color: var(--text-faint); text-align: left; padding: 11px 14px; white-space: nowrap;
+        border-bottom: 1px solid var(--border);
+      }
+      .pk-kit .ls-card tbody td {
+        padding: 9px 14px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: top;
+      }
+      .pk-kit .ls-card tbody tr:hover td { background: var(--ls-hover); }
+      .pk-kit .ls-card tbody tr.on td { background: var(--ls-indigo-tint); }
+      .pk-kit .ls-tick { width: 34px; }
+      .pk-kit .ls-name {
+        border: 0; background: transparent; padding: 0; cursor: pointer; font: inherit;
+        font-weight: 600; color: var(--text); text-align: left; text-decoration: underline;
+        text-decoration-style: dotted; text-underline-offset: 3px;
+      }
+      .pk-kit .ls-phone { font-size: 11.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+      .pk-kit .ls-dim { color: var(--text-faint); }
+      .pk-kit .ls-link { display: inline-flex; align-items: center; gap: 4px; color: var(--ls-indigo); text-decoration: none; font-size: 12.5px; }
+      .pk-kit .ls-link:hover { text-decoration: underline; }
+      .pk-kit .ls-empty { padding: 30px 18px; text-align: center; color: var(--text-muted); }
+      .pk-kit .ls-foot { display: flex; align-items: center; gap: 8px; padding: 11px 18px; font-size: 12px; color: var(--text-faint); border-top: 1px solid var(--border); }
+
+      .pk-kit .ls-why td { background: var(--ls-hover); }
+      .pk-kit .ls-why-box { font-size: 12.5px; color: var(--text-muted); }
+      .pk-kit .ls-why-box b { color: var(--text); }
+      .pk-kit .ls-why-box ul { margin: 6px 0 0; padding-left: 18px; }
+      .pk-kit .ls-why-meta { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 7px; color: var(--text-faint); font-size: 11.5px; }
+
+      .pk-kit .ls-status { font-size: 11.5px; font-weight: 600; text-transform: capitalize; }
+      .pk-kit .ls-status.done { color: #059669; }
+      .pk-kit .ls-status.failed { color: #dc2626; }
+      .pk-kit .ls-status.running, .pk-kit .ls-status.queued, .pk-kit .ls-status.preparing { color: var(--ls-indigo); }
+      .pk-kit .ls-err { color: #dc2626; font-size: 12px; }
+      .pk-kit .ls-muted { color: var(--text-faint); font-size: 12.5px; }
+      .pk-kit .ls-linkbtn { border: 0; background: transparent; color: var(--ls-indigo); cursor: pointer; font: inherit; font-size: 12px; }
+    `}</style>
+  );
+}

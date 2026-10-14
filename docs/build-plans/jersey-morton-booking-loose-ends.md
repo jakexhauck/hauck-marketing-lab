@@ -1,6 +1,6 @@
 # Jersey Morton booking page: finishing it
 
-Build lives at `Client Deliverables/Jersey Morton/`, committed on
+Build lives at `clients/Jersey Morton/booking-site/`, committed on
 `feat/jersey-morton-booking`. Live at **https://book.hairbyjersey.com**.
 
 ## Where it actually is

@@ -37,7 +37,7 @@ into the readiness view.
 
 ## Architecture
 
-Everything lives in the existing `command-center/app`, following current patterns:
+Everything lives in the existing `apps/command-center`, following current patterns:
 
 - **Frontend:** new admin tab.
   - Nav item in `src/routes/admin/AdminLayout.tsx` (`{ to: "/admin/onboarding", label: "Onboarding", icon: ... }`).

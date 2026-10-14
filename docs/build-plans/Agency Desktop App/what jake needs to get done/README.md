@@ -54,7 +54,7 @@ The Inbox is now one unified view (the old SMS / Email tab split is gone). Every
 
 ## Call Console: inbound call capture + outcome routing (built 2026-07-06, wiring pending)
 
-When an inbound call hits the business number, the client app pops a top banner and a Call Console: whoever answered captures an unknown caller's name/ZIP (written to the real contact) and taps an outcome that routes the lead to the right pipeline stage. Route 1 telephony (answer on the cell, the app is the capture pad). Built and verified in demo (banner, capture form, all five outcome taps, zero console errors). It stays dark until you wire the signal. Full backlog: `command-center/app/docs/connections/call-console.md`.
+When an inbound call hits the business number, the client app pops a top banner and a Call Console: whoever answered captures an unknown caller's name/ZIP (written to the real contact) and taps an outcome that routes the lead to the right pipeline stage. Route 1 telephony (answer on the cell, the app is the capture pad). Built and verified in demo (banner, capture form, all five outcome taps, zero console errors). It stays dark until you wire the signal. Full backlog: `apps/archive/command-center-docs/connections/call-console.md`.
 
 - [ ] **Add the "Send Webhook" action to your inbound-call workflow.** On the workflow that already tags inbound calls, add a Send Webhook action: POST to `https://app.hauckmarketing.com/api/webhook?token=<WEBHOOK_SECRET>` with JSON body `{ "type": "InboundCall", "locationId": "{{location.id}}", "contactId": "{{contact.id}}", "phone": "{{contact.phone}}", "firstName": "{{contact.first_name}}", "lastName": "{{contact.last_name}}" }`. Without this the banner never pops.
 - [ ] **Confirm `WEBHOOK_SECRET` is set** and matches the token in the workflow URL (the webhook fails closed without it).
@@ -246,18 +246,18 @@ Two pieces are built and shipped but not yet switched on, and both need
 something only you can issue.
 
 - [ ] **Turn the automatic checks on.** The app half is live and the secret is
-      already generated and sitting in `command-center/app/.env.local` as
+      already generated and sitting in `apps/command-center/.env.local` as
       `HEALTH_CRON_SECRET`. Two commands, in this order. The first was blocked
       for me by the permission classifier:
       ```
-      cd command-center/app
+      cd apps/command-center
       node scripts/cf-rebind.mjs --add HEALTH_CRON_SECRET
       ```
       Read what it prints before saying yes: it also rewrites 9 existing secrets
       from `.env.local`, and `SESSION_SECRET` is one of them, so if that value is
       stale everyone gets logged out. Then deploy the alarm clock:
       ```
-      cd workers/health-cron
+      cd apps/workers/health-cron
       npm install && npx wrangler login && npx wrangler secret put HEALTH_CRON_SECRET
       npx wrangler deploy
       ```
@@ -356,7 +356,7 @@ something only you can issue.
 
 - [ ] **Generate the two cron secrets, and paste them into their Workers.** The
       panel makes the value and shows it once. `HEALTH_CRON_SECRET` goes into
-      `workers/health-cron` and `ADS_CRON_SECRET` into `workers/ads-cron`, both
+      `apps/workers/health-cron` and `ADS_CRON_SECRET` into `apps/workers/ads-cron`, both
       via `wrangler secret put`. They must be DIFFERENT values. Set in only one
       place and the jobs silently do nothing, which is the state they have been
       in for weeks.

@@ -81,7 +81,7 @@ URL formats:
 - Keep lightweight momentum signals: a "done" counter and a "building" counter.
 - States: loading skeleton, empty (no build plans yet), error (token/API failure).
 
-`command-center/app/src/lib/buildLab.ts` is reduced to the new `BuildItem` type,
+`apps/command-center/src/lib/buildLab.ts` is reduced to the new `BuildItem` type,
 status constants, and any pure helpers the board needs. The old card/prompt
 machinery is removed.
 

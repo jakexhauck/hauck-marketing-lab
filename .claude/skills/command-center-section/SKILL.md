@@ -1,17 +1,17 @@
 ---
 name: command-center-section
-description: Use when building a new client-app "section" in the Command Center (command-center/app) — e.g. "build the Social Media section", "add a Paid Ads / Reviews / Website hub", "new tab under Marketing", "nested sidebar section with sub-pages", "section with an Overview + sub-tabs". Encodes the proven pattern: nested sidebar nav, Overview + sub-pages, demo-aware/gated-until-connected UI, dialogs, mobile entry, and the verify-then-ship-to-Cloudflare flow.
+description: Use when building a new client-app "section" in the Command Center (apps/command-center) — e.g. "build the Social Media section", "add a Paid Ads / Reviews / Website hub", "new tab under Marketing", "nested sidebar section with sub-pages", "section with an Overview + sub-tabs". Encodes the proven pattern: nested sidebar nav, Overview + sub-pages, demo-aware/gated-until-connected UI, dialogs, mobile entry, and the verify-then-ship-to-Cloudflare flow.
 ---
 
 # Command Center — build a client-app section
 
-How we build a feature "section" (a Marketing/Sales hub with an Overview + sub-pages) in `command-center/app`, the client Lab Console. Proven on Social Media; reused by Paid Ads. Match it for any new section so they all behave the same.
+How we build a feature "section" (a Marketing/Sales hub with an Overview + sub-pages) in `apps/command-center`, the client Lab Console. Proven on Social Media; reused by Paid Ads. Match it for any new section so they all behave the same.
 
 ## When to Use This Skill
 
 Use when the user asks to:
 
-- Build/extend a **section** in `command-center/app` (Social Media, Paid Ads, Google Reviews, Website, Email, etc.).
+- Build/extend a **section** in `apps/command-center` (Social Media, Paid Ads, Google Reviews, Website, Email, etc.).
 - Add a **nested sidebar group** (a parent item that expands to Overview + sub-pages).
 - Add an **Overview dashboard + sub-tabs** to the client app.
 
@@ -21,8 +21,8 @@ Do **not** use it for the standalone client mobile PWA (`Hauck Command Center (C
 
 - **Mockups before code — always.** Build static HTML mockups first, present them for Jake's approval, and only write app code after he approves. Do not jump straight to in-app demo code. (See Phase 0.)
 - **Never show fabricated data to a real client.** Every surface is demo-aware: populated sample content under `demoMode()` (the `?demo=1` preview / "View as a client" path); a real session shows empty/zeroed states + a "not connected" notice, and terminal actions (save/schedule/publish) are **disabled with a "turns on once your accounts are connected" note** until the backend exists.
-- **Design kit:** light / indigo / Poppins ("Modern Motion"), source of truth `design-kit.html` at repo root. Build on the app's semantic Tailwind tokens, never hardcode hex (except platform brand colors).
-- **One page shell (non-negotiable):** every client page uses the same structure — `<PageHeader>` (the "Paid Ads" header: Poppins 22px title + description + right-aligned actions) above a **full-width** content column with a 24px desktop gutter via `PAGE_CONTAINER` from `src/lib/layout.ts`. **No `max-w-…` cap or `mx-auto` on the page column** (that is the left/right "white space" we removed). `PageHeader` already renders the global controls (search, agency chat, notifications bell, account menu) top-right at `lg+`, so **never add a per-page top bar or your own search/bell/avatar**. Full reference + copy-paste skeletons: `command-center/app/docs/PAGE_LAYOUT.md`.
+- **Design kit:** light / indigo / Poppins ("Modern Motion"), source of truth `agency/brand/design-kit.html`. Build on the app's semantic Tailwind tokens, never hardcode hex (except platform brand colors).
+- **One page shell (non-negotiable):** every client page uses the same structure — `<PageHeader>` (the "Paid Ads" header: Poppins 22px title + description + right-aligned actions) above a **full-width** content column with a 24px desktop gutter via `PAGE_CONTAINER` from `src/lib/layout.ts`. **No `max-w-…` cap or `mx-auto` on the page column** (that is the left/right "white space" we removed). `PageHeader` already renders the global controls (search, agency chat, notifications bell, account menu) top-right at `lg+`, so **never add a per-page top bar or your own search/bell/avatar**. Full reference + copy-paste skeletons: `apps/archive/command-center-docs/PAGE_LAYOUT.md`.
 - **Deploy = push to `main`** (Cloudflare Pages "hauck-command-center", live at app.hauckmarketing.com / hauck-dashboard.pages.dev). Verify the deploy by bundle hash + string grep — the app sits behind login so you can't click through prod.
 
 ## Phase 0 — Mockups first (get approval before any code)
@@ -53,7 +53,7 @@ Save mockups under the app folder, one folder per variation: `mockups/<section>-
 
 ## Verify
 
-- `npx tsc --noEmit` then `npm run build` (both from `command-center/app`).
+- `npx tsc --noEmit` then `npm run build` (both from `apps/command-center`).
 - Run it: `npm run dev`, open `http://localhost:5173/<route>?demo=1` (the demo sandbox needs no login/network), screenshot the real pages and dialogs. Resize won't reliably force the mobile viewport in the screenshot — confirm mobile by code/build, verify desktop on screen.
 - **Check both themes.** The app has a light/dark toggle (`data-theme`). Screenshot the section in both — a section built/verified only in one theme often breaks in the other (hardcoded hex, wrong-direction contrast). Use the semantic tokens and confirm dark mode reads correctly.
 
@@ -68,7 +68,7 @@ Save mockups under the app folder, one folder per variation: `mockups/<section>-
 
 A section ships **demo-complete but not connected**. Before moving on, write down every connection it needs to become real, so the integration work is a known backlog, not a rediscovery later.
 
-Save one file per section at **`command-center/app/docs/connections/<section>.md`** — all sections' connection lists live together in that folder. List each with a status (❌ not wired / ⚠️ partial / ✅ live):
+Save one file per section at **`apps/archive/command-center-docs/connections/<section>.md`** — all sections' connection lists live together in that folder. List each with a status (❌ not wired / ⚠️ partial / ✅ live):
 
 - **Data source(s)** — GoHighLevel resources/endpoints (or other SaaS) the section reads/writes, and what each powers.
 - **AI** — any Claude calls (what they generate + suggested model), always server-side via a Pages Function, never client-side.
@@ -79,7 +79,7 @@ Save one file per section at **`command-center/app/docs/connections/<section>.md
 - **Persistence** — any store needed (drafts, settings) beyond the source of truth.
 - **Per-action gating** — for each gated action (save / schedule / publish / generate), which connection turns it on.
 
-Keep the file current: flip statuses as connections get wired. Reference: `command-center/app/docs/connections/social.md`.
+Keep the file current: flip statuses as connections get wired. Reference: `apps/archive/command-center-docs/connections/social.md`.
 
 ## Gotchas
 
@@ -99,4 +99,4 @@ Keep the file current: flip statuses as connections get wired. Reference: `comma
 - `src/routes/paid-ads/` — Paid Ads section (Overview/Creatives/Leads/Insights + `shared.tsx`); another full build of this pattern.
 - `src/routes/website/` — Website section (Overview/Pages/Insights/RequestChange + `shared.tsx`); includes an interactive click-to-pin flow worth copying.
 - `src/components/social/SocialDialog.tsx` — reusable dialog overlay; `SocialComposerDialog`/`NewIdeaDialog`/`PlanMonthDialog` — create-flow examples; `SocialMobileTabs.tsx` — mobile sub-nav.
-- `design-kit.html` (repo root) — canonical tokens/components.
+- `agency/brand/design-kit.html` — canonical tokens/components.

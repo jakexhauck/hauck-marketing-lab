@@ -14,23 +14,23 @@
 - Never use em dashes anywhere (code comments, UI copy, docs). Use commas, periods, parentheses, or colons.
 - Plain-English labels for a local business owner. No analytics jargon dumps.
 - GA4 report order is load-bearing: `shapeAnalytics` destructures reports by index. Any change to report order must update `shapeAnalytics` in lockstep.
-- Test runner: `npm test` (which is `vitest run`) from `command-center/app`.
-- Typecheck: `npm run typecheck` from `command-center/app` (runs both app and functions tsconfig).
+- Test runner: `npm test` (which is `vitest run`) from `apps/command-center`.
+- Typecheck: `npm run typecheck` from `apps/command-center` (runs both app and functions tsconfig).
 
 ---
 
 ### Task 1: Chunk GA4 reports past the 5-report cap
 
 **Files:**
-- Modify: `command-center/app/functions/lib/ga4.ts`
-- Test: `command-center/app/functions/lib/ga4.test.ts` (create)
+- Modify: `apps/command-center/functions/lib/ga4.ts`
+- Test: `apps/command-center/functions/lib/ga4.test.ts` (create)
 
 **Interfaces:**
 - Produces: `export function chunk<T>(items: T[], size: number): T[][]` and an unchanged public signature `batchRunReports(sa, propertyId, requests): Promise<ReportResponse[]>` that now accepts more than 5 requests and returns responses in request order.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `command-center/app/functions/lib/ga4.test.ts`:
+Create `apps/command-center/functions/lib/ga4.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -53,12 +53,12 @@ describe("chunk", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd command-center/app && npx vitest run functions/lib/ga4.test.ts`
+Run: `cd apps/command-center && npx vitest run functions/lib/ga4.test.ts`
 Expected: FAIL, `chunk` is not exported / not a function.
 
 - [ ] **Step 3: Implement chunking and refactor `batchRunReports`**
 
-In `command-center/app/functions/lib/ga4.ts`, add a `chunk` helper (place it above `batchRunReports`):
+In `apps/command-center/functions/lib/ga4.ts`, add a `chunk` helper (place it above `batchRunReports`):
 
 ```ts
 // Split an array into groups of at most `size`, preserving order. Used to keep
@@ -109,18 +109,18 @@ export async function batchRunReports(
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd command-center/app && npx vitest run functions/lib/ga4.test.ts`
+Run: `cd apps/command-center && npx vitest run functions/lib/ga4.test.ts`
 Expected: PASS (3 tests).
 
 - [ ] **Step 5: Typecheck**
 
-Run: `cd command-center/app && npm run typecheck`
+Run: `cd apps/command-center && npm run typecheck`
 Expected: no errors.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add command-center/app/functions/lib/ga4.ts command-center/app/functions/lib/ga4.test.ts
+git add apps/command-center/functions/lib/ga4.ts apps/command-center/functions/lib/ga4.test.ts
 git commit -m "feat(website): chunk GA4 reports past the 5-per-call cap"
 ```
 
@@ -129,8 +129,8 @@ git commit -m "feat(website): chunk GA4 reports past the 5-per-call cap"
 ### Task 2: Shape the new GA4 metrics and dimensions
 
 **Files:**
-- Modify: `command-center/app/functions/api/website/analytics.ts`
-- Test: `command-center/app/functions/api/website/analytics.test.ts` (create)
+- Modify: `apps/command-center/functions/api/website/analytics.ts`
+- Test: `apps/command-center/functions/api/website/analytics.test.ts` (create)
 
 **Interfaces:**
 - Consumes: `batchRunReports` (Task 1), `ReportResponse` from `../../lib/ga4`.
@@ -138,7 +138,7 @@ git commit -m "feat(website): chunk GA4 reports past the 5-per-call cap"
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `command-center/app/functions/api/website/analytics.test.ts`:
+Create `apps/command-center/functions/api/website/analytics.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -229,12 +229,12 @@ describe("shapeAnalytics new fields", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd command-center/app && npx vitest run functions/api/website/analytics.test.ts`
+Run: `cd apps/command-center && npx vitest run functions/api/website/analytics.test.ts`
 Expected: FAIL (properties `newUsers`, `devices`, etc. do not exist on the result).
 
 - [ ] **Step 3: Extend the interface and NOT_CONNECTED**
 
-In `command-center/app/functions/api/website/analytics.ts`, add the new fields to the `WebsiteAnalytics` interface, right after `deltaPct`:
+In `apps/command-center/functions/api/website/analytics.ts`, add the new fields to the `WebsiteAnalytics` interface, right after `deltaPct`:
 
 ```ts
   // Split of this month's active users into first-time and returning.
@@ -408,18 +408,18 @@ Append after the traffic-sources report object (keeping order trend, kpi, pages,
 
 - [ ] **Step 6: Run tests to verify they pass**
 
-Run: `cd command-center/app && npx vitest run functions/api/website/analytics.test.ts`
+Run: `cd apps/command-center && npx vitest run functions/api/website/analytics.test.ts`
 Expected: PASS (7 tests).
 
 - [ ] **Step 7: Typecheck**
 
-Run: `cd command-center/app && npm run typecheck`
+Run: `cd apps/command-center && npm run typecheck`
 Expected: no errors.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add command-center/app/functions/api/website/analytics.ts command-center/app/functions/api/website/analytics.test.ts
+git add apps/command-center/functions/api/website/analytics.ts apps/command-center/functions/api/website/analytics.test.ts
 git commit -m "feat(website): shape device, city, day, new/returning, engagement rate from GA4"
 ```
 
@@ -428,8 +428,8 @@ git commit -m "feat(website): shape device, city, day, new/returning, engagement
 ### Task 3: Frontend data contract and demo fixtures
 
 **Files:**
-- Modify: `command-center/app/src/hooks/useWebsiteAnalytics.ts`
-- Modify: `command-center/app/src/routes/website/shared.tsx`
+- Modify: `apps/command-center/src/hooks/useWebsiteAnalytics.ts`
+- Modify: `apps/command-center/src/routes/website/shared.tsx`
 
 **Interfaces:**
 - Consumes: the extended `WebsiteAnalytics` shape from Task 2.
@@ -437,7 +437,7 @@ git commit -m "feat(website): shape device, city, day, new/returning, engagement
 
 - [ ] **Step 1: Extend the hook interface**
 
-In `command-center/app/src/hooks/useWebsiteAnalytics.ts`, add the new fields to the `WebsiteAnalytics` interface, after `deltaPct`:
+In `apps/command-center/src/hooks/useWebsiteAnalytics.ts`, add the new fields to the `WebsiteAnalytics` interface, after `deltaPct`:
 
 ```ts
   newUsers: number;
@@ -450,7 +450,7 @@ In `command-center/app/src/hooks/useWebsiteAnalytics.ts`, add the new fields to 
 
 - [ ] **Step 2: Add demo fixtures and types to shared.tsx**
 
-In `command-center/app/src/routes/website/shared.tsx`, add near the other `SAMPLE_*` fixtures (after `SAMPLE_CHAT_WIDGET`):
+In `apps/command-center/src/routes/website/shared.tsx`, add near the other `SAMPLE_*` fixtures (after `SAMPLE_CHAT_WIDGET`):
 
 ```ts
 // Device mix (Insights). Real sessions read WebsiteAnalytics.devices from GA4.
@@ -488,13 +488,13 @@ export const SAMPLE_PAGE_VIEWS = 3120;
 
 - [ ] **Step 3: Typecheck**
 
-Run: `cd command-center/app && npm run typecheck`
+Run: `cd apps/command-center && npm run typecheck`
 Expected: no errors.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add command-center/app/src/hooks/useWebsiteAnalytics.ts command-center/app/src/routes/website/shared.tsx
+git add apps/command-center/src/hooks/useWebsiteAnalytics.ts apps/command-center/src/routes/website/shared.tsx
 git commit -m "feat(website): add Insights data contract + demo fixtures for new metrics"
 ```
 
@@ -503,14 +503,14 @@ git commit -m "feat(website): add Insights data contract + demo fixtures for new
 ### Task 4: Render the deeper Insights layout
 
 **Files:**
-- Modify: `command-center/app/src/routes/website/WebsiteInsights.tsx`
+- Modify: `apps/command-center/src/routes/website/WebsiteInsights.tsx`
 
 **Interfaces:**
 - Consumes: the extended `useWebsiteAnalytics` data (Task 3), `formatDuration` from `../../hooks/useWebsiteAnalytics`, and the new `SAMPLE_*` fixtures from `./shared`.
 
 - [ ] **Step 1: Update imports**
 
-In `command-center/app/src/routes/website/WebsiteInsights.tsx`, replace the icon import line to add the icons used below, and import `formatDuration` + the new fixtures.
+In `apps/command-center/src/routes/website/WebsiteInsights.tsx`, replace the icon import line to add the icons used below, and import `formatDuration` + the new fixtures.
 
 Change the lucide import to:
 
@@ -754,18 +754,18 @@ function KpiCard({
 
 - [ ] **Step 7: Typecheck**
 
-Run: `cd command-center/app && npm run typecheck`
+Run: `cd apps/command-center && npm run typecheck`
 Expected: no errors. If an icon import is unused (e.g. `Smartphone` was already imported and is still used by the demo takeaways), leave it; remove any genuinely unused import the compiler flags.
 
 - [ ] **Step 8: Build**
 
-Run: `cd command-center/app && npm run build`
+Run: `cd apps/command-center && npm run build`
 Expected: build succeeds.
 
 - [ ] **Step 9: Visual proof (demo mode)**
 
 Run the app and screenshot the Website Insights page in demo mode to confirm the new sections render:
-- Start the dev server: `cd command-center/app && npm run dev`
+- Start the dev server: `cd apps/command-center && npm run dev`
 - Open the client Website Insights route with `?demo=1` (e.g. `http://localhost:5173/website?demo=1`, Insights tab).
 - Confirm visible: KPI strip (5 cards incl. "Visitors who reached out"), most-visited pages list, device split bars, top towns list, busiest-day callout.
 - Capture a screenshot with Playwright for the record.
@@ -773,7 +773,7 @@ Run the app and screenshot the Website Insights page in demo mode to confirm the
 - [ ] **Step 10: Commit**
 
 ```bash
-git add command-center/app/src/routes/website/WebsiteInsights.tsx
+git add apps/command-center/src/routes/website/WebsiteInsights.tsx
 git commit -m "feat(website): deeper Insights layout (KPIs, pages, devices, towns, busiest day)"
 ```
 
@@ -781,9 +781,9 @@ git commit -m "feat(website): deeper Insights layout (KPIs, pages, devices, town
 
 ## Verification (whole feature)
 
-- [ ] Run the full test suite: `cd command-center/app && npm test` — all pass.
-- [ ] Typecheck clean: `cd command-center/app && npm run typecheck`.
-- [ ] Build clean: `cd command-center/app && npm run build`.
+- [ ] Run the full test suite: `cd apps/command-center && npm test` — all pass.
+- [ ] Typecheck clean: `cd apps/command-center && npm run typecheck`.
+- [ ] Build clean: `cd apps/command-center && npm run build`.
 - [ ] Demo screenshot captured showing every new block.
 - [ ] Confirm a real UNconnected session still shows the honest empty state (no fabricated numbers): the `!show` empty state and `NotConnectedNotice` remain, KPI strip and new panels are gated behind `show` / `aConnected`.
 

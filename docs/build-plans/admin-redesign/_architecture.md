@@ -1,9 +1,9 @@
 # Architecture conventions (read before writing any surface plan)
 
-App root: `command-center/app/` (Vite + React 19 + React Router 7, TanStack Query 5, Cloudflare Pages Functions, Supabase Postgres).
+App root: `apps/command-center/` (Vite + React 19 + React Router 7, TanStack Query 5, Cloudflare Pages Functions, Supabase Postgres).
 
 ## DB / migrations
-- Files: `command-center/app/supabase/migrations/NNNN_slug.sql`. 4-digit zero-padded sequence. **Latest = 0026; next new = 0027, then 0028…** (one per surface, in build order).
+- Files: `apps/command-center/supabase/migrations/NNNN_slug.sql`. 4-digit zero-padded sequence. **Latest = 0026; next new = 0027, then 0028…** (one per surface, in build order).
 - Runner: `npm run db:migrate` → `scripts/db-migrate.mjs` (Supabase Management API + `_hml_migrations` ledger). Idempotent.
 - Style: `create table if not exists`, UUID PK `default gen_random_uuid()`, `text` + CHECK for enums, `timestamptz not null default now()`, guarded `add column if not exists`. NEVER edit an applied migration; add a new one.
 - **Scoping (important):**
@@ -13,7 +13,7 @@ App root: `command-center/app/` (Vite + React 19 + React Router 7, TanStack Quer
 - **Reuse note:** an `admin_tasks` table already exists (migration `0012_admin_tasks`). The Tasks surface should extend/reuse it, not create a new one, unless the shape differs materially.
 
 ## API endpoints
-- File-routed under `command-center/app/functions/api/**`; `onRequestGet/Post/Patch/Delete`. Dynamic segs `[param].ts`.
+- File-routed under `apps/command-center/functions/api/**`; `onRequestGet/Post/Patch/Delete`. Dynamic segs `[param].ts`.
 - Middleware `functions/api/_middleware.ts` gates **`/api/admin/*`** → requires `session.adminId` + live `getActiveAdmin()`; admin routes are **cross-tenant** (no tenant resolution). `ctx.data.admin` available.
 - Server Supabase: `functions/lib/supabase.ts` → `getServiceClient(env)` (service role) or `null`→503. Start every handler: `const client = getServiceClient(ctx.env); if (!client) return 503`.
 - Admin helpers: `functions/lib/adminAuth.ts` (`getActiveAdmin`, `getTenantById`, `logAdminAction` → `admin_audit_log`).
@@ -39,4 +39,4 @@ App root: `command-center/app/` (Vite + React 19 + React Router 7, TanStack Quer
 - `npm run typecheck` (app + functions tsconfigs). `npm run build`. Migrations: `npm run db:migrate`.
 
 ## Design
-- Chosen system: Bento Bold. Reference impl: `command-center/docs/mockups/admin-redesign/cold-calling.html`. The picked layout per surface is the `<surface>-<letter>.html` mockup in that folder. Port its markup/CSS into React components under the existing admin theme (`.pk-kit`). No em dashes in code/UI.
+- Chosen system: Bento Bold. Reference impl: `archive/command-center-docs/mockups/admin-redesign/cold-calling.html`. The picked layout per surface is the `<surface>-<letter>.html` mockup in that folder. Port its markup/CSS into React components under the existing admin theme (`.pk-kit`). No em dashes in code/UI.

@@ -1,0 +1,338 @@
+// Pure compute for Acquisition > Leads. No fetching, no Supabase, no GoHighLevel:
+// everything here is a function of its arguments, so the tag scheme, the score
+// bands and the CSV shape can be pinned down in tests without a network.
+//
+// The scraper itself lives at projects/lead-scraper and is the LIIGO SOP
+// ported whole. This module is the app's half: what a scraped row becomes when
+// Jake ticks it and hands it to a channel.
+
+// What the SOP's exporter gates on. Kept here as well as in the runner because
+// the CSV button and the in-app send must agree about what "qualified" means; if
+// these two ever drift, one path hands out numbers the other rejects.
+export const EXPORT_THRESHOLD = 50;
+
+// The one tag that MOVES a prospect: a GoHighLevel workflow watches for it and
+// creates the opportunity on the Cold Calling pipeline at New Lead. Every other
+// tag this module writes is descriptive.
+//
+// It lives here, in the pure module, because this file owns the tag scheme and
+// is where that scheme is unit tested. agencyCrm imports it rather than spelling
+// it again: two spellings is one pipeline that quietly stops filling.
+export const NEW_LEAD_TAG = "cc new lead";
+
+export type Channel = "cold_call" | "sms";
+
+export interface ScrapedLead {
+  id: string;
+  businessName: string | null;
+  phoneE164: string;
+  city: string | null;
+  state: string | null;
+  website: string | null;
+  rating: number | null;
+  reviewCount: number | null;
+  icpScore: number | null;
+  icpFlags: string[];
+  sendStatus: string;
+  sentTo: string | null;
+  // 'wireless' | 'landline' | 'unknown', from the scraper's NANPA block map. Null
+  // on a row scraped before the column existed, which reads the same as landline
+  // to every check below: the burden is on proving a number IS a mobile.
+  lineType: string | null;
+}
+
+export interface RunForTags {
+  nicheId: string;
+  createdAt: string;
+}
+
+// --- score bands -------------------------------------------------------------
+
+export type ScoreBand = "high" | "medium" | "low";
+
+// Three bands, drawn off the SOP's own threshold rather than round numbers. Below
+// 50 never exports at all, so "low" here means a row that only just qualified.
+export function scoreBand(score: number | null | undefined): ScoreBand {
+  const n = typeof score === "number" ? score : 0;
+  if (n >= 90) return "high";
+  if (n >= 65) return "medium";
+  return "low";
+}
+
+export function isQualified(score: number | null | undefined): boolean {
+  return typeof score === "number" && score >= EXPORT_THRESHOLD;
+}
+
+// --- tags --------------------------------------------------------------------
+
+// GoHighLevel tags are matched literally by every workflow that reads them, so a
+// stray capital or space silently creates a second tag nobody is filtering on.
+// Lowercase, hyphenated, ASCII, and never empty.
+export function slugify(value: string): string {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+}
+
+// The date half of an ISO timestamp, for the batch tag. Falsy or unparseable
+// input yields "" rather than today: a wrong date on a contact is worse than a
+// missing one, because it silently misattributes a batch.
+export function batchDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * The tags a scraped lead carries into GoHighLevel.
+ *
+ * Jake asked for state and city, plus the niche, the source, the run date and the
+ * score band. Every one is prefixed, so the tag list stays sortable and a filter
+ * on "state-" can never collide with a tag somebody typed by hand.
+ *
+ * Empty parts are dropped rather than tagged blank: "city-" on a lead whose city
+ * Google did not return is a tag that means nothing and matches everything.
+ *
+ * A cold-call lead also gets NEW_LEAD_TAG, and that is the one that MOVES it.
+ * The rest are descriptive: they say what the lead is, and no workflow watches
+ * them. Without it a lead sent from the Leads tab became a GoHighLevel contact
+ * and never reached the Cold Calling board at all, while the same business
+ * pushed from Assign leads did, because pushImportedLead has always applied it.
+ * Two send paths, two different outcomes, and the quiet one was the default.
+ */
+export function tagsForLead(lead: ScrapedLead, run: RunForTags, channel: Channel): string[] {
+  const tags = ["source-scraper"];
+
+  const niche = slugify(run.nicheId);
+  if (niche) tags.push(`niche-${niche}`);
+
+  const state = slugify(lead.state ?? "");
+  if (state) tags.push(`state-${state}`);
+
+  const city = slugify(lead.city ?? "");
+  if (city) tags.push(`city-${city}`);
+
+  const date = batchDate(run.createdAt);
+  if (date) tags.push(`scrape-${date}`);
+
+  tags.push(`score-${scoreBand(lead.icpScore)}`);
+  tags.push(channel === "cold_call" ? "channel-cold-call" : "channel-sms");
+
+  // The tag a GoHighLevel workflow watches for, to create the opportunity on the
+  // Cold Calling pipeline at New Lead.
+  if (channel === "cold_call") tags.push(NEW_LEAD_TAG);
+
+  // De-duplicated but order-stable: the tag list reads the same on every contact,
+  // which matters when you are eyeballing two of them side by side.
+  return [...new Set(tags)];
+}
+
+// --- the score, in English ---------------------------------------------------
+
+// icp_flags is the SOP's record of why a row scored what it did. It is stored raw
+// so the reasoning survives a rubric change; this turns it into something Jake can
+// read at a glance without learning the flag vocabulary.
+export function explainFlags(flags: string[]): string[] {
+  return (flags ?? []).map((flag) => {
+    const [key, detail] = flag.split(":");
+    switch (key) {
+      case "core_primary":
+        return `Its main category is ${detail}`;
+      case "core_secondary":
+        return `Lists ${detail} as a category`;
+      case "name":
+        return `"${detail}" in the business name`;
+      case "weak":
+        return `Weak name hint (${detail})`;
+      case "weak_only":
+        return "Nothing but a weak name hint";
+      case "reviews_1_80":
+        return "A believable review count";
+      case "rating_4.3_up":
+        return "Rated 4.3 or better";
+      case "website":
+        return "Has a live website";
+      case "no_web_no_reviews":
+        return "No website and no reviews";
+      case "certified_directory":
+        return "Listed in a trade body's directory";
+      case "toll_free":
+        return "Toll-free number";
+      case "deny":
+        return `Rejected: ${detail}`;
+      case "exclude":
+        return `Rejected as a recurring service: ${detail}`;
+      case "primary_off_niche":
+        return `Rejected: main category is ${detail}`;
+      default:
+        return flag;
+    }
+  });
+}
+
+// --- timezone ----------------------------------------------------------------
+
+// The Cold Call card shows the prospect's local time so nobody dials a Californian
+// at 6am. The scraper knows the state, which is enough for every state that keeps
+// one zone. The split states resolve to their majority zone, which is a deliberate
+// approximation: being an hour out on a sliver of Idaho is better than a blank.
+const STATE_ZONES: Record<string, string> = {
+  AL: "America/Chicago", AK: "America/Anchorage", AZ: "America/Phoenix",
+  AR: "America/Chicago", CA: "America/Los_Angeles", CO: "America/Denver",
+  CT: "America/New_York", DE: "America/New_York", DC: "America/New_York",
+  FL: "America/New_York", GA: "America/New_York", HI: "Pacific/Honolulu",
+  ID: "America/Boise", IL: "America/Chicago", IN: "America/Indiana/Indianapolis",
+  IA: "America/Chicago", KS: "America/Chicago", KY: "America/New_York",
+  LA: "America/Chicago", ME: "America/New_York", MD: "America/New_York",
+  MA: "America/New_York", MI: "America/Detroit", MN: "America/Chicago",
+  MS: "America/Chicago", MO: "America/Chicago", MT: "America/Denver",
+  NE: "America/Chicago", NV: "America/Los_Angeles", NH: "America/New_York",
+  NJ: "America/New_York", NM: "America/Denver", NY: "America/New_York",
+  NC: "America/New_York", ND: "America/Chicago", OH: "America/New_York",
+  OK: "America/Chicago", OR: "America/Los_Angeles", PA: "America/New_York",
+  RI: "America/New_York", SC: "America/New_York", SD: "America/Chicago",
+  TN: "America/Chicago", TX: "America/Chicago", UT: "America/Denver",
+  VT: "America/New_York", VA: "America/New_York", WA: "America/Los_Angeles",
+  WV: "America/New_York", WI: "America/Chicago", WY: "America/Denver",
+};
+
+export function zoneForState(state: string | null | undefined): string {
+  const key = (state ?? "").trim().toUpperCase().slice(0, 2);
+  return STATE_ZONES[key] ?? "";
+}
+
+// --- CSV ---------------------------------------------------------------------
+
+// The SOP's four columns, in the SOP's order, so a file exported from the page and
+// a file written by export_sms.py import into the same SMS platform identically.
+export const CSV_HEADER = ["Phone", "Company Name", "City", "State"];
+
+// The fifth column, for the plain export off the Leads tab only. That list holds
+// landlines and mobiles side by side, so a file taken off it without this cannot
+// be told apart afterwards. The SOP's file must NOT carry it: export_sms.py writes
+// four columns, and the SMS platform reads the file by position.
+export const CSV_LINE_TYPE_HEADER = "Line Type";
+
+// wireless/landline are what cold_sms_set_line_type writes. Everything else, the
+// toll-free and out-of-country numbers included, is genuinely unknown rather than
+// one of the two, so it says so instead of guessing.
+function lineTypeLabel(lineType: string | null | undefined): string {
+  if (lineType === "wireless") return "Mobile";
+  if (lineType === "landline") return "Landline";
+  return "Unknown";
+}
+
+function csvCell(value: string): string {
+  const v = value ?? "";
+  return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+}
+
+export function toCsv(
+  leads: ScrapedLead[],
+  { lineType = false }: { lineType?: boolean } = {},
+): string {
+  const header = lineType ? [...CSV_HEADER, CSV_LINE_TYPE_HEADER] : CSV_HEADER;
+  const lines = [header.join(",")];
+  for (const lead of leads) {
+    const cells = [
+      csvCell(lead.phoneE164),
+      csvCell(lead.businessName ?? ""),
+      csvCell(lead.city ?? ""),
+      csvCell(lead.state ?? ""),
+    ];
+    if (lineType) cells.push(csvCell(lineTypeLabel(lead.lineType)));
+    lines.push(cells.join(","));
+  }
+  return `${lines.join("\r\n")}\r\n`;
+}
+
+// --- what may be sent --------------------------------------------------------
+
+export interface SendRejection {
+  id: string;
+  reason: string;
+}
+
+/**
+ * Split a tick-list into what may actually go out and what may not.
+ *
+ * The same rules the SOP's exporter enforces, applied here so the in-app send
+ * cannot hand out a number the CSV path would have refused: it must be qualified,
+ * it must not already have been sent, it must have a business name (a nameless row
+ * is a row nobody can open a conversation with), and a text must go to a mobile.
+ */
+// The one refusal that outlives a send: it says do not ring them at all, so it
+// also refuses them a place on a dialer's list. Named because two places check
+// for it and a typo in either would quietly ring somebody who asked not to be.
+// What "a lead I can call" means, in ONE place. The Leads list, the counts on a
+// run and anything else that reports a number all match it against the same three
+// columns, so the number on a run is always the number of rows you get when you
+// click into it. Two copies of this rule drifting apart is how a screen starts
+// promising work that is not there.
+//
+//   in_crm      false     already in GoHighLevel: somebody may have rung them
+//   send_status pending   anything else has been handed to a channel already
+//
+// There was a third, line_type = wireless, from 21 August to 15 September 2026.
+// It hid 4,973 landline businesses against 1,305 mobiles, and a landline is a
+// business that answers the phone. Jake's call: show every business. Only a text
+// still needs a mobile, and partitionForSend keeps that rule for SMS alone.
+export const CALLABLE_LEAD_FILTER = {
+  in_crm: false,
+  send_status: "pending",
+} as const;
+
+export const DNC_REASON = "On the do-not-contact list";
+
+// The send_status a lead carries once somebody has asked not to be contacted.
+// Written by `python suppress.py <number>` in the scraper, over ANY previous
+// status: an opt-out outranks every other thing the table can say about a number.
+// Kept in step with suppress.py's DO_NOT_CONTACT.
+export const DO_NOT_CONTACT = "do_not_contact";
+
+// A text cannot land on a landline, so SMS still refuses one. 'unknown' fails with
+// it deliberately: the numbers that land there are toll-free and out-of-country
+// ones, which were never mobiles. A call has no such rule: a landline rings.
+export const LANDLINE_REASON = "Not a mobile number";
+
+export function isMobile(lineType: string | null | undefined): boolean {
+  return lineType === "wireless";
+}
+
+export function partitionForSend(
+  leads: ScrapedLead[],
+  suppressed: Set<string> = new Set(),
+  { mobileOnly = false }: { mobileOnly?: boolean } = {},
+): { sendable: ScrapedLead[]; rejected: SendRejection[] } {
+  const sendable: ScrapedLead[] = [];
+  const rejected: SendRejection[] = [];
+  const seen = new Set<string>();
+
+  // The score no longer refuses a send. It was rejecting 18 of every 23 qualified
+  // window firms on Jake's own list while the screen offered them to be ticked, and
+  // a score is a hint about a business, not a fact about whether it can be rung.
+  // It stays on the row and still sorts the list, so the best ones remain first.
+  for (const lead of leads) {
+    if (lead.sendStatus === DO_NOT_CONTACT) {
+      rejected.push({ id: lead.id, reason: DNC_REASON });
+    } else if (lead.sendStatus !== "pending") {
+      rejected.push({ id: lead.id, reason: "Already sent" });
+    } else if (!(lead.businessName ?? "").trim()) {
+      rejected.push({ id: lead.id, reason: "No business name" });
+    } else if (mobileOnly && !isMobile(lead.lineType)) {
+      rejected.push({ id: lead.id, reason: LANDLINE_REASON });
+    } else if (suppressed.has(lead.phoneE164)) {
+      rejected.push({ id: lead.id, reason: DNC_REASON });
+    } else if (seen.has(lead.phoneE164)) {
+      rejected.push({ id: lead.id, reason: "Duplicate number in this batch" });
+    } else {
+      seen.add(lead.phoneE164);
+      sendable.push(lead);
+    }
+  }
+  return { sendable, rejected };
+}

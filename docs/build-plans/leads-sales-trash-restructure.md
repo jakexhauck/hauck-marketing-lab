@@ -20,14 +20,14 @@
 
 - Never name GoHighLevel / GHL in any client-facing UI copy.
 - Never use em dashes anywhere: code, comments, UI copy. Use commas, periods, parentheses, or colons.
-- Client app only: `command-center/app` (package `client-dashboard`).
+- Client app only: `apps/command-center` (package `client-dashboard`).
 - Do NOT invent new GHL writes beyond the existing move/won/lost/stage endpoints. "Pages before automations" standing rule holds.
 - Pipelines resolve BY NAME per tenant (ids differ per cloned account), exact match first then contains, hardcoded id only as last-resort fallback. Mirror `functions/api/sales/leads/index.ts` `resolve()`.
 - Live pipeline facts (Willis, location `OznT3yyuwK3dqVXDsCaD`, verified 2026-07-07):
   - **Sales** id `6o9Gx6e0TXRFJdln5d01`; stages: Missed Call - CONTACT, Lead In, Lead Responded, Estimate Scheduled, Estimate Completed, Job Booked, Job Completed, Follow Up, Intro Call Confirmed, No-Close, Abandoned.
   - **Trash** id `TtKcHZeAtljinJik9kK5`; stages: No Anwser (sic), No Close, Opted Out, Lead In No Call Booked, Intro Call No Show.
   - `source` on opportunities is populated (confirmed value: `"Chat Widget"`). Forms carry `"Website Form"`; ads are Meta-stamped (per `docs/connections/leads.md`).
-- Commands (run from `command-center/app`): typecheck `npm run typecheck`; test `npm run test`; build `npm run build`.
+- Commands (run from `apps/command-center`): typecheck `npm run typecheck`; test `npm run test`; build `npm run build`.
 - Tailwind token classes in use: `text-text`, `text-muted`, `text-faint`, `bg-surface`, `bg-surface-2`, `border-border`, `border-divider`, `font-display`. CSS vars: `--brand-primary`, `--brand`, `--positive`, `--warning`, `--danger`, `--surface`, `--border`, `--text`, `--radius-lg`, `--grad-brand`, `--shadow-sm/md/lg`.
 
 ## Definition of done
@@ -87,8 +87,8 @@
 ### Task 1: Pipeline-by-name resolver (`leadPipelines.ts`)
 
 **Files:**
-- Create: `command-center/app/src/lib/leadPipelines.ts`
-- Test: `command-center/app/src/lib/leadPipelines.test.ts`
+- Create: `apps/command-center/src/lib/leadPipelines.ts`
+- Test: `apps/command-center/src/lib/leadPipelines.test.ts`
 
 **Interfaces:**
 - Consumes: `ApiPipelineSummary` from `../lib/api` (`{ id: string; name: string; stages: { id: string; name: string }[] }`).
@@ -99,7 +99,7 @@
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-// command-center/app/src/lib/leadPipelines.test.ts
+// apps/command-center/src/lib/leadPipelines.test.ts
 import { describe, it, expect } from "vitest";
 import { resolveLeadPipeline } from "./leadPipelines";
 import type { ApiPipelineSummary } from "./api";
@@ -151,7 +151,7 @@ Expected: FAIL ("Cannot find module './leadPipelines'").
 - [ ] **Step 3: Write minimal implementation**
 
 ```ts
-// command-center/app/src/lib/leadPipelines.ts
+// apps/command-center/src/lib/leadPipelines.ts
 import type { ApiPipelineSummary } from "./api";
 
 export type LeadPipelineKind = "sales" | "trash";
@@ -194,7 +194,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/src/lib/leadPipelines.ts command-center/app/src/lib/leadPipelines.test.ts
+git add apps/command-center/src/lib/leadPipelines.ts apps/command-center/src/lib/leadPipelines.test.ts
 git commit -m "feat(leads): resolve Sales/Trash pipeline by name with id fallback"
 ```
 
@@ -203,7 +203,7 @@ git commit -m "feat(leads): resolve Sales/Trash pipeline by name with id fallbac
 ### Task 2: `useLeadPipeline` hook
 
 **Files:**
-- Create: `command-center/app/src/hooks/useLeadPipeline.ts`
+- Create: `apps/command-center/src/hooks/useLeadPipeline.ts`
 
 **Interfaces:**
 - Consumes: `usePipelinesQuery` from `./useApi`, `useAuth` from `../context/AuthContext`, `getMockPipelinesForClient` from `../mock/pipelines`, `useClient` from `../context/ClientContext`, and `resolveLeadPipeline` / `LeadPipelineKind` from `../lib/leadPipelines`.
@@ -214,7 +214,7 @@ git commit -m "feat(leads): resolve Sales/Trash pipeline by name with id fallbac
 - [ ] **Step 1: Write the hook**
 
 ```ts
-// command-center/app/src/hooks/useLeadPipeline.ts
+// apps/command-center/src/hooks/useLeadPipeline.ts
 import { useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useClient } from "../context/ClientContext";
@@ -261,7 +261,7 @@ Expected: PASS. If `getMockPipelinesForClient` does not return a pipeline named 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/src/hooks/useLeadPipeline.ts
+git add apps/command-center/src/hooks/useLeadPipeline.ts
 git commit -m "feat(leads): useLeadPipeline hook (Sales/Trash by name)"
 ```
 
@@ -270,7 +270,7 @@ git commit -m "feat(leads): useLeadPipeline hook (Sales/Trash by name)"
 ### Task 3: 4-tab `LEADS_TABS`
 
 **Files:**
-- Modify: `command-center/app/src/lib/pageTabs.ts:68-75`
+- Modify: `apps/command-center/src/lib/pageTabs.ts:68-75`
 
 **Interfaces:**
 - Produces: `LEADS_TABS` with four entries; `sectionLabel(LEADS_TABS)` still returns "Leads" (unchanged mapping at `pageTabs.ts:88`).
@@ -300,7 +300,7 @@ Expected: PASS. If `nav.test.ts` asserts the old tab labels/paths, update those 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/src/lib/pageTabs.ts command-center/app/src/lib/nav.test.ts
+git add apps/command-center/src/lib/pageTabs.ts apps/command-center/src/lib/nav.test.ts
 git commit -m "feat(leads): Sales/Trash/Organic/Paid Ads tab set"
 ```
 
@@ -309,7 +309,7 @@ git commit -m "feat(leads): Sales/Trash/Organic/Paid Ads tab set"
 ### Task 4: Shared board page (`LeadsPipelinePage.tsx`)
 
 **Files:**
-- Create: `command-center/app/src/routes/sales/LeadsPipelinePage.tsx`
+- Create: `apps/command-center/src/routes/sales/LeadsPipelinePage.tsx`
 
 **Interfaces:**
 - Consumes: `Shell`, `PageBar`, `PAGE_CONTAINER` from `../../lib/layout`, `LEADS_TABS` from `../../lib/pageTabs`, `Board` from `../../components/Board`, `useLeadPipeline` (Task 2), `usePipelineLeadsQuery` / `useSummaryQuery` from `../../hooks/useApi`, `NewLeadSheet`, `EmptyState`, `useAuth`, `Button` from `../../components/ui/Button`, `Plus` from `lucide-react`, `formatMoney` from `../../lib/formatMoney`, `ApiLead` from `../../lib/api`.
@@ -320,7 +320,7 @@ git commit -m "feat(leads): Sales/Trash/Organic/Paid Ads tab set"
 - [ ] **Step 1: Write the page**
 
 ```tsx
-// command-center/app/src/routes/sales/LeadsPipelinePage.tsx
+// apps/command-center/src/routes/sales/LeadsPipelinePage.tsx
 import { useMemo, useState } from "react";
 import { Plus, Search } from "lucide-react";
 import Shell from "../../components/Shell";
@@ -460,7 +460,7 @@ Expected: PASS. Confirm at edit time: `Button` accepts `size="sm"` (see `AdsCrea
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/src/routes/sales/LeadsPipelinePage.tsx
+git add apps/command-center/src/routes/sales/LeadsPipelinePage.tsx
 git commit -m "feat(leads): shared Sales/Trash board page on PageBar"
 ```
 
@@ -469,8 +469,8 @@ git commit -m "feat(leads): shared Sales/Trash board page on PageBar"
 ### Task 5: Wire routes + retire old board files
 
 **Files:**
-- Modify: `command-center/app/src/App.tsx` (imports near line 12-14; routes near lines 272-305)
-- Delete: `command-center/app/src/routes/Leads.tsx`, `command-center/app/src/components/leads/LeadsDesktop.tsx`
+- Modify: `apps/command-center/src/App.tsx` (imports near line 12-14; routes near lines 272-305)
+- Delete: `apps/command-center/src/routes/Leads.tsx`, `apps/command-center/src/components/leads/LeadsDesktop.tsx`
 
 **Interfaces:**
 - Consumes: `LeadsPipelinePage` (Task 4).
@@ -514,7 +514,7 @@ Leave the existing `/sales/leads/organic`, `/sales/leads/paid-ads`, `/sales/lead
 - [ ] **Step 3: Delete the retired files**
 
 ```bash
-git rm command-center/app/src/routes/Leads.tsx command-center/app/src/components/leads/LeadsDesktop.tsx
+git rm apps/command-center/src/routes/Leads.tsx apps/command-center/src/components/leads/LeadsDesktop.tsx
 ```
 
 - [ ] **Step 4: Typecheck + build (catches any dangling import)**
@@ -525,7 +525,7 @@ Expected: PASS. If anything still imports `routes/Leads` or `leads/LeadsDesktop`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/src/App.tsx
+git add apps/command-center/src/App.tsx
 git commit -m "feat(leads): route Sales + Trash board tabs, retire old Leads board"
 ```
 
@@ -536,8 +536,8 @@ git commit -m "feat(leads): route Sales + Trash board tabs, retire old Leads boa
 ### Task 6: `classifySource` pure function
 
 **Files:**
-- Create: `command-center/app/functions/api/sales/leads/source.ts`
-- Test: `command-center/app/functions/api/sales/leads/source.test.ts`
+- Create: `apps/command-center/functions/api/sales/leads/source.ts`
+- Test: `apps/command-center/functions/api/sales/leads/source.test.ts`
 
 **Interfaces:**
 - Produces:
@@ -547,7 +547,7 @@ git commit -m "feat(leads): route Sales + Trash board tabs, retire old Leads boa
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-// command-center/app/functions/api/sales/leads/source.test.ts
+// apps/command-center/functions/api/sales/leads/source.test.ts
 import { describe, it, expect } from "vitest";
 import { classifySource } from "./source";
 
@@ -581,7 +581,7 @@ Expected: FAIL ("Cannot find module './source'").
 - [ ] **Step 3: Write minimal implementation**
 
 ```ts
-// command-center/app/functions/api/sales/leads/source.ts
+// apps/command-center/functions/api/sales/leads/source.ts
 
 export type LeadSource = "ad" | "form" | "chat";
 
@@ -608,7 +608,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/functions/api/sales/leads/source.ts command-center/app/functions/api/sales/leads/source.test.ts
+git add apps/command-center/functions/api/sales/leads/source.ts apps/command-center/functions/api/sales/leads/source.test.ts
 git commit -m "feat(leads): source classifier for the unified Sales feed"
 ```
 
@@ -617,7 +617,7 @@ git commit -m "feat(leads): source classifier for the unified Sales feed"
 ### Task 7: Repoint `/api/sales/leads` to the single Sales pipeline
 
 **Files:**
-- Modify: `command-center/app/functions/api/sales/leads/index.ts:13-156`
+- Modify: `apps/command-center/functions/api/sales/leads/index.ts:13-156`
 
 **Interfaces:**
 - Consumes: `classifySource`, `LeadSource` (Task 6); existing `ghlJson`, `fetchAllOpportunities`, `shapeOpportunity`, `GhlOpportunity`, `GhlContext` from `../../../lib/ghl`.
@@ -686,7 +686,7 @@ Expected: PASS. If any test referenced the removed Paid/Organic constants, updat
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/functions/api/sales/leads/index.ts
+git add apps/command-center/functions/api/sales/leads/index.ts
 git commit -m "feat(leads): serve the unified Sales feed, source-tagged per opportunity"
 ```
 
@@ -697,7 +697,7 @@ git commit -m "feat(leads): serve the unified Sales feed, source-tagged per oppo
 ### Task 8: Organic side-by-side layout (Variant A) on PageBar
 
 **Files:**
-- Modify: `command-center/app/src/routes/sales/LeadsOrganic.tsx`
+- Modify: `apps/command-center/src/routes/sales/LeadsOrganic.tsx`
 
 **Interfaces:**
 - Consumes: `Shell`, `PageBar`, `PAGE_CONTAINER`, `LEADS_TABS`, `useLeadsHub`, `organicLeads`, `isNew`, `HubLead`, `SOURCE_META` (existing), `Avatar`, `Inbox`, `MessagesSquare`, `ChevronRight` from `lucide-react`.
@@ -851,7 +851,7 @@ Expected: PASS. Remove any import that lint flags as unused.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add command-center/app/src/routes/sales/LeadsOrganic.tsx
+git add apps/command-center/src/routes/sales/LeadsOrganic.tsx
 git commit -m "feat(leads): Organic side-by-side Forms | Chat on the shared header"
 ```
 
@@ -860,7 +860,7 @@ git commit -m "feat(leads): Organic side-by-side Forms | Chat on the shared head
 ### Task 9: Paid Ads list on PageBar
 
 **Files:**
-- Modify: `command-center/app/src/routes/sales/LeadsPaidAds.tsx:42-66`
+- Modify: `apps/command-center/src/routes/sales/LeadsPaidAds.tsx:42-66`
 
 **Interfaces:**
 - Consumes: `PageBar`, `LEADS_TABS`; existing `paidAdsLeads`, `useLeadsHub`, `Avatar`, `StatusPill`.
@@ -890,7 +890,7 @@ Expected: PASS.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/src/routes/sales/LeadsPaidAds.tsx
+git add apps/command-center/src/routes/sales/LeadsPaidAds.tsx
 git commit -m "feat(leads): Paid Ads roster on the shared header"
 ```
 
@@ -901,8 +901,8 @@ git commit -m "feat(leads): Paid Ads roster on the shared header"
 ### Task 10: Extract `LeadConversationPanel`
 
 **Files:**
-- Create: `command-center/app/src/components/leads/LeadConversationPanel.tsx`
-- Modify: `command-center/app/src/components/LeadChatModal.tsx`
+- Create: `apps/command-center/src/components/leads/LeadConversationPanel.tsx`
+- Modify: `apps/command-center/src/components/LeadChatModal.tsx`
 
 **Interfaces:**
 - Consumes: `ConversationThread` (`{ leadId, fill? }`), `MessageComposer` (`{ leadId, disabled? }`), `ChannelFilterProvider` from `../../context/ChannelFilterContext`.
@@ -911,7 +911,7 @@ git commit -m "feat(leads): Paid Ads roster on the shared header"
 - [ ] **Step 1: Write the panel**
 
 ```tsx
-// command-center/app/src/components/leads/LeadConversationPanel.tsx
+// apps/command-center/src/components/leads/LeadConversationPanel.tsx
 import ConversationThread from "../ConversationThread";
 import MessageComposer from "../MessageComposer";
 import { ChannelFilterProvider } from "../../context/ChannelFilterContext";
@@ -950,7 +950,7 @@ Expected: PASS. Confirm `ConversationThread` accepts `fill` (it is used with `fi
 - [ ] **Step 4: Commit**
 
 ```bash
-git add command-center/app/src/components/leads/LeadConversationPanel.tsx command-center/app/src/components/LeadChatModal.tsx
+git add apps/command-center/src/components/leads/LeadConversationPanel.tsx apps/command-center/src/components/LeadChatModal.tsx
 git commit -m "refactor(leads): extract LeadConversationPanel shared by modal + page"
 ```
 
@@ -959,7 +959,7 @@ git commit -m "refactor(leads): extract LeadConversationPanel shared by modal + 
 ### Task 11: `LeadActionRail` (one-touch actions)
 
 **Files:**
-- Create: `command-center/app/src/components/leads/LeadActionRail.tsx`
+- Create: `apps/command-center/src/components/leads/LeadActionRail.tsx`
 
 **Interfaces:**
 - Consumes: `Phone`, `MessageSquare`, `Mail`, `CheckCircle2`, `ArrowRightLeft` from `lucide-react`; `e164` from `../../lib/phone`.
@@ -970,7 +970,7 @@ git commit -m "refactor(leads): extract LeadConversationPanel shared by modal + 
 - [ ] **Step 1: Write the rail**
 
 ```tsx
-// command-center/app/src/components/leads/LeadActionRail.tsx
+// apps/command-center/src/components/leads/LeadActionRail.tsx
 import { Phone, MessageSquare, Mail, CheckCircle2, ArrowRightLeft } from "lucide-react";
 import { e164 } from "../../lib/phone";
 
@@ -1056,7 +1056,7 @@ Expected: PASS. Confirm `e164` exists in `src/lib/phone.ts` (used by `LeadDetail
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/src/components/leads/LeadActionRail.tsx
+git add apps/command-center/src/components/leads/LeadActionRail.tsx
 git commit -m "feat(leads): one-touch action rail (call/text/email/won/move)"
 ```
 
@@ -1065,7 +1065,7 @@ git commit -m "feat(leads): one-touch action rail (call/text/email/won/move)"
 ### Task 12: Chat-primary lead page (phone) in `LeadDetail.tsx`
 
 **Files:**
-- Modify: `command-center/app/src/routes/LeadDetail.tsx:281-546`
+- Modify: `apps/command-center/src/routes/LeadDetail.tsx:281-546`
 
 **Interfaces:**
 - Consumes: `LeadActionRail` (Task 11), `LeadConversationPanel` (Task 10); existing `WonSheet`, `MoveStageSheet`, handlers `handleWonSave`, `handleLost`, `handleMove`, `markWon/markLost/moveStage`, `ChannelFilterContext` control for channel.
@@ -1154,7 +1154,7 @@ Expected: PASS. Fix unused imports (the NavyHero, HeroIconButton, ChevronLeft, P
 - [ ] **Step 6: Commit**
 
 ```bash
-git add command-center/app/src/routes/LeadDetail.tsx
+git add apps/command-center/src/routes/LeadDetail.tsx
 git commit -m "feat(leads): chat-first lead page with one-touch actions (phone)"
 ```
 
@@ -1163,7 +1163,7 @@ git commit -m "feat(leads): chat-first lead page with one-touch actions (phone)"
 ### Task 13: Chat-primary desktop lead page in `LeadDetailDesktop.tsx`
 
 **Files:**
-- Modify: `command-center/app/src/components/leads/LeadDetailDesktop.tsx`
+- Modify: `apps/command-center/src/components/leads/LeadDetailDesktop.tsx`
 
 **Interfaces:**
 - Consumes: `LeadActionRail`, `LeadConversationPanel`, the same lead/query hooks `LeadDetailDesktop` already uses.
@@ -1200,7 +1200,7 @@ Expected: PASS.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add command-center/app/src/components/leads/LeadDetailDesktop.tsx
+git add apps/command-center/src/components/leads/LeadDetailDesktop.tsx
 git commit -m "feat(leads): chat-first desktop lead page with action rail"
 ```
 
@@ -1230,7 +1230,7 @@ git commit -m "docs(leads): retire superseded Pipeline/Organic/Paid Ads plan"
 
 - [ ] **Step 1: Green gate**
 
-Run from `command-center/app`: `npm run typecheck && npm run test && npm run build`. All pass.
+Run from `apps/command-center`: `npm run typecheck && npm run test && npm run build`. All pass.
 
 - [ ] **Step 2: Drive the real app**
 

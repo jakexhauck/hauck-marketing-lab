@@ -14,7 +14,7 @@ Done when: every cell persists to the agency-global DB and reloads correctly; al
 
 ## 2. Chosen layout
 
-Implement `command-center/docs/mockups/admin-redesign/cold-sms-B.html` exactly (Bento Bold, `.pk-kit` theme).
+Implement `archive/command-center-docs/mockups/admin-redesign/cold-sms-B.html` exactly (Bento Bold, `.pk-kit` theme).
 
 Structure to port:
 - Header: kicker "Acquisition", title "Cold SMS", tagline. (Rendered by the F2 `PillarPage` shell; the surface supplies only its body.)
@@ -31,7 +31,7 @@ Layout rules:
 
 ## 3. Data model
 
-**Migration:** `command-center/app/supabase/migrations/00NN_cold_sms_tracker.sql` — one migration, three tables.
+**Migration:** `apps/command-center/supabase/migrations/00NN_cold_sms_tracker.sql` — one migration, three tables.
 
 > Sequence note: latest applied = `0026`. This surface is authored after the Leads and Cold Call surface plans, so it takes the **next free 4-digit number** after their migrations (expected `0029`; confirm the actual free number at build time — never reuse or edit an applied file). Style per `_architecture.md`: `create table if not exists`, UUID PK `default gen_random_uuid()`, `timestamptz not null default now()`, guarded `add column if not exists`. Agency-global (no `tenant_id`). Service-role client bypasses RLS; no RLS policies needed.
 
@@ -84,7 +84,7 @@ All integer/numeric inputs nullable so a blank cell stays blank (not zero) — m
 
 ## 4. API
 
-All agency-global → under `command-center/app/functions/api/admin/tracker/`. Admin-gated by `functions/api/_middleware.ts` (`session.adminId` + `getActiveAdmin`); no tenant resolution. Every handler starts with `const client = getServiceClient(ctx.env); if (!client) return 503`. Whitelist supplied fields into a snake_case update. `logAdminAction(client, ctx.data.admin!.id, "<action>", null, payload)` on every write (target tenant = `null` — agency data). Copy the shape of `functions/api/admin/tasks/index.ts`.
+All agency-global → under `apps/command-center/functions/api/admin/tracker/`. Admin-gated by `functions/api/_middleware.ts` (`session.adminId` + `getActiveAdmin`); no tenant resolution. Every handler starts with `const client = getServiceClient(ctx.env); if (!client) return 503`. Whitelist supplied fields into a snake_case update. `logAdminAction(client, ctx.data.admin!.id, "<action>", null, payload)` on every write (target tenant = `null` — agency data). Copy the shape of `functions/api/admin/tasks/index.ts`.
 
 ### `cold-sms-daily.ts`
 - **GET** `?month=YYYY-MM` → rows where `day` in `[first, last]` of that month. Returns `{ rows: ColdSmsDailyRow[] }` (the raw persisted rows only; the client fills empty days via the F3 month generator). Validate `month` matches `^\d{4}-\d{2}$` → 400 otherwise.
@@ -151,17 +151,17 @@ Reuse the Bento Bold table CSS from the mockup / the F3 `DailyTracker` styles; M
 
 ## 7. File-by-file change list (ordered)
 
-1. `command-center/app/supabase/migrations/00NN_cold_sms_tracker.sql` — three tables (§3). Run `npm run db:migrate`.
-2. `command-center/app/functions/api/admin/tracker/cold-sms-daily.ts` — GET(month) + PATCH upsert-by-day + audit.
-3. `command-center/app/functions/api/admin/tracker/cold-sms-monthly.ts` — GET(all) + PATCH upsert-by-month + audit.
-4. `command-center/app/functions/api/admin/tracker/cold-sms-script.ts` — GET + POST + PATCH + DELETE + audit.
-5. `command-center/app/src/lib/api.ts` — three DTOs (§5).
-6. `command-center/app/src/lib/coldSms.ts` — compute/rollup fns (reusing `trackerMonth.ts` helpers).
-7. `command-center/app/src/lib/coldSms.test.ts` — unit tests (§6).
-8. `command-center/app/src/hooks/useApi.ts` — the query + mutation hooks (§5).
-9. `command-center/app/src/components/admin/acquisition/MonthlyEconomicsTable.tsx`
-10. `command-center/app/src/components/admin/acquisition/ScriptTestTable.tsx`
-11. `command-center/app/src/components/admin/acquisition/ColdSmsSurface.tsx` — sub-nav + month state + Daily(`<DailyTracker>`)/Monthly/Script.
+1. `apps/command-center/supabase/migrations/00NN_cold_sms_tracker.sql` — three tables (§3). Run `npm run db:migrate`.
+2. `apps/command-center/functions/api/admin/tracker/cold-sms-daily.ts` — GET(month) + PATCH upsert-by-day + audit.
+3. `apps/command-center/functions/api/admin/tracker/cold-sms-monthly.ts` — GET(all) + PATCH upsert-by-month + audit.
+4. `apps/command-center/functions/api/admin/tracker/cold-sms-script.ts` — GET + POST + PATCH + DELETE + audit.
+5. `apps/command-center/src/lib/api.ts` — three DTOs (§5).
+6. `apps/command-center/src/lib/coldSms.ts` — compute/rollup fns (reusing `trackerMonth.ts` helpers).
+7. `apps/command-center/src/lib/coldSms.test.ts` — unit tests (§6).
+8. `apps/command-center/src/hooks/useApi.ts` — the query + mutation hooks (§5).
+9. `apps/command-center/src/components/admin/acquisition/MonthlyEconomicsTable.tsx`
+10. `apps/command-center/src/components/admin/acquisition/ScriptTestTable.tsx`
+11. `apps/command-center/src/components/admin/acquisition/ColdSmsSurface.tsx` — sub-nav + month state + Daily(`<DailyTracker>`)/Monthly/Script.
 12. F2 Acquisition `PillarPage` (`src/routes/admin/PillarPage.tsx` or equivalent) — wire the `sms` tab `case` to render `<ColdSmsSurface/>`. (Tab entry itself is registered by F2 in `src/lib/adminPillars.ts`.)
 
 ## 8. Verify

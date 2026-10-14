@@ -22,7 +22,7 @@ Not in scope: pulling any of these values automatically from GHL/Stripe/Meta (Ph
 
 ## 2. Chosen layout
 
-Reference mockup (implement this): `command-center/docs/mockups/admin-redesign/client-billing-B.html` (Layout B — grouped bento cards).
+Reference mockup (implement this): `archive/command-center-docs/mockups/admin-redesign/client-billing-B.html` (Layout B — grouped bento cards).
 
 Structure to port:
 - A **toolbar** row above the cards: left = title "Billing Record" + subtitle; right = an **Open Ad Tracking** ghost link and a **Save** primary button.
@@ -40,7 +40,7 @@ Dates are stored as plain text (Phase 1) exactly as the mockup shows ("Jul 22, 2
 
 ## 3. Data model
 
-New migration `command-center/app/supabase/migrations/0027_client_billing.sql` (use the next free 4-digit number in build order — 0027 as of writing; if an earlier surface plan already claimed 0027, take the next free one).
+New migration `apps/command-center/supabase/migrations/0027_client_billing.sql` (use the next free 4-digit number in build order — 0027 as of writing; if an earlier surface plan already claimed 0027, take the next free one).
 
 **Decision: a new `client_billing` table 1:1 with the tenant, NOT new columns on `tenants`.** Justification:
 - These are ~13 commercial/CRM fields (cash, arrangement, notes) with a single owner (the admin Billing tab). Piling them onto `tenants` bloats a hot, widely-selected row that `getTenantById`'s `TENANT_COLUMNS` and every tenant-resolve path read on each request. A separate table keeps the billing blob off that path — it is loaded only by this one endpoint.
@@ -90,7 +90,7 @@ alter table public.client_billing enable row level security;
 
 ## 4. API
 
-New endpoint `command-center/app/functions/api/admin/clients/[tenantId]/billing.ts` — copy the shape of `functions/api/admin/clients/[tenantId].ts` (503 guard → `getTenantById` 404 → whitelist → `logAdminAction`). Admin-gated by `_middleware.ts` already (`/api/admin/*`).
+New endpoint `apps/command-center/functions/api/admin/clients/[tenantId]/billing.ts` — copy the shape of `functions/api/admin/clients/[tenantId].ts` (503 guard → `getTenantById` 404 → whitelist → `logAdminAction`). Admin-gated by `_middleware.ts` already (`/api/admin/*`).
 
 **GET** `/api/admin/clients/:tenantId/billing`
 - `const client = getServiceClient(ctx.env); if (!client) return 503`.
@@ -201,15 +201,15 @@ No network/integration tests required for Phase 1.
 
 ## 7. File-by-file change list (ordered)
 
-1. `command-center/app/supabase/migrations/0027_client_billing.sql` — new table (section 3).
-2. `command-center/app/functions/api/admin/clients/[tenantId]/billing.ts` — new GET + PATCH endpoint (section 4).
-3. `command-center/app/src/lib/api.ts` — add `AdminClientBilling` + `AdminClientBillingResponse` DTOs.
-4. `command-center/app/src/hooks/useApi.ts` — add `useAdminClientBillingQuery` + `useAdminClientBillingSave`.
-5. `command-center/app/src/lib/deliveryCockpit.ts` — add `"billing"` to `ServiceTab` + `SERVICE_TABS` entry (before `config`).
-6. `command-center/app/src/lib/billing.ts` — pure helpers (parse/format money, date hint, sanitize patch).
-7. `command-center/app/src/lib/billing.test.ts` — unit tests for #6.
-8. `command-center/app/src/components/admin/cockpit/BillingTab.tsx` — new tab component (section 5).
-9. `command-center/app/src/routes/admin/DeliveryCockpit.tsx` — import + switch branch for `billing`.
+1. `apps/command-center/supabase/migrations/0027_client_billing.sql` — new table (section 3).
+2. `apps/command-center/functions/api/admin/clients/[tenantId]/billing.ts` — new GET + PATCH endpoint (section 4).
+3. `apps/command-center/src/lib/api.ts` — add `AdminClientBilling` + `AdminClientBillingResponse` DTOs.
+4. `apps/command-center/src/hooks/useApi.ts` — add `useAdminClientBillingQuery` + `useAdminClientBillingSave`.
+5. `apps/command-center/src/lib/deliveryCockpit.ts` — add `"billing"` to `ServiceTab` + `SERVICE_TABS` entry (before `config`).
+6. `apps/command-center/src/lib/billing.ts` — pure helpers (parse/format money, date hint, sanitize patch).
+7. `apps/command-center/src/lib/billing.test.ts` — unit tests for #6.
+8. `apps/command-center/src/components/admin/cockpit/BillingTab.tsx` — new tab component (section 5).
+9. `apps/command-center/src/routes/admin/DeliveryCockpit.tsx` — import + switch branch for `billing`.
 10. (If not present) test for the server whitelist helper.
 
 ---

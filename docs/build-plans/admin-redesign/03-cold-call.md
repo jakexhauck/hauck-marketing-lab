@@ -1,6 +1,6 @@
 # 03 — Cold Call (Acquisition)
 
-Reference impl already built and approved: `command-center/docs/mockups/admin-redesign/cold-calling.html`. This surface IS the reference for the shared daily-funnel engine (00-foundation F3). Read `_architecture.md` + `00-foundation.md`.
+Reference impl already built and approved: `archive/command-center-docs/mockups/admin-redesign/cold-calling.html`. This surface IS the reference for the shared daily-funnel engine (00-foundation F3). Read `_architecture.md` + `00-foundation.md`.
 
 ## 1. Goal / DoD
 Acquisition pillar tab "Cold Call": an editable daily dialing funnel. One row per day, auto-populated for the viewed month, month nav + Today, live-computed rates, Average/Total-MTD footer, stat tiles. Manual entry; app DB is source of truth.

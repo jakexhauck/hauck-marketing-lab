@@ -20,10 +20,10 @@ dist-ssr/
 
 # TypeScript / Vite emitted artifacts (compiled next to their .ts source, never commit)
 *.tsbuildinfo
-command-center/app/vite.config.js
-command-center/app/vite.config.d.ts
-command-center/app/src/lib/appBrand.js
-command-center/app/src/lib/appBrand.d.ts
+apps/command-center/vite.config.js
+apps/command-center/vite.config.d.ts
+apps/command-center/src/lib/appBrand.js
+apps/command-center/src/lib/appBrand.d.ts
 
 # Wrangler local cache / state
 **/.wrangler/
@@ -62,8 +62,7 @@ app-config.local.json
 data/*/credentials.yaml
 
 # Lead scraper Google service account (never commit)
-lead-scraper/credentials.json
-lead-scraper/credentials*.json
+**/lead-scraper*/credentials*.json
 
 # Google Calendar OAuth client (desktop-app creds, but keep out of repo for push protection)
 app/src-tauri/src/google_oauth_secrets.rs
@@ -85,7 +84,7 @@ app/src-tauri/src/supabase_secrets.rs
 .ghl-audit/
 
 # local GitHub token, never commit
-scripts/.gh_token
+projects/scripts/.gh_token
 .worktrees/
 
 # Subagent build scaffolding: briefs, per-task reports and review packages.

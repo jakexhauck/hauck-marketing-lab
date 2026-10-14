@@ -21,7 +21,7 @@ A single agency-internal calculator that turns seven inputs into one protected d
 
 ## 2. Chosen layout
 
-Port `command-center/docs/mockups/admin-redesign/scaling-calculator-C.html` into React under the `.pk-kit` admin theme.
+Port `archive/command-center-docs/mockups/admin-redesign/scaling-calculator-C.html` into React under the `.pk-kit` admin theme.
 
 Structure (top to bottom, inside the tab body):
 - **Compact inputs card** (`.compact`): header row (indigo icon + "Your Numbers" title/subtitle + amber pill note "Heavily underestimate your KPIs so it becomes impossible not to hit target"), then a `.cc-grid` of 7 `.cell` fields. Money fields carry a leading `$` affix, percent fields a trailing `%` affix (`.fwrap.money` / `.fwrap.pct`). Fields, in order: Current Revenue, Monthly Cash Goal, Offer Price, Avg Cash / Close, Closing %, Show Rate %, Booking Rate %.
@@ -41,7 +41,7 @@ Keep the CSS tokens from the mockup (indigo/green/sky/amber tints, `--radius:22p
 
 ## 3. Data model
 
-Migration `command-center/app/supabase/migrations/0027_scaling_calculator.sql` (latest applied is 0026; this is the next).
+Migration `apps/command-center/supabase/migrations/0027_scaling_calculator.sql` (latest applied is 0026; this is the next).
 
 Agency-internal, **no `tenant_id`** (per `_architecture.md` scoping). Single-row settings table — the calculator only ever remembers one set of inputs.
 
@@ -72,7 +72,7 @@ Notes:
 
 ## 4. API
 
-Endpoint: `command-center/app/functions/api/admin/tracker/scaling-calculator.ts` (agency-global tracker path). Admin-gated by `functions/api/_middleware.ts` (`/api/admin/*`). Start each handler with `getServiceClient(ctx.env)` → 503 if null.
+Endpoint: `apps/command-center/functions/api/admin/tracker/scaling-calculator.ts` (agency-global tracker path). Admin-gated by `functions/api/_middleware.ts` (`/api/admin/*`). Start each handler with `getServiceClient(ctx.env)` → 503 if null.
 
 **GET `/api/admin/tracker/scaling-calculator`** → the singleton row as a camelCase DTO. If the row is somehow missing (migration ran but seed skipped), return the defaults object rather than 404 so the page always has numbers.
 
@@ -156,13 +156,13 @@ No endpoint integration test in phase 1 (persistence is best-effort convenience)
 
 ## 7. File-by-file change list (ordered)
 
-1. `command-center/app/supabase/migrations/0027_scaling_calculator.sql` — new singleton table + seed row.
-2. `command-center/app/src/lib/scalingCalculator.ts` — pure compute + format + defaults (write test first, TDD).
-3. `command-center/app/src/lib/scalingCalculator.test.ts` — unit tests from §6.
-4. `command-center/app/functions/api/admin/tracker/scaling-calculator.ts` — GET + PATCH (whitelist, coerce, upsert id=1, audit).
-5. `command-center/app/src/lib/api.ts` — `ScalingCalculatorInputs` DTO + `getScalingCalculator` / `saveScalingCalculator`.
-6. `command-center/app/src/hooks/useApi.ts` — `useScalingCalculatorQuery` + `useSaveScalingCalculatorMutation`.
-7. `command-center/app/src/components/admin/operations/ScalingCalculatorTab.tsx` — ported Layout C component (+ scoped CSS).
+1. `apps/command-center/supabase/migrations/0027_scaling_calculator.sql` — new singleton table + seed row.
+2. `apps/command-center/src/lib/scalingCalculator.ts` — pure compute + format + defaults (write test first, TDD).
+3. `apps/command-center/src/lib/scalingCalculator.test.ts` — unit tests from §6.
+4. `apps/command-center/functions/api/admin/tracker/scaling-calculator.ts` — GET + PATCH (whitelist, coerce, upsert id=1, audit).
+5. `apps/command-center/src/lib/api.ts` — `ScalingCalculatorInputs` DTO + `getScalingCalculator` / `saveScalingCalculator`.
+6. `apps/command-center/src/hooks/useApi.ts` — `useScalingCalculatorQuery` + `useSaveScalingCalculatorMutation`.
+7. `apps/command-center/src/components/admin/operations/ScalingCalculatorTab.tsx` — ported Layout C component (+ scoped CSS).
 8. Operations `PillarPage` (from foundation, e.g. `src/routes/admin/PillarPage.tsx` or `operations` pillar file) — add the `calculator` tab branch mounting `ScalingCalculatorTab`, set as default tab.
 
 ---

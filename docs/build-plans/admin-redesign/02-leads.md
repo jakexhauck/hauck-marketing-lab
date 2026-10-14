@@ -1,6 +1,6 @@
 # 02 — Leads (Acquisition pillar tab)
 
-Depends on **00-foundation** (PillarPage shell + `adminPillars.ts` tab bar + data-layer conventions). Read `_architecture.md` and `00-foundation.md` alongside this. Approved mockup: `command-center/docs/mockups/admin-redesign/leads-B.html` (Layout B, dashboard-first).
+Depends on **00-foundation** (PillarPage shell + `adminPillars.ts` tab bar + data-layer conventions). Read `_architecture.md` and `00-foundation.md` alongside this. Approved mockup: `archive/command-center-docs/mockups/admin-redesign/leads-B.html` (Layout B, dashboard-first).
 
 Phase 1 is **manual entry only**. The app DB is the source of truth. No GHL/Meta auto-fill here (see section 9).
 
@@ -52,7 +52,7 @@ Status colour system (port the mockup's tokens into the `.pk-kit` theme, one sou
 
 ## 3. Data model
 
-**Migration**: `command-center/app/supabase/migrations/0027_leads.sql` (next free 4-digit number; latest applied is 0026. If another surface plan lands first, bump to the next free number and keep the slug `_leads`).
+**Migration**: `apps/command-center/supabase/migrations/0027_leads.sql` (next free 4-digit number; latest applied is 0026. If another surface plan lands first, bump to the next free number and keep the slug `_leads`).
 
 **Table**: `public.leads` — agency-global, **no `tenant_id`** (agency-internal surface per `_architecture.md`). Stamp an optional `admin_id` for provenance. Reached only via the service-role client (RLS on, no policies), matching `admin_tasks`.
 
@@ -114,7 +114,7 @@ Notes:
 
 ## 4. API
 
-**File**: `command-center/app/functions/api/admin/tracker/leads.ts` (single tracker file, per `_architecture.md`). Admin-gated centrally by `functions/api/_middleware.ts` (`/api/admin/*` requires `session.adminId` + live `getActiveAdmin`); `ctx.data.admin` is available. Every handler starts with `const client = getServiceClient(ctx.env); if (!client) return 503`.
+**File**: `apps/command-center/functions/api/admin/tracker/leads.ts` (single tracker file, per `_architecture.md`). Admin-gated centrally by `functions/api/_middleware.ts` (`/api/admin/*` requires `session.adminId` + live `getActiveAdmin`); `ctx.data.admin` is available. Every handler starts with `const client = getServiceClient(ctx.env); if (!client) return 503`.
 
 Shared column whitelist (snake_case) used by POST + PATCH:
 
@@ -237,19 +237,19 @@ No network/DB tests (the endpoint is thin whitelist CRUD; logic worth testing li
 
 ## 7. File-by-file change list (ordered)
 
-1. `command-center/app/supabase/migrations/0027_leads.sql` — new table (section 3).
-2. `command-center/app/functions/api/admin/tracker/leads.ts` — new endpoint: GET / POST / PATCH / DELETE (section 4). Add a server-side `LEAD_STATUSES` copy (or `functions/lib/leadsStatus.ts`) for enum validation.
-3. `command-center/app/src/lib/adminLeads.ts` — new pure lib: statuses, meta, counts, filter, sort, draft (section 5b).
-4. `command-center/app/src/lib/adminLeads.test.ts` — new unit tests (section 6).
-5. `command-center/app/src/lib/api.ts` — add `AdminLeadStatus` + `AdminLead` DTOs (section 5a).
-6. `command-center/app/src/hooks/useApi.ts` — add `useAdminLeadsQuery`, `useAddAdminLead`, `useUpdateAdminLead`, `useDeleteAdminLead` (section 5c).
-7. `command-center/app/src/components/admin/leads/LeadStatusMenu.tsx` — status popover.
-8. `command-center/app/src/components/admin/leads/LeadStatusPill.tsx` — status pill.
-9. `command-center/app/src/components/admin/leads/LeadRow.tsx` — editable row.
-10. `command-center/app/src/components/admin/leads/LeadStatusTiles.tsx` — filter tiles.
-11. `command-center/app/src/components/admin/leads/LeadsBoard.tsx` — surface root.
-12. `command-center/app/src/routes/admin/PillarPage.tsx` (from 00-foundation) — add the `leads` tab-body branch rendering `<LeadsBoard />`.
-13. `command-center/app/src/lib/adminPillars.ts` (from 00-foundation) — confirm/keep the Acquisition `leads` tab entry.
+1. `apps/command-center/supabase/migrations/0027_leads.sql` — new table (section 3).
+2. `apps/command-center/functions/api/admin/tracker/leads.ts` — new endpoint: GET / POST / PATCH / DELETE (section 4). Add a server-side `LEAD_STATUSES` copy (or `functions/lib/leadsStatus.ts`) for enum validation.
+3. `apps/command-center/src/lib/adminLeads.ts` — new pure lib: statuses, meta, counts, filter, sort, draft (section 5b).
+4. `apps/command-center/src/lib/adminLeads.test.ts` — new unit tests (section 6).
+5. `apps/command-center/src/lib/api.ts` — add `AdminLeadStatus` + `AdminLead` DTOs (section 5a).
+6. `apps/command-center/src/hooks/useApi.ts` — add `useAdminLeadsQuery`, `useAddAdminLead`, `useUpdateAdminLead`, `useDeleteAdminLead` (section 5c).
+7. `apps/command-center/src/components/admin/leads/LeadStatusMenu.tsx` — status popover.
+8. `apps/command-center/src/components/admin/leads/LeadStatusPill.tsx` — status pill.
+9. `apps/command-center/src/components/admin/leads/LeadRow.tsx` — editable row.
+10. `apps/command-center/src/components/admin/leads/LeadStatusTiles.tsx` — filter tiles.
+11. `apps/command-center/src/components/admin/leads/LeadsBoard.tsx` — surface root.
+12. `apps/command-center/src/routes/admin/PillarPage.tsx` (from 00-foundation) — add the `leads` tab-body branch rendering `<LeadsBoard />`.
+13. `apps/command-center/src/lib/adminPillars.ts` (from 00-foundation) — confirm/keep the Acquisition `leads` tab entry.
 
 Port the mockup's CSS into the components under the `.pk-kit` theme (Bento Bold), reusing existing admin tokens where they exist. No em dashes in any code/comment/UI string.
 

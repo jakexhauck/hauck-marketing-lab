@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- App root: `command-center/app`. All paths below are relative to it.
+- App root: `apps/command-center`. All paths below are relative to it.
 - Never use em dashes anywhere (code, comments, copy). Use commas, periods, colons, parentheses.
 - Reuse existing CSS tokens: `--surface`, `--surface-2`, `--surface-3`, `--border`, `--divider`, `--text`, `--text-muted`, `--text-faint`, `--brand`, `--brand-tint`, `--brand-text`, `--brand-fg`, `--radius`, `--radius-lg`, `--shadow-sm`, `--font-display`, `--font-body`. Do not introduce new color literals except neutral status colors already in the theme.
 - Follow the existing admin page pattern: a self-contained component with a scoped `<style>` block (see `routes/admin/AdminSops.tsx`). No new global CSS.
@@ -23,9 +23,9 @@
 ### Task 1: Pillar config + status engine
 
 **Files:**
-- Create: `command-center/app/src/lib/pillars.ts`
-- Create: `command-center/app/src/lib/pillarStatus.ts`
-- Test: `command-center/app/src/lib/pillarStatus.test.ts`
+- Create: `apps/command-center/src/lib/pillars.ts`
+- Create: `apps/command-center/src/lib/pillarStatus.ts`
+- Test: `apps/command-center/src/lib/pillarStatus.test.ts`
 
 **Interfaces (Produces):**
 
@@ -154,7 +154,7 @@ describe('liveStatus', () => {
 ### Task 2: Shared pillar UI primitives
 
 **Files:**
-- Create: `command-center/app/src/components/pillars/PillarKit.tsx`
+- Create: `apps/command-center/src/components/pillars/PillarKit.tsx`
 
 **Interfaces (Produces):**
 
@@ -175,7 +175,7 @@ export function pillarIcon(name: string): LucideIcon;            // map config i
 ### Task 3: Config-driven sidebar regroup
 
 **Files:**
-- Modify: `command-center/app/src/routes/admin/AdminLayout.tsx`
+- Modify: `apps/command-center/src/routes/admin/AdminLayout.tsx`
 
 **Interfaces (Consumes):** `orderedPillars` from `lib/pillarStatus`, `pillarIcon`/`StatusDot` from `components/pillars/PillarKit`.
 
@@ -188,8 +188,8 @@ export function pillarIcon(name: string): LucideIcon;            // map config i
 ### Task 4: Pillar page route
 
 **Files:**
-- Create: `command-center/app/src/routes/admin/AdminPillar.tsx`
-- Modify: `command-center/app/src/App.tsx` (add route `/admin/pillar/:pillarId` inside `AdminRoute`)
+- Create: `apps/command-center/src/routes/admin/AdminPillar.tsx`
+- Modify: `apps/command-center/src/App.tsx` (add route `/admin/pillar/:pillarId` inside `AdminRoute`)
 
 **Interfaces (Consumes):** `getPillar`, `liveStatus` (`lib/pillarStatus`); `PillarStyle`, `StatusDot`, `Scoreboard`, `HermesSlot`, `pillarIcon` (PillarKit). **Produces:** route URL `/admin/pillar/:pillarId`.
 
@@ -203,8 +203,8 @@ export function pillarIcon(name: string): LucideIcon;            // map config i
 ### Task 5: Lane workspace route
 
 **Files:**
-- Create: `command-center/app/src/routes/admin/AdminLane.tsx`
-- Modify: `command-center/app/src/App.tsx` (add route `/admin/pillar/:pillarId/:laneId`)
+- Create: `apps/command-center/src/routes/admin/AdminLane.tsx`
+- Modify: `apps/command-center/src/App.tsx` (add route `/admin/pillar/:pillarId/:laneId`)
 
 **Interfaces (Consumes):** `getPillar`, `getLane`, `liveStatus`; PillarKit. **Produces:** route `/admin/pillar/:pillarId/:laneId`.
 
@@ -218,9 +218,9 @@ export function pillarIcon(name: string): LucideIcon;            // map config i
 ### Task 6: Operations Stack inventory page
 
 **Files:**
-- Create: `command-center/app/src/lib/stackData.ts`
-- Create: `command-center/app/src/routes/admin/AdminStack.tsx`
-- Modify: `command-center/app/src/App.tsx` (route `/admin/stack`)
+- Create: `apps/command-center/src/lib/stackData.ts`
+- Create: `apps/command-center/src/routes/admin/AdminStack.tsx`
+- Modify: `apps/command-center/src/App.tsx` (route `/admin/stack`)
 
 **Interfaces (Produces):**
 ```ts
@@ -240,8 +240,8 @@ export const STACK_CATEGORIES: string[];  // ordered
 ### Task 7: Infrastructure map view
 
 **Files:**
-- Create: `command-center/app/src/routes/admin/AdminInfrastructure.tsx`
-- Modify: `command-center/app/src/App.tsx` (route `/admin/infrastructure`)
+- Create: `apps/command-center/src/routes/admin/AdminInfrastructure.tsx`
+- Modify: `apps/command-center/src/App.tsx` (route `/admin/infrastructure`)
 
 **Interfaces (Consumes):** `orderedPillars`, `rollUpStatus`, `liveStatus`; PillarKit.
 

@@ -134,28 +134,28 @@ gradient for the active stage / Won), matching the Leads worklists. Not the dark
 ## 4. Files
 
 **New**
-- `command-center/app/src/routes/sales/JobConsole.tsx` — the page (queue + console,
+- `apps/command-center/src/routes/sales/JobConsole.tsx` — the page (queue + console,
   responsive). Demo-aware via `useLeadsHub`; writes via `useMoveSalesLeadStage`.
 - (If it grows past ~250 lines, split the console panel into
   `components/sales/LeadConsolePanel.tsx` and the queue into
   `components/sales/LeadConsoleQueue.tsx`. Decide during build.)
 
 **Edited**
-- `command-center/app/functions/api/sales/leads/index.ts` — add `outcome: o.status`
+- `apps/command-center/functions/api/sales/leads/index.ts` — add `outcome: o.status`
   (raw GHL status) to each `ApiSalesLead` row.
-- `command-center/app/src/lib/leadsHub.ts` — carry `outcome`, `value`, `stageName`
+- `apps/command-center/src/lib/leadsHub.ts` — carry `outcome`, `value`, `stageName`
   through `mapApiSalesLead` into the front-end `HubLead`; extend the `HubLead` type.
-- `command-center/app/src/lib/pageTabs.ts` — add `{ to: "/sales/leads/console",
+- `apps/command-center/src/lib/pageTabs.ts` — add `{ to: "/sales/leads/console",
   label: "Console" }` to `LEADS_TABS`.
-- `command-center/app/src/App.tsx` — route `/sales/leads/console` → `JobConsole`.
-- `command-center/app/src/demo/handlers/actions.ts` — extend the `/stage` demo
+- `apps/command-center/src/App.tsx` — route `/sales/leads/console` → `JobConsole`.
+- `apps/command-center/src/demo/handlers/actions.ts` — extend the `/stage` demo
   handler so a Won write sets the demo lead's outcome + value and a stage move
   updates its `stageName`, so the console is walkable in preview.
-- `command-center/app/docs/connections/` — add `job-console.md` connection notes
+- `apps/archive/command-center-docs/connections/` — add `job-console.md` connection notes
   (what is real, what a live account needs).
 
 **Tests**
-- `command-center/app/src/demo/actions.test.ts` — extend to cover the Won + amount
+- `apps/command-center/src/demo/actions.test.ts` — extend to cover the Won + amount
   write and a stage move reflecting in the demo feed.
 - `nav.test.ts` — the new tab route exists and does not collide with a sidebar row
   (asserted by the existing harness once the tab is added).

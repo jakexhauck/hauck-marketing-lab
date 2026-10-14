@@ -35,7 +35,7 @@ out of scope (section 9).
 
 ## 2. Chosen layout
 
-Implement **`command-center/docs/mockups/admin-redesign/ad-tracking-A.html`**
+Implement **`archive/command-center-docs/mockups/admin-redesign/ad-tracking-A.html`**
 (Layout A, table-first). Key structure to port:
 
 - **Cockpit header + service tabs + Paid Ads sub-tabs** already exist in
@@ -67,7 +67,7 @@ The mockup's inline `<script>` engine (COLS schema, `compute`, `fmt`, `sumInputs
 
 ## 3. Data model
 
-Migration `command-center/app/supabase/migrations/00NN_ad_tracking.sql` — use the
+Migration `apps/command-center/supabase/migrations/00NN_ad_tracking.sql` — use the
 next free 4-digit number at build time (0027 if this is the first admin-redesign
 surface migration; bump if Billing or another surface already claimed it). NEVER
 edit an applied migration.
@@ -116,7 +116,7 @@ create index if not exists ad_tracking_days_tenant_month_idx
 
 ## 4. API
 
-File: `command-center/app/functions/api/admin/clients/[tenantId]/ad-tracking.ts`.
+File: `apps/command-center/functions/api/admin/clients/[tenantId]/ad-tracking.ts`.
 Admin-gated upstream by `_middleware.ts` (do not re-check auth). Start every
 handler with the service client + tenant guards (copy the pattern from
 `.../website/analytics.ts` and `[tenantId].ts`):

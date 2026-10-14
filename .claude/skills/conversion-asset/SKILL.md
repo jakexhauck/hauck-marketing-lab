@@ -98,7 +98,7 @@ mistake to make here.
 ## The architecture
 
 ```
-command-center/app/public/sites/<client>/fu/<slug>.js    mounts #<prefix>fu
+apps/command-center/public/sites/<client>/fu/<slug>.js    mounts #<prefix>fu
 ```
 
 GHL holds a two-line pointer stub at the path. Copy and design edits ship by
@@ -116,7 +116,7 @@ Copy the Willis `fu/` files and rework them. They are the template, so there is
 nothing separate to drift.
 
 ```
-command-center/app/public/sites/<client>/fu/<slug>.js
+apps/command-center/public/sites/<client>/fu/<slug>.js
 ```
 
 Mount ids get a client-specific prefix. Two clients sharing `#wwfu` on one GHL

@@ -23,13 +23,13 @@
 
 ## File Structure
 
-- Create `command-center/app/src/lib/pipelineProgress.ts` — pure `resolveStageProgress(stages, currentStageId)`.
-- Create `command-center/app/src/lib/pipelineProgress.test.ts` — unit tests for the above.
-- Create `command-center/app/src/components/contacts/PipelineStepper.tsx` — read-only stage stepper (dumb, presentational).
-- Create `command-center/app/src/components/contacts/EditContactModal.tsx` — edit first/last/email/postal via `useUpsertContact`.
-- Create `command-center/app/src/components/contacts/AddTaskModal.tsx` — title + optional due (reuses `DateTimeModal` for the instant) via `useCreateTask`.
-- Create `command-center/app/src/components/contacts/ContactDetailDesktop.tsx` — the Cockpit layout, owns tab state, modal state, toast.
-- Modify `command-center/app/src/routes/ContactDetail.tsx` — render phone layout at `<lg`, `ContactDetailDesktop` at `lg+`.
+- Create `apps/command-center/src/lib/pipelineProgress.ts` — pure `resolveStageProgress(stages, currentStageId)`.
+- Create `apps/command-center/src/lib/pipelineProgress.test.ts` — unit tests for the above.
+- Create `apps/command-center/src/components/contacts/PipelineStepper.tsx` — read-only stage stepper (dumb, presentational).
+- Create `apps/command-center/src/components/contacts/EditContactModal.tsx` — edit first/last/email/postal via `useUpsertContact`.
+- Create `apps/command-center/src/components/contacts/AddTaskModal.tsx` — title + optional due (reuses `DateTimeModal` for the instant) via `useCreateTask`.
+- Create `apps/command-center/src/components/contacts/ContactDetailDesktop.tsx` — the Cockpit layout, owns tab state, modal state, toast.
+- Modify `apps/command-center/src/routes/ContactDetail.tsx` — render phone layout at `<lg`, `ContactDetailDesktop` at `lg+`.
 
 Reused as-is: `NoteList` (Notes tab), `DateTimeModal` (task due picker), `Avatar`, `Shell`, `usePipelines`, all listed hooks.
 
@@ -38,8 +38,8 @@ Reused as-is: `NoteList` (Notes tab), `DateTimeModal` (task due picker), `Avatar
 ### Task 1: Pure pipeline-progress resolver
 
 **Files:**
-- Create: `command-center/app/src/lib/pipelineProgress.ts`
-- Test: `command-center/app/src/lib/pipelineProgress.test.ts`
+- Create: `apps/command-center/src/lib/pipelineProgress.ts`
+- Test: `apps/command-center/src/lib/pipelineProgress.test.ts`
 
 **Interfaces:**
 - Consumes: `ApiPipelineStage` shape `{ id: string; name: string }` (from pipelines context / `ApiPipelineSummary.stages`).
@@ -105,7 +105,7 @@ describe("resolveStageProgress", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd command-center/app && npx vitest run src/lib/pipelineProgress.test.ts`
+Run: `cd apps/command-center && npx vitest run src/lib/pipelineProgress.test.ts`
 Expected: FAIL, `resolveStageProgress` is not defined / module not found.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -142,13 +142,13 @@ export function resolveStageProgress(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd command-center/app && npx vitest run src/lib/pipelineProgress.test.ts`
+Run: `cd apps/command-center && npx vitest run src/lib/pipelineProgress.test.ts`
 Expected: PASS (4 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/src/lib/pipelineProgress.ts command-center/app/src/lib/pipelineProgress.test.ts
+git add apps/command-center/src/lib/pipelineProgress.ts apps/command-center/src/lib/pipelineProgress.test.ts
 git commit -m "feat(contacts): pure read-only pipeline-progress resolver"
 ```
 
@@ -157,7 +157,7 @@ git commit -m "feat(contacts): pure read-only pipeline-progress resolver"
 ### Task 2: PipelineStepper (read-only)
 
 **Files:**
-- Create: `command-center/app/src/components/contacts/PipelineStepper.tsx`
+- Create: `apps/command-center/src/components/contacts/PipelineStepper.tsx`
 
 **Interfaces:**
 - Consumes: `resolveStageProgress`, `StageStep` from Task 1.
@@ -186,13 +186,13 @@ Wrap in a card: `rounded-[var(--radius-lg)] border border-[var(--border)] bg-[va
 
 - [ ] **Step 2: Verify it typechecks and builds**
 
-Run: `cd command-center/app && npx tsc --noEmit`
+Run: `cd apps/command-center && npx tsc --noEmit`
 Expected: no errors referencing PipelineStepper.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add command-center/app/src/components/contacts/PipelineStepper.tsx
+git add apps/command-center/src/components/contacts/PipelineStepper.tsx
 git commit -m "feat(contacts): read-only pipeline stepper component"
 ```
 
@@ -201,8 +201,8 @@ git commit -m "feat(contacts): read-only pipeline stepper component"
 ### Task 3: Edit contact + Add task modals
 
 **Files:**
-- Create: `command-center/app/src/components/contacts/EditContactModal.tsx`
-- Create: `command-center/app/src/components/contacts/AddTaskModal.tsx`
+- Create: `apps/command-center/src/components/contacts/EditContactModal.tsx`
+- Create: `apps/command-center/src/components/contacts/AddTaskModal.tsx`
 
 **Interfaces:**
 - Consumes: `useUpsertContact` (input `{ contactId, firstName?, lastName?, email?, postalCode?, source? }`), `useCreateTask` (input `{ contactId, title, dueDate? }`), `DateTimeModal` (`{ title, subtitle?, confirmLabel, pending?, onClose, onConfirm(iso) }`), `ApiContact`.
@@ -231,13 +231,13 @@ Single "What needs doing?" text input plus an optional due time. Keep it simple:
 
 - [ ] **Step 3: Verify build**
 
-Run: `cd command-center/app && npx tsc --noEmit`
+Run: `cd apps/command-center && npx tsc --noEmit`
 Expected: no errors.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add command-center/app/src/components/contacts/EditContactModal.tsx command-center/app/src/components/contacts/AddTaskModal.tsx
+git add apps/command-center/src/components/contacts/EditContactModal.tsx apps/command-center/src/components/contacts/AddTaskModal.tsx
 git commit -m "feat(contacts): edit-contact and add-task modals"
 ```
 
@@ -246,7 +246,7 @@ git commit -m "feat(contacts): edit-contact and add-task modals"
 ### Task 4: ContactDetailDesktop (Cockpit layout)
 
 **Files:**
-- Create: `command-center/app/src/components/contacts/ContactDetailDesktop.tsx`
+- Create: `apps/command-center/src/components/contacts/ContactDetailDesktop.tsx`
 
 **Interfaces:**
 - Consumes: `useParams` (`contactId`), `useNavigate`, `useAuth`, `useNow`, `usePipelines`, `useContactsQuery`, `useLeadsQuery`, `useConversationsQuery`, `useConversationMessagesQuery`, `useNotesQuery`, `PipelineStepper` (Task 2), `EditContactModal` + `AddTaskModal` (Task 3), `NoteList`, `Avatar`, `resolveStageProgress` types, `formatPhone`/`e164` (`lib/phone`), `timeAgo`.
@@ -285,13 +285,13 @@ Implement `pushToast` as a minimal local toast: a `useState<string | null>`, a f
 
 - [ ] **Step 4: Verify build + types**
 
-Run: `cd command-center/app && npx tsc --noEmit && npm run build`
+Run: `cd apps/command-center && npx tsc --noEmit && npm run build`
 Expected: build succeeds.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/src/components/contacts/ContactDetailDesktop.tsx
+git add apps/command-center/src/components/contacts/ContactDetailDesktop.tsx
 git commit -m "feat(contacts): desktop cockpit contact detail"
 ```
 
@@ -300,7 +300,7 @@ git commit -m "feat(contacts): desktop cockpit contact detail"
 ### Task 5: Route integration
 
 **Files:**
-- Modify: `command-center/app/src/routes/ContactDetail.tsx`
+- Modify: `apps/command-center/src/routes/ContactDetail.tsx`
 
 **Interfaces:**
 - Consumes: `ContactDetailDesktop` (Task 4).
@@ -311,7 +311,7 @@ Wrap the current phone markup (the `Shell` children) in `<div className="flex mi
 
 - [ ] **Step 2: Verify build**
 
-Run: `cd command-center/app && npx tsc --noEmit && npm run build`
+Run: `cd apps/command-center && npx tsc --noEmit && npm run build`
 Expected: build succeeds.
 
 - [ ] **Step 3: Manual verification (real app, Jake's browser)**
@@ -321,7 +321,7 @@ Per [[feedback_build_loop_autopilot]] + verification-before-completion: run the 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add command-center/app/src/routes/ContactDetail.tsx
+git add apps/command-center/src/routes/ContactDetail.tsx
 git commit -m "feat(contacts): render desktop cockpit at lg+, phone layout below"
 ```
 

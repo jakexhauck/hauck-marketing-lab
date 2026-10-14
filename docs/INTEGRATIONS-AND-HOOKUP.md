@@ -13,7 +13,7 @@ Every integration, login, secret, and data feed across the whole repo, in one pl
 
 | App | Folder | Hosted on | Live URL | Purpose |
 |---|---|---|---|---|
-| Command Center (clients) | `command-center/app` | Cloudflare Pages `hauck-command-center` | app.hauckmarketing.com | The client-facing product |
+| Command Center (clients) | `apps/command-center` | Cloudflare Pages `hauck-command-center` | app.hauckmarketing.com | The client-facing product |
 | Internal hub | `intranet` | Cloudflare Pages `hauck-internal` | internal.hauckmarketing.com | Agency SOPs / ops |
 | Blueprint | `blueprint` | Cloudflare Pages | blueprint.hauckmarketing.com | Architecture map (password-gated) |
 | Marketing site | `Hauck Marketing Website` | Vercel | hauckmarketing.com | Public website |
@@ -47,7 +47,7 @@ Cloudflare Pages project `hauck-command-center`, served at **app.hauckmarketing.
 
 ## 1.1 All environment variables
 
-Set these in **Cloudflare → Pages → hauck-command-center → Settings → Variables and Secrets**. Local copies go in `command-center/app/.env.local` (gitignored). Template is `.env.example`.
+Set these in **Cloudflare → Pages → hauck-command-center → Settings → Variables and Secrets**. Local copies go in `apps/command-center/.env.local` (gitignored). Template is `.env.example`.
 
 ### Front-end (safe to expose, prefixed `VITE_`)
 
@@ -95,8 +95,8 @@ Local-only (keep in `.env.local`, never deployed):
 ## 1.2 First-time deploy checklist
 
 1. [ ] Create the Supabase project (or confirm access to `aroapsjifblscheshmst`).
-2. [ ] Copy `command-center/app/.env.example` → `.env.local`, fill `SUPABASE_ACCESS_TOKEN` + `CLOUDFLARE_API_TOKEN`.
-3. [ ] Run the database migrations: from `command-center/app`, `npm run db:migrate`. This applies migrations 0001–0021 in order (never use the Supabase SQL editor).
+2. [ ] Copy `apps/command-center/.env.example` → `.env.local`, fill `SUPABASE_ACCESS_TOKEN` + `CLOUDFLARE_API_TOKEN`.
+3. [ ] Run the database migrations: from `apps/command-center`, `npm run db:migrate`. This applies migrations 0001–0021 in order (never use the Supabase SQL editor).
 4. [ ] In Cloudflare, create/confirm the `hauck-command-center` Pages project pointed at this repo, build dir `dist`, build command `pnpm build`, `NODE_VERSION=20`, `PNPM_VERSION=10`.
 5. [ ] Set every server-side var from the table above (use `npm run cf env:set KEY value --secret` or the dashboard).
 6. [ ] Confirm the custom domain `app.hauckmarketing.com` is attached (DNS CNAME at Namecheap → the pages.dev target).
@@ -109,7 +109,7 @@ Most of the client app reads live from GHL on each page load (5-min cache). Pipe
 
 ### Real-time webhooks (makes events instant + fires phone push)
 
-Without these, per-record events arrive on next refresh instead of instantly. Set up **one GHL workflow per event** inside the client's sub-account. Full detail in `command-center/app/docs/connections/ghl-instant-sync.md`.
+Without these, per-record events arrive on next refresh instead of instantly. Set up **one GHL workflow per event** inside the client's sub-account. Full detail in `apps/archive/command-center-docs/connections/ghl-instant-sync.md`.
 
 Webhook URL (same for all): `https://app.hauckmarketing.com/api/webhook?token=<WEBHOOK_SECRET>`
 
@@ -157,7 +157,7 @@ Planned for Campaigns ("Write it for me"), Social (caption/idea generation), and
 
 ## 1.8 Demo/sample surfaces still to connect to real data
 
-Every one of these shows sample data in `?demo=1` and an empty/not-connected state (never fabricated data) in a real session. Each per-feature spec lives in `command-center/app/docs/connections/`.
+Every one of these shows sample data in `?demo=1` and an empty/not-connected state (never fabricated data) in a real session. Each per-feature spec lives in `apps/archive/command-center-docs/connections/`.
 
 | Feature | Route | Status | Real data source to wire | Spec |
 |---|---|---|---|---|
@@ -185,7 +185,7 @@ Two cross-cutting dependencies these share:
 
 ## 1.9 Leads (the merged Sales worklist) — finish checklist ❌
 
-The live page is **shipped** at `/sales/leads` (Paid Ads + Estimate Forms + Chat Widget as three in-line tabs; Paid Ads + Estimate Forms show a per-lead follow-up tracker). It is demo-complete: a real client sees the empty/not-connected state and every action is gated. Everything below is what turns it into real, populated data for Willis. Full per-item spec: `command-center/app/docs/connections/leads.md`.
+The live page is **shipped** at `/sales/leads` (Paid Ads + Estimate Forms + Chat Widget as three in-line tabs; Paid Ads + Estimate Forms show a per-lead follow-up tracker). It is demo-complete: a real client sees the empty/not-connected state and every action is gated. Everything below is what turns it into real, populated data for Willis. Full per-item spec: `apps/archive/command-center-docs/connections/leads.md`.
 
 Reads through `useLeadsHub()` → `buildLeadsHub()` in `src/lib/leadsHub.ts`. Keep that return shape when wiring; nothing downstream changes.
 
@@ -196,7 +196,7 @@ The tracker steps in `src/lib/leadsHub.ts` (`SEQ.ad`, `SEQ.form`) are **PLACEHOL
 - [ ] **Paid Ads** sequence — the SMS nurture on lead-form leads (channel + label + delay per step).
 - [ ] **Estimate Forms** sequence — the auto email + SMS on form submit (channel + label + delay per step).
 - [ ] **Chat Widget** — confirm whether it has its own sequence; if so add `SEQ.chat`, else it stays a plain bucket.
-- [ ] Fast way to read them: `ghl.ps1 opportunities pipelines` (stages) + the workflow list in GHL (steps). CLI creds go in `gohighlevel-cli/.env` (Part 3.6).
+- [ ] Fast way to read them: `ghl.ps1 opportunities pipelines` (stages) + the workflow list in GHL (steps). CLI creds go in `projects/gohighlevel-cli/.env` (Part 3.6).
 
 ### B. Data sources to wire (GoHighLevel)
 
@@ -218,7 +218,7 @@ The tracker steps in `src/lib/leadsHub.ts` (`SEQ.ad`, `SEQ.form`) are **PLACEHOL
 
 - [ ] A **reply pauses** the auto follow-ups (lead → "Needs a human").
 - [ ] **Booking pauses** the nurture so the two automations never collide, then fires the confirm text.
-- [ ] **Confirmation is automatic** — the confirm link logs it + flips the Google Calendar title (existing webhook, see `gohighlevel-cli/docs/duplicate-intro-call-funnel.md`). It's a status in the tracker, not a button.
+- [ ] **Confirmation is automatic** — the confirm link logs it + flips the Google Calendar title (existing webhook, see `projects/gohighlevel-cli/docs/duplicate-intro-call-funnel.md`). It's a status in the tracker, not a button.
 
 ### E. Secrets / webhooks (mostly reuse what exists)
 
@@ -303,7 +303,7 @@ Cloudflare Pages → blueprint.hauckmarketing.com. Static site + a password midd
 
 - [ ] Set `BLUEPRINT_PASSWORD` as a Cloudflare Pages secret (fail-closed: returns 503 if unset). Any username works; only the password is checked.
 
-## 3.4 Marketing website (`Hauck Marketing Website/`)
+## 3.4 Marketing website (`agency/website/`)
 
 Vercel, deploys from main. No secrets.
 
@@ -315,13 +315,13 @@ Vercel, deploys from main. No secrets.
 - [ ] **Rotate + move the Google Places API key.** It is currently hardcoded in the tracked file `scrape.py` (CONFIG dict). Move it to an env var / gitignored config and issue a new key. (See Part 7.)
 - [ ] Meta Ad Library detection is a broken placeholder — needs the official API swap before relying on it.
 
-## 3.6 GoHighLevel CLI (`gohighlevel-cli/`, Python)
+## 3.6 GoHighLevel CLI (`projects/gohighlevel-cli/`, Python)
 
-Local secrets in `gohighlevel-cli/.env` (gitignored; template `.env.example`). Run via `ghl.ps1` with `PYTHONUTF8=1`.
+Local secrets in `projects/gohighlevel-cli/.env` (gitignored; template `.env.example`). Run via `ghl.ps1` with `PYTHONUTF8=1`.
 
 - [ ] `GHL_API_KEY` — Willis PIT (`pit-...`), sub-scoped. GHL → Private Integrations.
 - [ ] `GHL_LOCATION_ID` — `OznT3yyuwK3dqVXDsCaD` (Willis). `r0WfsA12qpBv7M185V3v` is Made Better Landscaping Co's, not a test account, since 2026-08-09.
-- [ ] `GHL_FIREBASE_TOKEN` — agency-wide internal-API refresh token (needed for workflow create/update; the public API is read-only). Get via the DevTools IndexedDB snippet in `gohighlevel-cli/README.md`.
+- [ ] `GHL_FIREBASE_TOKEN` — agency-wide internal-API refresh token (needed for workflow create/update; the public API is read-only). Get via the DevTools IndexedDB snippet in `projects/gohighlevel-cli/README.md`.
 
 ## 3.7 Media buying (`media-buying/`)
 
@@ -364,9 +364,9 @@ None of these are in git. On a fresh checkout you must create each one, or that 
 
 | File | Holds | Get it from |
 |---|---|---|
-| `command-center/app/.env.local` | Command Center local env (Supabase + CF tokens) | Copy `.env.example`, fill values |
+| `apps/command-center/.env.local` | Command Center local env (Supabase + CF tokens) | Copy `.env.example`, fill values |
 | `intranet/.dev.vars` | Supabase + SESSION_SECRET + Google OAuth | Copy `.dev.vars.example` |
-| `gohighlevel-cli/.env` | GHL PIT + location + Firebase token | Copy `.env.example` |
+| `projects/gohighlevel-cli/.env` | GHL PIT + location + Firebase token | Copy `.env.example` |
 | `lead-scraper/credentials.json` | Google service account key | Google Cloud → Service Accounts |
 | `app/src-tauri/src/google_oauth_secrets.rs` | Google desktop OAuth client | Google Cloud → Desktop client |
 | `app/src-tauri/src/meta_oauth_secrets.rs` | Meta app id/secret + system-user token | Meta Business → System Users |
@@ -403,4 +403,4 @@ Verified against git: the `*_secrets.rs`, `.env`, `.dev.vars`, `credentials.json
 
 ---
 
-*Sources: `command-center/app/docs/connections/*.md`, `docs/build-plans/willis-windows-ghl-setup.md`, `docs/NEW-MACHINE-SETUP.md`, `.env.example` / `.dev.vars.example` / `.env.example` templates, and a full code audit of every sub-project. Keep this file updated as feeds get wired.*
+*Sources: `apps/archive/command-center-docs/connections/*.md`, `docs/build-plans/willis-windows-ghl-setup.md`, `docs/NEW-MACHINE-SETUP.md`, `.env.example` / `.dev.vars.example` / `.env.example` templates, and a full code audit of every sub-project. Keep this file updated as feeds get wired.*

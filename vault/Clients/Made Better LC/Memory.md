@@ -13,7 +13,7 @@ Append-only facts about the client. Newest at the bottom.
   Better LC two years ago, **in his twenties**", which was simply false. Jake
   chose to keep the young-crew framing without naming a number, so it now reads
   "straight out of school". **Do not put a specific age back on the page**
-  without asking. Source: `command-center/app/public/sites/made-better/site.js`.
+  without asking. Source: `apps/command-center/public/sites/made-better/site.js`.
 
   **Open loop:** "two years ago" still puts him at 16 at founding, which sits
   awkwardly with "straight out of school". Confirm the founding year with Jake

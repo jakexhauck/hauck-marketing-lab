@@ -90,7 +90,7 @@ the note and the hook can scope by pillar.
 
 ### `usePillarTasks(pillarId)` — new hook
 
-`command-center/app/src/hooks/usePillarTasks.ts`. Plain `api()` + `useState`,
+`apps/command-center/src/hooks/usePillarTasks.ts`. Plain `api()` + `useState`,
 matching `AdminTasks.tsx` (the admin console does not use react-query). Returns:
 
 ```
@@ -150,12 +150,12 @@ hand-copied seed.
 
 ## Files touched
 
-- `command-center/app/supabase/migrations/0020_pillar_tasks.sql` (new)
-- `command-center/app/functions/api/admin/tasks/index.ts`
-- `command-center/app/functions/api/admin/tasks/[taskId].ts`
-- `command-center/app/src/lib/api.ts` (extend the admin task type)
-- `command-center/app/src/hooks/usePillarTasks.ts` (new)
-- `command-center/app/src/routes/admin/AdminPillar.tsx`
-- `command-center/app/src/components/pillars/tabs/TasksTab.tsx`
+- `apps/command-center/supabase/migrations/0020_pillar_tasks.sql` (new)
+- `apps/command-center/functions/api/admin/tasks/index.ts`
+- `apps/command-center/functions/api/admin/tasks/[taskId].ts`
+- `apps/command-center/src/lib/api.ts` (extend the admin task type)
+- `apps/command-center/src/hooks/usePillarTasks.ts` (new)
+- `apps/command-center/src/routes/admin/AdminPillar.tsx`
+- `apps/command-center/src/components/pillars/tabs/TasksTab.tsx`
 </content>
 </invoke>

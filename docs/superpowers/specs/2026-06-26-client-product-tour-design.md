@@ -1,7 +1,7 @@
 # Client product tour (first-login walkthrough)
 
 Date: 2026-06-26
-App: `command-center/app` (package `client-dashboard`), the one responsive client app.
+App: `apps/command-center` (package `client-dashboard`), the one responsive client app.
 
 ## Goal
 
@@ -82,7 +82,7 @@ is the entire "auto-add to the wizard" mechanism. No other file changes.
 
 ### 2. Server memory
 
-Migration `command-center/app/supabase/migrations/0019_tour_progress.sql`:
+Migration `apps/command-center/supabase/migrations/0019_tour_progress.sql`:
 
 ```sql
 create table if not exists tour_progress (

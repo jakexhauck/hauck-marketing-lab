@@ -40,7 +40,7 @@ section C is the evidence that would do it.
 
 Nothing is blocking this. The run is `queued` and resumes where it stood.
 
-1. From `command-center/lead-scraper`, run `bash run.sh --watch`.
+1. From `projects/lead-scraper`, run `bash run.sh --watch`.
 2. It picks up run `d19dc69b` at query 41 and works Issaquah, Kirkland, Mercer Island, Redmond, Sammamish and Vancouver.
 3. Budget roughly **3.5 hours** of wall time. Leave it running; it saves after every batch and survives a stop.
 

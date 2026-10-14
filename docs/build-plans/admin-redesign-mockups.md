@@ -3,7 +3,7 @@
 Turning Jake's tracker spreadsheets into native admin pages. This plan lists every mockup to build,
 the design rules for each, and how we fan them out to cloud instances.
 
-- **Design backbone:** Bento Bold (locked). Rules in `command-center/docs/mockups/admin-redesign/_bento-system.md`. Reference build: `cold-calling.html`.
+- **Design backbone:** Bento Bold (locked). Rules in `archive/command-center-docs/mockups/admin-redesign/_bento-system.md`. Reference build: `cold-calling.html`.
 - **Variations:** 3 per surface (A table-first, B dashboard-first, C split/paneled). ALL are Bento Bold; they differ only in layout/emphasis.
 - **Process:** exactly like Cold Calls — dispatch cloud instances, Jake reviews the gallery, picks one per surface, iterate.
 - **Phase 1 = manual entry** (editable cells, app is source of truth). Phase 2 auto-fill from GHL/Meta is later, out of scope for mockups.
@@ -117,7 +117,7 @@ NEXT: per-surface implementation plans in `docs/build-plans/admin-redesign/`.
 ## Dispatch method
 For each surface, launch **3 cloud instances** (one per variation A/B/C). Each instance:
 1. Reads `_bento-system.md` (the backbone) + `cold-calling.html` (reference) + its surface brief + its variation letter.
-2. Writes `command-center/docs/mockups/admin-redesign/<surface>-<A|B|C>.html`.
+2. Writes `archive/command-center-docs/mockups/admin-redesign/<surface>-<A|B|C>.html`.
 3. Returns the path + a one-line description.
 Then build a per-surface `index` switcher (like the Cold Calls gallery) so Jake flips A/B/C and picks.
 

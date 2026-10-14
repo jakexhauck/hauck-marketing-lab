@@ -13,7 +13,7 @@
 - **Never use em dashes** in any UI text, copy, comments, or docs. Use commas, periods, parentheses, or colons.
 - **Pipelines + stages resolve BY NAME per tenant** (exact match, then contains), never by hardcoded id. Mirror `functions/api/lib/writes.ts` and `functions/api/sales/leads/index.ts`.
 - **Never name GoHighLevel/GHL in client-facing UI.**
-- **Client app is one responsive app** (`command-center/app`, package client-dashboard): desktop + phone PWA share routes.
+- **Client app is one responsive app** (`apps/command-center`, package client-dashboard): desktop + phone PWA share routes.
 - **Real session shows honest empty/not-connected states**; demo session shows the hand-authored flow.
 - Webhook events route by `event.locationId` only; never hardcode a tenant.
 
@@ -85,8 +85,8 @@ Each tap logs the call and routes the lead. Stage names below are the real per-t
 ### Task 1: Webhook handles InboundCall
 
 **Files:**
-- Modify: `command-center/app/functions/api/webhook.ts`
-- Test: `command-center/app/functions/lib/webhookActivity.test.ts` (create)
+- Modify: `apps/command-center/functions/api/webhook.ts`
+- Test: `apps/command-center/functions/lib/webhookActivity.test.ts` (create)
 
 **Interfaces:**
 - Produces: `toActivity(tenantId, {type:"InboundCall", contactId, phone})` returns an `Activity` with `kind:"call_inbound"`, and `shouldPush` returns `true` for it.
@@ -96,7 +96,7 @@ Each tap logs the call and routes the lead. Stage names below are the real per-t
 - [ ] **Step 2: Write the failing test**
 
 ```ts
-// command-center/app/functions/lib/webhookActivity.test.ts
+// apps/command-center/functions/lib/webhookActivity.test.ts
 import { describe, it, expect } from "vitest";
 import { toActivity, shouldPush } from "../api/webhook";
 
@@ -119,7 +119,7 @@ describe("InboundCall webhook mapping", () => {
 
 - [ ] **Step 3: Run it, verify it fails**
 
-Run: `cd command-center/app && npx vitest run functions/lib/webhookActivity.test.ts`
+Run: `cd apps/command-center && npx vitest run functions/lib/webhookActivity.test.ts`
 Expected: FAIL (`call_inbound` not a valid kind / no case for `InboundCall`).
 
 - [ ] **Step 4: Add the kind + case + push.** In `webhook.ts`:
@@ -130,13 +130,13 @@ Expected: FAIL (`call_inbound` not a valid kind / no case for `InboundCall`).
 
 - [ ] **Step 5: Run tests, verify pass**
 
-Run: `cd command-center/app && npx vitest run functions/lib/webhookActivity.test.ts`
+Run: `cd apps/command-center && npx vitest run functions/lib/webhookActivity.test.ts`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add command-center/app/functions/api/webhook.ts command-center/app/functions/lib/webhookActivity.test.ts
+git add apps/command-center/functions/api/webhook.ts apps/command-center/functions/lib/webhookActivity.test.ts
 git commit -m "feat(call): webhook maps InboundCall to a pushable call_inbound activity"
 ```
 
@@ -145,8 +145,8 @@ git commit -m "feat(call): webhook maps InboundCall to a pushable call_inbound a
 ### Task 2: Contact upsert endpoint + hook
 
 **Files:**
-- Create: `command-center/app/functions/api/contacts/[contactId]/index.ts`
-- Modify: `command-center/app/src/hooks/useApi.ts`
+- Create: `apps/command-center/functions/api/contacts/[contactId]/index.ts`
+- Modify: `apps/command-center/src/hooks/useApi.ts`
 
 **Interfaces:**
 - Produces: `PUT /api/contacts/:contactId` body `{ firstName?, lastName?, email?, postalCode?, source? }` -> `{ ok: true }`. Hook `useUpsertContact()` returns a mutation taking `{ contactId, firstName?, lastName?, email?, postalCode?, source? }`.
@@ -154,7 +154,7 @@ git commit -m "feat(call): webhook maps InboundCall to a pushable call_inbound a
 - [ ] **Step 1: Create the endpoint.**
 
 ```ts
-// command-center/app/functions/api/contacts/[contactId]/index.ts
+// apps/command-center/functions/api/contacts/[contactId]/index.ts
 import type { Env, ApiData } from "../../../lib/env";
 import { readJsonBody } from "../../../lib/body";
 import { ghlFetch, type GhlContext } from "../../../lib/ghl";
@@ -234,13 +234,13 @@ export function useUpsertContact() {
 
 - [ ] **Step 3: Typecheck.**
 
-Run: `cd command-center/app && npx tsc --noEmit`
+Run: `cd apps/command-center && npx tsc --noEmit`
 Expected: no errors.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add command-center/app/functions/api/contacts command-center/app/src/hooks/useApi.ts
+git add apps/command-center/functions/api/contacts apps/command-center/src/hooks/useApi.ts
 git commit -m "feat(call): add contact upsert endpoint + useUpsertContact"
 ```
 
@@ -249,9 +249,9 @@ git commit -m "feat(call): add contact upsert endpoint + useUpsertContact"
 ### Task 3: Create-opportunity endpoint + hook (unknown callers)
 
 **Files:**
-- Modify: `command-center/app/functions/api/sales/leads/index.ts`
-- Modify: `command-center/app/functions/api/lib/writes.ts`
-- Modify: `command-center/app/src/hooks/useApi.ts`
+- Modify: `apps/command-center/functions/api/sales/leads/index.ts`
+- Modify: `apps/command-center/functions/api/lib/writes.ts`
+- Modify: `apps/command-center/src/hooks/useApi.ts`
 
 **Interfaces:**
 - Produces: `createOpportunity(gctx, {pipelineId, pipelineStageId, contactId, name, monetaryValue?})` -> `{ ok:true, id } | { ok:false, status, body }`. `POST /api/sales/leads` body `{ contactId, pipelineName, stageName, name, monetaryValue? }` -> `{ ok:true, id }`. Hook `useCreateSalesLead()`.
@@ -366,10 +366,10 @@ export function useCreateSalesLead() {
 
 - [ ] **Step 4: Typecheck + commit**
 
-Run: `cd command-center/app && npx tsc --noEmit` (expect no errors)
+Run: `cd apps/command-center && npx tsc --noEmit` (expect no errors)
 
 ```bash
-git add command-center/app/functions/api/sales/leads/index.ts command-center/app/functions/api/lib/writes.ts command-center/app/src/hooks/useApi.ts
+git add apps/command-center/functions/api/sales/leads/index.ts apps/command-center/functions/api/lib/writes.ts apps/command-center/src/hooks/useApi.ts
 git commit -m "feat(call): create-opportunity endpoint for unknown inbound callers"
 ```
 
@@ -378,7 +378,7 @@ git commit -m "feat(call): create-opportunity endpoint for unknown inbound calle
 ### Task 4: Stage endpoint cross-pipeline move + price
 
 **Files:**
-- Modify: `command-center/app/functions/api/sales/leads/[id]/stage.ts`
+- Modify: `apps/command-center/functions/api/sales/leads/[id]/stage.ts`
 
 **Interfaces:**
 - Produces: `POST /api/sales/leads/:id/stage` now also accepts `{ pipelineName?, monetaryValue? }`. When `pipelineName` is present, resolve the stage in THAT pipeline (cross-pipeline move to Job Booked) and set both `pipelineId` and `pipelineStageId`.
@@ -430,10 +430,10 @@ if (!fields.status && !fields.pipelineStageId && fields.monetaryValue === undefi
 
 - [ ] **Step 2: Typecheck + commit**
 
-Run: `cd command-center/app && npx tsc --noEmit` (expect no errors)
+Run: `cd apps/command-center && npx tsc --noEmit` (expect no errors)
 
 ```bash
-git add command-center/app/functions/api/sales/leads/[id]/stage.ts command-center/app/functions/api/lib/writes.ts
+git add apps/command-center/functions/api/sales/leads/[id]/stage.ts apps/command-center/functions/api/lib/writes.ts
 git commit -m "feat(call): stage endpoint supports cross-pipeline move + captured price"
 ```
 
@@ -442,8 +442,8 @@ git commit -m "feat(call): stage endpoint supports cross-pipeline move + capture
 ### Task 5: Call console pure helpers (TDD)
 
 **Files:**
-- Create: `command-center/app/src/lib/callConsole.ts`
-- Create: `command-center/app/src/lib/callConsole.test.ts`
+- Create: `apps/command-center/src/lib/callConsole.ts`
+- Create: `apps/command-center/src/lib/callConsole.test.ts`
 
 **Interfaces:**
 - Produces:
@@ -454,7 +454,7 @@ git commit -m "feat(call): stage endpoint supports cross-pipeline move + capture
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-// command-center/app/src/lib/callConsole.test.ts
+// apps/command-center/src/lib/callConsole.test.ts
 import { describe, it, expect } from "vitest";
 import { isUnknownCaller, OUTCOMES, outcomeToStage } from "./callConsole";
 
@@ -490,13 +490,13 @@ describe("outcome routing table", () => {
 
 - [ ] **Step 2: Run it, verify it fails**
 
-Run: `cd command-center/app && npx vitest run src/lib/callConsole.test.ts`
+Run: `cd apps/command-center && npx vitest run src/lib/callConsole.test.ts`
 Expected: FAIL (module not found).
 
 - [ ] **Step 3: Implement `callConsole.ts`**
 
 ```ts
-// command-center/app/src/lib/callConsole.ts
+// apps/command-center/src/lib/callConsole.ts
 // Pure helpers for the Call Console: caller classification + the outcome->stage
 // routing table. Stage/pipeline names match the live GHL template (see
 // functions/api/sales/leads/index.ts STAGE_STATUS and sales-call-system.md).
@@ -536,13 +536,13 @@ export function outcomeToStage(key: string): OutcomeDef | undefined {
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `cd command-center/app && npx vitest run src/lib/callConsole.test.ts`
+Run: `cd apps/command-center && npx vitest run src/lib/callConsole.test.ts`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/src/lib/callConsole.ts command-center/app/src/lib/callConsole.test.ts
+git add apps/command-center/src/lib/callConsole.ts apps/command-center/src/lib/callConsole.test.ts
 git commit -m "feat(call): call console helpers + outcome routing table"
 ```
 
@@ -551,7 +551,7 @@ git commit -m "feat(call): call console helpers + outcome routing table"
 ### Task 6: useIncomingCall hook
 
 **Files:**
-- Create: `command-center/app/src/hooks/useIncomingCall.ts`
+- Create: `apps/command-center/src/hooks/useIncomingCall.ts`
 
 **Interfaces:**
 - Consumes: `useNotificationsQuery(enabled)` from `useApi.ts` (already returns recent activity/notifications).
@@ -560,7 +560,7 @@ git commit -m "feat(call): call console helpers + outcome routing table"
 - [ ] **Step 1: Implement the hook.**
 
 ```ts
-// command-center/app/src/hooks/useIncomingCall.ts
+// apps/command-center/src/hooks/useIncomingCall.ts
 import { useMemo, useState } from "react";
 import { useNotificationsQuery } from "./useApi";
 
@@ -613,10 +613,10 @@ Note: match the real notifications payload shape — inspect `useNotificationsQu
 
 - [ ] **Step 2: Typecheck + commit**
 
-Run: `cd command-center/app && npx tsc --noEmit` (expect no errors)
+Run: `cd apps/command-center && npx tsc --noEmit` (expect no errors)
 
 ```bash
-git add command-center/app/src/hooks/useIncomingCall.ts
+git add apps/command-center/src/hooks/useIncomingCall.ts
 git commit -m "feat(call): useIncomingCall surfaces the freshest inbound call"
 ```
 
@@ -625,8 +625,8 @@ git commit -m "feat(call): useIncomingCall surfaces the freshest inbound call"
 ### Task 7: IncomingCallBanner + CallConsole UI
 
 **Files:**
-- Create: `command-center/app/src/components/call/IncomingCallBanner.tsx`
-- Create: `command-center/app/src/components/call/CallConsole.tsx`
+- Create: `apps/command-center/src/components/call/IncomingCallBanner.tsx`
+- Create: `apps/command-center/src/components/call/CallConsole.tsx`
 
 **Interfaces:**
 - Consumes: `useIncomingCall`, `isUnknownCaller`, `OUTCOMES`, `outcomeToStage`, `useUpsertContact`, `useCreateNote`, `useCreateSalesLead`, `useMoveSalesLeadStage`, `useCreateTask`, `useFreeSlots`, `useCreateAppointment`, `SlotPickerModal`.
@@ -649,13 +649,13 @@ git commit -m "feat(call): useIncomingCall surfaces the freshest inbound call"
 
 - [ ] **Step 3: Typecheck + build**
 
-Run: `cd command-center/app && npx tsc --noEmit && npm run build`
+Run: `cd apps/command-center && npx tsc --noEmit && npm run build`
 Expected: no errors, build succeeds.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add command-center/app/src/components/call
+git add apps/command-center/src/components/call
 git commit -m "feat(call): incoming call banner + Call Console (capture + outcome taps)"
 ```
 
@@ -664,8 +664,8 @@ git commit -m "feat(call): incoming call banner + Call Console (capture + outcom
 ### Task 8: Mount in the app shell + demo
 
 **Files:**
-- Modify: the client shell (`command-center/app/src/App.tsx` or the responsive layout wrapper that renders on every route).
-- Modify: `command-center/app/src/demo/data.ts` (or the demo handlers) to seed one unknown inbound call so the banner is demoable.
+- Modify: the client shell (`apps/command-center/src/App.tsx` or the responsive layout wrapper that renders on every route).
+- Modify: `apps/command-center/src/demo/data.ts` (or the demo handlers) to seed one unknown inbound call so the banner is demoable.
 
 **Interfaces:**
 - Consumes: `<IncomingCallBanner />`.
@@ -676,13 +676,13 @@ git commit -m "feat(call): incoming call banner + Call Console (capture + outcom
 
 - [ ] **Step 3: Verify in the running app.**
 
-Run: `cd command-center/app && npm run build` then launch the app (see `/run`).
+Run: `cd apps/command-center && npm run build` then launch the app (see `/run`).
 Expected: demo session shows the incoming-call banner; opening it shows the capture form for the unknown caller and the five outcome taps; typing a name + Save does not error.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add command-center/app/src/App.tsx command-center/app/src/demo/data.ts
+git add apps/command-center/src/App.tsx apps/command-center/src/demo/data.ts
 git commit -m "feat(call): mount incoming call banner in the shell + demo seed"
 ```
 
@@ -691,19 +691,19 @@ git commit -m "feat(call): mount incoming call banner in the shell + demo seed"
 ### Task 9: Connections doc + verification
 
 **Files:**
-- Create/Modify: `command-center/app/docs/connections/call-console.md`
+- Create/Modify: `apps/archive/command-center-docs/connections/call-console.md`
 
 - [ ] **Step 1: Write the connections backlog** documenting: the GHL `Send Webhook` action Jake must add (payload above), the `WEBHOOK_SECRET` requirement, the endpoints (`PUT /api/contacts/:id`, `POST /api/sales/leads`, extended `stage`), and the per-outcome gating. Note the open verification: does the GHL call trigger fire on ring or on hang-up (live vs instant-after pop).
 
 - [ ] **Step 2: Full typecheck + tests + build.**
 
-Run: `cd command-center/app && npx tsc --noEmit && npx vitest run && npm run build`
+Run: `cd apps/command-center && npx tsc --noEmit && npx vitest run && npm run build`
 Expected: all pass.
 
 - [ ] **Step 3: Commit.**
 
 ```bash
-git add command-center/app/docs/connections/call-console.md
+git add apps/archive/command-center-docs/connections/call-console.md
 git commit -m "docs(call): connections backlog for the Call Console inbound capture"
 ```
 

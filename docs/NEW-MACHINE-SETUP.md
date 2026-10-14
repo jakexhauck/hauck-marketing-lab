@@ -14,7 +14,7 @@ Nothing to do for these. Pulling the repo gets you:
   composio, copywriter, data-analyst, emil-design-eng, impeccable, review-animations,
   skill-creator, taste-skill, thellc-design, trigger-dev, ui-ux-pro-max, watch,
   web-designer. These load for this project automatically, no install needed.
-- All app code and subprojects (`command-center/`, `gohighlevel-cli/`, `intranet/`, etc.)
+- All app code and subprojects (`command-center/`, `projects/gohighlevel-cli/`, `intranet/`, etc.)
 
 > Note: these skills are project-scoped here. If you want them available in
 > *other* projects on the Mac too, also copy them into the global `~/.claude/skills/`.

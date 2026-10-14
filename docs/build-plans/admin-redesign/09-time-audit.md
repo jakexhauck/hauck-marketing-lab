@@ -19,7 +19,7 @@ Finished (Phase 1) means:
 
 ## 2. Chosen layout
 
-Implement `command-center/docs/mockups/admin-redesign/time-audit-A.html` exactly (Layout A). Port its markup/CSS into React under the `.pk-kit` admin theme (Bento Bold). Structure:
+Implement `archive/command-center-docs/mockups/admin-redesign/time-audit-A.html` exactly (Layout A). Port its markup/CSS into React under the `.pk-kit` admin theme (Bento Bold). Structure:
 
 - Header: kicker "Operations", title "Time Audit", tagline.
 - Controls row: the Operations `pk-tabs` tab bar (Calculator · Time Audit · Tasks — from the foundation shell, not rebuilt here) plus a right-aligned week pill ("This week · Jul 13 – 19") that doubles as the prev/next week nav.
@@ -28,11 +28,11 @@ Implement `command-center/docs/mockups/admin-redesign/time-audit-A.html` exactly
 - Cell states: `.cell.empty` renders an em-dash placeholder (use a non-em-dash glyph in React per the no-em-dash rule — a middot "·" or the word count, see §7); a tagged cell gets `background:<tier.tint>`, `box-shadow: inset 3px 0 0 <tier.solid>`, and a `.tag` (colored dot + task label).
 - Rail panels: `.valuetile` (week value + "% high-leverage" sub), Leverage legend (`#legendLev`), Task types legend (`#legendTask`).
 
-Reference the already-ported Bento Bold table CSS from `command-center/docs/mockups/admin-redesign/cold-calling.html` / the `DailyTracker` component where class names overlap, but the grid here is a **bespoke week grid**, not the shared `DailyTracker` (that engine is a day-per-row funnel table; this is a slot × day matrix). Do not force-fit `DailyTracker`.
+Reference the already-ported Bento Bold table CSS from `archive/command-center-docs/mockups/admin-redesign/cold-calling.html` / the `DailyTracker` component where class names overlap, but the grid here is a **bespoke week grid**, not the shared `DailyTracker` (that engine is a day-per-row funnel table; this is a slot × day matrix). Do not force-fit `DailyTracker`.
 
 ## 3. Data model
 
-New migration. **Use the next free 4-digit sequence when this ships (0027+; latest applied is 0026).** If earlier surface plans have already claimed 0027…, bump to the next free number. Filename e.g. `command-center/app/supabase/migrations/00NN_time_audit_blocks.sql`.
+New migration. **Use the next free 4-digit sequence when this ships (0027+; latest applied is 0026).** If earlier surface plans have already claimed 0027…, bump to the next free number. Filename e.g. `apps/command-center/supabase/migrations/00NN_time_audit_blocks.sql`.
 
 Table `time_audit_blocks` — agency-global (NO `tenant_id`, per `_architecture.md` scoping for agency-internal surfaces):
 
@@ -55,7 +55,7 @@ Table `time_audit_blocks` — agency-global (NO `tenant_id`, per `_architecture.
 
 ## 4. API
 
-New file `command-center/app/functions/api/admin/tracker/time-audit.ts` (agency-global tracker path, matches `_architecture.md`). Admin-gated by `functions/api/_middleware.ts`. Start every handler with the service-client guard (copy from `functions/api/admin/tasks/index.ts`):
+New file `apps/command-center/functions/api/admin/tracker/time-audit.ts` (agency-global tracker path, matches `_architecture.md`). Admin-gated by `functions/api/_middleware.ts`. Start every handler with the service-client guard (copy from `functions/api/admin/tasks/index.ts`):
 
 ```ts
 const client = getServiceClient(ctx.env);
@@ -145,14 +145,14 @@ Reuse the `.pk-kit` theme tokens; do not reintroduce the mockup's raw hex where 
 
 ## 7. File-by-file change list (ordered)
 
-1. `command-center/app/supabase/migrations/00NN_time_audit_blocks.sql` — new table + unique index (§3).
-2. `command-center/app/src/lib/timeAudit.ts` — new pure lib (§5).
-3. `command-center/app/src/lib/timeAudit.test.ts` — new unit tests (§6).
-4. `command-center/app/src/lib/api.ts` — add `Leverage`, `TaskType`, `TimeAuditBlock`, `TimeAuditWeekResponse` DTOs.
-5. `command-center/app/functions/api/admin/tracker/time-audit.ts` — new GET (by week) + PATCH (set/clear) handler (§4).
-6. `command-center/app/src/hooks/useApi.ts` — `useAdminTimeAuditWeek` + `useAdminTimeAuditTag` (optimistic).
-7. `command-center/app/src/components/admin/tracker/TimeAuditGrid.tsx` — new surface component (§5).
-8. `command-center/app/src/lib/adminPillars.ts` — ensure the Operations "Time Audit" tab id exists (from foundation; add if the foundation stub left it as a placeholder).
+1. `apps/command-center/supabase/migrations/00NN_time_audit_blocks.sql` — new table + unique index (§3).
+2. `apps/command-center/src/lib/timeAudit.ts` — new pure lib (§5).
+3. `apps/command-center/src/lib/timeAudit.test.ts` — new unit tests (§6).
+4. `apps/command-center/src/lib/api.ts` — add `Leverage`, `TaskType`, `TimeAuditBlock`, `TimeAuditWeekResponse` DTOs.
+5. `apps/command-center/functions/api/admin/tracker/time-audit.ts` — new GET (by week) + PATCH (set/clear) handler (§4).
+6. `apps/command-center/src/hooks/useApi.ts` — `useAdminTimeAuditWeek` + `useAdminTimeAuditTag` (optimistic).
+7. `apps/command-center/src/components/admin/tracker/TimeAuditGrid.tsx` — new surface component (§5).
+8. `apps/command-center/src/lib/adminPillars.ts` — ensure the Operations "Time Audit" tab id exists (from foundation; add if the foundation stub left it as a placeholder).
 9. Operations pillar page (`src/routes/admin/PillarPage.tsx` or the per-pillar Operations page from foundation) — render `<TimeAuditGrid/>` for the `time-audit` tab.
 10. Run `npm run db:migrate` to apply the migration.
 
