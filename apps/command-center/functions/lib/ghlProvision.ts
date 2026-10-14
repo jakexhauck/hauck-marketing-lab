@@ -87,14 +87,6 @@ export const OPEN_LEAD_LINK_NAME = "Open Lead";
 
 const LIVE_ORIGIN = "https://app.hauckmarketing.com";
 
-// One owner link as Client > GHL > Wiring shows it.
-export interface WiringLink {
-  name: string;
-  // The merge tag a workflow uses, e.g. {{custom_values.call_now_link}}.
-  merge: string;
-  value: string;
-}
-
 // GoHighLevel's own rule for a custom value's merge key: lowercase, spaces to
 // underscores.
 export function mergeTag(name: string): string {
@@ -127,8 +119,10 @@ export async function ownerLinkValues(
   ];
 }
 
-// Just the owner links, for the Provision button (which does not touch the
-// webhook URL).
+// Just the owner links (today only Open Lead). Written with no button press
+// (Jake, 2026-10-14: the Outcome Wiring page went): on link, and on every
+// Custom Values and Accounts load. Idempotent: one read, and a write only when
+// the value is missing or wrong.
 export async function provisionOwnerLinks(
   gctx: GhlContext,
   origin: string,

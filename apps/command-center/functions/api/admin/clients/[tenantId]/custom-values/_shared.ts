@@ -3,6 +3,7 @@ import { getServiceClient } from "../../../../../lib/supabase";
 import { loadTenantById } from "../../../../../lib/tenantResolve";
 import { appMinter, resolveTenantGhl } from "../../../../../lib/ghlCreds";
 import type { GhlContext } from "../../../../../lib/ghl";
+import { listValues } from "../../../../../lib/customValuesMirror";
 
 // Owner only, checked here: setters may read /api/admin/clients/* for their
 // picker, and custom values hold keyed owner links.
@@ -17,6 +18,15 @@ export async function ownerGhl(
   const creds = await resolveTenantGhl(tenant, appMinter(client, ctx.env));
   if (!creds) return Response.json({ error: "Link the sub-account first." }, { status: 409 });
   return { token: creds.token, locationId: creds.locationId };
+}
+
+// Open Lead is the app's to write. Refuse an edit or delete aimed at it.
+export async function refuseAppValue(g: GhlContext, id: string): Promise<Response | null> {
+  const target = (await listValues(g)).find((v) => v.id === id);
+  if (target?.locked) {
+    return Response.json({ error: `${target.name} is written by the app.` }, { status: 409 });
+  }
+  return null;
 }
 
 export function ghlError(err: unknown): Response {

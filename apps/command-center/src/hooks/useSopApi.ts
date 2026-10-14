@@ -1,22 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import type { LeadForm } from "../../functions/lib/adLeadForms";
-import type { WiringLink } from "../../functions/lib/ghlProvision";
 import type { MirrorValue } from "../../functions/lib/customValuesMirror";
 
 // Data hooks for the client setup pages built from the Client Setup SOP.
 // Kept out of useApi.ts so these pages are one file to read.
 
 const enc = encodeURIComponent;
-
-// ---- Wiring --------------------------------------------------------------
-
-export function useWiringQuery(tenantId: string) {
-  return useQuery({
-    queryKey: ["sop", "wiring", tenantId],
-    queryFn: () => api<{ links: WiringLink[] }>(`/api/admin/clients/${enc(tenantId)}/wiring`),
-  });
-}
 
 // ---- Custom Values (live mirror of the sub-account) -----------------------
 

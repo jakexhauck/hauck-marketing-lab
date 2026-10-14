@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseValueBody, shapeValues } from "./customValuesMirror";
+import { isAppValue, parseValueBody, shapeValues } from "./customValuesMirror";
 
 describe("shapeValues", () => {
   it("sorts by name and keeps GHL's merge key", () => {
@@ -11,6 +11,14 @@ describe("shapeValues", () => {
     expect(out.map((v) => v.id)).toEqual(["1", "2"]);
     expect(out[0].merge).toBe("{{custom_values.open_lead}}");
     expect(out[1].merge).toBe("{{ custom_values.zip }}");
+    expect(out.map((v) => v.locked)).toEqual([true, false]);
+  });
+});
+
+describe("isAppValue", () => {
+  it("locks Open Lead whatever the case", () => {
+    expect(isAppValue(" open lead ")).toBe(true);
+    expect(isAppValue("Open Lead 2")).toBe(false);
   });
 });
 

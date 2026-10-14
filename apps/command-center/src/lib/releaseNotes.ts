@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-14-open-lead-auto",
+    date: "14 October 2026",
+    title: "Open Lead fills itself in",
+    items: [
+      "Outcome Wiring is gone. The app writes the Open Lead custom value into each client's GHL by itself, and puts it back if it goes missing.",
+      "On Custom Values, Open Lead is locked. Its Copy button copies the version to paste into a text.",
+    ],
+  },
+  {
     id: "2026-10-14-custom-values-mirror",
     date: "14 October 2026",
     title: "Custom Values, live from GHL",

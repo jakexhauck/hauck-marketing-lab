@@ -77,13 +77,12 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
     label: "GHL",
     ready: true,
     // Custom Values went 2026-10-10, Follow-up Texts and CAPI 2026-10-14
-    // (Jake: not needed).
+    // (Jake: not needed). Outcome Wiring went 2026-10-14 too: Open Lead is
+    // written into GHL automatically (provisionOwnerLinks).
     subTabs: [
       { id: "conversion-assets", label: "Conversion Assets", ready: true },
       // A live mirror of the sub-account's Custom Values page (2026-10-14).
       { id: "custom-values", label: "Custom Values", ready: true },
-      // The Open Lead link to paste into the GHL custom value.
-      { id: "wiring", label: "Outcome Wiring", ready: true },
       { id: "calendars", label: "Calendars", ready: true },
     ],
   },

@@ -1,5 +1,5 @@
 import { ghlFetch, ghlJson, type GhlContext } from "./ghl";
-import { mergeTag } from "./ghlProvision";
+import { mergeTag, OPEN_LEAD_LINK_NAME } from "./ghlProvision";
 
 // Client > GHL > Custom Values: a live mirror of the sub-account's own Custom
 // Values settings page (Jake, 2026-10-14: "I change them out a lot"). Nothing
@@ -11,6 +11,8 @@ export interface MirrorValue {
   value: string;
   // What a workflow pastes, e.g. {{custom_values.open_lead}}.
   merge: string;
+  // Written by the app (Open Lead); not editable or deletable here.
+  locked: boolean;
 }
 
 interface RawValue {
@@ -29,8 +31,13 @@ export function shapeValues(raw: RawValue[]): MirrorValue[] {
       value: String(v.value ?? ""),
       // GHL sends the real key; derive it only if a row comes back without one.
       merge: v.fieldKey?.trim() || mergeTag(String(v.name)),
+      locked: isAppValue(String(v.name)),
     }))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+}
+
+export function isAppValue(name: string): boolean {
+  return name.trim().toLowerCase() === OPEN_LEAD_LINK_NAME.toLowerCase();
 }
 
 // Name and value as the save body. A blank name is refused: GHL would accept

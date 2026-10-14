@@ -1,7 +1,6 @@
 import CalendarPanel from "./CalendarPanel";
 import ConversionAssetPanel from "./ConversionAssetPanel";
 import GhlSetupWizard from "./GhlSetupWizard";
-import WiringPanel from "../../sop/WiringPanel";
 import CustomValuesPanel from "../../sop/CustomValuesPanel";
 import { GHL_SETUP_SUB, placeholderCopy, subTabsFor } from "../../../../lib/fulfillmentPages";
 
@@ -51,8 +50,6 @@ export default function GhlTab({
       );
     case "custom-values":
       return <CustomValuesPanel tenantId={tenantId} />;
-    case "wiring":
-      return <WiringPanel tenantId={tenantId} />;
     case "calendars":
       return (
         <CalendarPanel

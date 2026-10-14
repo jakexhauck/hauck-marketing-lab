@@ -124,7 +124,6 @@ describe("ghlSubTabs", () => {
     expect(ghlSubTabs(subs, true).map((s) => s.id)).toEqual([
       "conversion-assets",
       "custom-values",
-      "wiring",
       "calendars",
     ]);
   });
@@ -134,7 +133,6 @@ describe("ghlSubTabs", () => {
     expect(gated.map((s) => s.id)).toEqual([
       GHL_SETUP_SUB,
       "conversion-assets",
-      "wiring",
     ]);
     expect(gated[0].label).toBe("Connect GHL");
   });

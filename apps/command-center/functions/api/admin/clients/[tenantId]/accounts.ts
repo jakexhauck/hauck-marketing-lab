@@ -126,8 +126,19 @@ async function runChecks(env: Env, tenantId: string, origin: string) {
 
 export const onRequestGet: PagesFunction<Env, "tenantId", ApiData> = async (ctx) => {
   if (ctx.data.admin?.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
-  const r = await runChecks(ctx.env, ctx.params.tenantId as string, new URL(ctx.request.url).origin);
+  const tenantId = ctx.params.tenantId as string;
+  const origin = new URL(ctx.request.url).origin;
+  let r = await runChecks(ctx.env, tenantId, origin);
   if ("error" in r) return Response.json({ error: r.error }, { status: r.status });
+  // Open Lead heals itself (Jake, 2026-10-14): a red row is written and read
+  // again rather than waiting for the Write button, which stays for a failure.
+  const secret = (ctx.env.SESSION_SECRET ?? "").trim();
+  const links = r.body.checks.find((c) => c.id === "owner-links");
+  if (r.gctx && secret && links?.state === "missing") {
+    await provisionOwnerLinks(r.gctx, origin, secret);
+    const again = await runChecks(ctx.env, tenantId, origin);
+    if (!("error" in again)) r = again;
+  }
   return Response.json(r.body, { headers: { "Cache-Control": "no-store" } });
 };
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useCustomValues, useSaveCustomValue } from "../../../hooks/useSopApi";
 import type { MirrorValue } from "../../../../functions/lib/customValuesMirror";
+import { ownerLinkText } from "../../../lib/ownerLinkText";
 import { CopyButton, SOP_FIELD, SopButton, SopCard, SopError, SopHeading } from "./sopKit";
 
 // Client > GHL > Custom Values. A live mirror of the sub-account's own Custom
@@ -90,7 +91,10 @@ function ValueRow({
     setValue(ghlValue);
   }, [ghlName, ghlValue]);
 
-  const dirty = !row || name !== row.name || value !== row.value;
+  // Open Lead is written by the app (server refuses edits too). Its copy is
+  // the text-ready form, contact id on the end (lib/ownerLinkText.ts).
+  const locked = !!row?.locked;
+  const dirty = !locked && (!row || name !== row.name || value !== row.value);
   const submit = () =>
     save.mutate({ id: row?.id, name, value }, { onSuccess: () => onDone?.() });
 
@@ -102,6 +106,7 @@ function ValueRow({
           placeholder="Name"
           value={name}
           autoFocus={!row}
+          readOnly={locked}
           onChange={(e) => setName(e.target.value)}
         />
         {row && (
@@ -109,7 +114,7 @@ function ValueRow({
             <code className="max-w-[260px] truncate font-data text-[12px] text-faint" title={row.merge}>
               {row.merge}
             </code>
-            <CopyButton text={row.merge} />
+            <CopyButton text={locked ? ownerLinkText(row.merge) : row.merge} />
           </span>
         )}
       </div>
@@ -118,11 +123,12 @@ function ValueRow({
         rows={Math.min(6, Math.max(1, Math.ceil(value.length / 90), value.split("\n").length))}
         placeholder="Value"
         value={value}
+        readOnly={locked}
         onChange={(e) => setValue(e.target.value)}
       />
       <div className="flex flex-wrap items-center justify-end gap-2">
         <SopError error={save.error} />
-        {row && !confirming && (
+        {row && !locked && !confirming && (
           <SopButton onClick={() => setConfirming(true)} disabled={save.isPending} title="Delete">
             <Trash2 size={13} aria-hidden />
           </SopButton>
