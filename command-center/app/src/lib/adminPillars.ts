@@ -81,6 +81,7 @@ export const ADMIN_PILLARS: PillarDef[] = [
     tabs: [
       { id: "pipeline", label: "Pipeline", ready: true },
       { id: "sales-data", label: "Data", ready: true },
+      { id: "calendar", label: "Calendar", ready: true },
     ],
   },
   {

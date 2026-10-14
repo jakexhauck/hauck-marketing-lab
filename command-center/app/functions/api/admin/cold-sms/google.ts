@@ -11,12 +11,19 @@ import { AGENCY_GCAL_USER } from "../../../lib/coldSmsBoard";
 // it can never resolve to a client's grant. Composio does the token exchange,
 // so there is no callback route: Google sends him straight back to the board.
 
-const RETURN_PATH = "/admin/pillar/acquisition?tab=sms&view=pipeline&gcal=connected";
+// Where Google sends him back to. Sales > Calendar connects through the same
+// link (?back=sales); a fixed list, never a path from the request.
+const RETURN_PATHS = {
+  sms: "/admin/pillar/acquisition?tab=sms&view=pipeline&gcal=connected",
+  sales: "/admin/pillar/sales?tab=calendar&gcal=connected",
+} as const;
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
   if (!composioConfigured(ctx.env)) return Response.json({ error: "not_configured" }, { status: 503 });
   try {
-    const own = new URL(ctx.request.url).origin;
+    const url = new URL(ctx.request.url);
+    const own = url.origin;
+    const back = url.searchParams.get("back") === "sales" ? RETURN_PATHS.sales : RETURN_PATHS.sms;
     // Return to the page Jake clicked from. Locally that is Vite's port, not the
     // API's (the dev proxy rewrites the request origin); only this app's own
     // origin or localhost is ever trusted as a place to send him back to.
@@ -24,7 +31,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     const origin = sent === own || /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(sent) ? sent : own;
     const { redirectUrl } = await linkAccount(ctx.env, {
       userId: AGENCY_GCAL_USER,
-      callbackUrl: `${origin}${RETURN_PATH}`,
+      callbackUrl: `${origin}${back}`,
     });
     return Response.json({ redirectUrl });
   } catch (err) {

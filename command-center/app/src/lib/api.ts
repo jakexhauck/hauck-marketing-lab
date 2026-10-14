@@ -2697,8 +2697,8 @@ export function getColdSmsWeek(start: number, end: number): Promise<ColdSmsWeek>
   return api(`/api/admin/cold-sms/week?start=${start}&end=${end}`);
 }
 
-export function connectColdSmsGoogle(): Promise<{ redirectUrl: string }> {
-  return api("/api/admin/cold-sms/google", { method: "POST" });
+export function connectColdSmsGoogle(back: "sms" | "sales" = "sms"): Promise<{ redirectUrl: string }> {
+  return api(`/api/admin/cold-sms/google?back=${back}`, { method: "POST" });
 }
 
 export function disconnectColdSmsGoogle(): Promise<{ ok: true }> {

@@ -337,7 +337,7 @@ export default function SmsBookingWizard({
   );
 }
 
-function GoogleBar({
+export function GoogleBar({
   connected,
   busy,
   failed,
@@ -402,7 +402,7 @@ function Legend({ color, label, dashed }: { color: string; label: string; dashed
   );
 }
 
-function WeekGrid({
+export function WeekGrid({
   days,
   zone,
   myZone,
@@ -419,7 +419,9 @@ function WeekGrid({
   minutes: number;
   data: ColdSmsWeek;
   pick: number | null;
-  onPick: (ms: number) => void;
+  // Left out on Sales > Calendar: there is no one to book, so open slots are
+  // drawn but not clickable.
+  onPick?: (ms: number) => void;
 }) {
   const slots = data.slots.map((s) => +new Date(s));
   const blocks = [
@@ -502,13 +504,14 @@ function WeekGrid({
                   <button
                     key={t}
                     type="button"
-                    onClick={() => onPick(t)}
+                    onClick={onPick ? () => onPick(t) : undefined}
+                    disabled={!onPick}
                     aria-pressed={picked}
                     title={sameZone ? formatTime(t, zone) : `${formatTime(t, zone)} for them, ${formatTime(t, myZone)} for you`}
                     className={`absolute left-[3px] right-[3px] z-[1] overflow-hidden rounded-lg px-1.5 text-left text-[11px] font-semibold leading-tight transition-colors ${
                       picked
                         ? "bg-[var(--positive)] text-white"
-                        : "border border-dashed border-[color-mix(in_srgb,var(--positive)_70%,transparent)] bg-[var(--positive-tint)] text-[var(--positive)] hover:bg-[color-mix(in_srgb,var(--positive)_26%,transparent)]"
+                        : "border border-dashed border-[color-mix(in_srgb,var(--positive)_70%,transparent)] bg-[var(--positive-tint)] text-[var(--positive)] enabled:hover:bg-[color-mix(in_srgb,var(--positive)_26%,transparent)] disabled:cursor-default"
                     } ${off && !picked ? "opacity-45" : ""}`}
                     style={{ top: top(t) + 1, height: slotH }}
                   >

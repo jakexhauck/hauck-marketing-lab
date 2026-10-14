@@ -127,9 +127,10 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     // data itself is untouched and the call cockpit still reads it.
     case "playbook":
       return <PlaybookSection />;
-    // One Sales page, Pipeline and Data as tabs inside it (Jake, 2026-10-13).
+    // One Sales page, Pipeline, Data and Calendar as tabs inside it (Jake, 2026-10-13).
     case "pipeline":
     case "sales-data":
+    case "calendar":
       return <SalesPage tab={tab.id} />;
     case "business-health":
       return <BusinessHealthTab />;

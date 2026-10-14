@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-14-sales-calendar",
+    date: "14 October 2026",
+    title: "Sales has a Calendar tab",
+    items: [
+      "Sales > Calendar shows your week the way the Book call wizard does: Google Calendar, booked demos and open times.",
+      "Step back up to 8 weeks to see past calls, or switch the zone to see the week in a prospect's time.",
+    ],
+  },
+  {
     id: "2026-10-13-cold-sms-trash",
     date: "13 October 2026",
     title: "Cold SMS negatives go to Trash",
