@@ -42,6 +42,7 @@ describe("adminPillars config", () => {
       "calendar",
       "tasks",
       "inbox",
+      "onboarding",
       "clients",
       "budget",
       "outcome-page",
@@ -65,6 +66,7 @@ describe("adminPillars config", () => {
     expect(tabsFor("operations").map((t) => t.id)).toEqual([
       "tasks",
       "inbox",
+      "onboarding",
       "clients",
       "budget",
       "outcome-page",

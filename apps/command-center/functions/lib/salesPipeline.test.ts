@@ -7,6 +7,7 @@ import {
   isStale,
   missingStages,
   normalizeStageName,
+  pickOnboardingPipeline,
   pickSalesPipeline,
   requiredStages,
   routeFor,
@@ -262,5 +263,16 @@ describe("deals going stale", () => {
 
   it("does not flag a card whose age is unknown", () => {
     expect(isStale(card({ updatedAt: null }), now)).toBe(false);
+  });
+});
+
+describe("pickOnboardingPipeline", () => {
+  it("finds the Onboarding board by name, ignoring case and spacing", () => {
+    const pipelines = [{ name: "Sales" }, { name: " onboarding " }, { name: "Trash" }];
+    expect(pickOnboardingPipeline(pipelines)).toBe(pipelines[1]);
+  });
+
+  it("does not take a board that only starts with the word", () => {
+    expect(pickOnboardingPipeline([{ name: "Onboarding Calls" }])).toBeNull();
   });
 });

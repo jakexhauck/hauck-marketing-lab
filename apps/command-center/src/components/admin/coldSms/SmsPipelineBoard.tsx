@@ -97,7 +97,8 @@ function dayLabel(day: string, zone: string): string {
 }
 
 export default function SmsPipelineBoard({ kind = "cold-sms" }: { kind?: PipelineBoardKind } = {}) {
-  const sales = kind === "sales";
+  // Sales and Onboarding are the same pinned board: no day filter, no verdicts.
+  const sales = kind !== "cold-sms";
   // The day filter rides in ?day= so a refresh stays on it. Days are by the
   // first text sent, in Jake's zone (Jake, 2026-10-12).
   const [params, setParams] = useSearchParams();
@@ -122,7 +123,7 @@ export default function SmsPipelineBoard({ kind = "cold-sms" }: { kind?: Pipelin
   const followUp = useFollowUp();
   const [menu, setMenu] = useState<{ card: ColdSmsCard; x: number; y: number } | null>(null);
   const [editing, setEditing] = useState<ColdSmsCard | null>(null);
-  const collapsedKey = sales ? "salesBoard.collapsedStages" : COLLAPSED_KEY;
+  const collapsedKey = sales ? `${kind === "sales" ? "salesBoard" : "onboardingBoard"}.collapsedStages` : COLLAPSED_KEY;
   const [collapsed, setCollapsed] = useState<Set<string>>(() => readCollapsed(collapsedKey));
   const toggleCollapsed = (stageId: string) =>
     setCollapsed((prev) => {
@@ -224,7 +225,7 @@ export default function SmsPipelineBoard({ kind = "cold-sms" }: { kind?: Pipelin
   }
   if (!board.data?.configured) return <div className="pk-empty">The agency GoHighLevel account is not connected.</div>;
   if (board.data.missing) {
-    return <div className="pk-empty">No pipeline named "{sales ? "Sales" : "Cold SMS"}" in GoHighLevel.</div>;
+    return <div className="pk-empty">No pipeline named "{kind === "onboarding" ? "Onboarding" : sales ? "Sales" : "Cold SMS"}" in GoHighLevel.</div>;
   }
 
   return (

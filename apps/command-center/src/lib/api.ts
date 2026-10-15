@@ -2507,9 +2507,9 @@ export interface ColdSmsCard {
   value?: number | null;
 }
 
-// Which GHL pipeline the board reads: Cold SMS, or the agency's Sales pipeline
-// (Sales > Sales Pipeline, same board).
-export type PipelineBoardKind = "cold-sms" | "sales";
+// Which GHL pipeline the board reads: Cold SMS, the agency's Sales pipeline
+// (Sales > Sales Pipeline, same board), or its Onboarding pipeline.
+export type PipelineBoardKind = "cold-sms" | "sales" | "onboarding";
 
 export interface ColdSmsStage {
   id: string;
@@ -2545,7 +2545,7 @@ export interface ColdSmsBoard {
 // side and the cards dropped into their columns (one request for the whole
 // pipeline hit Cloudflare's per-request cap, 2026-10-13).
 export async function getColdSmsBoard(day?: string, kind: PipelineBoardKind = "cold-sms"): Promise<ColdSmsBoard> {
-  if (kind === "sales") return api("/api/admin/cold-sms/board?board=sales");
+  if (kind !== "cold-sms") return api(`/api/admin/cold-sms/board?board=${kind}`);
   if (!day) return api("/api/admin/cold-sms/board");
   const q = `?day=${encodeURIComponent(day)}`;
   const head = await api<ColdSmsBoard & { parts?: number; pages?: number }>(`/api/admin/cold-sms/board${q}`);
@@ -2573,7 +2573,7 @@ export function getColdSmsStagePage(
 ): Promise<{ cards: ColdSmsCard[]; cursor: string | null; total: number }> {
   return api(
     `/api/admin/cold-sms/board?stageId=${encodeURIComponent(stageId)}&cursor=${encodeURIComponent(cursor)}` +
-      (kind === "sales" ? "&board=sales" : ""),
+      (kind !== "cold-sms" ? `&board=${kind}` : ""),
   );
 }
 

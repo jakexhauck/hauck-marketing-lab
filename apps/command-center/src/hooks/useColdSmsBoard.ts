@@ -51,7 +51,7 @@ export function useColdSmsBoardQuery(day: string, kind: PipelineBoardKind = "col
 const MOVE_KEY = [...COLD_SMS_BOARD_KEY, "move"];
 
 function boardKey(day: string, kind: PipelineBoardKind) {
-  return [...COLD_SMS_BOARD_KEY, kind === "sales" ? "sales" : day || "all"];
+  return [...COLD_SMS_BOARD_KEY, kind !== "cold-sms" ? kind : day || "all"];
 }
 
 function patchCards(board: ColdSmsBoard | undefined, fn: (c: ColdSmsCard) => ColdSmsCard): ColdSmsBoard | undefined {

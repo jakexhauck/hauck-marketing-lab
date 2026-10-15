@@ -1,5 +1,5 @@
 import type { DispositionStatus } from "./salesDisposition";
-import { findStage, normalizeStageName, pickSalesPipeline } from "./salesPipeline";
+import { findStage, pickOnboardingPipeline, pickSalesPipeline } from "./salesPipeline";
 
 // Where the post-call form puts the lead in the Hauck sub-account (Jake,
 // 2026-10-13). Each answer has a column of the same name on the Sales board,
@@ -49,7 +49,7 @@ export function resolveFormRoute(status: DispositionStatus, pipelines: readonly 
   const sales = pickSalesPipeline(pipelines);
   if (!sales) return { ok: false, error: "No Sales pipeline" };
 
-  const onbPipeline = pipelines.find((p) => normalizeStageName(p.name) === "onboarding") ?? null;
+  const onbPipeline = pickOnboardingPipeline(pipelines);
   const closeStages = onbPipeline
     ? Object.values(ONBOARDING_STAGE).map((n) => findStage(onbPipeline.stages, n!))
     : [];

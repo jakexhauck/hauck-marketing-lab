@@ -105,6 +105,9 @@ export const ADMIN_PILLARS: PillarDef[] = [
     tabs: [
       { id: "tasks", label: "Tasks", ready: true },
       { id: "inbox", label: "Inbox", ready: true },
+      // The agency's GHL Onboarding pipeline as a board, the Sales board's twin
+      // (Jake, 2026-10-15). Sits before Clients: a close lands here first.
+      { id: "onboarding", label: "Onboarding", ready: true },
       // The Client Tracker sheet as a page (back 2026-10-07, Jake).
       { id: "clients", label: "Clients", ready: true },
       // What the agency spent each month, typed in line by line (Jake, 2026-10-06).

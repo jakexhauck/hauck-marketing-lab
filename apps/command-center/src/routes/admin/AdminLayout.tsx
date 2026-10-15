@@ -19,6 +19,7 @@ import {
   MessagesSquare,
   Wallet,
   ListChecks,
+  Rocket,
 } from "lucide-react";
 import { resolvePillarTab, type PillarId } from "../../lib/adminPillars";
 import { clientNavGroups, clientPath, parseClientPath, type ClientNavRow } from "../../lib/clientNav";
@@ -112,6 +113,7 @@ const PILLAR_GROUPS: RailGroup[] = [
     rows: [
       pillarRow("Tasks", "operations", "tasks", ClipboardList),
       pillarRow("Inbox", "operations", "inbox", MessageSquare),
+      pillarRow("Onboarding", "operations", "onboarding", Rocket),
       pillarRow("Clients", "operations", "clients", Users),
       pillarRow("Budget", "operations", "budget", Wallet),
       pillarRow("Outcome Page", "operations", "outcome-page", ListChecks),

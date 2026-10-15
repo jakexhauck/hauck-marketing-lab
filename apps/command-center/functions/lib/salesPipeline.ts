@@ -84,6 +84,14 @@ export function pickSalesPipeline<T extends { name?: string }>(
   return prefixed.length === 1 ? prefixed[0] : null;
 }
 
+// The agency's Onboarding board (where a PIF or Deposit lands), matched by
+// name exactly like Sales. Admin > Onboarding reads it (Jake, 2026-10-15).
+export function pickOnboardingPipeline<T extends { name?: string }>(
+  pipelines: readonly T[],
+): T | null {
+  return pipelines.find((p) => normalizeStageName(p.name ?? "") === "onboarding") ?? null;
+}
+
 // What each outcome is expected to become on the board. Read only: see above.
 export interface StageRoute {
   // The name matched against the live board. Tolerant on purpose: findStage

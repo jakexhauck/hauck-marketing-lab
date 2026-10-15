@@ -21,7 +21,7 @@ import {
   syncFirstTexts,
   zoneDayRange,
 } from "../../../lib/coldSmsFirstTexts";
-import { pickSalesPipeline } from "../../../lib/salesPipeline";
+import { pickOnboardingPipeline, pickSalesPipeline } from "../../../lib/salesPipeline";
 
 // GET /api/admin/cold-sms/board                     -> every column, first page each
 // GET /api/admin/cold-sms/board?day=YYYY-MM-DD      -> the columns, and how many parts to read
@@ -33,6 +33,8 @@ import { pickSalesPipeline } from "../../../lib/salesPipeline";
 // instead (Sales > Sales Pipeline, Jake 2026-10-13: the same board, same panel,
 // same menu). Sales has no day filter and no Claude verdicts: its cards are
 // booked meetings, not cold replies.
+// &board=onboarding is the agency's Onboarding pipeline the same way (Admin >
+// Onboarding, Jake 2026-10-15), read exactly like Sales.
 //
 // Owner only (no role rule in adminRoles.ts, so every other role is refused).
 // Read live from the agency's "Cold SMS" pipeline. Columns are GHL's stages, so a
@@ -64,7 +66,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const partRaw = params.get("part");
   const part = partRaw === null ? null : Number(partRaw);
   const pageCount = Number(params.get("pages") ?? "0");
-  const sales = params.get("board") === "sales";
+  const boardParam = params.get("board");
+  const onboarding = boardParam === "onboarding";
+  // Sales and Onboarding read the same way: every column, no day filter, no verdicts.
+  const sales = boardParam === "sales" || onboarding;
   if (sales && day) return Response.json({ error: "bad_day" }, { status: 400 });
   if (part !== null && (!day || !Number.isInteger(part) || part < 0 || !Number.isInteger(pageCount) || pageCount < 0)) {
     return Response.json({ error: "bad_part" }, { status: 400 });
@@ -77,7 +82,11 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   try {
     const pipelines = await listPipelines(agency);
-    const board = sales ? pickSalesPipeline(pipelines) : pickColdSmsPipeline(pipelines);
+    const board = onboarding
+      ? pickOnboardingPipeline(pipelines)
+      : sales
+        ? pickSalesPipeline(pipelines)
+        : pickColdSmsPipeline(pipelines);
     if (!board) return Response.json({ configured: true, missing: true, pipelines });
 
     // One part of a day: its pages, kept to the prospects first texted that day.

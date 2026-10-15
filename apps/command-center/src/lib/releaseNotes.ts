@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-15-onboarding-board",
+    date: "15 October 2026",
+    title: "Onboarding board",
+    items: [
+      "Onboarding is a new page in the sidebar, above Clients: the Onboarding pipeline from the Hauck Marketing GHL account (PIF, Deposit, Being Setup, Active Client, Churned).",
+      "It works like the Sales board: drag a card to move it in GHL, click it to open the contact and text them, right-click to set a follow up.",
+    ],
+  },
+  {
     id: "2026-10-15-image-converter",
     date: "15 October 2026",
     title: "Image Converter",

@@ -11,6 +11,7 @@ import {
 import SalesCallsSection from "../../components/admin/sales/SalesCallsSection";
 import PlaybookSection from "../../components/admin/sales/PlaybookSection";
 import SalesPage from "../../components/admin/sales/SalesPage";
+import SmsPipelineBoard from "../../components/admin/coldSms/SmsPipelineBoard";
 import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
 import InboxTab from "../../components/admin/operations/InboxTab";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
@@ -132,6 +133,13 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     case "sales-data":
     case "calendar":
       return <SalesPage tab={tab.id} />;
+    // The agency's GHL Onboarding pipeline, on the Sales board (Jake, 2026-10-15).
+    case "onboarding":
+      return (
+        <div className="flex flex-col gap-6 pb-12">
+          <SmsPipelineBoard kind="onboarding" />
+        </div>
+      );
     case "business-health":
       return <BusinessHealthTab />;
     // The agency's own GoHighLevel messages, read and answered by text.
