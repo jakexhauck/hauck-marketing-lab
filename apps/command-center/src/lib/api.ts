@@ -2724,3 +2724,32 @@ export function bookColdSmsCall(input: {
 }> {
   return api("/api/admin/cold-sms/book", { method: "POST", body: JSON.stringify(input) });
 }
+
+// Image Converter (Client > Image Converter): the images in a client's Drive
+// folder, and one image's bytes, which the browser turns into a texting JPG
+// (lib/textingJpeg.ts). folderUrl null = no Drive folder yet.
+export interface DriveImage {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number | null;
+  thumbnailLink: string | null;
+  folder: string;
+}
+
+export interface DriveImagesResponse {
+  folderUrl: string | null;
+  images: DriveImage[];
+}
+
+export async function fetchDriveImage(tenantId: string, fileId: string): Promise<Blob> {
+  const res = await fetch(
+    `${API_BASE}/api/admin/clients/${encodeURIComponent(tenantId)}/drive-images/${encodeURIComponent(fileId)}`,
+    { credentials: "include" },
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `Could not load the image (${res.status}).`);
+  }
+  return res.blob();
+}

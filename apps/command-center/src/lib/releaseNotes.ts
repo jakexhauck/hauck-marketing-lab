@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-15-image-converter",
+    date: "15 October 2026",
+    title: "Image Converter",
+    items: [
+      "Open a client and pick Image Converter: every photo in their Google Drive folder shows up. Tick the ones you want and press Convert, and each one downloads as a JPG under 750 KB, ready to send in a GHL text.",
+      "Photos on your computer work too: drop them on the page and they convert and download straight away.",
+    ],
+  },
+  {
     id: "2026-10-14-cold-sms-hot-lead",
     date: "14 October 2026",
     title: "Cold SMS: right-click Hot Lead",

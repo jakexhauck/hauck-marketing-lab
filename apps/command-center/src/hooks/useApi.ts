@@ -79,6 +79,7 @@ import {
   type AdTrackerLevel,
   type AdTrackerRange,
   type AdCreativeFilesResponse,
+  type DriveImagesResponse,
   type LeadCitiesResponse,
   type LeadTrackerResponse,
   type ManualLeadStatus,
@@ -1945,6 +1946,15 @@ export function useAdsCreativeFilesQuery(enabled = true) {
     staleTime: 20 * 60_000,
     refetchInterval: 30 * 60_000,
     queryFn: () => api<AdCreativeFilesResponse>(`/api/ads/creative-files`),
+  });
+}
+
+export function useAdminDriveImagesQuery(tenantId: string) {
+  return useQuery({
+    queryKey: ["admin", "drive-images", tenantId],
+    enabled: !!tenantId,
+    staleTime: 5 * 60_000,
+    queryFn: () => api<DriveImagesResponse>(`/api/admin/clients/${tenantId}/drive-images`),
   });
 }
 

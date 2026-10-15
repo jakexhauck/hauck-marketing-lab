@@ -35,7 +35,8 @@ export type ClientPageId =
   | "software"
   | "paid-ads"
   | "ghl"
-  | "management";
+  | "management"
+  | "image-converter";
 
 // What the gates read off a client. AdminClient satisfies it.
 export interface ClientGateInfo {
@@ -80,6 +81,9 @@ const PAGE_LABELS: Record<ClientPageId, string> = {
   "paid-ads": "Paid Ads",
   ghl: "GHL",
   management: "Management",
+  // Jake, 2026-10-15: photos from the client's Drive folder as JPGs under
+  // 750 KB, for GHL texts (components/admin/cockpit/ImageConverterTab.tsx).
+  "image-converter": "Image Converter",
 };
 
 const CLIENT_PAGES = Object.keys(PAGE_LABELS) as ClientPageId[];
@@ -108,7 +112,7 @@ export function clientNavGroups(c: ClientGateInfo): ClientNavGroup[] {
     { caption: null, rule: true, rows: [single("accounts"), single("info"), single("software")] },
     { caption: "Paid Ads", rows: subRows(c, "paid-ads") },
     { caption: "GHL", rows: subRows(c, "ghl") },
-    { caption: null, rule: true, rows: [single("management")] },
+    { caption: null, rule: true, rows: [single("management"), single("image-converter")] },
   ];
 }
 

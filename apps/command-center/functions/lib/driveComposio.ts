@@ -637,6 +637,42 @@ export async function connectedEmail(env: Env, accountId: string): Promise<strin
   }
 }
 
+/**
+ * A file's bytes, as a Response the caller can stream on.
+ *
+ * Bytes through Composio became possible after the note at the top of this file
+ * was written: an `alt=media` read now answers with `binary_data.url`, a
+ * presigned link (an hour) to a copy Composio staged, and the envelope's own
+ * `data` is empty. Verified 2026-10-15 on a 6.5 MB PNG, byte for byte. That
+ * link sends no CORS header, so the bytes come through our function rather than
+ * straight to the browser.
+ */
+export async function downloadDriveFile(env: Env, accountId: string, fileId: string): Promise<Response> {
+  if (!isValidFileId(fileId)) throw new Error(`invalid file id: ${fileId}`);
+  const endpoint = `/files/${fileId}?alt=media&supportsAllDrives=true`;
+  const envelope = await callComposio<ProxyEnvelope & { binary_data?: { url?: string } }>(
+    env,
+    "/tools/execute/proxy",
+    {
+      method: "POST",
+      body: JSON.stringify({ connected_account_id: accountId, endpoint, method: "GET" }),
+    },
+  );
+  const status = envelope.status ?? 200;
+  if (status >= 400) throw driveError(endpoint, status, stringify(envelope.data));
+  const url = envelope.binary_data?.url;
+  if (!url) throw new Error("Drive sent no file back.");
+  const res = await fetch(url);
+  if (!res.ok || !res.body) throw new Error(`Could not fetch the file from Drive (${res.status}).`);
+  return res;
+}
+
+/** A file's parent folder ids, for checking where it lives. [] for a root or missing file. */
+export async function fileParents(env: Env, accountId: string, fileId: string): Promise<string[]> {
+  const meta = (await getFileMeta(env, accountId, fileId, "id,parents")) as { parents?: string[] } | null;
+  return meta?.parents ?? [];
+}
+
 function asObject(data: unknown, what: string): Record<string, unknown> {
   if (data && typeof data === "object") return data as Record<string, unknown>;
   throw new Error(`Drive ${what} returned ${typeof data}, expected JSON.`);

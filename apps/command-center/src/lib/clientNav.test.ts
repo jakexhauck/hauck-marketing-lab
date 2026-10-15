@@ -22,7 +22,7 @@ describe("clientNavGroups", () => {
       [null, ["Accounts", "Client Information", "Software"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Conversion Assets", "Custom Values", "Calendars"]],
-      [null, ["Management"]],
+      [null, ["Management", "Image Converter"]],
     ]);
   });
 
@@ -32,7 +32,7 @@ describe("clientNavGroups", () => {
       [null, ["Accounts", "Client Information", "Software"]],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Connect GHL", "Conversion Assets"]],
-      [null, ["Management"]],
+      [null, ["Management", "Image Converter"]],
     ]);
   });
 

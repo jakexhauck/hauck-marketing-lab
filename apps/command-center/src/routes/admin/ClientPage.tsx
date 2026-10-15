@@ -7,6 +7,7 @@ import { ClientSheet } from "../../components/admin/onboarding/OnboardingSheet";
 import GhlTab from "../../components/admin/cockpit/ghl/GhlTab";
 import AccountsTab from "../../components/admin/cockpit/AccountsTab";
 import ManagementTab from "../../components/admin/cockpit/ManagementTab";
+import ImageConverterTab from "../../components/admin/cockpit/ImageConverterTab";
 import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
 import SoftwareTab from "../../components/admin/cockpit/software/SoftwareTab";
 import { adminHomeFor } from "./AdminLayout";
@@ -151,5 +152,7 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
       );
     case "management":
       return <ManagementTab tenantId={client.id} />;
+    case "image-converter":
+      return <ImageConverterTab tenantId={client.id} />;
   }
 }
