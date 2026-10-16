@@ -692,3 +692,26 @@ Your action items:
 2. Press each red row's button and fix it.
 3. Press Check again until it reads 10 / 10.
 4. Tell me if an Open in GHL button lands on a blank page.
+
+## Clear Choice landing page (16 October 2026)
+
+What's built: the Clear Choice Windows Owensboro "Free Triple Pane Glass ($300 value)" funnel, modeled on Midwest Window's page. 3-step quiz (home age, zip, name + phone), before/after slider, Google reviews with photos, winter triple pane section, Meta Pixel (PageView + Lead only). GHL holds a two-line stub; the page itself is served from app.hauckmarketing.com, so edits ship without touching GHL. Draft: `clients/Clear Choice Windows/funnel/index.html`.
+
+GHL stub (one Custom Code element, full-width section, 0 padding):
+```html
+<div id="cc-lp"></div>
+<script src="https://app.hauckmarketing.com/sites/clear-choice-windows/lp/page.js"></script>
+```
+
+Your action items:
+1. Refresh the GHL preview and confirm the white space is gone. If not, screenshot where it shows.
+2. In Clear Choice's sub-account: Automation > Workflows > new workflow, trigger **Inbound Webhook**. Send me the URL (leave it unpublished).
+3. I wire the page to it and send one test lead. Then map name, phone, zip and home age into the contact and pick the pipeline stage.
+4. Publish the workflow and do one real test submission with your own details. Check it lands in GHL and the **Lead** shows in Meta Events Manager > Test events.
+5. Leave the funnel's Settings > Tracking Code EMPTY (the pixel is in the page; adding it twice double counts).
+6. Funnel step Settings > SEO: title `Clear Choice Windows Owensboro | Free Triple Pane Glass`, description `Free triple pane glass with any new window installation ($300 value). Keep your Owensboro home warmer this winter.`
+7. Verify the funnel's domain in Meta Business Settings > Brand safety > Domains.
+8. Only then turn on ads.
+
+Still parked:
+- The double vs triple pane diagram is Midwest Window's own graphic and says "in the Midwest". Swap for a Clear Choice version before ads run.
