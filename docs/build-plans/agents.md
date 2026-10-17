@@ -515,3 +515,10 @@ DONE by the lead in `73383b63` before the lanes started (so no lane owns it): `G
 - Agents tick their own section's boxes with a ```tick block when an item is finished; Jake can tick or untick any manual box.
 - The three settings cards from Client Information (sub-account, dialing, estimate) move to Management.
 - Old addresses (full-setup, onboarding-call, launch-call, info, accounts, software, and the retired onboarding/setter ids) land on Brief. A client in setup opens on Brief.
+
+**As built (branch `feat/brief-v2`, 2026-10-17):**
+- Migration `0169_brief_v2_sections.sql` (not run): `client_briefs.section` also takes `client`, `onboarding-call`, `launch-call`. Sections in `src/lib/clientBrief.ts` (`BRIEF_SECTIONS`, `isBriefSectionId`, `tickSections`).
+- Boxes: `src/lib/briefChecklist.ts` (`BRIEF_BOXES`, keys from `sopChecklists.ts` unchanged). Accounts checks: ghl, pipeline, calendars, owner-links, owner-phone to GHL; meta-ads, meta-page to Ads; login, push to Status.
+- Client seed: `src/lib/briefClientSeed.ts`; written once by `seedClientSection` (admin GET and claim) while the section is at version 0. Anything whose key or label reads password, token, secret, API key, PIN or credential is "on file".
+- Ticks: `POST /api/agent-runner/tick` (`functions/lib/briefTicks.ts`), section from the chat on the server, done_by `agent:<id>`. The claim carries each section's boxes; the runner shows an agent only the boxes it may tick and parses the ```tick block.
+- UI: `components/admin/agents/BriefBoxes.tsx` under every section on the Brief page and beside the chat; `cockpit/AccountChecks.tsx` (was AccountsTab) draws the auto boxes and fixes. Removed: SopChecklist, SoftwareTab, PagePreviewFrame, ClientSheet (the per-client sheet; SubmissionSheet stays).
