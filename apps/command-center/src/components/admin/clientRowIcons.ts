@@ -17,7 +17,6 @@ import {
   Image,
   LayoutDashboard,
   ListChecks,
-  ListTodo,
   PenLine,
   PhoneCall,
   Rocket,
@@ -32,10 +31,7 @@ import type { ClientNavRow } from "../../lib/clientNav";
 // sheet. Keyed by sub-page where there is one, else by page. Presentation only,
 // so it lives beside the chrome rather than in lib/clientNav.
 const ICONS: Record<string, LucideIcon> = {
-  onboarding: ListTodo,
-  info: UserRound,
   brief: NotebookText,
-  software: AppWindow,
   dashboard: LayoutDashboard,
   leads: ListChecks,
   "meta-data": Database,

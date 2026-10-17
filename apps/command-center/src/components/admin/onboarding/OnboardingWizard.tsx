@@ -7,7 +7,7 @@ import { useIntakeAction, useIntakeQueue } from "../../../hooks/useIntake";
 // New client (/admin/onboarding), the agency side of onboarding.
 //
 // Since the client strip (2026-10-05) a client's setup checklist lives inside
-// their own sub-account (Full Setup Checklist, SetupActions.tsx). What stays on the agency side
+// their own sub-account (the Brief's Status section, SetupActions.tsx). What stays on the agency side
 // is what has no sub-account yet: intake forms that never became a client.
 // Opening one shows what they filled in; the X rejects it.
 

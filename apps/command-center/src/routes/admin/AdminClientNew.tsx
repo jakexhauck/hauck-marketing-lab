@@ -372,7 +372,7 @@ function Created({
         </p>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <Link to={clientPath(result.id, "full-setup")}>
+          <Link to={clientPath(result.id, "brief")}>
             <Button variant="primary">
               Open their onboarding record
               <ArrowRight size={15} aria-hidden />

@@ -10,6 +10,7 @@ import { driveChip, fullBrief, sectionLabel, whoEdited } from "../../../lib/clie
 import { BRIEF_SECTION_ICONS } from "../clientRowIcons";
 import { BriefEditor, BriefToolbar } from "./BriefEditor";
 import { useClientBrief, useSaveBriefSection } from "./agentApi";
+import { SectionBoxes, StatusActions } from "./BriefBoxes";
 
 // The Client Brief (docs/build-plans/agents.md, Phase 6), drawn two ways from
 // the same pieces: beside the chat on every client agent page (BriefTab), and
@@ -139,6 +140,8 @@ export function SectionBlock({
         </span>
       </div>
 
+      {section.section === "manager" && <StatusActions tenantId={tenantId} />}
+
       {state.conflict && (
         <div className="brf-conflict" role="alert">
           <div className="brf-conflict-t">
@@ -163,6 +166,8 @@ export function SectionBlock({
         onFocus={onFocus}
         label={`${sectionLabel(section.section)} section`}
       />
+
+      <SectionBoxes tenantId={tenantId} section={section.section} />
     </section>
   );
 }
@@ -293,9 +298,11 @@ function BriefStyle() {
         --brand-text: color-mix(in srgb, var(--brand) 70%, white);
       }
       .brf *, .brf *::before, .brf *::after { box-sizing: border-box; }
-      .brf button, .brf select { font: inherit; cursor: pointer; color: inherit; }
-      .brf button { border: 0; background: none; }
-      .brf button:disabled, .brf select:disabled { cursor: default; opacity: .4; }
+      /* Zero specificity, so the app's own buttons inside the brief (Status
+         actions, Accounts fixes) keep their look. */
+      :where(.brf) button, :where(.brf) select { font: inherit; cursor: pointer; color: inherit; }
+      :where(.brf) button { border: 0; background: none; }
+      :where(.brf) button:disabled, :where(.brf) select:disabled { cursor: default; opacity: .4; }
       .brf svg { flex-shrink: 0; }
       .brf-note { padding: 16px 8px; font-size: 13px; color: var(--text-faint); text-align: center; }
       .brf-grow { flex: 1; }
@@ -373,6 +380,21 @@ function BriefStyle() {
       .brf-actions { display: flex; gap: 8px; margin-top: 10px; }
       .brf .brf-b1 { flex: 1; padding: 7px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: #fff; background-image: var(--grad-brand); }
       .brf .brf-b2 { flex: 1; padding: 7px; border-radius: 10px; font-size: 12.5px; font-weight: 600; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+
+      /* Status actions and the boxes under a section. */
+      .brf-actions-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
+      .brf-boxes { margin-top: 10px; padding-top: 6px; border-top: 1px dashed var(--border); }
+      .brf-box { display: flex; align-items: flex-start; gap: 12px; padding: 6px 12px; border-radius: 8px; }
+      .brf-box:hover { background: var(--surface-2); }
+      .brf .brf-check { margin-top: 1px; width: 20px; height: 20px; flex-shrink: 0; display: grid; place-items: center; border-radius: 6px; border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--brand-fg, #fff); }
+      .brf .brf-check:hover { border-color: var(--brand); }
+      .brf .brf-check.on { border-color: var(--brand); background: var(--brand); }
+      .brf-box-body { min-width: 0; flex: 1; }
+      .brf .brf-box-label { text-align: left; font-size: 14px; font-weight: 500; color: var(--text); }
+      .brf .brf-box-label.on { color: var(--text-faint); text-decoration: line-through; }
+      .brf-box-sub { margin: 2px 0 0; font-size: 12.5px; color: var(--text-muted); }
+      .brf-box-group { margin: 10px 0 2px; padding: 0 12px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint); }
+      .brf-box-note { padding: 6px 12px; font-size: 12.5px; color: var(--text-faint); }
 
       .brf-page-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
       .brf-title { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -.02em; margin: 0; }

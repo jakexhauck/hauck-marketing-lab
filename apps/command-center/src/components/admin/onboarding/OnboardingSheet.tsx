@@ -1,57 +1,21 @@
 import { useMemo, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "../../ui/Button";
-import SubaccountCard from "./SubaccountCard";
-import SelfDialCard from "./SelfDialCard";
-import EstimateTrackingCard from "./EstimateTrackingCard";
-import { useAdminOnboardingQuery, useClientSecrets } from "../../../hooks/useApi";
 import { useIntakeSubmission } from "../../../hooks/useIntake";
 import { sheetSections, sheetText, type SheetSection } from "../../../lib/onboardingSheet";
 
-// The client sheet, open underneath their row.
+// The client sheet, open underneath a submitted form's row.
+//
+// Brief v2 (Jake, 2026-10-17): a client's own sheet (Client Information) went;
+// their answers are the brief's Client section (lib/briefClientSeed.ts) and
+// the sub-account, dialing and estimate cards moved to Management. What is
+// left is the sheet for a form that has not become a client yet.
 //
 // A document, not a form. Everything we hold about one client in the order the
 // funnel asked for it, with the wiring at the end, and every line copyable:
 // click a line to take that value, or take the lot. Standing a sub-account up
 // means pasting these values into GoHighLevel and Meta, and hunting for them
 // across four screens was the actual complaint.
-
-export function ClientSheet({ tenantId }: { tenantId: string }) {
-  const record = useAdminOnboardingQuery(tenantId);
-  const secrets = useClientSecrets(tenantId);
-
-  const sections = useMemo(
-    () =>
-      sheetSections(
-        record.data?.intake ?? {},
-        secrets.data?.fields ?? [],
-        record.data?.password,
-      ),
-    [record.data?.intake, record.data?.password, secrets.data?.fields],
-  );
-
-  return (
-    <div className="border-t border-divider bg-surface-2">
-      {/* Above the sheet because it is the only thing here that is an action:
-          everything below is a value to read or copy, and a client cannot use
-          their app at all until this is linked. */}
-      <div className="flex flex-col gap-4 p-4 pb-0">
-        <SubaccountCard
-          tenantId={tenantId}
-          clientName={record.data?.name || "this client"}
-          isLive={record.data?.onboardingStatus !== "setup"}
-        />
-        <SelfDialCard tenantId={tenantId} />
-        <EstimateTrackingCard tenantId={tenantId} />
-      </div>
-      <SheetView
-        sections={sections}
-        loading={record.isLoading || secrets.isLoading}
-        error={record.isLoadingError ? "That client's record did not load." : null}
-      />
-    </div>
-  );
-}
 
 export function SubmissionSheet({ submissionId }: { submissionId: string }) {
   const detail = useIntakeSubmission(submissionId);
