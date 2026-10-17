@@ -29,6 +29,7 @@ vi.mock("../lib/adminAuth", async () => {
 
 import { onRequest } from "./_middleware";
 import { HEALTH_CRON_HEADER, HEALTH_CRON_PATH } from "../lib/healthCron";
+import { AGENT_RUNNER_HEADER } from "../lib/agentRunner";
 
 const SECRET = "b7f2c9d4e1a68350f9c2b7d4e1a68350f9c2b7d4";
 
@@ -196,5 +197,57 @@ describe("api middleware: the admin gate", () => {
     const res = await call("/api/admin/cold-call/live", { header: null });
     expect(res.status).toBe(200);
     expect(reached).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The Agents runner gate (lib/agentRunner.ts): its own secret, its own nine
+// paths, and never an admin identity.
+
+describe("api middleware: the agent runner gate", () => {
+  function runner(path: string, opts: { method?: string; header?: string | null; secret?: string | null } = {}) {
+    const ctxData: Record<string, unknown> = {};
+    const headers = new Headers();
+    const presented = "header" in opts ? opts.header : SECRET;
+    if (presented) headers.set(AGENT_RUNNER_HEADER, presented);
+    const env: Record<string, unknown> = {};
+    if (opts.secret !== null) env.AGENT_RUNNER_SECRET = opts.secret ?? SECRET;
+    const ctx = {
+      request: new Request(`https://app.hauckmarketing.com${path}`, { method: opts.method ?? "POST", headers }),
+      env,
+      data: ctxData,
+      next: async () => {
+        reached = true;
+        return new Response("{}", { status: 200 });
+      },
+    };
+    return { ctxData, res: (onRequest as unknown as (c: typeof ctx) => Promise<Response>)(ctx) };
+  }
+
+  it("lets the runner claim with no session, and makes it no admin", async () => {
+    const { ctxData, res } = runner("/api/agent-runner/claim");
+    expect((await res).status).toBe(200);
+    expect(reached).toBe(true);
+    expect(ctxData.admin).toBeUndefined();
+  });
+
+  it("serves its reads as GET", async () => {
+    const { res } = runner("/api/agent-runner/meta", { method: "GET" });
+    expect((await res).status).toBe(200);
+  });
+
+  it("opens no admin route and no unlisted runner path", async () => {
+    for (const path of ["/api/admin/clients", "/api/admin/agents/chats", "/api/agent-runner/secrets"]) {
+      reached = false;
+      const { res } = runner(path);
+      expect((await res).status, `${path} must stay shut`).toBe(401);
+      expect(reached).toBe(false);
+    }
+  });
+
+  it("401s a wrong secret, and is off when none is configured", async () => {
+    expect((await runner("/api/agent-runner/claim", { header: "0".repeat(SECRET.length) }).res).status).toBe(401);
+    expect((await runner("/api/agent-runner/claim", { secret: null }).res).status).toBe(401);
+    expect(reached).toBe(false);
   });
 });
