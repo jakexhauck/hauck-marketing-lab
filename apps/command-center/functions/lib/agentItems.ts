@@ -205,6 +205,9 @@ export function grantFrom(item: Pick<AgentItem, "id" | "payload">): Grant | null
   // A spend with no usable number was never a price Jake saw, so it grants
   // nothing (the card showed no credits either: agentView reads this limit).
   if (g.kind === "spend" && (limit === null || !Number.isSafeInteger(limit) || limit <= 0)) return null;
+  // Deploy and file cards are only ever made by the runner (upsertItem sets
+  // runnerOwned from the post's origin). One the model wrote grants nothing.
+  if ((g.kind === "deploy" || g.kind === "file") && item.payload?.runnerOwned !== true) return null;
   return { itemId: item.id, kind: g.kind as GrantKind, limit };
 }
 

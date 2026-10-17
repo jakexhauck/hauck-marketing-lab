@@ -32,7 +32,7 @@ describe("liveUrlMatches", () => {
   });
 });
 
-function world(over: { agent?: string; status?: string; grant?: unknown; itemStatus?: string; itemAgent?: string; itemTenant?: string; chatTenant?: string; role?: string } = {}) {
+function world(over: { agent?: string; status?: string; grant?: unknown; itemStatus?: string; itemAgent?: string; itemTenant?: string; chatTenant?: string; role?: string; runnerOwned?: boolean } = {}) {
   return new FakeDb()
     .seed("agent_chats", [{ id: C1, tenant_id: over.chatTenant ?? T1, agent: over.agent ?? "landing", title: "Winter", auto: false }])
     .seed("agent_items", [
@@ -44,7 +44,7 @@ function world(over: { agent?: string; status?: string; grant?: unknown; itemSta
         kind: "landing_page",
         title: "Winter offer page",
         status: over.itemStatus ?? "done",
-        payload: { site: "winter", previewUrl: PREVIEW, grant: { kind: "deploy" } },
+        payload: { site: "winter", previewUrl: PREVIEW, grant: { kind: "deploy" }, ...(over.runnerOwned === false ? {} : { runnerOwned: true }) },
         approved_at: "2026-10-17T11:00:00.000Z",
         updated_at: "2026-10-17T11:00:00.000Z",
       },
@@ -86,6 +86,10 @@ describe("fileLandingAsset", () => {
     expect(await fileLandingAsset(world({ grant: null }).client(), body)).toMatchObject({ error: 409 });
     expect(await fileLandingAsset(world({ grant: { itemId: I1, kind: "spend", limit: 5 } }).client(), body)).toMatchObject({ error: 409 });
     expect(await fileLandingAsset(world({ grant: { itemId: "nope", kind: "deploy" } }).client(), body)).toMatchObject({ error: 409 });
+  });
+
+  it("409 when the runner did not make the card", async () => {
+    expect(await fileLandingAsset(world({ runnerOwned: false }).client(), body)).toMatchObject({ error: 409 });
   });
 
   it("409 when the message is not running", async () => {

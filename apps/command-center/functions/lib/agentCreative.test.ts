@@ -27,7 +27,7 @@ function card(over: Record<string, unknown> = {}, payload: Record<string, unknow
     status: "done",
     approved_at: "2026-10-17T09:59:00Z",
     updated_at: "2026-10-17T09:59:00Z",
-    payload: { path: FILE, grant: { kind: "file" }, ...payload },
+    payload: { path: FILE, grant: { kind: "file" }, runnerOwned: true, ...payload },
     ...over,
   };
 }
@@ -107,6 +107,11 @@ describe("fileGrantFor", () => {
   it("refuses a card that never asked to file (409)", async () => {
     const d = db(message(fileGrant), card({}, { grant: { kind: "spend" } }));
     expect(await fileGrantFor(d.client(), await turnOf(d), FILE)).toMatchObject({ status: 409 });
+  });
+
+  it("refuses a file card the runner did not make (409)", async () => {
+    const d = db(message(fileGrant), card({}, { runnerOwned: undefined }));
+    expect(await fileGrantFor(d.client(), await turnOf(d), FILE)).toMatchObject({ status: 409, error: "the runner did not make that card" });
   });
 
   it("files once: a replay is refused (409)", async () => {

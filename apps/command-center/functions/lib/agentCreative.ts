@@ -71,6 +71,7 @@ export function checkFileGrant(turn: CreativeTurn, item: AgentItem | null, path:
   if (item.status !== "done" || !item.approvedAt) return { status: 409, error: "the card was not approved" };
   const asked = item.payload.grant as Row | undefined;
   if (!asked || asked.kind !== "file") return { status: 409, error: "the card did not ask to file anything" };
+  if (item.payload.runnerOwned !== true) return { status: 409, error: "the runner did not make that card" };
   if (item.payload.path !== path || !pathBelongsTo(path, turn.tenantId)) {
     return { status: 409, error: "that is not the file on the approved card" };
   }

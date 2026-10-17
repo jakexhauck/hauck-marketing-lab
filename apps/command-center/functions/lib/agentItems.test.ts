@@ -242,11 +242,11 @@ describe("decideItem", () => {
 
   // A grant is how an Approve switches on a gated tool for the next turn only
   // (deploy, spend, ghl, file). It rides on the follow-up message, nowhere else.
-  function withGrant(grant: unknown) {
+  function withGrant(grant: unknown, extra: Record<string, unknown> = {}) {
     return new FakeDb()
       .seed("agent_chats", [chat("c1", T1, "creative")])
       .seed("agent_items", [
-        { id: "i1", tenant_id: T1, agent: "creative", chat_id: "c1", title: "Image", status: "needs_ok", payload: { grant }, approved_at: null },
+        { id: "i1", tenant_id: T1, agent: "creative", chat_id: "c1", title: "Image", status: "needs_ok", payload: { grant, ...extra }, approved_at: null },
       ]);
   }
 
@@ -277,9 +277,20 @@ describe("decideItem", () => {
       expect(db2.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1" });
     }
     // Other kinds carry no limit and still grant.
-    const db3 = withGrant({ kind: "file" });
+    const db3 = withGrant({ kind: "ghl" });
     await decideItem(db3.client(), "i1", "approve");
-    expect(db3.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1", grant: { itemId: "i1", kind: "file", limit: null } });
+    expect(db3.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1", grant: { itemId: "i1", kind: "ghl", limit: null } });
+  });
+
+  it("grants deploy and file only on a card the runner made", async () => {
+    for (const kind of ["deploy", "file"]) {
+      const own = withGrant({ kind }, { runnerOwned: true });
+      await decideItem(own.client(), "i1", "approve");
+      expect(own.rows("agent_messages")[0].meta, kind).toEqual({ followUpOf: "i1", grant: { itemId: "i1", kind, limit: null } });
+      const forged = withGrant({ kind });
+      await decideItem(forged.client(), "i1", "approve");
+      expect(forged.rows("agent_messages")[0].meta, kind).toEqual({ followUpOf: "i1" });
+    }
   });
 
   it("a double approve answers 409 and queues nothing more", async () => {
