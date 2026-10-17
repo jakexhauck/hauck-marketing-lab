@@ -24,6 +24,7 @@ import type { Bundle } from "./claude.ts";
 import { findDriveFolder, vaultFolder } from "./clients.ts";
 import { AGENTS_DIR, DRIVE_ROOT, GHL_SCRIPT, META_SCRIPT, PROMPTS_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
 import { stripEmDashes } from "./output.ts";
+import { creativeHiggsfieldTools, spendLimit, writeHiggsfieldConfig } from "./spend.ts";
 import type { AgentId, ClaimTenant, Grant } from "./wire.ts";
 
 export type { Bundle };
@@ -201,6 +202,8 @@ export function buildBundle(
     sections.push(brainSection(`Your brain (${def.name})`, lessonLines(agentBrainPath(env.vaultDir, agent))));
   }
 
+  if (agent === "creative") sections.push(creativeSpendSection(grant));
+
   mkdirSync(env.outDir, { recursive: true });
   const systemPromptFile = join(env.outDir, `${agent}-${tenant?.slug ?? "agency"}.md`);
   // Brains are hand-editable in Obsidian, so an em dash can come in from there
@@ -219,5 +222,22 @@ export function buildBundle(
   // none: its gate is on the server, which also has to allow Jake's direct
   // asks, and those carry no grant.
   const allowedTools = [...allowedToolsFor(agent, env.metaScript), ...ghlTools(agent, tenant, env)];
-  return { systemPromptFile, allowedTools, addDirs, workDir };
+  const bundle: Bundle = { systemPromptFile, allowedTools, addDirs, workDir };
+  if (agent === "creative") {
+    // Higgsfield, and only Higgsfield, with the credit gate (src/spend.ts).
+    const hf = creativeHiggsfieldTools(grant);
+    bundle.allowedTools.push(...hf.allowed);
+    bundle.disallowedTools = hf.disallowed;
+    bundle.mcpConfig = writeHiggsfieldConfig(join(env.outDir, `${agent}-${tenant?.slug ?? "agency"}.mcp.json`));
+  }
+  return bundle;
+}
+
+// What this one turn may spend, in the prompt so the agent knows; the tool
+// lists in buildBundle are what actually hold it to that.
+function creativeSpendSection(grant: Grant | null): string {
+  const limit = spendLimit(grant);
+  return limit === null
+    ? "## Credits this turn\nNone approved. Generate tools are switched off. Quote first, then file a spend card."
+    : `## Credits this turn\nJake approved up to ${limit} credits for card ${grant!.itemId}. Generate what that card describes and nothing more. Pass max_credits where a tool takes it.`;
 }

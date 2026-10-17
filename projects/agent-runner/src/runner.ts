@@ -23,8 +23,10 @@ import type { RunnerApi } from "./api.ts";
 import { appendLessons, applyEdits, readLessons } from "./brain.ts";
 import { agentBrainPath, buildBundle, clientBrainPath, type BundleEnv } from "./bundle.ts";
 import type { RunOptions } from "./claude.ts";
-import { tenantForFolder } from "./clients.ts";
+import { tenantForFolder, vaultFolder } from "./clients.ts";
 import { draftSite, goLive, isSiteDraft, withoutDeployGrant, type LandingDeps } from "./landing.ts";
+import { fileApproved, runVideoBlocks, takeVideoBlocks, type CreativeDeps, type CreativeTurn } from "./creative.ts";
+import { checkSpend, spendLimit } from "./spend.ts";
 import { extractCitations, parseAgentOutput, stripEmDashes } from "./output.ts";
 import type { AgentId, AgentLesson, ClaimResponse, ClaimTenant, ItemStatus, LessonEdit, LessonScope, LessonsBody } from "./wire.ts";
 
@@ -45,6 +47,9 @@ export interface RunnerDeps {
   // The Landing Page Agent's deploys (landing.ts). Without it a landing card
   // is filed like any other and nothing is deployed.
   landing?: LandingDeps;
+  // The Creative Agent's video pipeline, uploads and credit balance. Without
+  // it a creative turn still answers; its ```video blocks are just not run.
+  creative?: CreativeDeps;
 }
 
 // One brain file and whose lessons it holds. A client brain is shared by all
@@ -98,7 +103,7 @@ function allLessons(vaultDir: string): Map<string, AgentLesson> {
 // While the answer streams, the protocol blocks are not for Jake to read: show
 // the prose up to the first block and nothing of a half-written one.
 function preview(text: string): string {
-  const cut = text.split(/```(?:lessons|item|request)/)[0];
+  const cut = text.split(/```(?:lessons|item|request|video)/)[0];
   return extractCitations(stripEmDashes(cut)).reply.trim();
 }
 
@@ -154,17 +159,49 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
       },
     };
 
+    // Set by the video rounds as the reply grows, so a step shows under it.
+    let shown = "";
+    const creative: CreativeTurn | null =
+      agent === "creative" && tenant && d.creative
+        ? {
+            deps: d.creative,
+            runnerApi: d.api,
+            messageId,
+            chatId: chat.id,
+            tenant,
+            workDir: bundle.workDir,
+            driveDir: bundle.addDirs[0] ?? null,
+            vaultFolder: join(d.env.vaultDir, "Clients", vaultFolder(tenant)),
+            say: (step) => base.onProgress(`${shown}\n\n_${step}..._`, []),
+            log,
+          }
+        : null;
+
+    // Approve on a file card: the runner files it first, and the agent's turn
+    // starts by being told how that went.
+    const grant = message.grant;
+    const fileNote = creative && grant?.kind === "file" ? await fileApproved(grant, creative) : null;
+    const withFile = (p: string) => (fileNote ? `${fileNote}\n\n${p}` : p);
+    const prompt = withFile(promptFor(claim, !chat.started));
+    // An approved spend: read the balance either side of the turn.
+    const limit = creative ? spendLimit(grant) : null;
+    const before = limit !== null ? await creative!.deps.balance() : null;
+
     let result: { text: string; tools: string[] };
     try {
-      result = await d.run({ ...base, resume: chat.started, prompt: withNote(promptFor(claim, !chat.started)) });
+      result = await d.run({ ...base, resume: chat.started, prompt: withNote(prompt) });
     } catch (e) {
       // The session lives in this PC's ~/.claude. If it is gone (a new PC, a
       // cleared profile) --resume fails outright; start it again from the
       // chat's own history instead of leaving the chat dead.
       if (!chat.started || !/no conversation found/i.test((e as Error).message)) throw e;
       log(`session ${chat.claudeSessionId} not found here; starting it fresh with the chat history`);
-      result = await d.run({ ...base, resume: false, prompt: withNote(promptFor(claim, true)) });
+      result = await d.run({ ...base, resume: false, prompt: withNote(withFile(promptFor(claim, true))) });
     }
+
+    if (creative) result = await creativeRounds(result, creative, (p) => d.run({ ...base, resume: true, prompt: p }), (t) => (shown = preview(t)));
+    let spendError: string | null = null;
+    if (limit !== null) spendError = await spendCheck(before, await creative!.deps.balance(), limit, creative!, grant!.itemId);
 
     const out = parseAgentOutput(result.text);
     const cited = extractCitations(out.reply);
@@ -261,7 +298,8 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
     await progressPosts;
     await d.api.reply({
       messageId,
-      status: "done",
+      status: spendError ? "error" : "done",
+      ...(spendError ? { error: spendError } : {}),
       aiBody: [cited.reply.trim(), ...notes].filter(Boolean).join("\n\n"),
       tools: result.tools,
       used,
@@ -314,4 +352,63 @@ export async function syncAllBrains(tenants: ClaimTenant[], d: RunnerDeps): Prom
   if (body.scopes.length === 0) return 0;
   await d.api.lessons(body);
   return body.lessons.length;
+}
+
+// Up to three rounds of the agent's ```video blocks. Each round the runner
+// does what was asked, then either resumes the agent with what happened (a
+// clip got prepared, a build failed on a phrase) or, when nothing is left for
+// it to do, puts the outcome under its reply.
+const VIDEO_ROUNDS = 3;
+
+async function creativeRounds(
+  first: { text: string; tools: string[] },
+  t: CreativeTurn,
+  resume: (prompt: string) => Promise<{ text: string; tools: string[] }>,
+  show: (text: string) => void,
+): Promise<{ text: string; tools: string[] }> {
+  const retried = new Set<string>();
+  const texts: string[] = [];
+  const tools = [...first.tools];
+  let cur = first;
+  for (let round = 1; ; round++) {
+    const { text, blocks } = takeVideoBlocks(cur.text);
+    texts.push(text);
+    show(texts.join("\n\n"));
+    if (!blocks.length) break;
+    const out = await runVideoBlocks(blocks, t, retried);
+    if (!out.again || round >= VIDEO_ROUNDS) {
+      texts.push(out.notes.join("\n"));
+      break;
+    }
+    cur = await resume(`Runner:\n${out.notes.map((n) => `- ${n}`).join("\n")}`);
+    tools.push(...cur.tools);
+  }
+  return { text: texts.filter(Boolean).join("\n\n"), tools };
+}
+
+// After a turn Jake approved a spend for: did it stay inside the limit? A
+// balance that cannot be read is flagged too: "probably fine" is not a check.
+async function spendCheck(before: number | null, after: number | null, limit: number, t: CreativeTurn, itemId: string): Promise<string | null> {
+  const spent = before !== null && after !== null ? before - after : null;
+  const over = spent === null ? true : checkSpend(before!, after!, limit) === "over";
+  if (!over) return null;
+  const what =
+    spent === null
+      ? `Could not read the Higgsfield balance around this turn, so the spend is unchecked (approved: ${limit} credits).`
+      : `This turn spent ${spent} credits; ${limit} were approved.`;
+  try {
+    await t.runnerApi.item({
+      tenantId: t.tenant.id,
+      agent: "creative",
+      chatId: t.chatId,
+      fromAgent: null,
+      kind: "spend_alert",
+      title: "Credits over the approved amount",
+      status: "needs_ok",
+      payload: { quote: what, stats: [{ label: "Approved", value: limit }, { label: "Spent", value: spent ?? "unknown" }], approvedCard: itemId },
+    });
+  } catch (e) {
+    t.log(`spend alert post failed: ${(e as Error).message}`);
+  }
+  return what;
 }

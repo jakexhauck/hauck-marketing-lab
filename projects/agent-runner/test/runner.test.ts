@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { applyQueuedEdits, handleClaim, syncAllBrains, type RunnerDeps } from "../src/runner.ts";
 import type { ClaimResponse, ClaimTenant } from "../src/wire.ts";
 import { fakeApi } from "./fakeApi.ts";
+import { fakeCreativeApi, fakeExec } from "./fakeCreative.ts";
 
 const F = "```";
 const willis: ClaimTenant = { id: "t-willis", name: "Willis Windows", slug: "willis-windows", metaAdAccountId: "act_1" };
@@ -239,5 +240,93 @@ describe("syncAllBrains", () => {
     const scopes = api.lessonPosts[0].scopes;
     expect(scopes).toContainEqual({ scope: "client", tenantId: "t-willis", agent: "ads" });
     expect(scopes).toContainEqual({ scope: "agent", tenantId: null, agent: "ads" });
+  });
+});
+
+describe("handleClaim: Creative Agent", () => {
+  const aag: ClaimTenant = { id: "t-aag", name: "Above All Garage Doors", slug: "above-all-garage-doors", metaAdAccountId: null };
+
+  function creativeSetup(replies: string[], balances: (number | null)[] = []) {
+    const w = world();
+    const api = fakeApi();
+    const c = fakeCreativeApi();
+    const e = fakeExec();
+    const runs: { resume: boolean; prompt: string; allowed: string[] }[] = [];
+    const d: RunnerDeps = {
+      api,
+      env: w.env,
+      today: () => "2026-10-17",
+      run: async (o) => {
+        runs.push({ resume: o.resume, prompt: o.prompt, allowed: o.bundle.allowedTools });
+        return { text: replies.shift() ?? "Done.", tools: ["Read"] };
+      },
+      commit: async () => true,
+      creative: { api: c.api, exec: e.x, balance: async () => (balances.length ? balances.shift()! : 100) },
+    };
+    const cl = claim({ agent: "creative", tenantId: "t-aag" }, "Make an ad");
+    cl.tenant = aag;
+    return { w, api, c, e, runs, d, cl };
+  }
+
+  it("runs a spend turn with generate tools and passes when it stays inside the limit", async () => {
+    const s = creativeSetup(["Made it."], [160, 150]);
+    s.cl.message.grant = { itemId: "card-1", kind: "spend", limit: 10 };
+    await handleClaim(s.cl, s.d);
+    expect(s.runs[0].allowed).toContain("mcp__higgsfield__generate_image");
+    expect(s.api.replies.at(-1)).toMatchObject({ status: "done", aiBody: "Made it." });
+    expect(s.api.items).toEqual([]);
+  });
+
+  it("flags a turn that spent more than Jake approved", async () => {
+    const s = creativeSetup(["Made it."], [160, 140]);
+    s.cl.message.grant = { itemId: "card-1", kind: "spend", limit: 10 };
+    await handleClaim(s.cl, s.d);
+    const last = s.api.replies.at(-1)!;
+    expect(last.status).toBe("error");
+    expect(last.error).toBe("This turn spent 20 credits; 10 were approved.");
+    expect(last.aiBody).toBe("Made it.");
+    expect(s.api.items[0]).toMatchObject({ kind: "spend_alert", status: "needs_ok" });
+  });
+
+  it("flags a spend turn whose balance could not be read", async () => {
+    const s = creativeSetup(["Made it."], [160, null]);
+    s.cl.message.grant = { itemId: "card-1", kind: "spend", limit: 10 };
+    await handleClaim(s.cl, s.d);
+    expect(s.api.replies.at(-1)!.error).toMatch(/unchecked/);
+  });
+
+  it("reads no balance and allows no generate tool on an ordinary turn", async () => {
+    let reads = 0;
+    const s = creativeSetup(["Here is the quote."]);
+    s.d.creative!.balance = async () => (reads++, 100);
+    await handleClaim(s.cl, s.d);
+    expect(reads).toBe(0);
+    expect(s.runs[0].allowed).not.toContain("mcp__higgsfield__generate_image");
+  });
+
+  it("files an approved card before the agent's turn and tells it", async () => {
+    const s = creativeSetup(["Filed."]);
+    const workDir = join(s.w.env.workRoot, "creative-above-all-garage-doors");
+    mkdirSync(workDir, { recursive: true });
+    writeFileSync(
+      join(workDir, "creative-state.json"),
+      JSON.stringify({ cards: {}, finals: { "card-7": { path: "t-aag/x.mp4", name: "ad1.mp4", type: "video/mp4", size: 9 } } }),
+    );
+    s.cl.message.grant = { itemId: "card-7", kind: "file", limit: null };
+    await handleClaim(s.cl, s.d);
+    expect(s.c.filed).toEqual([{ messageId: "m1", tenantId: "t-aag", path: "t-aag/x.mp4", name: "ad1.mp4", type: "video/mp4", size: 9 }]);
+    expect(s.runs[0].prompt.startsWith("Runner: filed ad1.mp4 into Creatives.")).toBe(true);
+  });
+
+  it("resumes the agent with what a video block did, and keeps the blocks out of the reply", async () => {
+    const s = creativeSetup([
+      `Preparing the clip.\n${F}video\n{"action": "prepare", "source": "G:/nowhere/clip.mov", "name": "hey"}\n${F}`,
+      "The clip is not in the Drive folder, Sir.",
+    ]);
+    await handleClaim(s.cl, s.d);
+    expect(s.runs).toHaveLength(2);
+    expect(s.runs[1].resume).toBe(true);
+    expect(s.runs[1].prompt).toMatch(/^Runner:\n- prepare failed/);
+    expect(s.api.replies.at(-1)!.aiBody).toBe("Preparing the clip.\n\nThe clip is not in the Drive folder, Sir.");
   });
 });

@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-17-creative-agent",
+    date: "17 October 2026",
+    title: "Creative Agent makes videos and images",
+    items: [
+      "Ask the Creative Agent for a video ad from a client's raw footage. It edits it in the Above All Garage Doors style with that client's brand, and the preview plays right on its card.",
+      "Approve the preview for the full-quality final, and Approve the final to file it into that client's Creatives.",
+      "Higgsfield images and videos show their cost in credits on a card first. Nothing is generated until you Approve that amount.",
+    ],
+  },
+  {
     id: "2026-10-17-agents",
     date: "17 October 2026",
     title: "Agents",

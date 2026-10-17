@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildBundle } from "../src/bundle.ts";
+import { HF_GENERATE_TOOLS, HF_QUOTE_TOOLS } from "../src/spend.ts";
 import type { ClaimTenant } from "../src/wire.ts";
 
 const EM = "\u2014";
@@ -166,5 +167,41 @@ describe("buildBundle", () => {
     expect(approved).toContain("Approve of card i-1");
     const ads = readFileSync(buildBundle("ads", willis, env).systemPromptFile, "utf8");
     expect(ads).not.toContain("Site folder");
+  });
+
+  it("gives the Creative Agent Higgsfield quotes, never generate tools, without a grant", () => {
+    const env = world();
+    const b = buildBundle("creative", willis, env, null);
+    for (const q of HF_QUOTE_TOOLS) expect(b.allowedTools).toContain(q);
+    for (const g of HF_GENERATE_TOOLS) {
+      expect(b.allowedTools).not.toContain(g);
+      expect(b.disallowedTools).toContain(g);
+    }
+    expect(JSON.parse(readFileSync(b.mcpConfig!, "utf8")).mcpServers).toEqual({
+      higgsfield: { type: "http", url: "https://mcp.higgsfield.ai/mcp" },
+    });
+    expect(readFileSync(b.systemPromptFile, "utf8")).toContain("None approved");
+  });
+
+  it("switches generate tools on only for a turn with an approved spend grant", () => {
+    const env = world();
+    const b = buildBundle("creative", willis, env, { itemId: "i-9", kind: "spend", limit: 24 });
+    for (const g of HF_GENERATE_TOOLS) {
+      expect(b.allowedTools).toContain(g);
+      expect(b.disallowedTools).not.toContain(g);
+    }
+    expect(readFileSync(b.systemPromptFile, "utf8")).toContain("up to 24 credits");
+    const noLimit = buildBundle("creative", willis, env, { itemId: "i-9", kind: "spend", limit: null });
+    for (const g of HF_GENERATE_TOOLS) expect(noLimit.allowedTools).not.toContain(g);
+  });
+
+  it("gives no other agent an MCP server or a Higgsfield tool", () => {
+    const env = world();
+    const grant = { itemId: "i-9", kind: "spend" as const, limit: 24 };
+    for (const id of ["manager", "research", "ads", "landing", "ghl", "reporting"] as const) {
+      const b = buildBundle(id, id === "manager" ? null : willis, env, grant);
+      expect(b.mcpConfig).toBeUndefined();
+      expect(b.allowedTools.some((t) => t.startsWith("mcp__"))).toBe(false);
+    }
   });
 });

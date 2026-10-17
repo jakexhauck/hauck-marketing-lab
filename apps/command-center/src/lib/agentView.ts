@@ -113,6 +113,9 @@ export interface ItemPayloadView {
   // The card asks for a deploy: its Approve puts the page live.
   deploy: boolean;
   thumbs: string[];
+  // A spend card (Creative Agent): what an Approve lets it spend, and on what.
+  credits: number | null;
+  what: string | null;
 }
 
 const str = (v: unknown): v is string => typeof v === "string" && v.length > 0;
@@ -145,6 +148,8 @@ export function itemPayload(payload: Record<string, unknown>): ItemPayloadView {
     liveUrl: https(payload.liveUrl),
     deploy: !!grant && typeof grant === "object" && grant.kind === "deploy",
     thumbs: arr(payload.thumbs).filter((t): t is string => str(t) && /^https:\/\//.test(t)),
+    credits: typeof payload.credits === "number" && Number.isFinite(payload.credits) && payload.credits >= 0 ? payload.credits : null,
+    what: str(payload.what) ? payload.what : null,
   };
 }
 
