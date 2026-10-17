@@ -10,6 +10,7 @@ import {
   HF_PAID_OTHER,
   HF_QUOTE_TOOLS,
   parseBalance,
+  spendCard,
   spendLimit,
   writeHiggsfieldConfig,
 } from "../src/spend.ts";
@@ -28,6 +29,25 @@ describe("spendLimit", () => {
     expect(spendLimit(spend(0))).toBeNull();
     expect(spendLimit(spend(-3))).toBeNull();
     expect(spendLimit(spend(Number.POSITIVE_INFINITY))).toBeNull();
+  });
+});
+
+describe("spendCard", () => {
+  it("shows the grant's own limit as the credits", () => {
+    expect(spendCard({ credits: 5, what: "3 images", grant: { kind: "spend", limit: 500 } })).toEqual({
+      credits: 500,
+      what: "3 images",
+      grant: { kind: "spend", limit: 500 },
+    });
+  });
+  it("drops a spend grant with no finite positive whole limit, and its credits", () => {
+    for (const limit of [undefined, null, "24", 0, -3, 2.5, Infinity]) {
+      expect(spendCard({ credits: 24, grant: { kind: "spend", limit } })).toEqual({});
+    }
+  });
+  it("leaves other payloads alone", () => {
+    expect(spendCard({ grant: { kind: "ghl" }, quote: "q" })).toEqual({ grant: { kind: "ghl" }, quote: "q" });
+    expect(spendCard({ credits: 3 })).toEqual({ credits: 3 });
   });
 });
 

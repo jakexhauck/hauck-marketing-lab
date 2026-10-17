@@ -270,9 +270,16 @@ describe("decideItem", () => {
     const db = withGrant({ kind: "everything", limit: 5 });
     await decideItem(db.client(), "i1", "approve");
     expect(db.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1" });
-    const db2 = withGrant({ kind: "spend", limit: "lots" });
-    await decideItem(db2.client(), "i1", "approve");
-    expect(db2.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1", grant: { itemId: "i1", kind: "spend", limit: null } });
+    // A spend with no usable number was never a price Jake saw: no grant.
+    for (const limit of ["lots", null, 0, -5, 2.5]) {
+      const db2 = withGrant({ kind: "spend", limit });
+      await decideItem(db2.client(), "i1", "approve");
+      expect(db2.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1" });
+    }
+    // Other kinds carry no limit and still grant.
+    const db3 = withGrant({ kind: "file" });
+    await decideItem(db3.client(), "i1", "approve");
+    expect(db3.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1", grant: { itemId: "i1", kind: "file", limit: null } });
   });
 
   it("a double approve answers 409 and queues nothing more", async () => {

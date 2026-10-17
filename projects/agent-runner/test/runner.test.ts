@@ -183,6 +183,21 @@ describe("handleClaim", () => {
     expect(runs[0].prompt).toContain("What did CPL do?");
   });
 
+  it("posts a spend card with its grant's limit as the credits shown", async () => {
+    const { env } = world();
+    const text = [
+      "Quoted.",
+      `${F}item`,
+      '[{"kind":"spend","title":"Images","payload":{"credits":5,"grant":{"kind":"spend","limit":500}}},',
+      ' {"kind":"spend","title":"Vague","payload":{"credits":5,"grant":{"kind":"spend","limit":"lots"}}}]',
+      F,
+    ].join("\n");
+    const { api, d } = deps(env, text, []);
+    await handleClaim(claim(), d);
+    expect(api.items[0].payload).toEqual({ credits: 500, grant: { kind: "spend", limit: 500 } });
+    expect(api.items[1].payload).toEqual({});
+  });
+
   it("drops a request to itself or to no agent", async () => {
     const { env } = world();
     const { api, d } = deps(env, `ok\n${F}request\n{"toAgent":"ads","title":"x","body":"y"}\n${F}`);

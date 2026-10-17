@@ -138,7 +138,10 @@ export function itemPayload(payload: Record<string, unknown>): ItemPayloadView {
   });
   const https = (v: unknown): string | null => (str(v) && /^https:\/\//.test(v) ? v : null);
   const previewUrl = https(payload.previewUrl);
-  const grant = payload.grant as { kind?: unknown } | undefined;
+  const grant = payload.grant as { kind?: unknown; limit?: unknown } | undefined;
+  // A spend card shows the grant's limit, the number an Approve passes on,
+  // and nothing the model wrote beside it.
+  const limit = grant && typeof grant === "object" && grant.kind === "spend" ? grant.limit : null;
   return {
     steps,
     stats,
@@ -148,7 +151,7 @@ export function itemPayload(payload: Record<string, unknown>): ItemPayloadView {
     liveUrl: https(payload.liveUrl),
     deploy: !!grant && typeof grant === "object" && grant.kind === "deploy",
     thumbs: arr(payload.thumbs).filter((t): t is string => str(t) && /^https:\/\//.test(t)),
-    credits: typeof payload.credits === "number" && Number.isFinite(payload.credits) && payload.credits >= 0 ? payload.credits : null,
+    credits: typeof limit === "number" && Number.isSafeInteger(limit) && limit > 0 ? limit : null,
     what: str(payload.what) ? payload.what : null,
   };
 }

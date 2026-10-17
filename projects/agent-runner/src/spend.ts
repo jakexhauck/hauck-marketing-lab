@@ -83,6 +83,21 @@ export function spendLimit(grant: Grant | null | undefined): number | null {
   return typeof n === "number" && Number.isFinite(n) && n > 0 ? n : null;
 }
 
+/**
+ * A spend card as the model filed it, made honest: the credits Jake sees are
+ * the grant's own limit, the number his Approve passes on, never a separate
+ * figure written beside it. A spend grant with no finite positive whole
+ * limit is dropped, with its credits.
+ */
+export function spendCard(payload: Record<string, unknown>): Record<string, unknown> {
+  const g = payload.grant as { kind?: unknown; limit?: unknown } | undefined;
+  if (!g || typeof g !== "object" || g.kind !== "spend") return payload;
+  const { grant: _g, credits: _c, ...rest } = payload;
+  const n = g.limit;
+  if (typeof n !== "number" || !Number.isSafeInteger(n) || n <= 0) return rest;
+  return { ...rest, credits: n, grant: { kind: "spend", limit: n } };
+}
+
 export function creativeHiggsfieldTools(grant: Grant | null | undefined): { allowed: string[]; disallowed: string[] } {
   if (spendLimit(grant) !== null) {
     return { allowed: [...HF_QUOTE_TOOLS, ...HF_GENERATE_TOOLS, ...HF_AFTER_GENERATE], disallowed: [...HF_PAID_OTHER] };

@@ -26,7 +26,7 @@ import type { RunOptions } from "./claude.ts";
 import { tenantForFolder, vaultFolder } from "./clients.ts";
 import { draftSite, goLive, isSiteDraft, withoutDeployGrant, type LandingDeps } from "./landing.ts";
 import { fileApproved, runVideoBlocks, takeVideoBlocks, type CreativeDeps, type CreativeTurn } from "./creative.ts";
-import { checkSpend, spendLimit } from "./spend.ts";
+import { checkSpend, spendCard, spendLimit } from "./spend.ts";
 import { extractCitations, parseAgentOutput, stripEmDashes } from "./output.ts";
 import type { AgentId, AgentLesson, ClaimResponse, ClaimTenant, ItemStatus, LessonEdit, LessonScope, LessonsBody } from "./wire.ts";
 
@@ -267,7 +267,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
           kind: item.kind,
           title: item.title,
           status,
-          payload: withoutDeployGrant(item.payload),
+          payload: spendCard(withoutDeployGrant(item.payload)),
           origin: "agent",
         });
       } catch (e) {

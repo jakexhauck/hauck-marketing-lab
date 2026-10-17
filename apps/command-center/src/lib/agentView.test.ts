@@ -162,8 +162,13 @@ describe("itemPayload", () => {
     const v = itemPayload({ credits: 24, what: "3 square images", grant: { kind: "spend", limit: 24 } });
     expect(v.credits).toBe(24);
     expect(v.what).toBe("3 square images");
-    expect(itemPayload({ credits: "24" }).credits).toBeNull();
-    expect(itemPayload({ credits: -1 }).credits).toBeNull();
+    // The number shown is the grant's limit, the one Approve passes on,
+    // never a separate figure the model wrote beside it.
+    expect(itemPayload({ credits: 5, grant: { kind: "spend", limit: 500 } }).credits).toBe(500);
+    expect(itemPayload({ credits: 24 }).credits).toBeNull();
+    expect(itemPayload({ grant: { kind: "spend", limit: "24" } }).credits).toBeNull();
+    expect(itemPayload({ grant: { kind: "spend", limit: -1 } }).credits).toBeNull();
+    expect(itemPayload({ grant: { kind: "file", limit: 24 } }).credits).toBeNull();
     expect(itemPayload({}).what).toBeNull();
   });
 

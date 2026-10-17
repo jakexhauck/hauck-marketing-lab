@@ -196,12 +196,15 @@ const GRANT_KINDS: GrantKind[] = ["deploy", "spend", "ghl", "file"];
 /**
  * The grant a card asks for, read from its payload (the runner puts it there
  * when it posts the card). Unknown kinds grant nothing; a limit that is not a
- * finite number becomes null, never a guess.
+ * finite number becomes null, never a guess, and a spend needs a real one.
  */
 export function grantFrom(item: Pick<AgentItem, "id" | "payload">): Grant | null {
   const g = item.payload?.grant as Row | undefined;
   if (!g || typeof g !== "object" || !GRANT_KINDS.includes(g.kind as GrantKind)) return null;
   const limit = typeof g.limit === "number" && Number.isFinite(g.limit) ? g.limit : null;
+  // A spend with no usable number was never a price Jake saw, so it grants
+  // nothing (the card showed no credits either: agentView reads this limit).
+  if (g.kind === "spend" && (limit === null || !Number.isSafeInteger(limit) || limit <= 0)) return null;
   return { itemId: item.id, kind: g.kind as GrantKind, limit };
 }
 
