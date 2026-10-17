@@ -434,7 +434,7 @@ DONE by the lead in `73383b63` before the lanes started (so no lane owns it): `G
 
 **Decided (Jake):**
 - One document per client, sub-sections per agent.
-- Opens on the side of the screen while chatting (a third panel tab or a toggle beside Building / Brain; layout mockup first).
+- Layout B (picked 2026-10-17 from `.superpowers/brainstorm/559-1792256193/content/agents-brief.html`): the chat list shrinks to icons, the brief takes the right half beside the chat, Building and Brain become tabs above it. The current agent's section is highlighted; each section shows who last edited it; pencil to edit; Saved to Drive chip.
 - Jake can edit any section; the agent sees his edits and builds on them, never overwrites them blindly.
 - Synced to Google Drive.
 
