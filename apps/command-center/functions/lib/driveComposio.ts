@@ -616,6 +616,74 @@ export async function replaceDocText(
   return pairs.map((_, i) => replies[i]?.replaceAllText?.occurrencesChanged ?? 0);
 }
 
+const DOC_MIME = "application/vnd.google-apps.document";
+const docUrl = (id: string) => `https://docs.google.com/document/d/${id}/edit`;
+
+/** A Google Doc with this exact name directly inside `parentId`, or null. */
+export async function findDocInFolder(
+  env: Env,
+  accountId: string,
+  parentId: string,
+  name: string,
+): Promise<{ id: string; url: string } | null> {
+  if (!isValidFileId(parentId)) throw new Error(`invalid parent folder id: ${parentId}`);
+  const escaped = name.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  const params = new URLSearchParams({
+    q: `'${parentId}' in parents and name = '${escaped}' and mimeType = '${DOC_MIME}' and trashed = false`,
+    fields: "files(id,webViewLink)",
+    orderBy: "createdTime",
+    pageSize: "1",
+    supportsAllDrives: "true",
+    includeItemsFromAllDrives: "true",
+  });
+  const data = asObject(await proxyGet(env, accountId, `/files?${params}`), "find doc");
+  const f = ((data as { files?: { id: string; webViewLink?: string }[] }).files ?? [])[0];
+  return f ? { id: f.id, url: f.webViewLink ?? docUrl(f.id) } : null;
+}
+
+/**
+ * An empty Google Doc inside `parentId`. A metadata-only create, the same call
+ * as a folder with a different mimeType, so it works through Composio.
+ */
+export async function createGoogleDoc(
+  env: Env,
+  accountId: string,
+  parentId: string,
+  name: string,
+): Promise<{ id: string; url: string }> {
+  if (!isValidFileId(parentId)) throw new Error(`invalid parent folder id: ${parentId}`);
+  const params = new URLSearchParams({ fields: "id,webViewLink", supportsAllDrives: "true" });
+  const data = asObject(
+    await proxyPost(env, accountId, `/files?${params}`, { name, mimeType: DOC_MIME, parents: [parentId] }),
+    "create doc",
+  );
+  const id = typeof data.id === "string" ? data.id : "";
+  if (!id) throw new Error("Drive created a Doc but returned no id.");
+  return { id, url: typeof data.webViewLink === "string" ? data.webViewLink : docUrl(id) };
+}
+
+/**
+ * Replace a Doc's whole body in one batchUpdate (Docs API, as replaceDocText).
+ * `requests` is given the body's current end index, which the delete needs, so
+ * the caller builds the batch (briefDrive.docRewriteRequests) and this only
+ * moves it. The Doc keeps its id, so its link never changes.
+ */
+export async function rewriteDoc(
+  env: Env,
+  accountId: string,
+  fileId: string,
+  requests: (endIndex: number) => unknown[],
+): Promise<void> {
+  if (!isValidFileId(fileId)) throw new Error(`invalid file id: ${fileId}`);
+  const doc = asObject(
+    await proxyGet(env, accountId, `${DOCS_API}/${fileId}?fields=${encodeURIComponent("body.content(endIndex)")}`),
+    "docs get",
+  );
+  const content = (doc as { body?: { content?: { endIndex?: number }[] } }).body?.content ?? [];
+  const endIndex = content.reduce((n, c) => Math.max(n, c.endIndex ?? 0), 1);
+  await proxyPost(env, accountId, `${DOCS_API}/${fileId}:batchUpdate`, { requests: requests(endIndex) });
+}
+
 /** A Doc's plain text (Docs API), for finding which [SPOTS] are left in it. */
 export async function readDocText(env: Env, accountId: string, fileId: string): Promise<string> {
   if (!isValidFileId(fileId)) throw new Error(`invalid file id: ${fileId}`);

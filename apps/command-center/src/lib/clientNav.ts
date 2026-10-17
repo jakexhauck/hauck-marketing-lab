@@ -33,6 +33,7 @@ export type ClientPageId =
   | "launch-call"
   | "accounts"
   | "info"
+  | "brief"
   | "software"
   | "paid-ads"
   | "ghl"
@@ -79,6 +80,10 @@ const PAGE_LABELS: Record<ClientPageId, string> = {
   "launch-call": "Launch Call",
   accounts: "Accounts",
   info: "Client Information",
+  // Jake, 2026-10-17: the Client Brief, one living summary per client with a
+  // section per agent, Google Docs style (components/admin/agents/BriefPanel).
+  // The same document sits beside the chat on every agent page.
+  brief: "Brief",
   software: "Software",
   "paid-ads": "Paid Ads",
   ghl: "GHL",
@@ -116,7 +121,7 @@ const subRows = (c: ClientGateInfo, page: ClientPageId): ClientNavRow[] =>
 export function clientNavGroups(c: ClientGateInfo): ClientNavGroup[] {
   return [
     { caption: null, rows: [single("full-setup"), single("onboarding-call"), single("launch-call")] },
-    { caption: null, rule: true, rows: [single("accounts"), single("info"), single("software")] },
+    { caption: null, rule: true, rows: [single("accounts"), single("info"), single("brief"), single("software")] },
     { caption: "Agents", rows: subRows(c, "agent") },
     { caption: "Paid Ads", rows: subRows(c, "paid-ads") },
     { caption: "GHL", rows: subRows(c, "ghl") },

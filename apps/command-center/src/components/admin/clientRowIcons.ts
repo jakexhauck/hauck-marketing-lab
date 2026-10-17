@@ -3,6 +3,7 @@ import {
   Clapperboard,
   FileChartColumn,
   Gauge,
+  NotebookText,
   LayoutTemplate,
   Megaphone,
   Telescope,
@@ -32,6 +33,7 @@ import type { ClientNavRow } from "../../lib/clientNav";
 const ICONS: Record<string, LucideIcon> = {
   onboarding: ListTodo,
   info: UserRound,
+  brief: NotebookText,
   software: AppWindow,
   dashboard: LayoutDashboard,
   leads: ListChecks,

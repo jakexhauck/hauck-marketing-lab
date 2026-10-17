@@ -119,6 +119,9 @@ export interface ClaimResponse {
   // Earlier messages in the chat, oldest first, for a fresh session's context.
   history: AgentMessage[];
   tenant: ClaimTenant | null;
+  // The client's whole brief with versions, every section in BRIEF_SECTIONS
+  // order. [] for the agency Manager, which has no client.
+  brief: BriefSection[];
 }
 
 export interface ReplyBody {
@@ -236,4 +239,49 @@ export interface FileCreativeBody {
   name: string;
   type: string;
   size: number;
+}
+
+// The Client Brief (Phase 6, migration 0168): one section per agent, the
+// Manager's being "Status". version 0 means nothing has been written yet; a
+// save names the version it read and a stale one gets 409 with the current
+// section. updatedBy is "jake" or the agent that wrote it.
+export type BriefAuthor = "jake" | AgentId;
+
+export interface BriefSection {
+  section: AgentId;
+  body: string;
+  version: number;
+  updatedBy: BriefAuthor | null;
+  updatedAt: string | null;
+}
+
+// Where the brief's Google Doc is and how the last sync went. null until the
+// first sync has run.
+export interface BriefDrive {
+  docUrl: string | null;
+  syncedAt: string | null;
+  error: string | null;
+  // The Doc was written from this brief (sum of section versions); behind the
+  // brief means a sync is still on its way.
+  revision: number;
+}
+
+export interface BriefResponse {
+  sections: BriefSection[];
+  drive: BriefDrive | null;
+}
+
+// PUT /api/admin/agents/brief?tenant=
+export interface BriefSaveBody {
+  section: AgentId;
+  body: string;
+  version: number;
+}
+
+// Runner-only: an agent rewrites its own section. POST /api/agent-runner/brief.
+// The section is the claimed message's chat's agent, read on the server.
+export interface RunnerBriefBody {
+  messageId: string;
+  body: string;
+  version: number;
 }

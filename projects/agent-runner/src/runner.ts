@@ -6,7 +6,11 @@
 //   3. Read the protocol blocks off the end of the answer: lessons go into the
 //      brain files (and are mirrored to the app, and committed), items and
 //      requests are filed as Building cards.
-//   4. Post the finished reply with its tool steps, the lessons it used and the
+//   4. Post the agent's new Client Brief section, if it wrote one, at the
+//      version the claim showed it. A stale version means Jake edited it
+//      meanwhile: nothing is overwritten, Jake is told in the reply and the
+//      agent is told on its next turn in this chat (briefNotes).
+//   5. Post the finished reply with its tool steps, the lessons it used and the
 //      lessons it learned.
 //
 // Anything after step 2 that fails is logged and skipped rather than failing
@@ -50,6 +54,20 @@ export interface RunnerDeps {
   // The Creative Agent's video pipeline, uploads and credit balance. Without
   // it a creative turn still answers; its ```video blocks are just not run.
   creative?: CreativeDeps;
+  // A note for a chat's next turn, kept across runner restarts (main.ts keeps
+  // them in data/brief-notes). Without it a stale brief is still never
+  // overwritten; the agent just is not told why on its next turn.
+  briefNotes?: BriefNotes;
+}
+
+export interface BriefNotes {
+  get(chatId: string): string | null;
+  set(chatId: string, text: string): void;
+  clear(chatId: string): void;
+}
+
+export function staleBriefNote(version: number): string {
+  return `Note from the runner: your last brief block was not saved. Jake edited your section (now version ${version}) after you read it, and his text is in the Client brief above. Build on his version; send a new brief block only if it still needs a change.`;
 }
 
 // One brain file and whose lessons it holds. A client brain is shared by all
@@ -103,7 +121,7 @@ function allLessons(vaultDir: string): Map<string, AgentLesson> {
 // While the answer streams, the protocol blocks are not for Jake to read: show
 // the prose up to the first block and nothing of a half-written one.
 function preview(text: string): string {
-  const cut = text.split(/```(?:lessons|item|request|video)/)[0];
+  const cut = text.split(/```(?:lessons|item|request|video|brief)/)[0];
   return extractCitations(stripEmDashes(cut)).reply.trim();
 }
 
@@ -142,11 +160,13 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
   let progressPosts: Promise<unknown> = Promise.resolve();
   try {
     await d.api.reply({ messageId, status: "running" });
-    const bundle = buildBundle(agent, tenant, d.env, message.grant);
+    const brief = claim.brief ?? [];
+    const bundle = buildBundle(agent, tenant, d.env, message.grant, brief);
     // An approved landing page goes live before the agent's turn, so the turn
     // can say where. See landing.ts.
     const liveNote = d.landing ? await goLive(claim, { api: d.api, landing: d.landing }) : null;
-    const withNote = (p: string) => (liveNote ? `${p}\n\n${liveNote}` : p);
+    const briefNote = d.briefNotes?.get(chat.id) ?? null;
+    const withNote = (p: string) => [p, liveNote, briefNote].filter(Boolean).join("\n\n");
     const base = {
       sessionId: chat.claudeSessionId,
       bundle,
@@ -298,13 +318,36 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
       }
     }
 
+    // The agent's Client Brief section. Its own only: the app takes the section
+    // from this chat on the server. The version is the one this turn was shown.
+    const tools = [...result.tools];
+    if (out.brief && !tenant) log("brief block dropped: the agency has no brief");
+    if (out.brief && tenant) {
+      const version = brief.find((s) => s.section === agent)?.version ?? 0;
+      try {
+        const res = await d.api.brief({ messageId, body: out.brief, version });
+        if (res.saved) {
+          tools.push("Updated the brief");
+        } else {
+          d.briefNotes?.set(chat.id, staleBriefNote(res.section.version));
+          notes.push("Brief not saved: you edited this section after I read it. I will build on your version next turn.");
+        }
+      } catch (e) {
+        log(`brief post failed: ${(e as Error).message}`);
+        notes.push("Brief not saved: the app did not take it. Ask me again to retry.");
+      }
+    }
+    // Told once: this turn read the note, so the next one does not repeat it.
+    // A stale brief this turn has just set a fresh one, which stays.
+    if (briefNote && d.briefNotes?.get(chat.id) === briefNote) d.briefNotes.clear(chat.id);
+
     await progressPosts;
     await d.api.reply({
       messageId,
       status: spendError ? "error" : "done",
       ...(spendError ? { error: spendError } : {}),
       aiBody: [cited.reply.trim(), ...notes].filter(Boolean).join("\n\n"),
-      tools: result.tools,
+      tools,
       used,
       learned,
       ...(!chat.started && chat.title === "New chat" ? { title: titleFrom(message.body) } : {}),

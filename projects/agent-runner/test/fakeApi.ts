@@ -11,6 +11,8 @@ import type {
   ItemBody,
   LessonsBody,
   ReplyBody,
+  RunnerBriefBody,
+  RunnerBriefResult,
   Snapshot,
   ClaimTenant,
 } from "../src/wire.ts";
@@ -29,6 +31,9 @@ export interface FakeApi extends RunnerApi {
   // Cards Jake has decided (or that belong to another chat or agent): the
   // real endpoint refuses a rewrite of one, so this does too.
   refused: Set<string>;
+  briefs: RunnerBriefBody[];
+  // What the next brief post answers; saved at the version sent + 1 if unset.
+  briefAnswer: ((b: RunnerBriefBody) => RunnerBriefResult) | null;
 }
 
 // The n-th card id the fake hands out: a real uuid shape, as the app's are.
@@ -47,6 +52,8 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     tenantList: init.tenantList ?? [],
     heartbeatReply: init.heartbeatReply ?? { lastMonitorAt: null, queuedEdits: [] },
     refused: new Set(),
+    briefs: [],
+    briefAnswer: null,
     async claim() {
       return api.claims.shift() ?? null;
     },
@@ -80,6 +87,11 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     async fileAsset(b) {
       api.fileAssets.push(b);
       return { assetId: `asset-${api.fileAssets.length}` };
+    },
+    async brief(b) {
+      api.briefs.push(b);
+      if (api.briefAnswer) return api.briefAnswer(b);
+      return { saved: true, section: { section: "ads", body: b.body, version: b.version + 1, updatedBy: "ads", updatedAt: null } };
     },
   };
   return api;

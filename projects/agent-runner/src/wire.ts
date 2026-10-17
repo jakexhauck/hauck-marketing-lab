@@ -99,6 +99,9 @@ export interface ClaimResponse {
   // Earlier messages in the chat, oldest first, for a fresh session's context.
   history: AgentMessage[];
   tenant: ClaimTenant | null;
+  // The client's whole Client Brief with versions ([] at the agency). Optional
+  // here so a claim from an app that predates the brief still runs.
+  brief?: BriefSection[];
 }
 
 export interface ReplyBody {
@@ -215,3 +218,25 @@ export interface FileCreativeBody {
   type: string;
   size: number;
 }
+
+// The Client Brief (Phase 6). One section per agent; version 0 is unwritten.
+export type BriefAuthor = "jake" | AgentId;
+
+export interface BriefSection {
+  section: AgentId;
+  body: string;
+  version: number;
+  updatedBy: BriefAuthor | null;
+  updatedAt: string | null;
+}
+
+// Runner-only: an agent rewrites its own section at the version it read.
+// POST /api/agent-runner/brief. The section is the chat's agent, on the server.
+export interface RunnerBriefBody {
+  messageId: string;
+  body: string;
+  version: number;
+}
+
+// 200 saved, or 409 stale with the section as it now stands.
+export type RunnerBriefResult = { saved: true; section: BriefSection } | { saved: false; section: BriefSection };

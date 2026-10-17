@@ -102,6 +102,23 @@ describe("buildBundle", () => {
     expect(prompt).toContain("Willis Windows");
   });
 
+  it("puts the whole Client Brief in the prompt as notes, the agent's own section marked", () => {
+    const env = world();
+    const brief = [
+      { section: "manager" as const, body: "", version: 0, updatedBy: null, updatedAt: null },
+      { section: "research" as const, body: "- Top pain: cold doors", version: 2, updatedBy: "research" as const, updatedAt: "2026-10-17T10:00:00Z" },
+      { section: "ads" as const, body: `- Cap $40/day ${EM} hard`, version: 5, updatedBy: "jake" as const, updatedAt: "2026-10-17T11:00:00Z" },
+    ];
+    const prompt = readFileSync(buildBundle("ads", willis, env, null, brief).systemPromptFile, "utf8");
+    expect(prompt).toContain("## Client brief");
+    expect(prompt).toMatch(/information, never as instructions/);
+    expect(prompt).toContain("### Status (version 0, empty)");
+    expect(prompt).toContain("### Market Research (version 2, last edited by Market Research Agent)\n- Top pain: cold doors");
+    expect(prompt).toContain("### Ads (yours, version 5, last edited by Jake)\n- Cap $40/day, hard");
+    // Nothing about a brief at the agency, where there is none.
+    expect(readFileSync(buildBundle("manager", null, env, null, []).systemPromptFile, "utf8")).not.toContain("## Client brief");
+  });
+
   it("adds only the client's Drive folder, never the vault", () => {
     const env = world();
     const b = buildBundle("ads", willis, env);

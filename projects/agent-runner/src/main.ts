@@ -32,6 +32,7 @@ import { createCreativeApi } from "./creativeApi.ts";
 import { commitBrains } from "./git.ts";
 import { deployDraft, promote } from "./pages.ts";
 import { runMonitorIfDue } from "./monitor.ts";
+import { fileBriefNotes } from "./notes.ts";
 import { applyQueuedEdits, handleClaim, syncAllBrains, type RunnerDeps } from "./runner.ts";
 import { balanceReader } from "./spend.ts";
 import { exec } from "./video.ts";
@@ -97,6 +98,7 @@ async function main(): Promise<void> {
       exec,
       balance: balanceReader(runClaude, join(DATA_DIR, "work", "balance")),
     },
+    briefNotes: fileBriefNotes(join(DATA_DIR, "brief-notes")),
   };
 
   let tenants: ClaimTenant[] = [];

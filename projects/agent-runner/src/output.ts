@@ -7,6 +7,7 @@
 //                for the agent's own brain rather than this client's
 //   ```item      JSON ItemDraft (or an array): a card for the Building panel
 //   ```request   JSON RequestDraft: an ask for another agent
+//   ```brief     the agent's whole new Client Brief section, markdown
 //
 // Everything here is forgiving on purpose. A model that writes a broken JSON
 // block has still answered Jake, so a bad block is dropped and the reply kept.
@@ -36,6 +37,8 @@ export interface AgentOutput {
   lessons: string[];
   items: ItemDraft[];
   requests: RequestDraft[];
+  // The agent's full new Client Brief section, or null for no change.
+  brief: string | null;
 }
 
 // The house rule is no em dashes anywhere. The agents are told; this is the
@@ -45,7 +48,7 @@ export function stripEmDashes(s: string): string {
   return s.replace(/\s*\u2014\s*/g, ", ");
 }
 
-const BLOCK = /```(lessons|item|request)[^\n]*\n([\s\S]*?)```/g;
+const BLOCK = /```(lessons|item|request|brief)[^\n]*\n([\s\S]*?)```/g;
 
 function parseJson(body: string): unknown[] {
   try {
@@ -76,13 +79,17 @@ function toRequest(v: unknown): RequestDraft | null {
 }
 
 export function parseAgentOutput(text: string): AgentOutput {
-  const out: AgentOutput = { reply: "", lessons: [], items: [], requests: [] };
+  const out: AgentOutput = { reply: "", lessons: [], items: [], requests: [], brief: null };
   for (const [, kind, body] of text.matchAll(BLOCK)) {
     if (kind === "lessons") {
       for (const raw of body.split("\n")) {
         const line = stripEmDashes(raw.replace(/^\s*[-*]\s+/, "").trim());
         if (line) out.lessons.push(line);
       }
+    } else if (kind === "brief") {
+      // The last one wins: it is the agent's final word on its section.
+      const brief = stripEmDashes(body).trim();
+      out.brief = brief || null;
     } else if (kind === "item") {
       for (const v of parseJson(body)) {
         const item = toItem(v);

@@ -9,6 +9,7 @@ import ChatList from "./ChatList";
 import ChatThread from "./ChatThread";
 import BrainTab from "./BrainTab";
 import { AgentBuilding, ClientsBoard, ManagerBuilding } from "./BuildPanel";
+import { BriefTab } from "./BriefPanel";
 import {
   tenantKey,
   useAgentChats,
@@ -23,6 +24,11 @@ import {
 // One agent's page: chat list, chat, and the Building / Brain panel.
 // tenantId null is the agency Manager (Clients / Mega Brain). Built to
 // .superpowers/brainstorm/559-1792256193/content/agents-v3.html (Task 7).
+//
+// Inside a client it is layout B of agents-brief.html (Phase 6): the chat list
+// shrinks to icons and the right half is Brief | Building | Brain, the Client
+// Brief first. The agency Manager has no client and so no brief; it keeps the
+// three-column frame.
 export default function AgentPage({ tenantId, agent }: { tenantId: string | null; agent: AgentId }) {
   // Keyed so the tab, scope and open chat reset when the agent or client does.
   return <AgentView key={`${tenantKey(tenantId)}/${agent}`} tenantId={tenantId} agent={agent} />;
@@ -86,7 +92,8 @@ function AgentView({ tenantId, agent }: { tenantId: string | null; agent: AgentI
     return chat.id;
   };
 
-  const [tab, setTab] = useState<"building" | "brain">("building");
+  const split = tenantId !== null;
+  const [tab, setTab] = useState<"brief" | "building" | "brain">(split ? "brief" : "building");
   // The Manager reads and writes the Mega Brain only.
   const [scope, setScope] = useState<BrainScope>(isManager ? "mega" : "client");
   const lessons = useAgentLessons(tk, agent, scope);
@@ -120,6 +127,7 @@ function AgentView({ tenantId, agent }: { tenantId: string | null; agent: AgentI
         onSelect={select}
         onNew={() => void startChat().catch(() => undefined)}
         newBusy={newChat.isPending}
+        mini={split}
       />
       <ChatThread
         key={selected?.id ?? "none"}
@@ -133,8 +141,19 @@ function AgentView({ tenantId, agent }: { tenantId: string | null; agent: AgentI
         onSend={(chatId, body) => send.mutateAsync({ chatId, body })}
         sending={send.isPending || newChat.isPending}
       />
-      <section className={`ag-build${tab === "brain" ? " wide" : ""}`}>
+      <section className={split ? "ag-split" : `ag-build${tab === "brain" ? " wide" : ""}`}>
         <div className="ag-tabs" role="tablist">
+          {split && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "brief"}
+              className={`ag-tab${tab === "brief" ? " on" : ""}`}
+              onClick={() => setTab("brief")}
+            >
+              Brief
+            </button>
+          )}
           <button
             type="button"
             role="tab"
@@ -156,7 +175,9 @@ function AgentView({ tenantId, agent }: { tenantId: string | null; agent: AgentI
           </button>
         </div>
         <div className="ag-bbody">
-          {tab === "brain" ? (
+          {tab === "brief" && tenantId ? (
+            <BriefTab tenantId={tenantId} agent={agent} />
+          ) : tab === "brain" ? (
             <BrainTab
               tenantId={tenantId}
               agent={agent}
@@ -271,6 +292,17 @@ function AgentStyle() {
       .ag .ag-send { margin-left: auto; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #fff; background-image: var(--grad-brand); }
       .ag-send svg { width: 16px; height: 16px; }
 
+      .ag-convos.mini { width: 64px; }
+      .ag-convos.mini .ag-convos-head { justify-content: center; padding: 20px 0 12px; }
+      .ag .ag-convos.mini .ag-btn-new { margin: 0 12px 12px; padding: 9px 0; }
+      .ag-mini-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 0 16px; }
+      .ag .ag-mini-cv { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: var(--text-faint); border: 1px solid transparent; position: relative; flex-shrink: 0; }
+      .ag .ag-mini-cv:hover { background: var(--surface-2); color: var(--text); }
+      .ag .ag-mini-cv.on { background: var(--surface); box-shadow: var(--shadow-sm); border-color: var(--border); color: var(--brand-text); }
+      .ag-mini-cv svg { width: 16px; height: 16px; }
+      .ag-mini-cv .req { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--warning); }
+      .ag-split { flex: 1; min-width: 0; border-left: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 70%, transparent); display: flex; flex-direction: column; min-height: 0; }
+
       .ag-build { width: 420px; flex-shrink: 0; border-left: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 70%, transparent); display: flex; flex-direction: column; min-height: 0; }
       .ag-build.wide { width: 520px; }
       .ag-tabs { display: flex; gap: 2px; padding: 0 16px; border-bottom: 1px solid var(--border); height: 60px; align-items: flex-end; flex-shrink: 0; }
@@ -376,7 +408,11 @@ function AgentStyle() {
       /* Below the desktop frame the three columns stack and the page scrolls. */
       @media (max-width: 1023px) {
         .ag { flex-direction: column; height: auto; }
-        .ag-convos, .ag-build, .ag-build.wide { width: 100%; border: 0; border-bottom: 1px solid var(--border); }
+        .ag-convos, .ag-convos.mini, .ag-build, .ag-build.wide, .ag-split { width: 100%; border: 0; border-bottom: 1px solid var(--border); }
+        .ag-convos.mini { flex-direction: row; align-items: center; padding: 8px 12px; gap: 8px; }
+        .ag-convos.mini .ag-convos-head { padding: 0; }
+        .ag .ag-convos.mini .ag-btn-new { margin: 0; padding: 9px 12px; }
+        .ag-mini-list { flex-direction: row; overflow-x: auto; padding: 0; }
         .ag-clist { max-height: 240px; }
         .ag-chat-body { max-height: 60vh; padding: 16px; }
         .ag-chat-head { padding: 0 16px; }

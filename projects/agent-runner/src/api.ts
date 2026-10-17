@@ -18,6 +18,8 @@ import type {
   ItemBody,
   LessonsBody,
   ReplyBody,
+  RunnerBriefBody,
+  RunnerBriefResult,
   Snapshot,
   TenantsResponse,
 } from "./wire.ts";
@@ -32,6 +34,9 @@ export interface RunnerApi {
   tenants(): Promise<TenantsResponse>;
   autoChat(body: AutoChatBody): Promise<{ chatId: string }>;
   fileAsset(body: FileAssetBody): Promise<{ assetId: string }>;
+  // The agent's own Client Brief section. A stale version is an answer (Jake
+  // edited it), not an error, so it comes back as saved: false.
+  brief(body: RunnerBriefBody): Promise<RunnerBriefResult>;
 }
 
 export interface ApiOptions {
@@ -44,7 +49,13 @@ export function createApi(opts: ApiOptions): RunnerApi {
   const base = opts.base.replace(/\/+$/, "");
   const f = opts.fetch ?? fetch;
 
-  async function call<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+  // okStatuses: answers that are not failures here (the brief's 409 = stale).
+  async function send<T>(
+    method: "GET" | "POST",
+    path: string,
+    body?: unknown,
+    okStatuses: number[] = [],
+  ): Promise<{ status: number; data: T }> {
     const headers: Record<string, string> = { "x-agent-runner-secret": opts.secret };
     if (body !== undefined) headers["content-type"] = "application/json";
     const res = await f(`${base}/api/agent-runner/${path}`, {
@@ -54,11 +65,14 @@ export function createApi(opts: ApiOptions): RunnerApi {
       signal: AbortSignal.timeout(30_000),
     });
     const text = await res.text();
-    if (!res.ok) throw new Error(`${method} ${path} ${res.status}: ${text.slice(0, 300)}`);
+    if (!res.ok && !okStatuses.includes(res.status)) throw new Error(`${method} ${path} ${res.status}: ${text.slice(0, 300)}`);
     // An empty body (204, or a bare 200) means "nothing", which for claim is
     // the normal answer: no message is waiting.
-    return (text.trim() ? JSON.parse(text) : null) as T;
+    return { status: res.status, data: (text.trim() ? JSON.parse(text) : null) as T };
   }
+
+  const call = async <T,>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> =>
+    (await send<T>(method, path, body)).data;
 
   return {
     claim: (host) => call<ClaimResponse | null>("POST", "claim", { host }),
@@ -70,5 +84,9 @@ export function createApi(opts: ApiOptions): RunnerApi {
     tenants: async () => (await call<TenantsResponse | null>("GET", "tenants")) ?? [],
     autoChat: (b) => call<{ chatId: string }>("POST", "auto-chat", b),
     fileAsset: (b) => call<{ assetId: string }>("POST", "file-asset", b),
+    brief: async (b) => {
+      const { status, data } = await send<{ section: RunnerBriefResult["section"] }>("POST", "brief", b, [409]);
+      return { saved: status !== 409, section: data.section };
+    },
   };
 }

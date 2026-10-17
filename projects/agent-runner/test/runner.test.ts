@@ -145,6 +145,64 @@ describe("handleClaim", () => {
     ]);
   });
 
+  it("posts a brief block as its own section at the version it read", async () => {
+    const { env } = world();
+    const { api, d } = deps(env, `Updated.\n${F}brief\n- Cap $40/day\n${F}`);
+    const c = claim();
+    c.brief = [
+      { section: "research", body: "x", version: 7, updatedBy: "research", updatedAt: null },
+      { section: "ads", body: "- Cap $30/day", version: 3, updatedBy: "jake", updatedAt: null },
+    ];
+    await handleClaim(c, d);
+    expect(api.briefs).toEqual([{ messageId: "m1", body: "- Cap $40/day", version: 3 }]);
+    const done = api.replies.at(-1)!;
+    expect(done.aiBody).toBe("Updated.");
+    expect(done.tools).toContain("Updated the brief");
+  });
+
+  it("posts version 0 for a section nobody wrote, and nothing without a brief block", async () => {
+    const { env } = world();
+    const first = deps(env, `ok\n${F}brief\nNew\n${F}`);
+    await handleClaim(claim(), first.d);
+    expect(first.api.briefs[0].version).toBe(0);
+    const none = deps(env, "ok");
+    await handleClaim(claim(), none.d);
+    expect(none.api.briefs).toEqual([]);
+  });
+
+  it("on a stale brief, tells Jake now and the agent next turn, once", async () => {
+    const { env } = world();
+    const notes = new Map<string, string>();
+    const { api, runs, d } = deps(env, `ok\n${F}brief\nmine\n${F}`);
+    d.briefNotes = { get: (id) => notes.get(id) ?? null, set: (id, t) => void notes.set(id, t), clear: (id) => void notes.delete(id) };
+    api.briefAnswer = () => ({ saved: false, section: { section: "ads", body: "Jake's", version: 4, updatedBy: "jake", updatedAt: null } });
+    const c = claim();
+    c.brief = [{ section: "ads", body: "old", version: 3, updatedBy: "ads", updatedAt: null }];
+    await handleClaim(c, d);
+    expect(api.replies.at(-1)!.aiBody).toMatch(/Brief not saved/);
+    expect(notes.get("c1")).toMatch(/Jake edited your section/);
+
+    api.briefAnswer = null;
+    d.run = async (o) => {
+      runs.push({ sessionId: o.sessionId, resume: o.resume, prompt: o.prompt });
+      return { text: "Built on it.", tools: [] };
+    };
+    await handleClaim(claim({ started: true }, "Next"), d);
+    expect(runs.at(-1)!.prompt).toMatch(/Jake edited your section/);
+    expect(notes.has("c1")).toBe(false);
+    await handleClaim(claim({ started: true }, "Again"), d);
+    expect(runs.at(-1)!.prompt).not.toMatch(/Jake edited/);
+  });
+
+  it("drops a brief block at the agency, where there is no brief", async () => {
+    const { env } = world();
+    const { api, d } = deps(env, `ok\n${F}brief\nStatus\n${F}`);
+    const c = claim({ tenantId: null, agent: "manager" });
+    c.tenant = null;
+    await handleClaim(c, d);
+    expect(api.briefs).toEqual([]);
+  });
+
   it("resumes a started chat and keeps its title", async () => {
     const { env } = world();
     const { api, runs, d } = deps(env, "Fine.");

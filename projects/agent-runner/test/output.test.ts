@@ -5,6 +5,18 @@ const EM = "\u2014";
 const F = "```";
 
 describe("parseAgentOutput", () => {
+  it("takes a brief block as the agent's whole new section, markdown kept", () => {
+    const text = ["Updated the brief.", "", `${F}brief`, "- Top pain: door fails in the cold", `- Angles: before/after ${EM} proof`, "", F].join("\n");
+    const out = parseAgentOutput(text);
+    expect(out.reply).toBe("Updated the brief.");
+    expect(out.brief).toBe("- Top pain: door fails in the cold\n- Angles: before/after, proof");
+  });
+
+  it("keeps the last brief block when there are two, and an empty one means no change", () => {
+    expect(parseAgentOutput(`${F}brief\nfirst\n${F}\n${F}brief\nsecond\n${F}`).brief).toBe("second");
+    expect(parseAgentOutput(`${F}brief\n\n${F}`).brief).toBeNull();
+  });
+
   it("pulls all three blocks out and leaves the reply clean", () => {
     const text = [
       "CPL is down 12% this week.",
@@ -37,7 +49,7 @@ describe("parseAgentOutput", () => {
 
   it("returns the text as the reply when there are no blocks", () => {
     const out = parseAgentOutput("Just an answer.\n");
-    expect(out).toEqual({ reply: "Just an answer.", lessons: [], items: [], requests: [] });
+    expect(out).toEqual({ reply: "Just an answer.", lessons: [], items: [], requests: [], brief: null });
   });
 
   it("drops malformed JSON and keeps the reply", () => {

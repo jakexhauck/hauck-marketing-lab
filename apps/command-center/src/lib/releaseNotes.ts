@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-17-client-brief",
+    date: "17 October 2026",
+    title: "Client Brief",
+    items: [
+      "Every client has a Brief: one living summary with a section per agent, plus Status. Open it from Brief under Client Information, with a tab per section, or beside the chat on any agent page.",
+      "It works like a Google Doc: click into any section and type, with a toolbar for headings, bold, italic, underline, lists and links. It saves as you type. Agents only change their own section and build on your edits.",
+      "If an agent saved while you were typing, you see its newer text and keep yours aside to put back with one click.",
+      "The Brief is also a Google Doc called Brief in the client's Drive folder, updated after every save. The chip shows whether Drive is up to date.",
+    ],
+  },
+  {
     id: "2026-10-17-creative-agent",
     date: "17 October 2026",
     title: "Creative Agent makes videos and images",
