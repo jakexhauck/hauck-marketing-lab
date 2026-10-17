@@ -106,8 +106,11 @@ function clientSection(env: BundleEnv, tenant: ClaimTenant | null, drive: string
     `- Slug: ${tenant.slug}`,
     `- Tenant id: ${tenant.id}`,
     `- Meta ad account: ${tenant.metaAdAccountId ? "connected" : "none"}`,
-    `- Vault notes: ${folder} (Profile.md, Memory.md)`,
     `- Drive folder: ${drive ?? "not found on this PC"}`,
+    "",
+    `### Profile\n${readOr(join(folder, "Profile.md"), "(none)")}`,
+    "",
+    `### Memory\n${readOr(join(folder, "Memory.md"), "(none)")}`,
   ].join("\n");
 }
 
@@ -134,7 +137,9 @@ export function buildBundle(agent: AgentId, tenant: ClaimTenant | null, env: Bun
   // too. The agent copies what it reads; take them out before it reads them.
   writeFileSync(systemPromptFile, stripEmDashes(sections.filter(Boolean).join("\n\n")) + "\n");
 
-  const addDirs = [env.vaultDir];
-  if (drive) addDirs.push(drive);
+  // Never the vault. A folder given to --add-dir is writable, and the runner
+  // must stay the only writer of a Brain.md (lessons come back through the
+  // ```lessons block). What an agent needs from the vault is in the prompt.
+  const addDirs = drive ? [drive] : [];
   return { systemPromptFile, allowedTools: allowedToolsFor(agent), addDirs };
 }

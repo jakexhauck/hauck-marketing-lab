@@ -78,12 +78,24 @@ describe("buildBundle", () => {
     expect(prompt).toContain("Willis Windows");
   });
 
-  it("adds the vault and the client's Drive folder when it exists", () => {
+  it("adds only the client's Drive folder, never the vault", () => {
     const env = world();
     const b = buildBundle("ads", willis, env);
-    expect(b.addDirs).toEqual([env.vaultDir, join(env.driveRoot, "\u{1F91D}   Willis Windows")]);
+    expect(b.addDirs).toEqual([join(env.driveRoot, "\u{1F91D}   Willis Windows")]);
     const mb: ClaimTenant = { id: "t-mb", name: "Made Better", slug: "made-better-landscaping-co", metaAdAccountId: null };
-    expect(buildBundle("ads", mb, env).addDirs).toEqual([env.vaultDir]);
+    expect(buildBundle("ads", mb, env).addDirs).toEqual([]);
+    for (const id of ["manager", "research", "ads", "creative", "landing", "ghl", "reporting"] as const) {
+      expect(buildBundle(id, willis, env).addDirs).not.toContain(env.vaultDir);
+    }
+  });
+
+  it("puts the client's Profile and Memory notes into the prompt", () => {
+    const env = world();
+    writeFileSync(join(env.vaultDir, "Clients", "Willis Windows", "Profile.md"), "Owner is Bob\n");
+    writeFileSync(join(env.vaultDir, "Clients", "Willis Windows", "Memory.md"), "Prefers texts\n");
+    const prompt = readFileSync(buildBundle("ads", willis, env).systemPromptFile, "utf8");
+    expect(prompt).toContain("Owner is Bob");
+    expect(prompt).toContain("Prefers texts");
   });
 
   it("gives the Manager every brain's lessons, without em dashes", () => {
