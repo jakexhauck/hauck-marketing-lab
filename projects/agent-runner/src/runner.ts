@@ -37,7 +37,9 @@ export interface RunnerDeps {
   // tenant id. Never the secret: claude can run read-only shell commands like
   // echo, so anything in its environment is readable. The meta script reads
   // the secret from Doppler itself. Claude runs in the bundle's work folder.
-  childEnv?: (tenant: ClaimTenant | null) => NodeJS.ProcessEnv;
+  // The message id rides along for bin/ghl.mjs: the app checks GHL writes
+  // against the turn that asked for them.
+  childEnv?: (tenant: ClaimTenant | null, messageId: string) => NodeJS.ProcessEnv;
   log?: (line: string) => void;
 }
 
@@ -131,12 +133,12 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
   let progressPosts: Promise<unknown> = Promise.resolve();
   try {
     await d.api.reply({ messageId, status: "running" });
-    const bundle = buildBundle(agent, tenant, d.env);
+    const bundle = buildBundle(agent, tenant, d.env, claim.message.grant);
     const base = {
       sessionId: chat.claudeSessionId,
       bundle,
       cwd: bundle.workDir,
-      env: d.childEnv?.(tenant),
+      env: d.childEnv?.(tenant, messageId),
       onProgress: (text: string, tools: string[]) => {
         progressPosts = progressPosts.then(() =>
           d.api.reply({ messageId, status: "running", aiBody: preview(text), tools }).catch((e) => log(`progress post failed: ${e.message}`)),

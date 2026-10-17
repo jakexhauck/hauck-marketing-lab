@@ -71,8 +71,13 @@ async function main(): Promise<void> {
     run: runClaude,
     commit: (paths, summary) => commitBrains(paths, summary, { cwd: REPO_DIR }),
     // The secret stays out of claude's environment (see RunnerDeps).
-    childEnv: (tenant) => {
-      const env: NodeJS.ProcessEnv = { ...process.env, AGENT_RUNNER_API: API_BASE, AGENT_TENANT_ID: tenant?.id ?? "" };
+    childEnv: (tenant, messageId) => {
+      const env: NodeJS.ProcessEnv = {
+        ...process.env,
+        AGENT_RUNNER_API: API_BASE,
+        AGENT_TENANT_ID: tenant?.id ?? "",
+        AGENT_MESSAGE_ID: messageId,
+      };
       delete env.AGENT_RUNNER_SECRET;
       return env;
     },

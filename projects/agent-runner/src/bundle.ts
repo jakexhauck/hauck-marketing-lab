@@ -12,7 +12,9 @@
 // is never allowed bare: the only shell command any agent can run is the
 // read-only Meta script, by absolute path, and only the three agents whose job
 // needs numbers get it. Meta writes are refused by the app's endpoint as well,
-// so this is the second lock, not the only one.
+// so this is the second lock, not the only one. The GHL Agent alone also gets
+// bin/ghl.mjs the same way; whether a GHL write goes through is the app's call
+// (api/agent-runner/ghl.ts), made per turn, not this allowlist's.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -20,9 +22,9 @@ import { agentDef, AGENTS } from "./agents.ts";
 import { readLessons } from "./brain.ts";
 import type { Bundle } from "./claude.ts";
 import { findDriveFolder, vaultFolder } from "./clients.ts";
-import { AGENTS_DIR, DRIVE_ROOT, META_SCRIPT, PROMPTS_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
+import { AGENTS_DIR, DRIVE_ROOT, GHL_SCRIPT, META_SCRIPT, PROMPTS_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
 import { stripEmDashes } from "./output.ts";
-import type { AgentId, ClaimTenant } from "./wire.ts";
+import type { AgentId, ClaimTenant, Grant } from "./wire.ts";
 
 export type { Bundle };
 
@@ -35,6 +37,9 @@ export interface BundleEnv {
   workRoot: string;
   // Absolute, forward slashes: it is matched as a Bash rule prefix.
   metaScript: string;
+  // The GHL Agent's script, same rules. Optional so older test worlds still
+  // build; unset means the real bin/ghl.mjs.
+  ghlScript?: string;
 }
 
 export const defaultBundleEnv = (): BundleEnv => ({
@@ -44,6 +49,7 @@ export const defaultBundleEnv = (): BundleEnv => ({
   driveRoot: DRIVE_ROOT,
   workRoot: WORK_DIR,
   metaScript: META_SCRIPT,
+  ghlScript: GHL_SCRIPT,
 });
 
 // The one shell command any agent can run. By absolute path, from a folder the
@@ -52,8 +58,8 @@ export const metaTool = (script: string) => `Bash(node ${script}:*)`;
 const META_AGENTS: AgentId[] = ["manager", "ads", "reporting"];
 
 // Read, search and the web for everyone; writing only where the job is to
-// produce files (Drive docs, drafts). The GHL Agent reads only in Phase 1: its
-// GHL writes arrive in Phase 4, through the app, behind Jake's click.
+// produce files (Drive docs, drafts). The GHL Agent writes no files: its
+// changes go to GHL through bin/ghl.mjs (ghlTools below), behind Jake's click.
 const READ = ["Read", "Glob", "Grep"];
 const WEB = ["WebSearch", "WebFetch"];
 const WRITE = ["Write", "Edit"];
@@ -70,6 +76,18 @@ const TOOLS: Record<AgentId, string[]> = {
 
 export function allowedToolsFor(agent: AgentId, metaScript: string = META_SCRIPT): string[] {
   return META_AGENTS.includes(agent) ? [...TOOLS[agent], metaTool(metaScript)] : [...TOOLS[agent]];
+}
+
+// The GHL Agent's way into the client's sub-account. Reads and writes both go
+// through it; the app refuses a write unless Jake asked in the chat or
+// approved the card. At the agency there is no sub-account, so no tool.
+function ghlTools(agent: AgentId, tenant: ClaimTenant | null, env: BundleEnv): string[] {
+  return agent === "ghl" && tenant ? [metaTool(env.ghlScript ?? GHL_SCRIPT)] : [];
+}
+
+function ghlLine(env: BundleEnv, agent: AgentId): string | null {
+  if (agent !== "ghl") return null;
+  return `- GHL (the only command you can run): \`node ${env.ghlScript ?? GHL_SCRIPT} <op> '<json args>'\``;
 }
 
 export function clientBrainPath(vaultDir: string, t: Pick<ClaimTenant, "slug" | "name">): string {
@@ -136,6 +154,7 @@ function clientSection(env: BundleEnv, agent: AgentId, tenant: ClaimTenant | nul
     `- Meta ad account: ${tenant.metaAdAccountId ? "connected" : "none"}`,
     `- Drive folder: ${drive ?? "not found on this PC"}`,
     ...(meta ? [meta] : []),
+    ...[ghlLine(env, agent)].filter((l): l is string => !!l),
     "",
     `### Profile\n${readOr(join(folder, "Profile.md"), "(none)")}`,
     "",
@@ -143,7 +162,7 @@ function clientSection(env: BundleEnv, agent: AgentId, tenant: ClaimTenant | nul
   ].join("\n");
 }
 
-export function buildBundle(agent: AgentId, tenant: ClaimTenant | null, env: BundleEnv = defaultBundleEnv()): Bundle {
+export function buildBundle(agent: AgentId, tenant: ClaimTenant | null, env: BundleEnv = defaultBundleEnv(), grant: Grant | null = null): Bundle {
   const def = agentDef(agent);
   const drive = tenant ? findDriveFolder(env.driveRoot, tenant) : null;
 
@@ -174,5 +193,9 @@ export function buildBundle(agent: AgentId, tenant: ClaimTenant | null, env: Bun
   // the folder it runs in, so --resume only finds a chat from the same one.
   const workDir = join(env.workRoot, `${agent}-${tenant?.slug ?? "agency"}`);
   mkdirSync(workDir, { recursive: true });
-  return { systemPromptFile, allowedTools: allowedToolsFor(agent, env.metaScript), addDirs, workDir };
+  // grant is read by the Landing and Creative branches. The GHL tool needs
+  // none: its gate is on the server, which also has to allow Jake's direct
+  // asks, and those carry no grant.
+  const allowedTools = [...allowedToolsFor(agent, env.metaScript), ...ghlTools(agent, tenant, env)];
+  return { systemPromptFile, allowedTools, addDirs, workDir };
 }

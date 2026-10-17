@@ -15,6 +15,8 @@ export const PROMPTS_DIR = join(DATA_DIR, "prompts");
 export const WORK_DIR = join(DATA_DIR, "work");
 // Forward slashes: it is matched as the prefix of a Bash permission rule.
 export const META_SCRIPT = join(RUNNER_DIR, "bin", "meta.mjs").split("\\").join("/");
+// The GHL Agent's one command, same rules as the meta script.
+export const GHL_SCRIPT = join(RUNNER_DIR, "bin", "ghl.mjs").split("\\").join("/");
 export const SNAPSHOTS_FILE = join(DATA_DIR, "snapshots.json");
 
 // The Google Drive for desktop mount, where every client has a "<handshake>
