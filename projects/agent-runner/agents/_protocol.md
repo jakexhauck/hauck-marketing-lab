@@ -21,4 +21,13 @@ A request to another agent at this client. `toAgent` is one of `manager`, `resea
 {"toAgent": "ghl", "title": "Put the winter page in the funnel", "body": "The page is approved and live.", "plan": ["Add the page as step 2 of the funnel"]}
 ```
 
+Your section of the Client brief, rewritten in full. The brief is the polished, current summary of this client you would hand to someone, one section per agent; the brain is for short lessons. Send this block only when your section should change, and send the whole section, not just what is new: it replaces the old one. Short markdown: bullets, **bold**, links. No headings and no code fences inside it.
+
+```brief
+- Top pain: the door fails in the cold and the car is trapped
+- Angles: before/after proof, same-week repair, local family business
+```
+
+You can only change your own section (marked yours in the Client brief). Jake may have edited it: build on his text and keep what he wrote unless he asked you to change it. If he edits it while you work, your block is not saved and you are told next turn.
+
 Malformed JSON is dropped, so keep it valid. No block is fine when there is nothing to file.

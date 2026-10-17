@@ -57,4 +57,18 @@ describe("createApi", () => {
     const api = createApi({ base: "https://a", secret: "s", fetch: fetchImpl });
     await expect(api.reply({ messageId: "m", status: "done" })).rejects.toThrow(/401.*unauthorized/);
   });
+
+  it("posts a brief section and reads a 409 as stale, not as a failure", async () => {
+    const section = { section: "ads", body: "Jake's text", version: 4, updatedBy: "jake", updatedAt: "2026-10-17T10:00:00Z" };
+    const { calls, fetchImpl } = recorder([
+      { body: { section: { ...section, body: "mine", version: 4, updatedBy: "ads" } } },
+      { status: 409, body: { section } },
+      { status: 500, text: "boom" },
+    ]);
+    const api = createApi({ base: "https://app.example.com", secret: "s3cret", fetch: fetchImpl });
+    expect(await api.brief({ messageId: "m1", body: "mine", version: 3 })).toMatchObject({ saved: true, section: { body: "mine" } });
+    expect(await api.brief({ messageId: "m1", body: "mine", version: 3 })).toEqual({ saved: false, section });
+    await expect(api.brief({ messageId: "m1", body: "mine", version: 3 })).rejects.toThrow(/500/);
+    expect(calls[0]).toMatchObject({ url: "https://app.example.com/api/agent-runner/brief", method: "POST", body: { messageId: "m1", body: "mine", version: 3 } });
+  });
 });

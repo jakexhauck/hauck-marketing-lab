@@ -11,6 +11,8 @@ import type {
   ItemBody,
   LessonsBody,
   ReplyBody,
+  RunnerBriefBody,
+  RunnerBriefResult,
   Snapshot,
   ClaimTenant,
 } from "../src/wire.ts";
@@ -26,6 +28,9 @@ export interface FakeApi extends RunnerApi {
   snapshots: Record<string, Snapshot>;
   tenantList: ClaimTenant[];
   heartbeatReply: HeartbeatResponse;
+  briefs: RunnerBriefBody[];
+  // What the next brief post answers; saved at the version sent + 1 if unset.
+  briefAnswer: ((b: RunnerBriefBody) => RunnerBriefResult) | null;
 }
 
 export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "tenantList" | "heartbeatReply">> = {}): FakeApi {
@@ -40,6 +45,8 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     snapshots: init.snapshots ?? {},
     tenantList: init.tenantList ?? [],
     heartbeatReply: init.heartbeatReply ?? { lastMonitorAt: null, queuedEdits: [] },
+    briefs: [],
+    briefAnswer: null,
     async claim() {
       return api.claims.shift() ?? null;
     },
@@ -72,6 +79,11 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     async fileAsset(b) {
       api.fileAssets.push(b);
       return { assetId: `asset-${api.fileAssets.length}` };
+    },
+    async brief(b) {
+      api.briefs.push(b);
+      if (api.briefAnswer) return api.briefAnswer(b);
+      return { saved: true, section: { section: "ads", body: b.body, version: b.version + 1, updatedBy: "ads", updatedAt: null } };
     },
   };
   return api;

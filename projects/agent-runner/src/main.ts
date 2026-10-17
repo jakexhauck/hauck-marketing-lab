@@ -31,6 +31,7 @@ import { API_BASE, DATA_DIR, HEARTBEAT_MS, PAGES_CWD, POLL_MS, REPO_DIR, RUNNER_
 import { commitBrains } from "./git.ts";
 import { deployDraft, promote } from "./pages.ts";
 import { runMonitorIfDue } from "./monitor.ts";
+import { fileBriefNotes } from "./notes.ts";
 import { applyQueuedEdits, handleClaim, syncAllBrains, type RunnerDeps } from "./runner.ts";
 import type { ClaimTenant } from "./wire.ts";
 
@@ -88,6 +89,7 @@ async function main(): Promise<void> {
       deployDraft: (slug, itemId, dir) => deployDraft(slug, itemId, dir, { cwd: PAGES_CWD }),
       promote: (slug, dir) => promote(slug, dir, { cwd: PAGES_CWD }),
     },
+    briefNotes: fileBriefNotes(join(DATA_DIR, "brief-notes")),
   };
 
   let tenants: ClaimTenant[] = [];
