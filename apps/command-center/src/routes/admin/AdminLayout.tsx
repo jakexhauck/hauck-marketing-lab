@@ -34,6 +34,9 @@ import { PillarStyle } from "../../components/pillars/PillarKit";
 import { effectiveAdminRole, type AdminRole } from "../../lib/adminRoles";
 import UpdateDialog from "../../components/admin/UpdateDialog";
 import ClientMark from "../../components/ClientMark";
+import { useAgentItems, useRunnerStatus } from "../../components/admin/agents/agentApi";
+import { needsOkCounts, onlineLabel } from "../../lib/agentView";
+import { isAgentId, type AgentId } from "../../lib/agents";
 
 // The admin console chrome: a sidebar (the same shape and row treatment as the
 // client app's rail, so the two consoles read as one product) plus each page's
@@ -371,14 +374,20 @@ function RailGroupCaption({ caption }: { caption: string }) {
 
 // One row of a client's rail. Same treatment as NavRowLink; active is matched
 // on page AND sub-page, since every Paid Ads row shares the /paid-ads prefix.
+// Agent rows also carry a badge (items waiting on Jake's OK) or, failing
+// that, a green dot while the agent is building something.
 function ClientRowLink({
   tenantId,
   row,
   current,
+  badge,
+  active,
 }: {
   tenantId: string;
   row: ClientNavRow;
   current: { page: string; sub: string | null };
+  badge?: number;
+  active?: boolean;
 }) {
   const collapsed = useRailCollapsed();
   const on = current.page === row.page && current.sub === row.sub;
@@ -400,7 +409,52 @@ function ClientRowLink({
     >
       <Icon size={17} className="shrink-0 opacity-80" />
       {!collapsed && row.label}
+      {!collapsed && !!badge && (
+        <span
+          className={`ml-auto grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold ${
+            on ? "bg-white/25 text-white" : "bg-[color-mix(in_srgb,var(--warning)_16%,transparent)] text-[var(--warning)]"
+          }`}
+        >
+          {badge}
+        </span>
+      )}
+      {!collapsed && !badge && active && (
+        <span
+          aria-hidden
+          className={`ml-auto h-[7px] w-[7px] shrink-0 rounded-full ${
+            on
+              ? "bg-white shadow-[0_0_0_3px_rgba(255,255,255,.3)]"
+              : "bg-[var(--positive)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--positive)_22%,transparent)]"
+          }`}
+        />
+      )}
     </NavLink>
+  );
+}
+
+// The rail footer's runner line: is the PC that answers agent chats up.
+function AgentsStatusLine() {
+  const collapsed = useRailCollapsed();
+  const status = useRunnerStatus();
+  const { online, label } = onlineLabel(status.data, new Date());
+  return (
+    <div
+      className={[
+        "mb-1 flex items-center gap-2 py-2 text-[12px] text-[var(--text-muted)]",
+        collapsed ? "justify-center px-0" : "px-3",
+      ].join(" ")}
+      title={collapsed ? label : undefined}
+    >
+      <i
+        aria-hidden
+        className={`h-2 w-2 shrink-0 rounded-full ${
+          online
+            ? "bg-[var(--positive)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--positive)_22%,transparent)]"
+            : "bg-[var(--text-faint)]"
+        }`}
+      />
+      {collapsed ? <span className="sr-only">{label}</span> : label}
+    </div>
   );
 }
 
@@ -449,6 +503,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const clients = clientsQuery.data?.clients ?? [];
   const activeClient = clientCtx ? (clients.find((c) => c.id === clientCtx.tenantId) ?? null) : null;
   const [sheetOpen, setSheetOpen] = useState(false);
+  // One items read for the open client feeds every agent row's badge.
+  const agentItems = useAgentItems(activeClient?.id ?? "", !!activeClient).data?.items;
+  const agentBadges = agentItems ? needsOkCounts(agentItems) : {};
+  const agentsBuilding = new Set<AgentId>((agentItems ?? []).filter((i) => i.status === "building").map((i) => i.agent));
 
   return (
     // Desktop (lg+): lock the frame to the available height (h-full resolves
@@ -538,6 +596,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     tenantId={activeClient.id}
                     row={row}
                     current={clientCtx}
+                    badge={row.page === "agent" && isAgentId(row.sub) ? agentBadges[row.sub] : undefined}
+                    active={row.page === "agent" && isAgentId(row.sub) && agentsBuilding.has(row.sub)}
                   />
                 ))}
               </Fragment>
@@ -567,6 +627,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
         {/* Footer controls */}
         <div className="border-t border-[var(--border)] px-3 py-3">
+          {isOwnerAdmin && <AgentsStatusLine />}
           {/* Team sits with Settings rather than in the org chart: it is account
               administration, not a pillar of the business. Owners only. */}
           {isOwnerAdmin && <FooterLink to="/admin/team" icon={Users} label="Team" />}
