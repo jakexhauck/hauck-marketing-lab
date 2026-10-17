@@ -8,12 +8,14 @@
 //
 //   npx tsx src/main.ts                    watch (what the scheduled task runs)
 //   npx tsx src/main.ts --once             heartbeat, answer one message, exit
-//   npx tsx src/main.ts --once --sync-lessons   also mirror every brain to the app
 //   --monitor      run startup monitoring even with --once (still 6h-gated)
 //   --no-monitor   skip startup monitoring in watch mode
 //
-// On start: heartbeat (applying any queued Brain-tab edits), mirror the
-// brains, then startup monitoring if the last run was 6 hours ago or more.
+// On start: mirror every brain to the app (so Obsidian edits show up in the
+// Brain tab; `--sync-lessons` in the plan's commands is this, and is always
+// on), heartbeat (applying any queued Brain-tab edits), then startup
+// monitoring if the last run was 6 hours ago or more. Watch mode re-mirrors
+// every 10 minutes with the client list.
 //
 // The off switch is the lead scraper's: a file at data/.stop and the runner
 // idles, sending no heartbeat, so the app shows it offline and messages wait.
