@@ -31,7 +31,7 @@ export const RELEASES: Release[] = [
     title: "Client Brief",
     items: [
       "Every client has a Brief: one living summary with a section per agent, plus Status. Open it from Brief under Client Information, with a tab per section, or beside the chat on any agent page.",
-      "Press the pencil on any section to edit it; it saves as you type. Agents only change their own section and build on your edits.",
+      "It works like a Google Doc: click into any section and type, with a toolbar for headings, bold, italic, underline, lists and links. It saves as you type. Agents only change their own section and build on your edits.",
       "If an agent saved while you were typing, you see its newer text and keep yours aside to put back with one click.",
       "The Brief is also a Google Doc called Brief in the client's Drive folder, updated after every save. The chip shows whether Drive is up to date.",
     ],

@@ -26,6 +26,15 @@ describe("briefDocText", () => {
     expect(doc.headings.map(at)).toEqual(["Brief: Willis Windows\n", "Status\n", "Ads\n"]);
   });
 
+  it("reads the markdown like the editor: marks out, inner headings smaller", () => {
+    const doc = briefDocText(
+      "X",
+      fullBrief([{ section: "ads", body: "## Winter\n\n__Cap__ is *firm*", version: 1, updatedBy: "jake", updatedAt: null }]),
+    );
+    expect(doc.text).toBe("Brief: X\nAds\nWinter\nCap is firm\n");
+    expect(doc.headings.map((h) => h.style)).toEqual(["TITLE", "HEADING_2", "HEADING_4"]);
+  });
+
   it("still has a title when nothing is written", () => {
     expect(briefDocText("AAG", fullBrief([])).text).toBe("Brief: AAG\n");
   });

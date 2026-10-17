@@ -21,7 +21,7 @@ A request to another agent at this client. `toAgent` is one of `manager`, `resea
 {"toAgent": "ghl", "title": "Put the winter page in the funnel", "body": "The page is approved and live.", "plan": ["Add the page as step 2 of the funnel"]}
 ```
 
-Your section of the Client brief, rewritten in full. The brief is the polished, current summary of this client you would hand to someone, one section per agent; the brain is for short lessons. Send this block only when your section should change, and send the whole section, not just what is new: it replaces the old one. Short markdown: bullets, **bold**, links. No headings and no code fences inside it.
+Your section of the Client brief, rewritten in full. The brief is the polished, current summary of this client you would hand to someone, one section per agent; the brain is for short lessons. Send this block only when your section should change, and send the whole section, not just what is new: it replaces the old one. Markdown, the kind the editor shows: `#`, `##` or `###` headings, `-` bullets, `1.` numbered lists, **bold**, *italic*, links. No code fences, quotes or tables inside it.
 
 ```brief
 - Top pain: the door fails in the cold and the car is trapped

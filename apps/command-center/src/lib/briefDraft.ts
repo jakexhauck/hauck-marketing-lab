@@ -8,7 +8,10 @@
 //     poll while there is unsaved text, puts the NEWER text in the box and
 //     keeps Jake's draft aside to reapply. Nothing is overwritten silently in
 //     either direction;
-//   - a failed save waits for the next keystroke rather than retrying forever.
+//   - a failed save waits for the next keystroke rather than retrying forever;
+//   - `external` counts the times the box was refilled from outside (a newer
+//     copy, a conflict, Use mine). The editor reloads its content only then,
+//     never on Jake's own typing, so his cursor stays where it is.
 
 import type { BriefSection } from "./agentWire";
 
@@ -18,6 +21,7 @@ export interface DraftState {
   saving: boolean;
   conflict: { theirs: BriefSection; mine: string } | null;
   error: string | null;
+  external: number;
 }
 
 export type DraftEvent =
@@ -31,7 +35,7 @@ export type DraftEvent =
   | { t: "discard" };
 
 export function initDraft(section: BriefSection): DraftState {
-  return { base: section, draft: section.body, saving: false, conflict: null, error: null };
+  return { base: section, draft: section.body, saving: false, conflict: null, error: null, external: 0 };
 }
 
 export function needsSave(s: DraftState): boolean {
@@ -39,7 +43,7 @@ export function needsSave(s: DraftState): boolean {
 }
 
 function clash(s: DraftState, theirs: BriefSection, mine: string): DraftState {
-  return { ...s, base: theirs, draft: theirs.body, saving: false, conflict: { theirs, mine } };
+  return { ...s, base: theirs, draft: theirs.body, saving: false, conflict: { theirs, mine }, external: s.external + 1 };
 }
 
 export function briefDraft(s: DraftState, e: DraftEvent): DraftState {
@@ -58,11 +62,13 @@ export function briefDraft(s: DraftState, e: DraftEvent): DraftState {
       if (e.section.version <= s.base.version) return s;
       // Our own save, seen by the poll before its answer: nothing to resolve.
       if (e.section.body === s.draft) return { ...s, base: e.section };
-      if (s.draft === s.base.body && !s.conflict) return { ...s, base: e.section, draft: e.section.body };
+      if (s.draft === s.base.body && !s.conflict) {
+        return { ...s, base: e.section, draft: e.section.body, external: s.external + 1 };
+      }
       return clash(s, e.section, s.conflict?.mine ?? s.draft);
     }
     case "reapply":
-      return s.conflict ? { ...s, draft: s.conflict.mine, conflict: null } : s;
+      return s.conflict ? { ...s, draft: s.conflict.mine, conflict: null, external: s.external + 1 } : s;
     case "discard":
       return { ...s, conflict: null };
   }

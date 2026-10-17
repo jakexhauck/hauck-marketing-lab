@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Env } from "./env";
 import type { BriefSection } from "../../src/lib/agentWire";
 import { BRIEF_SECTIONS, briefRevision } from "../../src/lib/clientBrief";
+import { markdownToLines } from "../../src/lib/briefMarkdown";
 import { readBrief } from "./clientBriefs";
 import { createGoogleDoc, findDocInFolder, resolveDriveAccount, rewriteDoc } from "./driveComposio";
 
@@ -23,7 +24,7 @@ export const BRIEF_DOC_NAME = "Brief";
 export interface DocHeading {
   start: number;
   end: number;
-  style: "TITLE" | "HEADING_2";
+  style: "TITLE" | "HEADING_2" | "HEADING_3" | "HEADING_4";
 }
 
 export interface DocText {
@@ -34,8 +35,10 @@ export interface DocText {
 /**
  * The Doc's text and where its headings are. Indexes are the Docs API's: UTF-16
  * code units (which is what a JS string length counts), from 1, end exclusive,
- * each range covering its paragraph's newline. Markdown bullets become real
- * bullet characters; the rest stays as written.
+ * each range covering its paragraph's newline. The markdown is read the way
+ * the editor reads it (lib/briefMarkdown.ts): marks are taken out, bullets
+ * become bullet characters, and a section's own headings become smaller Doc
+ * headings under the section's.
  */
 export function briefDocText(clientName: string, sections: BriefSection[]): DocText {
   let text = "";
@@ -50,7 +53,9 @@ export function briefDocText(clientName: string, sections: BriefSection[]): DocT
     const body = sections.find((s) => s.section === def.id)?.body.trim() ?? "";
     if (!body) continue;
     add(`${def.label}\n`, "HEADING_2");
-    add(`${body.replace(/^(\s*)[-*] /gm, "$1• ")}\n`);
+    for (const line of markdownToLines(body)) {
+      add(`${line.text}\n`, line.heading === 0 ? undefined : line.heading === 1 ? "HEADING_3" : "HEADING_4");
+    }
   }
   return { text, headings };
 }

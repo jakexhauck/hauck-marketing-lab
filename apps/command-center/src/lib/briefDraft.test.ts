@@ -88,4 +88,22 @@ describe("briefDraft", () => {
     expect(s.error).toBeNull();
     expect(needsSave(s)).toBe(true);
   });
+
+  it("refills the editor only from outside, never on Jake's own typing", () => {
+    let s = start();
+    s = briefDraft(s, { t: "edit", text: "mine" });
+    expect(s.external).toBe(0);
+    s = briefDraft(s, { t: "saving" });
+    s = briefDraft(s, { t: "saved", section: sec(4, "mine") });
+    expect(s.external).toBe(0);
+    s = briefDraft(s, { t: "server", section: sec(5, "agent text", "ads") });
+    expect(s.external).toBe(1);
+    s = briefDraft(s, { t: "edit", text: "agent text, more" });
+    s = briefDraft(s, { t: "server", section: sec(6, "agent again", "ads") });
+    expect(s.external).toBe(2);
+    expect(s.conflict?.mine).toBe("agent text, more");
+    s = briefDraft(s, { t: "reapply" });
+    expect(s.external).toBe(3);
+    expect(s.draft).toBe("agent text, more");
+  });
 });
