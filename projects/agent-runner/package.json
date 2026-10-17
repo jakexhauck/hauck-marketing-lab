@@ -1,0 +1,21 @@
+{
+  "name": "agent-runner",
+  "private": true,
+  "type": "module",
+  "description": "Runs the Command Center agents with claude -p on Jake's PC.",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "once": "tsx src/main.ts --once",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "tsx": "4.19.2",
+    "typescript": "5.8.3",
+    "vitest": "2.1.9"
+  }
+}
