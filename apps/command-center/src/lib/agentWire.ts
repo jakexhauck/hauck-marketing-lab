@@ -14,10 +14,11 @@ export type LessonScope = "client" | "agent" | "manager";
 
 // What an Approve unlocks for the agent's next turn, and only that turn: a
 // deploy (Landing Page), a credit spend up to `limit` (Creative), a GHL write
-// (GHL), filing into an app page. Copied by PATCH items/:id approve from the
+// (GHL), filing into an app page, an Ads Manager change (Ads, kind "meta").
+// Copied by PATCH items/:id approve from the
 // card's payload.grant onto the follow-up message; the runner and the server
 // both check it before a gated action.
-export type GrantKind = "deploy" | "spend" | "ghl" | "file";
+export type GrantKind = "deploy" | "spend" | "ghl" | "file" | "meta";
 export interface Grant {
   itemId: string;
   kind: GrantKind;

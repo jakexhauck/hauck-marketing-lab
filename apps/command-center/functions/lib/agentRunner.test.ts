@@ -39,7 +39,7 @@ describe("agent runner gate", () => {
 
   it("is exactly the paths the runner calls", () => {
     expect([...AGENT_RUNNER_POST_PATHS].sort()).toEqual(
-      ["auto-chat", "brief", "claim", "file-asset", "file-creative", "ghl", "heartbeat", "item", "lessons", "read-url", "reply", "upload-url"].map((p) => `/api/agent-runner/${p}`),
+      ["auto-chat", "brief", "claim", "file-asset", "file-creative", "ghl", "heartbeat", "item", "lessons", "meta-ops", "read-url", "reply", "upload-url"].map((p) => `/api/agent-runner/${p}`),
     );
     expect([...AGENT_RUNNER_GET_PATHS].sort()).toEqual(
       ["meta", "snapshot", "tenants"].map((p) => `/api/agent-runner/${p}`),
@@ -332,12 +332,20 @@ describe("helpers", () => {
     const m = messageFromRow(msg("r1", { role: "request", status: "done", meta: { itemId: "i1", fromAgent: "landing" } }));
     expect(m).toMatchObject({ role: "request", itemId: "i1", fromAgent: "landing", tools: [], used: [], learned: [] });
   });
+
+  it("reads a meta grant off a follow-up, and drops an unknown kind", () => {
+    const g = messageFromRow(msg("m1", { meta: { followUpOf: "i1", grant: { itemId: "i1", kind: "meta", limit: null } } }));
+    expect(g.grant).toEqual({ itemId: "i1", kind: "meta", limit: null });
+    expect(messageFromRow(msg("m2", { meta: { grant: { itemId: "i1", kind: "everything" } } })).grant).toBeNull();
+  });
 });
 
 describe("meta endpoint stays read-only", () => {
   it("imports nothing that can write to Meta", () => {
     const src = metaSource;
-    for (const banned of ["metaActions", "metaUpload", "metaLeadForm", "metaCapi"]) {
+    // agentMetaOps is the Ads Agent's write path (Phase 7); it lives behind
+    // meta-ops.ts, never here.
+    for (const banned of ["metaActions", "metaUpload", "metaLeadForm", "metaCapi", "agentMetaOps", "metaPages"]) {
       expect(src.includes(banned), `meta.ts must not import ${banned}`).toBe(false);
     }
     // And the only Graph helper it reaches for is a GET.

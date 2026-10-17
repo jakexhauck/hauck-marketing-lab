@@ -181,6 +181,25 @@ describe("itemPayload", () => {
     expect(itemPayload({}).changes).toEqual([]);
   });
 
+  it("spells out an Ads card's Meta changes, budgets in dollars", () => {
+    const v = itemPayload({
+      ops: [
+        { op: "pause", args: { level: "ad", id: "1", name: "Winter 2" } },
+        { op: "resume", args: { level: "adset", id: "2", name: "Willis Winter" } },
+        { op: "dailyBudget", args: { level: "campaign", id: "3", name: "Fall", from: 4000, to: 5000 } },
+        { op: "createAd", args: { adsetId: "2", adsetName: "Willis Winter", fileId: "f", fileName: "winter-3.mp4", name: "Winter 3", message: "x" } },
+        { op: "createAd", args: { adsetId: "2", adsetName: "Willis Winter", fileId: "f", fileName: "winter-3.mp4", name: "Winter 4", message: "x", status: "ACTIVE" } },
+      ],
+    });
+    expect(v.changes).toEqual([
+      'Pause ad "Winter 2"',
+      'Resume ad set "Willis Winter"',
+      "Fall campaign daily budget $40.00 to $50.00",
+      'Create ad "Winter 3" in ad set "Willis Winter" from Creatives file "winter-3.mp4", paused',
+      'Create ad "Winter 4" in ad set "Willis Winter" from Creatives file "winter-3.mp4", active',
+    ]);
+  });
+
   it("reads a spend card's credits and what it makes", () => {
     const v = itemPayload({ credits: 24, what: "3 square images", grant: { kind: "spend", limit: 24 } });
     expect(v.credits).toBe(24);

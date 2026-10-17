@@ -14,7 +14,10 @@
 // needs numbers get it. Meta writes are refused by the app's endpoint as well,
 // so this is the second lock, not the only one. The GHL Agent alone also gets
 // bin/ghl.mjs the same way; whether a GHL write goes through is the app's call
-// (api/agent-runner/ghl.ts), made per turn, not this allowlist's.
+// (api/agent-runner/ghl.ts), made per turn, not this allowlist's. The Ads
+// Agent alone, at a client, gets bin/metaops.mjs for Ads Manager changes, and
+// the app's api/agent-runner/meta-ops.ts allows a change only under Jake's
+// Approve of a card that lists it.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -22,7 +25,7 @@ import { agentDef, AGENTS } from "./agents.ts";
 import { readLessons } from "./brain.ts";
 import type { Bundle } from "./claude.ts";
 import { findDriveFolder, vaultFolder } from "./clients.ts";
-import { AGENTS_DIR, DRIVE_ROOT, GHL_SCRIPT, META_SCRIPT, PROMPTS_DIR, STATE_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
+import { AGENTS_DIR, DRIVE_ROOT, GHL_SCRIPT, META_SCRIPT, METAOPS_SCRIPT, PROMPTS_DIR, STATE_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
 import { stripEmDashes } from "./output.ts";
 import { creativeHiggsfieldTools, spendLimit, writeHiggsfieldConfig } from "./spend.ts";
 import type { AgentId, BriefSection, ClaimTenant, Grant } from "./wire.ts";
@@ -44,6 +47,9 @@ export interface BundleEnv {
   // The GHL Agent's script, same rules. Optional so older test worlds still
   // build; unset means the real bin/ghl.mjs.
   ghlScript?: string;
+  // The Ads Agent's Ads Manager script, same rules. Unset means the real
+  // bin/metaops.mjs.
+  metaOpsScript?: string;
 }
 
 export const defaultBundleEnv = (): BundleEnv => ({
@@ -55,6 +61,7 @@ export const defaultBundleEnv = (): BundleEnv => ({
   stateRoot: STATE_DIR,
   metaScript: META_SCRIPT,
   ghlScript: GHL_SCRIPT,
+  metaOpsScript: METAOPS_SCRIPT,
 });
 
 // The one shell command any agent can run. By absolute path, from a folder the
@@ -93,6 +100,25 @@ function ghlTools(agent: AgentId, tenant: ClaimTenant | null, env: BundleEnv): s
 function ghlLine(env: BundleEnv, agent: AgentId): string | null {
   if (agent !== "ghl") return null;
   return `- GHL (the only command you can run): \`node ${env.ghlScript ?? GHL_SCRIPT} <op> '<json args>'\``;
+}
+
+// The Ads Agent's way to change Ads Manager. Same tool with or without a
+// grant: reads go through it too, and the app refuses any change that is not
+// on a card Jake approved. At the agency there is no ad account, so no tool.
+function metaOpsTools(agent: AgentId, tenant: ClaimTenant | null, env: BundleEnv): string[] {
+  return agent === "ads" && tenant ? [metaTool(env.metaOpsScript ?? METAOPS_SCRIPT)] : [];
+}
+
+function metaOpsLine(env: BundleEnv, agent: AgentId): string | null {
+  if (agent !== "ads") return null;
+  return `- Ads Manager (reads, and changes only after Jake approves a card): \`node ${env.metaOpsScript ?? METAOPS_SCRIPT} <op> '<json args>'\``;
+}
+
+// What an approved Ads card unlocks this turn, in the prompt so the agent
+// knows; the app's meta-ops check is what holds it to that.
+function adsGrantSection(grant: Grant | null): string | null {
+  if (grant?.kind !== "meta") return null;
+  return `## Approved this turn\nJake approved card ${grant.itemId}. Make exactly the changes in that card's ops, one metaops call per op, with the same args, and report what Meta answered for each. Nothing else.`;
 }
 
 /** The runner-only folder for one agent and client: beside the work folders, not in one. */
@@ -145,7 +171,9 @@ function megaBrain(vaultDir: string): string {
 function metaLine(env: BundleEnv, agent: AgentId, agency: boolean): string | null {
   if (!META_AGENTS.includes(agent)) return null;
   const tenantArg = agency ? " --tenant <client tenant id>" : "";
-  return `- Meta numbers (read-only, the only command you can run): \`node ${env.metaScript} --level account|campaign|ad --days N${tenantArg}\``;
+  // The Ads Agent at a client also has the metaops command (metaOpsLine).
+  const only = agent === "ads" && !agency ? "" : ", the only command you can run";
+  return `- Meta numbers (read-only${only}): \`node ${env.metaScript} --level account|campaign|ad --days N${tenantArg}\``;
 }
 
 function clientSection(env: BundleEnv, agent: AgentId, tenant: ClaimTenant | null, drive: string | null): string {
@@ -164,7 +192,7 @@ function clientSection(env: BundleEnv, agent: AgentId, tenant: ClaimTenant | nul
     `- Meta ad account: ${tenant.metaAdAccountId ? "connected" : "none"}`,
     ...(agent === "ghl" ? [] : [`- Drive folder: ${drive ?? "not found on this PC"}`]),
     ...(meta ? [meta] : []),
-    ...[ghlLine(env, agent)].filter((l): l is string => !!l),
+    ...[ghlLine(env, agent), metaOpsLine(env, agent)].filter((l): l is string => !!l),
     "",
     `### Profile\n${readOr(join(folder, "Profile.md"), "(none)")}`,
     "",
@@ -249,6 +277,8 @@ export function buildBundle(
   }
 
   if (agent === "creative") sections.push(creativeSpendSection(grant));
+  const adsGrant = agent === "ads" && tenant ? adsGrantSection(grant) : null;
+  if (adsGrant) sections.push(adsGrant);
 
   mkdirSync(env.outDir, { recursive: true });
   const systemPromptFile = join(env.outDir, `${agent}-${tenant?.slug ?? "agency"}.md`);
@@ -264,10 +294,14 @@ export function buildBundle(
   // the folder it runs in, so --resume only finds a chat from the same one.
   const workDir = join(env.workRoot, `${agent}-${tenant?.slug ?? "agency"}`);
   mkdirSync(workDir, { recursive: true });
-  // grant is read by the Landing and Creative branches. The GHL tool needs
-  // none: its gate is on the server, which also has to allow Jake's direct
-  // asks, and those carry no grant.
-  const allowedTools = [...allowedToolsFor(agent, env.metaScript), ...ghlTools(agent, tenant, env)];
+  // grant is read by the Landing and Creative branches. The GHL and Ads
+  // Manager tools need none: their gates are on the server (the GHL one also
+  // has to allow Jake's direct asks, which carry no grant).
+  const allowedTools = [
+    ...allowedToolsFor(agent, env.metaScript),
+    ...ghlTools(agent, tenant, env),
+    ...metaOpsTools(agent, tenant, env),
+  ];
   const bundle: Bundle = { systemPromptFile, allowedTools, addDirs, workDir };
   if (agent === "creative") {
     // Higgsfield, and only Higgsfield, with the credit gate (src/spend.ts).

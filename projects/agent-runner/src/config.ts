@@ -21,6 +21,8 @@ export const STATE_DIR = join(DATA_DIR, "state");
 export const META_SCRIPT = join(RUNNER_DIR, "bin", "meta.mjs").split("\\").join("/");
 // The GHL Agent's one command, same rules as the meta script.
 export const GHL_SCRIPT = join(RUNNER_DIR, "bin", "ghl.mjs").split("\\").join("/");
+// The Ads Agent's Ads Manager command (Phase 7), same rules again.
+export const METAOPS_SCRIPT = join(RUNNER_DIR, "bin", "metaops.mjs").split("\\").join("/");
 export const SNAPSHOTS_FILE = join(DATA_DIR, "snapshots.json");
 
 // Landing pages the runner deployed: a snapshot per card, copied out of the

@@ -286,6 +286,10 @@ describe("decideItem", () => {
     const db3 = withGrant({ kind: "ghl" });
     await decideItem(db3.client(), "i1", "approve", undefined, undefined, await shown(db3));
     expect(db3.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1", grant: { itemId: "i1", kind: "ghl", limit: null } });
+    // The Ads Agent's Meta changes (Phase 7) grant the same way.
+    const db4 = withGrant({ kind: "meta" });
+    await decideItem(db4.client(), "i1", "approve", undefined, undefined, await shown(db4));
+    expect(db4.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1", grant: { itemId: "i1", kind: "meta", limit: null } });
   });
 
   it("grants deploy and file only on a card the runner made", async () => {

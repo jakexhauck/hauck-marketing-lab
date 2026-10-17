@@ -123,8 +123,21 @@ export interface ItemPayloadView {
 
 const str = (v: unknown): v is string => typeof v === "string" && v.length > 0;
 
+// Meta object kinds in words, and cents as dollars, for the Ads Agent's cards.
+const META_LEVEL: Record<string, string> = { campaign: "campaign", adset: "ad set", ad: "ad" };
+const dollars = (v: unknown): string => (typeof v === "number" && Number.isFinite(v) ? `$${(v / 100).toFixed(2)}` : "?");
+
 function changeLine(op: string, a: Record<string, unknown>): string {
+  const level = META_LEVEL[String(a.level)] ?? String(a.level);
   switch (op) {
+    case "pause":
+      return `Pause ${level} "${a.name}"`;
+    case "resume":
+      return `Resume ${level} "${a.name}"`;
+    case "dailyBudget":
+      return `${a.name} ${level} daily budget ${dollars(a.from)} to ${dollars(a.to)}`;
+    case "createAd":
+      return `Create ad "${a.name}" in ad set "${a.adsetName}" from Creatives file "${a.fileName}", ${a.status === "ACTIVE" ? "active" : "paused"}`;
     case "write.customValue":
       return `Set custom value "${a.key}" to "${a.value}"`;
     case "write.customField":

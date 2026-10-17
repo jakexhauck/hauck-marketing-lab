@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-17-ads-agent-changes",
+    date: "17 October 2026",
+    title: "Ads Agent changes Ads Manager on your Approve",
+    items: [
+      "The Ads Agent can pause and resume campaigns, ad sets and ads, change a daily budget, and add a new ad to an existing ad set from a file in Creatives.",
+      "Nothing changes until you press Approve on its card. The card lists each change in words, with old and new budgets, and new ads start paused unless the card says active.",
+      "A budget can rise at most 3x, and never past $500 a day, in one card. If an ad's name or budget changed since the card was made, the change is refused.",
+      "It cannot create campaigns, ad sets or audiences, and it cannot delete anything.",
+    ],
+  },
+  {
     id: "2026-10-17-client-brief",
     date: "17 October 2026",
     title: "Client Brief",
