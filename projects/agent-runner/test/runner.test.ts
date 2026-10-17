@@ -91,7 +91,7 @@ describe("handleClaim", () => {
       "agent: Winter offers lift CTR in cold metros",
       F,
       `${F}item`,
-      '{"kind":"ad_plan","title":"Winter push","status":"live","payload":{"plan":["A"]}}',
+      '{"kind":"ad_plan","title":"Winter push","status":"live","origin":"runner","payload":{"plan":["A"]}}',
       F,
       `${F}request`,
       '{"toAgent":"ghl","title":"Tag winter leads","body":"Please tag them.","plan":["Add tag"]}',
@@ -118,6 +118,8 @@ describe("handleClaim", () => {
 
     // An agent can never mark its own work live: that is Jake's click.
     expect(api.items[0]).toMatchObject({ tenantId: "t-willis", agent: "ads", chatId: "c1", kind: "ad_plan", status: "needs_ok" });
+    // Origin is the runner's to say, never the model's.
+    expect(api.items.map((i) => i.origin)).toEqual(["agent", "agent"]);
     expect(api.items[1]).toMatchObject({
       tenantId: "t-willis",
       agent: "ghl",
@@ -285,7 +287,7 @@ describe("handleClaim: Creative Agent", () => {
     expect(last.status).toBe("error");
     expect(last.error).toBe("This turn spent 20 credits; 10 were approved.");
     expect(last.aiBody).toBe("Made it.");
-    expect(s.api.items[0]).toMatchObject({ kind: "spend_alert", status: "needs_ok" });
+    expect(s.api.items[0]).toMatchObject({ kind: "spend_alert", status: "needs_ok", origin: "runner" });
   });
 
   it("flags a spend turn whose balance could not be read", async () => {
@@ -306,16 +308,31 @@ describe("handleClaim: Creative Agent", () => {
 
   it("files an approved card before the agent's turn and tells it", async () => {
     const s = creativeSetup(["Filed."]);
-    const workDir = join(s.w.env.workRoot, "creative-above-all-garage-doors");
-    mkdirSync(workDir, { recursive: true });
+    // The runner's state lives outside every agent's work folder.
+    const stateDir = join(s.w.env.workRoot, "..", "state", "creative-above-all-garage-doors");
+    mkdirSync(stateDir, { recursive: true });
     writeFileSync(
-      join(workDir, "creative-state.json"),
+      join(stateDir, "creative-state.json"),
       JSON.stringify({ cards: {}, finals: { "card-7": { path: "t-aag/x.mp4", name: "ad1.mp4", type: "video/mp4", size: 9 } } }),
     );
     s.cl.message.grant = { itemId: "card-7", kind: "file", limit: null };
     await handleClaim(s.cl, s.d);
     expect(s.c.filed).toEqual([{ messageId: "m1", tenantId: "t-aag", path: "t-aag/x.mp4", name: "ad1.mp4", type: "video/mp4", size: 9 }]);
     expect(s.runs[0].prompt.startsWith("Runner: filed ad1.mp4 into Creatives.")).toBe(true);
+  });
+
+  it("ignores a state file the agent wrote in its own work folder", async () => {
+    const s = creativeSetup(["Filed?"]);
+    const workDir = join(s.w.env.workRoot, "creative-above-all-garage-doors");
+    mkdirSync(workDir, { recursive: true });
+    writeFileSync(
+      join(workDir, "creative-state.json"),
+      JSON.stringify({ cards: {}, finals: { "card-7": { path: "t-other/x.mp4", name: "x.mp4", type: "video/mp4", size: 9 } } }),
+    );
+    s.cl.message.grant = { itemId: "card-7", kind: "file", limit: null };
+    await handleClaim(s.cl, s.d);
+    expect(s.c.filed).toEqual([]);
+    expect(s.runs[0].prompt).toMatch(/nothing was filed/);
   });
 
   it("resumes the agent with what a video block did, and keeps the blocks out of the reply", async () => {

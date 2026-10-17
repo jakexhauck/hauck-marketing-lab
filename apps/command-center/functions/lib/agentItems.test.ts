@@ -176,6 +176,42 @@ describe("upsertItem", () => {
     expect(db.rows("agent_items")[0]).toMatchObject({ chat_id: "c1", title: "Page" });
   });
 
+  it("marks a runner card runnerOwned and refuses the agent's rewrite of it", async () => {
+    const db = new FakeDb().seed("agent_chats", [chat("c1", T1, "creative")]);
+    const card = await upsertItem(db.client(), {
+      tenantId: T1, agent: "creative", chatId: "c1", kind: "creative", title: "Final", status: "needs_ok",
+      payload: { path: "t/f1.mp4", grant: { kind: "file" } }, origin: "runner",
+    });
+    expect(card.payload).toMatchObject({ runnerOwned: true, path: "t/f1.mp4" });
+    await expect(
+      upsertItem(db.client(), {
+        id: card.id, tenantId: T1, agent: "creative", chatId: "c1", kind: "creative", title: "Swapped", status: "needs_ok",
+        payload: { path: "t/other.mp4", grant: { kind: "file" } }, origin: "agent",
+      }),
+    ).rejects.toThrow("item not found");
+    // No origin at all is the agent's, never the runner's.
+    await expect(
+      upsertItem(db.client(), {
+        id: card.id, tenantId: T1, agent: "creative", chatId: "c1", kind: "creative", title: "Swapped", status: "needs_ok", payload: {},
+      }),
+    ).rejects.toThrow("item not found");
+    expect(db.rows("agent_items")[0]).toMatchObject({ title: "Final", payload: { path: "t/f1.mp4" } });
+    // The runner may still rewrite its own card.
+    const again = await upsertItem(db.client(), {
+      id: card.id, tenantId: T1, agent: "creative", chatId: "c1", kind: "creative", title: "Final v2", status: "needs_ok",
+      payload: { path: "t/f2.mp4" }, origin: "runner",
+    });
+    expect(again.payload).toMatchObject({ runnerOwned: true, path: "t/f2.mp4" });
+  });
+
+  it("never takes runnerOwned from an agent's own payload", async () => {
+    const db = new FakeDb().seed("agent_chats", [chat("c1", T1, "ads")]);
+    const card = await upsertItem(db.client(), {
+      tenantId: T1, agent: "ads", chatId: "c1", kind: "ad", title: "Ad", status: "needs_ok", payload: { runnerOwned: true }, origin: "agent",
+    });
+    expect(card.payload.runnerOwned).toBeUndefined();
+  });
+
   it("refuses to reopen a card Jake already decided", async () => {
     const db = new FakeDb().seed("agent_items", [
       { id: "i1", tenant_id: T1, agent: "ads", chat_id: null, title: "Ad", status: "done", payload: {} },

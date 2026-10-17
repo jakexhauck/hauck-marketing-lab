@@ -13,6 +13,10 @@ export const DATA_DIR = join(RUNNER_DIR, "data");
 export const PROMPTS_DIR = join(DATA_DIR, "prompts");
 // Agents run here, one folder each, never in the runner's own folder.
 export const WORK_DIR = join(DATA_DIR, "work");
+// The runner's own state per agent and client (what it staged for which
+// card, prepared clips). Beside data/work, never in it: an agent can write
+// anywhere in its work folder.
+export const STATE_DIR = join(DATA_DIR, "state");
 // Forward slashes: it is matched as the prefix of a Bash permission rule.
 export const META_SCRIPT = join(RUNNER_DIR, "bin", "meta.mjs").split("\\").join("/");
 // The GHL Agent's one command, same rules as the meta script.

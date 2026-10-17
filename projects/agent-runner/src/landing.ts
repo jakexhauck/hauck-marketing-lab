@@ -106,6 +106,9 @@ export async function draftSite(item: ItemDraft, c: DraftContext): Promise<strin
       title: item.title,
       status,
       payload,
+      // A deploy card is the runner's: the agent's own item posts cannot
+      // rewrite its preview or grant afterwards.
+      origin: "runner",
     });
 
   // Set only once the server has accepted the card. The server is what

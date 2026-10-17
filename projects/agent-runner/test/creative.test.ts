@@ -28,6 +28,7 @@ function turn(over: Partial<CreativeDeps> = {}, buildErrors: string[] = []) {
     chatId: "c1",
     tenant: aag,
     workDir,
+    stateDir: join(root, "state", "creative-above-all-garage-doors"),
     driveDir,
     vaultFolder: null,
     say: (s) => steps.push(s),
@@ -99,6 +100,7 @@ describe("runVideoBlocks", () => {
     expect(w.runnerApi.items[0].payload.grant).toBeUndefined();
     await runVideoBlocks([{ action: "preview", config: "ads/ad1.json" }], w.t, new Set());
     expect(w.runnerApi.items[1].id).toBe(ID1);
+    expect(w.runnerApi.items.map((i) => i.origin)).toEqual(["runner", "runner"]);
   });
 
   it("puts a final on a file card and remembers what it staged for it", async () => {
@@ -108,8 +110,11 @@ describe("runVideoBlocks", () => {
     expect(w.c.uploads[0].preview).toBe(false);
     expect(w.runnerApi.items[0]).toMatchObject({ kind: "creative", status: "needs_ok" });
     expect(w.runnerApi.items[0].payload.grant).toEqual({ kind: "file" });
+    expect(w.runnerApi.items[0].origin).toBe("runner");
+    expect(existsSync(join(w.workDir, "creative-state.json"))).toBe(false);
+    expect(existsSync(join(w.workDir, "brand.resolved.json"))).toBe(false);
     expect(w.runnerApi.items[0].payload.path).toBe("t-aag/f1.mp4");
-    expect(readState(w.workDir).finals[ID1]).toMatchObject({ path: "t-aag/f1.mp4", name: "ad1.mp4", type: "video/mp4" });
+    expect(readState(w.t.stateDir).finals[ID1]).toMatchObject({ path: "t-aag/f1.mp4", name: "ad1.mp4", type: "video/mp4" });
   });
 
   it("sends a phrase not found back to the agent once, then stops", async () => {
@@ -142,7 +147,7 @@ describe("runVideoBlocks", () => {
     expect(out.notes[1]).toMatch(/cannot go into Creatives/);
     expect(w.runnerApi.items).toHaveLength(1);
     expect(w.runnerApi.items[0].payload.thumbs).toEqual(["https://store/read/t-aag/f1.mp4"]);
-    expect(readState(w.workDir).finals[ID1]).toMatchObject({ name: "winter-offer.png", type: "image/png" });
+    expect(readState(w.t.stateDir).finals[ID1]).toMatchObject({ name: "winter-offer.png", type: "image/png" });
   });
 });
 

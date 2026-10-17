@@ -44,6 +44,9 @@ export interface CreativeTurn {
   chatId: string;
   tenant: ClaimTenant;
   workDir: string;
+  // The runner's own folder for this agent and client (bundle.stateDirFor),
+  // outside the work folder, so the agent cannot rewrite what was staged.
+  stateDir: string;
   driveDir: string | null;
   vaultFolder: string | null;
   // Show a step in the chat while it runs. Also keeps the message fresh: a
@@ -98,7 +101,7 @@ export function takeVideoBlocks(text: string): { text: string; blocks: VideoBloc
   return { text: text.replace(BLOCK, "").trim(), blocks };
 }
 
-// What the runner remembers per agent and client, in the work folder.
+// What the runner remembers per agent and client, in its state folder.
 interface Staged {
   path: string;
   name: string;
@@ -110,19 +113,20 @@ interface CreativeState {
   finals: Record<string, Staged>;
 }
 
-const stateFile = (workDir: string) => join(workDir, "creative-state.json");
+const stateFile = (stateDir: string) => join(stateDir, "creative-state.json");
 
-export function readState(workDir: string): CreativeState {
+export function readState(stateDir: string): CreativeState {
   try {
-    const v = JSON.parse(readFileSync(stateFile(workDir), "utf8"));
+    const v = JSON.parse(readFileSync(stateFile(stateDir), "utf8"));
     return { cards: isObj(v.cards) ? (v.cards as Record<string, string>) : {}, finals: isObj(v.finals) ? (v.finals as Record<string, Staged>) : {} };
   } catch {
     return { cards: {}, finals: {} };
   }
 }
 
-function writeState(workDir: string, s: CreativeState): void {
-  writeFileSync(stateFile(workDir), JSON.stringify(s, null, 2) + "\n");
+function writeState(stateDir: string, s: CreativeState): void {
+  mkdirSync(stateDir, { recursive: true });
+  writeFileSync(stateFile(stateDir), JSON.stringify(s, null, 2) + "\n");
 }
 
 export const brandAssetsDir = (workDir: string) => join(workDir, "brand");
@@ -134,7 +138,8 @@ function brandFile(t: CreativeTurn): string {
     brandsDir: BRANDS_DIR,
     assetsDir: brandAssetsDir(t.workDir),
   });
-  const f = join(t.workDir, "brand.resolved.json");
+  mkdirSync(t.stateDir, { recursive: true });
+  const f = join(t.stateDir, "brand.resolved.json");
   writeFileSync(f, JSON.stringify(b, null, 2) + "\n");
   return f;
 }
@@ -167,6 +172,7 @@ async function fileCard(t: CreativeTurn, state: CreativeState, title: string, st
     kind: "creative",
     title,
     status: "needs_ok",
+    origin: "runner",
     // path ties the card to the one upload: the app files that and nothing else.
     payload: { ...(video ? { previewUrl: url } : { thumbs: [url] }), path: staged.path, quote: "Approve files it into Creatives.", grant: { kind: "file" } },
   });
@@ -226,6 +232,7 @@ async function renderOne(t: CreativeTurn, state: CreativeState, b: { config: str
       kind: "video",
       title: `Preview: ${title}`,
       status: "needs_ok" as const,
+      origin: "runner" as const,
       payload: { previewUrl: up.url, quote: "Approve to render the final. Change it to tweak." },
     };
     // The same card while Jake is still deciding it; once he has, the app
@@ -293,7 +300,7 @@ async function stage(t: CreativeTurn, state: CreativeState, b: { url: string; na
 /** Carry out the agent's blocks, in order. Returns what to tell it. */
 export async function runVideoBlocks(blocks: VideoBlock[], t: CreativeTurn, retried: Set<string>): Promise<Outcome> {
   const out: Outcome = { notes: [], again: false };
-  const state = readState(t.workDir);
+  const state = readState(t.stateDir);
   for (const b of blocks) {
     try {
       if (b.action === "prepare") await prepare(t, b, out);
@@ -308,7 +315,7 @@ export async function runVideoBlocks(blocks: VideoBlock[], t: CreativeTurn, retr
       // clip), inside the round limit.
       out.again = true;
     } finally {
-      writeState(t.workDir, state);
+      writeState(t.stateDir, state);
     }
   }
   return out;
@@ -316,7 +323,7 @@ export async function runVideoBlocks(blocks: VideoBlock[], t: CreativeTurn, retr
 
 /** The turn that answers Approve on a file card: file it, before the agent speaks. */
 export async function fileApproved(grant: Grant, t: CreativeTurn): Promise<string> {
-  const staged = readState(t.workDir).finals[grant.itemId];
+  const staged = readState(t.stateDir).finals[grant.itemId];
   if (!staged) return "Runner: there is nothing staged for that card on this PC, so nothing was filed.";
   try {
     await t.deps.api.fileCreative({ messageId: t.messageId, tenantId: t.tenant.id, ...staged });

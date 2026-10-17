@@ -17,12 +17,12 @@
 // (api/agent-runner/ghl.ts), made per turn, not this allowlist's.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { agentDef, AGENTS } from "./agents.ts";
 import { readLessons } from "./brain.ts";
 import type { Bundle } from "./claude.ts";
 import { findDriveFolder, vaultFolder } from "./clients.ts";
-import { AGENTS_DIR, DRIVE_ROOT, GHL_SCRIPT, META_SCRIPT, PROMPTS_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
+import { AGENTS_DIR, DRIVE_ROOT, GHL_SCRIPT, META_SCRIPT, PROMPTS_DIR, STATE_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
 import { stripEmDashes } from "./output.ts";
 import { creativeHiggsfieldTools, spendLimit, writeHiggsfieldConfig } from "./spend.ts";
 import type { AgentId, ClaimTenant, Grant } from "./wire.ts";
@@ -36,6 +36,9 @@ export interface BundleEnv {
   driveRoot: string;
   // Parent of each agent and client's work folder.
   workRoot: string;
+  // Parent of the runner's own state folders, which no agent can write.
+  // Unset means a "state" folder beside workRoot.
+  stateRoot?: string;
   // Absolute, forward slashes: it is matched as a Bash rule prefix.
   metaScript: string;
   // The GHL Agent's script, same rules. Optional so older test worlds still
@@ -49,6 +52,7 @@ export const defaultBundleEnv = (): BundleEnv => ({
   outDir: PROMPTS_DIR,
   driveRoot: DRIVE_ROOT,
   workRoot: WORK_DIR,
+  stateRoot: STATE_DIR,
   metaScript: META_SCRIPT,
   ghlScript: GHL_SCRIPT,
 });
@@ -89,6 +93,11 @@ function ghlTools(agent: AgentId, tenant: ClaimTenant | null, env: BundleEnv): s
 function ghlLine(env: BundleEnv, agent: AgentId): string | null {
   if (agent !== "ghl") return null;
   return `- GHL (the only command you can run): \`node ${env.ghlScript ?? GHL_SCRIPT} <op> '<json args>'\``;
+}
+
+/** The runner-only folder for one agent and client: beside the work folders, not in one. */
+export function stateDirFor(env: BundleEnv, agent: AgentId, tenant: ClaimTenant | null): string {
+  return join(env.stateRoot ?? join(dirname(env.workRoot), "state"), `${agent}-${tenant?.slug ?? "agency"}`);
 }
 
 export function clientBrainPath(vaultDir: string, t: Pick<ClaimTenant, "slug" | "name">): string {

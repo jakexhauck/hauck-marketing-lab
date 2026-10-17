@@ -257,7 +257,11 @@ export async function upsertItem(client: SupabaseClient, body: ItemBody): Promis
   if (body.tenantId !== null && !isUuid(body.tenantId)) throw new ItemInputError("bad tenantId");
   const title = stripEmDash((body.title ?? "").trim()).slice(0, 200);
   if (!title) throw new ItemInputError("title required");
-  const payload = body.payload && typeof body.payload === "object" ? body.payload : {};
+  // runnerOwned is the server's to set, from origin, never the payload's.
+  const payload: Row = body.payload && typeof body.payload === "object" ? { ...body.payload } : {};
+  delete payload.runnerOwned;
+  const byRunner = body.origin === "runner";
+  if (byRunner) payload.runnerOwned = true;
 
   const fields: Row = {
     tenant_id: body.tenantId,
@@ -279,6 +283,9 @@ export async function upsertItem(client: SupabaseClient, body: ItemBody): Promis
     let q = client.from("agent_items").update(changes).eq("id", body.id).eq("agent", body.agent);
     q = body.tenantId === null ? q.is("tenant_id", null) : q.eq("tenant_id", body.tenantId);
     if (typeof body.chatId === "string") q = q.eq("chat_id", body.chatId);
+    // A card the runner made (a staged final, a deployed preview) is the
+    // runner's alone to rewrite: the model must not swap what it points at.
+    if (!byRunner) q = q.is("payload->>runnerOwned", null);
     const { data, error } = await q.in("status", ["building", "needs_ok"]).select("*").maybeSingle();
     fail("item update", error);
     if (!data) throw new ItemInputError("item not found");

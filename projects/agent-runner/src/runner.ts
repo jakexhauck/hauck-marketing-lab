@@ -21,7 +21,7 @@ import { join } from "node:path";
 import { AGENT_IDS, AGENTS, agentDef } from "./agents.ts";
 import type { RunnerApi } from "./api.ts";
 import { appendLessons, applyEdits, readLessons } from "./brain.ts";
-import { agentBrainPath, buildBundle, clientBrainPath, type BundleEnv } from "./bundle.ts";
+import { agentBrainPath, buildBundle, clientBrainPath, stateDirFor, type BundleEnv } from "./bundle.ts";
 import type { RunOptions } from "./claude.ts";
 import { tenantForFolder, vaultFolder } from "./clients.ts";
 import { draftSite, goLive, isSiteDraft, withoutDeployGrant, type LandingDeps } from "./landing.ts";
@@ -170,6 +170,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
             chatId: chat.id,
             tenant,
             workDir: bundle.workDir,
+            stateDir: stateDirFor(d.env, agent, tenant),
             driveDir: bundle.addDirs[0] ?? null,
             vaultFolder: join(d.env.vaultDir, "Clients", vaultFolder(tenant)),
             say: (step) => base.onProgress(`${shown}\n\n_${step}..._`, []),
@@ -267,6 +268,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
           title: item.title,
           status,
           payload: withoutDeployGrant(item.payload),
+          origin: "agent",
         });
       } catch (e) {
         log(`item post failed: ${(e as Error).message}`);
@@ -289,6 +291,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
           title: req.title,
           status: "needs_ok",
           payload: { body: req.body, plan: req.plan, fromChatId: chat.id },
+          origin: "agent",
         });
       } catch (e) {
         log(`request post failed: ${(e as Error).message}`);
@@ -405,6 +408,7 @@ async function spendCheck(before: number | null, after: number | null, limit: nu
       kind: "spend_alert",
       title: "Credits over the approved amount",
       status: "needs_ok",
+      origin: "runner",
       payload: { quote: what, stats: [{ label: "Approved", value: limit }, { label: "Spent", value: spent ?? "unknown" }], approvedCard: itemId },
     });
   } catch (e) {

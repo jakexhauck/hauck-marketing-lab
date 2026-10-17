@@ -122,7 +122,12 @@ export interface ItemBody {
   title: string;
   status: ItemStatus;
   payload: Record<string, unknown>;
+  // See agentWire.ts. "runner" only on cards the runner makes itself;
+  // anything parsed from model output is "agent".
+  origin?: ItemOrigin;
 }
+
+export type ItemOrigin = "runner" | "agent";
 
 export interface LessonsBody {
   scopes: { scope: LessonScope; tenantId: string | null; agent: AgentId }[];

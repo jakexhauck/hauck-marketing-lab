@@ -108,6 +108,7 @@ describe("landing drafts", () => {
     expect(existsSync(join(deploys[0].dir, "_worker.js"))).toBe(false);
 
     const last = api.items[api.items.length - 1];
+    expect(api.items.every((i) => i.origin === "runner")).toBe(true);
     expect(last).toMatchObject({
       id: ID1,
       status: "needs_ok",

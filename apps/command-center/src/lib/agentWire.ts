@@ -142,7 +142,14 @@ export interface ItemBody {
   title: string;
   status: ItemStatus;
   payload: Record<string, unknown>;
+  // Who made the card. "runner": the runner itself (a staged final, a
+  // deployed preview, a spend alert); stored as payload.runnerOwned, and an
+  // agent's rewrite of such a card is refused. Anything parsed from model
+  // output is "agent", and so is a body with no origin.
+  origin?: ItemOrigin;
 }
+
+export type ItemOrigin = "runner" | "agent";
 
 export interface LessonsBody {
   scopes: { scope: LessonScope; tenantId: string | null; agent: AgentId }[];
