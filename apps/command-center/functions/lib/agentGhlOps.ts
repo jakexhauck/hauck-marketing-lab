@@ -20,7 +20,8 @@ import { ghlFetch, ghlJson, type GhlContext } from "./ghl";
 //     Agent chat at the same client the call names. A finished message, or
 //     one from another agent's chat, gets a 403.
 //   - A write also needs writeAllowed: Jake asked for it himself in that chat,
-//     or Jake approved a card that carried a ghl grant.
+//     or Jake approved a card that carried a ghl grant. Under an approval the
+//     write must be one of the card's own payload.ops, op and args exactly.
 //   - A write is logged in admin_audit_log as `agent:ghl.<op>` BEFORE it is
 //     sent. If the log cannot be saved, nothing is sent.
 //
@@ -299,6 +300,24 @@ export interface GhlGrantItem {
   agent: AgentId;
   tenantId: string | null;
   approvedAt: string | null;
+  // payload.ops: the exact changes the card asked Jake to approve.
+  ops?: unknown;
+}
+
+/**
+ * Is this exact change on the approved card? The card lists its changes as
+ * payload.ops: [{ op, args }]. Both sides go through the op's own parser, so
+ * "same" means the same request to GHL, not the same spelling. A card with no
+ * ops approves no write.
+ */
+export function opOnCard(ops: unknown, op: GhlOpName, args: Row): boolean {
+  if (!Array.isArray(ops)) return false;
+  const want = JSON.stringify(args);
+  return ops.some((o) => {
+    if (!o || typeof o !== "object" || (o as Row).op !== op) return false;
+    const p = parseOpArgs(op, (o as Row).args);
+    return p.ok && JSON.stringify(p.args) === want;
+  });
 }
 
 /**
@@ -392,17 +411,28 @@ export async function callGhlOp(client: SupabaseClient, body: GhlCallBody, deps:
     if (message.grant) {
       const { data: iRow, error: iErr } = await client
         .from("agent_items")
-        .select("id, tenant_id, agent, approved_at")
+        .select("id, tenant_id, agent, approved_at, payload")
         .eq("id", message.grant.itemId)
         .maybeSingle();
       fail("item", iErr);
       const i = iRow as Row | null;
       item = i
-        ? { id: i.id as string, agent: i.agent as AgentId, tenantId: (i.tenant_id as string | null) ?? null, approvedAt: (i.approved_at as string | null) ?? null }
+        ? {
+            id: i.id as string,
+            agent: i.agent as AgentId,
+            tenantId: (i.tenant_id as string | null) ?? null,
+            approvedAt: (i.approved_at as string | null) ?? null,
+            ops: ((i.payload as Row | null) ?? {}).ops,
+          }
         : null;
     }
     if (!writeAllowed(message, chat, item)) {
       return out(403, { error: "GHL changes need Jake's ask in this chat or his Approve on a card" });
+    }
+    // Under an approval, only what the card listed. Jake's direct ask in the
+    // chat carries no grant and is not bound to a card (his call).
+    if (message.grant && !opOnCard(item?.ops, op, parsed.args)) {
+      return out(403, { error: "that change is not on the card Jake approved" });
     }
   }
 

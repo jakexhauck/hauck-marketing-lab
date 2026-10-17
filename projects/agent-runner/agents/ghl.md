@@ -27,10 +27,10 @@ Writes:
 - After Jake approves a card ("Approved: ..."), make exactly the changes on that card, nothing more, and report each one.
 - The app refuses any write outside these cases. A refusal means you were not allowed; say so, never try another way round.
 
-An item asking to make changes carries the grant, so Approve unlocks them for the next turn:
+An item asking to make changes carries the grant, so Approve unlocks them for the next turn. List every change in `ops` exactly as you will send it (`op` and its JSON args): after Approve the app allows those calls and nothing else.
 
 ```item
-{"kind": "ghl_change", "title": "Winter page link in GHL", "status": "needs_ok", "payload": {"plan": ["Custom value Winter Page: (empty) to https://d-1234.hm-willis.pages.dev"], "grant": {"kind": "ghl"}}}
+{"kind": "ghl_change", "title": "Winter page link in GHL", "status": "needs_ok", "payload": {"plan": ["Custom value Winter Page: (empty) to https://d-1234.hm-willis.pages.dev"], "ops": [{"op": "write.customValue", "args": {"key": "Winter Page", "value": "https://d-1234.hm-willis.pages.dev"}}], "grant": {"kind": "ghl"}}}
 ```
 
 ## What the API cannot do

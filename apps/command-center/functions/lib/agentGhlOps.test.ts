@@ -288,7 +288,10 @@ describe("callGhlOp", () => {
     const db = world({
       chat: { auto: true, user_id: null },
       message: { meta: { followUpOf: ITEM, grant: { itemId: ITEM, kind: "ghl", limit: null } } },
-      items: [{ id: ITEM, tenant_id: T1, agent: "ghl", status: "done", title: "Winter page", approved_at: "2026-10-17T09:30:00.000Z" }],
+      items: [{
+        id: ITEM, tenant_id: T1, agent: "ghl", status: "done", title: "Winter page", approved_at: "2026-10-17T09:30:00.000Z",
+        payload: { grant: { kind: "ghl" }, ops: [{ op: "write.customValue", args: { key: "Winter Page", value: "https://live" } }] },
+      }],
     });
     const res = await callGhlOp(
       db.client(),
@@ -298,6 +301,41 @@ describe("callGhlOp", () => {
     expect(res.status).toBe(200);
     // No user on an Auto chat: the owner account carries the audit row.
     expect(db.rows("admin_audit_log")[0]).toMatchObject({ admin_id: ADMIN, payload: { itemId: ITEM } });
+  });
+
+  it("under an approval, writes only an op and args that are on the approved card", async () => {
+    const approved = (ops: unknown) =>
+      world({
+        message: { meta: { followUpOf: ITEM, grant: { itemId: ITEM, kind: "ghl", limit: null } } },
+        items: [{
+          id: ITEM, tenant_id: T1, agent: "ghl", status: "done", title: "Winter page", approved_at: "2026-10-17T09:30:00.000Z",
+          payload: { grant: { kind: "ghl" }, ...(ops === undefined ? {} : { ops }) },
+        }],
+      });
+    const onCard = [{ op: "write.customValue", args: { key: "Winter Page", value: "https://live" } }];
+    for (const [ops, body] of [
+      [onCard, { op: "write.customValue", args: { key: "Winter Page", value: "https://evil" } }],
+      [onCard, { op: "write.customValue", args: { key: "Other Page", value: "https://live" } }],
+      [onCard, { op: "write.tag", args: { contactId: "c1", tag: "x" } }],
+      [undefined, { op: "write.customValue", args: { key: "Winter Page", value: "https://live" } }],
+      ["nope", { op: "write.customValue", args: { key: "Winter Page", value: "https://live" } }],
+    ] as const) {
+      const db = approved(ops);
+      const calls = fakeGhl({ "GET /locations/LOC1/customValues": CV_LIST, "PUT /locations/LOC1/customValues/v1": {} });
+      const res = await callGhlOp(db.client(), { messageId: MSG, tenantId: T1, ...body }, deps);
+      expect(res.status).toBe(403);
+      expect(calls).toEqual([]);
+      expect(db.rows("admin_audit_log")).toEqual([]);
+    }
+    // The same op and args (whitespace trimmed the same way) go through.
+    const db = approved(onCard);
+    fakeGhl({ "GET /locations/LOC1/customValues": CV_LIST, "PUT /locations/LOC1/customValues/v1": {} });
+    const ok = await callGhlOp(
+      db.client(),
+      { messageId: MSG, tenantId: T1, op: "write.customValue", args: { key: " Winter Page ", value: "https://live" } },
+      deps,
+    );
+    expect(ok.status).toBe(200);
   });
 
   it("moves an opportunity only to a stage that exists in that pipeline", async () => {

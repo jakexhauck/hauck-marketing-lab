@@ -162,7 +162,7 @@ function clientSection(env: BundleEnv, agent: AgentId, tenant: ClaimTenant | nul
     `- Slug: ${tenant.slug}`,
     `- Tenant id: ${tenant.id}`,
     `- Meta ad account: ${tenant.metaAdAccountId ? "connected" : "none"}`,
-    `- Drive folder: ${drive ?? "not found on this PC"}`,
+    ...(agent === "ghl" ? [] : [`- Drive folder: ${drive ?? "not found on this PC"}`]),
     ...(meta ? [meta] : []),
     ...[ghlLine(env, agent)].filter((l): l is string => !!l),
     "",
@@ -195,7 +195,9 @@ export function buildBundle(
   grant: Grant | null = null,
 ): Bundle {
   const def = agentDef(agent);
-  const drive = tenant ? findDriveFolder(env.driveRoot, tenant) : null;
+  // The GHL Agent works on GHL only. No Drive folder: less text in its turn
+  // that a stranger could have written.
+  const drive = tenant && agent !== "ghl" ? findDriveFolder(env.driveRoot, tenant) : null;
 
   const sections = [
     readOr(join(env.agentsDir, `${agent}.md`), `# ${def.name}`),

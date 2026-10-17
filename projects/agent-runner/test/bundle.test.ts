@@ -113,6 +113,13 @@ describe("buildBundle", () => {
     }
   });
 
+  it("gives the GHL Agent no Drive folder, and does not point it at one", () => {
+    const env = world();
+    const b = buildBundle("ghl", willis, env);
+    expect(b.addDirs).toEqual([]);
+    expect(readFileSync(b.systemPromptFile, "utf8")).not.toContain(env.driveRoot);
+  });
+
   it("runs each agent and client in its own work folder, outside the runner", () => {
     const env = world();
     const b = buildBundle("ads", willis, env);
