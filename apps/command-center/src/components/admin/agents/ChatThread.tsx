@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowUp, Brain, BrainCircuit, CircleCheck, Loader, Sparkles } from "lucide-react";
 import type { AgentItem, AgentMessage } from "../../../lib/agentWire";
 import { messageView } from "../../../lib/agentView";
+import { parseChatMarkdown, type Inline } from "../../../lib/chatMarkdown";
 import RequestCard from "./RequestCard";
 import { useAgentMessages, type ItemAction } from "./agentApi";
 
@@ -137,7 +138,7 @@ function AiMessage({ msg }: { msg: AgentMessage }) {
         <Sparkles />
       </div>
       <div className="ag-ai-body">
-        {msg.body && <div className="ag-tx">{msg.body}</div>}
+        {msg.body && <Markdown text={msg.body} />}
         {v.pending && !msg.body && <Loader className="ag-spin" aria-label="Working" />}
         {msg.status === "error" && <div className="ag-err">{msg.error || "Failed"}</div>}
         {v.chips.length > 0 && (
@@ -159,4 +160,52 @@ function AiMessage({ msg }: { msg: AgentMessage }) {
       </div>
     </div>
   );
+}
+
+// An agent's reply, drawn from the parsed tree in lib/chatMarkdown.ts. Model
+// text only ever lands as React text children, never as HTML, and the parser
+// has already dropped any link that is not https.
+function Markdown({ text }: { text: string }) {
+  const blocks = useMemo(() => parseChatMarkdown(text), [text]);
+  return (
+    <div className="ag-tx ag-md">
+      {blocks.map((b, i) =>
+        b.t === "p" ? (
+          <p key={i}>
+            {b.lines.map((line, j) => (
+              <Fragment key={j}>
+                {j > 0 && <br />}
+                {inline(line)}
+              </Fragment>
+            ))}
+          </p>
+        ) : b.t === "ol" ? (
+          <ol key={i} start={b.start}>
+            {b.items.map((item, j) => (
+              <li key={j}>{inline(item)}</li>
+            ))}
+          </ol>
+        ) : (
+          <ul key={i}>
+            {b.items.map((item, j) => (
+              <li key={j}>{inline(item)}</li>
+            ))}
+          </ul>
+        ),
+      )}
+    </div>
+  );
+}
+
+function inline(nodes: Inline[]): ReactNode[] {
+  return nodes.map((n, i) => {
+    if (n.t === "text") return <Fragment key={i}>{n.v}</Fragment>;
+    if (n.t === "code") return <code key={i}>{n.v}</code>;
+    if (n.t === "bold") return <strong key={i}>{inline(n.c)}</strong>;
+    return (
+      <a key={i} href={n.href} target="_blank" rel="noopener noreferrer">
+        {inline(n.c)}
+      </a>
+    );
+  });
 }
