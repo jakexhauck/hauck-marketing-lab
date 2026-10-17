@@ -20,6 +20,8 @@ import type {
   ReplyBody,
   RunnerBriefBody,
   RunnerBriefResult,
+  RunnerTickBody,
+  RunnerTickResult,
   Snapshot,
   TenantsResponse,
 } from "./wire.ts";
@@ -37,6 +39,8 @@ export interface RunnerApi {
   // The agent's own Client Brief section. A stale version is an answer (Jake
   // edited it), not an error, so it comes back as saved: false.
   brief(body: RunnerBriefBody): Promise<RunnerBriefResult>;
+  // Boxes in the agent's own section(s). The app refuses any other label.
+  tick(body: RunnerTickBody): Promise<RunnerTickResult>;
 }
 
 export interface ApiOptions {
@@ -88,5 +92,6 @@ export function createApi(opts: ApiOptions): RunnerApi {
       const { status, data } = await send<{ section: RunnerBriefResult["section"] }>("POST", "brief", b, [409]);
       return { saved: status !== 409, section: data.section };
     },
+    tick: (b) => call<RunnerTickResult>("POST", "tick", b),
   };
 }

@@ -5,6 +5,13 @@ const EM = "\u2014";
 const F = "```";
 
 describe("parseAgentOutput", () => {
+  it("takes a tick block as one item label per line, markers and blanks dropped, repeats once", () => {
+    const text = ["Done.", `${F}tick`, "- [x] Lead Form Setup", "* Ads LIVE", "", "Lead Form Setup", F].join("\n");
+    const out = parseAgentOutput(text);
+    expect(out.reply).toBe("Done.");
+    expect(out.ticks).toEqual(["Lead Form Setup", "Ads LIVE"]);
+  });
+
   it("takes a brief block as the agent's whole new section, markdown kept", () => {
     const text = ["Updated the brief.", "", `${F}brief`, "- Top pain: door fails in the cold", `- Angles: before/after ${EM} proof`, "", F].join("\n");
     const out = parseAgentOutput(text);
@@ -49,7 +56,7 @@ describe("parseAgentOutput", () => {
 
   it("returns the text as the reply when there are no blocks", () => {
     const out = parseAgentOutput("Just an answer.\n");
-    expect(out).toEqual({ reply: "Just an answer.", lessons: [], items: [], requests: [], brief: null });
+    expect(out).toEqual({ reply: "Just an answer.", lessons: [], items: [], requests: [], brief: null, ticks: [] });
   });
 
   it("drops malformed JSON and keeps the reply", () => {

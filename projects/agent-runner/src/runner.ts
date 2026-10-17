@@ -121,7 +121,7 @@ function allLessons(vaultDir: string): Map<string, AgentLesson> {
 // While the answer streams, the protocol blocks are not for Jake to read: show
 // the prose up to the first block and nothing of a half-written one.
 function preview(text: string): string {
-  const cut = text.split(/```(?:lessons|item|request|video|brief)/)[0];
+  const cut = text.split(/```(?:lessons|item|request|video|brief|tick)/)[0];
   return extractCitations(stripEmDashes(cut)).reply.trim();
 }
 
@@ -337,6 +337,21 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
         notes.push("Brief not saved: the app did not take it. Ask me again to retry.");
       }
     }
+    // Brief boxes the agent finished. The app decides which sections this
+    // chat's agent may tick and refuses every other label; the runner only
+    // passes the labels on and says what happened.
+    if (out.ticks.length && !tenant) log("tick block dropped: the agency has no brief");
+    if (out.ticks.length && tenant) {
+      try {
+        const res = await d.api.tick({ messageId, labels: out.ticks });
+        for (const label of res.ticked) tools.push(`Ticked ${label}`);
+        if (res.refused.length) notes.push(`Not ticked (not in your section): ${res.refused.join(", ")}`);
+      } catch (e) {
+        log(`tick post failed: ${(e as Error).message}`);
+        notes.push("Boxes not ticked: the app did not take them. Ask me again to retry.");
+      }
+    }
+
     // Told once: this turn read the note, so the next one does not repeat it.
     // A stale brief this turn has just set a fresh one, which stays.
     if (briefNote && d.briefNotes?.get(chat.id) === briefNote) d.briefNotes.clear(chat.id);

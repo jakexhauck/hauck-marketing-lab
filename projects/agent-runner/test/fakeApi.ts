@@ -13,6 +13,8 @@ import type {
   ReplyBody,
   RunnerBriefBody,
   RunnerBriefResult,
+  RunnerTickBody,
+  RunnerTickResult,
   Snapshot,
   ClaimTenant,
 } from "../src/wire.ts";
@@ -34,6 +36,9 @@ export interface FakeApi extends RunnerApi {
   briefs: RunnerBriefBody[];
   // What the next brief post answers; saved at the version sent + 1 if unset.
   briefAnswer: ((b: RunnerBriefBody) => RunnerBriefResult) | null;
+  ticks: RunnerTickBody[];
+  // What the next tick post answers; every label ticked if unset.
+  tickAnswer: ((b: RunnerTickBody) => RunnerTickResult) | null;
 }
 
 // The n-th card id the fake hands out: a real uuid shape, as the app's are.
@@ -54,6 +59,8 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     refused: new Set(),
     briefs: [],
     briefAnswer: null,
+    ticks: [],
+    tickAnswer: null,
     async claim() {
       return api.claims.shift() ?? null;
     },
@@ -92,6 +99,11 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
       api.briefs.push(b);
       if (api.briefAnswer) return api.briefAnswer(b);
       return { saved: true, section: { section: "ads", body: b.body, version: b.version + 1, updatedBy: "ads", updatedAt: null } };
+    },
+    async tick(b) {
+      api.ticks.push(b);
+      if (api.tickAnswer) return api.tickAnswer(b);
+      return { ticked: b.labels, refused: [] };
     },
   };
   return api;
