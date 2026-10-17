@@ -460,3 +460,20 @@ DONE by the lead in `73383b63` before the lanes started (so no lane owns it): `G
 - Drive: `lib/briefDrive.ts` after every save (waitUntil): finds or creates a Google Doc "Brief" in the client's `client_folders` folder (Drive metadata create through Composio), then replaces its body with one Docs `batchUpdate` (delete, insert, heading styles). Same doc id every time. It re-reads the brief after each write and writes again if a save landed meanwhile (3 passes max). Failures land in `client_brief_drive.error` and on the chip. Proven live 2026-10-17 on a throwaway Doc in My Drive (create, two rewrites, same id, deleted).
 - UI: layout B on every client agent page (icon chat list, Brief | Building | Brain at half width; the agency Manager keeps the old frame). Client rail row "Brief" under Client Information, Docs-style tab list (All + one per section). Autosave after 1s; a newer copy under unsaved text shows the newer text and keeps the draft aside with Use mine / Keep theirs (`lib/briefDraft.ts`).
 - Editor (Jake, 2026-10-17: "just like a Google Doc"): Tiptap 2.27.3 (starter-kit, underline, link, placeholder; quotes, code blocks, rules and strike off), a white page with one sticky toolbar (undo, redo, Normal text / Heading 1-3, bold, italic, underline, link, bulleted and numbered lists), each section its own editor under its heading. Storage stays markdown through `lib/briefMarkdown.ts` (bold `__x__`, italic `*x*`, underline `<u>x</u>`; reads `**x**` and `_x_` too), round-trip tested and checked against the real editor schema (`briefExtensions.test.ts`). The editor reloads only on an outside change (`external` in briefDraft), never on Jake's typing. The Drive Doc is written from the same parser, marks taken out.
+
+---
+
+## Phase 7: Ads Agent writes to Ads Manager (Jake, 2026-10-17)
+
+**Reverses "Meta is read-only forever".** Jake: the Ads Agent may change Ads Manager, but only with his approval.
+
+**Decided (Jake):**
+- Scope "controls plus": pause and resume campaigns, ad sets and ads; change daily budgets; create new ads inside an EXISTING ad set from approved creatives in the client's Creatives. No new campaigns, ad sets, audiences or targeting.
+- Every change needs Jake's Approve on a card. No direct-ask path (unlike GHL): even a typed ask becomes a card first.
+
+**My calls:**
+- Same gate as GHL, stricter: `POST /api/agent-runner/meta-ops`, writes only under an approved `{ kind: "meta" }` grant whose card `payload.ops` contains that exact op and args; card must be `runnerOwned` false? no: card is the agent's, and the payloadHash check on Approve guarantees Jake saw these ops.
+- Every target object is checked on the server to belong to the client's own ad account before the call. Every write is audit-logged before it is sent.
+- The card shows each change in words with old and new values (budget $40 to $50/day, Pause ad "Winter 2").
+- New ads are created PAUSED unless the card says ACTIVE, and the card says which.
+- `/api/agent-runner/meta` (reads) stays import-clean of write code; writes live in their own module.
