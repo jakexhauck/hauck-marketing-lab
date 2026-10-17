@@ -146,7 +146,17 @@ export default function ItemCard({
         </div>
       )}
       {p.quote && <div className="ag-quote">{p.quote}</div>}
-      {p.plan.length > 0 && (
+      {p.changes.length > 0 && (
+        <div className="ag-list">
+          {p.changes.map((t, i) => (
+            <div key={i}>
+              <ArrowRight />
+              {t}
+            </div>
+          ))}
+        </div>
+      )}
+      {p.changes.length === 0 && p.plan.length > 0 && (
         <div className="ag-list">
           {p.plan.map((t, i) => (
             <div key={i}>

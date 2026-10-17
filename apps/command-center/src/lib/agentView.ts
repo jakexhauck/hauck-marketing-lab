@@ -116,9 +116,27 @@ export interface ItemPayloadView {
   // A spend card (Creative Agent): what an Approve lets it spend, and on what.
   credits: number | null;
   what: string | null;
+  // A GHL card's ops in words. An Approve allows exactly these calls on the
+  // server (lib/agentGhlOps.ts), so the card shows them, not only the plan.
+  changes: string[];
 }
 
 const str = (v: unknown): v is string => typeof v === "string" && v.length > 0;
+
+function changeLine(op: string, a: Record<string, unknown>): string {
+  switch (op) {
+    case "write.customValue":
+      return `Set custom value "${a.key}" to "${a.value}"`;
+    case "write.customField":
+      return `Create custom field "${a.name}" (${a.type})`;
+    case "write.tag":
+      return `Tag contact ${a.contactId} with "${a.tag}"`;
+    case "write.moveOpportunity":
+      return `Move opportunity ${a.opportunityId} to stage ${a.stageId} in pipeline ${a.pipelineId}`;
+    default:
+      return `${op} ${JSON.stringify(a)}`;
+  }
+}
 
 // The payload is free-form JSON from the PC, so every key is read defensively:
 // a wrong shape draws nothing rather than breaking the card.
@@ -153,6 +171,12 @@ export function itemPayload(payload: Record<string, unknown>): ItemPayloadView {
     thumbs: arr(payload.thumbs).filter((t): t is string => str(t) && /^https:\/\//.test(t)),
     credits: typeof limit === "number" && Number.isSafeInteger(limit) && limit > 0 ? limit : null,
     what: str(payload.what) ? payload.what : null,
+    changes: arr(payload.ops).flatMap((o) => {
+      if (!o || typeof o !== "object") return [];
+      const { op, args } = o as { op?: unknown; args?: unknown };
+      if (!str(op)) return [];
+      return [changeLine(op, args && typeof args === "object" ? (args as Record<string, unknown>) : {})];
+    }),
   };
 }
 

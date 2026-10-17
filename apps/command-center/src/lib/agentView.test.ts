@@ -158,6 +158,29 @@ describe("clientRowView", () => {
 });
 
 describe("itemPayload", () => {
+  // What Jake approves on a GHL card must be what the server will allow: the
+  // card lists its ops, in words, not just the agent's own plan text.
+  it("spells out a GHL card's exact changes from its ops", () => {
+    const v = itemPayload({
+      ops: [
+        { op: "write.customValue", args: { key: "Winter Page", value: "https://x.pages.dev" } },
+        { op: "write.customField", args: { name: "Winter Offer", type: "TEXT" } },
+        { op: "write.tag", args: { contactId: "c1", tag: "winter-offer" } },
+        { op: "write.moveOpportunity", args: { opportunityId: "o1", pipelineId: "p1", stageId: "s2" } },
+        { op: "write.somethingNew", args: { a: 1 } },
+        "junk",
+      ],
+    });
+    expect(v.changes).toEqual([
+      'Set custom value "Winter Page" to "https://x.pages.dev"',
+      'Create custom field "Winter Offer" (TEXT)',
+      'Tag contact c1 with "winter-offer"',
+      "Move opportunity o1 to stage s2 in pipeline p1",
+      'write.somethingNew {"a":1}',
+    ]);
+    expect(itemPayload({}).changes).toEqual([]);
+  });
+
   it("reads a spend card's credits and what it makes", () => {
     const v = itemPayload({ credits: 24, what: "3 square images", grant: { kind: "spend", limit: 24 } });
     expect(v.credits).toBe(24);
@@ -208,6 +231,7 @@ describe("itemPayload", () => {
       thumbs: [],
       credits: null,
       what: null,
+      changes: [],
     });
   });
 
