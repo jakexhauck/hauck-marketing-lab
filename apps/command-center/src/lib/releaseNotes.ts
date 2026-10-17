@@ -37,6 +37,17 @@ export const RELEASES: Release[] = [
     ],
   },
   {
+    id: "2026-10-17-landing-ghl-agents",
+    date: "17 October 2026",
+    title: "Landing Page and GHL Agents build and change things",
+    items: [
+      "The Landing Page Agent builds a real page and shows its live preview on the card. Approve and go live puts that exact page live and adds it under Conversion Assets, Live pages.",
+      "The GHL Agent makes changes in the client's sub-account when you ask it, or when you approve its card. The card lists the exact changes, and only those go through.",
+      "When a page goes live, the Landing Page Agent asks the GHL Agent to wire it up. GHL cannot add funnel steps or stages from outside, so that card gives you the clicks for those.",
+      "If a card changes after you opened it, Approve says so and shows the new version first.",
+    ],
+  },
+  {
     id: "2026-10-17-creative-agent",
     date: "17 October 2026",
     title: "Creative Agent makes videos and images",
