@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-17-agents",
+    date: "17 October 2026",
+    title: "Agents",
+    items: [
+      "Open a client and pick an agent under Agents: Manager, Market Research, Ads, Creative, Landing Page, GHL or Reporting. Start a New chat and it answers from your PC, where it runs.",
+      "The right panel shows what the agent is building. Anything that needs your OK waits on a card with Approve, Change it and Decline; nothing goes live without you.",
+      "Brain shows what the agent has learned about this client and across all clients, as a graph and a list you can edit or delete from.",
+      "The Manager Agent is also on the agency sidebar, with every client's status in one place.",
+    ],
+  },
+  {
     id: "2026-10-15-onboarding-board",
     date: "15 October 2026",
     title: "Onboarding board",
