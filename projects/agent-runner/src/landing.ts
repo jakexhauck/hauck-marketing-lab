@@ -10,7 +10,8 @@
 //            that copy to the d-<itemId8> branch, and posts the card as
 //            needs_ok with { previewUrl, grant: { kind: "deploy" } }.
 //   Live     Jake's Approve queues a follow-up carrying that grant. Before the
-//            agent's turn the runner promotes the SAME snapshot to main and
+//            agent's turn the runner copies that snapshot once to
+//            approved/<itemId>/ and promotes that copy to main, then
 //            calls file-asset, which checks the grant on the server, files the
 //            page into Conversion Assets and marks the card live. The agent is
 //            then told the live URL, so it can say so and hand off to GHL.
@@ -18,7 +19,7 @@
 // The snapshot is the point: the agent cannot write to data/sites, so the page
 // that goes live is byte for byte the draft Jake approved.
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { RunnerApi } from "./api.ts";
 import type { ItemDraft } from "./output.ts";
@@ -51,6 +52,14 @@ export function snapshotDir(sitesRoot: string, slug: string, itemId: string): st
   const dir = within(sitesRoot, slug, itemId);
   checked(slug, itemId);
   return dir;
+}
+
+// The copy that goes live, made on the approved turn and never written again.
+// A draft of the same card later, had the server let it through, would only
+// change the snapshot beside it, not this.
+export function approvedDir(sitesRoot: string, slug: string, itemId: string): string {
+  checked(slug, itemId);
+  return within(sitesRoot, slug, "approved", itemId);
 }
 
 const recordFile = (sitesRoot: string, slug: string, itemId: string) => {
@@ -107,6 +116,7 @@ export async function draftSite(item: ItemDraft, c: DraftContext): Promise<strin
     if (!SITE_NAME.test(name)) throw new Error(`"${name}" is not a site folder name`);
     const made = (await card(item.id, "building", { ...base, steps: [{ label: "Preview", state: "now" }] })) as { id?: unknown };
     if (typeof made?.id !== "string" || !UUID.test(made.id)) throw new Error("the card was not saved");
+    if (existsSync(approvedDir(c.landing.sitesRoot, c.tenant.slug, made.id))) throw new Error("that card is already approved");
     id = made.id;
     const dir = snapshotDir(c.landing.sitesRoot, c.tenant.slug, id);
     snapshotSite(within(c.workDir, "site", name), dir);
@@ -135,10 +145,14 @@ export async function goLive(
   if (!grant || grant.kind !== "deploy" || claim.chat.agent !== "landing") return null;
   const tenant = claim.tenant;
   if (!tenant) throw new Error("a page can only go live for a client");
-  const dir = snapshotDir(c.landing.sitesRoot, tenant.slug, grant.itemId);
+  const snap = snapshotDir(c.landing.sitesRoot, tenant.slug, grant.itemId);
+  const dir = approvedDir(c.landing.sitesRoot, tenant.slug, grant.itemId);
   const rec = recordFile(c.landing.sitesRoot, tenant.slug, grant.itemId);
-  if (!existsSync(join(dir, "index.html")) || !existsSync(rec)) {
-    throw new Error("the approved draft is not on this PC, so it cannot go live from here");
+  if (!existsSync(join(dir, "index.html"))) {
+    if (!existsSync(join(snap, "index.html")) || !existsSync(rec)) {
+      throw new Error("the approved draft is not on this PC, so it cannot go live from here");
+    }
+    cpSync(snap, dir, { recursive: true });
   }
   const { title } = JSON.parse(readFileSync(rec, "utf8")) as { title: string };
   const { liveUrl } = await c.landing.promote(tenant.slug, dir);

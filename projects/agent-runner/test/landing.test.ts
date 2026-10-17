@@ -209,13 +209,39 @@ describe("landing go live", () => {
     await handleClaim(claim("Approved: Winter offer page", grant), d);
 
     expect(promotes).toEqual([
-      { slug: "clear-choice-windows", dir: join(w.sitesRoot, "clear-choice-windows", ID1), html: "<h1>Winter</h1>" },
+      { slug: "clear-choice-windows", dir: join(w.sitesRoot, "clear-choice-windows", "approved", ID1), html: "<h1>Winter</h1>" },
     ]);
     expect(api.fileAssets).toEqual([
       { messageId: "m1", tenantId: "t-cc", title: "Winter offer page", liveUrl: "https://hm-clear-choice-windows.pages.dev" },
     ]);
     expect(prompts[0]).toContain("https://hm-clear-choice-windows.pages.dev");
     expect(api.replies[api.replies.length - 1].status).toBe("done");
+  });
+
+  it("never re-snapshots a card once it is approved, and goes live from the approved copy", async () => {
+    const w = await drafted();
+    const live = deps(w, "It is live.", { writeSite: false });
+    await handleClaim(claim("Approved: Winter offer page", grant), live.d);
+    const approved = join(w.sitesRoot, "clear-choice-windows", "approved", ID1);
+    expect(readFileSync(join(approved, "index.html"), "utf8")).toBe("<h1>Winter</h1>");
+
+    // A later turn redrafts the same card with new files. The server refuses
+    // the done card; and were it to slip, the approved copy refuses it too.
+    const redraft = DRAFT.replace('"kind": "landing_page"', `"id": "${ID1}", "kind": "landing_page"`).replace("Winter offer", "Swapped");
+    for (const refuse of [true, false]) {
+      const again = deps(w, redraft);
+      if (refuse) again.api.refused.add(ID1);
+      await handleClaim(claim("Redo it"), again.d);
+      expect(again.deploys).toHaveLength(0);
+      for (const i of again.api.items) expect(i.payload.grant).toBeUndefined();
+    }
+    expect(readFileSync(join(approved, "index.html"), "utf8")).toBe("<h1>Winter</h1>");
+
+    // Approve replayed: still the approved files.
+    const replay = deps(w, "ok", { writeSite: false });
+    writeFileSync(join(w.sitesRoot, "clear-choice-windows", ID1, "index.html"), "<h1>Swapped</h1>");
+    await handleClaim(claim("Approved: Winter offer page", grant), replay.d);
+    expect(replay.promotes[0]).toMatchObject({ dir: approved, html: "<h1>Winter</h1>" });
   });
 
   it("errors the message when there is no snapshot for the card", async () => {
