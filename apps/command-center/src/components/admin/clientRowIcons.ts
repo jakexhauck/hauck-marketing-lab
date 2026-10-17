@@ -1,5 +1,12 @@
 import {
   AppWindow,
+  Clapperboard,
+  FileChartColumn,
+  Gauge,
+  LayoutTemplate,
+  Megaphone,
+  Telescope,
+  Workflow,
   Briefcase,
   MessageSquareText,
   Radio,
@@ -42,6 +49,19 @@ const ICONS: Record<string, LucideIcon> = {
   management: Briefcase,
 };
 
+// Agent rows are keyed by agent id, kept apart from ICONS because "ghl" and
+// "ads" would otherwise collide with page ids.
+const AGENT_ICONS: Record<string, LucideIcon> = {
+  manager: Gauge,
+  research: Telescope,
+  ads: Megaphone,
+  creative: Clapperboard,
+  landing: LayoutTemplate,
+  ghl: Workflow,
+  reporting: FileChartColumn,
+};
+
 export function clientRowIcon(row: ClientNavRow): LucideIcon {
+  if (row.page === "agent") return AGENT_ICONS[row.sub ?? ""] ?? Gauge;
   return ICONS[row.sub ?? row.page] ?? ICONS[row.page] ?? AppWindow;
 }

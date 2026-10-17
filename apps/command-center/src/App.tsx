@@ -70,6 +70,7 @@ import AdminCommand from "./routes/admin/AdminCommand";
 import AdminApps from "./routes/admin/AdminApps";
 import AdminOnboarding from "./routes/admin/AdminOnboarding";
 import ClientPage from "./routes/admin/ClientPage";
+import AgencyAgentPage from "./routes/admin/AgencyAgentPage";
 import LegacyClientRedirect from "./routes/admin/LegacyClientRedirect";
 import SetterSuite from "./routes/admin/SetterSuite";
 import QuickBook from "./routes/admin/QuickBook";
@@ -585,6 +586,16 @@ export default function App() {
                 element={
                   <AdminRoute roles={["owner"]}>
                     <ClientPage />
+                  </AdminRoute>
+                }
+              />
+              {/* The agency Manager Agent (Jake, 2026-10-17): the one agent
+                  that overlooks every client, so it has an agency address. */}
+              <Route
+                path="/admin/agents/:agent"
+                element={
+                  <AdminRoute roles={["owner"]}>
+                    <AgencyAgentPage />
                   </AdminRoute>
                 }
               />

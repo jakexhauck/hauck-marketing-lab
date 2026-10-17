@@ -14,6 +14,7 @@ import {
   PanelLeftOpen,
   Target,
   SquareKanban,
+  Gauge,
   Layers,
   type LucideIcon,
   MessagesSquare,
@@ -134,6 +135,12 @@ const PILLAR_GROUPS: RailGroup[] = [
     // No ?tab= on the row, so it lights up on either tab.
     caption: "Sales",
     rows: [{ to: "/admin/pillar/sales", label: "Sales", icon: SquareKanban }],
+  },
+  {
+    // Agents (Jake, 2026-10-17): the Manager Agent overlooks every client from
+    // here. The other six agents only live inside a client (lib/agents.ts).
+    caption: "Agents",
+    rows: [{ to: "/admin/agents/manager", label: "Manager Agent", icon: Gauge }],
   },
 ];
 

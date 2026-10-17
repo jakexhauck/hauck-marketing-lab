@@ -12,6 +12,16 @@ import {
 const linked: ClientGateInfo = { metaAdAccountId: "act_1", ghlConnected: true, onboardingStatus: "live" };
 const bare: ClientGateInfo = { metaAdAccountId: null, ghlConnected: false, onboardingStatus: "setup" };
 
+const AGENT_NAMES = [
+  "Manager Agent",
+  "Market Research Agent",
+  "Ads Agent",
+  "Creative Agent",
+  "Landing Page Agent",
+  "GHL Agent",
+  "Reporting Agent",
+];
+
 const labels = (c: ClientGateInfo) =>
   clientNavGroups(c).map((g) => [g.caption, g.rows.map((r) => r.label)]);
 
@@ -20,6 +30,7 @@ describe("clientNavGroups", () => {
     expect(labels(linked)).toEqual([
       [null, ["Full Setup Checklist", "Onboarding Call", "Launch Call"]],
       [null, ["Accounts", "Client Information", "Software"]],
+      ["Agents", AGENT_NAMES],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Conversion Assets", "Custom Values", "Calendars"]],
       [null, ["Management", "Image Converter"]],
@@ -30,6 +41,7 @@ describe("clientNavGroups", () => {
     expect(labels(bare)).toEqual([
       [null, ["Full Setup Checklist", "Onboarding Call", "Launch Call"]],
       [null, ["Accounts", "Client Information", "Software"]],
+      ["Agents", AGENT_NAMES],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Connect GHL", "Conversion Assets"]],
       [null, ["Management", "Image Converter"]],
@@ -37,14 +49,38 @@ describe("clientNavGroups", () => {
   });
 
   it("treats a blank ad account id as not linked", () => {
-    const rows = clientNavGroups({ ...linked, metaAdAccountId: "  " })[2].rows;
+    const rows = clientNavGroups({ ...linked, metaAdAccountId: "  " })[3].rows;
     expect(rows[0].sub).toBe("setup");
   });
 
   it("marks the last group with a rule instead of a caption", () => {
     const groups = clientNavGroups(linked);
-    expect(groups[4].rule).toBe(true);
+    expect(groups[5].rule).toBe(true);
     expect(groups[0].rule).toBeFalsy();
+  });
+
+  it("gives every agent a row on the agent page, keyed by its id", () => {
+    const rows = clientNavGroups(bare)[2].rows;
+    expect(rows.map((r) => [r.page, r.sub])).toEqual([
+      ["agent", "manager"],
+      ["agent", "research"],
+      ["agent", "ads"],
+      ["agent", "creative"],
+      ["agent", "landing"],
+      ["agent", "ghl"],
+      ["agent", "reporting"],
+    ]);
+  });
+});
+
+describe("resolveClientPage, agents", () => {
+  it("keeps a real agent", () => {
+    expect(resolveClientPage(linked, "agent", "ads")).toEqual({ page: "agent", sub: "ads" });
+  });
+
+  it("sends an unknown or missing agent to the Manager", () => {
+    expect(resolveClientPage(linked, "agent", "nope")).toEqual({ page: "agent", sub: "manager" });
+    expect(resolveClientPage(bare, "agent", null)).toEqual({ page: "agent", sub: "manager" });
   });
 });
 

@@ -8,6 +8,7 @@ import GhlTab from "../../components/admin/cockpit/ghl/GhlTab";
 import AccountsTab from "../../components/admin/cockpit/AccountsTab";
 import ManagementTab from "../../components/admin/cockpit/ManagementTab";
 import ImageConverterTab from "../../components/admin/cockpit/ImageConverterTab";
+import AgentPage from "../../components/admin/agents/AgentPage";
 import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
 import SoftwareTab from "../../components/admin/cockpit/software/SoftwareTab";
 import { adminHomeFor } from "./AdminLayout";
@@ -18,6 +19,7 @@ import { clientPath, resolveClientPage, type ClientPageId } from "../../lib/clie
 import { ADS_SETUP_SUB, GHL_SETUP_SUB } from "../../lib/fulfillmentPages";
 import { writeStoredClient } from "../../lib/selectedClient";
 import type { AdminClient } from "../../lib/api";
+import { isAgentId } from "../../lib/agents";
 
 // One page of a client's sub-account (/admin/client/:tenantId/:page/:sub?).
 //
@@ -154,5 +156,7 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
       return <ManagementTab tenantId={client.id} />;
     case "image-converter":
       return <ImageConverterTab tenantId={client.id} />;
+    case "agent":
+      return <AgentPage tenantId={client.id} agent={isAgentId(sub) ? sub : "manager"} />;
   }
 }
