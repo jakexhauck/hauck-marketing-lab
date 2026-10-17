@@ -1,0 +1,10 @@
+
+ ⛅️ wrangler 4.91.0 (update available 4.151.1)
+──────────────────────────────────────────────
+Uploading... (0/1)
+Uploading... (1/1)
+✨ Success! Uploaded 1 files (1.30 sec)
+
+🌎 Deploying...
+✨ Deployment complete! Take a peek over at https://5d1df8db.hm-zz-test.pages.dev
+✨ Deployment alias URL: https://d-1234abcd.hm-zz-test.pages.dev
