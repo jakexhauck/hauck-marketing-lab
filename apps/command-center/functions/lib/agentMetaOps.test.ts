@@ -3,6 +3,7 @@ import endpointSource from "../api/agent-runner/meta-ops.ts?raw";
 import libSource from "./agentMetaOps.ts?raw";
 import { FakeDb } from "./agentFakeDb";
 import {
+  BUDGET_CARD_MAX_INCREASE_CENTS,
   BUDGET_MAX_CENTS,
   BUDGET_MAX_FACTOR,
   META_OPS,
@@ -441,6 +442,56 @@ describe("callMetaOp", () => {
     const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "dailyBudget", args: big }, deps);
     expect(res.status).toBe(400);
     expect(calls).toEqual([]);
+  });
+
+  it("refuses a card that chains two budget changes on one object", async () => {
+    const step1 = { ...BUDGET, from: 4000, to: 12000 };
+    const step2 = { ...BUDGET, from: 12000, to: 36000 };
+    for (const [args, live] of [
+      [step1, "4000"],
+      [step2, "12000"],
+    ] as const) {
+      const w = world({ ops: [{ op: "dailyBudget", args: step1 }, { op: "dailyBudget", args: step2 }] });
+      const calls = fakeGraph({ "GET /me/permissions": PERMS, "GET /1": { ...CAMP_1, daily_budget: live }, "POST /1": { success: true } });
+      const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "dailyBudget", args }, deps);
+      expect(res.status).toBe(409);
+      expect(String(res.body.error)).toMatch(/one budget change per/);
+      expect(calls.some((c) => c.method === "POST")).toBe(false);
+      expect(w.rows("admin_audit_log")).toEqual([]);
+    }
+  });
+
+  it("caps a card's total daily increase across every budget op", async () => {
+    expect(BUDGET_CARD_MAX_INCREASE_CENTS).toBe(50000);
+    const sets = Array.from({ length: 10 }, (_, i) => ({
+      level: "adset",
+      id: String(900 + i),
+      name: `Set ${i}`,
+      campaignName: "Fall",
+      from: 4000,
+      to: 10000,
+    }));
+    const ops = sets.map((args) => ({ op: "dailyBudget", args }));
+    const routes: Record<string, unknown> = { "GET /me/permissions": PERMS };
+    for (const s of sets) {
+      routes[`GET /${s.id}`] = { id: s.id, account_id: "100", name: s.name, daily_budget: "4000", campaign: { name: "Fall" } };
+      routes[`POST /${s.id}`] = { success: true };
+    }
+    // Ten times $60/day more is $600/day, over the card's $500.
+    for (const args of [sets[0], sets[9]]) {
+      const w = world({ ops });
+      const calls = fakeGraph(routes);
+      const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "dailyBudget", args }, deps);
+      expect(res.status).toBe(409);
+      expect(String(res.body.error)).toMatch(/\$500\.00/);
+      expect(calls.some((c) => c.method === "POST")).toBe(false);
+    }
+    // Eight of them, $480/day more in all, go through; cuts do not count.
+    const cut = { level: "adset", id: "990", name: "Cut", campaignName: "Fall", from: 40000, to: 1000 };
+    const w = world({ ops: [...ops.slice(0, 8), { op: "dailyBudget", args: cut }] });
+    fakeGraph(routes);
+    const ok = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "dailyBudget", args: sets[0] }, deps);
+    expect(ok.status, JSON.stringify(ok.body)).toBe(200);
   });
 
   // ---- createAd -------------------------------------------------------

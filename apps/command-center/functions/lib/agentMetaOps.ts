@@ -43,6 +43,9 @@ export type MetaOpName = "read.structure" | "read.creatives" | "read.library" | 
 /** Jake's guard on one budget change (his call: constants, the card can be split). */
 export const BUDGET_MAX_FACTOR = 3;
 export const BUDGET_MAX_CENTS = 50_000;
+// And across one card: the daily increases of all its budget ops together.
+// Without it, ten ad sets at $60/day more each is $600/day on one Approve.
+export const BUDGET_CARD_MAX_INCREASE_CENTS = 50_000;
 
 export class MetaOpRefused extends Error {
   constructor(
@@ -581,6 +584,31 @@ export function parseMetaOpArgs(op: string, args: unknown): Parsed<Row> {
   return (META_OPS[op] as unknown as Op<Row>).parse(a);
 }
 
+/**
+ * What is wrong with a card's budget ops as a whole, or null. One budget op
+ * per object (so a card cannot chain 100 to 300 to 900 on one ad set), and
+ * the card's daily increases together stay under the card cap. Checked on
+ * every write under the card, not only budget ones.
+ */
+export function cardBudgetProblem(cardOps: unknown): string | null {
+  if (!Array.isArray(cardOps)) return null;
+  const seen = new Set<string>();
+  let increase = 0;
+  for (const o of cardOps) {
+    if (!o || typeof o !== "object" || (o as Row).op !== "dailyBudget") continue;
+    const p = parseMetaOpArgs("dailyBudget", (o as Row).args);
+    if (!p.ok) continue;
+    const a = p.args as unknown as BudgetArgs;
+    if (seen.has(a.id)) return `one budget change per campaign or ad set on a card; ${a.name} has more than one`;
+    seen.add(a.id);
+    increase += Math.max(0, a.to - a.from);
+  }
+  if (increase > BUDGET_CARD_MAX_INCREASE_CENTS) {
+    return `this card raises daily budgets by ${money(increase)} in all; one card may add at most ${money(BUDGET_CARD_MAX_INCREASE_CENTS)}/day`;
+  }
+  return null;
+}
+
 /** Is this exact change on the approved card? Both sides through the op's parser. */
 export function metaOpOnCard(cardOps: unknown, op: MetaOpName, args: Row): boolean {
   if (!Array.isArray(cardOps)) return false;
@@ -713,6 +741,8 @@ export async function callMetaOp(client: SupabaseClient, body: MetaCallBody, dep
     if (!metaOpOnCard(item?.ops, op, parsed.args)) {
       return out(403, { error: "that change is not on the card Jake approved" });
     }
+    const problem = cardBudgetProblem(item?.ops);
+    if (problem) return out(409, { error: problem });
   }
 
   const { data: tRow, error: tErr } = await client
