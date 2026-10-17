@@ -110,10 +110,11 @@ export const ADMIN_PILLARS: PillarDef[] = [
       { id: "onboarding", label: "Onboarding", ready: true },
       // The Client Tracker sheet as a page (back 2026-10-07, Jake).
       { id: "clients", label: "Clients", ready: true },
-      // What the agency spent each month, typed in line by line (Jake, 2026-10-06).
-      { id: "budget", label: "Budget", ready: true },
       // The owner outcome page, previewed, and what each answer does (Jake, 2026-10-10).
       { id: "outcome-page", label: "Outcome Page", ready: true },
+      // What the agency spent each month, typed in line by line (Jake, 2026-10-06).
+      // Last, as the rail's Agency group is (2026-10-17).
+      { id: "budget", label: "Budget", ready: true },
     ],
   },
 ];

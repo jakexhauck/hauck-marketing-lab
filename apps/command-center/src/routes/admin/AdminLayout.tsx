@@ -113,15 +113,15 @@ interface RailGroup {
 }
 
 const PILLAR_GROUPS: RailGroup[] = [
+  // Top to bottom follows a lead's path (Jake, 2026-10-17): the daily pages,
+  // then Acquisition, Sales, the clients a close becomes, the agents working
+  // them, and the agency's own money last. Captions only: every row is still
+  // an Operations tab, so no route moved.
   {
-    caption: "Operations",
+    caption: "Today",
     rows: [
       pillarRow("Tasks", "operations", "tasks", ClipboardList),
       pillarRow("Inbox", "operations", "inbox", MessageSquare),
-      pillarRow("Onboarding", "operations", "onboarding", Rocket),
-      pillarRow("Clients", "operations", "clients", Users),
-      pillarRow("Budget", "operations", "budget", Wallet),
-      pillarRow("Outcome Page", "operations", "outcome-page", ListChecks),
     ],
   },
   {
@@ -141,6 +141,16 @@ const PILLAR_GROUPS: RailGroup[] = [
     rows: [{ to: "/admin/pillar/sales", label: "Sales", icon: SquareKanban }],
   },
   {
+    // Clients: a close lands on Onboarding first, then lives on Clients. The
+    // Outcome Page is the link every client's owner gets.
+    caption: "Clients",
+    rows: [
+      pillarRow("Onboarding", "operations", "onboarding", Rocket),
+      pillarRow("Clients", "operations", "clients", Users),
+      pillarRow("Outcome Page", "operations", "outcome-page", ListChecks),
+    ],
+  },
+  {
     // Agents (Jake, 2026-10-17): the Manager Agent overlooks every client from
     // here. The other six agents only live inside a client (lib/agents.ts).
     // SOPs holds every agent's flow map, one sub-page each (lib/agentSops.ts).
@@ -149,6 +159,10 @@ const PILLAR_GROUPS: RailGroup[] = [
       { to: "/admin/agents/manager", label: "Manager Agent", icon: Gauge },
       { to: "/admin/sops", label: "SOPs", icon: Workflow },
     ],
+  },
+  {
+    caption: "Agency",
+    rows: [pillarRow("Budget", "operations", "budget", Wallet)],
   },
 ];
 

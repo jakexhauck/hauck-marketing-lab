@@ -44,8 +44,8 @@ describe("adminPillars config", () => {
       "inbox",
       "onboarding",
       "clients",
-      "budget",
       "outcome-page",
+      "budget",
     ]);
   });
 
@@ -68,8 +68,8 @@ describe("adminPillars config", () => {
       "inbox",
       "onboarding",
       "clients",
-      "budget",
       "outcome-page",
+      "budget",
     ]);
   });
 });

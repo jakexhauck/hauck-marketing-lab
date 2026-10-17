@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-17-sidebar-order",
+    date: "17 October 2026",
+    title: "The sidebar follows a lead's path",
+    items: [
+      "Today holds Tasks and Inbox at the top.",
+      "Acquisition, then Sales, then Clients (Onboarding, Clients, Outcome Page), then Agents.",
+      "Budget sits alone under Agency at the bottom.",
+    ],
+  },
+  {
     id: "2026-10-17-brief-v2",
     date: "17 October 2026",
     title: "The Brief replaces the setup pages",
