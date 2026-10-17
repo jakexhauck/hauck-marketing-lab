@@ -192,6 +192,12 @@ export interface Env {
   // means the nightly sync is off and spend goes stale. See
   // functions/lib/adsCron.ts.
   ADS_CRON_SECRET?: string;
+  // Shared secret the Agents runner on Jake's PC (projects/agent-runner) sends
+  // to /api/agent-runner/*. Its own value, like each cron secret: it buys the
+  // agents' own tables plus Meta READS, and nothing under /api/admin/. Unset
+  // means the runner is shut out and messages simply wait. Min 32 chars. See
+  // functions/lib/agentRunner.ts.
+  AGENT_RUNNER_SECRET?: string;
   KV_CACHE?: KVNamespace;
 }
 

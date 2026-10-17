@@ -476,6 +476,25 @@ export const CONNECTIONS: ConnectionDef[] = [
       "Set the same value in this app's Cloudflare env and the Worker's own secret (`wrangler secret put ADS_CRON_SECRET` in apps/workers/ads-cron), or every run comes back 401 and spend silently stops updating. The admin Ad Tracker panel shows how many days behind the snapshot is, and its Refresh button pulls it manually in the meantime.",
   },
   {
+    id: "agent-runner",
+    label: "Agents runner",
+    vendor: "self-hosted",
+    scope: "agency",
+    purpose:
+      "Lets the agent runner on Jake's PC claim chat messages, post replies, file Building cards and mirror the vault brains, and read Meta insights for the Ads, Reporting and Manager agents. Without it every agent message waits in the queue unanswered.",
+    credentials: [
+      {
+        name: "AGENT_RUNNER_SECRET",
+        home: "cloudflare",
+        inDoppler: true,
+        note: "Sent by projects/agent-runner in the x-agent-runner-secret header, read from Doppler at runner start. At least 32 chars or the gate refuses it. Its own value: it opens only /api/agent-runner/*, never an admin route, and Meta reads only.",
+      },
+    ],
+    surfaces: [{ label: "Agents", audience: "admin" }],
+    remediation:
+      "Set the same value in this app's Cloudflare env and in Doppler for the runner. A mismatch answers 401 on every poll: the rail footer reads offline and messages stay queued until it is fixed.",
+  },
+  {
     id: "calendar-sync",
     label: "Google Calendar sync",
     vendor: "Composio",
