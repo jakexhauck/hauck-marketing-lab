@@ -70,15 +70,12 @@ async function main(): Promise<void> {
     today: () => new Date().toLocaleDateString("en-CA"),
     run: runClaude,
     commit: (paths, summary) => commitBrains(paths, summary, { cwd: REPO_DIR }),
-    // Claude runs in the runner folder so `node bin/meta.mjs` resolves, and
-    // the Meta script finds its way to the app through these three.
-    cwd: RUNNER_DIR,
-    childEnv: (tenant) => ({
-      ...process.env,
-      AGENT_RUNNER_API: API_BASE,
-      AGENT_RUNNER_SECRET: secret,
-      AGENT_TENANT_ID: tenant?.id ?? "",
-    }),
+    // The secret stays out of claude's environment (see RunnerDeps).
+    childEnv: (tenant) => {
+      const env: NodeJS.ProcessEnv = { ...process.env, AGENT_RUNNER_API: API_BASE, AGENT_TENANT_ID: tenant?.id ?? "" };
+      delete env.AGENT_RUNNER_SECRET;
+      return env;
+    },
     log,
   };
 

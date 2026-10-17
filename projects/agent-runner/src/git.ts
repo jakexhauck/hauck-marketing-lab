@@ -25,7 +25,17 @@ export interface CommitOptions {
   git?: GitRunner;
 }
 
-export async function commitBrains(paths: string[], summary: string, opts: CommitOptions): Promise<boolean> {
+// One commit at a time. The heartbeat's queued edits and a chat's lessons can
+// land together, and two git commits at once fight over .git/index.lock.
+let queue: Promise<unknown> = Promise.resolve();
+
+export function commitBrains(paths: string[], summary: string, opts: CommitOptions): Promise<boolean> {
+  const run = queue.then(() => commitNow(paths, summary, opts));
+  queue = run.catch(() => {});
+  return run;
+}
+
+async function commitNow(paths: string[], summary: string, opts: CommitOptions): Promise<boolean> {
   const git = opts.git ?? defaultGit;
   // Repo-relative, forward slashes: git accepts absolute paths too, but the
   // relative form is what shows up in the log and is easy to check by eye.

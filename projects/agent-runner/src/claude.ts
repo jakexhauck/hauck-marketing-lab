@@ -24,6 +24,9 @@ export interface Bundle {
   systemPromptFile: string;
   allowedTools: string[];
   addDirs: string[];
+  // Where claude runs. Its own folder per agent and client, outside the
+  // runner's code, so the file tools cannot reach src/, bin/ or agents/.
+  workDir: string;
 }
 
 export interface StreamResult {
@@ -74,6 +77,17 @@ export function parseStream(output: string): StreamResult {
 
 export function claudeArgs(o: { sessionId: string; resume: boolean; bundle: Bundle }): string[] {
   const args = ["-p", "--output-format", "stream-json", "--verbose"];
+  // The lock. --restricted ignores Jake's own settings (his default is auto
+  // mode, which would let a model decide what to run), keeps the file tools
+  // inside the work folder and --add-dir, and drops every command tool not
+  // named in --tools. --strict-mcp-config with no --mcp-config loads no MCP
+  // servers (no Gmail, no Composio). dontAsk refuses anything the allowlist
+  // does not cover, since nobody is at a prompt. Checked by hand 2026-10-17:
+  // a Read and a Write outside the folder, `cat` of a home file and an
+  // arbitrary `node -e` were all refused; the meta script ran.
+  args.push("--restricted", "--strict-mcp-config", "--permission-mode", "dontAsk");
+  const base = [...new Set(o.bundle.allowedTools.map((t) => t.replace(/\(.*$/, "")))];
+  if (base.length) args.push("--tools", base.join(","));
   args.push("--append-system-prompt-file", o.bundle.systemPromptFile);
   if (o.resume) args.push("--resume", o.sessionId);
   else args.push("--session-id", o.sessionId);

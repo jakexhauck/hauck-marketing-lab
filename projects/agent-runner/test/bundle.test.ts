@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 import { buildBundle } from "../src/bundle.ts";
 import type { ClaimTenant } from "../src/wire.ts";
 
-const META = "Bash(node bin/meta.mjs:*)";
 const EM = "\u2014";
 
 function world() {
@@ -42,8 +41,12 @@ function world() {
     join(vaultDir, "Agents", "Manager", "Brain.md"),
     `## Lessons\n- [2026-10-04] (manager, chat d) Onboarding stalls at GHL ${EM} chase it ^l-dddddddd\n`,
   );
-  return { vaultDir, agentsDir, outDir, driveRoot };
+  const workRoot = join(root, "work");
+  const metaScript = join(root, "runner", "bin", "meta.mjs").split("\\").join("/");
+  return { vaultDir, agentsDir, outDir, driveRoot, workRoot, metaScript };
 }
+
+const metaTool = (env: { metaScript: string }) => `Bash(node ${env.metaScript}:*)`;
 
 const willis: ClaimTenant = { id: "t-willis", name: "Willis Windows", slug: "willis-windows", metaAdAccountId: "act_1" };
 
@@ -51,10 +54,10 @@ describe("buildBundle", () => {
   it("gives the meta script to ads, reporting and manager only", () => {
     const env = world();
     for (const id of ["ads", "reporting", "manager"] as const) {
-      expect(buildBundle(id, willis, env).allowedTools).toContain(META);
+      expect(buildBundle(id, willis, env).allowedTools).toContain(metaTool(env));
     }
     for (const id of ["ghl", "landing", "creative", "research"] as const) {
-      expect(buildBundle(id, willis, env).allowedTools).not.toContain(META);
+      expect(buildBundle(id, willis, env).allowedTools).not.toContain(metaTool(env));
     }
   });
 
@@ -87,6 +90,21 @@ describe("buildBundle", () => {
     for (const id of ["manager", "research", "ads", "creative", "landing", "ghl", "reporting"] as const) {
       expect(buildBundle(id, willis, env).addDirs).not.toContain(env.vaultDir);
     }
+  });
+
+  it("runs each agent and client in its own work folder, outside the runner", () => {
+    const env = world();
+    const b = buildBundle("ads", willis, env);
+    expect(b.workDir).toBe(join(env.workRoot, "ads-willis-windows"));
+    expect(buildBundle("manager", null, env).workDir).toBe(join(env.workRoot, "manager-agency"));
+  });
+
+  it("tells the agent the exact Meta command it may run", () => {
+    const env = world();
+    const prompt = readFileSync(buildBundle("ads", willis, env).systemPromptFile, "utf8");
+    expect(prompt).toContain(`node ${env.metaScript} --level`);
+    const ghl = readFileSync(buildBundle("ghl", willis, env).systemPromptFile, "utf8");
+    expect(ghl).not.toContain(env.metaScript);
   });
 
   it("puts the client's Profile and Memory notes into the prompt", () => {

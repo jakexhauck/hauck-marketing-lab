@@ -33,10 +33,10 @@ export interface RunnerDeps {
   today: () => string;
   run: (o: RunOptions) => Promise<{ text: string; tools: string[] }>;
   commit: (paths: string[], summary: string) => Promise<boolean>;
-  // Where claude runs, and what it inherits: bin/meta.mjs needs the API base,
-  // the secret and the client's tenant id, and it is given them here rather
-  // than through the prompt, where the model would see the secret.
-  cwd?: string;
+  // What claude inherits: bin/meta.mjs needs the API base and the client's
+  // tenant id. Never the secret: claude can run read-only shell commands like
+  // echo, so anything in its environment is readable. The meta script reads
+  // the secret from Doppler itself. Claude runs in the bundle's work folder.
   childEnv?: (tenant: ClaimTenant | null) => NodeJS.ProcessEnv;
   log?: (line: string) => void;
 }
@@ -132,7 +132,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
     const base = {
       sessionId: chat.claudeSessionId,
       bundle,
-      cwd: d.cwd,
+      cwd: bundle.workDir,
       env: d.childEnv?.(tenant),
       onProgress: (text: string, tools: string[]) => {
         d.api.reply({ messageId, status: "running", aiBody: preview(text), tools }).catch((e) => log(`progress post failed: ${e.message}`));

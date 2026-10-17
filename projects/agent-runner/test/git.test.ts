@@ -68,3 +68,24 @@ describe("commitBrains", () => {
     expect(calls.find((a) => a[0] === "commit")!.slice(-2)).toEqual(["--", "vault/Agents/Ads/Brain.md"]);
   });
 });
+
+describe("commitBrains, two at once", () => {
+  // The heartbeat applies queued edits while a chat may be saving lessons; two
+  // git commits at once fight over .git/index.lock.
+  it("runs one commit at a time", async () => {
+    let running = 0;
+    let most = 0;
+    const fake = async (args: string[]) => {
+      running += 1;
+      most = Math.max(most, running);
+      await new Promise((r) => setTimeout(r, 5));
+      running -= 1;
+      return args[0] === "status" ? " M vault/a/Brain.md\n" : "";
+    };
+    await Promise.all([
+      commitBrains(["vault/a/Brain.md"], "one", { cwd: "/r", git: fake }),
+      commitBrains(["vault/b/Brain.md"], "two", { cwd: "/r", git: fake }),
+    ]);
+    expect(most).toBe(1);
+  });
+});

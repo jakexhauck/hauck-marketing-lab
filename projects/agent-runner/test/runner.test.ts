@@ -24,7 +24,14 @@ function world() {
   writeFileSync(join(vaultDir, "Agents", "Ads", "Brain.md"), "## Lessons\n");
   return {
     vaultDir,
-    env: { vaultDir, agentsDir, outDir: join(root, "out"), driveRoot: join(root, "drive") },
+    env: {
+      vaultDir,
+      agentsDir,
+      outDir: join(root, "out"),
+      driveRoot: join(root, "drive"),
+      workRoot: join(root, "work"),
+      metaScript: join(root, "bin", "meta.mjs").split("\\").join("/"),
+    },
   };
 }
 

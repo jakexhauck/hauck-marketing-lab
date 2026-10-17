@@ -150,6 +150,31 @@ describe("upsertItem", () => {
     expect(db.rows("agent_items")).toHaveLength(1);
     expect(db.rows("agent_messages")).toHaveLength(0);
   });
+
+  // The id comes from model output, so it can name a card the agent does not own.
+  it("refuses to rewrite another client's or another agent's card", async () => {
+    const db = new FakeDb().seed("agent_items", [
+      { id: "i1", tenant_id: T1, agent: "ads", chat_id: null, title: "Ad", status: "needs_ok", payload: {} },
+    ]);
+    const other = "00000000-0000-4000-8000-000000000002";
+    await expect(
+      upsertItem(db.client(), { id: "i1", tenantId: other, agent: "ads", kind: "ad", title: "Hijack", status: "needs_ok", payload: {} }),
+    ).rejects.toThrow("item not found");
+    await expect(
+      upsertItem(db.client(), { id: "i1", tenantId: T1, agent: "ghl", kind: "ad", title: "Hijack", status: "needs_ok", payload: {} }),
+    ).rejects.toThrow("item not found");
+    expect(db.rows("agent_items")[0]).toMatchObject({ tenant_id: T1, title: "Ad" });
+  });
+
+  it("refuses to reopen a card Jake already decided", async () => {
+    const db = new FakeDb().seed("agent_items", [
+      { id: "i1", tenant_id: T1, agent: "ads", chat_id: null, title: "Ad", status: "done", payload: {} },
+    ]);
+    await expect(
+      upsertItem(db.client(), { id: "i1", tenantId: T1, agent: "ads", kind: "ad", title: "Ad", status: "needs_ok", payload: {} }),
+    ).rejects.toThrow("item not found");
+    expect(db.rows("agent_items")[0].status).toBe("done");
+  });
 });
 
 describe("decideItem", () => {

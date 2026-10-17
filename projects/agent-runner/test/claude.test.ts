@@ -13,7 +13,8 @@ const FIXTURE = readFileSync(join(import.meta.dirname, "fixtures", "stream.jsonl
 const bundle = {
   systemPromptFile: "C:/runner/data/prompts/ads-willis-windows.md",
   allowedTools: ["Read", "Bash(node bin/meta.mjs:*)"],
-  addDirs: ["C:/repo/vault", "G:/My Drive/x"],
+  addDirs: ["G:/My Drive/x"],
+  workDir: "C:/runner/data/work/ads-willis-windows",
 };
 
 describe("parseStream", () => {
@@ -41,7 +42,17 @@ describe("claudeArgs", () => {
     const at = args.indexOf("--allowedTools");
     expect(args.slice(at + 1, at + 3)).toEqual(bundle.allowedTools);
     const dirs = args.indexOf("--add-dir");
-    expect(args.slice(dirs + 1, dirs + 3)).toEqual(bundle.addDirs);
+    expect(args.slice(dirs + 1, dirs + 2)).toEqual(bundle.addDirs);
+  });
+
+  it("locks claude down: restricted, no MCP, nothing outside the allowlist", () => {
+    const args = claudeArgs({ sessionId: "s-1", resume: false, bundle });
+    expect(args).toContain("--restricted");
+    expect(args).toContain("--strict-mcp-config");
+    expect(args[args.indexOf("--permission-mode") + 1]).toBe("dontAsk");
+    // --tools names the base tools, so Bash exists only because the meta rule asks for it.
+    expect(args[args.indexOf("--tools") + 1]).toBe("Read,Bash");
+    expect(args).not.toContain("bypassPermissions");
   });
 
   it("resumes after the first turn", () => {

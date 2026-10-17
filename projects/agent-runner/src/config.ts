@@ -11,6 +11,10 @@ export const VAULT_DIR = join(REPO_DIR, "vault");
 export const AGENTS_DIR = join(RUNNER_DIR, "agents");
 export const DATA_DIR = join(RUNNER_DIR, "data");
 export const PROMPTS_DIR = join(DATA_DIR, "prompts");
+// Agents run here, one folder each, never in the runner's own folder.
+export const WORK_DIR = join(DATA_DIR, "work");
+// Forward slashes: it is matched as the prefix of a Bash permission rule.
+export const META_SCRIPT = join(RUNNER_DIR, "bin", "meta.mjs").split("\\").join("/");
 export const SNAPSHOTS_FILE = join(DATA_DIR, "snapshots.json");
 
 // The Google Drive for desktop mount, where every client has a "<handshake>
