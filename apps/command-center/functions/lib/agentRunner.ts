@@ -274,12 +274,16 @@ export async function applyReply(
 
   const { data: me, error: meErr } = await client
     .from("agent_messages")
-    .select("id, chat_id, role")
+    .select("id, chat_id, role, status")
     .eq("id", body.messageId)
     .maybeSingle();
   fail("message", meErr);
   if (!me || (me as Row).role !== "me") return { error: 404 };
   const chatId = (me as Row).chat_id as string;
+  // Progress posts are fire-and-forget on the runner, so one can land after
+  // the reply. A finished message never goes back to running.
+  const settled = (me as Row).status === "done" || (me as Row).status === "error";
+  if (settled && body.status === "running") return { ok: true };
 
   const finished = body.status === "running" ? null : now.toISOString();
   const errorText = body.status === "error" ? (body.error ?? "runner error").slice(0, 2000) : null;

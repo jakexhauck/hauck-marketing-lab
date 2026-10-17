@@ -126,6 +126,9 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
   const clientName = tenant?.name ?? "agency";
   const chatRef = `chat ${chat.id.slice(0, 8)}`;
 
+  // Progress posts go one after another, and the reply waits for the last of
+  // them, so a slow progress post can never land after the finished reply.
+  let progressPosts: Promise<unknown> = Promise.resolve();
   try {
     await d.api.reply({ messageId, status: "running" });
     const bundle = buildBundle(agent, tenant, d.env);
@@ -135,7 +138,9 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
       cwd: bundle.workDir,
       env: d.childEnv?.(tenant),
       onProgress: (text: string, tools: string[]) => {
-        d.api.reply({ messageId, status: "running", aiBody: preview(text), tools }).catch((e) => log(`progress post failed: ${e.message}`));
+        progressPosts = progressPosts.then(() =>
+          d.api.reply({ messageId, status: "running", aiBody: preview(text), tools }).catch((e) => log(`progress post failed: ${e.message}`)),
+        );
       },
     };
 
@@ -237,6 +242,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
       }
     }
 
+    await progressPosts;
     await d.api.reply({
       messageId,
       status: "done",
@@ -249,6 +255,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
   } catch (e) {
     const error = (e as Error).message || String(e);
     log(`message ${messageId} failed: ${error}`);
+    await progressPosts;
     await d.api.reply({ messageId, status: "error", error }).catch((err) => log(`error post failed: ${err.message}`));
   }
 }

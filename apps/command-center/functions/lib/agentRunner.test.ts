@@ -202,6 +202,17 @@ describe("applyReply", () => {
       .seed("agent_messages", [msg("m1", { status: "running", host: "PC" })]);
   }
 
+  // Progress posts are fire-and-forget, so one can arrive after the reply.
+  it("ignores a late progress post once the reply is done", async () => {
+    const db = setup();
+    const client = db.client();
+    await applyReply(client, { messageId: "m1", status: "done", aiBody: "Final answer" });
+    expect(await applyReply(client, { messageId: "m1", status: "running", aiBody: "Still work" })).toEqual({ ok: true });
+    const ai = db.rows("agent_messages").filter((r) => r.role === "ai");
+    expect(ai[0]).toMatchObject({ status: "done", body: "Final answer" });
+    expect(db.rows("agent_messages").find((r) => r.id === "m1")?.status).toBe("done");
+  });
+
   it("creates the ai message on the first post and updates it after", async () => {
     const db = setup();
     const client = db.client();
