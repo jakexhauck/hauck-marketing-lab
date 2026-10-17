@@ -425,3 +425,22 @@ DONE by the lead in `73383b63` before the lanes started (so no lane owns it): `G
 1. Lane 2 first (it owns the shared `Grant` change), then Lanes 3 and 4 rebase on it.
 2. Full test run in both packages, `code-review`, `security-review` (grants, server-side checks, no tool bypass), release note per phase, push, deploy, live checks above.
 3. Jake owes: one approved landing page, one approved video, one approved Higgsfield spend, one approved GHL change.
+
+---
+
+## Phase 6: Client Brief (Jake, 2026-10-17; after Phases 2 to 4 ship)
+
+**What:** one living brief per client, shared by every agent, with one section per agent (Market Research, Ads, Creative, Landing Page, GHL, Reporting; Manager gets a short "Status" section). It opens beside the chat on every agent page. Jake edits it directly; agents edit only their own section and see Jake's edits on their next turn. Saved per client and synced to the client's Google Drive folder.
+
+**Decided (Jake):**
+- One document per client, sub-sections per agent.
+- Opens on the side of the screen while chatting (a third panel tab or a toggle beside Building / Brain; layout mockup first).
+- Jake can edit any section; the agent sees his edits and builds on them, never overwrites them blindly.
+- Synced to Google Drive.
+
+**My calls (Jake to check at kickoff):**
+- Brief vs brain: the brain is a list of short lessons; the brief is the polished, current summary you would hand to someone.
+- Storage: `client_briefs` table (tenant, section per agent, markdown, version, updated_by, updated_at). Each save bumps `version`; an agent's write must name the version it read, and a stale write is refused and retried on the fresh text, so Jake's edits are never lost.
+- The agent gets the whole brief in its prompt and emits a ```brief block with its new section; the runner posts it. Agents cannot write another agent's section (server-side check).
+- Drive: one Google Doc per client at `<client Drive folder>/Brief`, rewritten in place on every save (link never changes), via the existing Composio Drive connection.
+- Editor: plain markdown textarea with a rendered view, per section, autosave; no rich text in v1.
