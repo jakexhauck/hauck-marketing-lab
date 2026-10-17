@@ -22,6 +22,8 @@ const msg = (over: Partial<AgentMessage> = {}): AgentMessage => ({
   learned: [],
   itemId: null,
   fromAgent: null,
+  followUpOf: null,
+  grant: null,
   error: null,
   createdAt: "2026-10-17T12:00:00",
   ...over,

@@ -12,6 +12,18 @@ export type MessageStatus = "queued" | "running" | "done" | "error";
 export type ItemStatus = "building" | "needs_ok" | "live" | "done" | "declined";
 export type LessonScope = "client" | "agent" | "manager";
 
+// What an Approve unlocks for the agent's next turn, and only that turn: a
+// deploy (Landing Page), a credit spend up to `limit` (Creative), a GHL write
+// (GHL), filing into an app page. Copied by PATCH items/:id approve from the
+// card's payload.grant onto the follow-up message; the runner and the server
+// both check it before a gated action.
+export type GrantKind = "deploy" | "spend" | "ghl" | "file";
+export interface Grant {
+  itemId: string;
+  kind: GrantKind;
+  limit: number | null;
+}
+
 export interface ChatSummary {
   id: string;
   title: string;
@@ -35,6 +47,10 @@ export interface AgentMessage {
   // request: the item it belongs to and who sent it.
   itemId: string | null;
   fromAgent: AgentId | null;
+  // me: set on a follow-up created by Jake's click on a card (the card id),
+  // and the grant when that click was Approve. Null on a message Jake typed.
+  followUpOf: string | null;
+  grant: Grant | null;
   error: string | null;
   createdAt: string;
 }

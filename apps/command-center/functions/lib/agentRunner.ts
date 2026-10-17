@@ -8,6 +8,8 @@ import type {
   ClaimChat,
   ClaimResponse,
   ClaimTenant,
+  Grant,
+  GrantKind,
   HeartbeatBody,
   HeartbeatResponse,
   LessonEdit,
@@ -107,6 +109,15 @@ const strings = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 const str = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
 
+const GRANT_KINDS = ["deploy", "spend", "ghl", "file"];
+
+function grantOf(v: unknown): Grant | null {
+  if (!v || typeof v !== "object") return null;
+  const g = v as Row;
+  if (typeof g.itemId !== "string" || !GRANT_KINDS.includes(g.kind as string)) return null;
+  return { itemId: g.itemId, kind: g.kind as GrantKind, limit: typeof g.limit === "number" ? g.limit : null };
+}
+
 export function messageFromRow(r: Row): AgentMessage {
   const meta = (r.meta && typeof r.meta === "object" ? r.meta : {}) as Row;
   const from = str(meta.fromAgent);
@@ -121,6 +132,8 @@ export function messageFromRow(r: Row): AgentMessage {
     learned: strings(meta.learned),
     itemId: str(meta.itemId),
     fromAgent: from && isAgentId(from) ? from : null,
+    followUpOf: str(meta.followUpOf),
+    grant: grantOf(meta.grant),
     error: str(r.error),
     createdAt: r.created_at as string,
   };

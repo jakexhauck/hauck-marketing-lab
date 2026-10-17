@@ -11,6 +11,8 @@ import type {
   ItemStatus,
   LessonEdit,
   RunnerStatus,
+  Grant,
+  GrantKind,
 } from "../../src/lib/agentWire";
 import { messageFromRow, stripEmDash } from "./agentRunner";
 
@@ -189,14 +191,33 @@ export function chatSummaryFromRow(r: Row, lastLine = ""): ChatSummary {
   };
 }
 
+const GRANT_KINDS: GrantKind[] = ["deploy", "spend", "ghl", "file"];
+
+/**
+ * The grant a card asks for, read from its payload (the runner puts it there
+ * when it posts the card). Unknown kinds grant nothing; a limit that is not a
+ * finite number becomes null, never a guess.
+ */
+export function grantFrom(item: Pick<AgentItem, "id" | "payload">): Grant | null {
+  const g = item.payload?.grant as Row | undefined;
+  if (!g || typeof g !== "object" || !GRANT_KINDS.includes(g.kind as GrantKind)) return null;
+  const limit = typeof g.limit === "number" && Number.isFinite(g.limit) ? g.limit : null;
+  return { itemId: item.id, kind: g.kind as GrantKind, limit };
+}
+
 /**
  * Queue a `me` message: the job the PC runner claims. Touches the chat so it
  * rises to the top of the list.
  */
-export async function queueMessage(client: SupabaseClient, chatId: string, body: string): Promise<AgentMessage> {
+export async function queueMessage(
+  client: SupabaseClient,
+  chatId: string,
+  body: string,
+  meta: Row = {},
+): Promise<AgentMessage> {
   const { data, error } = await client
     .from("agent_messages")
-    .insert({ chat_id: chatId, role: "me", body, status: "queued" })
+    .insert({ chat_id: chatId, role: "me", body, status: "queued", meta })
     .select("*")
     .maybeSingle();
   fail("queue message", error);
@@ -367,7 +388,10 @@ export async function decideItem(
   if (t.followUp) {
     let chatId = item.chatId ?? (await newestChatId(client, item.tenantId, item.agent));
     if (!chatId) chatId = (await createChat(client, { tenantId: item.tenantId, agent: item.agent, title: item.title })).id as string;
-    await queueMessage(client, chatId, t.followUp);
+    // Every follow-up says which card it answers. Only an Approve carries the
+    // card's grant, which is what switches a gated tool on for that one turn.
+    const grant = action === "approve" ? grantFrom(item) : null;
+    await queueMessage(client, chatId, t.followUp, grant ? { followUpOf: item.id, grant } : { followUpOf: item.id });
   }
   return { item: itemFromRow(after) };
 }

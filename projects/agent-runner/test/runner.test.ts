@@ -48,6 +48,8 @@ function claim(over: Partial<ClaimResponse["chat"]> = {}, body = "What did CPL d
       learned: [],
       itemId: null,
       fromAgent: null,
+      followUpOf: null,
+      grant: null,
       error: null,
       createdAt: "2026-10-17T10:00:00Z",
     },

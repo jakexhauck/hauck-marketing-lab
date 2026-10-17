@@ -13,6 +13,14 @@ export type MessageStatus = "queued" | "running" | "done" | "error";
 export type ItemStatus = "building" | "needs_ok" | "live" | "done" | "declined";
 export type LessonScope = "client" | "agent" | "manager";
 
+// What an Approve unlocks for the agent's next turn only. See agentWire.ts.
+export type GrantKind = "deploy" | "spend" | "ghl" | "file";
+export interface Grant {
+  itemId: string;
+  kind: GrantKind;
+  limit: number | null;
+}
+
 export interface AgentMessage {
   id: string;
   chatId: string;
@@ -26,6 +34,9 @@ export interface AgentMessage {
   // request: the item it belongs to and who sent it.
   itemId: string | null;
   fromAgent: AgentId | null;
+  // me: the card a click answered, and the grant when the click was Approve.
+  followUpOf: string | null;
+  grant: Grant | null;
   error: string | null;
   createdAt: string;
 }

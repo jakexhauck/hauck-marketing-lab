@@ -194,6 +194,41 @@ describe("decideItem", () => {
     expect(queued[0]).toMatchObject({ chat_id: "c1", role: "me", body: "Approved: Ad" });
   });
 
+  // A grant is how an Approve switches on a gated tool for the next turn only
+  // (deploy, spend, ghl, file). It rides on the follow-up message, nowhere else.
+  function withGrant(grant: unknown) {
+    return new FakeDb()
+      .seed("agent_chats", [chat("c1", T1, "creative")])
+      .seed("agent_items", [
+        { id: "i1", tenant_id: T1, agent: "creative", chat_id: "c1", title: "Image", status: "needs_ok", payload: { grant }, approved_at: null },
+      ]);
+  }
+
+  it("approve carries the card's grant onto the follow-up", async () => {
+    const db = withGrant({ kind: "spend", limit: 12 });
+    await decideItem(db.client(), "i1", "approve");
+    const follow = db.rows("agent_messages").find((r) => r.status === "queued");
+    expect(follow?.meta).toEqual({ followUpOf: "i1", grant: { itemId: "i1", kind: "spend", limit: 12 } });
+  });
+
+  it("decline and change mark the follow-up but grant nothing", async () => {
+    const db = withGrant({ kind: "spend", limit: 12 });
+    await decideItem(db.client(), "i1", "decline");
+    expect(db.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1" });
+    const db2 = withGrant({ kind: "deploy" });
+    await decideItem(db2.client(), "i1", "change", "smaller logo");
+    expect(db2.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1" });
+  });
+
+  it("ignores a grant of an unknown kind and drops a bad limit", async () => {
+    const db = withGrant({ kind: "everything", limit: 5 });
+    await decideItem(db.client(), "i1", "approve");
+    expect(db.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1" });
+    const db2 = withGrant({ kind: "spend", limit: "lots" });
+    await decideItem(db2.client(), "i1", "approve");
+    expect(db2.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1", grant: { itemId: "i1", kind: "spend", limit: null } });
+  });
+
   it("a double approve answers 409 and queues nothing more", async () => {
     const db = setup();
     await decideItem(db.client(), "i1", "approve");
