@@ -38,7 +38,7 @@ import { normalizeAccount, uploadAdImage } from "./metaUpload";
 
 type Row = Record<string, unknown>;
 
-export type MetaOpName = "read.structure" | "read.creatives" | "read.library" | "pause" | "resume" | "dailyBudget" | "createAd";
+export type MetaOpName = "read.structure" | "read.creatives" | "read.library" | "read.destination" | "pause" | "resume" | "dailyBudget" | "createAd";
 
 /** Jake's guard on one budget change (his call: constants, the card can be split). */
 export const BUDGET_MAX_FACTOR = 3;
@@ -237,6 +237,12 @@ interface CreateAdArgs {
   name: string;
   message: string;
   headline: string | null;
+  description: string | null;
+  // Where the ad sends people, as the card shows it. Copied from the ad
+  // set's ads on the server and held against what is live (stale = 409).
+  cta: string;
+  link: string | null;
+  leadFormId: string | null;
   status: "PAUSED" | "ACTIVE";
 }
 
@@ -275,6 +281,28 @@ type Media = { kind: "image"; path: string; name: string } | { kind: "video"; vi
 interface CreateChecked {
   media: Media;
   dest: Destination;
+}
+
+const CTA = /^[A-Z][A-Z_]{1,39}$/;
+const FORM_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+/**
+ * Where the ad set's ads send people, copied for a new ad. The ad set must be
+ * in this client's account. Refuses when there is nothing plain to copy, or
+ * when the ads disagree.
+ */
+async function adsetDestination(ctx: Ctx, adsetId: string): Promise<{ ads: Row[]; dest: Destination }> {
+  const ads = await graphGetAll(ctx.token, `/${adsetId}/ads`, { fields: "id,name,creative{object_story_spec}", limit: "100" }, 5, { strict: true });
+  const dests = ads.map((x) => destinationOf(((x.creative ?? {}) as Row).object_story_spec as Row | undefined));
+  const usable = dests.filter((d): d is Destination => !!d);
+  if (!usable.length || usable.length !== dests.length) {
+    throw new MetaOpRefused(409, "the ads in that ad set have no plain link or lead form to copy; Jake builds this one in Ads Manager");
+  }
+  const key = (d: Destination) => JSON.stringify([d.ctaType, d.link, d.leadFormId, d.pageId, d.instagramUserId]);
+  if (new Set(usable.map(key)).size > 1) {
+    throw new MetaOpRefused(409, "the ads in that ad set go to different places; say which on a new card or Jake builds it");
+  }
+  return { ads, dest: usable[0] };
 }
 
 const NOT_IN_LIBRARY =
@@ -351,9 +379,23 @@ const createAd: Op<CreateAdArgs> = {
       headline = text(a.headline, 255);
       if (!headline) return { ok: false, error: "headline is text up to 255 characters" };
     }
+    let description: string | null = null;
+    if (a.description !== undefined && a.description !== null) {
+      description = text(a.description, 255);
+      if (!description) return { ok: false, error: "description is text up to 255 characters" };
+    }
+    const cta = typeof a.cta === "string" && CTA.test(a.cta) ? a.cta : null;
+    if (!cta) return { ok: false, error: "cta is the button type from read.destination, like SIGN_UP" };
+    const link = a.link === undefined || a.link === null ? null : typeof a.link === "string" && /^https?:\/\/\S{1,2000}$/.test(a.link) ? a.link : undefined;
+    const leadFormId = a.leadFormId === undefined || a.leadFormId === null ? null : typeof a.leadFormId === "string" && FORM_ID.test(a.leadFormId) ? a.leadFormId : undefined;
+    if (link === undefined || leadFormId === undefined) return { ok: false, error: "link is a URL and leadFormId an id, from read.destination" };
+    if (!link && !leadFormId) return { ok: false, error: "a new ad goes to a link or a lead form (from read.destination)" };
     const status = a.status ?? "PAUSED";
     if (status !== "PAUSED" && status !== "ACTIVE") return { ok: false, error: "status is PAUSED or ACTIVE" };
-    return { ok: true, args: { adsetId, adsetName, campaignName, ...source, name, message, headline, status } };
+    return {
+      ok: true,
+      args: { adsetId, adsetName, campaignName, ...source, name, message, headline, description, cta, link, leadFormId, status },
+    };
   },
   check: async (ctx, a): Promise<CreateChecked> => {
     // A new ad runs from the client's own Page, so that Page must be on file:
@@ -363,18 +405,15 @@ const createAd: Op<CreateAdArgs> = {
 
     await liveObject(ctx, "adset", a.adsetId, a.adsetName, [], { campaignName: a.campaignName });
 
-    const ads = await graphGetAll(ctx.token, `/${a.adsetId}/ads`, { fields: "id,name,creative{object_story_spec}", limit: "100" }, 5, { strict: true });
+    const { ads, dest } = await adsetDestination(ctx, a.adsetId);
     if (ads.some((x) => sameName(x.name, a.name))) throw new MetaOpRefused(409, `ad set "${a.adsetName}" already has an ad called "${a.name}"`);
-    const dests = ads.map((x) => destinationOf(((x.creative ?? {}) as Row).object_story_spec as Row | undefined));
-    const usable = dests.filter((d): d is Destination => !!d);
-    if (!usable.length || usable.length !== dests.length) {
-      throw new MetaOpRefused(409, "the ads in that ad set have no plain link or lead form to copy; Jake builds this one in Ads Manager");
+    // The card showed Jake where the ad goes; it must still be where it goes.
+    if (dest.ctaType !== a.cta || dest.link !== a.link || dest.leadFormId !== a.leadFormId) {
+      throw new MetaOpRefused(
+        409,
+        `the ads in that ad set now use button ${dest.ctaType}, link ${dest.link ?? "none"}, lead form ${dest.leadFormId ?? "none"}; the card is out of date`,
+      );
     }
-    const key = (d: Destination) => JSON.stringify([d.ctaType, d.link, d.leadFormId, d.pageId, d.instagramUserId]);
-    if (new Set(usable.map(key)).size > 1) {
-      throw new MetaOpRefused(409, "the ads in that ad set go to different places; say which on a new card or Jake builds it");
-    }
-    const dest = usable[0];
     if (dest.pageId !== ctx.pageId) {
       throw new MetaOpRefused(409, "the ads in that ad set run from a Page that is not this client's");
     }
@@ -394,6 +433,7 @@ const createAd: Op<CreateAdArgs> = {
         ...(dest.link ? { link: dest.link } : {}),
         message: a.message,
         ...(a.headline ? { name: a.headline } : {}),
+        ...(a.description ? { description: a.description } : {}),
         call_to_action: { type: dest.ctaType, value: dest.leadFormId ? value : { link: dest.link } },
       };
     } else {
@@ -404,6 +444,7 @@ const createAd: Op<CreateAdArgs> = {
         image_url: imageUrl,
         message: a.message,
         ...(a.headline ? { title: a.headline } : {}),
+        ...(a.description ? { link_description: a.description } : {}),
         call_to_action: { type: dest.ctaType, value },
       };
     }
@@ -466,6 +507,21 @@ const ops = {
     parse: () => ({ ok: true, args: {} }),
     check: (ctx) => libraryVideos(ctx),
   } satisfies Op<Record<string, never>>,
+
+  // Where an ad set's ads send people, so a new-ad card can show it exactly.
+  "read.destination": {
+    write: false,
+    parse: (a) => {
+      const adsetId = id(a.adsetId);
+      return adsetId ? { ok: true, args: { adsetId } } : { ok: false, error: "adsetId required" };
+    },
+    check: async (ctx, a) => {
+      const o = await graphGet(ctx.token, `/${a.adsetId}`, { fields: "account_id,name" });
+      if (String(o.account_id ?? "") !== ctx.accountNum) throw new MetaOpRefused(403, `ad set ${a.adsetId} is not in this client's ad account`);
+      const { dest } = await adsetDestination(ctx, a.adsetId);
+      return { cta: dest.ctaType, link: dest.link, leadFormId: dest.leadFormId };
+    },
+  } satisfies Op<{ adsetId: string }>,
 
   pause: statusOp("PAUSED"),
   resume: statusOp("ACTIVE"),

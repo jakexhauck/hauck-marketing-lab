@@ -16,6 +16,7 @@ import {
   type MetaGrantItem,
 } from "./agentMetaOps";
 import type { AgentMessage } from "../../src/lib/agentWire";
+import { itemPayload } from "../../src/lib/agentView";
 
 const T1 = "11111111-1111-4111-8111-111111111111";
 const T2 = "22222222-2222-4222-8222-222222222222";
@@ -85,8 +86,8 @@ describe("metaWriteAllowed", () => {
 });
 
 describe("META_OPS", () => {
-  it("is exactly the planned allowlist: three reads, four writes, no deletes", () => {
-    expect(Object.keys(META_OPS).sort()).toEqual(["createAd", "dailyBudget", "pause", "read.creatives", "read.library", "read.structure", "resume"]);
+  it("is exactly the planned allowlist: four reads, four writes, no deletes", () => {
+    expect(Object.keys(META_OPS).sort()).toEqual(["createAd", "dailyBudget", "pause", "read.creatives", "read.destination", "read.library", "read.structure", "resume"]);
     for (const op of Object.keys(META_OPS)) expect(isMetaWriteOp(op), op).toBe(!op.startsWith("read."));
   });
 
@@ -110,8 +111,18 @@ describe("META_OPS", () => {
     expect(parseMetaOpArgs("dailyBudget", { level: "adset", id: "9", name: "x", from: 4000, to: 50.5 }).ok).toBe(false);
     expect(parseMetaOpArgs("dailyBudget", { level: "adset", id: "9", name: "x", from: 4000, to: 4000 }).ok).toBe(false);
     expect(parseMetaOpArgs("dailyBudget", { level: "adset", id: "9", name: "x", to: 5000 }).ok).toBe(false);
-    const ad = { adsetId: "9", adsetName: "Willis Winter", campaignName: "Fall", fileId: FILE, fileName: "winter-3.mp4", name: "Winter 3", message: "Free estimate" };
-    expect(parseMetaOpArgs("createAd", ad)).toEqual({ ok: true, args: { ...ad, headline: null, status: "PAUSED" } });
+    const ad = {
+      adsetId: "9", adsetName: "Willis Winter", campaignName: "Fall", fileId: FILE, fileName: "winter-3.mp4",
+      name: "Winter 3", message: "Free estimate", cta: "SIGN_UP", leadFormId: "555",
+    };
+    expect(parseMetaOpArgs("createAd", ad)).toEqual({
+      ok: true,
+      args: { ...ad, headline: null, description: null, link: null, status: "PAUSED" },
+    });
+    // The destination is on the card: a button, and a link or a lead form.
+    expect(parseMetaOpArgs("createAd", { ...ad, cta: undefined }).ok).toBe(false);
+    expect(parseMetaOpArgs("createAd", { ...ad, leadFormId: undefined }).ok).toBe(false);
+    expect(parseMetaOpArgs("createAd", { ...ad, leadFormId: undefined, link: "https://x.example" }).ok).toBe(true);
     expect(parseMetaOpArgs("createAd", { ...ad, status: "ACTIVE" })).toMatchObject({ ok: true, args: { status: "ACTIVE" } });
     expect(parseMetaOpArgs("createAd", { ...ad, status: "DELETED" }).ok).toBe(false);
     expect(parseMetaOpArgs("createAd", { ...ad, fileId: "x" }).ok).toBe(false);
@@ -434,7 +445,10 @@ describe("callMetaOp", () => {
 
   // ---- createAd -------------------------------------------------------
 
-  const AD = { adsetId: "9", adsetName: "Willis Winter", campaignName: "Fall", fileId: FILE, fileName: "winter-3.jpg", name: "Winter 3", message: "Free estimate this week" };
+  const AD = {
+    adsetId: "9", adsetName: "Willis Winter", campaignName: "Fall", fileId: FILE, fileName: "winter-3.jpg", name: "Winter 3",
+    message: "Free estimate this week", cta: "SIGN_UP", link: "http://fb.me/", leadFormId: "FORM1",
+  };
   const ADSET_9 = { id: "9", account_id: "100", name: "Willis Winter", campaign_id: "1", campaign: { id: "1", name: "Fall" } };
   const LEAD_SPEC = {
     page_id: "PAGE1",
@@ -592,6 +606,59 @@ describe("callMetaOp", () => {
       expect(res.status).toBe(409);
       expect(calls.some((c) => c.method === "POST")).toBe(false);
     }
+  });
+
+  // Every word Meta publishes for the ad must be on the card Jake approves.
+  function leaves(v: unknown, skip: Set<string>, out: string[] = [], key = ""): string[] {
+    if (typeof v === "string") {
+      if (!skip.has(key)) out.push(v);
+    } else if (v && typeof v === "object") {
+      for (const [k, x] of Object.entries(v)) leaves(x, skip, out, k);
+    }
+    return out;
+  }
+  const NOT_COPY = new Set(["page_id", "instagram_user_id", "image_hash", "video_id", "image_url"]);
+
+  it("puts every published field of a new ad on the card, image and video", async () => {
+    const full = { ...AD, headline: "Free quote", description: "This week only" };
+    const vid = { ...AD_NO_FILE, headline: "Free quote", description: "This week only", videoId: "777", videoName: "winter-3 4:5.mp4" };
+    for (const args of [full, vid]) {
+      const w = world({ ops: [{ op: "createAd", args }] });
+      const calls = fakeGraph(
+        adRoutes({
+          "GET /act_100/advideos": LIBRARY,
+          "GET /777/thumbnails": { data: [{ uri: "https://thumb/b.jpg", is_preferred: true }] },
+        }),
+      );
+      const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "createAd", args }, deps);
+      expect(res.status, JSON.stringify(res.body)).toBe(200);
+      const spec = JSON.parse(calls.find((c) => c.path === "/act_100/adcreatives")!.body.object_story_spec);
+      const published = [...leaves(spec, NOT_COPY), calls.find((c) => c.path === "/act_100/ads")!.body.status];
+      expect(published).toEqual(expect.arrayContaining(["Free quote", "This week only", "Free estimate this week", "SIGN_UP", "FORM1", "http://fb.me/"]));
+      const card = itemPayload(w.rows("agent_items")[0].payload as Record<string, unknown>).changes;
+      const shown = card.map((c) => `${c.text}${c.bold ?? ""}`).join("\n");
+      for (const f of published) expect(shown, f).toContain(f);
+      expect(card.find((c) => c.bold)?.bold).toBe("PAUSED");
+    }
+  });
+
+  it("refuses when the ad set's ads no longer go where the card says", async () => {
+    for (const args of [{ ...AD, leadFormId: "FORM9" }, { ...AD, cta: "LEARN_MORE" }, { ...AD, link: null }]) {
+      const w = world({ ops: [{ op: "createAd", args }] });
+      const calls = fakeGraph(adRoutes());
+      const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "createAd", args }, deps);
+      expect(res.status).toBe(409);
+      expect(calls.some((c) => c.method === "POST")).toBe(false);
+    }
+  });
+
+  it("reads where an ad set's ads go, for the card", async () => {
+    fakeGraph(adRoutes());
+    const res = await callMetaOp(world().client(), { messageId: MSG, tenantId: T1, op: "read.destination", args: { adsetId: "9" } }, deps);
+    expect(res.status).toBe(200);
+    expect(res.body.result).toEqual({ cta: "SIGN_UP", link: "http://fb.me/", leadFormId: "FORM1" });
+    fakeGraph(adRoutes({ "GET /9": { ...ADSET_9, account_id: "200" } }));
+    expect((await callMetaOp(world().client(), { messageId: MSG, tenantId: T1, op: "read.destination", args: { adsetId: "9" } }, deps)).status).toBe(403);
   });
 
   it("refuses a new ad when the client has no Facebook Page set", async () => {

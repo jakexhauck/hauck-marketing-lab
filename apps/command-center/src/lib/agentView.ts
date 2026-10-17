@@ -116,9 +116,17 @@ export interface ItemPayloadView {
   // A spend card (Creative Agent): what an Approve lets it spend, and on what.
   credits: number | null;
   what: string | null;
-  // A GHL card's ops in words. An Approve allows exactly these calls on the
-  // server (lib/agentGhlOps.ts), so the card shows them, not only the plan.
-  changes: string[];
+  // A GHL or Ads card's ops in words. An Approve allows exactly these calls
+  // on the server (lib/agentGhlOps.ts, lib/agentMetaOps.ts), so the card
+  // shows them, not only the plan.
+  changes: ItemChange[];
+}
+
+// One line of a card's changes. `bold` is drawn strong after the text (a new
+// ad's status).
+export interface ItemChange {
+  text: string;
+  bold?: string;
 }
 
 const str = (v: unknown): v is string => typeof v === "string" && v.length > 0;
@@ -137,6 +145,23 @@ function metaTarget(a: Record<string, unknown>): string {
   return `${level} "${a.name}"${tail}${adset}${campaign}`;
 }
 
+// A new ad, every word Meta will publish for it, exactly as it will be
+// published: Jake approves the copy, not a summary of it.
+function createAdLines(a: Record<string, unknown>): ItemChange[] {
+  const opt = (v: unknown) => (str(v) ? v : "none");
+  const lines: ItemChange[] = [
+    { text: changeLine("createAd", a) },
+    { text: `Primary text: ${String(a.message ?? "")}` },
+    { text: `Headline: ${opt(a.headline)}` },
+    { text: `Description: ${opt(a.description)}` },
+    { text: `Button: ${String(a.cta ?? "")}` },
+  ];
+  if (str(a.link)) lines.push({ text: `Link: ${a.link}` });
+  if (str(a.leadFormId)) lines.push({ text: `Lead form: ${a.leadFormId}` });
+  lines.push({ text: "Status: ", bold: a.status === "ACTIVE" ? "ACTIVE" : "PAUSED" });
+  return lines;
+}
+
 function changeLine(op: string, a: Record<string, unknown>): string {
   switch (op) {
     case "pause":
@@ -148,7 +173,7 @@ function changeLine(op: string, a: Record<string, unknown>): string {
       return `${t.charAt(0).toUpperCase()}${t.slice(1)} daily budget ${dollars(a.from)} to ${dollars(a.to)}`;
     }
     case "createAd":
-      return `Create ad "${a.name}" in ad set "${a.adsetName}"${typeof a.adsetId === "string" ? ` (id ending ${a.adsetId.slice(-6)})` : ""} (campaign "${a.campaignName}") from ${a.videoId ? `Meta library video "${a.videoName}"` : `Creatives file "${a.fileName}"`}, ${a.status === "ACTIVE" ? "active" : "paused"}`;
+      return `Create ad "${a.name}" in ad set "${a.adsetName}"${typeof a.adsetId === "string" ? ` (id ending ${a.adsetId.slice(-6)})` : ""} (campaign "${a.campaignName}") from ${a.videoId ? `Meta library video "${a.videoName}"` : `Creatives file "${a.fileName}"`}`;
     case "write.customValue":
       return `Set custom value "${a.key}" to "${a.value}"`;
     case "write.customField":
@@ -199,7 +224,8 @@ export function itemPayload(payload: Record<string, unknown>): ItemPayloadView {
       if (!o || typeof o !== "object") return [];
       const { op, args } = o as { op?: unknown; args?: unknown };
       if (!str(op)) return [];
-      return [changeLine(op, args && typeof args === "object" ? (args as Record<string, unknown>) : {})];
+      const a = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
+      return op === "createAd" ? createAdLines(a) : [{ text: changeLine(op, a) }];
     }),
   };
 }
