@@ -59,7 +59,11 @@ fbq('track', 'PageView');
 
 // Lead endpoint: Clear Choice's GHL workflow (Inbound Webhook trigger). It
   // answers CORS for any origin, so the browser posts JSON straight to it.
-  const LEAD_WEBHOOK = 'https://services.leadconnectorhq.com/hooks/p9v7EWFPgHxNkPbR7NVk/webhook-trigger/3ij9ev027NF1X929ykdV';
+  // Every lead posts the same payload to each URL. One workflow handles the
+  // contact, the pipeline and the Conversions API event.
+  const LEAD_WEBHOOKS = [
+    'https://services.leadconnectorhq.com/hooks/p9v7EWFPgHxNkPbR7NVk/webhook-trigger/3ij9ev027NF1X929ykdV'
+  ];
   const THANK_YOU_URL = '';     // TODO: Clear Choice thank-you page
 
   // Service-area gate: when APPROVED_ZIPS is empty, every zip is accepted (matches MWC's existing production-LP behavior where any IA/IL zip flows through).
@@ -112,18 +116,24 @@ fbq('track', 'PageView');
     return m ? decodeURIComponent(m[1]) : '';
   }
 
-  // Field names here are what the GHL workflow maps: keep them stable.
+  // SHA-256 hex, Meta's required format for user data sent server-side.
+  // GHL can't hash, so the page sends the hashed copies alongside the plain ones.
+  async function sha256(v) {
+    v = (v || '').trim().toLowerCase();
+    if (!v || !window.crypto || !crypto.subtle) return '';
+    var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
+    return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  }
+
+  // Field names here are what the GHL workflows map: keep them stable.
   async function sendLead(data) {
-    if (!LEAD_WEBHOOK) return;
+    if (!LEAD_WEBHOOKS.length) return;
     var params = getUrlParams();
     var digits = (data.phone || '').replace(/\D/g, '');
     if (digits.length === 10) digits = '1' + digits;
-    try {
-      await fetch(LEAD_WEBHOOK, {
-        method: 'POST',
-        keepalive: true,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+    var fbc = cookie('_fbc') || (params.fbclid ? 'fb.1.' + Date.now() + '.' + params.fbclid : '');
+    var hashed = await Promise.all([digits, data.first_name, data.last_name, (data.zip || '').slice(0, 5), 'ky', 'us'].map(sha256));
+    var body = JSON.stringify({
           first_name:   data.first_name || '',
           last_name:    data.last_name || '',
           phone:        digits ? '+' + digits : (data.phone || ''),
@@ -134,8 +144,17 @@ fbq('track', 'PageView');
           source:       data.source || '',
           page_url:     location.href.split('#')[0],
           event_id:     data.event_id || '',
+          event_name:   'Lead',
+          event_time:   Math.floor(Date.now() / 1000),
+          user_agent:   navigator.userAgent,
           fbp:          cookie('_fbp'),
-          fbc:          cookie('_fbc'),
+          fbc:          fbc,
+          ph_hash:      hashed[0],
+          fn_hash:      hashed[1],
+          ln_hash:      hashed[2],
+          zp_hash:      hashed[3],
+          st_hash:      hashed[4],
+          country_hash: hashed[5],
           fbclid:       params.fbclid,
           gclid:        params.gclid,
           utm_source:   params.utm_source,
@@ -143,11 +162,11 @@ fbq('track', 'PageView');
           utm_campaign: params.utm_campaign,
           utm_content:  params.utm_content,
           utm_term:     params.utm_term
-        })
-      });
-    } catch (err) {
-      console.error('Lead webhook error:', err);
-    }
+    });
+    await Promise.all(LEAD_WEBHOOKS.map(function (url) {
+      return fetch(url, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: body })
+        .catch(function (err) { console.error('Lead webhook error:', url, err); });
+    }));
   }
 
   // Sticky bottom bar - hidden until hero scrolls out of view. Shows on
