@@ -1,7 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isAgentId } from "../../src/lib/agents";
 import type { AgentId } from "../../src/lib/agents";
-import type { AgentItem, AgentMessage, AutoChatBody, ChatSummary, ItemBody, ItemStatus } from "../../src/lib/agentWire";
+import type {
+  AgentItem,
+  AgentLesson,
+  AgentMessage,
+  AutoChatBody,
+  ChatSummary,
+  ItemBody,
+  ItemStatus,
+  LessonEdit,
+  RunnerStatus,
+} from "../../src/lib/agentWire";
 import { messageFromRow, stripEmDash } from "./agentRunner";
 
 // Chats, messages and Building cards for the Agents section (0166), shared by
@@ -366,4 +376,95 @@ export async function createAutoChat(client: SupabaseClient, body: AutoChatBody)
   const chat = await createChat(client, { tenantId: body.tenantId, agent: body.agent, title: body.title, auto: true });
   await queueMessage(client, chat.id as string, prompt);
   return chat.id as string;
+}
+
+/** The rail footer: online while the newest heartbeat is under 90s old. */
+export const ONLINE_SECONDS = 90;
+
+export function runnerStatus(rows: { last_seen_at: string | null }[], now: Date): RunnerStatus {
+  const stamps = rows
+    .map((r) => r.last_seen_at)
+    .filter((s): s is string => !!s)
+    .sort();
+  const lastSeenAt = stamps.length ? stamps[stamps.length - 1] : null;
+  const age = lastSeenAt ? now.getTime() - Date.parse(lastSeenAt) : Infinity;
+  return { online: age < ONLINE_SECONDS * 1000, lastSeenAt };
+}
+
+export function lessonFromRow(r: Row): AgentLesson {
+  return {
+    id: r.id as string,
+    scope: r.scope as AgentLesson["scope"],
+    tenantId: (r.tenant_id as string | null) ?? null,
+    agent: r.agent as AgentId,
+    text: (r.text as string) ?? "",
+    source: (r.source as string) ?? "",
+    learnedOn: (r.learned_on as string | null) ?? null,
+  };
+}
+
+export type BrainScope = "client" | "agent" | "mega";
+
+/**
+ * The Brain tab's list. client = that client's brain file (none at the
+ * agency), agent = that agent's brain file, mega = every lesson.
+ *
+ * pendingEditIds holds LESSON ids that still have a queued edit, which is what
+ * the page needs to show "Saving" on the right row until the runner applies
+ * the edit and the mirror catches up.
+ */
+export async function brainLessons(
+  client: SupabaseClient,
+  scope: BrainScope,
+  tenantId: string | null,
+  agent: AgentId,
+): Promise<{ lessons: AgentLesson[]; pendingEditIds: string[] }> {
+  if (scope === "client" && !tenantId) return { lessons: [], pendingEditIds: [] };
+  let q = client.from("agent_lessons").select("*");
+  if (scope === "client") q = q.eq("scope", "client").eq("tenant_id", tenantId as string);
+  if (scope === "agent") q = q.eq("scope", "agent").eq("agent", agent);
+  const { data, error } = await q.order("learned_on", { ascending: false }).limit(2000);
+  fail("lessons", error);
+  const lessons = ((data ?? []) as Row[]).map(lessonFromRow);
+
+  const { data: edits, error: eErr } = await client
+    .from("agent_lesson_edits")
+    .select("lesson_id")
+    .eq("status", "queued");
+  fail("edits", eErr);
+  const shown = new Set(lessons.map((l) => l.id));
+  const pendingEditIds = [...new Set(((edits ?? []) as Row[]).map((e) => e.lesson_id as string))].filter((id) =>
+    shown.has(id),
+  );
+  return { lessons, pendingEditIds };
+}
+
+/**
+ * Queue Jake's edit or delete of one lesson. The app never writes the brain
+ * itself: the PC runner is the only writer of the vault files, applies queued
+ * edits by block id, and re-posts the mirror. null when the lesson is not in
+ * the mirror.
+ */
+export async function queueLessonEdit(
+  client: SupabaseClient,
+  body: { lessonId: string; action: "edit" | "delete"; text?: string | null },
+): Promise<LessonEdit | null> {
+  const { data: lesson, error } = await client.from("agent_lessons").select("id").eq("id", body.lessonId).maybeSingle();
+  fail("lesson", error);
+  if (!lesson) return null;
+  const text = body.action === "edit" ? stripEmDash((body.text ?? "").trim()) : null;
+  const { data, error: iErr } = await client
+    .from("agent_lesson_edits")
+    .insert({ lesson_id: body.lessonId, action: body.action, text })
+    .select("id, lesson_id, action, text")
+    .maybeSingle();
+  fail("lesson edit", iErr);
+  if (!data) throw new Error("lesson edit: no row");
+  const r = data as Row;
+  return {
+    id: r.id as string,
+    lessonId: r.lesson_id as string,
+    action: r.action as LessonEdit["action"],
+    text: (r.text as string | null) ?? null,
+  };
 }

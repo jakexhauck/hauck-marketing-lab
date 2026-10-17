@@ -296,6 +296,14 @@ export const AGENCY_KEYS: AgencyKeyDef[] = [
     help: "Triggers the every-minute power dialer sync, which records calls with no browser open.",
     warning: "Also paste it into apps/workers/dialer-cron. Set in only one place and dials silently stop being recorded.",
   },
+  {
+    name: "AGENT_RUNNER_SECRET",
+    group: "crons",
+    entry: "generate",
+    generator: "hex32",
+    help: "Lets the agent runner on Jake's PC answer agent chats and read Meta insights.",
+    warning: "The runner reads it from Doppler. Set in only one place and every agent message waits unanswered.",
+  },
 
   // --- Build Lab ------------------------------------------------------------
   {

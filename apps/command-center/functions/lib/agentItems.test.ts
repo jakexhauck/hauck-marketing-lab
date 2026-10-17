@@ -8,7 +8,12 @@ import {
   scopeFilter,
   transitionItem,
   upsertItem,
+  runnerStatus,
+  brainLessons,
+  queueLessonEdit,
 } from "./agentItems";
+
+const EM = String.fromCharCode(0x2014);
 
 const T1 = "11111111-1111-4111-8111-111111111111";
 
@@ -182,5 +187,62 @@ describe("createAutoChat", () => {
     const id = await createAutoChat(db.client(), { tenantId: T1, agent: "ads", title: "Startup check", prompt: "Startup check: CPL up 25%" });
     expect(db.rows("agent_chats")[0]).toMatchObject({ id, auto: true, title: "Startup check", agent: "ads" });
     expect(db.rows("agent_messages")[0]).toMatchObject({ chat_id: id, role: "me", status: "queued", body: "Startup check: CPL up 25%" });
+  });
+});
+
+describe("runnerStatus", () => {
+  const now = new Date("2026-10-17T12:00:00.000Z");
+  it("online when the newest heartbeat is under 90 seconds old", () => {
+    expect(runnerStatus([{ last_seen_at: "2026-10-17T11:58:31.000Z" }], now)).toEqual({
+      online: true,
+      lastSeenAt: "2026-10-17T11:58:31.000Z",
+    });
+  });
+  it("offline at 90 seconds, and with no heartbeat at all", () => {
+    expect(runnerStatus([{ last_seen_at: "2026-10-17T11:58:30.000Z" }], now).online).toBe(false);
+    expect(runnerStatus([], now)).toEqual({ online: false, lastSeenAt: null });
+  });
+  it("reads the newest host", () => {
+    expect(
+      runnerStatus([{ last_seen_at: "2026-10-17T09:00:00.000Z" }, { last_seen_at: "2026-10-17T11:59:00.000Z" }], now),
+    ).toEqual({ online: true, lastSeenAt: "2026-10-17T11:59:00.000Z" });
+  });
+});
+
+describe("lessons for the Brain tab", () => {
+  function setup() {
+    return new FakeDb()
+      .seed("agent_lessons", [
+        { id: "l-c1", scope: "client", tenant_id: T1, agent: "ads", text: "a", source: "chat", learned_on: "2026-10-16" },
+        { id: "l-c2", scope: "client", tenant_id: "other", agent: "ads", text: "b", source: "chat", learned_on: "2026-10-15" },
+        { id: "l-a1", scope: "agent", tenant_id: null, agent: "ads", text: "c", source: "chat", learned_on: "2026-10-14" },
+        { id: "l-m1", scope: "manager", tenant_id: null, agent: "manager", text: "d", source: "chat", learned_on: "2026-10-13" },
+      ])
+      .seed("agent_lesson_edits", [
+        { id: "e1", lesson_id: "l-c1", action: "delete", text: null, status: "queued", created_at: "2026-10-17T10:00:00.000Z" },
+        { id: "e2", lesson_id: "l-a1", action: "edit", text: "x", status: "applied", created_at: "2026-10-17T09:00:00.000Z" },
+      ]);
+  }
+
+  it("client scope is that client's brain only", async () => {
+    const res = await brainLessons(setup().client(), "client", T1, "ads");
+    expect(res.lessons.map((l) => l.id)).toEqual(["l-c1"]);
+    expect(res.pendingEditIds).toEqual(["l-c1"]);
+  });
+
+  it("agent scope is that agent's brain, mega is everything", async () => {
+    expect((await brainLessons(setup().client(), "agent", T1, "ads")).lessons.map((l) => l.id)).toEqual(["l-a1"]);
+    expect((await brainLessons(setup().client(), "mega", null, "manager")).lessons).toHaveLength(4);
+  });
+
+  it("the agency has no client brain", async () => {
+    expect((await brainLessons(setup().client(), "client", null, "manager")).lessons).toEqual([]);
+  });
+
+  it("queues an edit for a lesson in the mirror and refuses an unknown one", async () => {
+    const db = setup();
+    const edit = await queueLessonEdit(db.client(), { lessonId: "l-a1", action: "edit", text: `New text ${EM} here` });
+    expect(edit).toMatchObject({ lessonId: "l-a1", action: "edit", text: "New text, here" });
+    expect(await queueLessonEdit(db.client(), { lessonId: "l-nope", action: "delete" })).toBeNull();
   });
 });
