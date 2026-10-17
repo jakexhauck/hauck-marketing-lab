@@ -57,8 +57,9 @@ fbq('track', 'PageView');
       if (t && btn && t.scrollHeight <= t.clientHeight + 2) { btn.style.display = 'none'; }
     });
 
-// Lead endpoint. Not wired yet.
-  const RAILWAY_WEBHOOK = '';   // TODO: Clear Choice GHL form/webhook. Empty = leads go nowhere (local draft).
+// Lead endpoint: Clear Choice's GHL workflow (Inbound Webhook trigger). It
+  // answers CORS for any origin, so the browser posts JSON straight to it.
+  const LEAD_WEBHOOK = 'https://services.leadconnectorhq.com/hooks/p9v7EWFPgHxNkPbR7NVk/webhook-trigger/3ij9ev027NF1X929ykdV';
   const THANK_YOU_URL = '';     // TODO: Clear Choice thank-you page
 
   // Service-area gate: when APPROVED_ZIPS is empty, every zip is accepted (matches MWC's existing production-LP behavior where any IA/IL zip flows through).
@@ -106,40 +107,46 @@ fbq('track', 'PageView');
     };
   }
 
-  function appendAnswers(source, age, state) {
-    var parts = [];
-    if (age)   parts.push('age: ' + age);
-    if (state) parts.push('state: ' + state);
-    return parts.length ? source + ' (' + parts.join(', ') + ')' : source;
+  function cookie(name) {
+    var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
   }
 
-  async function sendToRailway(data) {
-    if (!RAILWAY_WEBHOOK) return;   // no endpoint configured yet for Clear Choice Windows - do not post leads anywhere
+  // Field names here are what the GHL workflow maps: keep them stable.
+  async function sendLead(data) {
+    if (!LEAD_WEBHOOK) return;
+    var params = getUrlParams();
+    var digits = (data.phone || '').replace(/\D/g, '');
+    if (digits.length === 10) digits = '1' + digits;
     try {
-      var params = getUrlParams();
-      await fetch(RAILWAY_WEBHOOK, {
+      await fetch(LEAD_WEBHOOK, {
         method: 'POST',
+        keepalive: true,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           first_name:   data.first_name || '',
           last_name:    data.last_name || '',
-          email:        data.email || '',
-          phone:        data.phone || '',
+          phone:        digits ? '+' + digits : (data.phone || ''),
           zip:          data.zip || '',
-          gclid:        params.gclid,
+          state:        data.state || 'Kentucky',
+          home_age:     data.home_age || '',
+          offer:        'Free Triple Pane Glass ($300 Value)',
+          source:       data.source || '',
+          page_url:     location.href.split('#')[0],
+          event_id:     data.event_id || '',
+          fbp:          cookie('_fbp'),
+          fbc:          cookie('_fbc'),
           fbclid:       params.fbclid,
+          gclid:        params.gclid,
           utm_source:   params.utm_source,
           utm_medium:   params.utm_medium,
           utm_campaign: params.utm_campaign,
           utm_content:  params.utm_content,
-          utm_term:     params.utm_term,
-          product:      'Windows',
-          event_id:     data.event_id || '',
-          source:       appendAnswers(data.source || 'LP v2', data.home_age, data.state)
+          utm_term:     params.utm_term
         })
       });
     } catch (err) {
-      console.error('Railway webhook error:', err);
+      console.error('Lead webhook error:', err);
     }
   }
 
@@ -291,6 +298,8 @@ fbq('track', 'PageView');
     var phone = lf(root, 'm2s-phone').value.trim();
     if (!fname) { lf(root, 'm2s-fname').focus(); return; }
     if (!phone) { lf(root, 'm2s-phone').focus(); return; }
+    if (root._sent) return;
+    root._sent = true;
     // event_id travels with the lead so a server-side (CAPI) copy can be
     // de-duplicated against this browser event when lead capture is wired.
     var eventId = 'lead-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
@@ -303,7 +312,7 @@ fbq('track', 'PageView');
     var digits = phone.replace(/\D/g, ''); if (digits.length === 10) digits = '1' + digits;
     px('init', META_PIXEL_ID, { fn: fname.toLowerCase(), ln: lname.toLowerCase(), ph: digits, zp: zip, st: 'ky', country: 'us' });
     px('track', 'Lead', { content_name: 'Free Triple Pane Glass', home_age: data.home_age }, { eventID: eventId });
-    await sendToRailway(data);
+    await sendLead(data);
     // Show in-page success briefly, then redirect to the thank-you page once one exists.
     lf(root, 'm2s-step2').style.display = 'none';
     lf(root, 'm2s-success').style.display = 'block';
