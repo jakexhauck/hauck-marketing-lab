@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { FakeDb } from "./agentFakeDb";
 import { agentSaveBrief, readBrief, readBriefDrive, saveBriefSection, withBrief } from "./clientBriefs";
 
@@ -144,5 +144,15 @@ describe("withBrief", () => {
     expect(res?.brief.find((s) => s.section === "ads")?.version).toBe(3);
     expect((await withBrief(db.client(), { ...core, tenant: null }))?.brief).toEqual([]);
     expect(await withBrief(db.client(), null)).toBeNull();
+  });
+
+  it("never fails the claim when the brief cannot be read: an empty brief, logged", async () => {
+    const warn = vi.spyOn(console, "error").mockImplementation(() => {});
+    const broken = { from: () => { throw new Error("db down"); } } as never;
+    const core = { message: {} as never, chat: {} as never, history: [], tenant: { id: T1, name: "W", slug: "w", metaAdAccountId: null } };
+    const res = await withBrief(broken, core);
+    expect(res).toMatchObject({ tenant: core.tenant, brief: [] });
+    expect(String(warn.mock.calls[0]?.join(" "))).toMatch(/brief.*db down/);
+    warn.mockRestore();
   });
 });

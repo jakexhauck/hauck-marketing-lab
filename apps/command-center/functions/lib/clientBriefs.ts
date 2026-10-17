@@ -160,5 +160,13 @@ export async function readBriefDrive(client: SupabaseClient, tenantId: string): 
 /** The claim as the runner gets it: the client's whole brief rides along. */
 export async function withBrief(client: SupabaseClient, claim: ClaimCore | null): Promise<ClaimResponse | null> {
   if (!claim) return null;
-  return { ...claim, brief: claim.tenant ? await readBrief(client, claim.tenant.id) : [] };
+  if (!claim.tenant) return { ...claim, brief: [] };
+  // The message is already claimed (running) by now. A brief read that fails
+  // must not throw it away: the agent answers without the brief instead.
+  try {
+    return { ...claim, brief: await readBrief(client, claim.tenant.id) };
+  } catch (err) {
+    console.error(`claim: brief read failed for ${claim.tenant.id}: ${(err as Error).message}`);
+    return { ...claim, brief: [] };
+  }
 }
