@@ -10,9 +10,10 @@
 //   render      draft for a preview, standard for the final
 //
 // The agent never runs any of this. It has no shell; it asks with a ```video
-// block and the runner does the work (src/creative.ts). Everything a step
-// writes goes inside the agent's own work folder, and every source it reads
-// must be inside the client's Drive folder: both are checked here, because the
+// block and the runner does the work (src/creative.ts). Proxies, transcripts
+// and projects go in the runner's state folder (the agent gets copies of what
+// it needs to read), npx runs in an empty runner-owned folder, and every source
+// read must be inside the client's Drive folder: both are checked, because the
 // paths come from model output.
 
 import { spawn } from "node:child_process";
@@ -37,11 +38,24 @@ export type Exec = (cmd: string, args: string[], opts?: { cwd?: string }) => Pro
 // npx is a .cmd on Windows, which Node only spawns through a shell. Every
 // argument here is ours or a path checked by inside(), and shell: true is
 // limited to that one command.
+// npm reads its settings from npm_config_* variables as well as .npmrc files,
+// so an npx call gets none of them: the registry, cache and prefix are npm's
+// own defaults and Jake's user config. The runner secret never goes down.
+export function npxEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {};
+  for (const [k, v] of Object.entries(env)) {
+    if (/^npm_config_/i.test(k) || k === "AGENT_RUNNER_SECRET") continue;
+    out[k] = v;
+  }
+  return out;
+}
+
 export const exec: Exec = (cmd, args, opts = {}) =>
   new Promise((done, fail) => {
     const shell = process.platform === "win32" && cmd === "npx";
     const quoted = shell ? args.map((a) => (/[\s"&|<>^]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a)) : args;
-    const child = spawn(cmd, quoted, { cwd: opts.cwd, windowsHide: true, shell });
+    const env = cmd === "npx" ? npxEnv(process.env) : undefined;
+    const child = spawn(cmd, quoted, { cwd: opts.cwd, env, windowsHide: true, shell });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (d) => (stdout = (stdout + d).slice(-20_000)));
@@ -160,12 +174,14 @@ export async function proxy(x: Exec, src: string, out: string): Promise<void> {
 }
 
 // The CLI always writes transcript.json beside its input, so each clip's audio
-// gets its own folder and the file is moved into place afterwards.
-export async function transcribe(x: Exec, proxyFile: string, wav: string, out: string): Promise<void> {
+// gets its own folder and the file is moved into place afterwards. npx runs in
+// npxCwd: an empty folder the runner owns, since npx reads .npmrc and
+// node_modules from where it runs (see render).
+export async function transcribe(x: Exec, proxyFile: string, wav: string, out: string, npxCwd: string): Promise<void> {
   mkdirSync(dirname(wav), { recursive: true });
   mkdirSync(dirname(out), { recursive: true });
   await run(x, "ffmpeg", audioArgs(proxyFile, wav), "audio");
-  await run(x, "npx", ["--yes", HYPERFRAMES, "transcribe", wav, "--engine", "parakeet", "--json"], "transcribe");
+  await run(x, "npx", ["--yes", HYPERFRAMES, "transcribe", wav, "--engine", "parakeet", "--json"], "transcribe", npxCwd);
   const made = join(dirname(wav), "transcript.json");
   if (!existsSync(made)) throw new Error("transcribe failed: no transcript.json");
   renameSync(made, out);
@@ -216,9 +232,12 @@ export class BuildError extends Error {
   }
 }
 
-export async function render(x: Exec, project: string, mode: RenderMode): Promise<string> {
+// npx picks up an .npmrc or a node_modules/hyperframes from the folder it runs
+// in, so it never runs in the project (or anywhere an agent can write): npxCwd
+// is an empty runner-owned folder and the project goes in as an argument.
+export async function render(x: Exec, project: string, mode: RenderMode, npxCwd: string): Promise<string> {
   const out = join(project, "renders", `${mode}.mp4`);
-  await run(x, "npx", renderArgs(project, mode, out), `${mode} render`, project);
+  await run(x, "npx", renderArgs(project, mode, out), `${mode} render`, npxCwd);
   if (mode === "final") return out;
   const small = join(project, "renders", "preview-small.mp4");
   await run(x, "ffmpeg", shrinkArgs(out, small), "preview shrink");

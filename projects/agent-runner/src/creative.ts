@@ -20,7 +20,7 @@
 // card it made itself (state.finals), never a path from model output, and
 // the app checks the grant again on its side.
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { RunnerApi } from "./api.ts";
 import type { CreativeApi } from "./creativeApi.ts";
@@ -188,11 +188,12 @@ interface Outcome {
   again: boolean;
 }
 
-function readConfig(t: CreativeTurn, rel: string): { file: string; id: string; source: string; title: string } {
+function readConfig(t: CreativeTurn, rel: string): { file: string; text: string; id: string; source: string; title: string } {
   const file = resolve(t.workDir, rel);
   if (!inside(file, t.workDir)) throw new Error(`${rel} is outside your work folder`);
   if (!existsSync(file)) throw new Error(`${rel} does not exist; write it first`);
-  const cfg = JSON.parse(readFileSync(file, "utf8"));
+  const text = readFileSync(file, "utf8");
+  const cfg = JSON.parse(text);
   const id = safeName(cfg?.id);
   const source = safeName(cfg?.source);
   if (!id || !source) throw new Error(`${rel} needs an "id" and a "source" in lowercase-and-dashes`);
@@ -201,7 +202,7 @@ function readConfig(t: CreativeTurn, rel: string): { file: string; id: string; s
   if (fz !== undefined && !(typeof fz === "string" && t.driveDir && inside(resolve(fz), t.driveDir))) {
     throw new Error(`${rel}: freezeFrom must be a clip in the client's Drive folder`);
   }
-  return { file, id, source, title: typeof cfg.title === "string" ? cfg.title : id };
+  return { file, text, id, source, title: typeof cfg.title === "string" ? cfg.title : id };
 }
 
 // Where prepare puts what a build reads: the runner's state folder, which the
@@ -209,14 +210,28 @@ function readConfig(t: CreativeTurn, rel: string): { file: string; id: string; s
 // its work folder to read, and nothing it writes there is ever built from.
 const preparedPaths = (t: CreativeTurn, name: string) => workPaths(join(t.stateDir, "prepared"), name);
 
+// Where npx runs: emptied before every call, in the runner's state folder.
+function npxCwd(t: CreativeTurn): string {
+  const dir = within(t.stateDir, "npx");
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
 async function renderOne(t: CreativeTurn, state: CreativeState, b: { config: string; title?: string }, mode: RenderMode, retried: Set<string>, out: Outcome): Promise<void> {
   const cfg = readConfig(t, b.config);
   const w = preparedPaths(t, cfg.source);
   if (!existsSync(w.proxy) || !existsSync(w.transcript)) throw new Error(`"${cfg.source}" is not prepared; send a prepare block for it first`);
-  const project = within(t.workDir, "videos", cfg.id);
+  // Built and rendered in the runner's own folder, from a copy of the config
+  // it just checked: nothing the agent can write is in the render's way.
+  const project = within(t.stateDir, "videos", cfg.id);
+  rmSync(project, { recursive: true, force: true });
+  const config = within(t.stateDir, "configs", `${cfg.id}.json`);
+  mkdirSync(dirname(config), { recursive: true });
+  writeFileSync(config, cfg.text);
   t.say(`Building ${cfg.id}`);
   try {
-    await buildProject(t.deps.exec, { config: cfg.file, brandFile: brandFile(t), proxy: w.proxy, transcript: w.transcript, out: project });
+    await buildProject(t.deps.exec, { config, brandFile: brandFile(t), proxy: w.proxy, transcript: w.transcript, out: project });
   } catch (e) {
     if (!(e instanceof BuildError) || !e.fixable) throw e;
     // The plan's one automatic retry: the agent fixes its config once.
@@ -230,7 +245,7 @@ async function renderOne(t: CreativeTurn, state: CreativeState, b: { config: str
     return;
   }
   t.say(mode === "final" ? `Rendering the final of ${cfg.id} (a few minutes)` : `Rendering a preview of ${cfg.id}`);
-  const mp4 = await render(t.deps.exec, project, mode);
+  const mp4 = await render(t.deps.exec, project, mode, npxCwd(t));
   t.say(`Uploading ${cfg.id}`);
   const up = await upload(t, mp4, "video/mp4", mode === "preview");
   const title = b.title ?? cfg.title;
@@ -268,7 +283,7 @@ async function prepare(t: CreativeTurn, b: { source: string; name: string }, out
   t.say(`Making a proxy of ${b.name}`);
   await proxy(t.deps.exec, src, r.proxy);
   t.say(`Transcribing ${b.name}`);
-  await transcribe(t.deps.exec, r.proxy, r.wav, r.transcript);
+  await transcribe(t.deps.exec, r.proxy, r.wav, r.transcript, npxCwd(t));
   const words = JSON.parse(readFileSync(r.transcript, "utf8")) as Word[];
   mkdirSync(dirname(w.transcript), { recursive: true });
   copyFileSync(r.transcript, w.transcript);

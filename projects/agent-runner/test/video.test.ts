@@ -9,6 +9,7 @@ import {
   frameTimes,
   HYPERFRAMES,
   inside,
+  npxEnv,
   proxyArgs,
   render,
   renderArgs,
@@ -131,11 +132,32 @@ describe("buildProject", () => {
 describe("render", () => {
   it("shrinks a preview after the draft render, and returns the final as is", async () => {
     const { x, calls } = fakeExec();
-    expect(await render(x, "proj", "preview")).toBe(join("proj", "renders", "preview-small.mp4"));
+    expect(await render(x, "proj", "preview", "empty")).toBe(join("proj", "renders", "preview-small.mp4"));
     expect(calls.map((c) => c.cmd)).toEqual(["npx", "ffmpeg"]);
     const f = fakeExec();
-    expect(await render(f.x, "proj", "final")).toBe(join("proj", "renders", "final.mp4"));
+    expect(await render(f.x, "proj", "final", "empty")).toBe(join("proj", "renders", "final.mp4"));
     expect(f.calls.map((c) => c.cmd)).toEqual(["npx"]);
+  });
+
+  it("runs npx in the folder it is given, with the project as an argument", async () => {
+    const { x, calls } = fakeExec();
+    await render(x, "proj", "final", "empty");
+    expect(calls[0].cwd).toBe("empty");
+    expect(calls[0].args).toContain("proj");
+  });
+});
+
+describe("npxEnv", () => {
+  it("drops every npm setting from the environment, and the runner secret", () => {
+    const env = npxEnv({
+      PATH: "p",
+      npm_config_registry: "https://evil",
+      NPM_CONFIG_PREFIX: "C:/evil",
+      npm_config_userconfig: "C:/evil/.npmrc",
+      NPM_CONFIG_CACHE: "C:/evil/cache",
+      AGENT_RUNNER_SECRET: "s",
+    });
+    expect(env).toEqual({ PATH: "p" });
   });
 });
 
@@ -151,7 +173,7 @@ describe("transcribe", () => {
       }
       return {};
     });
-    await transcribe(x, "p.mp4", wav, out);
+    await transcribe(x, "p.mp4", wav, out, "empty");
     expect(calls[1].args).toEqual(["--yes", HYPERFRAMES, "transcribe", wav, "--engine", "parakeet", "--json"]);
     const { existsSync } = await import("node:fs");
     expect(existsSync(out)).toBe(true);

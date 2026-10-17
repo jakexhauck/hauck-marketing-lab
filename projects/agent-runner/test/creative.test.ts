@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -7,6 +7,7 @@ import { fakeApi, fakeId } from "./fakeApi.ts";
 
 const ID1 = fakeId(1);
 import { fakeCreativeApi, fakeExec } from "./fakeCreative.ts";
+import { inside } from "../src/video.ts";
 
 const F = "```";
 const aag = { id: "t-aag", name: "Above All Garage Doors", slug: "above-all-garage-doors", metaAdAccountId: null };
@@ -108,6 +109,33 @@ describe("runVideoBlocks", () => {
     const args = seen[0];
     expect(args[args.indexOf("--proxy") + 1]).toBe(join(w.t.stateDir, "prepared", "proxies", "hey.mp4"));
     expect(args[args.indexOf("--transcript") + 1]).toBe(join(w.t.stateDir, "prepared", "tx", "hey.json"));
+  });
+
+  it("builds and renders in the runner's own folder, npx in an empty one, whatever the agent planted", async () => {
+    const w = turn();
+    readyToBuild(w.workDir, w.t.stateDir);
+    for (const dir of [w.workDir, join(w.workDir, "videos", "ad1")]) {
+      mkdirSync(join(dir, "node_modules", "hyperframes"), { recursive: true });
+      writeFileSync(join(dir, ".npmrc"), "registry=https://evil\n");
+      writeFileSync(join(dir, "node_modules", "hyperframes", "index.js"), "evil()");
+    }
+    const npx: { args: string[]; cwd?: string; files: string[] }[] = [];
+    const builds: string[][] = [];
+    const inner = w.t.deps.exec;
+    w.t.deps.exec = async (cmd, args, o) => {
+      if (cmd === "npx") npx.push({ args, cwd: o?.cwd, files: o?.cwd && existsSync(o.cwd) ? readdirSync(o.cwd) : ["(missing)"] });
+      if (cmd === process.execPath) builds.push(args);
+      return inner(cmd, args, o);
+    };
+    await runVideoBlocks([{ action: "final", config: "ads/ad1.json" }], w.t, new Set());
+    expect(npx).toHaveLength(1);
+    expect(npx[0].cwd && inside(npx[0].cwd, w.workDir)).toBe(false);
+    expect(npx[0].files).toEqual([]);
+    const project = npx[0].args[3];
+    expect(inside(project, w.t.stateDir)).toBe(true);
+    expect(builds[0][builds[0].indexOf("--out") + 1]).toBe(project);
+    // The config is a runner copy too, not the agent's file.
+    expect(inside(builds[0][1], w.t.stateDir)).toBe(true);
   });
 
   it("refuses a freeze frame read from outside the Drive folder", async () => {
