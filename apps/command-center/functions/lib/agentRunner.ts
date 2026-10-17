@@ -42,9 +42,11 @@ import type {
 // read each client's numbers for a startup check, READ Meta insights, and run
 // the GHL Agent's allowlisted ops (writes only on Jake's ask or Approve,
 // checked in lib/agentGhlOps.ts), and rewrite the claimed agent's OWN Client
-// Brief section at the version it read (lib/clientBriefs.ts). Meta writes are not reachable from
-// here by construction: api/agent-runner/meta.ts imports only the Graph GET
-// helpers, and a test scans that file to keep it that way.
+// Brief section at the version it read (lib/clientBriefs.ts), and make the
+// Ads Agent's allowlisted Ads Manager changes (meta-ops), each only under an
+// approved card with that exact change on it (lib/agentMetaOps.ts). The
+// insights reads stay write-free by construction: api/agent-runner/meta.ts
+// imports only the Graph GET helpers, and a test scans that file to keep it so.
 
 const BASE = "/api/agent-runner/";
 
@@ -59,6 +61,9 @@ export const AGENT_RUNNER_POST_PATHS: readonly string[] = [
   "file-asset",
   // The GHL Agent's ops. Writes are gated inside (lib/agentGhlOps.ts).
   "ghl",
+  // The Ads Agent's Ads Manager changes, only on an approved card
+  // (lib/agentMetaOps.ts).
+  "meta-ops",
   // Creative Agent (Phase 3): each checks the claimed message itself.
   "upload-url",
   "read-url",
@@ -122,7 +127,7 @@ const strings = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 const str = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
 
-const GRANT_KINDS = ["deploy", "spend", "ghl", "file"];
+const GRANT_KINDS = ["deploy", "spend", "ghl", "file", "meta"];
 
 function grantOf(v: unknown): Grant | null {
   if (!v || typeof v !== "object") return null;

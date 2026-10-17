@@ -207,7 +207,7 @@ export function chatSummaryFromRow(r: Row, lastLine = ""): ChatSummary {
   };
 }
 
-const GRANT_KINDS: GrantKind[] = ["deploy", "spend", "ghl", "file"];
+const GRANT_KINDS: GrantKind[] = ["deploy", "spend", "ghl", "file", "meta"];
 
 /**
  * The grant a card asks for, read from its payload (the runner puts it there

@@ -148,10 +148,11 @@ export default function ItemCard({
       {p.quote && <div className="ag-quote">{p.quote}</div>}
       {p.changes.length > 0 && (
         <div className="ag-list">
-          {p.changes.map((t, i) => (
-            <div key={i}>
+          {p.changes.map((c, i) => (
+            <div key={i} style={{ whiteSpace: "pre-wrap" }}>
               <ArrowRight />
-              {t}
+              {c.text}
+              {c.bold && <strong>{c.bold}</strong>}
             </div>
           ))}
         </div>

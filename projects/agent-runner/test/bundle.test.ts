@@ -45,7 +45,8 @@ function world() {
   const workRoot = join(root, "work");
   const metaScript = join(root, "runner", "bin", "meta.mjs").split("\\").join("/");
   const ghlScript = join(root, "runner", "bin", "ghl.mjs").split("\\").join("/");
-  return { vaultDir, agentsDir, outDir, driveRoot, workRoot, metaScript, ghlScript };
+  const metaOpsScript = join(root, "runner", "bin", "metaops.mjs").split("\\").join("/");
+  return { vaultDir, agentsDir, outDir, driveRoot, workRoot, metaScript, ghlScript, metaOpsScript };
 }
 
 const metaTool = (env: { metaScript: string }) => `Bash(node ${env.metaScript}:*)`;
@@ -73,6 +74,26 @@ describe("buildBundle", () => {
     }
     expect(buildBundle("ghl", null, env).allowedTools).not.toContain(ghlTool);
     expect(readFileSync(buildBundle("ghl", willis, env).systemPromptFile, "utf8")).toContain(`node ${env.ghlScript} <op>`);
+  });
+
+  it("gives the metaops script to the Ads Agent at a client and nobody else", () => {
+    const env = world();
+    const tool = `Bash(node ${env.metaOpsScript}:*)`;
+    expect(buildBundle("ads", willis, env).allowedTools).toContain(tool);
+    for (const id of ["manager", "research", "creative", "landing", "ghl", "reporting"] as const) {
+      expect(buildBundle(id, willis, env).allowedTools.some((t) => t.includes("metaops.mjs")), id).toBe(false);
+    }
+    expect(buildBundle("ads", null, env).allowedTools).not.toContain(tool);
+    expect(readFileSync(buildBundle("ads", willis, env).systemPromptFile, "utf8")).toContain(`node ${env.metaOpsScript} <op>`);
+  });
+
+  it("gives the Ads Agent the same tools with or without a meta grant, and tells it what was approved", () => {
+    const env = world();
+    const grant = { itemId: "i9", kind: "meta" as const, limit: null };
+    expect(buildBundle("ads", willis, env, grant).allowedTools).toEqual(buildBundle("ads", willis, env, null).allowedTools);
+    expect(buildBundle("ads", willis, env, grant).allowedTools).not.toContain("Bash");
+    expect(readFileSync(buildBundle("ads", willis, env, grant).systemPromptFile, "utf8")).toContain("Jake approved card i9");
+    expect(readFileSync(buildBundle("ads", willis, env, null).systemPromptFile, "utf8")).not.toContain("Jake approved card");
   });
 
   it("gives the GHL Agent the same tools with or without a grant", () => {

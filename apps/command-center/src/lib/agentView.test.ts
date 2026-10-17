@@ -171,7 +171,7 @@ describe("itemPayload", () => {
         "junk",
       ],
     });
-    expect(v.changes).toEqual([
+    expect(v.changes.map((c) => c.text)).toEqual([
       'Set custom value "Winter Page" to "https://x.pages.dev"',
       'Create custom field "Winter Offer" (TEXT)',
       'Tag contact c1 with "winter-offer"',
@@ -179,6 +179,64 @@ describe("itemPayload", () => {
       'write.somethingNew {"a":1}',
     ]);
     expect(itemPayload({}).changes).toEqual([]);
+  });
+
+  it("spells out an Ads card's Meta changes, budgets in dollars", () => {
+    const v = itemPayload({
+      ops: [
+        { op: "pause", args: { level: "ad", id: "120210000000001", name: "Winter 2", adsetName: "Willis Winter", campaignName: "Fall" } },
+        { op: "resume", args: { level: "adset", id: "120210000000002", name: "Willis Winter", campaignName: "Fall" } },
+        { op: "dailyBudget", args: { level: "campaign", id: "120210000000003", name: "Fall", from: 4000, to: 5000 } },
+      ],
+    });
+    expect(v.changes.every((c) => c.bold === undefined)).toBe(true);
+    expect(v.changes.map((c) => c.text)).toEqual([
+      'Pause ad "Winter 2" (id ending 000001) in ad set "Willis Winter" (campaign "Fall")',
+      'Resume ad set "Willis Winter" (id ending 000002) (campaign "Fall")',
+      'Campaign "Fall" (id ending 000003) daily budget $40.00 to $50.00',
+    ]);
+  });
+
+  it("writes a budget in the account's own currency", () => {
+    const v = itemPayload({
+      ops: [
+        { op: "dailyBudget", args: { level: "campaign", id: "120210000000003", name: "Fall", from: 4000, to: 5000, currency: "EUR" } },
+        { op: "dailyBudget", args: { level: "campaign", id: "120210000000004", name: "Tokyo", from: 4000, to: 5000, currency: "JPY" } },
+      ],
+    });
+    expect(v.changes.map((c) => c.text)).toEqual([
+      'Campaign "Fall" (id ending 000003) daily budget 40.00 EUR to 50.00 EUR',
+      'Campaign "Tokyo" (id ending 000004) daily budget 4000 JPY to 5000 JPY',
+    ]);
+  });
+
+  it("shows a new ad's copy, button, destination and status, the status in bold", () => {
+    const v = itemPayload({
+      ops: [
+        {
+          op: "createAd",
+          args: {
+            adsetId: "120210000000009", adsetName: "Willis Winter", campaignName: "Fall", fileId: "f", fileName: "winter-3.jpg",
+            name: "Winter 3", message: "Line one.\nLine two.", headline: "Free quote", description: "This week only",
+            cta: "SIGN_UP", link: "http://fb.me/", leadFormId: "1234567890",
+          },
+        },
+      ],
+    });
+    expect(v.changes).toEqual([
+      { text: 'Create ad "Winter 3" in ad set "Willis Winter" (id ending 000009) (campaign "Fall") from Creatives file "winter-3.jpg"' },
+      { text: "Primary text: Line one.\nLine two." },
+      { text: "Headline: Free quote" },
+      { text: "Description: This week only" },
+      { text: "Button: SIGN_UP" },
+      { text: "Link: http://fb.me/" },
+      { text: "Lead form: 1234567890" },
+      { text: "Status: ", bold: "PAUSED" },
+    ]);
+    const bare = itemPayload({ ops: [{ op: "createAd", args: { name: "W", adsetName: "A", campaignName: "C", videoId: "777", videoName: "v 4:5.mp4", message: "m", cta: "LEARN_MORE", link: "https://x.example", status: "ACTIVE" } }] });
+    expect(bare.changes.map((c) => c.text)).toContain("Headline: none");
+    expect(bare.changes.map((c) => c.text)).toContain("Description: none");
+    expect(bare.changes[bare.changes.length - 1]).toEqual({ text: "Status: ", bold: "ACTIVE" });
   });
 
   it("reads a spend card's credits and what it makes", () => {
