@@ -38,10 +38,10 @@ export const agentApi = {
       body: JSON.stringify({ body }),
     }),
   items: (tenant: TenantKey, agent?: AgentId) => api<{ items: AgentItem[] }>(`${BASE}/items?${qs({ tenant, agent })}`),
-  actOnItem: (id: string, action: ItemAction, note?: string) =>
+  actOnItem: (id: string, action: ItemAction, note?: string, payloadHash?: string) =>
     api<unknown>(`${BASE}/items/${encodeURIComponent(id)}`, {
       method: "PATCH",
-      body: JSON.stringify({ action, note }),
+      body: JSON.stringify({ action, note, payloadHash }),
     }),
   lessons: (tenant: TenantKey, agent: AgentId, scope: BrainScope) =>
     api<{ lessons: AgentLesson[]; pendingEditIds: string[] }>(`${BASE}/lessons?${qs({ tenant, agent, scope })}`),
@@ -134,8 +134,8 @@ export function useClientsItems(tenantIds: string[]) {
 export function useItemAction(tenant: TenantKey) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, action, note }: { id: string; action: ItemAction; note?: string }) =>
-      agentApi.actOnItem(id, action, note),
+    mutationFn: ({ id, action, note, payloadHash }: { id: string; action: ItemAction; note?: string; payloadHash?: string }) =>
+      agentApi.actOnItem(id, action, note, payloadHash),
     // A 409 means another click already moved it: refetching shows the truth
     // either way, and the follow-up message lands in the chat.
     onSettled: () => {

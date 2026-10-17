@@ -54,6 +54,8 @@ export interface AgentItem {
   // ({ label, state: "done" | "now" | "todo" }[]), stats ({ label, value }[]),
   // quote (string), plan (string[]), previewUrl (string), thumbs (string[]).
   payload: Record<string, unknown>;
+  // See agentWire.ts: the hash an Approve must match.
+  payloadHash?: string;
   approvedAt: string | null;
   updatedAt: string;
 }

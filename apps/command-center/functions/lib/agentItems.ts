@@ -68,6 +68,22 @@ function fail(what: string, error: { message: string } | null): void {
 
 const ITEM_STATUSES: ItemStatus[] = ["building", "needs_ok", "live", "done", "declined"];
 
+// Keys sorted at every level, so the same payload always hashes the same.
+function stable(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(stable);
+  if (v && typeof v === "object") {
+    return Object.fromEntries(Object.keys(v as Row).sort().map((k) => [k, stable((v as Row)[k])]));
+  }
+  return v;
+}
+
+/** SHA-256 hex of a card's payload: what Approve says Jake looked at. */
+export async function payloadHash(payload: Record<string, unknown>): Promise<string> {
+  const bytes = new TextEncoder().encode(JSON.stringify(stable(payload)));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export function itemFromRow(r: Row): AgentItem {
   const from = typeof r.from_agent === "string" ? r.from_agent : null;
   return {
@@ -337,7 +353,8 @@ export async function listItems(
   if (agent) q = q.eq("agent", agent);
   const { data, error } = await q.order("updated_at", { ascending: false }).limit(500);
   fail("items", error);
-  return ((data ?? []) as Row[]).map(itemFromRow);
+  const items = ((data ?? []) as Row[]).map(itemFromRow);
+  return Promise.all(items.map(async (i) => ({ ...i, payloadHash: await payloadHash(i.payload) })));
 }
 
 export type ItemAction = "approve" | "decline" | "change";
@@ -380,22 +397,26 @@ export async function decideItem(
   action: ItemAction,
   note?: string,
   now: Date = new Date(),
-): Promise<{ item: AgentItem } | { error: 404 | 409 }> {
+  shownHash: string | null = null,
+): Promise<{ item: AgentItem } | { error: 404 | 409; changed?: true }> {
   const { data: row, error } = await client.from("agent_items").select("*").eq("id", itemId).maybeSingle();
   fail("item", error);
   if (!row) return { error: 404 };
   const item = itemFromRow(row as Row);
   const t = transitionItem(item, action, note);
   if ("error" in t) return t;
+  // Approve is for the payload Jake was shown. A rewrite since (a redraft,
+  // new GHL ops) changes the hash, and he has to look again.
+  if (action === "approve" && shownHash !== (await payloadHash(item.payload))) return { error: 409, changed: true };
 
   const patch: Row = { status: t.next };
   if (action === "approve") patch.approved_at = now.toISOString();
-  const { data: moved, error: uErr } = await client
-    .from("agent_items")
-    .update(patch)
-    .eq("id", itemId)
-    .eq("status", item.status)
-    .select("*");
+  let q = client.from("agent_items").update(patch).eq("id", itemId).eq("status", item.status);
+  // And no rewrite between that read and this write: the trigger stamps
+  // updated_at on every update, so a rewrite in between matches no row.
+  const stamp = (row as Row).updated_at;
+  if (typeof stamp === "string") q = q.eq("updated_at", stamp);
+  const { data: moved, error: uErr } = await q.select("*");
   fail("item move", uErr);
   const after = ((moved ?? []) as Row[])[0];
   if (!after) return { error: 409 };

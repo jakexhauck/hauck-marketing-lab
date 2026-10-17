@@ -11,7 +11,13 @@ import {
   runnerStatus,
   brainLessons,
   queueLessonEdit,
+  payloadHash,
+  listItems,
 } from "./agentItems";
+
+// What the page sends with an Approve: the hash of the payload it drew.
+const shown = (db: FakeDb, id = "i1") =>
+  payloadHash((db.rows("agent_items").find((r) => r.id === id)?.payload ?? {}) as Record<string, unknown>);
 
 const EM = String.fromCharCode(0x2014);
 
@@ -232,7 +238,7 @@ describe("decideItem", () => {
 
   it("approve moves the card and queues one follow-up", async () => {
     const db = setup();
-    const res = await decideItem(db.client(), "i1", "approve", undefined, new Date("2026-10-17T12:00:00.000Z"));
+    const res = await decideItem(db.client(), "i1", "approve", undefined, new Date("2026-10-17T12:00:00.000Z"), await shown(db));
     expect("item" in res && res.item.status).toBe("done");
     expect(db.rows("agent_items")[0].approved_at).toBe("2026-10-17T12:00:00.000Z");
     const queued = db.rows("agent_messages").filter((r) => r.status === "queued");
@@ -252,7 +258,7 @@ describe("decideItem", () => {
 
   it("approve carries the card's grant onto the follow-up", async () => {
     const db = withGrant({ kind: "spend", limit: 12 });
-    await decideItem(db.client(), "i1", "approve");
+    await decideItem(db.client(), "i1", "approve", undefined, undefined, await shown(db));
     const follow = db.rows("agent_messages").find((r) => r.status === "queued");
     expect(follow?.meta).toEqual({ followUpOf: "i1", grant: { itemId: "i1", kind: "spend", limit: 12 } });
   });
@@ -268,36 +274,74 @@ describe("decideItem", () => {
 
   it("ignores a grant of an unknown kind and drops a bad limit", async () => {
     const db = withGrant({ kind: "everything", limit: 5 });
-    await decideItem(db.client(), "i1", "approve");
+    await decideItem(db.client(), "i1", "approve", undefined, undefined, await shown(db));
     expect(db.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1" });
     // A spend with no usable number was never a price Jake saw: no grant.
     for (const limit of ["lots", null, 0, -5, 2.5]) {
       const db2 = withGrant({ kind: "spend", limit });
-      await decideItem(db2.client(), "i1", "approve");
+      await decideItem(db2.client(), "i1", "approve", undefined, undefined, await shown(db2));
       expect(db2.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1" });
     }
     // Other kinds carry no limit and still grant.
     const db3 = withGrant({ kind: "ghl" });
-    await decideItem(db3.client(), "i1", "approve");
+    await decideItem(db3.client(), "i1", "approve", undefined, undefined, await shown(db3));
     expect(db3.rows("agent_messages")[0].meta).toEqual({ followUpOf: "i1", grant: { itemId: "i1", kind: "ghl", limit: null } });
   });
 
   it("grants deploy and file only on a card the runner made", async () => {
     for (const kind of ["deploy", "file"]) {
       const own = withGrant({ kind }, { runnerOwned: true });
-      await decideItem(own.client(), "i1", "approve");
+      await decideItem(own.client(), "i1", "approve", undefined, undefined, await shown(own));
       expect(own.rows("agent_messages")[0].meta, kind).toEqual({ followUpOf: "i1", grant: { itemId: "i1", kind, limit: null } });
       const forged = withGrant({ kind });
-      await decideItem(forged.client(), "i1", "approve");
+      await decideItem(forged.client(), "i1", "approve", undefined, undefined, await shown(forged));
       expect(forged.rows("agent_messages")[0].meta, kind).toEqual({ followUpOf: "i1" });
     }
   });
 
   it("a double approve answers 409 and queues nothing more", async () => {
     const db = setup();
-    await decideItem(db.client(), "i1", "approve");
-    expect(await decideItem(db.client(), "i1", "approve")).toEqual({ error: 409 });
+    await decideItem(db.client(), "i1", "approve", undefined, undefined, await shown(db));
+    expect(await decideItem(db.client(), "i1", "approve", undefined, undefined, await shown(db))).toEqual({ error: 409 });
     expect(db.rows("agent_messages")).toHaveLength(1);
+  });
+
+  it("lists each card with the hash of its payload", async () => {
+    const db = setup();
+    const [item] = await listItems(db.client(), T1, null);
+    expect(item.payloadHash).toBe(await payloadHash({}));
+    expect(await payloadHash({ a: 1, b: { c: 2, d: 3 } })).toBe(await payloadHash({ b: { d: 3, c: 2 }, a: 1 }));
+    expect(await payloadHash({ a: 1 })).not.toBe(await payloadHash({ a: 2 }));
+  });
+
+  // A card can be rewritten while it waits (a landing redraft, new GHL ops).
+  // Approve is for what Jake saw, so a rewrite in between is a 409.
+  it("refuses an Approve of a card rewritten after Jake saw it", async () => {
+    const ghl = { grant: { kind: "ghl" }, ops: [{ op: "write.customValue", args: { key: "Winter Page", value: "https://a" } }] };
+    const landing = { site: "winter", previewUrl: "https://d-1.hm-a.pages.dev", grant: { kind: "deploy" }, runnerOwned: true };
+    for (const [agent, before, after, origin] of [
+      ["ghl", ghl, { ...ghl, ops: [{ op: "write.customValue", args: { key: "Winter Page", value: "https://evil" } }] }, "agent"],
+      ["landing", landing, { ...landing, previewUrl: "https://d-2.hm-a.pages.dev" }, "runner"],
+    ] as const) {
+      const db = new FakeDb()
+        .seed("agent_chats", [chat("c1", T1, agent)])
+        .seed("agent_items", [{ id: "i1", tenant_id: T1, agent, chat_id: "c1", kind: "k", title: "Card", status: "needs_ok", payload: before, approved_at: null }]);
+      const seen = await shown(db);
+      await upsertItem(db.client(), { id: "i1", tenantId: T1, agent, chatId: "c1", kind: "k", title: "Card", status: "needs_ok", payload: after, origin });
+      expect(await decideItem(db.client(), "i1", "approve", undefined, undefined, seen), agent).toEqual({ error: 409, changed: true });
+      expect(db.rows("agent_items")[0].status).toBe("needs_ok");
+      expect(db.rows("agent_messages")).toEqual([]);
+      // Looked at again, it goes through.
+      const res = await decideItem(db.client(), "i1", "approve", undefined, undefined, await shown(db));
+      expect("item" in res && res.item.status, agent).toBe("done");
+    }
+  });
+
+  it("refuses an Approve that names no payload", async () => {
+    const db = setup();
+    expect(await decideItem(db.client(), "i1", "approve")).toEqual({ error: 409, changed: true });
+    // Decline and Change it act on no payload, so they need none.
+    expect("item" in (await decideItem(db.client(), "i1", "decline"))).toBe(true);
   });
 
   it("404 for an unknown item", async () => {

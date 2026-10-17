@@ -68,6 +68,9 @@ export interface AgentItem {
   // ({ label, state: "done" | "now" | "todo" }[]), stats ({ label, value }[]),
   // quote (string), plan (string[]), previewUrl (string), thumbs (string[]).
   payload: Record<string, unknown>;
+  // SHA-256 of the payload as listed. The page sends it back with Approve,
+  // and a card rewritten since is refused (agentItems.decideItem).
+  payloadHash?: string;
   approvedAt: string | null;
   updatedAt: string;
 }

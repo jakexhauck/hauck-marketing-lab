@@ -3,7 +3,8 @@ import { getServiceClient } from "../../../../lib/supabase";
 import { logAdminAction } from "../../../../lib/adminAuth";
 import { decideItem, isUuid, type ItemAction } from "../../../../lib/agentItems";
 
-// PATCH /api/admin/agents/items/:itemId  body { action: "approve" | "decline" | "change", note? }
+// PATCH /api/admin/agents/items/:itemId  body { action: "approve" | "decline" | "change", note?, payloadHash? }
+//   payloadHash: the hash the card was listed with; Approve needs it to match.
 //   -> { item: AgentItem }
 //
 // Jake's Approve / Change it / Decline on a card. The rules are
@@ -17,7 +18,7 @@ export const onRequestPatch: PagesFunction<Env, "itemId", ApiData> = async (ctx)
   if (admin?.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
   const itemId = ctx.params.itemId as string;
   if (!isUuid(itemId)) return Response.json({ error: "item not found" }, { status: 404 });
-  let body: { action?: string; note?: unknown };
+  let body: { action?: string; note?: unknown; payloadHash?: unknown };
   try {
     body = await ctx.request.json();
   } catch {
@@ -30,9 +31,11 @@ export const onRequestPatch: PagesFunction<Env, "itemId", ApiData> = async (ctx)
 
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
-  const res = await decideItem(client, itemId, action, note);
+  const shown = typeof body.payloadHash === "string" ? body.payloadHash : null;
+  const res = await decideItem(client, itemId, action, note, new Date(), shown);
   if ("error" in res) {
-    return Response.json({ error: res.error === 404 ? "item not found" : "already decided" }, { status: res.error });
+    const error = res.error === 404 ? "item not found" : "changed" in res ? "card changed, look again" : "already decided";
+    return Response.json({ error }, { status: res.error });
   }
   await logAdminAction(client, admin.id, `agent_item.${action}`, res.item.tenantId, { itemId });
   return Response.json(res);

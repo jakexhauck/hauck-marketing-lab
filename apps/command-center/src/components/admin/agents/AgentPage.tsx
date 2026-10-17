@@ -99,7 +99,10 @@ function AgentView({ tenantId, agent }: { tenantId: string | null; agent: AgentI
   const lessons = useAgentLessons(tk, agent, scope);
   const lessonList = useMemo(() => lessons.data?.lessons ?? [], [lessons.data]);
 
-  const onAction = (itemId: string, action: ItemAction, note?: string) => act.mutate({ id: itemId, action, note });
+  // The hash of the payload this page drew goes with the click: a card the
+  // agent rewrote since is refused (409) and the refetch shows the new one.
+  const onAction = (itemId: string, action: ItemAction, note?: string) =>
+    act.mutate({ id: itemId, action, note, payloadHash: allItems.find((i) => i.id === itemId)?.payloadHash });
 
   const building =
     tenantId === null ? (
