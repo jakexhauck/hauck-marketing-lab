@@ -137,7 +137,7 @@ function changeLine(op: string, a: Record<string, unknown>): string {
     case "dailyBudget":
       return `${a.name} ${level} daily budget ${dollars(a.from)} to ${dollars(a.to)}`;
     case "createAd":
-      return `Create ad "${a.name}" in ad set "${a.adsetName}" from Creatives file "${a.fileName}", ${a.status === "ACTIVE" ? "active" : "paused"}`;
+      return `Create ad "${a.name}" in ad set "${a.adsetName}" from ${a.videoId ? `Meta library video "${a.videoName}"` : `Creatives file "${a.fileName}"`}, ${a.status === "ACTIVE" ? "active" : "paused"}`;
     case "write.customValue":
       return `Set custom value "${a.key}" to "${a.value}"`;
     case "write.customField":

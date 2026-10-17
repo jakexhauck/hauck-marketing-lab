@@ -5,7 +5,7 @@ import { logAdminAction } from "./adminAuth";
 import { isUuid } from "./agentItems";
 import { messageFromRow } from "./agentRunner";
 import { GRAPH, graphGet, graphGetAll } from "./metaGraph";
-import { finishAdVideo, normalizeAccount, startAdVideo, transferAdVideo, uploadAdImage } from "./metaUpload";
+import { normalizeAccount, uploadAdImage } from "./metaUpload";
 
 // What the Ads Agent can change in a client's Meta ad account, and when
 // (docs/build-plans/agents.md, Phase 7: "controls plus").
@@ -38,7 +38,7 @@ import { finishAdVideo, normalizeAccount, startAdVideo, transferAdVideo, uploadA
 
 type Row = Record<string, unknown>;
 
-export type MetaOpName = "read.structure" | "read.creatives" | "pause" | "resume" | "dailyBudget" | "createAd";
+export type MetaOpName = "read.structure" | "read.creatives" | "read.library" | "pause" | "resume" | "dailyBudget" | "createAd";
 
 /** Jake's guard on one budget change (his call: constants, the card can be split). */
 export const BUDGET_MAX_FACTOR = 3;
@@ -60,7 +60,6 @@ export interface MetaCallDeps {
   token(): Promise<string | null>;
   /** A Creatives file's bytes from the ad-creatives bucket. */
   download(path: string): Promise<Blob>;
-  sleep?(ms: number): Promise<void>;
 }
 
 interface Ctx {
@@ -179,16 +178,27 @@ export function budgetGuard(from: number, to: number): string | null {
   return null;
 }
 
+// A new ad's picture or film. An image is a Creatives file, uploaded to the
+// account in one call. A video must already be in the client's Meta ad
+// account library (sent there from Creatives): a film never passes through
+// the Worker.
+type AdSource = { kind: "file"; fileId: string; fileName: string } | { kind: "video"; videoId: string; videoName: string };
+
 interface CreateAdArgs {
   adsetId: string;
   adsetName: string;
-  fileId: string;
-  fileName: string;
+  fileId?: string;
+  fileName?: string;
+  videoId?: string;
+  videoName?: string;
   name: string;
   message: string;
   headline: string | null;
   status: "PAUSED" | "ACTIVE";
 }
+
+const sourceOf = (a: CreateAdArgs): AdSource =>
+  a.videoId ? { kind: "video", videoId: a.videoId, videoName: a.videoName! } : { kind: "file", fileId: a.fileId!, fileName: a.fileName! };
 
 interface Destination {
   ctaType: string;
@@ -217,55 +227,26 @@ function destinationOf(spec: Row | undefined): Destination | null {
   return { ctaType, link, leadFormId, pageId, instagramUserId: typeof ig === "string" ? ig : null };
 }
 
-interface FileRow {
-  id: string;
-  path: string;
-  name: string;
-  kind: "image" | "video";
-  mime: string;
-}
+type Media = { kind: "image"; path: string; name: string } | { kind: "video"; videoId: string; name: string };
 
 interface CreateChecked {
-  file: FileRow;
+  media: Media;
   dest: Destination;
 }
 
-const VIDEO_POLLS = 10;
-const VIDEO_POLL_MS = 4000;
-const MAX_CHUNKS = 200;
+const NOT_IN_LIBRARY =
+  "that video is not ready in the client's Meta ad account library; send it to Meta from Creatives first, then read.library and card it again";
 
-// The upload's title at Meta, so a second try in the same turn finds the
-// video it already sent instead of sending it again.
-const videoTitle = (f: FileRow) => `${f.name} [hm ${f.id.slice(0, 8)}]`;
-
-async function uploadVideo(ctx: Ctx, f: FileRow): Promise<string> {
-  const title = videoTitle(f);
-  const have = await graphGetAll(ctx.token, `/${ctx.account}/advideos`, { fields: "id,title", limit: "200" });
-  const found = have.find((v) => v.title === title && typeof v.id === "string");
-  if (found) return String(found.id);
-  const blob = await ctx.deps.download(f.path);
-  const s = await startAdVideo(ctx.token, ctx.account, blob.size);
-  let { start, end } = s;
-  for (let i = 0; start < end; i++) {
-    if (i >= MAX_CHUNKS) throw new Error("Meta asked for too many pieces");
-    ({ start, end } = await transferAdVideo(ctx.token, ctx.account, s.sessionId, start, blob.slice(start, end)));
-  }
-  await finishAdVideo(ctx.token, ctx.account, s.sessionId, title);
-  return s.videoId;
+// One page of the account's videos, newest first. Bounded on purpose: the
+// video for a new ad is one Jake just sent from Creatives.
+async function libraryVideos(ctx: Ctx): Promise<{ id: string; name: string; ready: boolean }[]> {
+  const r = await graphGet(ctx.token, `/${ctx.account}/advideos`, { fields: "id,title,status", limit: "200" });
+  return ((r.data as Row[]) ?? [])
+    .filter((v) => typeof v.id === "string")
+    .map((v) => ({ id: String(v.id), name: String(v.title ?? ""), ready: ((v.status ?? {}) as Row).video_status === "ready" }));
 }
 
-async function readyThumbnail(ctx: Ctx, videoId: string): Promise<string> {
-  const sleep = ctx.deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
-  for (let i = 0; ; i++) {
-    const v = await graphGet(ctx.token, `/${videoId}`, { fields: "status" });
-    const st = ((v.status ?? {}) as Row).video_status;
-    if (st === "ready") break;
-    if (st === "error") throw new Error("Meta could not process the video");
-    if (i + 1 >= VIDEO_POLLS) {
-      throw new MetaOpRefused(409, "the video is uploaded but Meta is still processing it; run createAd again in a minute (it will not upload twice)");
-    }
-    await sleep(VIDEO_POLL_MS);
-  }
+async function thumbnailOf(ctx: Ctx, videoId: string): Promise<string> {
   const t = await graphGet(ctx.token, `/${videoId}/thumbnails`, { fields: "uri,is_preferred" });
   const thumbs = ((t.data as Row[]) ?? []).filter((x) => typeof x.uri === "string");
   const pick = thumbs.find((x) => x.is_preferred === true) ?? thumbs[0];
@@ -273,17 +254,53 @@ async function readyThumbnail(ctx: Ctx, videoId: string): Promise<string> {
   return String(pick.uri);
 }
 
+async function mediaFor(ctx: Ctx, src: AdSource): Promise<Media> {
+  if (src.kind === "video") {
+    const v = (await libraryVideos(ctx)).find((x) => x.id === src.videoId);
+    if (!v || !v.ready) throw new MetaOpRefused(409, NOT_IN_LIBRARY);
+    if (!sameName(v.name, src.videoName)) throw new MetaOpRefused(409, `that library video is called "${v.name}", not "${src.videoName}"`);
+    return { kind: "video", videoId: v.id, name: v.name };
+  }
+  // The Creatives file: this client's own, under the card's name, an image.
+  const { data: fRow, error } = await ctx.client
+    .from("ad_creative_files")
+    .select("id, tenant_id, path, name, kind")
+    .eq("id", src.fileId)
+    .eq("tenant_id", ctx.tenantId)
+    .maybeSingle();
+  if (error) throw new Error(`creative: ${error.message}`);
+  const f = fRow as Row | null;
+  if (!f) throw new MetaOpRefused(403, "that Creatives file is not this client's");
+  if (!sameName(f.name, src.fileName)) throw new MetaOpRefused(409, `that Creatives file is called "${String(f.name)}", not "${src.fileName}"`);
+  if (f.kind !== "image") throw new MetaOpRefused(409, NOT_IN_LIBRARY);
+  return { kind: "image", path: String(f.path), name: String(f.name) };
+}
+
 const createAd: Op<CreateAdArgs> = {
   write: true,
   parse: (a) => {
     const adsetId = id(a.adsetId);
     const adsetName = text(a.adsetName, 400);
-    const fileId = isUuid(a.fileId) ? a.fileId : null;
-    const fileName = text(a.fileName, 200);
     const name = text(a.name, 400);
     const message = text(a.message, 5000);
     if (!adsetId || !adsetName) return { ok: false, error: "adsetId and adsetName required" };
-    if (!fileId || !fileName) return { ok: false, error: "fileId and fileName (from read.creatives) required" };
+    const hasFile = a.fileId !== undefined || a.fileName !== undefined;
+    const hasVideo = a.videoId !== undefined || a.videoName !== undefined;
+    if (hasFile === hasVideo) {
+      return { ok: false, error: "give either fileId and fileName (an image from read.creatives) or videoId and videoName (from read.library)" };
+    }
+    let source: Pick<CreateAdArgs, "fileId" | "fileName" | "videoId" | "videoName">;
+    if (hasFile) {
+      const fileId = isUuid(a.fileId) ? a.fileId : null;
+      const fileName = text(a.fileName, 200);
+      if (!fileId || !fileName) return { ok: false, error: "fileId and fileName (from read.creatives) required" };
+      source = { fileId, fileName };
+    } else {
+      const videoId = id(a.videoId);
+      const videoName = text(a.videoName, 400);
+      if (!videoId || !videoName) return { ok: false, error: "videoId and videoName (from read.library) required" };
+      source = { videoId, videoName };
+    }
     if (!name || !message) return { ok: false, error: "name and message (primary text) required" };
     let headline: string | null = null;
     if (a.headline !== undefined && a.headline !== null) {
@@ -292,24 +309,13 @@ const createAd: Op<CreateAdArgs> = {
     }
     const status = a.status ?? "PAUSED";
     if (status !== "PAUSED" && status !== "ACTIVE") return { ok: false, error: "status is PAUSED or ACTIVE" };
-    return { ok: true, args: { adsetId, adsetName, fileId, fileName, name, message, headline, status } };
+    return { ok: true, args: { adsetId, adsetName, ...source, name, message, headline, status } };
   },
   check: async (ctx, a): Promise<CreateChecked> => {
     // A new ad runs from the client's own Page, so that Page must be on file:
     // without it there is nothing to hold the ad set's Page against.
     if (!ctx.pageId) throw new MetaOpRefused(409, "this client has no Facebook Page on file; set the client's Page first");
-    // The Creatives file: this client's own, under the card's name.
-    const { data: fRow, error } = await ctx.client
-      .from("ad_creative_files")
-      .select("id, tenant_id, path, name, kind, mime_type")
-      .eq("id", a.fileId)
-      .eq("tenant_id", ctx.tenantId)
-      .maybeSingle();
-    if (error) throw new Error(`creative: ${error.message}`);
-    const f = fRow as Row | null;
-    if (!f) throw new MetaOpRefused(403, "that Creatives file is not this client's");
-    if (!sameName(f.name, a.fileName)) throw new MetaOpRefused(409, `that Creatives file is called "${String(f.name)}", not "${a.fileName}"`);
-    const file: FileRow = { id: String(f.id), path: String(f.path), name: String(f.name), kind: f.kind as "image" | "video", mime: String(f.mime_type ?? "") };
+    const media = await mediaFor(ctx, sourceOf(a));
 
     await liveObject(ctx, "adset", a.adsetId, a.adsetName);
 
@@ -328,17 +334,17 @@ const createAd: Op<CreateAdArgs> = {
     if (dest.pageId !== ctx.pageId) {
       throw new MetaOpRefused(409, "the ads in that ad set run from a Page that is not this client's");
     }
-    return { file, dest };
+    return { media, dest };
   },
   send: async (ctx, a, checked) => {
-    const { file, dest } = checked as CreateChecked;
+    const { media, dest } = checked as CreateChecked;
     const value: Row = {};
     if (dest.leadFormId) value.lead_gen_form_id = dest.leadFormId;
     const spec: Row = { page_id: dest.pageId };
     if (dest.instagramUserId) spec.instagram_user_id = dest.instagramUserId;
-    if (file.kind === "image") {
-      const blob = await ctx.deps.download(file.path);
-      const { hash } = await uploadAdImage(ctx.token, ctx.account, blob, file.name);
+    if (media.kind === "image") {
+      const blob = await ctx.deps.download(media.path);
+      const { hash } = await uploadAdImage(ctx.token, ctx.account, blob, media.name);
       spec.link_data = {
         image_hash: hash,
         ...(dest.link ? { link: dest.link } : {}),
@@ -347,11 +353,10 @@ const createAd: Op<CreateAdArgs> = {
         call_to_action: { type: dest.ctaType, value: dest.leadFormId ? value : { link: dest.link } },
       };
     } else {
-      const videoId = await uploadVideo(ctx, file);
-      const imageUrl = await readyThumbnail(ctx, videoId);
+      const imageUrl = await thumbnailOf(ctx, media.videoId);
       if (dest.link) value.link = dest.link;
       spec.video_data = {
-        video_id: videoId,
+        video_id: media.videoId,
         image_url: imageUrl,
         message: a.message,
         ...(a.headline ? { title: a.headline } : {}),
@@ -370,7 +375,7 @@ const createAd: Op<CreateAdArgs> = {
       creative: JSON.stringify({ creative_id: creativeId }),
       status: a.status,
     });
-    return { action: "created", adId: String(ad.id ?? ""), creativeId, name: a.name, adset: a.adsetName, file: file.name, status: a.status };
+    return { action: "created", adId: String(ad.id ?? ""), creativeId, name: a.name, adset: a.adsetName, media: media.name, status: a.status };
   },
 };
 
@@ -410,6 +415,12 @@ const ops = {
         createdAt: r.created_at ?? null,
       }));
     },
+  } satisfies Op<Record<string, never>>,
+
+  "read.library": {
+    write: false,
+    parse: () => ({ ok: true, args: {} }),
+    check: (ctx) => libraryVideos(ctx),
   } satisfies Op<Record<string, never>>,
 
   pause: statusOp("PAUSED"),

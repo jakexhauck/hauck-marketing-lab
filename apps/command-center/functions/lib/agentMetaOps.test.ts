@@ -85,8 +85,8 @@ describe("metaWriteAllowed", () => {
 });
 
 describe("META_OPS", () => {
-  it("is exactly the planned allowlist: two reads, four writes, no deletes", () => {
-    expect(Object.keys(META_OPS).sort()).toEqual(["createAd", "dailyBudget", "pause", "read.creatives", "read.structure", "resume"]);
+  it("is exactly the planned allowlist: three reads, four writes, no deletes", () => {
+    expect(Object.keys(META_OPS).sort()).toEqual(["createAd", "dailyBudget", "pause", "read.creatives", "read.library", "read.structure", "resume"]);
     for (const op of Object.keys(META_OPS)) expect(isMetaWriteOp(op), op).toBe(!op.startsWith("read."));
   });
 
@@ -109,6 +109,14 @@ describe("META_OPS", () => {
     expect(parseMetaOpArgs("createAd", { ...ad, status: "DELETED" }).ok).toBe(false);
     expect(parseMetaOpArgs("createAd", { ...ad, fileId: "x" }).ok).toBe(false);
     expect(parseMetaOpArgs("createAd", { ...ad, message: "" }).ok).toBe(false);
+    // A video comes from the ad account's library, never through the Worker.
+    const { fileId: _f, fileName: _n, ...noFile } = ad;
+    expect(parseMetaOpArgs("createAd", { ...noFile, videoId: "777", videoName: "winter-3 4:5.mp4" })).toMatchObject({
+      ok: true,
+      args: { videoId: "777", videoName: "winter-3 4:5.mp4" },
+    });
+    expect(parseMetaOpArgs("createAd", { ...ad, videoId: "777", videoName: "v" }).ok).toBe(false);
+    expect(parseMetaOpArgs("createAd", noFile).ok).toBe(false);
     expect(parseMetaOpArgs("delete", {}).ok).toBe(false);
   });
 
@@ -223,7 +231,6 @@ function world(
 const deps: MetaCallDeps = {
   token: async () => "SYS",
   download: async () => new Blob([new Uint8Array(1000)], { type: "image/jpeg" }),
-  sleep: async () => {},
 };
 
 const PAUSE = { level: "ad", id: "120", name: "Winter 2" };
@@ -441,40 +448,70 @@ describe("callMetaOp", () => {
     expect(w.rows("admin_audit_log")[0].action).toBe("agent:meta.createAd");
   });
 
-  it("creates a video ad: chunked upload, waits for Meta, uses its thumbnail", async () => {
-    const vid = { ...AD, fileName: "winter-3.mp4", status: "ACTIVE" };
-    const w = world({ ops: [{ op: "createAd", args: vid }] });
-    w.rows("ad_creative_files")[0].name = "winter-3.mp4";
-    w.rows("ad_creative_files")[0].kind = "video";
-    w.rows("ad_creative_files")[0].mime_type = "video/mp4";
-    let polls = 0;
+  const { fileId: _fid, fileName: _fname, ...AD_NO_FILE } = AD;
+  const VID = { ...AD_NO_FILE, videoId: "777", videoName: "winter-3 4:5.mp4", status: "ACTIVE" };
+  const LIBRARY = { data: [{ id: "777", title: "winter-3 4:5.mp4", status: { video_status: "ready" } }] };
+
+  it("creates a video ad from a video already in the ad account library, with its thumbnail", async () => {
+    const w = world({ ops: [{ op: "createAd", args: VID }] });
     const calls = fakeGraph(
       adRoutes({
-        "GET /act_100/advideos": { data: [] },
-        "POST /act_100/advideos": (c: Call) =>
-          c.body.upload_phase === "start"
-            ? { upload_session_id: "S1", video_id: "V1", start_offset: "0", end_offset: "600" }
-            : c.body.upload_phase === "transfer"
-              ? c.body.start_offset === "0"
-                ? { start_offset: "600", end_offset: "1000" }
-                : { start_offset: "1000", end_offset: "1000" }
-              : { success: true },
-        "GET /V1": () => ({ status: { video_status: ++polls < 2 ? "processing" : "ready" } }),
-        "GET /V1/thumbnails": { data: [{ uri: "https://thumb/a.jpg", is_preferred: false }, { uri: "https://thumb/b.jpg", is_preferred: true }] },
+        "GET /act_100/advideos": LIBRARY,
+        "GET /777/thumbnails": { data: [{ uri: "https://thumb/a.jpg", is_preferred: false }, { uri: "https://thumb/b.jpg", is_preferred: true }] },
       }),
     );
-    const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "createAd", args: vid }, deps);
+    const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "createAd", args: VID }, deps);
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    const phases = calls.filter((c) => c.path === "/act_100/advideos" && c.method === "POST").map((c) => c.body.upload_phase);
-    expect(phases).toEqual(["start", "transfer", "transfer", "finish"]);
+    // Nothing is uploaded: the video is already Meta's.
+    expect(calls.filter((c) => c.method === "POST").map((c) => c.path)).toEqual(["/act_100/adcreatives", "/act_100/ads"]);
+    const lib = calls.find((c) => c.path === "/act_100/advideos")!;
+    expect(lib.query.get("limit")).toBe("200");
     const spec = JSON.parse(calls.find((c) => c.path === "/act_100/adcreatives")!.body.object_story_spec);
     expect(spec.video_data).toEqual({
-      video_id: "V1",
+      video_id: "777",
       image_url: "https://thumb/b.jpg",
       message: "Free estimate this week",
       call_to_action: { type: "SIGN_UP", value: { lead_gen_form_id: "FORM1", link: "http://fb.me/" } },
     });
     expect(calls.find((c) => c.path === "/act_100/ads")?.body.status).toBe("ACTIVE");
+  });
+
+  it("refuses a video that is not in the library yet, is still processing, or is named differently", async () => {
+    for (const lib of [
+      { data: [] },
+      { data: [{ id: "777", title: "winter-3 4:5.mp4", status: { video_status: "processing" } }] },
+      { data: [{ id: "777", title: "spring 4:5.mp4", status: { video_status: "ready" } }] },
+    ]) {
+      const w = world({ ops: [{ op: "createAd", args: VID }] });
+      const calls = fakeGraph(adRoutes({ "GET /act_100/advideos": lib }));
+      const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "createAd", args: VID }, deps);
+      expect(res.status).toBe(409);
+      expect(calls.some((c) => c.method === "POST")).toBe(false);
+    }
+    const w = world({ ops: [{ op: "createAd", args: VID }] });
+    fakeGraph(adRoutes({ "GET /act_100/advideos": { data: [] } }));
+    const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "createAd", args: VID }, deps);
+    expect(String(res.body.error)).toMatch(/send it to Meta from Creatives first/);
+  });
+
+  it("will not carry a Creatives video through the Worker", async () => {
+    const vid = { ...AD, fileName: "winter-3.mp4" };
+    const w = world({ ops: [{ op: "createAd", args: vid }] });
+    w.rows("ad_creative_files")[0].name = "winter-3.mp4";
+    w.rows("ad_creative_files")[0].kind = "video";
+    const calls = fakeGraph(adRoutes());
+    const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "createAd", args: vid }, deps);
+    expect(res.status).toBe(409);
+    expect(String(res.body.error)).toMatch(/send it to Meta from Creatives first/);
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+  });
+
+  it("lists the library's videos, one page", async () => {
+    const calls = fakeGraph({ "GET /act_100/advideos": LIBRARY });
+    const res = await callMetaOp(world().client(), { messageId: MSG, tenantId: T1, op: "read.library" }, deps);
+    expect(res.status).toBe(200);
+    expect(res.body.result).toEqual([{ id: "777", name: "winter-3 4:5.mp4", ready: true }]);
+    expect(calls).toHaveLength(1);
   });
 
   it("refuses a Creatives file that is another client's, or not the card's file", async () => {

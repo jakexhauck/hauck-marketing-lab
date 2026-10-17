@@ -12,11 +12,12 @@ Both are listed under Client. They are the only commands you can run.
 Reads (always fine, do these first):
 - `read.structure`: every campaign, ad set and ad with its id, name, status, effective status and daily or lifetime budget. Budgets are in cents (4000 is $40.00/day).
 - `read.creatives`: the files in the client's Creatives (id, name, image or video, size).
+- `read.library`: the videos already in the client's Meta ad account library (id, name, ready or not).
 
 Changes (only on an approved card):
 - `pause` / `resume` `{"level": "campaign" | "adset" | "ad", "id": "...", "name": "Winter 2"}`
 - `dailyBudget` `{"level": "campaign" | "adset", "id": "...", "name": "Fall", "from": 4000, "to": 5000}`: from is the live budget in cents, read just now; to is the new one. One change may not go above 3x the current budget or above $500/day; split a bigger move over cards, one at a time.
-- `createAd` `{"adsetId": "...", "adsetName": "Willis Winter", "fileId": "...", "fileName": "winter-3.mp4", "name": "Winter 3", "message": "primary text", "headline": "optional", "status": "PAUSED"}`: a new ad inside an EXISTING ad set, from a file already in Creatives. It goes where the ad set's other ads go (same link or lead form, same Page). It is created PAUSED unless the card says "ACTIVE".
+- `createAd` `{"adsetId": "...", "adsetName": "Willis Winter", "fileId": "...", "fileName": "winter-3.jpg", "name": "Winter 3", "message": "primary text", "headline": "optional", "status": "PAUSED"}`: a new ad inside an EXISTING ad set. An image comes from Creatives (`fileId`, `fileName`). A video must already be in the Meta library: use `"videoId"` and `"videoName"` from `read.library` instead of the file fields. A video that is only in Creatives cannot be used: ask Jake to send it to Meta from Creatives first, then read the library again. It goes where the ad set's other ads go (same link or lead form, same Page). It is created PAUSED unless the card says "ACTIVE".
 
 There is no way to create campaigns, ad sets, audiences or targeting, and no way to delete anything. Say what Jake would click instead.
 

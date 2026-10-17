@@ -23,7 +23,7 @@ import { execFileSync } from "node:child_process";
 
 // Mirrors META_OPS in apps/command-center/functions/lib/agentMetaOps.ts, for
 // a clear error before the network. The app's list is the one that counts.
-const OPS = new Set(["read.structure", "read.creatives", "pause", "resume", "dailyBudget", "createAd"]);
+const OPS = new Set(["read.structure", "read.creatives", "read.library", "pause", "resume", "dailyBudget", "createAd"]);
 
 function fail(msg) {
   console.error(msg);
@@ -67,8 +67,7 @@ const res = await fetch(`${base}/api/agent-runner/meta-ops`, {
   method: "POST",
   headers: { "x-agent-runner-secret": secret, "content-type": "application/json" },
   body: JSON.stringify({ messageId, tenantId, op, args }),
-  // A video ad uploads and waits for Meta to process it, so allow longer.
-  signal: AbortSignal.timeout(180_000),
+  signal: AbortSignal.timeout(60_000),
 });
 const text = await res.text();
 if (!res.ok) fail(`meta-ops ${res.status}: ${text.slice(0, 500)}`);
