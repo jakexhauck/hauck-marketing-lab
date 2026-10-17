@@ -39,7 +39,9 @@ import type {
 // What a holder of the secret can do, in full: read and write the agents'
 // own tables (0166), file an approved landing page into Conversion Assets
 // (file-asset, which re-checks the approval itself), read the client list,
-// read each client's numbers for a startup check, and READ Meta insights. Meta writes are not reachable from
+// read each client's numbers for a startup check, READ Meta insights, and run
+// the GHL Agent's allowlisted ops (writes only on Jake's ask or Approve,
+// checked in lib/agentGhlOps.ts). Meta writes are not reachable from
 // here by construction: api/agent-runner/meta.ts imports only the Graph GET
 // helpers, and a test scans that file to keep it that way.
 
@@ -54,6 +56,8 @@ export const AGENT_RUNNER_POST_PATHS: readonly string[] = [
   "lessons",
   "auto-chat",
   "file-asset",
+  // The GHL Agent's ops. Writes are gated inside (lib/agentGhlOps.ts).
+  "ghl",
 ].map((p) => BASE + p);
 
 /** Routes the runner may GET. */

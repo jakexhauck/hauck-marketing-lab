@@ -151,6 +151,25 @@ describe("handleClaim", () => {
     expect(api.lessonPosts).toEqual([]);
   });
 
+  it("hands claude's environment the turn's message id, for bin/ghl.mjs", async () => {
+    const { env } = world();
+    const { d } = deps(env, "Fine.");
+    const seen: { tenant: string | null; messageId: string }[] = [];
+    let childEnv: NodeJS.ProcessEnv | undefined;
+    d.childEnv = (tenant, messageId) => {
+      seen.push({ tenant: tenant?.id ?? null, messageId });
+      return { AGENT_MESSAGE_ID: messageId };
+    };
+    const run = d.run;
+    d.run = async (o) => {
+      childEnv = o.env;
+      return run(o);
+    };
+    await handleClaim(claim(), d);
+    expect(seen).toEqual([{ tenant: "t-willis", messageId: "m1" }]);
+    expect(childEnv?.AGENT_MESSAGE_ID).toBe("m1");
+  });
+
   it("gives a fresh session the earlier messages", async () => {
     const { env } = world();
     const { runs, d } = deps(env, "ok");

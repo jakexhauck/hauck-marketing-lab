@@ -43,7 +43,8 @@ function world() {
   );
   const workRoot = join(root, "work");
   const metaScript = join(root, "runner", "bin", "meta.mjs").split("\\").join("/");
-  return { vaultDir, agentsDir, outDir, driveRoot, workRoot, metaScript };
+  const ghlScript = join(root, "runner", "bin", "ghl.mjs").split("\\").join("/");
+  return { vaultDir, agentsDir, outDir, driveRoot, workRoot, metaScript, ghlScript };
 }
 
 const metaTool = (env: { metaScript: string }) => `Bash(node ${env.metaScript}:*)`;
@@ -59,6 +60,25 @@ describe("buildBundle", () => {
     for (const id of ["ghl", "landing", "creative", "research"] as const) {
       expect(buildBundle(id, willis, env).allowedTools).not.toContain(metaTool(env));
     }
+  });
+
+  it("gives the ghl script to the GHL Agent at a client and nobody else", () => {
+    const env = world();
+    const ghlTool = `Bash(node ${env.ghlScript}:*)`;
+    expect(buildBundle("ghl", willis, env).allowedTools).toContain(ghlTool);
+    for (const id of ["manager", "research", "ads", "creative", "landing", "reporting"] as const) {
+      expect(buildBundle(id, willis, env).allowedTools, id).not.toContain(ghlTool);
+      expect(buildBundle(id, willis, env).allowedTools.some((t) => t.includes("ghl.mjs")), id).toBe(false);
+    }
+    expect(buildBundle("ghl", null, env).allowedTools).not.toContain(ghlTool);
+    expect(readFileSync(buildBundle("ghl", willis, env).systemPromptFile, "utf8")).toContain(`node ${env.ghlScript} <op>`);
+  });
+
+  it("gives the GHL Agent the same tools with or without a grant", () => {
+    const env = world();
+    const grant = { itemId: "i1", kind: "ghl" as const, limit: null };
+    expect(buildBundle("ghl", willis, env, grant).allowedTools).toEqual(buildBundle("ghl", willis, env, null).allowedTools);
+    expect(buildBundle("ghl", willis, env, grant).allowedTools).not.toContain("Bash");
   });
 
   it("never allows a bare Bash", () => {

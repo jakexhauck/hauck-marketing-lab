@@ -406,6 +406,11 @@ DONE by the lead in `73383b63` before the lanes started (so no lane owns it): `G
 
 **What the GHL API can and cannot do (check live before building; see feedback "check live GHL first"):** the app's scopes (`functions/lib/ghlApp.ts` `APP_SCOPES`) cover custom values, custom fields, tags, contacts, opportunities and calendar events. There are no message write scopes yet (Jake owes that reinstall). GHL's public API has no funnel-page or pipeline-stage creation that I can confirm. So for "put this page in the Winter funnel" the agent does what the API allows (custom value with the live URL, tags) and posts the rest as an exact click-by-click checklist in its approval card. Confirm at kickoff with one live read; if a stage or funnel endpoint does exist, add it to the allowlist.
 
+**Kickoff live read, 2026-10-17 (read-only, Willis `OznT3yyuwK3dqVXDsCaD`, public API with the Willis PIT):**
+- Pipelines (4): Sales Pipeline (Lead > No Answer > Estimate Booked > Job Booked > Job Completed > Job/Estimate Cancelled > Lost > Follow Up > Long Term Nurture), Organic (Chat Widget > Estimate Form), Google Reviews (Asked For Review > Review Link Clicked > Negative Feedback Received > Positive Review Submission), News Channel (Opt In > Contacted > Booked Them In).
+- Custom values: 36, including the owner links (Call Now Link, Lead Outcome Link, Phone Appointment Call Now Link), Conversion Asset Offer / Owner Story / Unique Mechanism / Recent Work (empty), and two that hold credentials in plain text (Location API Token, Facebook Access Token). So `read.customValues` hides any value whose name says token, secret, password or key, and `write.customValue` refuses those names and the app's Open Lead.
+- API reach, from GHL's own OpenAPI specs (https://github.com/GoHighLevel/highlevel-api-docs, `apps/opportunities.json` and `apps/funnels.json`; human docs at https://marketplace.gohighlevel.com/docs/): **no pipeline or stage create/update** (opportunities has only `GET /opportunities/pipelines`), and **no funnel or funnel page create** (funnels has only list funnels, list pages, count pages, and redirect create/update/delete). The app has no `funnels/*` scope either, so funnels are not even readable. Confirmed: stages and funnel pages are Jake's clicks, from the checklist on the card. A funnel redirect (`POST /funnels/lookup/redirect`, scope `funnels/redirect.write`) could point a funnel path at the live page later; not added (new scope = reinstall).
+
 **Files:**
 - Create: `apps/command-center/functions/api/agent-runner/ghl.ts` (+ test), `apps/command-center/functions/lib/agentGhlOps.ts` (+ test)
 - Create: `projects/agent-runner/bin/ghl.mjs` (calls the endpoint; the agent runs it through Bash)
@@ -416,9 +421,9 @@ DONE by the lead in `73383b63` before the lanes started (so no lane owns it): `G
 - `POST /api/agent-runner/ghl {messageId, tenantId, op, args}`: reads run if the message belongs to a ghl chat for that tenant. Writes need `writeAllowed(message, chat, item?)` true: either a direct ask (role `me`, chat not auto, no `meta.fromRequest`) or an approved grant `{ kind: "ghl" }`. Every write is logged with `logAdminAction` as `agent:ghl`.
 - `bin/ghl.mjs` is the only GHL path in the ghl bundle; no other agent gets it.
 
-- [ ] Tests: `writeAllowed` for direct ask (true), auto chat (false), request follow-up without approval (false), with approval (true); an unknown op gives 400; the ghl bundle allows `bin/ghl.mjs` and no other bundle does.
-- [ ] Kickoff live read with the `ghl` CLI on Willis (`OznT3yyuwK3dqVXDsCaD`): pipelines, custom values. Record what exists before building.
-- [ ] Implement, tests green.
+- [x] Tests: `writeAllowed` for direct ask (true), auto chat (false), request follow-up without approval (false), with approval (true); an unknown op gives 400; the ghl bundle allows `bin/ghl.mjs` and no other bundle does.
+- [x] Kickoff live read with the `ghl` CLI on Willis (`OznT3yyuwK3dqVXDsCaD`): pipelines, custom values. Record what exists before building.
+- [x] Implement, tests green.
 - [ ] Live check: on Willis, ask the GHL Agent to set one harmless custom value, Approve, confirm it in GHL, then set it back. Then the full handoff: a Landing Page approval sends a request, the GHL card shows the plan, Approve, the custom value holds the live URL.
 
 ## Merge order and ship
