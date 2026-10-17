@@ -312,6 +312,11 @@ function AgentStyle() {
       .ag-browser-bar b { width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); flex-shrink: 0; }
       .ag-browser-bar span { margin-left: 6px; background: var(--surface); border-radius: 6px; padding: 2px 8px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .ag-browser iframe { display: block; width: 100%; height: 300px; border: 0; }
+      .ag-player { margin-top: 12px; border-radius: 12px; overflow: hidden; background: #000; display: flex; justify-content: center; }
+      .ag-player video { display: block; width: 100%; max-height: 420px; aspect-ratio: 9 / 16; object-fit: contain; }
+      .ag-spend { display: flex; align-items: center; gap: 14px; margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); }
+      .ag-spend .ag-stat .v { font-size: 22px; }
+      .ag-spend-what { font-size: 13.5px; line-height: 1.45; }
 
       .ag-brain-top { display: flex; align-items: center; gap: 8px; }
       .ag-graph-wrap { position: relative; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--rail); overflow: hidden; box-shadow: var(--shadow-sm); flex-shrink: 0; }

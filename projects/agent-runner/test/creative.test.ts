@@ -106,6 +106,7 @@ describe("runVideoBlocks", () => {
     expect(w.c.uploads[0].preview).toBe(false);
     expect(w.runnerApi.items[0]).toMatchObject({ kind: "creative", status: "needs_ok" });
     expect(w.runnerApi.items[0].payload.grant).toEqual({ kind: "file" });
+    expect(w.runnerApi.items[0].payload.path).toBe("t-aag/f1.mp4");
     expect(readState(w.workDir).finals["item-1"]).toMatchObject({ path: "t-aag/f1.mp4", name: "ad1.mp4", type: "video/mp4" });
   });
 

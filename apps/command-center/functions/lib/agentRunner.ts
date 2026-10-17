@@ -33,7 +33,7 @@ import type {
 //     prefix rule under /api/agent-runner/ is one careless file away from
 //     opening something new.
 //   - Unset or short secret means CLOSED.
-//   - A pass never sets ctx.data.admin. The secret buys these nine routes and
+//   - A pass never sets ctx.data.admin. The secret buys these routes and
 //     nothing else; it is not an admin and cannot become one.
 //
 // What a holder of the secret can do, in full: read and write the agents'
@@ -52,6 +52,10 @@ export const AGENT_RUNNER_POST_PATHS: readonly string[] = [
   "item",
   "lessons",
   "auto-chat",
+  // Creative Agent (Phase 3): each checks the claimed message itself.
+  "upload-url",
+  "read-url",
+  "file-creative",
 ].map((p) => BASE + p);
 
 /** Routes the runner may GET. */

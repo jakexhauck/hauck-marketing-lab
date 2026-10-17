@@ -108,7 +108,21 @@ export default function ItemCard({
           )}
         </div>
       )}
-      {p.previewUrl && (
+      {p.credits !== null && (
+        <div className="ag-spend">
+          <div className="ag-stat">
+            <div className="v">{p.credits.toLocaleString()}</div>
+            <div className="l">credits</div>
+          </div>
+          {p.what && <div className="ag-spend-what">{p.what}</div>}
+        </div>
+      )}
+      {p.previewUrl && isVideo(p.previewUrl) && (
+        <div className="ag-player">
+          <video src={p.previewUrl} controls playsInline preload="metadata" />
+        </div>
+      )}
+      {p.previewUrl && !isVideo(p.previewUrl) && (
         <div className="ag-browser">
           <div className="ag-browser-bar">
             <b />
@@ -150,7 +164,13 @@ export default function ItemCard({
           ))}
         </div>
       )}
-      {item.status === "needs_ok" && <ItemActions onAction={onAction} busy={busy} />}
+      {item.status === "needs_ok" && (
+        <ItemActions
+          onAction={onAction}
+          busy={busy}
+          approveLabel={p.credits !== null ? `Approve ${p.credits.toLocaleString()} credits` : undefined}
+        />
+      )}
       {p.previewUrl && (
         <div className="ag-actions">
           <a href={p.previewUrl} target="_blank" rel="noreferrer" className="ag-b2">

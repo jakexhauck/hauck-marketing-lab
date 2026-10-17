@@ -166,7 +166,8 @@ async function fileCard(t: CreativeTurn, state: CreativeState, title: string, st
     kind: "creative",
     title,
     status: "needs_ok",
-    payload: { ...(video ? { previewUrl: url } : { thumbs: [url] }), quote: "Approve files it into Creatives.", grant: { kind: "file" } },
+    // path ties the card to the one upload: the app files that and nothing else.
+    payload: { ...(video ? { previewUrl: url } : { thumbs: [url] }), path: staged.path, quote: "Approve files it into Creatives.", grant: { kind: "file" } },
   });
   const id = idOf(res);
   if (!id) throw new Error("the card was not created");

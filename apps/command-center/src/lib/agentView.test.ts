@@ -158,6 +158,15 @@ describe("clientRowView", () => {
 });
 
 describe("itemPayload", () => {
+  it("reads a spend card's credits and what it makes", () => {
+    const v = itemPayload({ credits: 24, what: "3 square images", grant: { kind: "spend", limit: 24 } });
+    expect(v.credits).toBe(24);
+    expect(v.what).toBe("3 square images");
+    expect(itemPayload({ credits: "24" }).credits).toBeNull();
+    expect(itemPayload({ credits: -1 }).credits).toBeNull();
+    expect(itemPayload({}).what).toBeNull();
+  });
+
   it("reads the known keys and drops bad shapes", () => {
     const v = itemPayload({
       steps: [{ label: "Angles", state: "done" }, { label: "Headline", state: "now" }, { label: "Push" }, { nope: 1 }],
@@ -183,6 +192,6 @@ describe("itemPayload", () => {
   });
 
   it("is empty for an empty payload", () => {
-    expect(itemPayload({})).toEqual({ steps: [], stats: [], quote: null, plan: [], previewUrl: null, thumbs: [] });
+    expect(itemPayload({})).toEqual({ steps: [], stats: [], quote: null, plan: [], previewUrl: null, thumbs: [], credits: null, what: null });
   });
 });
