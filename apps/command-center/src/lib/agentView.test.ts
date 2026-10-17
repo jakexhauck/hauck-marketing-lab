@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { AgentItem, AgentMessage, ChatSummary } from "./agentWire";
-import { clientRowView, groupChats, messageView, needsOkCounts, onlineLabel, pollMs } from "./agentView";
+import { clientRowView, groupChats, itemPayload, messageView, needsOkCounts, onlineLabel, pollMs } from "./agentView";
 
 const chat = (id: string, updatedAt: string): ChatSummary => ({
   id,
@@ -152,5 +152,35 @@ describe("clientRowView", () => {
   it("falls back to the newest building item, then All quiet", () => {
     expect(clientRowView([item({ title: "Winter page", agent: "landing" })]).next).toBe("Winter page");
     expect(clientRowView([]).next).toBe("All quiet");
+  });
+});
+
+describe("itemPayload", () => {
+  it("reads the known keys and drops bad shapes", () => {
+    const v = itemPayload({
+      steps: [{ label: "Angles", state: "done" }, { label: "Headline", state: "now" }, { label: "Push" }, { nope: 1 }],
+      stats: [{ label: "CPL", value: "$41" }, { label: "Leads", value: 23 }, { label: "x" }],
+      quote: "Fixed before the snow.",
+      plan: ["Add step 1", 4],
+      previewUrl: "javascript:alert(1)",
+      thumbs: ["https://x/1.jpg", "http://x/2.jpg"],
+    });
+    expect(v.steps).toEqual([
+      { label: "Angles", state: "done" },
+      { label: "Headline", state: "now" },
+      { label: "Push", state: "todo" },
+    ]);
+    expect(v.stats).toEqual([
+      { label: "CPL", value: "$41" },
+      { label: "Leads", value: "23" },
+    ]);
+    expect(v.quote).toBe("Fixed before the snow.");
+    expect(v.plan).toEqual(["Add step 1"]);
+    expect(v.previewUrl).toBeNull();
+    expect(v.thumbs).toEqual(["https://x/1.jpg"]);
+  });
+
+  it("is empty for an empty payload", () => {
+    expect(itemPayload({})).toEqual({ steps: [], stats: [], quote: null, plan: [], previewUrl: null, thumbs: [] });
   });
 });

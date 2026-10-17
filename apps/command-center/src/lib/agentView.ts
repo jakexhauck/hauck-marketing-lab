@@ -96,3 +96,54 @@ export function ago(iso: string, now: Date): string {
   if (h < 24) return `${h}h ago`;
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
+
+export interface ItemStep {
+  label: string;
+  state: "done" | "now" | "todo";
+}
+
+export interface ItemPayloadView {
+  steps: ItemStep[];
+  stats: { label: string; value: string }[];
+  quote: string | null;
+  plan: string[];
+  previewUrl: string | null;
+  thumbs: string[];
+}
+
+const str = (v: unknown): v is string => typeof v === "string" && v.length > 0;
+
+// The payload is free-form JSON from the PC, so every key is read defensively:
+// a wrong shape draws nothing rather than breaking the card.
+export function itemPayload(payload: Record<string, unknown>): ItemPayloadView {
+  const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+  const steps = arr(payload.steps).flatMap((s): ItemStep[] => {
+    if (!s || typeof s !== "object") return [];
+    const { label, state } = s as { label?: unknown; state?: unknown };
+    if (!str(label)) return [];
+    return [{ label, state: state === "done" || state === "now" ? state : "todo" }];
+  });
+  const stats = arr(payload.stats).flatMap((s) => {
+    if (!s || typeof s !== "object") return [];
+    const { label, value } = s as { label?: unknown; value?: unknown };
+    if (!str(label) || (typeof value !== "string" && typeof value !== "number")) return [];
+    return [{ label, value: String(value) }];
+  });
+  const previewUrl = str(payload.previewUrl) && /^https:\/\//.test(payload.previewUrl) ? payload.previewUrl : null;
+  return {
+    steps,
+    stats,
+    quote: str(payload.quote) ? payload.quote : null,
+    plan: arr(payload.plan).filter(str),
+    previewUrl,
+    thumbs: arr(payload.thumbs).filter((t): t is string => str(t) && /^https:\/\//.test(t)),
+  };
+}
+
+export const STATUS_PILL: Record<AgentItem["status"], { label: string; tone: "wip" | "ok" | "live" | "bad" }> = {
+  building: { label: "Building", tone: "wip" },
+  needs_ok: { label: "Needs your OK", tone: "ok" },
+  live: { label: "Live", tone: "live" },
+  done: { label: "Done", tone: "live" },
+  declined: { label: "Declined", tone: "bad" },
+};

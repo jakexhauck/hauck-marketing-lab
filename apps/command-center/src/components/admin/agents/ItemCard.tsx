@@ -1,0 +1,163 @@
+import { useState } from "react";
+import { ArrowRight, Circle, CircleCheck, ExternalLink, Loader } from "lucide-react";
+import type { AgentItem } from "../../../lib/agentWire";
+import { STATUS_PILL, itemPayload } from "../../../lib/agentView";
+import type { ItemAction } from "./agentApi";
+
+export function StatusPill({ status }: { status: AgentItem["status"] }) {
+  const p = STATUS_PILL[status];
+  return <span className={`ag-pill ag-p-${p.tone}`}>{p.label}</span>;
+}
+
+// Approve / Change it / Decline. "Change it" opens a note box; the note goes
+// to the agent as the next message in the item's chat (Task 4 transitionItem).
+export function ItemActions({
+  onAction,
+  busy,
+  decline = true,
+  approveLabel = "Approve",
+}: {
+  onAction: (action: ItemAction, note?: string) => void;
+  busy: boolean;
+  decline?: boolean;
+  approveLabel?: string;
+}) {
+  const [changing, setChanging] = useState(false);
+  const [note, setNote] = useState("");
+  if (changing) {
+    return (
+      <div className="ag-change">
+        <textarea
+          autoFocus
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          rows={2}
+          aria-label="Change"
+        />
+        <div className="ag-actions">
+          <button
+            type="button"
+            className="ag-b1"
+            disabled={busy || !note.trim()}
+            onClick={() => {
+              onAction("change", note.trim());
+              setChanging(false);
+              setNote("");
+            }}
+          >
+            Send
+          </button>
+          <button type="button" className="ag-b2" onClick={() => setChanging(false)}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="ag-actions">
+      <button type="button" className="ag-b1" disabled={busy} onClick={() => onAction("approve")}>
+        {approveLabel}
+      </button>
+      <button type="button" className="ag-b2" disabled={busy} onClick={() => setChanging(true)}>
+        Change it
+      </button>
+      {decline && (
+        <button type="button" className="ag-b2" disabled={busy} onClick={() => onAction("decline")}>
+          Decline
+        </button>
+      )}
+    </div>
+  );
+}
+
+const isVideo = (url: string) => /\.(mp4|webm|mov)(\?|$)/i.test(url);
+
+// One Building card: title, status pill, then whichever payload parts the PC
+// filled in (thumbs, live page window, steps, quote, plan, stats).
+export default function ItemCard({
+  item,
+  active,
+  onAction,
+  busy,
+}: {
+  item: AgentItem;
+  active?: boolean;
+  onAction: (action: ItemAction, note?: string) => void;
+  busy: boolean;
+}) {
+  const p = itemPayload(item.payload);
+  return (
+    <div className={`ag-card${active ? " active" : ""}`}>
+      <div className="ag-card-top">
+        <div className="ag-card-t">{item.title}</div>
+        <StatusPill status={item.status} />
+      </div>
+      {p.thumbs.length > 0 && (
+        <div className="ag-thumbs">
+          {p.thumbs.map((t) =>
+            isVideo(t) ? (
+              <a key={t} href={t} target="_blank" rel="noreferrer" className="ag-thumb vid">
+                <video src={t} muted preload="metadata" />
+              </a>
+            ) : (
+              <a key={t} href={t} target="_blank" rel="noreferrer" className="ag-thumb">
+                <img src={t} alt="" loading="lazy" />
+              </a>
+            ),
+          )}
+        </div>
+      )}
+      {p.previewUrl && (
+        <div className="ag-browser">
+          <div className="ag-browser-bar">
+            <b />
+            <b />
+            <b />
+            <span>{p.previewUrl.replace(/^https:\/\//, "")}</span>
+          </div>
+          <iframe src={p.previewUrl} title={item.title} sandbox="allow-scripts allow-same-origin allow-forms" />
+        </div>
+      )}
+      {p.steps.length > 0 && (
+        <div className="ag-steps">
+          {p.steps.map((s, i) => (
+            <div key={i} className={`ag-step ${s.state}`}>
+              {s.state === "done" ? <CircleCheck /> : s.state === "now" ? <Loader /> : <Circle />}
+              {s.label}
+            </div>
+          ))}
+        </div>
+      )}
+      {p.quote && <div className="ag-quote">{p.quote}</div>}
+      {p.plan.length > 0 && (
+        <div className="ag-list">
+          {p.plan.map((t, i) => (
+            <div key={i}>
+              <ArrowRight />
+              {t}
+            </div>
+          ))}
+        </div>
+      )}
+      {p.stats.length > 0 && (
+        <div className="ag-stats">
+          {p.stats.map((s) => (
+            <div key={s.label} className="ag-stat">
+              <div className="v">{s.value}</div>
+              <div className="l">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {item.status === "needs_ok" && <ItemActions onAction={onAction} busy={busy} />}
+      {p.previewUrl && (
+        <div className="ag-actions">
+          <a href={p.previewUrl} target="_blank" rel="noreferrer" className="ag-b2">
+            <ExternalLink /> Open full size
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}

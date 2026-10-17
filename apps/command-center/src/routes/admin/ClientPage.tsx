@@ -55,6 +55,13 @@ export default function ClientPage() {
     return <Navigate to={clientPath(client.id, resolved.page, resolved.sub)} replace />;
   }
 
+  // An agent page is a full-height three-column frame (chats | chat | panel),
+  // edge to edge like the mockup, so it skips the padded page and the live
+  // app button.
+  if (resolved.page === "agent") {
+    return <AgentPage tenantId={client.id} agent={isAgentId(resolved.sub) ? resolved.sub : "manager"} />;
+  }
+
   return (
     <div className="pk-root">
       <div className="mb-5 flex justify-end">

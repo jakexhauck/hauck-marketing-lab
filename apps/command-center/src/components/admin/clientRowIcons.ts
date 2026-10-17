@@ -51,7 +51,7 @@ const ICONS: Record<string, LucideIcon> = {
 
 // Agent rows are keyed by agent id, kept apart from ICONS because "ghl" and
 // "ads" would otherwise collide with page ids.
-const AGENT_ICONS: Record<string, LucideIcon> = {
+export const AGENT_ICONS: Record<string, LucideIcon> = {
   manager: Gauge,
   research: Telescope,
   ads: Megaphone,
