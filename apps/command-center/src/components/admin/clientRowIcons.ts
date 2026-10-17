@@ -17,9 +17,9 @@ import {
   Image,
   LayoutDashboard,
   ListChecks,
-  ListTodo,
   PenLine,
   PhoneCall,
+  Rocket,
   Plug,
   Sparkles,
   UserRound,
@@ -31,10 +31,7 @@ import type { ClientNavRow } from "../../lib/clientNav";
 // sheet. Keyed by sub-page where there is one, else by page. Presentation only,
 // so it lives beside the chrome rather than in lib/clientNav.
 const ICONS: Record<string, LucideIcon> = {
-  onboarding: ListTodo,
-  info: UserRound,
   brief: NotebookText,
-  software: AppWindow,
   dashboard: LayoutDashboard,
   leads: ListChecks,
   "meta-data": Database,
@@ -61,6 +58,15 @@ export const AGENT_ICONS: Record<string, LucideIcon> = {
   landing: LayoutTemplate,
   ghl: Workflow,
   reporting: FileChartColumn,
+};
+
+// The Client Brief's sections (lib/clientBrief.ts): an agent's own icon, plus
+// the three sections no agent owns.
+export const BRIEF_SECTION_ICONS: Record<string, LucideIcon> = {
+  ...AGENT_ICONS,
+  client: UserRound,
+  "onboarding-call": PhoneCall,
+  "launch-call": Rocket,
 };
 
 export function clientRowIcon(row: ClientNavRow): LucideIcon {

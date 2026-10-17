@@ -42,7 +42,8 @@ import type {
 // read each client's numbers for a startup check, READ Meta insights, and run
 // the GHL Agent's allowlisted ops (writes only on Jake's ask or Approve,
 // checked in lib/agentGhlOps.ts), and rewrite the claimed agent's OWN Client
-// Brief section at the version it read (lib/clientBriefs.ts), and make the
+// Brief section at the version it read (lib/clientBriefs.ts), tick the boxes
+// of the sections that agent owns (lib/briefTicks.ts), and make the
 // Ads Agent's allowlisted Ads Manager changes (meta-ops), each only under an
 // approved card with that exact change on it (lib/agentMetaOps.ts). The
 // insights reads stay write-free by construction: api/agent-runner/meta.ts
@@ -70,6 +71,8 @@ export const AGENT_RUNNER_POST_PATHS: readonly string[] = [
   "file-creative",
   // An agent rewrites its own Client Brief section (lib/clientBriefs.ts).
   "brief",
+  // An agent ticks boxes in its own brief section(s) (lib/briefTicks.ts).
+  "tick",
 ].map((p) => BASE + p);
 
 /** Routes the runner may GET. */

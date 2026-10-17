@@ -7,12 +7,18 @@
 // in src/wire.ts.
 
 import { AGENTS, isAgentId, type AgentId } from "./agents";
-import type { BriefAuthor, BriefDrive, BriefSection } from "./agentWire";
+import type { BriefAuthor, BriefDrive, BriefSection, BriefSectionId } from "./agentWire";
 
-// Status (the Manager) leads, because it is where the client stands; then the
-// agents in rail order.
-export const BRIEF_SECTIONS: { id: AgentId; label: string }[] = [
+// Brief v2 (Jake, 2026-10-17): the brief replaced the client setup pages. Client
+// (the onboarding answers) leads, then Status (the Manager), the two call
+// checklists, and the agents in rail order. Client and the calls are Jake's
+// text; no agent writes them with a ```brief block, because a brief block only
+// ever lands on the writing agent's own section.
+export const BRIEF_SECTIONS: { id: BriefSectionId; label: string }[] = [
+  { id: "client", label: "Client" },
   { id: "manager", label: "Status" },
+  { id: "onboarding-call", label: "Onboarding Call" },
+  { id: "launch-call", label: "Launch Call" },
   { id: "research", label: "Market Research" },
   { id: "ads", label: "Ads" },
   { id: "creative", label: "Creative" },
@@ -25,8 +31,21 @@ export const BRIEF_SECTIONS: { id: AgentId; label: string }[] = [
 // whole brief rides in every agent's prompt.
 export const MAX_SECTION_CHARS = 20_000;
 
-export function sectionLabel(id: AgentId): string {
+export function sectionLabel(id: BriefSectionId): string {
   return BRIEF_SECTIONS.find((s) => s.id === id)?.label ?? id;
+}
+
+export function isBriefSectionId(v: unknown): v is BriefSectionId {
+  return typeof v === "string" && BRIEF_SECTIONS.some((s) => s.id === v);
+}
+
+/**
+ * The sections whose boxes an agent may tick with a ```tick block: its own,
+ * and for the Manager the two call checklists too (Jake, 2026-10-17). Jake can
+ * tick any manual box from the app.
+ */
+export function tickSections(agent: AgentId): BriefSectionId[] {
+  return agent === "manager" ? ["manager", "onboarding-call", "launch-call"] : [agent];
 }
 
 /** Every section in order; one nobody wrote yet is empty at version 0. */

@@ -2,14 +2,15 @@ import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } 
 import type { Editor } from "@tiptap/react";
 import { CloudAlert, CloudCheck, CloudUpload, ExternalLink, Gauge } from "lucide-react";
 import type { AgentId } from "../../../lib/agents";
-import type { BriefDrive, BriefSection } from "../../../lib/agentWire";
+import type { BriefDrive, BriefSection, BriefSectionId } from "../../../lib/agentWire";
 import { briefDraft, initDraft, needsSave } from "../../../lib/briefDraft";
 import { markdownToPlain } from "../../../lib/briefMarkdown";
 import { AGENT_COLORS } from "../../../lib/brainGraph";
 import { driveChip, fullBrief, sectionLabel, whoEdited } from "../../../lib/clientBrief";
-import { AGENT_ICONS } from "../clientRowIcons";
+import { BRIEF_SECTION_ICONS } from "../clientRowIcons";
 import { BriefEditor, BriefToolbar } from "./BriefEditor";
 import { useClientBrief, useSaveBriefSection } from "./agentApi";
+import { SectionBoxes, StatusActions } from "./BriefBoxes";
 
 // The Client Brief (docs/build-plans/agents.md, Phase 6), drawn two ways from
 // the same pieces: beside the chat on every client agent page (BriefTab), and
@@ -20,6 +21,14 @@ import { useClientBrief, useSaveBriefSection } from "./agentApi";
 // top, click anywhere and type. Each section is its own editor under its own
 // heading (owner and last edit beside it), saved on its own with the version
 // lock, so an agent rewriting Ads never touches the Status Jake is typing.
+
+// The agents' colours, and one each for the sections no agent owns.
+const SECTION_COLORS: Record<BriefSectionId, string> = {
+  ...AGENT_COLORS,
+  client: "#4DBB83",
+  "onboarding-call": "#6366f1",
+  "launch-call": "#ef4444",
+};
 
 // How long typing must pause before a section saves itself.
 const AUTOSAVE_MS = 1_000;
@@ -106,7 +115,7 @@ export function SectionBlock({
   // Leaving the page with text still waiting on the debounce saves it now.
   useEffect(() => () => void runRef.current(), []);
 
-  const Icon = AGENT_ICONS[section.section] ?? Gauge;
+  const Icon = BRIEF_SECTION_ICONS[section.section] ?? Gauge;
   const who = whoEdited(state.base, new Date());
   const status = state.saving
     ? "Saving"
@@ -121,7 +130,7 @@ export function SectionBlock({
   return (
     <section className={`brf-sec${mine ? " mine" : ""}`}>
       <div className="brf-sec-top">
-        <span className="brf-sec-ic" style={{ background: AGENT_COLORS[section.section] }}>
+        <span className="brf-sec-ic" style={{ background: SECTION_COLORS[section.section] }}>
           <Icon />
         </span>
         <h3 className="brf-sec-t">{sectionLabel(section.section)}</h3>
@@ -130,6 +139,8 @@ export function SectionBlock({
           {who && <span className={`brf-who${state.base.updatedBy === "jake" ? " you" : ""}`}>{who}</span>}
         </span>
       </div>
+
+      {section.section === "manager" && <StatusActions tenantId={tenantId} />}
 
       {state.conflict && (
         <div className="brf-conflict" role="alert">
@@ -155,6 +166,8 @@ export function SectionBlock({
         onFocus={onFocus}
         label={`${sectionLabel(section.section)} section`}
       />
+
+      <SectionBoxes tenantId={tenantId} section={section.section} />
     </section>
   );
 }
@@ -193,7 +206,7 @@ export function BriefTab({ tenantId, agent }: { tenantId: string; agent: AgentId
   );
 }
 
-type TabId = "all" | AgentId;
+type TabId = "all" | BriefSectionId;
 
 // The client's Brief page: Google Docs style, a tab list on the left with All
 // and one tab per section, the chosen tab as a page on the right.
@@ -234,7 +247,7 @@ export function BriefPage({ tenantId, brandColor }: { tenantId: string; brandCol
               All
             </button>
             {sections.map((s) => {
-              const Icon = AGENT_ICONS[s.section] ?? Gauge;
+              const Icon = BRIEF_SECTION_ICONS[s.section] ?? Gauge;
               return (
                 <button
                   key={s.section}
@@ -285,9 +298,11 @@ function BriefStyle() {
         --brand-text: color-mix(in srgb, var(--brand) 70%, white);
       }
       .brf *, .brf *::before, .brf *::after { box-sizing: border-box; }
-      .brf button, .brf select { font: inherit; cursor: pointer; color: inherit; }
-      .brf button { border: 0; background: none; }
-      .brf button:disabled, .brf select:disabled { cursor: default; opacity: .4; }
+      /* Zero specificity, so the app's own buttons inside the brief (Status
+         actions, Accounts fixes) keep their look. */
+      :where(.brf) button, :where(.brf) select { font: inherit; cursor: pointer; color: inherit; }
+      :where(.brf) button { border: 0; background: none; }
+      :where(.brf) button:disabled, :where(.brf) select:disabled { cursor: default; opacity: .4; }
       .brf svg { flex-shrink: 0; }
       .brf-note { padding: 16px 8px; font-size: 13px; color: var(--text-faint); text-align: center; }
       .brf-grow { flex: 1; }
@@ -365,6 +380,21 @@ function BriefStyle() {
       .brf-actions { display: flex; gap: 8px; margin-top: 10px; }
       .brf .brf-b1 { flex: 1; padding: 7px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: #fff; background-image: var(--grad-brand); }
       .brf .brf-b2 { flex: 1; padding: 7px; border-radius: 10px; font-size: 12.5px; font-weight: 600; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+
+      /* Status actions and the boxes under a section. */
+      .brf-actions-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
+      .brf-boxes { margin-top: 10px; padding-top: 6px; border-top: 1px dashed var(--border); }
+      .brf-box { display: flex; align-items: flex-start; gap: 12px; padding: 6px 12px; border-radius: 8px; }
+      .brf-box:hover { background: var(--surface-2); }
+      .brf .brf-check { margin-top: 1px; width: 20px; height: 20px; flex-shrink: 0; display: grid; place-items: center; border-radius: 6px; border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--brand-fg, #fff); }
+      .brf .brf-check:hover { border-color: var(--brand); }
+      .brf .brf-check.on { border-color: var(--brand); background: var(--brand); }
+      .brf-box-body { min-width: 0; flex: 1; }
+      .brf .brf-box-label { text-align: left; font-size: 14px; font-weight: 500; color: var(--text); }
+      .brf .brf-box-label.on { color: var(--text-faint); text-decoration: line-through; }
+      .brf-box-sub { margin: 2px 0 0; font-size: 12.5px; color: var(--text-muted); }
+      .brf-box-group { margin: 10px 0 2px; padding: 0 12px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint); }
+      .brf-box-note { padding: 6px 12px; font-size: 12.5px; color: var(--text-faint); }
 
       .brf-page-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
       .brf-title { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -.02em; margin: 0; }

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ExternalLink, RefreshCw, X } from "lucide-react";
+import { Check, ExternalLink, X } from "lucide-react";
 import { Button } from "../../ui/Button";
 import SubaccountCard from "../onboarding/SubaccountCard";
 import { useClientAccountsQuery, useFixOwnerLinks } from "../../../hooks/useApi";
@@ -10,15 +10,18 @@ import { ADS_SETUP_SUB } from "../../../lib/fulfillmentPages";
 import type { AccountCheck, AccountCheckId } from "../../../../functions/lib/clientAccounts";
 import type { AdminClient } from "../../../lib/api";
 
-// Client > Accounts (Jake, 2026-10-10): every account and GHL piece the client
-// needs, green or red, with a fix button on each red row. Checks run on the
-// server (functions/lib/clientAccounts.ts). Each fix reuses the screen or
+// The Accounts checks (Jake, 2026-10-10), every account and GHL piece the
+// client needs, green or red, with a fix button on each red one. Checks run on
+// the server (functions/lib/clientAccounts.ts). Each fix reuses the screen or
 // endpoint that already owns that setting, so there is one way to set each.
 //
-// Heading, rows, buttons. No helper text (Jake's no-sub-text rule); the red
-// row's short detail is the only words beyond the labels.
+// Brief v2 (Jake, 2026-10-17): the Accounts page went. Each check is an auto
+// box in its brief section (lib/briefChecklist.ts, ACCOUNT_CHECK_SECTION): it
+// follows the live check, so it cannot be ticked by hand, and a red one shows
+// its short detail and its fix. No helper text; the detail is the only words
+// beyond the label.
 
-const LABELS: Record<AccountCheckId, string> = {
+export const ACCOUNT_LABELS: Record<AccountCheckId, string> = {
   ghl: "GHL Marketplace app",
   "meta-ads": "Meta ad account",
   "meta-page": "Facebook Page",
@@ -30,81 +33,9 @@ const LABELS: Record<AccountCheckId, string> = {
   push: "Phone alerts",
 };
 
-const GROUPS: { caption: string; ids: AccountCheckId[] }[] = [
-  { caption: "Accounts", ids: ["ghl", "meta-ads", "meta-page"] },
-  { caption: "GHL", ids: ["pipeline", "calendars", "owner-links", "owner-phone"] },
-  { caption: "Client", ids: ["login", "push"] },
-];
-
 const APP_URL = "https://app.hauckmarketing.com";
 
-export default function AccountsTab({ client }: { client: AdminClient }) {
-  const query = useClientAccountsQuery(client.id);
-  const checks = query.data?.checks ?? [];
-  const byId = new Map(checks.map((c) => [c.id, c]));
-  const green = checks.filter((c) => c.state === "ok").length;
-
-  return (
-    <div className="space-y-5">
-      <header className="flex items-center gap-3">
-        <h2 className="flex-1 font-display text-[19px] font-semibold text-text">Accounts</h2>
-        {checks.length > 0 && (
-          <span className="text-[13px] font-semibold tabular-nums text-muted">
-            {green} / {checks.length}
-          </span>
-        )}
-        <Button size="sm" onClick={() => void query.refetch()} loading={query.isFetching}>
-          {!query.isFetching && <RefreshCw size={14} />} Check again
-        </Button>
-      </header>
-
-      {query.isLoading && <div className="pk-empty">Checking...</div>}
-      {query.isLoadingError && <div className="pk-empty">{(query.error as Error).message || "Could not check."}</div>}
-
-      {checks.length > 0 &&
-        GROUPS.map((g) => (
-          <section
-            key={g.caption}
-            className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]"
-          >
-            <h3 className="label-cap border-b border-border px-5 py-3">{g.caption}</h3>
-            <ul className="divide-y divide-border">
-              {g.ids.map((id) => {
-                const c = byId.get(id);
-                return c ? (
-                  <CheckRow key={id} check={c} client={client} locationId={query.data?.locationId ?? null} />
-                ) : null;
-              })}
-            </ul>
-          </section>
-        ))}
-    </div>
-  );
-}
-
-function StateMark({ state }: { state: AccountCheck["state"] }) {
-  if (state === "ok") {
-    return (
-      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-tint text-brand-text" aria-label="Connected">
-        <Check size={14} strokeWidth={3} />
-      </span>
-    );
-  }
-  const red = state === "missing";
-  return (
-    <span
-      className={
-        "grid h-6 w-6 shrink-0 place-items-center rounded-full " +
-        (red ? "bg-danger/15 text-danger" : "bg-surface-3 text-faint")
-      }
-      aria-label={red ? "Not connected" : "Not checked"}
-    >
-      <X size={14} strokeWidth={3} />
-    </span>
-  );
-}
-
-function CheckRow({
+export function AccountCheckBox({
   check,
   client,
   locationId,
@@ -114,32 +45,51 @@ function CheckRow({
   locationId: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const ok = check.state === "ok";
   // The Facebook Page can always be changed, even once one is picked.
-  const fixable =
-    check.state === "missing" || (check.id === "ghl" && check.state !== "ok") || check.id === "meta-page";
-  const panel = open ? <FixPanel id={check.id} client={client} /> : null;
+  const fixable = check.state === "missing" || (check.id === "ghl" && !ok) || check.id === "meta-page";
+  const red = check.state === "missing";
 
   return (
-    <li>
-      <div className="flex flex-wrap items-center gap-3 px-5 py-3.5">
-        <StateMark state={check.state} />
+    <div>
+      <div className="flex flex-wrap items-start gap-3 rounded-[var(--radius)] px-3 py-2">
+        <span
+          role="checkbox"
+          aria-checked={ok}
+          aria-disabled="true"
+          aria-label={ACCOUNT_LABELS[check.id]}
+          className={
+            "mt-px grid h-5 w-5 shrink-0 place-items-center rounded-[6px] border-[1.5px] " +
+            (ok
+              ? "border-brand bg-brand text-brand-fg"
+              : red
+                ? "border-danger/60 bg-danger/10 text-danger"
+                : "border-border-strong bg-surface-2 text-faint")
+          }
+        >
+          {ok ? <Check size={13} strokeWidth={3} aria-hidden /> : <X size={12} strokeWidth={3} aria-hidden />}
+        </span>
         <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-semibold text-text">{LABELS[check.id]}</div>
-          {check.detail && <div className="text-[12.5px] text-muted">{check.detail}</div>}
+          <div className={"text-[14px] font-medium " + (ok ? "text-faint" : "text-text")}>{ACCOUNT_LABELS[check.id]}</div>
+          {check.detail && <div className={"text-[12.5px] " + (red ? "text-danger" : "text-muted")}>{check.detail}</div>}
         </div>
         {fixable && (
           <FixButton
             id={check.id}
             client={client}
             locationId={locationId}
-            done={check.state === "ok"}
+            done={ok}
             open={open}
             onToggle={() => setOpen((v) => !v)}
           />
         )}
       </div>
-      {panel && <div className="border-t border-border bg-surface-2 px-5 py-4">{panel}</div>}
-    </li>
+      {open && (
+        <div className="mx-3 mb-2 rounded-[var(--radius)] border border-border bg-surface-2 px-4 py-3">
+          <FixPanel id={check.id} client={client} />
+        </div>
+      )}
+    </div>
   );
 }
 

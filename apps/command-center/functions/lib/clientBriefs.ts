@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isAgentId, type AgentId } from "../../src/lib/agents";
-import type { BriefAuthor, BriefDrive, BriefSection, ClaimResponse, RunnerBriefBody } from "../../src/lib/agentWire";
-import { fullBrief, isBriefAuthor, MAX_SECTION_CHARS } from "../../src/lib/clientBrief";
+import type { BriefAuthor, BriefDrive, BriefSection, BriefSectionId, ClaimResponse, RunnerBriefBody } from "../../src/lib/agentWire";
+import { fullBrief, isBriefAuthor, isBriefSectionId, MAX_SECTION_CHARS } from "../../src/lib/clientBrief";
+import { clientSeed } from "../../src/lib/briefClientSeed";
+import { claimBoxes } from "../../src/lib/briefChecklist";
 import { isUuid } from "./agentItems";
 import { messageFromRow, stripEmDash, type ClaimCore } from "./agentRunner";
 
@@ -27,7 +29,7 @@ function fail(what: string, error: { message: string } | null): void {
 
 export function sectionFromRow(r: Row): BriefSection {
   return {
-    section: r.section as AgentId,
+    section: r.section as BriefSectionId,
     body: (r.body as string) ?? "",
     version: Number(r.version) || 0,
     updatedBy: isBriefAuthor(r.updated_by) ? r.updated_by : null,
@@ -35,15 +37,15 @@ export function sectionFromRow(r: Row): BriefSection {
   };
 }
 
-const unwritten = (section: AgentId): BriefSection => ({ section, body: "", version: 0, updatedBy: null, updatedAt: null });
+const unwritten = (section: BriefSectionId): BriefSection => ({ section, body: "", version: 0, updatedBy: null, updatedAt: null });
 
 export async function readBrief(client: SupabaseClient, tenantId: string): Promise<BriefSection[]> {
   const { data, error } = await client.from("client_briefs").select("*").eq("tenant_id", tenantId);
   fail("brief", error);
-  return fullBrief(((data ?? []) as Row[]).filter((r) => isAgentId(r.section as string)).map(sectionFromRow));
+  return fullBrief(((data ?? []) as Row[]).filter((r) => isBriefSectionId(r.section)).map(sectionFromRow));
 }
 
-async function currentSection(client: SupabaseClient, tenantId: string, section: AgentId): Promise<BriefSection> {
+async function currentSection(client: SupabaseClient, tenantId: string, section: BriefSectionId): Promise<BriefSection> {
   const { data, error } = await client
     .from("client_briefs")
     .select("*")
@@ -56,7 +58,7 @@ async function currentSection(client: SupabaseClient, tenantId: string, section:
 
 export interface SaveInput {
   tenantId: string;
-  section: AgentId;
+  section: BriefSectionId;
   body: string;
   version: number;
   by: BriefAuthor;
@@ -65,7 +67,7 @@ export interface SaveInput {
 export async function saveBriefSection(client: SupabaseClient, input: SaveInput, now: Date = new Date()): Promise<SaveResult> {
   const { tenantId, section, body, version, by } = input;
   if (!isUuid(tenantId)) return { error: 400, reason: "tenant required" };
-  if (!isAgentId(section)) return { error: 400, reason: "unknown section" };
+  if (!isBriefSectionId(section)) return { error: 400, reason: "unknown section" };
   if (!Number.isInteger(version) || version < 0) return { error: 400, reason: "version must be a whole number" };
   if (typeof body !== "string" || body.length > MAX_SECTION_CHARS) return { error: 400, reason: "body too long" };
   if (!isBriefAuthor(by)) return { error: 400, reason: "unknown author" };
@@ -104,20 +106,17 @@ export type AgentSaveResult =
   | { tenantId: string; conflict: BriefSection }
   | { error: 400 | 403 | 404 | 409; reason: string };
 
+export type TurnChat = { agent: AgentId; tenantId: string } | { error: 400 | 403 | 404 | 409; reason: string };
+
 /**
- * An agent rewrites its own section.
- *
- * The runner holds a secret, not Jake's session, so the section is never taken
- * from the request: it is the agent whose chat the claimed message is in, read
- * back from the database. A message that is not a running `me` message has no
- * turn behind it and is refused. The agency Manager has no client and so no
- * brief.
+ * The agent and client behind a runner write, read from the database: the
+ * claimed message must be a running `me` message, and its chat's agent is the
+ * writer. The runner holds a secret, not Jake's session, so nothing about who
+ * is writing is ever taken from the request. The agency has no brief.
  */
-export async function agentSaveBrief(client: SupabaseClient, body: RunnerBriefBody, now: Date = new Date()): Promise<AgentSaveResult> {
-  if (!isUuid(body?.messageId) || typeof body.body !== "string" || typeof body.version !== "number") {
-    return { error: 400, reason: "messageId, body and version are required" };
-  }
-  const { data: msgRow, error: mErr } = await client.from("agent_messages").select("*").eq("id", body.messageId).maybeSingle();
+export async function turnChat(client: SupabaseClient, messageId: unknown): Promise<TurnChat> {
+  if (!isUuid(messageId)) return { error: 400, reason: "messageId required" };
+  const { data: msgRow, error: mErr } = await client.from("agent_messages").select("*").eq("id", messageId).maybeSingle();
   fail("message", mErr);
   if (!msgRow || (msgRow as Row).role !== "me") return { error: 404, reason: "message not found" };
   const message = messageFromRow(msgRow as Row);
@@ -134,6 +133,21 @@ export async function agentSaveBrief(client: SupabaseClient, body: RunnerBriefBo
   const tenantId = (chat as Row).tenant_id as string | null;
   if (!tenantId) return { error: 403, reason: "the agency has no brief" };
   if (!isAgentId(agent)) return { error: 403, reason: "unknown agent" };
+  return { agent, tenantId };
+}
+
+/**
+ * An agent rewrites its own section: the section is the agent of the claimed
+ * message's chat (turnChat), so a request has no way to aim at another. The
+ * three sections no agent owns (Client and the two calls) are out of reach.
+ */
+export async function agentSaveBrief(client: SupabaseClient, body: RunnerBriefBody, now: Date = new Date()): Promise<AgentSaveResult> {
+  if (!isUuid(body?.messageId) || typeof body.body !== "string" || typeof body.version !== "number") {
+    return { error: 400, reason: "messageId, body and version are required" };
+  }
+  const who = await turnChat(client, body.messageId);
+  if ("error" in who) return who;
+  const { agent, tenantId } = who;
 
   const res = await saveBriefSection(
     client,
@@ -157,14 +171,65 @@ export async function readBriefDrive(client: SupabaseClient, tenantId: string): 
   };
 }
 
-/** The claim as the runner gets it: the client's whole brief rides along. */
+/**
+ * Brief v2: the Client section starts as the onboarding form's answers. While
+ * it is unwritten (version 0) and the client filled the form in, it is written
+ * once from them, as Jake's (it is his to edit from then on). A secret's value
+ * never goes in (briefClientSeed.ts); the password is only ever "on file".
+ *
+ * Returns the brief with the seeded section in place, and whether it wrote, so
+ * the caller can sync Drive. A save that loses the race to another seed or an
+ * edit is fine: the section is written either way, so it is read back.
+ */
+export async function seedClientSection(
+  client: SupabaseClient,
+  tenantId: string,
+  sections: BriefSection[],
+  now: Date = new Date(),
+): Promise<{ sections: BriefSection[]; seeded: boolean }> {
+  const current = sections.find((s) => s.section === "client");
+  if (!current || current.version > 0) return { sections, seeded: false };
+  const { data: row, error } = await client.from("onboarding").select("intake").eq("tenant_id", tenantId).maybeSingle();
+  fail("onboarding", error);
+  const intake = ((row as Row | null)?.intake ?? {}) as Record<string, unknown>;
+  const { data: sub } = await client
+    .from("intake_submissions")
+    .select("password_plain")
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const hasPassword = Boolean(((sub as Row | null)?.password_plain as string | null)?.trim());
+  const body = clientSeed(intake, { hasPassword });
+  if (!body) return { sections, seeded: false };
+  const res = await saveBriefSection(client, { tenantId, section: "client", body, version: 0, by: "jake" }, now);
+  const next = "saved" in res ? res.saved : "conflict" in res ? res.conflict : null;
+  if (!next) return { sections, seeded: false };
+  return { sections: sections.map((s) => (s.section === "client" ? next : s)), seeded: "saved" in res };
+}
+
+/** The done "sop:" keys of a client's checklist. */
+async function doneKeys(client: SupabaseClient, tenantId: string): Promise<Set<string>> {
+  const { data, error } = await client.from("onboarding_checklist").select("task_key, done").eq("tenant_id", tenantId);
+  fail("checklist", error);
+  return new Set(((data ?? []) as Row[]).filter((r) => r.done).map((r) => r.task_key as string));
+}
+
+/**
+ * The claim as the runner gets it: the client's whole brief rides along, the
+ * Client section seeded if it is still empty, and each section carries its
+ * manual boxes and their state, so an agent knows what it may tick.
+ */
 export async function withBrief(client: SupabaseClient, claim: ClaimCore | null): Promise<ClaimResponse | null> {
   if (!claim) return null;
   if (!claim.tenant) return { ...claim, brief: [] };
   // The message is already claimed (running) by now. A brief read that fails
   // must not throw it away: the agent answers without the brief instead.
   try {
-    return { ...claim, brief: await readBrief(client, claim.tenant.id) };
+    const tenantId = claim.tenant.id;
+    const { sections } = await seedClientSection(client, tenantId, await readBrief(client, tenantId));
+    const done = await doneKeys(client, tenantId).catch(() => new Set<string>());
+    return { ...claim, brief: sections.map((s) => ({ ...s, boxes: claimBoxes(s.section, done) })) };
   } catch (err) {
     console.error(`claim: brief read failed for ${claim.tenant.id}: ${(err as Error).message}`);
     return { ...claim, brief: [] };

@@ -26,6 +26,20 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-17-brief-v2",
+    date: "17 October 2026",
+    title: "The Brief replaces the setup pages",
+    items: [
+      "Brief is now at the top of every client. Full Setup Checklist, Onboarding Call, Launch Call, Accounts, Client Information and Software are gone, and their old links open the Brief.",
+      "The Brief starts with Client: everything from their onboarding form, under Business, Owner & contact, Services & pricing, Service area, Offer, Branding and Logins. Passwords and keys only say on file.",
+      "Each section has its checklist boxes under its text, with every tick you already made kept. Onboarding Call and Launch Call are their own sections.",
+      "The account checks are boxes too, in Status, Ads and GHL. They tick themselves when the account is connected, and a red one shows what is missing and its fix button.",
+      "Software setup, Create client folder and Go live are at the top of Status.",
+      "Agents tick the boxes in their own section when that work is finished. The Manager ticks Status and both calls.",
+      "The sub-account, dialing and estimate cards moved to Management.",
+    ],
+  },
+  {
     id: "2026-10-17-agent-sops",
     date: "17 October 2026",
     title: "Agent SOPs",

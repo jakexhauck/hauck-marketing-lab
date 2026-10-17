@@ -207,8 +207,8 @@ export default function ImageConverterTab({ tenantId }: { tenantId: string }) {
         ) : !query.data?.folderUrl ? (
           <div className="flex flex-col items-center gap-3 py-10 text-[13px] text-muted">
             No Drive folder yet.
-            <Link to={clientPath(tenantId, "full-setup")} className="font-semibold text-brand hover:underline">
-              Full Setup Checklist
+            <Link to={clientPath(tenantId, "brief")} className="font-semibold text-brand hover:underline">
+              Brief
             </Link>
           </div>
         ) : images.length === 0 ? (

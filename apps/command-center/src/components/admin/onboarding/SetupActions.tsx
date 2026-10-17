@@ -14,8 +14,9 @@ import { useFillClientDocs } from "../../../hooks/useSopApi";
 import type { AdminOnboardingListItem } from "../../../lib/api";
 import { bundleLabel, dialerLabel } from "../../../lib/onboardingWizard";
 
-// The buttons that used to head Setup Checklist, now on Full Setup Checklist
-// (Jake, 2026-10-13: Setup Checklist removed). Software setup (a pop-up,
+// The buttons that used to head Setup Checklist, then Full Setup Checklist
+// (Jake, 2026-10-13: Setup Checklist removed), and since Brief v2
+// (2026-10-17) the top of the brief's Status section (agents/BriefBoxes.tsx). Software setup (a pop-up,
 // SoftwareDialog), Create client folder (clientDriveFolder.ts), Go live and
 // Delete.
 //

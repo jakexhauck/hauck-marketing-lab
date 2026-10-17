@@ -1,11 +1,34 @@
 import { describe, it, expect } from "vitest";
-import { BRIEF_SECTIONS, briefRevision, driveChip, fullBrief, sectionLabel, whoEdited } from "./clientBrief";
+import {
+  BRIEF_SECTIONS,
+  briefRevision,
+  driveChip,
+  fullBrief,
+  isBriefSectionId,
+  sectionLabel,
+  tickSections,
+  whoEdited,
+} from "./clientBrief";
 
 describe("BRIEF_SECTIONS", () => {
-  it("has one section per agent, Status first", () => {
-    expect(BRIEF_SECTIONS.map((s) => s.id)).toEqual(["manager", "research", "ads", "creative", "landing", "ghl", "reporting"]);
+  it("is Client, Status, the two calls, then one section per agent", () => {
+    expect(BRIEF_SECTIONS.map((s) => s.id)).toEqual([
+      "client",
+      "manager",
+      "onboarding-call",
+      "launch-call",
+      "research",
+      "ads",
+      "creative",
+      "landing",
+      "ghl",
+      "reporting",
+    ]);
     expect(BRIEF_SECTIONS.map((s) => s.label)).toEqual([
+      "Client",
       "Status",
+      "Onboarding Call",
+      "Launch Call",
       "Market Research",
       "Ads",
       "Creative",
@@ -14,6 +37,23 @@ describe("BRIEF_SECTIONS", () => {
       "Reporting",
     ]);
     expect(sectionLabel("landing")).toBe("Landing Page");
+    expect(sectionLabel("onboarding-call")).toBe("Onboarding Call");
+  });
+
+  it("knows its own ids and nothing else", () => {
+    expect(isBriefSectionId("client")).toBe(true);
+    expect(isBriefSectionId("launch-call")).toBe(true);
+    expect(isBriefSectionId("ads")).toBe(true);
+    expect(isBriefSectionId("full-setup")).toBe(false);
+    expect(isBriefSectionId(undefined)).toBe(false);
+  });
+});
+
+describe("tickSections", () => {
+  it("lets the Manager tick Status and both calls, every other agent only its own", () => {
+    expect(tickSections("manager")).toEqual(["manager", "onboarding-call", "launch-call"]);
+    expect(tickSections("ads")).toEqual(["ads"]);
+    expect(tickSections("research")).toEqual(["research"]);
   });
 });
 
@@ -23,8 +63,8 @@ describe("fullBrief", () => {
       { section: "ads", body: "Cap $40/day", version: 3, updatedBy: "jake", updatedAt: "2026-10-17T10:00:00Z" },
     ]);
     expect(out.map((s) => s.section)).toEqual(BRIEF_SECTIONS.map((s) => s.id));
-    expect(out[2]).toMatchObject({ section: "ads", body: "Cap $40/day", version: 3 });
-    expect(out[0]).toEqual({ section: "manager", body: "", version: 0, updatedBy: null, updatedAt: null });
+    expect(out[5]).toMatchObject({ section: "ads", body: "Cap $40/day", version: 3 });
+    expect(out[1]).toEqual({ section: "manager", body: "", version: 0, updatedBy: null, updatedAt: null });
   });
 
   it("ignores rows for unknown sections", () => {

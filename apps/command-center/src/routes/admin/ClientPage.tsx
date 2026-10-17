@@ -1,17 +1,12 @@
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Eye } from "lucide-react";
-import SetupActions from "../../components/admin/onboarding/SetupActions";
-import SopChecklist from "../../components/admin/onboarding/SopChecklist";
-import { ClientSheet } from "../../components/admin/onboarding/OnboardingSheet";
 import GhlTab from "../../components/admin/cockpit/ghl/GhlTab";
-import AccountsTab from "../../components/admin/cockpit/AccountsTab";
 import ManagementTab from "../../components/admin/cockpit/ManagementTab";
 import ImageConverterTab from "../../components/admin/cockpit/ImageConverterTab";
 import AgentPage from "../../components/admin/agents/AgentPage";
 import { BriefPage } from "../../components/admin/agents/BriefPanel";
 import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
-import SoftwareTab from "../../components/admin/cockpit/software/SoftwareTab";
 import { adminHomeFor } from "./AdminLayout";
 import { useAuth } from "../../context/AuthContext";
 import { useAdminClientsQuery } from "../../hooks/useApi";
@@ -51,7 +46,7 @@ export default function ClientPage() {
   if (!client) return <Navigate to={OWNER_HOME} replace />;
 
   const resolved = resolveClientPage(client, page, sub ?? null);
-  if (!resolved) return <Navigate to={clientPath(client.id, "full-setup")} replace />;
+  if (!resolved) return <Navigate to={clientPath(client.id, "brief")} replace />;
   if (resolved.page !== page || resolved.sub !== (sub ?? null)) {
     return <Navigate to={clientPath(client.id, resolved.page, resolved.sub)} replace />;
   }
@@ -114,33 +109,8 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
   const go = (p: ClientPageId) => (next: string) => navigate(clientPath(client.id, p, next));
 
   switch (page) {
-    case "full-setup":
-      return (
-        <SopChecklist
-          key={page}
-          tenantId={client.id}
-          list={page}
-          actions={<SetupActions tenantId={client.id} home={OWNER_HOME} />}
-        />
-      );
-    case "onboarding-call":
-    case "launch-call":
-      return <SopChecklist key={page} tenantId={client.id} list={page} />;
-    case "accounts":
-      return <AccountsTab client={client} />;
-    case "info":
-      // Everything the onboarding form collected, copyable line by line, with
-      // the sub-account, dialing and estimate cards above it.
-      return (
-        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-          <h2 className="px-5 py-4 font-display text-[17px] font-semibold text-text">{client.name}</h2>
-          <ClientSheet tenantId={client.id} />
-        </div>
-      );
     case "brief":
       return <BriefPage tenantId={client.id} brandColor={client.brandColor} />;
-    case "software":
-      return <SoftwareTab tenantId={client.id} />;
     case "paid-ads":
       return (
         <PaidAdsTab
@@ -163,7 +133,13 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
         />
       );
     case "management":
-      return <ManagementTab tenantId={client.id} />;
+      return (
+        <ManagementTab
+          tenantId={client.id}
+          clientName={client.name}
+          isLive={client.onboardingStatus !== "setup"}
+        />
+      );
     case "image-converter":
       return <ImageConverterTab tenantId={client.id} />;
     case "agent":
