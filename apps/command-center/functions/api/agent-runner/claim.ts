@@ -1,12 +1,14 @@
 import type { Env, ApiData } from "../../lib/env";
 import { getServiceClient } from "../../lib/supabase";
 import { claimNext } from "../../lib/agentRunner";
+import { withBrief } from "../../lib/clientBriefs";
 
 // POST /api/agent-runner/claim  body { host } -> ClaimResponse | null
 //
 // The PC runner's poll. Puts this host's dead runs back first, then claims the
 // oldest queued message with the status-filtered update as the lock. See
-// lib/agentRunner.ts. Behind the runner gate in api/_middleware.ts.
+// lib/agentRunner.ts. The client's whole brief rides along
+// (lib/clientBriefs.ts). Behind the runner gate in api/_middleware.ts.
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
   let body: { host?: unknown };
@@ -20,5 +22,5 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
-  return Response.json(await claimNext(client, host));
+  return Response.json(await withBrief(client, await claimNext(client, host)));
 };

@@ -33,7 +33,7 @@ import type {
 //     prefix rule under /api/agent-runner/ is one careless file away from
 //     opening something new.
 //   - Unset or short secret means CLOSED.
-//   - A pass never sets ctx.data.admin. The secret buys these ten routes and
+//   - A pass never sets ctx.data.admin. The secret buys these routes and
 //     nothing else; it is not an admin and cannot become one.
 //
 // What a holder of the secret can do, in full: read and write the agents'
@@ -41,7 +41,8 @@ import type {
 // (file-asset, which re-checks the approval itself), read the client list,
 // read each client's numbers for a startup check, READ Meta insights, and run
 // the GHL Agent's allowlisted ops (writes only on Jake's ask or Approve,
-// checked in lib/agentGhlOps.ts). Meta writes are not reachable from
+// checked in lib/agentGhlOps.ts), and rewrite the claimed agent's OWN Client
+// Brief section at the version it read (lib/clientBriefs.ts). Meta writes are not reachable from
 // here by construction: api/agent-runner/meta.ts imports only the Graph GET
 // helpers, and a test scans that file to keep it that way.
 
@@ -58,6 +59,8 @@ export const AGENT_RUNNER_POST_PATHS: readonly string[] = [
   "file-asset",
   // The GHL Agent's ops. Writes are gated inside (lib/agentGhlOps.ts).
   "ghl",
+  // An agent rewrites its own Client Brief section (lib/clientBriefs.ts).
+  "brief",
 ].map((p) => BASE + p);
 
 /** Routes the runner may GET. */
@@ -198,6 +201,10 @@ export async function reclaimStale(
   return (data ?? []).length;
 }
 
+// The claim before the client's brief is added (clientBriefs.withBrief, in the
+// handler), so this file and the brief store do not import each other.
+export type ClaimCore = Omit<ClaimResponse, "brief">;
+
 /**
  * Claim the oldest queued `me` message for this host, or null.
  *
@@ -211,7 +218,7 @@ export async function claimNext(
   client: SupabaseClient,
   host: string,
   now: Date = new Date(),
-): Promise<ClaimResponse | null> {
+): Promise<ClaimCore | null> {
   await reclaimStale(client, host, STALE_SECONDS, now);
 
   const { data: queued, error: qErr } = await client
