@@ -10,6 +10,7 @@ Memory backend for the agents in the Hauck Marketing Lab app (Aurelius, Stratos,
 
 - `About/` — info about Jake and the agency. Injected into every chat.
 - `Clients/<Name>/` — per-client folder. `Profile.md` is form-filled at onboarding. `Memory.md` is append-only facts. `Drive Index.md` is auto-generated.
+- `Clients/<Name>/Brain.md` and `Agents/<Agent>/Brain.md`: what the Command Center agents learned, one lesson per line ending in a `^l-` block id. Written by `projects/agent-runner`; edit or delete lines freely, keep the id.
 - `Knowledge/` — general frameworks (TFC notes). Retrieved by tag/agent match.
 - `Retros/` — post-campaign retros and learnings.
 
@@ -22,7 +23,7 @@ Every chat prompt includes:
 
 ## Frontmatter conventions
 
-- `type:` profile | memory | knowledge | about | retro | meta
+- `type:` profile | memory | knowledge | about | retro | meta | brain
 - `client:` slug or `all`
 - `agent:` aurelius | stratos | vortex | nexus | zenith | `all`
 - `tags:` YAML list
