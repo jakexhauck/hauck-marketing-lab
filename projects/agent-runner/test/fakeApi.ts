@@ -26,7 +26,13 @@ export interface FakeApi extends RunnerApi {
   snapshots: Record<string, Snapshot>;
   tenantList: ClaimTenant[];
   heartbeatReply: HeartbeatResponse;
+  // Cards Jake has decided (or that belong to another chat or agent): the
+  // real endpoint refuses a rewrite of one, so this does too.
+  refused: Set<string>;
 }
+
+// The n-th card id the fake hands out: a real uuid shape, as the app's are.
+export const fakeId = (n: number) => `${n.toString(16).padStart(8, "0")}-0000-4000-8000-000000000000`;
 
 export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "tenantList" | "heartbeatReply">> = {}): FakeApi {
   const api: FakeApi = {
@@ -40,6 +46,7 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     snapshots: init.snapshots ?? {},
     tenantList: init.tenantList ?? [],
     heartbeatReply: init.heartbeatReply ?? { lastMonitorAt: null, queuedEdits: [] },
+    refused: new Set(),
     async claim() {
       return api.claims.shift() ?? null;
     },
@@ -47,8 +54,9 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
       api.replies.push(b);
     },
     async item(b) {
+      if (b.id && api.refused.has(b.id)) throw new Error("POST item 400: {\"error\":\"item not found\"}");
       api.items.push(b);
-      return { id: `item-${api.items.length}` };
+      return { id: b.id ?? fakeId(api.items.length) };
     },
     async lessons(b) {
       api.lessonPosts.push(b);

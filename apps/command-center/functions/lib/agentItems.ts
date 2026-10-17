@@ -272,11 +272,13 @@ export async function upsertItem(client: SupabaseClient, body: ItemBody): Promis
 
   if (body.id) {
     // The id comes from model output, so it is only trusted for a card this
-    // agent owns at this client, and only while Jake has not decided it: a
-    // done or declined card reopened as needs_ok would earn a second Approve.
+    // agent owns at this client, in the chat it is working in, and only while
+    // Jake has not decided it: a done or declined card reopened as needs_ok
+    // would earn a second Approve.
     const { tenant_id: _t, agent: _a, ...changes } = fields;
     let q = client.from("agent_items").update(changes).eq("id", body.id).eq("agent", body.agent);
     q = body.tenantId === null ? q.is("tenant_id", null) : q.eq("tenant_id", body.tenantId);
+    if (typeof body.chatId === "string") q = q.eq("chat_id", body.chatId);
     const { data, error } = await q.in("status", ["building", "needs_ok"]).select("*").maybeSingle();
     fail("item update", error);
     if (!data) throw new ItemInputError("item not found");

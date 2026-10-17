@@ -3,8 +3,10 @@
 // world happens here.
 //
 //   Draft    The agent writes a static site to site/<name>/ in its work folder
-//            and files an item with payload.site = "<name>". The runner copies
-//            it to data/sites/<client slug>/<itemId>/ (snapshotSite), deploys
+//            and files an item with payload.site = "<name>". The runner posts
+//            the card first (the server refuses a decided card or another
+//            chat's), then copies the site to
+//            data/sites/<client slug>/<itemId>/ (snapshotSite), deploys
 //            that copy to the d-<itemId8> branch, and posts the card as
 //            needs_ok with { previewUrl, grant: { kind: "deploy" } }.
 //   Live     Jake's Approve queues a follow-up carrying that grant. Before the
@@ -21,6 +23,7 @@ import { join } from "node:path";
 import type { RunnerApi } from "./api.ts";
 import type { ItemDraft } from "./output.ts";
 import { snapshotSite } from "./pages.ts";
+import { UUID, within } from "./paths.ts";
 import type { ClaimResponse, ClaimTenant } from "./wire.ts";
 
 export interface LandingDeps {
@@ -36,11 +39,24 @@ const SITE_NAME = /^[a-z0-9][a-z0-9-]{0,40}$/;
 
 export const isSiteDraft = (item: ItemDraft): boolean => typeof item.payload?.site === "string";
 
-export function snapshotDir(sitesRoot: string, slug: string, itemId: string): string {
-  return join(sitesRoot, slug, itemId);
+// The card id and the slug name folders, so both are checked as what they
+// are, and the joined path must still land inside sitesRoot.
+const SLUG = /^[a-z0-9][a-z0-9-]*$/;
+function checked(slug: string, itemId: string): void {
+  if (!SLUG.test(slug)) throw new Error(`${slug} is not inside the sites folder (not a client slug)`);
+  if (!UUID.test(itemId)) throw new Error(`${itemId} is not inside the sites folder (not a card id)`);
 }
 
-const recordFile = (sitesRoot: string, slug: string, itemId: string) => join(sitesRoot, slug, `${itemId}.json`);
+export function snapshotDir(sitesRoot: string, slug: string, itemId: string): string {
+  const dir = within(sitesRoot, slug, itemId);
+  checked(slug, itemId);
+  return dir;
+}
+
+const recordFile = (sitesRoot: string, slug: string, itemId: string) => {
+  checked(slug, itemId);
+  return within(sitesRoot, slug, `${itemId}.json`);
+};
 
 /**
  * A deploy grant is the runner's to give: it is only ever set on a card the
@@ -83,16 +99,17 @@ export async function draftSite(item: ItemDraft, c: DraftContext): Promise<strin
       payload,
     });
 
-  let id = item.id;
+  // Set only once the server has accepted the card. The server is what
+  // refuses a rewrite of a decided card, or of one from another chat or
+  // agent, so it is asked before anything on disk is touched.
+  let id: string | undefined;
   try {
     if (!SITE_NAME.test(name)) throw new Error(`"${name}" is not a site folder name`);
-    if (!id) {
-      const made = (await card(undefined, "building", { ...base, steps: [{ label: "Preview", state: "now" }] })) as { id?: unknown };
-      if (typeof made?.id !== "string") throw new Error("the card was not saved");
-      id = made.id;
-    }
+    const made = (await card(item.id, "building", { ...base, steps: [{ label: "Preview", state: "now" }] })) as { id?: unknown };
+    if (typeof made?.id !== "string" || !UUID.test(made.id)) throw new Error("the card was not saved");
+    id = made.id;
     const dir = snapshotDir(c.landing.sitesRoot, c.tenant.slug, id);
-    snapshotSite(join(c.workDir, "site", name), dir);
+    snapshotSite(within(c.workDir, "site", name), dir);
     const { previewUrl } = await c.landing.deployDraft(c.tenant.slug, id, dir);
     await card(id, "needs_ok", { ...base, previewUrl, grant: { kind: "deploy" } });
     writeFileSync(recordFile(c.landing.sitesRoot, c.tenant.slug, id), JSON.stringify({ title: item.title, previewUrl }));

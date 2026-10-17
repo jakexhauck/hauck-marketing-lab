@@ -19,6 +19,7 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, renameSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { within } from "./paths.ts";
 
 export const HYPERFRAMES = "hyperframes@0.8.140";
 export const VIDEO_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..", "video");
@@ -141,13 +142,17 @@ async function run(x: Exec, cmd: string, args: string[], what: string, cwd?: str
 }
 
 // Where each step writes, inside the work folder.
-export const workPaths = (workDir: string, name: string) => ({
-  proxy: join(workDir, "proxies", `${name}.mp4`),
-  wav: join(workDir, "audio", name, `${name}.wav`),
-  transcript: join(workDir, "tx", `${name}.json`),
-  lines: join(workDir, "tx", `${name}.txt`),
-  frames: join(workDir, "frames", name),
-});
+// The name comes from model output: safeName first, and within() behind it.
+export const workPaths = (workDir: string, name: string) => {
+  if (!safeName(name)) throw new Error(`${name} is not a clip name`);
+  return {
+    proxy: within(workDir, "proxies", `${name}.mp4`),
+    wav: within(workDir, "audio", name, `${name}.wav`),
+    transcript: within(workDir, "tx", `${name}.json`),
+    lines: within(workDir, "tx", `${name}.txt`),
+    frames: within(workDir, "frames", name),
+  };
+};
 
 export async function proxy(x: Exec, src: string, out: string): Promise<void> {
   mkdirSync(dirname(out), { recursive: true });

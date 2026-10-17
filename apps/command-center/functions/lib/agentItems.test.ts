@@ -166,6 +166,16 @@ describe("upsertItem", () => {
     expect(db.rows("agent_items")[0]).toMatchObject({ tenant_id: T1, title: "Ad" });
   });
 
+  it("refuses to rewrite another chat's card", async () => {
+    const db = new FakeDb().seed("agent_items", [
+      { id: "i1", tenant_id: T1, agent: "landing", chat_id: "c1", title: "Page", status: "needs_ok", payload: {} },
+    ]);
+    await expect(
+      upsertItem(db.client(), { id: "i1", tenantId: T1, agent: "landing", chatId: "c2", kind: "page", title: "Hijack", status: "building", payload: {} }),
+    ).rejects.toThrow("item not found");
+    expect(db.rows("agent_items")[0]).toMatchObject({ chat_id: "c1", title: "Page" });
+  });
+
   it("refuses to reopen a card Jake already decided", async () => {
     const db = new FakeDb().seed("agent_items", [
       { id: "i1", tenant_id: T1, agent: "ads", chat_id: null, title: "Ad", status: "done", payload: {} },

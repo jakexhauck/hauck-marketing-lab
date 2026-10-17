@@ -3,7 +3,9 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { fileApproved, readState, runVideoBlocks, takeVideoBlocks, type CreativeDeps, type CreativeTurn } from "../src/creative.ts";
-import { fakeApi } from "./fakeApi.ts";
+import { fakeApi, fakeId } from "./fakeApi.ts";
+
+const ID1 = fakeId(1);
 import { fakeCreativeApi, fakeExec } from "./fakeCreative.ts";
 
 const F = "```";
@@ -96,7 +98,7 @@ describe("runVideoBlocks", () => {
     expect(w.runnerApi.items[0].payload.previewUrl).toBe("https://store/read/t-aag/previews/p1.mp4");
     expect(w.runnerApi.items[0].payload.grant).toBeUndefined();
     await runVideoBlocks([{ action: "preview", config: "ads/ad1.json" }], w.t, new Set());
-    expect(w.runnerApi.items[1].id).toBe("item-1");
+    expect(w.runnerApi.items[1].id).toBe(ID1);
   });
 
   it("puts a final on a file card and remembers what it staged for it", async () => {
@@ -107,7 +109,7 @@ describe("runVideoBlocks", () => {
     expect(w.runnerApi.items[0]).toMatchObject({ kind: "creative", status: "needs_ok" });
     expect(w.runnerApi.items[0].payload.grant).toEqual({ kind: "file" });
     expect(w.runnerApi.items[0].payload.path).toBe("t-aag/f1.mp4");
-    expect(readState(w.workDir).finals["item-1"]).toMatchObject({ path: "t-aag/f1.mp4", name: "ad1.mp4", type: "video/mp4" });
+    expect(readState(w.workDir).finals[ID1]).toMatchObject({ path: "t-aag/f1.mp4", name: "ad1.mp4", type: "video/mp4" });
   });
 
   it("sends a phrase not found back to the agent once, then stops", async () => {
@@ -140,7 +142,7 @@ describe("runVideoBlocks", () => {
     expect(out.notes[1]).toMatch(/cannot go into Creatives/);
     expect(w.runnerApi.items).toHaveLength(1);
     expect(w.runnerApi.items[0].payload.thumbs).toEqual(["https://store/read/t-aag/f1.mp4"]);
-    expect(readState(w.workDir).finals["item-1"]).toMatchObject({ name: "winter-offer.png", type: "image/png" });
+    expect(readState(w.workDir).finals[ID1]).toMatchObject({ name: "winter-offer.png", type: "image/png" });
   });
 });
 
@@ -149,7 +151,7 @@ describe("fileApproved", () => {
     const w = turn();
     readyToBuild(w.workDir);
     await runVideoBlocks([{ action: "final", config: "ads/ad1.json" }], w.t, new Set());
-    const note = await fileApproved({ itemId: "item-1", kind: "file", limit: null }, w.t);
+    const note = await fileApproved({ itemId: ID1, kind: "file", limit: null }, w.t);
     expect(note).toBe("Runner: filed ad1.mp4 into Creatives.");
     expect(w.c.filed[0]).toEqual({ messageId: "m1", tenantId: "t-aag", path: "t-aag/f1.mp4", name: "ad1.mp4", type: "video/mp4", size: 1 });
   });

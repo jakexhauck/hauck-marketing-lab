@@ -15,8 +15,10 @@ import {
   safeName,
   transcribe,
   transcriptLines,
+  workPaths,
   type Exec,
 } from "../src/video.ts";
+import { within } from "../src/paths.ts";
 
 function fakeExec(answer: (cmd: string, args: string[]) => { code?: number; stdout?: string; stderr?: string } = () => ({})) {
   const calls: { cmd: string; args: string[]; cwd?: string }[] = [];
@@ -44,6 +46,19 @@ describe("safeName", () => {
   it("takes lowercase words and dashes only", () => {
     expect(safeName("hey-im-ryan")).toBe("hey-im-ryan");
     for (const bad of ["../x", "Hey", "a b", "", "-x", 5, null]) expect(safeName(bad)).toBeNull();
+  });
+});
+
+describe("within and workPaths", () => {
+  it("joins only strictly inside the root", () => {
+    expect(within("C:/w", "tx", "a.json")).toBe(join("C:/w", "tx", "a.json"));
+    for (const bad of [["../x"], ["tx", "..", ".."], [""], ["C:/elsewhere"], ["a/../../b"]]) {
+      expect(() => within("C:/w", ...bad)).toThrow(/not inside/);
+    }
+  });
+  it("refuses a clip name that climbs out", () => {
+    expect(() => workPaths("C:/w", "../../bin")).toThrow();
+    expect(workPaths("C:/w", "hey").proxy).toBe(join("C:/w", "proxies", "hey.mp4"));
   });
 });
 

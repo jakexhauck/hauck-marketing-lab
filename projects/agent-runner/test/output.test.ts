@@ -64,6 +64,19 @@ describe("parseAgentOutput", () => {
   });
 });
 
+describe("item ids", () => {
+  it("keeps a uuid id and drops anything else", () => {
+    const ok = "00000001-0000-4000-8000-000000000000";
+    const text = ["Done.", "```item", JSON.stringify([
+      { id: ok, kind: "plan", title: "A" },
+      { id: "../../../bin", kind: "plan", title: "B" },
+      { id: `${ok}/..`, kind: "plan", title: "C" },
+    ]), "```"].join("\n");
+    const out = parseAgentOutput(text);
+    expect(out.items.map((i) => i.id)).toEqual([ok, undefined, undefined]);
+  });
+});
+
 describe("extractCitations", () => {
   it("lifts cited lesson ids out of the reply", () => {
     const out = extractCitations("Lead with before/after [l-3fa9c021], it won before [l-0000beef].");

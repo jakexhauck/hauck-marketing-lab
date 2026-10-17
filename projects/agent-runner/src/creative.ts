@@ -26,6 +26,7 @@ import type { RunnerApi } from "./api.ts";
 import type { CreativeApi } from "./creativeApi.ts";
 import { brandFor, BRANDS_DIR } from "../video/brand.ts";
 import { buildProject, BuildError, frames, inside, photoArgs, proxy, render, safeName, transcribe, transcriptLines, workPaths, type Exec, type RenderMode, type Word } from "./video.ts";
+import { within } from "./paths.ts";
 import type { ClaimTenant, Grant } from "./wire.ts";
 
 export interface CreativeDeps {
@@ -195,7 +196,7 @@ async function renderOne(t: CreativeTurn, state: CreativeState, b: { config: str
   const cfg = readConfig(t, b.config);
   const w = workPaths(t.workDir, cfg.source);
   if (!existsSync(w.proxy) || !existsSync(w.transcript)) throw new Error(`"${cfg.source}" is not prepared; send a prepare block for it first`);
-  const project = join(t.workDir, "videos", cfg.id);
+  const project = within(t.workDir, "videos", cfg.id);
   t.say(`Building ${cfg.id}`);
   try {
     await buildProject(t.deps.exec, { config: cfg.file, brandFile: brandFile(t), proxy: w.proxy, transcript: w.transcript, out: project });
@@ -264,7 +265,7 @@ async function photo(t: CreativeTurn, b: { source: string; as: string }, out: Ou
   const src = resolve(b.source);
   if (!t.driveDir || !inside(src, t.driveDir)) throw new Error(`${b.source} is not in the client's Drive folder`);
   if (!existsSync(src)) throw new Error(`${b.source} does not exist`);
-  const dest = join(brandAssetsDir(t.workDir), "photos", `${b.as}.jpg`);
+  const dest = within(brandAssetsDir(t.workDir), "photos", `${b.as}.jpg`);
   mkdirSync(dirname(dest), { recursive: true });
   const r = await t.deps.exec("ffmpeg", photoArgs(src, dest));
   if (r.code !== 0) throw new Error(`photo ${b.as} failed: ${r.stderr.trim().split("\n").pop()}`);
@@ -281,7 +282,7 @@ async function stage(t: CreativeTurn, state: CreativeState, b: { url: string; na
   if (!ext) throw new Error(`${type || "unknown type"} cannot go into Creatives`);
   const bytes = Buffer.from(await res.arrayBuffer());
   if (bytes.length > MAX_BYTES) throw new Error("over the 50 MB Creatives limit");
-  const file = join(t.workDir, "staged", `${b.name}.${ext}`);
+  const file = within(t.workDir, "staged", `${b.name}.${ext}`);
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, bytes);
   const up = await upload(t, file, type, false);

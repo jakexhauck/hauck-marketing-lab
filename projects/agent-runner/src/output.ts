@@ -13,6 +13,7 @@
 // Losing the reply over a stray comma would be the worse failure.
 
 import { isAgentId } from "./agents.ts";
+import { UUID } from "./paths.ts";
 import type { AgentId, ItemStatus } from "./wire.ts";
 
 export interface ItemDraft {
@@ -60,7 +61,9 @@ const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 function toItem(v: unknown): ItemDraft | null {
   if (!isObj(v) || typeof v.kind !== "string" || typeof v.title !== "string") return null;
   const out: ItemDraft = { kind: v.kind, title: v.title };
-  if (typeof v.id === "string") out.id = v.id;
+  // A card id from the model is only ever a uuid. It names a folder later
+  // (landing.ts), so a "../" here would be a path, not a card.
+  if (typeof v.id === "string" && UUID.test(v.id)) out.id = v.id;
   if (typeof v.status === "string") out.status = v.status as ItemStatus;
   if (isObj(v.payload)) out.payload = v.payload;
   return out;
