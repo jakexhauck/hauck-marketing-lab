@@ -28,9 +28,12 @@ import { createApi } from "./api.ts";
 import { defaultBundleEnv } from "./bundle.ts";
 import { runClaude } from "./claude.ts";
 import { API_BASE, DATA_DIR, HEARTBEAT_MS, POLL_MS, REPO_DIR, RUNNER_DIR, SNAPSHOTS_FILE } from "./config.ts";
+import { createCreativeApi } from "./creativeApi.ts";
 import { commitBrains } from "./git.ts";
 import { runMonitorIfDue } from "./monitor.ts";
 import { applyQueuedEdits, handleClaim, syncAllBrains, type RunnerDeps } from "./runner.ts";
+import { balanceReader } from "./spend.ts";
+import { exec } from "./video.ts";
 import type { ClaimTenant } from "./wire.ts";
 
 const args = new Set(process.argv.slice(2));
@@ -77,6 +80,12 @@ async function main(): Promise<void> {
       return env;
     },
     log,
+    // The Creative Agent's video pipeline, uploads and Higgsfield balance.
+    creative: {
+      api: createCreativeApi({ base: API_BASE, secret }),
+      exec,
+      balance: balanceReader(runClaude, join(DATA_DIR, "work", "balance")),
+    },
   };
 
   let tenants: ClaimTenant[] = [];

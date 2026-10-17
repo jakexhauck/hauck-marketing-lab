@@ -1,0 +1,15 @@
+{
+  "name": "Above All Garage Doors",
+  "ownerName": "Ryan Michael",
+  "location": "Johnson County, KS",
+  "offerHtml": "Free <span>same-day</span> estimate",
+  "processHtml": "The Above All <span>Precision Process</span>",
+  "diagChip": "Precision diagnosis",
+  "stamp": { "big": "SAME DAY", "small": "Estimate" },
+  "notifMsg": "Got your request. We'll be in touch <b>within minutes.</b>",
+  "endcardBg": "finished-glass",
+  "hot": ["fighting", "life", "fixed", "ryan", "above", "all", "garage", "doors", "locally", "precision", "process", "diagnose", "exact", "same", "day", "estimate", "estimates", "minutes", "click", "form", "free", "red", "flag", "days", "marketing", "fix", "noises", "grind", "grinding", "screeching"],
+  "colors": { "ink": "#061017", "ink2": "#0c1d27", "fg": "#f1f7fa", "chrome": "#c4d0d6", "accent": "#19c3f0", "accentDeep": "#0a8fbf", "star": "#ffc531" },
+  "logoPath": "C:/Users/games/Desktop/aag-video-ads/template/logo-color.png",
+  "photosDir": "C:/Users/games/Desktop/aag-video-ads/template/photos"
+}

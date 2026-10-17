@@ -22,7 +22,8 @@ import type { Bundle } from "./claude.ts";
 import { findDriveFolder, vaultFolder } from "./clients.ts";
 import { AGENTS_DIR, DRIVE_ROOT, META_SCRIPT, PROMPTS_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
 import { stripEmDashes } from "./output.ts";
-import type { AgentId, ClaimTenant } from "./wire.ts";
+import { creativeHiggsfieldTools, spendLimit, writeHiggsfieldConfig } from "./spend.ts";
+import type { AgentId, ClaimTenant, Grant } from "./wire.ts";
 
 export type { Bundle };
 
@@ -143,7 +144,7 @@ function clientSection(env: BundleEnv, agent: AgentId, tenant: ClaimTenant | nul
   ].join("\n");
 }
 
-export function buildBundle(agent: AgentId, tenant: ClaimTenant | null, env: BundleEnv = defaultBundleEnv()): Bundle {
+export function buildBundle(agent: AgentId, tenant: ClaimTenant | null, env: BundleEnv = defaultBundleEnv(), grant: Grant | null = null): Bundle {
   const def = agentDef(agent);
   const drive = tenant ? findDriveFolder(env.driveRoot, tenant) : null;
 
@@ -160,6 +161,8 @@ export function buildBundle(agent: AgentId, tenant: ClaimTenant | null, env: Bun
     sections.push(brainSection(`Your brain (${def.name})`, lessonLines(agentBrainPath(env.vaultDir, agent))));
   }
 
+  if (agent === "creative") sections.push(creativeSpendSection(grant));
+
   mkdirSync(env.outDir, { recursive: true });
   const systemPromptFile = join(env.outDir, `${agent}-${tenant?.slug ?? "agency"}.md`);
   // Brains are hand-editable in Obsidian, so an em dash can come in from there
@@ -174,5 +177,22 @@ export function buildBundle(agent: AgentId, tenant: ClaimTenant | null, env: Bun
   // the folder it runs in, so --resume only finds a chat from the same one.
   const workDir = join(env.workRoot, `${agent}-${tenant?.slug ?? "agency"}`);
   mkdirSync(workDir, { recursive: true });
-  return { systemPromptFile, allowedTools: allowedToolsFor(agent, env.metaScript), addDirs, workDir };
+  const bundle: Bundle = { systemPromptFile, allowedTools: allowedToolsFor(agent, env.metaScript), addDirs, workDir };
+  if (agent === "creative") {
+    // Higgsfield, and only Higgsfield, with the credit gate (src/spend.ts).
+    const hf = creativeHiggsfieldTools(grant);
+    bundle.allowedTools.push(...hf.allowed);
+    bundle.disallowedTools = hf.disallowed;
+    bundle.mcpConfig = writeHiggsfieldConfig(join(env.outDir, `${agent}-${tenant?.slug ?? "agency"}.mcp.json`));
+  }
+  return bundle;
+}
+
+// What this one turn may spend, in the prompt so the agent knows; the tool
+// lists in buildBundle are what actually hold it to that.
+function creativeSpendSection(grant: Grant | null): string {
+  const limit = spendLimit(grant);
+  return limit === null
+    ? "## Credits this turn\nNone approved. Generate tools are switched off. Quote first, then file a spend card."
+    : `## Credits this turn\nJake approved up to ${limit} credits for card ${grant!.itemId}. Generate what that card describes and nothing more. Pass max_credits where a tool takes it.`;
 }

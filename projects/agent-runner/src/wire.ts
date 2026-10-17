@@ -161,3 +161,42 @@ export interface AutoChatBody {
 
 // Runner-only: the client list to monitor. GET /api/agent-runner/tenants.
 export type TenantsResponse = ClaimTenant[];
+
+// Runner-only, Creative Agent (Phase 3): finished creatives go into the
+// ad-creatives bucket through signed URLs, so the bytes never pass through the
+// Worker. Every call names the claimed message; the app checks it is running
+// in a Creative chat for that client (and, to file, carries a file grant).
+// POST /api/agent-runner/upload-url, /read-url, /file-creative.
+export interface UploadUrlBody {
+  messageId: string;
+  tenantId: string;
+  type: string;
+  size: number;
+  // A preview goes under <tenant>/previews/ and is pruned after a week; only a
+  // final at <tenant>/<uuid>.<ext> can be filed into Creatives.
+  preview: boolean;
+}
+
+export interface UploadUrlResponse {
+  uploadUrl: string;
+  path: string;
+}
+
+export interface ReadUrlBody {
+  messageId: string;
+  tenantId: string;
+  path: string;
+}
+
+export interface ReadUrlResponse {
+  url: string;
+}
+
+export interface FileCreativeBody {
+  messageId: string;
+  tenantId: string;
+  path: string;
+  name: string;
+  type: string;
+  size: number;
+}

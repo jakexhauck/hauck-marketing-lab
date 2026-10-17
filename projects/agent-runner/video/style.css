@@ -1,0 +1,524 @@
+
+      :root {
+        --ink: #061017;
+        --ink-2: #0c1d27;
+        --fg: #f1f7fa;
+        --chrome: #c4d0d6;
+        --cyan: #19c3f0;
+        --cyan-deep: #0a8fbf;
+        --star: #ffc531;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--ink);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: Montserrat, sans-serif;
+        color: var(--fg);
+      }
+
+      /* ---------- footage ---------- */
+      .shot {
+        position: absolute;
+        inset: 0;
+        transform-origin: 65% 21%; /* Ryan's face, so punch-ins keep it framed */
+      }
+      .shot video {
+        position: absolute;
+        inset: 0;
+        width: 1080px;
+        height: 1920px;
+        object-fit: cover;
+      }
+      #shade {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(120% 60% at 50% 100%, rgba(6, 16, 23, 0.55), rgba(6, 16, 23, 0) 60%);
+      }
+
+      /* ---------- full-frame job photos ---------- */
+      .broll {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: var(--ink);
+      }
+      .broll .ph {
+        position: absolute;
+        inset: 0;
+        width: 1080px;
+        height: 1920px;
+        object-fit: cover;
+      }
+      .broll .grade {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(6, 16, 23, 0.35), rgba(6, 16, 23, 0) 30%, rgba(6, 16, 23, 0) 50%, rgba(6, 16, 23, 0.6));
+      }
+      .chip {
+        position: absolute;
+        left: 44px;
+        top: 300px;
+        padding: 18px 28px;
+        background: var(--cyan);
+        color: var(--ink);
+        border-radius: 14px;
+        font-size: 34px;
+        white-space: nowrap;
+      }
+      .chip.dark {
+        background: rgba(6, 16, 23, 0.92);
+        color: var(--fg);
+        border: 3px solid var(--cyan);
+      }
+
+      /* before / after wipe */
+      .ba .after-wrap {
+        position: absolute;
+        inset: 0;
+      }
+      .ba .divider {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 10px;
+        height: 1920px;
+        background: var(--cyan);
+        box-shadow: 0 0 30px rgba(25, 195, 240, 0.9);
+      }
+      .ba .lbl {
+        position: absolute;
+        top: 150px;
+        padding: 14px 24px;
+        border-radius: 12px;
+        font-size: 34px;
+      }
+      .ba .lbl.b {
+        left: 44px;
+        background: rgba(6, 16, 23, 0.9);
+        color: var(--fg);
+      }
+      .ba .lbl.a {
+        right: 44px;
+        background: var(--cyan);
+        color: var(--ink);
+      }
+
+      /* diagnose reticle */
+      #diag-reticle {
+        position: absolute;
+        left: 290px;
+        top: 560px;
+        width: 500px;
+        height: 500px;
+      }
+      #diag-reticle svg {
+        width: 500px;
+        height: 500px;
+        overflow: visible;
+      }
+      #diag-scan {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 6px;
+        background: var(--cyan);
+        box-shadow: 0 0 24px 6px rgba(25, 195, 240, 0.7);
+        opacity: 0.85;
+      }
+
+      /* ---------- shared card look ---------- */
+      .card {
+        position: absolute;
+        background: rgba(6, 16, 23, 0.92);
+        border: 3px solid var(--cyan);
+        border-radius: 22px;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+      }
+      .mono {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      /* location pill */
+      #loc {
+        left: 44px;
+        top: 300px;
+        width: 560px;
+      }
+      #loc .card {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 18px;
+        padding: 22px 28px;
+        border-radius: 999px;
+      }
+      #loc svg {
+        width: 40px;
+        height: 48px;
+        flex: none;
+      }
+      #loc .mono {
+        font-size: 30px;
+        white-space: nowrap;
+        letter-spacing: 0.03em;
+        color: var(--fg);
+      }
+
+      /* exhibit A, pointing at the coworker */
+      #exhibit {
+        left: 40px;
+        top: 560px;
+        width: 400px;
+        height: 200px;
+      }
+      #exhibit .tag {
+        position: absolute;
+        left: 120px;
+        top: 0;
+        padding: 14px 24px;
+        background: var(--cyan);
+        color: var(--ink);
+        border-radius: 14px;
+        font-size: 30px;
+      }
+      #exhibit svg {
+        position: absolute;
+        left: 40px;
+        top: 50px;
+        width: 140px;
+        height: 150px;
+        overflow: visible;
+      }
+
+      /* owner name card */
+      #name {
+        left: 44px;
+        top: 290px;
+        width: 500px;
+      }
+      #name .card {
+        position: relative;
+        padding: 30px 34px 32px;
+      }
+      #name .kicker {
+        font-size: 24px;
+        color: var(--cyan);
+      }
+      #name .who {
+        margin-top: 10px;
+        font-size: 64px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+      #name .bar {
+        margin: 20px 0 16px;
+        width: 100%;
+        height: 4px;
+        background: var(--cyan);
+        transform-origin: 0 50%;
+      }
+      #name .role {
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--chrome);
+      }
+
+      /* google rating */
+      #rating {
+        left: 44px;
+        top: 290px;
+        width: 500px;
+      }
+      #rating .card {
+        position: relative;
+        padding: 30px 34px;
+      }
+      #rating .row {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+      #rating .score {
+        font-size: 104px;
+        font-weight: 900;
+        line-height: 0.9;
+        letter-spacing: -0.04em;
+        font-variant-numeric: tabular-nums;
+        transform-origin: 0 100%;
+      }
+      #rating .stars {
+        position: relative;
+        width: 250px;
+        height: 46px;
+      }
+      #rating .stars svg {
+        position: absolute;
+        inset: 0;
+        width: 250px;
+        height: 46px;
+      }
+      #rating .reviews {
+        margin-top: 18px;
+        font-size: 28px;
+        color: var(--chrome);
+      }
+      #rating .reviews b {
+        color: var(--fg);
+      }
+
+      /* precision process */
+      #process {
+        left: 330px;
+        top: 650px;
+        width: 710px;
+      }
+      #process .card {
+        position: relative;
+        padding: 34px 36px 36px;
+        border-color: var(--chrome);
+      }
+      #process .kicker {
+        font-size: 24px;
+        color: var(--cyan);
+      }
+      #process .title {
+        margin-top: 12px;
+        font-size: 66px;
+        font-weight: 900;
+        line-height: 0.98;
+        letter-spacing: -0.03em;
+      }
+      #process .title span {
+        color: var(--cyan);
+      }
+
+      /* same day stamp */
+      #stamp {
+        left: 360px;
+        top: 700px;
+        width: 640px;
+        height: 300px;
+      }
+      #stamp .inner {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 8px solid var(--cyan);
+        border-radius: 26px;
+        background: rgba(6, 16, 23, 0.9);
+      }
+      #stamp .big {
+        font-size: 112px;
+        font-weight: 900;
+        line-height: 0.9;
+        letter-spacing: -0.03em;
+        color: var(--cyan);
+      }
+      #stamp .small {
+        margin-top: 12px;
+        font-size: 40px;
+      }
+
+      /* tap learn more */
+      #tap {
+        left: 340px;
+        top: 660px;
+        width: 680px;
+        height: 380px;
+      }
+      #tap .card {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 680px;
+        padding: 30px 36px;
+        text-align: center;
+      }
+      #tap .line1 {
+        font-size: 28px;
+        color: var(--chrome);
+      }
+      #tap .line2 {
+        margin-top: 8px;
+        font-size: 62px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+      }
+      #tap .arrow {
+        position: absolute;
+        left: 290px;
+        top: 220px;
+        width: 100px;
+        height: 140px;
+      }
+
+      /* phone notification */
+      #notif {
+        left: 120px;
+        top: 660px;
+        width: 860px;
+      }
+      #notif .card {
+        position: relative;
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        padding: 26px 30px;
+        border-color: rgba(196, 208, 214, 0.5);
+        background: rgba(241, 247, 250, 0.96);
+        color: var(--ink);
+      }
+      #notif .icon {
+        flex: none;
+        width: 96px;
+        height: 96px;
+        border-radius: 22px;
+        background: var(--ink);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+      #notif .icon img {
+        width: 96px;
+        mix-blend-mode: screen;
+      }
+      #notif .meta {
+        font-size: 22px;
+        color: #4a5a63;
+      }
+      #notif .msg {
+        margin-top: 6px;
+        font-size: 36px;
+        font-weight: 700;
+        line-height: 1.15;
+      }
+      #notif .msg b {
+        color: var(--cyan-deep);
+        font-weight: 900;
+      }
+
+      /* end card */
+      #endcard {
+        inset: 0;
+      }
+      #endcard .bg {
+        position: absolute;
+        inset: 0;
+        width: 1080px;
+        height: 1920px;
+        object-fit: cover;
+      }
+      #endcard .veil {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(90% 60% at 50% 45%, rgba(12, 29, 39, 0.82), rgba(6, 16, 23, 0.95));
+      }
+      #endcard .glow {
+        position: absolute;
+        left: 140px;
+        top: 360px;
+        width: 800px;
+        height: 800px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(25, 195, 240, 0.3), rgba(25, 195, 240, 0) 65%);
+      }
+      #endcard .stack {
+        position: absolute;
+        left: 90px;
+        top: 360px;
+        width: 900px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      #endcard .logo {
+        width: 760px;
+        mix-blend-mode: screen;
+      }
+      #endcard .offer {
+        margin-top: 46px;
+        font-size: 84px;
+        font-weight: 900;
+        line-height: 0.98;
+        letter-spacing: -0.03em;
+      }
+      #endcard .offer span {
+        color: var(--cyan);
+      }
+      #endcard .cta {
+        margin-top: 44px;
+        padding: 28px 54px;
+        border-radius: 999px;
+        background: var(--cyan);
+        color: var(--ink);
+        font-size: 50px;
+        font-weight: 900;
+        letter-spacing: -0.01em;
+      }
+      #endcard .proof {
+        margin-top: 34px;
+        font-size: 30px;
+        color: var(--chrome);
+      }
+      #endcard .proof b {
+        color: var(--star);
+      }
+
+      /* ---------- captions ---------- */
+      #captions {
+        position: absolute;
+        left: 50px;
+        top: 1100px;
+        width: 980px;
+        height: 170px;
+      }
+      .cg {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0 32px;
+        opacity: 0;
+        visibility: hidden;
+      }
+      .cw {
+        display: inline-block;
+        font-size: 74px;
+        font-weight: 900;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        text-transform: uppercase;
+        color: var(--fg);
+        -webkit-text-stroke: 10px var(--ink);
+        paint-order: stroke fill;
+        text-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+      }
+      .cw.hot {
+        color: var(--cyan);
+      }
+    

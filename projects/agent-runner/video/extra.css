@@ -1,0 +1,55 @@
+
+      /* ---------- template components (class twins of the Ad 1 id styles) ---------- */
+      .loc-card { position: relative; display: inline-flex; align-items: center; gap: 18px; padding: 22px 28px; border-radius: 999px; }
+      .loc-pin { width: 40px; height: 48px; flex: none; }
+      .loc-text { font-size: 30px; white-space: nowrap; letter-spacing: 0.03em; color: var(--fg); }
+
+      .ex-tag { position: absolute; left: 120px; top: 0; padding: 14px 24px; background: var(--cyan); color: var(--ink); border-radius: 14px; font-size: 30px; white-space: nowrap; }
+      .ex-svg { position: absolute; left: 40px; top: 50px; width: 140px; height: 150px; overflow: visible; }
+
+      .name-card { position: relative; padding: 30px 34px 32px; }
+      .name-card .kicker { font-size: 24px; color: var(--cyan); }
+      .name-card .who { margin-top: 10px; font-size: 64px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; }
+      .name-card .bar { margin: 20px 0 16px; width: 100%; height: 4px; background: var(--cyan); transform-origin: 0 50%; }
+      .name-card .role { font-size: 30px; font-weight: 700; color: var(--chrome); }
+
+      .rate-card { position: relative; padding: 30px 34px; }
+      .rate-card .row { display: flex; align-items: center; gap: 18px; }
+      .rate-card .score { font-size: 92px; font-weight: 900; line-height: 0.9; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; transform-origin: 0 100%; }
+      .rate-card .stars { position: relative; width: 210px; height: 39px; }
+      .rate-card .stars svg { position: absolute; inset: 0; width: 210px; height: 39px; }
+      .rate-card .reviews { margin-top: 18px; font-size: 28px; color: var(--chrome); }
+      .rate-card .reviews b { color: var(--fg); }
+
+      .proc-card { position: relative; padding: 34px 36px 36px; border-color: var(--chrome); }
+      .proc-card .kicker { font-size: 24px; color: var(--cyan); }
+      .proc-card .title { margin-top: 12px; font-size: 66px; font-weight: 900; line-height: 0.98; letter-spacing: -0.03em; }
+      .proc-card .title span { color: var(--cyan); }
+
+      .stamp-inner { opacity: 0; position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 8px solid var(--cyan); border-radius: 26px; background: rgba(6, 16, 23, 0.9); }
+      .stamp-inner .big { font-size: 112px; font-weight: 900; line-height: 0.9; letter-spacing: -0.03em; color: var(--cyan); white-space: nowrap; }
+      .stamp-inner .small { margin-top: 12px; font-size: 40px; }
+
+      .tap-card { position: absolute; left: 0; top: 0; width: 680px; padding: 30px 36px; text-align: center; }
+      .tap-card .line1 { font-size: 28px; color: var(--chrome); }
+      .tap-card .line2 { margin-top: 8px; font-size: 62px; font-weight: 900; letter-spacing: -0.02em; }
+      .tap-arrow { position: absolute; left: 290px; top: 220px; width: 100px; height: 140px; }
+
+      .notif-card { position: relative; display: flex; gap: 24px; align-items: center; padding: 26px 30px; border-color: rgba(196, 208, 214, 0.5); background: rgba(241, 247, 250, 0.96); color: var(--ink); }
+      .notif-card .icon { flex: none; width: 96px; height: 96px; border-radius: 22px; background: var(--ink); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+      .notif-card .icon img { width: 96px; mix-blend-mode: screen; }
+      .notif-card .meta { font-size: 22px; color: #4a5a63; }
+      .notif-card .msg { margin-top: 6px; font-size: 36px; font-weight: 700; line-height: 1.15; }
+      .notif-card .msg b { color: var(--cyan-deep); font-weight: 900; }
+
+      .diag-reticle { position: absolute; left: 290px; top: 560px; width: 500px; height: 500px; }
+      .diag-reticle svg { width: 500px; height: 500px; overflow: visible; }
+      .diag-scan { position: absolute; left: 0; top: 0; width: 1080px; height: 6px; background: var(--cyan); box-shadow: 0 0 24px 6px rgba(25, 195, 240, 0.7); opacity: 0.85; }
+
+      /* pattern interrupt: held frame and punchline text */
+      .freeze { position: absolute; inset: 0; overflow: hidden; background: var(--ink); }
+      .freeze img { position: absolute; inset: 0; width: 1080px; height: 1920px; object-fit: cover; filter: saturate(0.55) contrast(1.1); }
+      .punch { display: block; padding: 24px 36px; background: var(--fg); color: var(--ink); border: 6px solid var(--ink); border-radius: 20px; font-size: 92px; font-weight: 900; line-height: 1; letter-spacing: -0.03em; text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
+      .punch.alt { background: var(--cyan); }
+
+      #endcard .end-kicker { margin-bottom: 40px; text-wrap: balance; font-size: 64px; font-weight: 900; line-height: 1.02; letter-spacing: -0.03em; color: var(--fg); }

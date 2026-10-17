@@ -27,6 +27,12 @@ export interface Bundle {
   // Where claude runs. Its own folder per agent and client, outside the
   // runner's code, so the file tools cannot reach src/, bin/ or agents/.
   workDir: string;
+  // Refused even if an allow rule would match. The Creative Agent's paid
+  // Higgsfield tools sit here unless the turn carries an approved spend grant.
+  disallowedTools?: string[];
+  // An MCP config file holding only the servers this agent may use. Loaded
+  // alongside --strict-mcp-config, so nothing from Jake's own config comes in.
+  mcpConfig?: string;
 }
 
 export interface StreamResult {
@@ -86,12 +92,21 @@ export function claudeArgs(o: { sessionId: string; resume: boolean; bundle: Bund
   // a Read and a Write outside the folder, `cat` of a home file and an
   // arbitrary `node -e` were all refused; the meta script ran.
   args.push("--restricted", "--strict-mcp-config", "--permission-mode", "dontAsk");
-  const base = [...new Set(o.bundle.allowedTools.map((t) => t.replace(/\(.*$/, "")))];
+  // Strict still loads a config named here, and only that one. Checked by
+  // hand 2026-10-17 with the Higgsfield server: it connected headless on the
+  // OAuth login already in Claude's credential store, an allowed tool ran,
+  // and the server's other tools were listed but refused under dontAsk.
+  if (o.bundle.mcpConfig) args.push("--mcp-config", o.bundle.mcpConfig);
+  // MCP tools are not built-ins: --tools only takes built-in names.
+  const base = [
+    ...new Set(o.bundle.allowedTools.filter((t) => !t.startsWith("mcp__")).map((t) => t.replace(/\(.*$/, ""))),
+  ];
   if (base.length) args.push("--tools", base.join(","));
   args.push("--append-system-prompt-file", o.bundle.systemPromptFile);
   if (o.resume) args.push("--resume", o.sessionId);
   else args.push("--session-id", o.sessionId);
   if (o.bundle.allowedTools.length) args.push("--allowedTools", ...o.bundle.allowedTools);
+  if (o.bundle.disallowedTools?.length) args.push("--disallowedTools", ...o.bundle.disallowedTools);
   if (o.bundle.addDirs.length) args.push("--add-dir", ...o.bundle.addDirs);
   return args;
 }

@@ -55,6 +55,31 @@ describe("claudeArgs", () => {
     expect(args).not.toContain("bypassPermissions");
   });
 
+  it("loads only the bundle's MCP config, and keeps MCP tools out of --tools", () => {
+    const args = claudeArgs({
+      sessionId: "s-1",
+      resume: false,
+      bundle: {
+        ...bundle,
+        allowedTools: ["Read", "mcp__higgsfield__balance"],
+        disallowedTools: ["mcp__higgsfield__generate_image"],
+        mcpConfig: "C:/runner/data/prompts/creative-aag.mcp.json",
+      },
+    });
+    expect(args).toContain("--strict-mcp-config");
+    expect(args[args.indexOf("--mcp-config") + 1]).toBe("C:/runner/data/prompts/creative-aag.mcp.json");
+    expect(args[args.indexOf("--tools") + 1]).toBe("Read");
+    expect(args[args.indexOf("--disallowedTools") + 1]).toBe("mcp__higgsfield__generate_image");
+    const at = args.indexOf("--allowedTools");
+    expect(args.slice(at + 1, at + 3)).toEqual(["Read", "mcp__higgsfield__balance"]);
+  });
+
+  it("passes no MCP config when the bundle has none", () => {
+    const args = claudeArgs({ sessionId: "s-1", resume: false, bundle });
+    expect(args).not.toContain("--mcp-config");
+    expect(args).not.toContain("--disallowedTools");
+  });
+
   it("resumes after the first turn", () => {
     const args = claudeArgs({ sessionId: "s-1", resume: true, bundle });
     expect(args[args.indexOf("--resume") + 1]).toBe("s-1");
