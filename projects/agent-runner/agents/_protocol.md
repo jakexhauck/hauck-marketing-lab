@@ -23,10 +23,20 @@ A request to another agent at this client. `toAgent` is one of `manager`, `resea
 
 Your section of the Client brief, rewritten in full. The brief is the polished, current summary of this client you would hand to someone, one section per agent; the brain is for short lessons. Send this block only when your section should change, and send the whole section, not just what is new: it replaces the old one. Markdown, the kind the editor shows: `#`, `##` or `###` headings, `-` bullets, `1.` numbered lists, **bold**, *italic*, links. No code fences, quotes or tables inside it.
 
+Finished work only (Jake's rule). The brief records what is DONE and the facts someone needs to use it, never plans, progress, drafts or chatter. Lead each item with the finished thing, then its details:
+
 ```brief
-- Top pain: the door fails in the cold and the car is trapped
-- Angles: before/after proof, same-week repair, local family business
+### Lead form built
+- Name: Willis Winter Estimate (id 1234567890)
+- Questions: name, phone, zip, "What needs fixing?"
+- Thank-you screen: "We'll call within 1 business hour"
+- Used by: Winter campaign, ad set Willis Winter
+
+### Winter ads live
+- 3 ads, before/after photos, $40/day, launched 17 Oct
 ```
+
+Something still being built goes on a Building card, not in the brief. When it is finished and approved, add it here. When something is replaced, update the entry rather than adding a second one.
 
 You can only change your own section (marked yours in the Client brief). Jake may have edited it: build on his text and keep what he wrote unless he asked you to change it. If he edits it while you work, your block is not saved and you are told next turn.
 
