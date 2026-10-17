@@ -2,12 +2,12 @@ import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } 
 import type { Editor } from "@tiptap/react";
 import { CloudAlert, CloudCheck, CloudUpload, ExternalLink, Gauge } from "lucide-react";
 import type { AgentId } from "../../../lib/agents";
-import type { BriefDrive, BriefSection } from "../../../lib/agentWire";
+import type { BriefDrive, BriefSection, BriefSectionId } from "../../../lib/agentWire";
 import { briefDraft, initDraft, needsSave } from "../../../lib/briefDraft";
 import { markdownToPlain } from "../../../lib/briefMarkdown";
 import { AGENT_COLORS } from "../../../lib/brainGraph";
 import { driveChip, fullBrief, sectionLabel, whoEdited } from "../../../lib/clientBrief";
-import { AGENT_ICONS } from "../clientRowIcons";
+import { BRIEF_SECTION_ICONS } from "../clientRowIcons";
 import { BriefEditor, BriefToolbar } from "./BriefEditor";
 import { useClientBrief, useSaveBriefSection } from "./agentApi";
 
@@ -20,6 +20,14 @@ import { useClientBrief, useSaveBriefSection } from "./agentApi";
 // top, click anywhere and type. Each section is its own editor under its own
 // heading (owner and last edit beside it), saved on its own with the version
 // lock, so an agent rewriting Ads never touches the Status Jake is typing.
+
+// The agents' colours, and one each for the sections no agent owns.
+const SECTION_COLORS: Record<BriefSectionId, string> = {
+  ...AGENT_COLORS,
+  client: "#4DBB83",
+  "onboarding-call": "#6366f1",
+  "launch-call": "#ef4444",
+};
 
 // How long typing must pause before a section saves itself.
 const AUTOSAVE_MS = 1_000;
@@ -106,7 +114,7 @@ export function SectionBlock({
   // Leaving the page with text still waiting on the debounce saves it now.
   useEffect(() => () => void runRef.current(), []);
 
-  const Icon = AGENT_ICONS[section.section] ?? Gauge;
+  const Icon = BRIEF_SECTION_ICONS[section.section] ?? Gauge;
   const who = whoEdited(state.base, new Date());
   const status = state.saving
     ? "Saving"
@@ -121,7 +129,7 @@ export function SectionBlock({
   return (
     <section className={`brf-sec${mine ? " mine" : ""}`}>
       <div className="brf-sec-top">
-        <span className="brf-sec-ic" style={{ background: AGENT_COLORS[section.section] }}>
+        <span className="brf-sec-ic" style={{ background: SECTION_COLORS[section.section] }}>
           <Icon />
         </span>
         <h3 className="brf-sec-t">{sectionLabel(section.section)}</h3>
@@ -193,7 +201,7 @@ export function BriefTab({ tenantId, agent }: { tenantId: string; agent: AgentId
   );
 }
 
-type TabId = "all" | AgentId;
+type TabId = "all" | BriefSectionId;
 
 // The client's Brief page: Google Docs style, a tab list on the left with All
 // and one tab per section, the chosen tab as a page on the right.
@@ -234,7 +242,7 @@ export function BriefPage({ tenantId, brandColor }: { tenantId: string; brandCol
               All
             </button>
             {sections.map((s) => {
-              const Icon = AGENT_ICONS[s.section] ?? Gauge;
+              const Icon = BRIEF_SECTION_ICONS[s.section] ?? Gauge;
               return (
                 <button
                   key={s.section}

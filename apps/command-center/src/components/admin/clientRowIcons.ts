@@ -20,6 +20,7 @@ import {
   ListTodo,
   PenLine,
   PhoneCall,
+  Rocket,
   Plug,
   Sparkles,
   UserRound,
@@ -61,6 +62,15 @@ export const AGENT_ICONS: Record<string, LucideIcon> = {
   landing: LayoutTemplate,
   ghl: Workflow,
   reporting: FileChartColumn,
+};
+
+// The Client Brief's sections (lib/clientBrief.ts): an agent's own icon, plus
+// the three sections no agent owns.
+export const BRIEF_SECTION_ICONS: Record<string, LucideIcon> = {
+  ...AGENT_ICONS,
+  client: UserRound,
+  "onboarding-call": PhoneCall,
+  "launch-call": Rocket,
 };
 
 export function clientRowIcon(row: ClientNavRow): LucideIcon {

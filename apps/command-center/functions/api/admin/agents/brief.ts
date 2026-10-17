@@ -1,9 +1,9 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { isUuid } from "../../../lib/agentItems";
-import { readBrief, readBriefDrive, saveBriefSection } from "../../../lib/clientBriefs";
+import { readBrief, readBriefDrive, saveBriefSection, seedClientSection } from "../../../lib/clientBriefs";
 import { composioBriefOps, syncBriefToDrive } from "../../../lib/briefDrive";
-import { isAgentId } from "../../../../src/lib/agents";
+import { isBriefSectionId } from "../../../../src/lib/clientBrief";
 import type { BriefResponse } from "../../../../src/lib/agentWire";
 
 // GET /api/admin/agents/brief?tenant=<uuid>  -> BriefResponse
@@ -22,7 +22,11 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   if (!isUuid(tenantId)) return Response.json({ error: "tenant required" }, { status: 400 });
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
-  const out: BriefResponse = { sections: await readBrief(client, tenantId), drive: await readBriefDrive(client, tenantId) };
+  // Brief v2: an empty Client section is written from the onboarding form the
+  // first time anyone opens the brief, then Drive is brought up to date.
+  const { sections, seeded } = await seedClientSection(client, tenantId, await readBrief(client, tenantId));
+  if (seeded) ctx.waitUntil(syncBriefToDrive(client, tenantId, composioBriefOps(ctx.env)));
+  const out: BriefResponse = { sections, drive: await readBriefDrive(client, tenantId) };
   return Response.json(out, { headers: { "Cache-Control": "no-store" } });
 };
 
@@ -36,7 +40,7 @@ export const onRequestPut: PagesFunction<Env, string, ApiData> = async (ctx) => 
   } catch {
     return Response.json({ error: "invalid body" }, { status: 400 });
   }
-  if (!isAgentId(body.section as string) || typeof body.body !== "string" || typeof body.version !== "number") {
+  if (!isBriefSectionId(body.section) || typeof body.body !== "string" || typeof body.version !== "number") {
     return Response.json({ error: "section, body and version required" }, { status: 400 });
   }
 
@@ -44,7 +48,7 @@ export const onRequestPut: PagesFunction<Env, string, ApiData> = async (ctx) => 
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
   const res = await saveBriefSection(client, {
     tenantId,
-    section: body.section as never,
+    section: body.section,
     body: body.body,
     version: body.version,
     by: "jake",

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { FakeDb } from "./agentFakeDb";
-import { agentSaveBrief, readBrief, readBriefDrive, saveBriefSection, withBrief } from "./clientBriefs";
+import { agentSaveBrief, readBrief, readBriefDrive, saveBriefSection, seedClientSection, withBrief } from "./clientBriefs";
+import { sopTaskKey } from "../../src/lib/sopChecklists";
 
 const T1 = "11111111-1111-4111-8111-111111111111";
 const T2 = "22222222-2222-4222-8222-222222222222";
@@ -23,7 +24,7 @@ describe("readBrief", () => {
   it("is every section in order, this client's rows only", async () => {
     const db = new FakeDb().seed("client_briefs", [row(), row({ tenant_id: T2, section: "ghl", body: "other client" })]);
     const out = await readBrief(db.client(), T1);
-    expect(out).toHaveLength(7);
+    expect(out).toHaveLength(10);
     expect(out.find((s) => s.section === "ads")).toEqual({
       section: "ads",
       body: "Cap $40/day",
@@ -140,7 +141,7 @@ describe("withBrief", () => {
     const db = new FakeDb().seed("client_briefs", [row()]);
     const core = { message: {} as never, chat: {} as never, history: [], tenant: { id: T1, name: "W", slug: "w", metaAdAccountId: null } };
     const res = await withBrief(db.client(), core);
-    expect(res?.brief).toHaveLength(7);
+    expect(res?.brief).toHaveLength(10);
     expect(res?.brief.find((s) => s.section === "ads")?.version).toBe(3);
     expect((await withBrief(db.client(), { ...core, tenant: null }))?.brief).toEqual([]);
     expect(await withBrief(db.client(), null)).toBeNull();
@@ -154,5 +155,51 @@ describe("withBrief", () => {
     expect(res).toMatchObject({ tenant: core.tenant, brief: [] });
     expect(String(warn.mock.calls[0]?.join(" "))).toMatch(/brief.*db down/);
     warn.mockRestore();
+  });
+});
+
+describe("seedClientSection", () => {
+  const intake = { name: "Willis Windows", contactName: "Bill", ghl_token: "pit-secret-123" };
+
+  it("writes the Client section from the form once, as Jake's, with secrets on file", async () => {
+    const db = new FakeDb()
+      .seed("onboarding", [{ tenant_id: T1, intake }])
+      .seed("intake_submissions", [{ tenant_id: T1, password_plain: "hunter2!", created_at: "2026-10-01T00:00:00Z" }]);
+    const res = await seedClientSection(db.client(), T1, await readBrief(db.client(), T1), now);
+    expect(res.seeded).toBe(true);
+    const sec = res.sections.find((s) => s.section === "client");
+    expect(sec).toMatchObject({ version: 1, updatedBy: "jake" });
+    expect(sec?.body).toContain("- Business name: Willis Windows");
+    expect(sec?.body).toContain("- Password: on file");
+    expect(sec?.body).not.toContain("hunter2");
+    expect(sec?.body).not.toContain("pit-secret-123");
+    expect(db.rows("client_briefs")).toHaveLength(1);
+  });
+
+  it("leaves a written Client section alone, and does nothing without answers", async () => {
+    const db = new FakeDb()
+      .seed("onboarding", [{ tenant_id: T1, intake }])
+      .seed("client_briefs", [row({ section: "client", body: "Jake's notes", version: 2 })]);
+    const res = await seedClientSection(db.client(), T1, await readBrief(db.client(), T1), now);
+    expect(res.seeded).toBe(false);
+    expect(res.sections.find((s) => s.section === "client")?.body).toBe("Jake's notes");
+
+    const empty = new FakeDb();
+    expect((await seedClientSection(empty.client(), T1, await readBrief(empty.client(), T1), now)).seeded).toBe(false);
+    expect(empty.rows("client_briefs")).toHaveLength(0);
+  });
+});
+
+describe("withBrief, boxes", () => {
+  it("gives each section its manual boxes and their state", async () => {
+    const db = new FakeDb().seed("onboarding_checklist", [
+      { tenant_id: T1, task_key: sopTaskKey("full-setup", "Facebook Ads", "Ads LIVE"), done: true },
+    ]);
+    const core = { message: {} as never, chat: {} as never, history: [], tenant: { id: T1, name: "W", slug: "w", metaAdAccountId: null } };
+    const res = await withBrief(db.client(), core);
+    const ads = res?.brief.find((s) => s.section === "ads");
+    expect(ads?.boxes).toContainEqual({ label: "Ads LIVE", done: true });
+    expect(ads?.boxes).toContainEqual({ label: "Lead Form Setup", done: false });
+    expect(res?.brief.find((s) => s.section === "research")?.boxes).toEqual([]);
   });
 });

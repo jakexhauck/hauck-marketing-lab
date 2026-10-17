@@ -249,14 +249,29 @@ export interface FileCreativeBody {
 // Manager's being "Status". version 0 means nothing has been written yet; a
 // save names the version it read and a stale one gets 409 with the current
 // section. updatedBy is "jake" or the agent that wrote it.
+//
+// Brief v2 (2026-10-17, migration 0169) adds three sections no agent writes:
+// Client (the onboarding answers, Jake's) and the Onboarding Call and Launch
+// Call checklists.
 export type BriefAuthor = "jake" | AgentId;
+export type BriefSectionId = AgentId | "client" | "onboarding-call" | "launch-call";
+
+// One checkbox under a section, as the runner gets it in the claim: the label
+// an agent names in a ```tick block, and whether it is ticked.
+export interface BriefBox {
+  label: string;
+  done: boolean;
+}
 
 export interface BriefSection {
-  section: AgentId;
+  section: BriefSectionId;
   body: string;
   version: number;
   updatedBy: BriefAuthor | null;
   updatedAt: string | null;
+  // Only on a claim: the section's manual boxes (BRIEF_BOXES). Never sent to
+  // the app, which reads the checklist itself.
+  boxes?: BriefBox[];
 }
 
 // Where the brief's Google Doc is and how the last sync went. null until the
@@ -277,7 +292,7 @@ export interface BriefResponse {
 
 // PUT /api/admin/agents/brief?tenant=
 export interface BriefSaveBody {
-  section: AgentId;
+  section: BriefSectionId;
   body: string;
   version: number;
 }
@@ -288,4 +303,17 @@ export interface RunnerBriefBody {
   messageId: string;
   body: string;
   version: number;
+}
+
+// Runner-only: an agent ticks boxes in a section it may tick, by label.
+// POST /api/agent-runner/tick. Which sections that is comes from the chat's
+// agent on the server (tickSections); a label anywhere else is refused.
+export interface RunnerTickBody {
+  messageId: string;
+  labels: string[];
+}
+
+export interface RunnerTickResult {
+  ticked: string[];
+  refused: string[];
 }
