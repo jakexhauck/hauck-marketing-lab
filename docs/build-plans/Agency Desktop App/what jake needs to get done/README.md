@@ -695,7 +695,7 @@ Your action items:
 
 ## Clear Choice landing page (16 October 2026)
 
-What's built: the Clear Choice Windows Owensboro "Free Triple Pane Glass ($300 value)" funnel, modeled on Midwest Window's page. 3-step quiz (home age, zip, name + phone), before/after slider, Google reviews with photos, winter triple pane section, Meta Pixel (PageView + Lead only). GHL holds a two-line stub; the page itself is served from app.hauckmarketing.com, so edits ship without touching GHL. Draft: `clients/Clear Choice Windows/funnel/index.html`.
+What's built: the Clear Choice Windows Owensboro "Free Triple Pane Glass ($300 value)" funnel. 3-step quiz (home age, zip, name + phone), before/after slider, Google reviews with photos, winter triple pane section, Meta Pixel (PageView + Lead only). GHL holds a two-line stub; the page is served from app.hauckmarketing.com, so edits ship without touching GHL. Leads POST to the GHL Inbound Webhook workflow with plain + hashed fields and the pixel's event_id (LIVE `308774a0`). Draft: `clients/Clear Choice Windows/funnel/index.html`.
 
 GHL stub (one Custom Code element, full-width section, 0 padding):
 ```html
@@ -704,14 +704,15 @@ GHL stub (one Custom Code element, full-width section, 0 padding):
 ```
 
 Your action items:
-1. Refresh the GHL preview and confirm the white space is gone. If not, screenshot where it shows.
-2. In Clear Choice's sub-account: Automation > Workflows > new workflow, trigger **Inbound Webhook**. Send me the URL (leave it unpublished).
-3. I wire the page to it and send one test lead. Then map name, phone, zip and home age into the contact and pick the pipeline stage.
-4. Publish the workflow and do one real test submission with your own details. Check it lands in GHL and the **Lead** shows in Meta Events Manager > Test events.
-5. Leave the funnel's Settings > Tracking Code EMPTY (the pixel is in the page; adding it twice double counts).
-6. Funnel step Settings > SEO: title `Clear Choice Windows Owensboro | Free Triple Pane Glass`, description `Free triple pane glass with any new window installation ($300 value). Keep your Owensboro home warmer this winter.`
-7. Verify the funnel's domain in Meta Business Settings > Brand safety > Domains.
-8. Only then turn on ads.
+1. Workflow order: Inbound Webhook > Create Contact > Conversions API (Lead) > Create Opportunity > Add Tag. Contact Source = `source`.
+2. Conversions API action: tell me if it has an **Event ID** field. Yes = map it to `event_id`. No = I give you Custom Webhook settings instead.
+3. Generate the Conversions API access token (Events Manager > Clear Choice Owensboro > Settings). It goes into GHL only.
+4. Publish, submit the quiz yourself, check: contact fields, opportunity stage, Lead in Events Manager > Test events (browser AND server, "deduplicated").
+5. Delete the "TEST Clear Choice LP" contact.
+6. Funnel Settings > Tracking Code stays EMPTY. SEO title `Clear Choice Windows Owensboro | Free Triple Pane Glass`, description `Free triple pane glass with any new window installation ($300 value). Keep your Owensboro home warmer this winter.`
+7. Verify the funnel domain in Meta Business Settings > Brand safety > Domains.
+8. Campaign: point ads at the funnel URL, optimise for Leads. Then go live.
 
 Still parked:
-- The double vs triple pane diagram is Midwest Window's own graphic and says "in the Midwest". Swap for a Clear Choice version before ads run.
+- Swap Midwest Window's "in the Midwest" double vs triple pane graphic for a Clear Choice version (Claude, 10 min, before ads).
+- Optional: service-area zip list (right now any zip is accepted); thank-you page.
