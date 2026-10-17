@@ -6,6 +6,7 @@ import { isUuid } from "./agentItems";
 import { messageFromRow } from "./agentRunner";
 import { GRAPH, graphGet, graphGetAll } from "./metaGraph";
 import { normalizeAccount, uploadAdImage } from "./metaUpload";
+import { currencyOffset, formatBudget, isCurrencyCode } from "../../src/lib/metaCurrency";
 
 // What the Ads Agent can change in a client's Meta ad account, and when
 // (docs/build-plans/agents.md, Phase 7: "controls plus").
@@ -40,7 +41,12 @@ type Row = Record<string, unknown>;
 
 export type MetaOpName = "read.structure" | "read.creatives" | "read.library" | "read.destination" | "pause" | "resume" | "dailyBudget" | "createAd";
 
-/** Jake's guard on one budget change (his call: constants, the card can be split). */
+/**
+ * Jake's guard on one budget change (his call: constants, the card can be
+ * split). The caps are written in US cents; in another currency they are the
+ * same number of that currency's whole units (500 a day), in Meta's units
+ * for it (metaCurrency.ts).
+ */
 export const BUDGET_MAX_FACTOR = 3;
 export const BUDGET_MAX_CENTS = 50_000;
 // And across one card: the daily increases of all its budget ops together.
@@ -73,7 +79,12 @@ interface Ctx {
   accountNum: string; // 123
   pageId: string | null;
   deps: MetaCallDeps;
+  // The ad account's currency, read from Meta once per request.
+  currency(): Promise<string>;
 }
+
+/** A cap in US cents as the same whole amount in this currency's Meta units. */
+const capIn = (usdCents: number, code: string) => (usdCents / 100) * currencyOffset(code);
 
 interface Op<A> {
   write: boolean;
@@ -97,7 +108,6 @@ const id = (v: unknown): string | null => (typeof v === "string" && META_ID.test
 const text = (v: unknown, max: number): string | null =>
   typeof v === "string" && v.trim() && v.trim().length <= max ? v.trim() : null;
 const cents = (v: unknown): number | null => (typeof v === "number" && Number.isSafeInteger(v) && v > 0 ? v : null);
-const money = (c: number) => `$${(c / 100).toFixed(2)}`;
 const sameName = (a: unknown, b: string) => String(a ?? "").trim() === b.trim();
 
 async function graphPost(token: string, path: string, params: Record<string, string>): Promise<Row> {
@@ -214,11 +224,13 @@ interface BudgetArgs extends Parents {
   name: string;
   from: number;
   to: number;
+  currency?: string;
 }
 
 /** The guard, as words when it refuses. */
-export function budgetGuard(from: number, to: number): string | null {
-  if (to > BUDGET_MAX_CENTS) return `a daily budget over ${money(BUDGET_MAX_CENTS)} needs Jake in Ads Manager`;
+export function budgetGuard(from: number, to: number, code = "USD"): string | null {
+  const cap = capIn(BUDGET_MAX_CENTS, code);
+  if (to > cap) return `a daily budget over ${formatBudget(cap, code)} needs Jake in Ads Manager`;
   if (to > from * BUDGET_MAX_FACTOR) return `more than ${BUDGET_MAX_FACTOR}x the current budget in one change; split it over cards`;
   return null;
 }
@@ -541,26 +553,36 @@ const ops = {
       if (!objectId || !name) return { ok: false, error: "id and name required" };
       const parents = parseParents(level, a);
       if (!parents.ok) return parents;
-      if (from === null || to === null) return { ok: false, error: "from and to are whole cents per day" };
+      if (from === null || to === null) return { ok: false, error: "from and to are whole units per day in Meta's terms (cents for USD)" };
       if (from === to) return { ok: false, error: "to is the same as from" };
-      const guard = budgetGuard(from, to);
-      if (guard) return { ok: false, error: guard };
-      return { ok: true, args: { level, id: objectId, name, ...parents.args, from, to } };
+      if (a.currency !== undefined && !isCurrencyCode(a.currency)) return { ok: false, error: "currency is the account's 3-letter code, like USD" };
+      const currency = a.currency as string | undefined;
+      return { ok: true, args: { level, id: objectId, name, ...parents.args, from, to, ...(currency ? { currency } : {}) } };
     },
     check: async (ctx, a) => {
+      // The units are the account's: outside USD the card must say which
+      // currency it meant, and every card must mean the live one.
+      const code = await ctx.currency();
+      if (a.currency ? a.currency !== code : code !== "USD") {
+        throw new MetaOpRefused(409, `this ad account is in ${code}; the card must state currency "${code}" and amounts in ${code}`);
+      }
+      const guard = budgetGuard(a.from, a.to, code);
+      if (guard) throw new MetaOpRefused(400, guard);
       const o = await liveObject(ctx, a.level, a.id, a.name, ["daily_budget", "lifetime_budget"], a);
       const live = Number(o.daily_budget ?? 0);
       if (!(live > 0)) {
         throw new MetaOpRefused(409, `${LEVEL_WORD[a.level]} "${a.name}" has no daily budget of its own (lifetime, or set at the ${a.level === "adset" ? "campaign" : "ad set"} level)`);
       }
       if (live !== a.from) {
-        throw new MetaOpRefused(409, `the live daily budget is ${money(live)}, not ${money(a.from)}; the card is out of date`);
+        const code = await ctx.currency();
+        throw new MetaOpRefused(409, `the live daily budget is ${formatBudget(live, code)}, not ${formatBudget(a.from, code)}; the card is out of date`);
       }
       return o;
     },
     send: async (ctx, a) => {
       await graphPost(ctx.token, `/${a.id}`, { daily_budget: String(a.to) });
-      return { action: "budget", level: a.level, id: a.id, name: a.name, from: a.from, to: a.to, words: `${money(a.from)} to ${money(a.to)} per day` };
+      const code = await ctx.currency();
+      return { action: "budget", level: a.level, id: a.id, name: a.name, from: a.from, to: a.to, words: `${formatBudget(a.from, code)} to ${formatBudget(a.to, code)} per day` };
     },
   } satisfies Op<BudgetArgs>,
 
@@ -590,7 +612,7 @@ export function parseMetaOpArgs(op: string, args: unknown): Parsed<Row> {
  * the card's daily increases together stay under the card cap. Checked on
  * every write under the card, not only budget ones.
  */
-export function cardBudgetProblem(cardOps: unknown): string | null {
+export function cardBudgetProblem(cardOps: unknown, code = "USD"): string | null {
   if (!Array.isArray(cardOps)) return null;
   const seen = new Set<string>();
   let increase = 0;
@@ -603,8 +625,9 @@ export function cardBudgetProblem(cardOps: unknown): string | null {
     seen.add(a.id);
     increase += Math.max(0, a.to - a.from);
   }
-  if (increase > BUDGET_CARD_MAX_INCREASE_CENTS) {
-    return `this card raises daily budgets by ${money(increase)} in all; one card may add at most ${money(BUDGET_CARD_MAX_INCREASE_CENTS)}/day`;
+  const cap = capIn(BUDGET_CARD_MAX_INCREASE_CENTS, code);
+  if (increase > cap) {
+    return `this card raises daily budgets by ${formatBudget(increase, code)} in all; one card may add at most ${formatBudget(cap, code)}/day`;
   }
   return null;
 }
@@ -741,8 +764,6 @@ export async function callMetaOp(client: SupabaseClient, body: MetaCallBody, dep
     if (!metaOpOnCard(item?.ops, op, parsed.args)) {
       return out(403, { error: "that change is not on the card Jake approved" });
     }
-    const problem = cardBudgetProblem(item?.ops);
-    if (problem) return out(409, { error: problem });
   }
 
   const { data: tRow, error: tErr } = await client
@@ -763,11 +784,33 @@ export async function callMetaOp(client: SupabaseClient, body: MetaCallBody, dep
     return out(503, { error: "the Meta System User token does not hold ads_management; Jake grants it in Business Settings" });
   }
 
-  const ctx: Ctx = { client, tenantId, token, account, accountNum: account.slice(4), pageId, deps };
+  let currency: Promise<string> | null = null;
+  const ctx: Ctx = {
+    client,
+    tenantId,
+    token,
+    account,
+    accountNum: account.slice(4),
+    pageId,
+    deps,
+    currency: () =>
+      (currency ??= graphGet(token, `/${account}`, { fields: "currency" }).then((r) => {
+        const code = String(r.currency ?? "").toUpperCase();
+        if (!isCurrencyCode(code)) throw new Error("Meta gave the ad account no currency");
+        return code;
+      })),
+  };
   const impl = META_OPS[op] as unknown as Op<Row>;
 
   let checked: unknown;
   try {
+    // The card as a whole, in the account's currency: one budget op per
+    // object, and a cap on its total increase. Every write under it obeys.
+    const cardHasBudget = Array.isArray(item?.ops) && (item!.ops as Row[]).some((o) => o && o.op === "dailyBudget");
+    if (write && cardHasBudget) {
+      const problem = cardBudgetProblem(item!.ops, await ctx.currency());
+      if (problem) return out(409, { error: problem });
+    }
     checked = await impl.check(ctx, parsed.args);
   } catch (err) {
     if (err instanceof MetaOpRefused) return out(err.status, { error: err.message });

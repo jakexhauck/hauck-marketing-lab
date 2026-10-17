@@ -5,6 +5,7 @@
 
 import type { AgentId } from "./agents";
 import type { AgentItem, AgentMessage, ChatSummary, RunnerStatus } from "./agentWire";
+import { formatBudget, isCurrencyCode } from "./metaCurrency";
 
 export type ChatGroupLabel = "Today" | "This week" | "Earlier";
 
@@ -133,7 +134,8 @@ const str = (v: unknown): v is string => typeof v === "string" && v.length > 0;
 
 // Meta object kinds in words, and cents as dollars, for the Ads Agent's cards.
 const META_LEVEL: Record<string, string> = { campaign: "campaign", adset: "ad set", ad: "ad" };
-const dollars = (v: unknown): string => (typeof v === "number" && Number.isFinite(v) ? `$${(v / 100).toFixed(2)}` : "?");
+const budget = (v: unknown, code: unknown): string =>
+  typeof v === "number" && Number.isFinite(v) ? formatBudget(v, isCurrencyCode(code) ? code : "USD") : "?";
 
 // Where a Meta object sits, so two ads with one name read apart: the id's
 // last six digits, then its ad set and campaign as the card names them.
@@ -170,7 +172,7 @@ function changeLine(op: string, a: Record<string, unknown>): string {
       return `Resume ${metaTarget(a)}`;
     case "dailyBudget": {
       const t = metaTarget(a);
-      return `${t.charAt(0).toUpperCase()}${t.slice(1)} daily budget ${dollars(a.from)} to ${dollars(a.to)}`;
+      return `${t.charAt(0).toUpperCase()}${t.slice(1)} daily budget ${budget(a.from, a.currency)} to ${budget(a.to, a.currency)}`;
     }
     case "createAd":
       return `Create ad "${a.name}" in ad set "${a.adsetName}"${typeof a.adsetId === "string" ? ` (id ending ${a.adsetId.slice(-6)})` : ""} (campaign "${a.campaignName}") from ${a.videoId ? `Meta library video "${a.videoName}"` : `Creatives file "${a.fileName}"`}`;

@@ -197,6 +197,19 @@ describe("itemPayload", () => {
     ]);
   });
 
+  it("writes a budget in the account's own currency", () => {
+    const v = itemPayload({
+      ops: [
+        { op: "dailyBudget", args: { level: "campaign", id: "120210000000003", name: "Fall", from: 4000, to: 5000, currency: "EUR" } },
+        { op: "dailyBudget", args: { level: "campaign", id: "120210000000004", name: "Tokyo", from: 4000, to: 5000, currency: "JPY" } },
+      ],
+    });
+    expect(v.changes.map((c) => c.text)).toEqual([
+      'Campaign "Fall" (id ending 000003) daily budget 40.00 EUR to 50.00 EUR',
+      'Campaign "Tokyo" (id ending 000004) daily budget 4000 JPY to 5000 JPY',
+    ]);
+  });
+
   it("shows a new ad's copy, button, destination and status, the status in bold", () => {
     const v = itemPayload({
       ops: [

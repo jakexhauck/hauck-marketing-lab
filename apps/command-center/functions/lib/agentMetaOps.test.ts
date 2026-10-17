@@ -7,6 +7,7 @@ import {
   BUDGET_MAX_CENTS,
   BUDGET_MAX_FACTOR,
   META_OPS,
+  budgetGuard,
   callMetaOp,
   isMetaWriteOp,
   metaOpOnCard,
@@ -144,13 +145,17 @@ describe("META_OPS", () => {
   it("holds a budget change to 3x and $500/day", () => {
     expect(BUDGET_MAX_FACTOR).toBe(3);
     expect(BUDGET_MAX_CENTS).toBe(50000);
-    const b = (from: number, to: number) => parseMetaOpArgs("dailyBudget", { level: "campaign", id: "9", name: "x", from, to });
-    expect(b(4000, 12000).ok).toBe(true);
-    expect(b(4000, 12001).ok).toBe(false);
-    expect(b(20000, 50000).ok).toBe(true);
-    expect(b(20000, 50001).ok).toBe(false);
+    const b = (from: number, to: number, code = "USD") => budgetGuard(from, to, code) === null;
+    expect(b(4000, 12000)).toBe(true);
+    expect(b(4000, 12001)).toBe(false);
+    expect(b(20000, 50000)).toBe(true);
+    expect(b(20000, 50001)).toBe(false);
     // Lowering is always fine.
-    expect(b(60000, 1000).ok).toBe(true);
+    expect(b(60000, 1000)).toBe(true);
+    // In a currency Meta counts without decimals, 500 is the 500 units.
+    expect(b(200, 500, "JPY")).toBe(true);
+    expect(b(200, 501, "JPY")).toBe(false);
+    expect(budgetGuard(20000, 50001, "EUR")).toMatch(/500\.00 EUR/);
   });
 
   it("matches a card op by its parsed args, so a different id or name is not on the card", () => {
@@ -193,6 +198,7 @@ function fakeGraph(routes: Record<string, Route>) {
       const call: Call = { method, path, query: u.searchParams, body, auditRows: db ? db.rows("admin_audit_log").length : 0 };
       calls.push(call);
       const key = `${method} ${path}`;
+      if (key === "GET /act_100" && !(key in routes)) return new Response(JSON.stringify({ id: "act_100", currency: "USD" }), { status: 200 });
       if (!(key in routes)) return new Response(JSON.stringify({ error: { message: `no route ${key}` } }), { status: 404 });
       const r = routes[key];
       return new Response(JSON.stringify(typeof r === "function" ? (r as (c: Call) => unknown)(call) : r), { status: 200 });
@@ -441,7 +447,44 @@ describe("callMetaOp", () => {
     const calls = fakeGraph({ "GET /me/permissions": PERMS, "GET /1": CAMP_1, "POST /1": { success: true } });
     const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "dailyBudget", args: big }, deps);
     expect(res.status).toBe(400);
-    expect(calls).toEqual([]);
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+    expect(w.rows("admin_audit_log")).toEqual([]);
+  });
+
+  it("reads the account currency once, and outside USD needs the card to state it", async () => {
+    const jpy = { ...BUDGET, from: 4000, to: 5000 };
+    // No currency on the card for a yen account: refused.
+    let w = world({ ops: [{ op: "dailyBudget", args: jpy }] });
+    let calls = fakeGraph({ "GET /me/permissions": PERMS, "GET /act_100": { currency: "JPY" }, "GET /1": CAMP_1, "POST /1": { success: true } });
+    let res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "dailyBudget", args: jpy }, deps);
+    expect(res.status).toBe(409);
+    expect(String(res.body.error)).toMatch(/JPY/);
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+
+    // The wrong currency on the card: refused.
+    const eur = { ...jpy, currency: "EUR" };
+    w = world({ ops: [{ op: "dailyBudget", args: eur }] });
+    calls = fakeGraph({ "GET /me/permissions": PERMS, "GET /act_100": { currency: "JPY" }, "GET /1": CAMP_1, "POST /1": { success: true } });
+    res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "dailyBudget", args: eur }, deps);
+    expect(res.status).toBe(409);
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+
+    // Stated, but over 500 yen a day: the guard is in yen.
+    const stated = { ...BUDGET, from: 300, to: 600, currency: "JPY" };
+    w = world({ ops: [{ op: "dailyBudget", args: stated }] });
+    calls = fakeGraph({ "GET /me/permissions": PERMS, "GET /act_100": { currency: "JPY" }, "GET /1": { ...CAMP_1, daily_budget: "300" }, "POST /1": { success: true } });
+    res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "dailyBudget", args: stated }, deps);
+    expect(res.status).toBe(400);
+    expect(String(res.body.error)).toMatch(/500 JPY/);
+    expect(calls.filter((c) => c.path === "/act_100")).toHaveLength(1);
+
+    // Stated and inside the guard: goes through.
+    const small = { ...BUDGET, from: 200, to: 400, currency: "JPY" };
+    w = world({ ops: [{ op: "dailyBudget", args: small }] });
+    calls = fakeGraph({ "GET /me/permissions": PERMS, "GET /act_100": { currency: "JPY" }, "GET /1": { ...CAMP_1, daily_budget: "200" }, "POST /1": { success: true } });
+    res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "dailyBudget", args: small }, deps);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(calls.find((c) => c.method === "POST")?.body.daily_budget).toBe("400");
   });
 
   it("refuses a card that chains two budget changes on one object", async () => {
