@@ -1,0 +1,186 @@
+import { describe, it, expect } from "vitest";
+import { FakeDb } from "./agentFakeDb";
+import {
+  chatSummaries,
+  createAutoChat,
+  decideItem,
+  parseTenantParam,
+  scopeFilter,
+  transitionItem,
+  upsertItem,
+} from "./agentItems";
+
+const T1 = "11111111-1111-4111-8111-111111111111";
+
+describe("transitionItem", () => {
+  const item = { status: "needs_ok" as const, title: "Spring offer ad" };
+
+  it("approves only from needs_ok", () => {
+    expect(transitionItem(item, "approve")).toEqual({ next: "done", followUp: "Approved: Spring offer ad" });
+    for (const status of ["building", "live", "done", "declined"] as const) {
+      expect(transitionItem({ ...item, status }, "approve")).toEqual({ error: 409 });
+    }
+  });
+
+  it("declines from needs_ok", () => {
+    expect(transitionItem(item, "decline")).toEqual({ next: "declined", followUp: "Declined: Spring offer ad" });
+    expect(transitionItem({ ...item, status: "declined" }, "decline")).toEqual({ error: 409 });
+  });
+
+  it("change keeps needs_ok and sends the note", () => {
+    expect(transitionItem(item, "change", "Shorter headline")).toEqual({ next: "needs_ok", followUp: "Shorter headline" });
+    expect(transitionItem({ ...item, status: "live" }, "change", "x")).toEqual({ error: 409 });
+  });
+
+  it("a second approve is a 409 with no follow-up", () => {
+    const first = transitionItem(item, "approve");
+    expect("next" in first && first.next).toBe("done");
+    const second = transitionItem({ ...item, status: "done" }, "approve");
+    expect(second).toEqual({ error: 409 });
+    expect("followUp" in second).toBe(false);
+  });
+
+  it("refuses an unknown action", () => {
+    expect(transitionItem(item, "ship" as never)).toEqual({ error: 409 });
+  });
+});
+
+describe("scopeFilter", () => {
+  it("reads agency as the null tenant", () => {
+    expect(scopeFilter("agency")).toEqual({ column: "tenant_id", op: "is", value: null });
+  });
+  it("reads a uuid as that tenant", () => {
+    expect(scopeFilter(T1)).toEqual({ column: "tenant_id", op: "eq", value: T1 });
+  });
+  it("parses the query param strictly", () => {
+    expect(parseTenantParam("agency")).toBeNull();
+    expect(parseTenantParam(T1)).toBe(T1);
+    expect(parseTenantParam("willis")).toBeUndefined();
+    expect(parseTenantParam(null)).toBeUndefined();
+  });
+});
+
+function chat(id: string, tenant_id: string | null, agent = "manager", updated_at = "2026-10-17T09:00:00.000Z") {
+  return { id, tenant_id, agent, title: id, auto: false, claude_session_id: `s-${id}`, started: true, created_at: updated_at, updated_at };
+}
+
+describe("chatSummaries", () => {
+  it("agency scope returns only the null-tenant chats", async () => {
+    const db = new FakeDb()
+      .seed("agent_chats", [chat("agency1", null), chat("willis1", T1)])
+      .seed("agent_messages", [
+        { id: "m1", chat_id: "agency1", role: "me", body: "Who is behind?\nsecond line", meta: {}, status: "done", created_at: "2026-10-17T09:00:00.000Z" },
+        { id: "m2", chat_id: "willis1", role: "me", body: "nope", meta: {}, status: "done", created_at: "2026-10-17T09:00:00.000Z" },
+      ]);
+    const list = await chatSummaries(db.client(), null, "manager");
+    expect(list.map((c) => c.id)).toEqual(["agency1"]);
+    expect(list[0]).toMatchObject({ lastLine: "Who is behind?", hasRequest: false, auto: false });
+  });
+
+  it("flags a chat with a request still waiting", async () => {
+    const db = new FakeDb()
+      .seed("agent_chats", [chat("c1", T1, "ghl"), chat("c2", T1, "ghl", "2026-10-17T10:00:00.000Z")])
+      .seed("agent_items", [
+        { id: "i1", tenant_id: T1, agent: "ghl", status: "needs_ok", title: "Put page in funnel" },
+        { id: "i2", tenant_id: T1, agent: "ghl", status: "done", title: "Old" },
+      ])
+      .seed("agent_messages", [
+        { id: "r1", chat_id: "c1", role: "request", body: "Put page in funnel", meta: { itemId: "i1", fromAgent: "landing" }, status: "done", created_at: "2026-10-17T09:00:00.000Z" },
+        { id: "r2", chat_id: "c2", role: "request", body: "Old", meta: { itemId: "i2", fromAgent: "landing" }, status: "done", created_at: "2026-10-17T10:00:00.000Z" },
+      ]);
+    const list = await chatSummaries(db.client(), T1, "ghl");
+    expect(list.map((c) => [c.id, c.hasRequest])).toEqual([
+      ["c2", false],
+      ["c1", true],
+    ]);
+  });
+});
+
+describe("upsertItem", () => {
+  it("a request from another agent lands as a Request message in that agent's newest chat", async () => {
+    const db = new FakeDb().seed("agent_chats", [
+      chat("old", T1, "ghl", "2026-10-16T09:00:00.000Z"),
+      chat("new", T1, "ghl", "2026-10-17T09:00:00.000Z"),
+      chat("agency", null, "ghl", "2026-10-17T11:00:00.000Z"),
+    ]);
+    const item = await upsertItem(db.client(), {
+      tenantId: T1,
+      agent: "ghl",
+      fromAgent: "landing",
+      kind: "request",
+      title: "Put the spring page in the funnel",
+      status: "needs_ok",
+      payload: { body: "Page is live at x", plan: ["Add step"] },
+    });
+    expect(item).toMatchObject({ agent: "ghl", fromAgent: "landing", chatId: "new", status: "needs_ok" });
+    const req = db.rows("agent_messages").find((r) => r.role === "request");
+    expect(req).toMatchObject({ chat_id: "new", body: "Page is live at x", meta: { itemId: item.id, fromAgent: "landing" } });
+  });
+
+  it("opens a chat for the request when the agent has none", async () => {
+    const db = new FakeDb();
+    const item = await upsertItem(db.client(), {
+      tenantId: T1,
+      agent: "ghl",
+      fromAgent: "landing",
+      kind: "request",
+      title: "Funnel step",
+      status: "needs_ok",
+      payload: {},
+    });
+    expect(db.rows("agent_chats")).toHaveLength(1);
+    expect(db.rows("agent_chats")[0]).toMatchObject({ tenant_id: T1, agent: "ghl", title: "Funnel step" });
+    expect(item.chatId).toBe(db.rows("agent_chats")[0].id);
+  });
+
+  it("an update with an id rewrites the card and posts no second request", async () => {
+    const db = new FakeDb().seed("agent_chats", [chat("c1", T1, "ads")]);
+    const first = await upsertItem(db.client(), {
+      tenantId: T1, agent: "ads", chatId: "c1", kind: "ad", title: "Ad", status: "building", payload: {},
+    });
+    const second = await upsertItem(db.client(), {
+      id: first.id, tenantId: T1, agent: "ads", chatId: "c1", kind: "ad", title: "Ad v2", status: "needs_ok", payload: { quote: "q" },
+    });
+    expect(second).toMatchObject({ id: first.id, title: "Ad v2", status: "needs_ok", payload: { quote: "q" } });
+    expect(db.rows("agent_items")).toHaveLength(1);
+    expect(db.rows("agent_messages")).toHaveLength(0);
+  });
+});
+
+describe("decideItem", () => {
+  function setup(status = "needs_ok") {
+    return new FakeDb()
+      .seed("agent_chats", [chat("c1", T1, "ads")])
+      .seed("agent_items", [{ id: "i1", tenant_id: T1, agent: "ads", chat_id: "c1", title: "Ad", status, payload: {}, approved_at: null }]);
+  }
+
+  it("approve moves the card and queues one follow-up", async () => {
+    const db = setup();
+    const res = await decideItem(db.client(), "i1", "approve", undefined, new Date("2026-10-17T12:00:00.000Z"));
+    expect("item" in res && res.item.status).toBe("done");
+    expect(db.rows("agent_items")[0].approved_at).toBe("2026-10-17T12:00:00.000Z");
+    const queued = db.rows("agent_messages").filter((r) => r.status === "queued");
+    expect(queued).toHaveLength(1);
+    expect(queued[0]).toMatchObject({ chat_id: "c1", role: "me", body: "Approved: Ad" });
+  });
+
+  it("a double approve answers 409 and queues nothing more", async () => {
+    const db = setup();
+    await decideItem(db.client(), "i1", "approve");
+    expect(await decideItem(db.client(), "i1", "approve")).toEqual({ error: 409 });
+    expect(db.rows("agent_messages")).toHaveLength(1);
+  });
+
+  it("404 for an unknown item", async () => {
+    expect(await decideItem(setup().client(), "nope", "approve")).toEqual({ error: 404 });
+  });
+});
+
+describe("createAutoChat", () => {
+  it("opens an Auto chat with the prompt queued", async () => {
+    const db = new FakeDb();
+    const id = await createAutoChat(db.client(), { tenantId: T1, agent: "ads", title: "Startup check", prompt: "Startup check: CPL up 25%" });
+    expect(db.rows("agent_chats")[0]).toMatchObject({ id, auto: true, title: "Startup check", agent: "ads" });
+    expect(db.rows("agent_messages")[0]).toMatchObject({ chat_id: id, role: "me", status: "queued", body: "Startup check: CPL up 25%" });
+  });
+});

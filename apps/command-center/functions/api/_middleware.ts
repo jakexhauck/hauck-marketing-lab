@@ -16,6 +16,7 @@ import { HEALTH_CRON_HEADER, isHealthCronRequest } from "../lib/healthCron";
 import { ADS_CRON_HEADER, isAdsCronRequest } from "../lib/adsCron";
 import { CALENDAR_CRON_HEADER, isCalendarCronRequest } from "../lib/calendarCron";
 import { COLD_CALL_CRON_HEADER, isColdCallCronRequest } from "../lib/coldCallCron";
+import { AGENT_RUNNER_HEADER, isAgentRunnerRequest } from "../lib/agentRunner";
 import { funnelOriginAllowed } from "../lib/funnelUrl";
 import { logError } from "../lib/errorLog";
 
@@ -202,6 +203,23 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       url.pathname,
       ctx.request.headers.get(COLD_CALL_CRON_HEADER),
       ctx.env.COLD_CALL_CRON_SECRET,
+    )
+  ) {
+    return await runNext(ctx, origin, url);
+  }
+
+  // The Agents runner on Jake's PC, and only its own routes. Fifth sibling of
+  // the gates above, same rules: exact paths from a fixed list (POST for the
+  // writes, GET for the three reads), its own secret, no ctx.data.admin, and a
+  // miss falls through to 401. It lives outside /api/admin/ on purpose, so no
+  // admin route can ever be reached with it. See lib/agentRunner.ts for what
+  // the handlers behind it may touch (the agents' tables, and Meta reads only).
+  if (
+    isAgentRunnerRequest(
+      ctx.request.method,
+      url.pathname,
+      ctx.request.headers.get(AGENT_RUNNER_HEADER),
+      ctx.env.AGENT_RUNNER_SECRET,
     )
   ) {
     return await runNext(ctx, origin, url);
