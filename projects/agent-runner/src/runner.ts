@@ -24,6 +24,7 @@ import { appendLessons, applyEdits, readLessons } from "./brain.ts";
 import { agentBrainPath, buildBundle, clientBrainPath, type BundleEnv } from "./bundle.ts";
 import type { RunOptions } from "./claude.ts";
 import { tenantForFolder } from "./clients.ts";
+import { draftSite, goLive, isSiteDraft, withoutDeployGrant, type LandingDeps } from "./landing.ts";
 import { extractCitations, parseAgentOutput, stripEmDashes } from "./output.ts";
 import type { AgentId, AgentLesson, ClaimResponse, ClaimTenant, ItemStatus, LessonEdit, LessonScope, LessonsBody } from "./wire.ts";
 
@@ -39,6 +40,9 @@ export interface RunnerDeps {
   // the secret from Doppler itself. Claude runs in the bundle's work folder.
   childEnv?: (tenant: ClaimTenant | null) => NodeJS.ProcessEnv;
   log?: (line: string) => void;
+  // The Landing Page Agent's deploys (landing.ts). Without it a landing card
+  // is filed like any other and nothing is deployed.
+  landing?: LandingDeps;
 }
 
 // One brain file and whose lessons it holds. A client brain is shared by all
@@ -131,7 +135,11 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
   let progressPosts: Promise<unknown> = Promise.resolve();
   try {
     await d.api.reply({ messageId, status: "running" });
-    const bundle = buildBundle(agent, tenant, d.env);
+    const bundle = buildBundle(agent, tenant, d.env, message.grant);
+    // An approved landing page goes live before the agent's turn, so the turn
+    // can say where. See landing.ts.
+    const liveNote = d.landing ? await goLive(claim, { api: d.api, landing: d.landing }) : null;
+    const withNote = (p: string) => (liveNote ? `${p}\n\n${liveNote}` : p);
     const base = {
       sessionId: chat.claudeSessionId,
       bundle,
@@ -146,14 +154,14 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
 
     let result: { text: string; tools: string[] };
     try {
-      result = await d.run({ ...base, resume: chat.started, prompt: promptFor(claim, !chat.started) });
+      result = await d.run({ ...base, resume: chat.started, prompt: withNote(promptFor(claim, !chat.started)) });
     } catch (e) {
       // The session lives in this PC's ~/.claude. If it is gone (a new PC, a
       // cleared profile) --resume fails outright; start it again from the
       // chat's own history instead of leaving the chat dead.
       if (!chat.started || !/no conversation found/i.test((e as Error).message)) throw e;
       log(`session ${chat.claudeSessionId} not found here; starting it fresh with the chat history`);
-      result = await d.run({ ...base, resume: false, prompt: promptFor(claim, true) });
+      result = await d.run({ ...base, resume: false, prompt: withNote(promptFor(claim, true)) });
     }
 
     const out = parseAgentOutput(result.text);
@@ -201,7 +209,13 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
 
     // Building cards. An agent may say a card is still building or needs
     // Jake's OK, never that it is live or done: going live is his click.
+    const notes: string[] = [];
     for (const item of out.items) {
+      if (agent === "landing" && tenant && d.landing && isSiteDraft(item)) {
+        const note = await draftSite(item, { api: d.api, landing: d.landing, tenant, chatId: chat.id, workDir: bundle.workDir, log });
+        if (note) notes.push(note);
+        continue;
+      }
       const status: ItemStatus = item.status === "building" ? "building" : "needs_ok";
       try {
         await d.api.item({
@@ -213,7 +227,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
           kind: item.kind,
           title: item.title,
           status,
-          payload: item.payload ?? {},
+          payload: withoutDeployGrant(item.payload),
         });
       } catch (e) {
         log(`item post failed: ${(e as Error).message}`);
@@ -246,7 +260,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
     await d.api.reply({
       messageId,
       status: "done",
-      aiBody: cited.reply.trim(),
+      aiBody: [cited.reply.trim(), ...notes].filter(Boolean).join("\n\n"),
       tools: result.tools,
       used,
       learned,

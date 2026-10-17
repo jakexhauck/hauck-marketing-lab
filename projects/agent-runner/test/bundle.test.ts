@@ -122,4 +122,29 @@ describe("buildBundle", () => {
     for (const id of ["aaaaaaaa", "bbbbbbbb", "cccccccc", "dddddddd"]) expect(prompt).toContain(`^l-${id}`);
     expect(prompt.includes(EM)).toBe(false);
   });
+
+  it("never gives the Landing Page Agent wrangler or a shell, grant or not", () => {
+    const env = world();
+    const deploy = { itemId: "i-1", kind: "deploy" as const, limit: null };
+    for (const g of [null, deploy]) {
+      const tools = buildBundle("landing", willis, env, g).allowedTools;
+      expect(tools.some((t) => /wrangler|bash/i.test(t)), String(g)).toBe(false);
+      expect(tools).toEqual(buildBundle("landing", willis, env).allowedTools);
+    }
+  });
+
+  it("tells the Landing Page Agent its site folder, and on an approved turn that it is live", () => {
+    const env = world();
+    const plain = readFileSync(buildBundle("landing", willis, env).systemPromptFile, "utf8");
+    expect(plain).toContain(join(env.workRoot, "landing-willis-windows", "site", "<name>"));
+    expect(plain).toContain('"site": "<name>"');
+    expect(plain).not.toContain("Approve of card");
+    const approved = readFileSync(
+      buildBundle("landing", willis, env, { itemId: "i-1", kind: "deploy", limit: null }).systemPromptFile,
+      "utf8",
+    );
+    expect(approved).toContain("Approve of card i-1");
+    const ads = readFileSync(buildBundle("ads", willis, env).systemPromptFile, "utf8");
+    expect(ads).not.toContain("Site folder");
+  });
 });

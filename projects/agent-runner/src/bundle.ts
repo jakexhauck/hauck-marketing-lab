@@ -22,7 +22,7 @@ import type { Bundle } from "./claude.ts";
 import { findDriveFolder, vaultFolder } from "./clients.ts";
 import { AGENTS_DIR, DRIVE_ROOT, META_SCRIPT, PROMPTS_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
 import { stripEmDashes } from "./output.ts";
-import type { AgentId, ClaimTenant } from "./wire.ts";
+import type { AgentId, ClaimTenant, Grant } from "./wire.ts";
 
 export type { Bundle };
 
@@ -143,7 +143,28 @@ function clientSection(env: BundleEnv, agent: AgentId, tenant: ClaimTenant | nul
   ].join("\n");
 }
 
-export function buildBundle(agent: AgentId, tenant: ClaimTenant | null, env: BundleEnv = defaultBundleEnv()): Bundle {
+// The Landing Page Agent writes its pages here and nowhere else; the runner
+// deploys them (landing.ts). wrangler is never in its tools, with or without a
+// grant: an approved deploy is the runner's job, so the grant only changes what
+// the agent is told.
+function landingSection(workDir: string, grant: Grant | null): string {
+  const lines = [
+    "## Site folder",
+    `Write each page as a static site in its own folder: \`${join(workDir, "site", "<name>")}\` (relative: \`site/<name>/\`), with \`index.html\` at its root. <name> is lowercase letters, digits and hyphens.`,
+    'When it is ready, file a card with `"payload": {"site": "<name>"}`. The runner deploys it to a preview URL and puts the preview on the card. You never deploy.',
+  ];
+  if (grant?.kind === "deploy") {
+    lines.push("", `This turn follows Jake's Approve of card ${grant.itemId}. The runner has already put it live; the message says where.`);
+  }
+  return lines.join("\n");
+}
+
+export function buildBundle(
+  agent: AgentId,
+  tenant: ClaimTenant | null,
+  env: BundleEnv = defaultBundleEnv(),
+  grant: Grant | null = null,
+): Bundle {
   const def = agentDef(agent);
   const drive = tenant ? findDriveFolder(env.driveRoot, tenant) : null;
 
@@ -153,6 +174,7 @@ export function buildBundle(agent: AgentId, tenant: ClaimTenant | null, env: Bun
     readOr(join(env.agentsDir, "_rules.md")),
     readOr(join(env.agentsDir, "_protocol.md")),
   ];
+  if (agent === "landing") sections.push(landingSection(join(env.workRoot, `landing-${tenant?.slug ?? "agency"}`), grant));
   if (agent === "manager") {
     sections.push(brainSection("Mega Brain", megaBrain(env.vaultDir)));
   } else {
