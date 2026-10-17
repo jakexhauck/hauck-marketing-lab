@@ -486,3 +486,32 @@ DONE by the lead in `73383b63` before the lanes started (so no lane owns it): `G
 - Token check 2026-10-17 (read only, the Doppler `META_SYSTEM_USER_TOKEN`): `ads_management` granted, with `ads_read`, `business_management`, `pages_manage_ads`, `leads_retrieval`. The `agency_meta` row (which wins if set) was not checked.
 - [ ] Live check: on Willis, ask the Ads Agent to pause one paused-anyway ad (or a test ad), Approve, confirm in Ads Manager, resume it the same way.
 - Security review fixes (2026-10-17): new-ad cards show every published word (primary text, headline, description, button, link, lead form) and the status in bold, with the destination on the op and checked live (`read.destination`); cards name the parent ad set and campaign plus the id's last 6 digits, checked live; one budget op per object per card and at most $500/day total increase per card; videos only from the ad account library (`read.library`), never uploaded by the Worker; `createAd` needs the tenant's `meta_page_id`; budgets in the account currency's Meta units (`src/lib/metaCurrency.ts`), and outside USD the card must state the currency.
+
+---
+
+## Brief v2: the brief replaces the client setup pages (Jake, 2026-10-17)
+
+**Decided (Jake):**
+- Agents write only FINISHED work into the brief ("Lead form built" then its details). Done in `_protocol.md` (2cffde29).
+- Checkboxes under every brief category, taken from the client setup checklists. Then remove the external client setup pages.
+- All onboarding information goes into the brief, organised well. Remove the Client Information, Accounts and Software pages.
+- The Onboarding Call and Launch Call checklists become their own brief categories (their pages go too).
+
+**Layout, top to bottom:**
+1. Client: the onboarding answers under headings (Business, Owner & contact, Services & pricing, Service area, Offer, Branding, Logins). Seeded from the onboarding form when empty, then Jake's to edit.
+2. Status (Manager): Software setup, Create client folder and Go live buttons at the top; checkboxes = Full Setup "Operations / Onboarding Call" items.
+3. Onboarding Call: the whole Onboarding Call checklist, its groups kept.
+4. Launch Call: the whole Launch Call checklist, its groups kept.
+5. Market Research: no boxes.
+6. Ads: Link Ad Account To Command Center, Lead Form Setup, Campaign Setup, Ads LIVE.
+7. Creative: Creatives Done/Added To Media Library.
+8. Landing Page: Conversion Assets Created/Placed Into Funnel.
+9. GHL: the other GHL items, all Phone items, all GHL Follow Ups items (groups kept).
+10. Reporting: no boxes.
+
+**Rules:**
+- Boxes keep the existing `sop:` keys in `onboarding_checklist`, so every tick already made carries over.
+- Accounts checks (functions/lib/clientAccounts.ts) become auto-ticked boxes in the matching section, each keeping its fix button; Jake cannot untick an auto box (it follows the live check).
+- Agents tick their own section's boxes with a ```tick block when an item is finished; Jake can tick or untick any manual box.
+- The three settings cards from Client Information (sub-account, dialing, estimate) move to Management.
+- Old addresses (full-setup, onboarding-call, launch-call, info, accounts, software, and the retired onboarding/setter ids) land on Brief. A client in setup opens on Brief.
