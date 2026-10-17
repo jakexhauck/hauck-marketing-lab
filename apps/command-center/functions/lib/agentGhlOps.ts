@@ -73,12 +73,22 @@ const id = (v: unknown): string | null => (typeof v === "string" && GHL_ID.test(
 const noArgs = (): Parsed<Record<string, never>> => ({ ok: true, args: {} });
 
 // Values that hold credentials (the Location API Token, a Facebook Access
-// Token). The agent's chat is stored and shown, so it never sees them, and it
-// cannot overwrite what it cannot see.
-const SECRET_NAME = /token|secret|password|passcode|api[\s_-]*key|private[\s_-]*key/i;
+// Token, a webhook's key). The agent's chat is stored and shown, so it never
+// sees them, and it cannot overwrite what it cannot see. "auth" also catches
+// OAuth and Authorization; "key" counts only as a word of its own, so
+// Keyword and Monkey stay visible. Hiding too much is the safe mistake.
+const SECRET_NAME = /token|secret|password|passcode|credential|auth(?:oriz|[^o]|$)|api[\s_-]*key|private[\s_-]*key|(?:^|[^a-z])key(?:[^a-z]|$)/i;
+// A link that carries its own credential: ?token=, &api_key=, ?sig=,
+// X-Amz-Signature and the like, in any query parameter name.
+const SECRET_URL = /^https?:\/\/[^\s?#]*\?(?:[^#\s]*&)?[^=&#\s]*(?:token|key|sig)[^=&#\s]*=/i;
 
 export function isSecretValueName(name: string): boolean {
   return SECRET_NAME.test(name);
+}
+
+/** A value to keep from the agent: by its name, or because it is a signed link. */
+export function isSecretValue(name: string, value: string): boolean {
+  return isSecretValueName(name) || SECRET_URL.test(value.trim());
 }
 
 const HIDDEN = "(hidden)";
@@ -142,7 +152,7 @@ const ops = {
       (await rawValues(g)).map((v) => ({
         id: String(v.id),
         name: String(v.name),
-        value: isSecretValueName(String(v.name)) ? HIDDEN : String(v.value ?? ""),
+        value: isSecretValue(String(v.name), String(v.value ?? "")) ? HIDDEN : String(v.value ?? ""),
         merge: v.fieldKey ?? null,
         appOwned: isAppValue(String(v.name)),
       })),
@@ -191,7 +201,7 @@ const ops = {
       );
       const name = hit ? String(hit.name) : a.key;
       if (isAppValue(name)) throw new GhlOpRefused(409, `${name} is written by the app`);
-      if (isSecretValueName(name)) throw new GhlOpRefused(409, `${name} holds a credential; Jake changes it himself`);
+      if (isSecretValue(name, String(hit?.value ?? ""))) throw new GhlOpRefused(409, `${name} holds a credential; Jake changes it himself`);
       if (hit) {
         await ghlJson(g, `${valuesPath(g)}/${encodeURIComponent(String(hit.id))}`, {
           method: "PUT",

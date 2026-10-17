@@ -4,6 +4,7 @@ import { FakeDb } from "./agentFakeDb";
 import {
   GHL_OPS,
   callGhlOp,
+  isSecretValue,
   isSecretValueName,
   isWriteOp,
   parseOpArgs,
@@ -123,9 +124,29 @@ describe("GHL_OPS", () => {
     for (const n of ["Location API Token", "Facebook Access Token", "Stripe Secret", "Portal Password", "API Key"]) {
       expect(isSecretValueName(n), n).toBe(true);
     }
-    for (const n of ["Call Now Link", "Business Name", "Keyword", "Facebook Dataset ID"]) {
+    for (const n of ["Call Now Link", "Business Name", "Keyword", "Facebook Dataset ID", "Monkey Bars", "Author Bio"]) {
       expect(isSecretValueName(n), n).toBe(false);
     }
+  });
+
+  it("also knows auth, credentials, a key on its own, and a signed link", () => {
+    for (const n of ["Basic Auth", "OAuth Client", "Authorization Header", "Zapier Credential", "Credentials", "Webhook Key", "key", "Stripe_Key", "license-key"]) {
+      expect(isSecretValueName(n), n).toBe(true);
+    }
+    for (const v of [
+      "https://hooks.example.com/x?token=abc",
+      "https://api.example.com/v1?a=1&api_key=abc",
+      "https://storage.example.com/f.png?X-Amz-Signature=abc&X-Amz-Expires=60",
+      "https://x.example.com/p?sig=abc",
+      "https://x.example.com/p?access_token=abc",
+      "https://x.example.com/p?key=abc",
+    ]) {
+      expect(isSecretValue("Winter Page", v), v).toBe(true);
+    }
+    for (const v of ["https://hm-willis.pages.dev", "https://x.example.com/p?utm_source=fb&page=2", "token=abc", "Free estimate"]) {
+      expect(isSecretValue("Winter Page", v), v).toBe(false);
+    }
+    expect(isSecretValue("API Key", "anything")).toBe(true);
   });
 });
 
@@ -173,6 +194,7 @@ const CV_LIST = {
     { id: "v1", name: "Winter Page", value: "old", fieldKey: "{{ custom_values.winter_page }}" },
     { id: "v2", name: "Location API Token", value: "pit-secret", fieldKey: "{{ custom_values.location_api_token }}" },
     { id: "v3", name: "Open Lead", value: "https://app", fieldKey: "{{ custom_values.open_lead }}" },
+    { id: "v4", name: "Zap Hook", value: "https://hooks.zapier.com/x?token=zap-secret", fieldKey: "{{ custom_values.zap_hook }}" },
   ],
 };
 
@@ -184,7 +206,9 @@ describe("callGhlOp", () => {
     const rows = res.body.result as { name: string; value: string }[];
     expect(rows.find((r) => r.name === "Winter Page")?.value).toBe("old");
     expect(rows.find((r) => r.name === "Location API Token")?.value).toBe("(hidden)");
+    expect(rows.find((r) => r.name === "Zap Hook")?.value).toBe("(hidden)");
     expect(JSON.stringify(res.body)).not.toContain("pit-secret");
+    expect(JSON.stringify(res.body)).not.toContain("zap-secret");
     expect(calls.every((c) => c.method === "GET")).toBe(true);
   });
 
