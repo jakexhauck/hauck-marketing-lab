@@ -94,8 +94,11 @@ export function isAgentRunnerRequest(
 // House rule: no em dashes anywhere, agent output included. The runner strips
 // them before it posts; this is the backstop, so a runner bug cannot put one
 // on a page.
+// Built from its code point so this file never carries the character itself.
+const EM_DASH = new RegExp(`\\s*${String.fromCharCode(0x2014)}\\s*`, "g");
+
 export function stripEmDash(s: string): string {
-  return s.replace(/\s*—\s*/g, ", ");
+  return s.replace(EM_DASH, ", ");
 }
 
 type Row = Record<string, unknown>;
@@ -372,10 +375,10 @@ export async function heartbeat(
   return { lastMonitorAt, queuedEdits };
 }
 
-// One scope names one brain FILE, and a file is what the runner re-reads and
-// re-posts whole:
-//   client   vault/Clients/<folder>/Brain.md: every agent at that client, so
-//            only the tenant decides membership.
+// A scope is one (scope, tenant, agent) slice of a brain FILE, and the runner
+// re-reads a file and re-posts every slice of it together:
+//   client   vault/Clients/<folder>/Brain.md: one slice per agent, so a client
+//            brain arrives as seven scopes and tenant + agent decide.
 //   agent    vault/Agents/<Agent>/Brain.md: that agent at every client, so
 //            only the agent decides (its lessons may still carry the client
 //            they came from).
@@ -384,7 +387,7 @@ type Scope = LessonsBody["scopes"][number];
 
 export function lessonInScope(l: Pick<AgentLesson, "scope" | "tenantId" | "agent">, s: Scope): boolean {
   if (l.scope !== s.scope) return false;
-  if (s.scope === "client") return l.tenantId === s.tenantId;
+  if (s.scope === "client") return l.tenantId === s.tenantId && l.agent === s.agent;
   if (s.scope === "agent") return l.agent === s.agent;
   return true;
 }
@@ -404,12 +407,12 @@ export async function replaceLessons(
   for (const s of scopes) {
     if (!["client", "agent", "manager"].includes(s.scope)) return { error: 400 };
     if (s.scope === "client" && !s.tenantId) return { error: 400 };
-    if (s.scope === "agent" && !isAgentId(s.agent)) return { error: 400 };
+    if (s.scope !== "manager" && !isAgentId(s.agent)) return { error: 400 };
   }
 
   for (const s of scopes) {
     let q = client.from("agent_lessons").delete().eq("scope", s.scope);
-    if (s.scope === "client") q = q.eq("tenant_id", s.tenantId as string);
+    if (s.scope === "client") q = q.eq("tenant_id", s.tenantId as string).eq("agent", s.agent);
     if (s.scope === "agent") q = q.eq("agent", s.agent);
     const { error } = await q;
     fail("lessons clear", error);

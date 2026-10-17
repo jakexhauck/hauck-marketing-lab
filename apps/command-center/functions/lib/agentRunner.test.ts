@@ -17,6 +17,8 @@ import {
   stripEmDash,
 } from "./agentRunner";
 
+const EM = String.fromCharCode(0x2014);
+
 const SECRET = "7c2e91a4b5d86f30a1c7e5b2d84f60a1c7e5b2d8a1c7e5b2d84f60a1c7e5b2d8";
 const T1 = "11111111-1111-4111-8111-111111111111";
 
@@ -210,7 +212,7 @@ describe("applyReply", () => {
       await applyReply(client, {
         messageId: "m1",
         status: "done",
-        aiBody: "CPL fell — good week",
+        aiBody: `CPL fell ${EM} good week`,
         tools: ["Read", "Bash"],
         used: ["Before/after wins"],
         learned: ["Tuesday ads flop"],
@@ -282,7 +284,8 @@ describe("lessons mirror", () => {
   });
 
   it("matches a lesson to its brain file", () => {
-    expect(lessonInScope(lesson("a"), { scope: "client", tenantId: T1, agent: "ghl" })).toBe(true);
+    expect(lessonInScope(lesson("a"), { scope: "client", tenantId: T1, agent: "ads" })).toBe(true);
+    expect(lessonInScope(lesson("a"), { scope: "client", tenantId: T1, agent: "ghl" })).toBe(false);
     expect(lessonInScope(lesson("a"), { scope: "client", tenantId: "other", agent: "ads" })).toBe(false);
     expect(lessonInScope(lesson("a", { scope: "agent" }), { scope: "agent", tenantId: null, agent: "ads" })).toBe(true);
     expect(lessonInScope(lesson("a", { scope: "agent" }), { scope: "agent", tenantId: null, agent: "ghl" })).toBe(false);
@@ -294,6 +297,8 @@ describe("lessons mirror", () => {
       .seed("agent_lessons", [
         { id: "l-old", scope: "client", tenant_id: T1, agent: "ads", text: "gone", source: "", learned_on: null },
         { id: "l-keep", scope: "agent", tenant_id: null, agent: "ghl", text: "stays", source: "", learned_on: null },
+        // Same client brain, another agent's slice, not in this post: kept.
+        { id: "l-ghl", scope: "client", tenant_id: T1, agent: "ghl", text: "stays", source: "", learned_on: null },
       ])
       .seed("agent_lesson_edits", [{ id: "e1", lesson_id: "l-old", action: "delete", text: null, status: "queued" }]);
     const res = await replaceLessons(db.client(), {
@@ -302,14 +307,14 @@ describe("lessons mirror", () => {
       appliedEditIds: ["e1"],
     });
     expect(res).toEqual({ ok: true, saved: 1 });
-    expect(db.rows("agent_lessons").map((r) => r.id).sort()).toEqual(["l-keep", "l-new"]);
+    expect(db.rows("agent_lessons").map((r) => r.id).sort()).toEqual(["l-ghl", "l-keep", "l-new"]);
     expect(db.rows("agent_lesson_edits")[0].status).toBe("applied");
   });
 });
 
 describe("helpers", () => {
   it("strips em dashes from agent text", () => {
-    expect(stripEmDash("one — two—three")).toBe("one, two, three");
+    expect(stripEmDash(`one ${EM} two${EM}three`)).toBe("one, two, three");
   });
 
   it("maps a request row", () => {
