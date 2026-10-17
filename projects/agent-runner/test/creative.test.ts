@@ -37,11 +37,12 @@ function turn(over: Partial<CreativeDeps> = {}, buildErrors: string[] = []) {
   return { t, c, e, runnerApi, steps, workDir, driveDir };
 }
 
-// A prepared clip and a config, as the agent leaves them.
-function readyToBuild(workDir: string) {
+// A prepared clip (the runner's own copies, in its state folder) and a
+// config, as the agent leaves it.
+function readyToBuild(workDir: string, stateDir = join(workDir, "..", "..", "state", "creative-above-all-garage-doors")) {
   for (const f of ["proxies/hey.mp4", "tx/hey.json"]) {
-    mkdirSync(dirname(join(workDir, f)), { recursive: true });
-    writeFileSync(join(workDir, f), "[]");
+    mkdirSync(dirname(join(stateDir, "prepared", f)), { recursive: true });
+    writeFileSync(join(stateDir, "prepared", f), "[]");
   }
   mkdirSync(join(workDir, "ads"), { recursive: true });
   writeFileSync(join(workDir, "ads", "ad1.json"), JSON.stringify({ id: "ad1", source: "hey", title: "Ad 1: Hey", segments: [], overlays: [] }));
@@ -73,6 +74,10 @@ describe("runVideoBlocks", () => {
     expect(out.notes[0]).toContain('Prepared "hey"');
     expect(existsSync(join(w.workDir, "tx", "hey.json"))).toBe(true);
     expect(existsSync(join(w.workDir, "tx", "hey.txt"))).toBe(true);
+    // What a build reads stays the runner's: the agent gets copies to read.
+    expect(existsSync(join(w.workDir, "proxies", "hey.mp4"))).toBe(false);
+    expect(existsSync(join(w.t.stateDir, "prepared", "proxies", "hey.mp4"))).toBe(true);
+    expect(existsSync(join(w.t.stateDir, "prepared", "tx", "hey.json"))).toBe(true);
     expect(w.e.calls).toContain("npx transcribe");
   });
 
@@ -81,6 +86,40 @@ describe("runVideoBlocks", () => {
     const out = await runVideoBlocks([{ action: "prepare", source: join(w.driveDir, "..", "Willis", "clip.mov"), name: "hey" }], w.t, new Set());
     expect(out.notes[0]).toMatch(/not in the client's Drive folder/);
     expect(w.e.calls).toEqual([]);
+  });
+
+  it("builds from the runner's prepared copies, never a proxy the agent wrote", async () => {
+    const w = turn();
+    // The agent's own files only: not prepared.
+    for (const f of ["proxies/hey.mp4", "tx/hey.json"]) {
+      mkdirSync(dirname(join(w.workDir, f)), { recursive: true });
+      writeFileSync(join(w.workDir, f), "[]");
+    }
+    mkdirSync(join(w.workDir, "ads"), { recursive: true });
+    writeFileSync(join(w.workDir, "ads", "ad1.json"), JSON.stringify({ id: "ad1", source: "hey", segments: [], overlays: [] }));
+    const out = await runVideoBlocks([{ action: "preview", config: "ads/ad1.json" }], w.t, new Set());
+    expect(out.notes[0]).toMatch(/not prepared/);
+
+    readyToBuild(w.workDir, w.t.stateDir);
+    const seen: string[][] = [];
+    const inner = w.t.deps.exec;
+    w.t.deps.exec = async (cmd, args, o) => (cmd === process.execPath && seen.push(args), inner(cmd, args, o));
+    await runVideoBlocks([{ action: "preview", config: "ads/ad1.json" }], w.t, new Set());
+    const args = seen[0];
+    expect(args[args.indexOf("--proxy") + 1]).toBe(join(w.t.stateDir, "prepared", "proxies", "hey.mp4"));
+    expect(args[args.indexOf("--transcript") + 1]).toBe(join(w.t.stateDir, "prepared", "tx", "hey.json"));
+  });
+
+  it("refuses a freeze frame read from outside the Drive folder", async () => {
+    const w = turn();
+    readyToBuild(w.workDir, w.t.stateDir);
+    writeFileSync(
+      join(w.workDir, "ads", "ad1.json"),
+      JSON.stringify({ id: "ad1", source: "hey", freezeFrom: "C:/Users/games/.claude/.credentials.json", segments: [], overlays: [] }),
+    );
+    const out = await runVideoBlocks([{ action: "preview", config: "ads/ad1.json" }], w.t, new Set());
+    expect(out.notes[0]).toMatch(/freezeFrom/);
+    expect(w.e.calls.some((c) => c.startsWith("node"))).toBe(false);
   });
 
   it("refuses a config outside the work folder", async () => {

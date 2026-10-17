@@ -17,7 +17,7 @@
 //   beats:    [{at: "phrase", scale}]   punch-ins on top of the automatic jump-cut zooms
 import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, resolve, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const TPL = dirname(fileURLToPath(import.meta.url));
@@ -28,12 +28,35 @@ const flag = (name) => {
   return argv[i + 1];
 };
 const cfg = JSON.parse(readFileSync(argv[0], "utf8"));
+
+// ---------- untrusted config ----------
+// The config is the Creative Agent's own writing, so every string from it is
+// escaped before it goes into the page, and every number and position is
+// checked before it goes into the timeline script. <b>, <br> and <span> come
+// back as plain tags (a bold word in a notification). Brand values are not
+// escaped here: the runner's brandFor() cleans the agent's layer of those.
+// Escaping is a no-op on plain text, so a config with none of & < > " in it
+// builds the same page it always did.
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const txt = (v, fallback) => (v === undefined || v === null ? fallback : esc(v).replace(/&lt;(\/?(?:b|span)|br\s*\/?)&gt;/g, "<$1>"));
+const num = (v, d, what) => {
+  const n = v ?? d;
+  if (typeof n !== "number" || !Number.isFinite(n)) throw new Error(`not a number: ${what}`);
+  return n;
+};
+const pos = (v, d, what) => {
+  const p = v ?? d;
+  if (typeof p !== "string" || !/^[a-z0-9.%\s-]{1,40}$/i.test(p)) throw new Error(`not a position: ${what}`);
+  return p;
+};
+// Inside <script>, a "</script>" in a word would end the tag.
+const scriptJson = (v) => JSON.stringify(v).replace(/</g, "\\u003c");
 const brand = JSON.parse(readFileSync(flag("brand"), "utf8"));
 const OUT = flag("out");
 const PROXY = flag("proxy");
 const TRANSCRIPT = flag("transcript");
-const GAP_CUT = cfg.gapCut ?? 0.22;
-const RATE = cfg.rate ?? 1.0; // playback speed; tight jump cuts already carry the pace // pauses longer than this inside a kept range become jump cuts
+const GAP_CUT = num(cfg.gapCut, 0.22, "gapCut");
+const RATE = num(cfg.rate, 1.0, "rate"); // playback speed; tight jump cuts already carry the pace // pauses longer than this inside a kept range become jump cuts
 const PAD_OUT = 0.08;
 const PAD_IN = 0.05;
 const MAX_WORD = 0.7; // transcript word ends often swallow the pause that follows
@@ -66,7 +89,12 @@ for (const o of cfg.overlays) {
 }
 mkdirSync(join(OUT, "assets", "photos"), { recursive: true });
 for (const p of photoNames) {
-  const from = join(brand.photosDir, `${p}.jpg`);
+  // A plain name, nothing that climbs out of the photos folder.
+  const from = resolve(brand.photosDir, `${p}.jpg`);
+  const rel = relative(resolve(brand.photosDir), from);
+  if (typeof p !== "string" || !/^[A-Za-z0-9 _.-]+$/.test(p) || p.includes("..") || !rel || rel.startsWith("..") || isAbsolute(rel)) {
+    throw new Error(`photo not found: "${p}" (not a plain photo name)`);
+  }
   if (!existsSync(from)) throw new Error(`photo not found: "${p}" (no ${p}.jpg in ${brand.photosDir})`);
   copyFileSync(from, join(OUT, "assets", "photos", `${p}.jpg`));
 }
@@ -114,8 +142,9 @@ const pushVideo = (a, b) => {
 
 for (const seg of cfg.segments) {
   if (!Array.isArray(seg)) {
-    clips.push({ kind: "freeze", src: seg.freeze, dur: seg.dur, start: r2(t) });
-    t += seg.dur;
+    const dur = num(seg.dur, undefined, "freeze dur");
+    clips.push({ kind: "freeze", src: num(seg.freeze, undefined, "freeze"), dur, start: r2(t) });
+    t += dur;
     continue;
   }
   const [a, b] = seg;
@@ -133,7 +162,7 @@ for (const seg of cfg.segments) {
   pushVideo(cur, b);
 }
 const SPEECH_END = r2(t);
-const TAIL = cfg.tail ?? 2.6;
+const TAIL = num(cfg.tail, 2.6, "tail");
 const lastVideo = [...clips].reverse().find((c) => c.kind === "video");
 const tailSrc = cfg.tailFrom ?? lastVideo.mediaStart + lastVideo.dur * RATE;
 clips.push({ kind: "video", mediaStart: r2(tailSrc), dur: TAIL, start: SPEECH_END, tail: true });
@@ -172,22 +201,25 @@ const html = [];
 const js = [];
 const sfx = [];
 let sfxN = 0;
+const SFX = { whoosh: 0.45, thud: 0.35, pop: 0.09, ding: 0.45, tick: 0.06, scratch: 0.32 };
 const addSfx = (name, at, vol = 0.6) => {
-  const d = { whoosh: 0.45, thud: 0.35, pop: 0.09, ding: 0.45, tick: 0.06, scratch: 0.32 }[name];
+  if (!Object.prototype.hasOwnProperty.call(SFX, name)) throw new Error(`not a sound: ${name}`);
+  const d = SFX[name];
   sfx.push(`<audio id="sfx-${sfxN}" class="clip" src="assets/sfx/${name}.wav" data-start="${r2(Math.max(0, at))}" data-duration="${d}" data-track-index="${10 + (sfxN % 6)}" data-volume="${vol}"></audio>`);
   sfxN++;
 };
 let uid = 0;
 const id = (p) => `${p}-${uid++}`;
 const clipAttrs = (t0, t1, track) => `class="clip" data-start="${t0}" data-duration="${r2(t1 - t0)}" data-track-index="${track}"`;
-const zoneInfo = cfg.zones?.info ?? { left: 40, top: 290, width: 460 };
-const zoneChest = cfg.zones?.chest ?? { left: 330, top: 650, width: 710 };
+const zone = (z, d, what) => ({ left: num(z?.left, d.left, `${what}.left`), top: num(z?.top, d.top, `${what}.top`), width: num(z?.width, d.width, `${what}.width`) });
+const zoneInfo = zone(cfg.zones?.info, { left: 40, top: 290, width: 460 }, "zones.info");
+const zoneChest = zone(cfg.zones?.chest, { left: 330, top: 650, width: 710 }, "zones.chest");
 
 const C = {
   loc(o, t0, t1) {
     const k = id("loc");
     html.push(`<div id="${k}" ${clipAttrs(t0, t1, 2)} style="position:absolute;left:${zoneInfo.left}px;top:${zoneInfo.top + 10}px;width:640px">
-  <div class="card loc-card"><svg viewBox="0 0 40 48" class="loc-pin"><path d="M20 2C10 2 3 9.5 3 19c0 12.5 17 27 17 27s17-14.5 17-27C37 9.5 30 2 20 2z" fill="${ACCENT}"/><circle cx="20" cy="19" r="6.5" fill="${INK}"/></svg><div class="mono loc-text">${o.text ?? brand.location}</div></div></div>`);
+  <div class="card loc-card"><svg viewBox="0 0 40 48" class="loc-pin"><path d="M20 2C10 2 3 9.5 3 19c0 12.5 17 27 17 27s17-14.5 17-27C37 9.5 30 2 20 2z" fill="${ACCENT}"/><circle cx="20" cy="19" r="6.5" fill="${INK}"/></svg><div class="mono loc-text">${txt(o.text, brand.location)}</div></div></div>`);
     js.push(`tl.fromTo("#${k} .card",{x:-640},{x:0,duration:0.45,ease:"expo.out"},${t0 + 0.05})
   .fromTo("#${k} svg",{y:-30,scale:0.6},{y:0,scale:1,duration:0.45,ease:"back.out(2.5)"},${t0 + 0.25})
   .to("#${k} .card",{x:-640,duration:0.3,ease:"power3.in"},${r2(t1 - 0.32)});`);
@@ -195,8 +227,8 @@ const C = {
   },
   exhibit(o, t0, t1) {
     const k = id("ex");
-    html.push(`<div id="${k}" ${clipAttrs(t0, t1, 3)} style="position:absolute;left:${o.left ?? 40}px;top:${o.top ?? 560}px;width:400px;height:200px">
-  <div class="tag mono ex-tag">${o.label ?? "Exhibit A"}</div>
+    html.push(`<div id="${k}" ${clipAttrs(t0, t1, 3)} style="position:absolute;left:${num(o.left, 40, "left")}px;top:${num(o.top, 560, "top")}px;width:400px;height:200px">
+  <div class="tag mono ex-tag">${txt(o.label, "Exhibit A")}</div>
   <svg viewBox="0 0 140 150" class="ex-svg"><path id="${k}-p" d="M100 6 C 60 20, 30 50, 26 128" fill="none" stroke="${ACCENT}" stroke-width="9" stroke-linecap="round"/><path id="${k}-h" d="M6 104 L26 136 L46 106" fill="none" stroke="${ACCENT}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`);
     js.push(`{const p=document.getElementById("${k}-p");const L=p.getTotalLength();p.style.strokeDasharray=L;
 tl.fromTo("#${k} .ex-tag",{scale:0,rotation:-12},{scale:1,rotation:-4,duration:0.3,ease:"back.out(2.2)"},${t0})
@@ -240,8 +272,8 @@ tl.fromTo("#${k} .card",{scale:0.6,opacity:0},{scale:1,opacity:1,duration:0.45,e
   },
   stamp(o, t0, t1) {
     const k = id("stamp");
-    html.push(`<div id="${k}" ${clipAttrs(t0, t1, 3)} style="position:absolute;left:${o.left ?? 360}px;top:${o.top ?? 700}px;width:640px;height:300px">
-  <div class="stamp-inner"><div class="big">${o.big ?? brand.stamp.big}</div><div class="small mono">${o.small ?? brand.stamp.small}</div></div></div>`);
+    html.push(`<div id="${k}" ${clipAttrs(t0, t1, 3)} style="position:absolute;left:${num(o.left, 360, "left")}px;top:${num(o.top, 700, "top")}px;width:640px;height:300px">
+  <div class="stamp-inner"><div class="big">${txt(o.big, brand.stamp.big)}</div><div class="small mono">${txt(o.small, brand.stamp.small)}</div></div></div>`);
     js.push(`tl.fromTo("#${k} .stamp-inner",{scale:2.2,rotation:-14,opacity:0},{scale:1,rotation:-6,opacity:1,duration:0.25,ease:"power4.in"},${t0})
   .fromTo("#${k} .stamp-inner",{x:0},{x:8,duration:0.05,yoyo:true,repeat:3,ease:"none",immediateRender:false},${r2(t0 + 0.25)})
   .to("#${k} .stamp-inner",{opacity:0,scale:0.92,duration:0.2,ease:"power2.in"},${r2(t1 - 0.2)});`);
@@ -249,7 +281,7 @@ tl.fromTo("#${k} .card",{scale:0.6,opacity:0},{scale:1,opacity:1,duration:0.45,e
   },
   tap(o, t0, t1) {
     const k = id("tap");
-    html.push(`<div id="${k}" ${clipAttrs(t0, t1, 3)} style="position:absolute;left:${o.left ?? 340}px;top:${o.top ?? zoneChest.top + 10}px;width:680px;height:380px">
+    html.push(`<div id="${k}" ${clipAttrs(t0, t1, 3)} style="position:absolute;left:${num(o.left, 340, "left")}px;top:${num(o.top, zoneChest.top + 10, "top")}px;width:680px;height:380px">
   <div class="card tap-card"><div class="line1 mono">${brand.offer}</div><div class="line2">${brand.cta}</div></div>
   <svg class="arrow tap-arrow" viewBox="0 0 100 140"><path d="M50 6 V118 M14 84 L50 124 L86 84" fill="none" stroke="${ACCENT}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`);
     const bounces = Math.max(1, Math.floor((t1 - t0 - 0.9) / 0.35));
@@ -261,8 +293,8 @@ tl.fromTo("#${k} .card",{scale:0.6,opacity:0},{scale:1,opacity:1,duration:0.45,e
   },
   notif(o, t0, t1) {
     const k = id("notif");
-    html.push(`<div id="${k}" ${clipAttrs(t0, t1, 3)} style="position:absolute;left:120px;top:${o.top ?? zoneChest.top + 10}px;width:860px">
-  <div class="card notif-card"><div class="icon"><img src="assets/logo-color.png" alt=""/></div><div><div class="meta mono">${brand.name} · now</div><div class="msg">${o.msg ?? brand.notifMsg}</div></div></div></div>`);
+    html.push(`<div id="${k}" ${clipAttrs(t0, t1, 3)} style="position:absolute;left:120px;top:${num(o.top, zoneChest.top + 10, "top")}px;width:860px">
+  <div class="card notif-card"><div class="icon"><img src="assets/logo-color.png" alt=""/></div><div><div class="meta mono">${brand.name} · now</div><div class="msg">${txt(o.msg, brand.notifMsg)}</div></div></div></div>`);
     js.push(`tl.fromTo("#${k} .card",{y:-140,opacity:0,scale:0.94},{y:0,opacity:1,scale:1,duration:0.5,ease:"back.out(1.4)"},${t0})
   .to("#${k} .card",{y:-60,opacity:0,duration:0.3,ease:"power2.in"},${r2(t1 - 0.3)});`);
     addSfx("ding", t0 + 0.05, 0.7);
@@ -274,7 +306,7 @@ tl.fromTo("#${k} .card",{scale:0.6,opacity:0},{scale:1,opacity:1,duration:0.45,e
     const step = (t1 - t0) / n;
     html.push(`<div id="${k}" ${clipAttrs(t0, t1, 1)} style="position:absolute;inset:0" ><div class="broll">
   ${o.photos.map((p, i) => `<img class="ph" id="${k}-${i}" src="assets/photos/${p}.jpg" alt=""/>`).join("\n  ")}
-  <div class="grade"></div>${o.chip ? `<div class="chip mono${o.chipDark ? " dark" : ""}" id="${k}-c">${o.chip}</div>` : ""}</div></div>`);
+  <div class="grade"></div>${o.chip ? `<div class="chip mono${o.chipDark ? " dark" : ""}" id="${k}-c">${txt(o.chip)}</div>` : ""}</div></div>`);
     o.photos.forEach((_, i) => {
       const at = r2(t0 + i * step);
       js.push(`tl.set("#${k}-${i}",{opacity:0},${t0}).set("#${k}-${i}",{opacity:1},${at})
@@ -286,13 +318,13 @@ tl.fromTo("#${k} .card",{scale:0.6,opacity:0},{scale:1,opacity:1,duration:0.45,e
   },
   ba(o, t0, t1) {
     const k = id("ba");
-    const wipe = r2(t0 + (t1 - t0) * (o.wipeAt ?? 0.35));
+    const wipe = r2(t0 + (t1 - t0) * num(o.wipeAt, 0.35, "wipeAt"));
     html.push(`<div id="${k}" ${clipAttrs(t0, t1, 1)} style="position:absolute;inset:0"><div class="broll ba">
   <img class="ph" src="assets/photos/${o.before}.jpg" alt=""/>
   <div class="after-wrap" id="${k}-a"><img class="ph" src="assets/photos/${o.after}.jpg" alt=""/></div>
   <div class="divider" id="${k}-d"></div>
   ${o.labels === false ? "" : `<div class="lbl b mono" id="${k}-lb">Before</div><div class="lbl a mono" id="${k}-la">After</div>`}
-  ${o.chip ? `<div class="chip mono" id="${k}-c" style="top:1500px;left:300px">${o.chip}</div>` : ""}</div></div>`);
+  ${o.chip ? `<div class="chip mono" id="${k}-c" style="top:1500px;left:300px">${txt(o.chip)}</div>` : ""}</div></div>`);
     js.push(`tl.fromTo("#${k}-a",{clipPath:"inset(0 100% 0 0)"},{clipPath:"inset(0 0% 0 0)",duration:0.6,ease:"power3.inOut"},${wipe})
   .fromTo("#${k}-d",{x:0,opacity:1},{x:1072,duration:0.6,ease:"power3.inOut"},${wipe})
   .to("#${k}-d",{opacity:0,duration:0.15},${r2(wipe + 0.6)});`);
@@ -306,7 +338,7 @@ tl.fromTo("#${k} .card",{scale:0.6,opacity:0},{scale:1,opacity:1,duration:0.45,e
     const k = id("ph");
     html.push(`<div id="${k}" ${clipAttrs(t0, t1, 1)} style="position:absolute;inset:0"><div class="broll">
   <img class="ph" id="${k}-i" src="assets/photos/${o.photo}.jpg" alt=""/><div class="grade"></div>
-  ${o.chip ? `<div class="chip mono${o.chipDark ? " dark" : ""}" id="${k}-c">${o.chip}</div>` : ""}</div></div>`);
+  ${o.chip ? `<div class="chip mono${o.chipDark ? " dark" : ""}" id="${k}-c">${txt(o.chip)}</div>` : ""}</div></div>`);
     js.push(`tl.fromTo("#${k}-i",{scale:1.02,xPercent:0},{scale:1.16,xPercent:-4,duration:${r2(t1 - t0)},ease:"none"},${t0});`);
     if (o.chip) js.push(`tl.fromTo("#${k}-c",{x:-500},{x:0,duration:0.4,ease:"expo.out"},${r2(t0 + 0.12)});`);
     addSfx("whoosh", t0 - 0.12, 0.7);
@@ -319,7 +351,7 @@ tl.fromTo("#${k} .card",{scale:0.6,opacity:0},{scale:1,opacity:1,duration:0.45,e
   ${o.photos.map((p, i) => `<img class="ph" id="${k}-${i}" src="assets/photos/${p}.jpg" alt=""/>`).join("\n  ")}
   <div class="grade"></div><div class="diag-scan" id="${k}-s"></div>
   <div class="diag-reticle" id="${k}-r"><svg viewBox="0 0 500 500"><path d="M10 110V10h100M390 10h100v100M490 390v100H390M110 490H10V390" fill="none" stroke="${ACCENT}" stroke-width="10"/><circle cx="250" cy="250" r="12" fill="${ACCENT}"/></svg></div>
-  <div class="chip mono" id="${k}-c">${o.chip ?? brand.diagChip}</div></div></div>`);
+  <div class="chip mono" id="${k}-c">${txt(o.chip, brand.diagChip)}</div></div></div>`);
     o.photos.forEach((_, i) => {
       const at = r2(t0 + i * step);
       js.push(`tl.set("#${k}-${i}",{opacity:0},${t0}).set("#${k}-${i}",{opacity:1},${at})
@@ -335,15 +367,16 @@ tl.fromTo("#${k} .card",{scale:0.6,opacity:0},{scale:1,opacity:1,duration:0.45,e
   // big punchline text (pattern interrupt)
   text(o, t0, t1) {
     const k = id("txt");
-    html.push(`<div id="${k}" ${clipAttrs(t0, t1, 4)} style="position:absolute;left:60px;top:${o.top ?? 300}px;width:960px"><div class="punch${o.alt ? " alt" : ""}" id="${k}-t">${o.text}</div></div>`);
-    js.push(`tl.fromTo("#${k}-t",{scale:1.8,rotation:${o.rot ?? -4},opacity:0},{scale:1,rotation:${o.rot ?? -4},opacity:1,duration:0.22,ease:"power4.in"},${t0});`);
+    const rot = num(o.rot, -4, "rot");
+    html.push(`<div id="${k}" ${clipAttrs(t0, t1, 4)} style="position:absolute;left:60px;top:${num(o.top, 300, "top")}px;width:960px"><div class="punch${o.alt ? " alt" : ""}" id="${k}-t">${txt(o.text, "")}</div></div>`);
+    js.push(`tl.fromTo("#${k}-t",{scale:1.8,rotation:${rot},opacity:0},{scale:1,rotation:${rot},opacity:1,duration:0.22,ease:"power4.in"},${t0});`);
     addSfx(o.sound ?? "thud", t0 + 0.2, 0.8);
   },
   endcard(o, t0, t1) {
     const k = "endcard";
     html.push(`<div id="${k}" ${clipAttrs(t0, t1, 5)} style="position:absolute;inset:0">
   <img class="bg" id="end-bg" src="assets/photos/${o.bg ?? brand.endcardBg}.jpg" alt=""/><div class="veil"></div><div class="glow"></div>
-  <div class="stack">${o.kicker ? `<div class="end-kicker">${o.kicker}</div>` : ""}<img class="logo" src="assets/logo-color.png" alt="${brand.name}"/>
+  <div class="stack">${o.kicker ? `<div class="end-kicker">${txt(o.kicker)}</div>` : ""}<img class="logo" src="assets/logo-color.png" alt="${brand.name}"/>
   <div class="offer">${brand.offerHtml}</div><div class="cta">${brand.cta}</div><div class="proof"><b>★ ${brand.rating}</b> from ${brand.reviews} Google reviews</div></div></div>`);
     js.push(`tl.fromTo("#end-bg",{scale:1.15},{scale:1.0,duration:${r2(t1 - t0)},ease:"power1.out"},${t0})
   .fromTo("#endcard .veil",{opacity:0.4},{opacity:1,duration:0.5,ease:"power2.out"},${t0})
@@ -362,17 +395,19 @@ const mids = [0.4];
 for (const o of cfg.overlays) {
   const [t0, t1] = span(o);
   mids.push(r2(t0 + (t1 - t0) * 0.6));
+  if (!Object.prototype.hasOwnProperty.call(C, o.type) || o.type === "endcard") throw new Error(`not an overlay type: ${o.type}`);
   C[o.type](o, t0, t1);
 }
 C.endcard(cfg.endcard ?? {}, SPEECH_END, DURATION);
 
 // ---------- footage + camera ----------
-const FACE = cfg.face ?? "65% 21%";
+const FACE = pos(cfg.face, "65% 21%", "face");
 const vids = [];
 const freezes = [];
 clips.forEach((c, i) => {
   if (c.kind === "video") {
-    const lane = c.tail ? `data-automation='{"version":1,"lanes":[{"target":"volume","points":[{"t":0,"v":${cfg.tailVolume ?? 0}},{"t":${c.dur},"v":${cfg.tailVolume ?? 0}}]}]}'` : "";
+    const tv = num(cfg.tailVolume, 0, "tailVolume");
+    const lane = c.tail ? `data-automation='{"version":1,"lanes":[{"target":"volume","points":[{"t":0,"v":${tv}},{"t":${c.dur},"v":${tv}}]}]}'` : "";
     vids.push(`<video id="v-${i}" class="clip" src="assets/src.mp4" data-start="${c.start}" data-duration="${c.dur}" data-media-start="${c.mediaStart}" data-playback-rate="${RATE}" data-track-index="0" playsinline data-has-audio="true" ${lane}></video>`);
   } else {
     const f = `freeze-${i}.jpg`;
@@ -380,7 +415,7 @@ clips.forEach((c, i) => {
     const from = cfg.freezeFrom ?? join(OUT, "assets", "src.mp4");
     execFileSync("ffmpeg", ["-v", "error", "-y", "-ss", String(c.src), "-i", from, "-frames:v", "1", "-vf", "scale=2160:3840", "-q:v", "2", join(OUT, "assets", f)]);
     freezes.push(`<div id="fz-${i}" class="clip freeze" data-start="${c.start}" data-duration="${c.dur}" data-track-index="0"><img id="fz-${i}-i" src="assets/${f}" alt=""/></div>`);
-    const fz = cfg.freezeZoom ?? { origin: "20% 55%", scale: 2.2 };
+    const fz = { origin: pos(cfg.freezeZoom?.origin, "20% 55%", "freezeZoom.origin"), scale: num(cfg.freezeZoom?.scale, 2.2, "freezeZoom.scale") };
     js.push(`tl.fromTo("#fz-${i}-i",{scale:1,transformOrigin:"${fz.origin}"},{scale:${fz.scale},duration:0.5,ease:"expo.out"},${c.start});`);
     addSfx("scratch", c.start, 0.9);
   }
@@ -394,12 +429,12 @@ clips.forEach((c) => {
   zoomed = !zoomed;
   cam.push({ t: c.start, scale: c.tail ? 1.06 : zoomed ? 1.08 : 1 });
 });
-for (const b of cfg.beats ?? []) cam.push({ t: when(b.at, b.afterT ?? 0).s, scale: b.scale });
+for (const b of cfg.beats ?? []) cam.push({ t: when(b.at, b.afterT ?? 0).s, scale: num(b.scale, undefined, "beat scale") });
 cam.sort((a, b) => a.t - b.t);
 const camJs = [];
 if (cfg.hook) {
   const ht = when(cfg.hook.until, 0).s;
-  camJs.push(`tl.fromTo("#cam",{scale:${cfg.hook.scale ?? 1.75},transformOrigin:"${cfg.hook.origin}"},{scale:1,duration:0.32,ease:"expo.inOut"},${r2(ht - 0.16)});`);
+  camJs.push(`tl.fromTo("#cam",{scale:${num(cfg.hook.scale, 1.75, "hook.scale")},transformOrigin:"${pos(cfg.hook.origin, undefined, "hook.origin")}"},{scale:1,duration:0.32,ease:"expo.inOut"},${r2(ht - 0.16)});`);
   camJs.push(`tl.set("#cam",{transformOrigin:"${FACE}"},${r2(ht + 0.2)});`);
   addSfx("whoosh", ht - 0.2, 0.8);
   for (let i = cam.length - 1; i >= 0; i--) if (cam[i].t < ht + 0.2) cam.splice(i, 1);
@@ -421,7 +456,7 @@ const page = `<!doctype html>
     <style>${themed(readFileSync(join(TPL, "style.css"), "utf8"))}${themed(readFileSync(join(TPL, "extra.css"), "utf8"))}</style>
   </head>
   <body>
-    <!-- ${cfg.title}: built by template/build.mjs from ${cfg.id}.json, edit the config and rebuild -->
+    <!-- ${esc(cfg.title)}: built by template/build.mjs from ${esc(cfg.id)}.json, edit the config and rebuild -->
     <div id="root" data-composition-id="main" data-start="0" data-duration="${DURATION}" data-width="1080" data-height="1920">
       <div class="shot" id="cam">
         ${vids.join("\n        ")}
@@ -433,8 +468,8 @@ const page = `<!doctype html>
       ${sfx.join("\n      ")}
     </div>
     <script>
-      const WORDS = ${JSON.stringify(compWords)};
-      const HOT = new Set(${JSON.stringify(HOT)});
+      const WORDS = ${scriptJson(compWords)};
+      const HOT = new Set(${scriptJson(HOT)});
       const CAPTIONS_END = ${CAPTIONS_END};
       const GROUPS = [];
       let cur = [];

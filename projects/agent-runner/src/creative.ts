@@ -20,7 +20,7 @@
 // card it made itself (state.finals), never a path from model output, and
 // the app checks the grant again on its side.
 
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { RunnerApi } from "./api.ts";
 import type { CreativeApi } from "./creativeApi.ts";
@@ -137,6 +137,7 @@ function brandFile(t: CreativeTurn): string {
     name: t.tenant.name,
     brandsDir: BRANDS_DIR,
     assetsDir: brandAssetsDir(t.workDir),
+    allowDirs: t.driveDir ? [t.driveDir] : [],
   });
   mkdirSync(t.stateDir, { recursive: true });
   const f = join(t.stateDir, "brand.resolved.json");
@@ -195,12 +196,22 @@ function readConfig(t: CreativeTurn, rel: string): { file: string; id: string; s
   const id = safeName(cfg?.id);
   const source = safeName(cfg?.source);
   if (!id || !source) throw new Error(`${rel} needs an "id" and a "source" in lowercase-and-dashes`);
+  // build.mjs hands freezeFrom to ffmpeg, which reads it into the project.
+  const fz = cfg.freezeFrom;
+  if (fz !== undefined && !(typeof fz === "string" && t.driveDir && inside(resolve(fz), t.driveDir))) {
+    throw new Error(`${rel}: freezeFrom must be a clip in the client's Drive folder`);
+  }
   return { file, id, source, title: typeof cfg.title === "string" ? cfg.title : id };
 }
 
+// Where prepare puts what a build reads: the runner's state folder, which the
+// agent cannot write. The agent gets copies of the transcript and stills in
+// its work folder to read, and nothing it writes there is ever built from.
+const preparedPaths = (t: CreativeTurn, name: string) => workPaths(join(t.stateDir, "prepared"), name);
+
 async function renderOne(t: CreativeTurn, state: CreativeState, b: { config: string; title?: string }, mode: RenderMode, retried: Set<string>, out: Outcome): Promise<void> {
   const cfg = readConfig(t, b.config);
-  const w = workPaths(t.workDir, cfg.source);
+  const w = preparedPaths(t, cfg.source);
   if (!existsSync(w.proxy) || !existsSync(w.transcript)) throw new Error(`"${cfg.source}" is not prepared; send a prepare block for it first`);
   const project = within(t.workDir, "videos", cfg.id);
   t.say(`Building ${cfg.id}`);
@@ -252,15 +263,18 @@ async function prepare(t: CreativeTurn, b: { source: string; name: string }, out
   const src = resolve(b.source);
   if (!t.driveDir || !inside(src, t.driveDir)) throw new Error(`${b.source} is not in the client's Drive folder`);
   if (!existsSync(src)) throw new Error(`${b.source} does not exist`);
+  const r = preparedPaths(t, b.name);
   const w = workPaths(t.workDir, b.name);
   t.say(`Making a proxy of ${b.name}`);
-  await proxy(t.deps.exec, src, w.proxy);
+  await proxy(t.deps.exec, src, r.proxy);
   t.say(`Transcribing ${b.name}`);
-  await transcribe(t.deps.exec, w.proxy, w.wav, w.transcript);
-  const words = JSON.parse(readFileSync(w.transcript, "utf8")) as Word[];
+  await transcribe(t.deps.exec, r.proxy, r.wav, r.transcript);
+  const words = JSON.parse(readFileSync(r.transcript, "utf8")) as Word[];
+  mkdirSync(dirname(w.transcript), { recursive: true });
+  copyFileSync(r.transcript, w.transcript);
   writeFileSync(w.lines, transcriptLines(words) + "\n");
   t.say(`Grabbing stills of ${b.name}`);
-  const stills = await frames(t.deps.exec, w.proxy, w.frames);
+  const stills = await frames(t.deps.exec, r.proxy, w.frames);
   const rel = (f: string) => f.slice(t.workDir.length + 1).split("\\").join("/");
   out.notes.push(
     `Prepared "${b.name}": lines ${rel(w.lines)}, words ${rel(w.transcript)}, stills ${stills.map(rel).join(", ")}. Read them, write ads/<id>.json with "source": "${b.name}", then send a preview block.`,

@@ -11,13 +11,16 @@
 //   3. video/brands/<slug>.json, checked in: the design choices a note does not
 //      hold (owner's full name on the card, location, palette, method name).
 //   4. brand.json in the client's brand assets folder, written by the Creative
-//      Agent when it sets up a new client.
+//      Agent when it sets up a new client. That is model output, so it is
+//      cleaned (agentLayer): text escaped (<b>, <br>, <span> kept in the HTML
+//      fields), numbers and colours checked, paths kept only inside the
+//      assets folder or a folder the runner allows (the client's Drive).
 //
 // photosDir and logoPath may be relative; they resolve against the assets
 // folder (the Creative Agent's work folder for that client, brand/).
 
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export interface BrandColors {
@@ -57,6 +60,9 @@ export interface BrandOptions {
   name: string;
   brandsDir: string;
   assetsDir: string;
+  // Where else the agent's brand.json may point logoPath and photosDir (the
+  // client's Drive folder). The assets folder itself is always allowed.
+  allowDirs?: string[];
 }
 
 export const BRANDS_DIR = join(dirname(fileURLToPath(import.meta.url)), "brands");
@@ -136,6 +142,58 @@ function readJson(file: string): Partial<Brand> {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Partial<Brand>) : {};
 }
 
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const rich = (s: string) => esc(s).replace(/&lt;(\/?(?:b|span)|br\s*\/?)&gt;/g, "<$1>");
+const TEXT = ["name", "ownerName", "location", "reviews", "offer", "cta", "diagChip"] as const;
+const HTML = ["offerHtml", "processHtml", "notifMsg"] as const;
+const PHOTO_NAME = /^[A-Za-z0-9 _.-]+$/;
+const IMAGE = /\.(png|jpe?g|webp)$/i;
+
+function insideAny(p: string, dirs: string[]): boolean {
+  return dirs.some((d) => {
+    const rel = relative(resolve(d), resolve(p));
+    return !!rel && !rel.startsWith("..") && !isAbsolute(rel);
+  });
+}
+
+/**
+ * The agent's own brand.json, cleaned. Everything here ends up in the ad's
+ * page or its timeline script, or names a file that is copied into a project
+ * the agent can read, so nothing passes that is not plainly what it says.
+ */
+function agentLayer(raw: Partial<Brand>, assetsDir: string, allowDirs: string[]): Partial<Brand> {
+  const v = raw as Record<string, unknown>;
+  const out: Partial<Brand> = {};
+  const str = (x: unknown): x is string => typeof x === "string";
+  for (const k of TEXT) if (str(v[k])) out[k] = esc(v[k] as string);
+  for (const k of HTML) if (str(v[k])) out[k] = rich(v[k] as string);
+  // Goes into the script as a number.
+  if (str(v.rating) && /^\d(\.\d)?$/.test(v.rating)) out.rating = v.rating;
+  const st = v.stamp as Record<string, unknown> | undefined;
+  if (st && typeof st === "object") {
+    const stamp: Partial<Brand["stamp"]> = {};
+    if (str(st.big)) stamp.big = rich(st.big);
+    if (str(st.small)) stamp.small = rich(st.small);
+    out.stamp = stamp as Brand["stamp"];
+  }
+  const co = v.colors as Record<string, unknown> | undefined;
+  if (co && typeof co === "object") {
+    const colors: Partial<BrandColors> = {};
+    for (const k of Object.keys(DEFAULT_COLORS) as (keyof BrandColors)[]) {
+      const c = co[k];
+      if (str(c) && /^#[0-9a-f]{6}$/i.test(c)) colors[k] = c;
+    }
+    out.colors = colors as BrandColors;
+  }
+  if (str(v.endcardBg) && PHOTO_NAME.test(v.endcardBg) && !v.endcardBg.includes("..")) out.endcardBg = v.endcardBg;
+  if (Array.isArray(v.hot)) out.hot = v.hot.filter((h): h is string => str(h) && /^[a-z']{1,40}$/i.test(h));
+  const ok = [assetsDir, ...allowDirs];
+  const at = (p: string) => (isAbsolute(p) ? p : resolve(assetsDir, p));
+  if (str(v.logoPath) && IMAGE.test(v.logoPath) && insideAny(at(v.logoPath), ok)) out.logoPath = v.logoPath;
+  if (str(v.photosDir) && insideAny(at(v.photosDir), ok)) out.photosDir = v.photosDir;
+  return out;
+}
+
 function merge(base: Brand, over: Partial<Brand>): Brand {
   const out = { ...base };
   for (const [k, v] of Object.entries(over)) {
@@ -153,7 +211,7 @@ export function brandFor(slug: string, opts: BrandOptions): Brand {
     b = merge(b, vaultFacts(notes));
   }
   b = merge(b, readJson(join(opts.brandsDir, `${slug}.json`)));
-  b = merge(b, readJson(join(opts.assetsDir, "brand.json")));
+  b = merge(b, agentLayer(readJson(join(opts.assetsDir, "brand.json")), opts.assetsDir, opts.allowDirs ?? []));
   const at = (p: string) => (isAbsolute(p) ? p : resolve(opts.assetsDir, p));
   return { ...b, logoPath: at(b.logoPath), photosDir: at(b.photosDir) };
 }

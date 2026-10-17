@@ -68,6 +68,46 @@ describe("brandFor", () => {
     expect(b.logoPath).toBe(join(assetsDir, "logo.png"));
   });
 
+  it("cleans what the agent wrote into its brand.json", () => {
+    const assetsDir = tmp();
+    const driveDir = tmp();
+    writeFileSync(
+      join(assetsDir, "brand.json"),
+      JSON.stringify({
+        offerHtml: "Free <span>same-day</span> <img src=x onerror=alert(1)>",
+        location: "<script>alert(1)</script>",
+        rating: "5});alert(1);//",
+        reviews: "120+",
+        colors: { accent: "red;}</style><script>", ink: "#112233" },
+        stamp: { big: "<b>FREE</b>", small: "<i>x</i>" },
+        endcardBg: "../secret",
+        logoPath: "C:/Windows/secret.png",
+        photosDir: "../../..",
+        hot: ["fixed", 7],
+        junk: "ignored",
+      }),
+    );
+    const b = brandFor("clear-choice-windows", { vaultFolder: null, name: "Clear Choice Windows", brandsDir: tmp(), assetsDir, allowDirs: [driveDir] });
+    expect(b.offerHtml).toBe("Free <span>same-day</span> &lt;img src=x onerror=alert(1)&gt;");
+    expect(b.location).toBe("&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(b.rating).toBe("5.0");
+    expect(b.reviews).toBe("120+");
+    expect(b.colors.accent).toBe(DEFAULT_COLORS.accent);
+    expect(b.colors.ink).toBe("#112233");
+    expect(b.stamp).toEqual({ big: "<b>FREE</b>", small: "&lt;i&gt;x&lt;/i&gt;" });
+    expect(b.endcardBg).toBe("endcard");
+    expect(b.logoPath).toBe(join(assetsDir, "logo.png"));
+    expect(b.photosDir).toBe(join(assetsDir, "photos"));
+    expect(b.hot).toEqual(["fixed"]);
+    expect((b as unknown as Record<string, unknown>).junk).toBeUndefined();
+
+    // A logo in the client's Drive folder is what the agent is told to use.
+    writeFileSync(join(assetsDir, "brand.json"), JSON.stringify({ logoPath: join(driveDir, "logo.png"), photosDir: "photos" }));
+    const ok = brandFor("clear-choice-windows", { vaultFolder: null, name: "Clear Choice Windows", brandsDir: tmp(), assetsDir, allowDirs: [driveDir] });
+    expect(ok.logoPath).toBe(join(driveDir, "logo.png"));
+    expect(ok.photosDir).toBe(join(assetsDir, "photos"));
+  });
+
   it("lets the agent's brand.json override the rest, colours merged", () => {
     const assetsDir = tmp();
     mkdirSync(assetsDir, { recursive: true });
