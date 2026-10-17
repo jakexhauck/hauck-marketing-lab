@@ -295,6 +295,9 @@ const createAd: Op<CreateAdArgs> = {
     return { ok: true, args: { adsetId, adsetName, fileId, fileName, name, message, headline, status } };
   },
   check: async (ctx, a): Promise<CreateChecked> => {
+    // A new ad runs from the client's own Page, so that Page must be on file:
+    // without it there is nothing to hold the ad set's Page against.
+    if (!ctx.pageId) throw new MetaOpRefused(409, "this client has no Facebook Page on file; set the client's Page first");
     // The Creatives file: this client's own, under the card's name.
     const { data: fRow, error } = await ctx.client
       .from("ad_creative_files")
@@ -322,7 +325,7 @@ const createAd: Op<CreateAdArgs> = {
       throw new MetaOpRefused(409, "the ads in that ad set go to different places; say which on a new card or Jake builds it");
     }
     const dest = usable[0];
-    if (ctx.pageId && dest.pageId !== ctx.pageId) {
+    if (dest.pageId !== ctx.pageId) {
       throw new MetaOpRefused(409, "the ads in that ad set run from a Page that is not this client's");
     }
     return { file, dest };

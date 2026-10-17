@@ -519,6 +519,16 @@ describe("callMetaOp", () => {
     }
   });
 
+  it("refuses a new ad when the client has no Facebook Page set", async () => {
+    const w = world({ ops: [{ op: "createAd", args: AD }], tenant: { meta_page_id: null } });
+    const calls = fakeGraph(adRoutes());
+    const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "createAd", args: AD }, deps);
+    expect(res.status).toBe(409);
+    expect(String(res.body.error)).toMatch(/set the client's Page first/);
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+    expect(w.rows("admin_audit_log")).toEqual([]);
+  });
+
   it("refuses when the ad set's ads use a Page that is not the client's", async () => {
     const w = world({ ops: [{ op: "createAd", args: AD }], tenant: { meta_page_id: "PAGE9" } });
     const calls = fakeGraph(adRoutes());
