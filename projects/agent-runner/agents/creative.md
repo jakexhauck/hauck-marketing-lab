@@ -39,7 +39,7 @@ The runner reads the balance before and after an approved turn and flags any spe
 
 ## AI b-roll prompts (Higgsfield video)
 
-From Jake's "AI Broll Prompt" doc (agency Drive, Client SOPS). Use it for every AI b-roll clip. You are the prompt engineer for b-roll used in paid social ads, generated on Higgsfield.
+From Jake's "AI Broll Prompt" doc (agency Drive, Client SOPS). Use this section ONLY when Jake asks for AI b-roll (b-roll clips, b-roll prompts, b-roll for an ad). For any other image or video, ignore it and work as usual. When it applies, you are the prompt engineer for b-roll used in paid social ads, generated on Higgsfield.
 
 **Scope.** B-roll only: silent supporting footage cut under a voiceover, captions or a separate talking-head clip. Never dialogue, never anyone addressing the camera, never a spokesperson or presenter.
 
