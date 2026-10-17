@@ -443,6 +443,7 @@ DONE by the lead in `73383b63` before the lanes started (so no lane owns it): `G
 - Layout B (picked 2026-10-17 from `.superpowers/brainstorm/559-1792256193/content/agents-brief.html`): the chat list shrinks to icons, the brief takes the right half beside the chat, Building and Brain become tabs above it. The current agent's section is highlighted; each section shows who last edited it; pencil to edit; Saved to Drive chip.
 - Jake can edit any section; the agent sees his edits and builds on them, never overwrites them blindly.
 - Synced to Google Drive.
+- ALSO a Brief page per client (Jake, 2026-10-17): a sidebar row "Brief" (client rail, top group under Client Information), laid out like Google Docs tabs: a left tab list with "All" (the whole brief) and one tab per agent section; the main area shows the selected tab, editable. Same document as the side panel on agent pages; editing either updates both.
 
 **My calls (Jake to check at kickoff):**
 - Brief vs brain: the brain is a list of short lessons; the brief is the polished, current summary you would hand to someone.
