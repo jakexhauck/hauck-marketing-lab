@@ -1,0 +1,5 @@
+
+ ⛅️ wrangler 4.91.0 (update available 4.151.1)
+──────────────────────────────────────────────
+✨ Successfully created the 'hm-zz-test' project. It will be available at https://hm-zz-test.pages.dev/ once you create your first deployment.
+To deploy a folder of assets, run 'wrangler pages deploy [directory]'.

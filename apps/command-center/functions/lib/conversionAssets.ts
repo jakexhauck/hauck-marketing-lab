@@ -290,6 +290,11 @@ export interface ConversionAsset {
   // browser: it is a whole file, the admin app has no use for it, and shipping
   // it would put a page's full source into every list response.
   hasSource: boolean;
+  // A page that lives elsewhere: a Landing Page Agent page on Cloudflare Pages
+  // (0167). Set means the builder steps do not apply; the screen shows a link
+  // card with title. Empty on every page built here.
+  externalUrl: string;
+  title: string;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -602,6 +607,8 @@ export interface ConversionAssetRow {
   calendar_embed: string;
   status: string;
   has_source: boolean;
+  external_url: string;
+  title: string;
   created_at: string;
   updated_at: string;
 }
@@ -611,7 +618,7 @@ export const CONVERSION_ASSET_SELECT =
   "design_colors_source, colors, design_kit_url, logo_url, owner_name, " +
   "owner_photo_url, owner_video_url, story_notes, coupon_offer, coupon_code, coupon_terms, " +
   "mechanism_name, mechanism_notes, jobs, reviews, trust, appointment_type, " +
-  "calendar_embed, status, has_source, created_at, updated_at";
+  "calendar_embed, status, has_source, external_url, title, created_at, updated_at";
 
 // Row to API shape. The jsonb columns are cleaned on the way OUT as well as in:
 // a row written before a cap changed still has to render, and rendering is not
@@ -648,6 +655,8 @@ export function toConversionAsset(row: ConversionAssetRow): ConversionAsset {
     calendarEmbed: row.calendar_embed,
     status: cleanStatus(row.status),
     hasSource: row.has_source === true,
+    externalUrl: row.external_url ?? "",
+    title: row.title ?? "",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -689,6 +698,8 @@ export function emptyConversionAsset(tenantId: string, kind: AssetKind): Convers
     calendarEmbed: "",
     status: "draft",
     hasSource: false,
+    externalUrl: "",
+    title: "",
     createdAt: null,
     updatedAt: null,
   };

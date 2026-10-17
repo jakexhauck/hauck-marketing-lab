@@ -33,12 +33,13 @@ import type {
 //     prefix rule under /api/agent-runner/ is one careless file away from
 //     opening something new.
 //   - Unset or short secret means CLOSED.
-//   - A pass never sets ctx.data.admin. The secret buys these nine routes and
+//   - A pass never sets ctx.data.admin. The secret buys these ten routes and
 //     nothing else; it is not an admin and cannot become one.
 //
 // What a holder of the secret can do, in full: read and write the agents'
-// own tables (0166), read the client list, read each client's numbers for a
-// startup check, and READ Meta insights. Meta writes are not reachable from
+// own tables (0166), file an approved landing page into Conversion Assets
+// (file-asset, which re-checks the approval itself), read the client list,
+// read each client's numbers for a startup check, and READ Meta insights. Meta writes are not reachable from
 // here by construction: api/agent-runner/meta.ts imports only the Graph GET
 // helpers, and a test scans that file to keep it that way.
 
@@ -52,6 +53,7 @@ export const AGENT_RUNNER_POST_PATHS: readonly string[] = [
   "item",
   "lessons",
   "auto-chat",
+  "file-asset",
 ].map((p) => BASE + p);
 
 /** Routes the runner may GET. */

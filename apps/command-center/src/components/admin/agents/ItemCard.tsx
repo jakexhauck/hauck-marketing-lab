@@ -87,6 +87,8 @@ export default function ItemCard({
   busy: boolean;
 }) {
   const p = itemPayload(item.payload);
+  // A landing page shows its live address once it has one, the draft before.
+  const pageUrl = p.liveUrl ?? p.previewUrl;
   return (
     <div className={`ag-card${active ? " active" : ""}`}>
       <div className="ag-card-top">
@@ -108,15 +110,15 @@ export default function ItemCard({
           )}
         </div>
       )}
-      {p.previewUrl && (
+      {pageUrl && (
         <div className="ag-browser">
           <div className="ag-browser-bar">
             <b />
             <b />
             <b />
-            <span>{p.previewUrl.replace(/^https:\/\//, "")}</span>
+            <span>{pageUrl.replace(/^https:\/\//, "")}</span>
           </div>
-          <iframe src={p.previewUrl} title={item.title} sandbox="allow-scripts allow-same-origin allow-forms" />
+          <iframe src={pageUrl} title={item.title} sandbox="allow-scripts allow-same-origin allow-forms" />
         </div>
       )}
       {p.steps.length > 0 && (
@@ -150,10 +152,16 @@ export default function ItemCard({
           ))}
         </div>
       )}
-      {item.status === "needs_ok" && <ItemActions onAction={onAction} busy={busy} />}
-      {p.previewUrl && (
+      {item.status === "needs_ok" && (
+        <ItemActions
+          onAction={onAction}
+          busy={busy}
+          approveLabel={p.deploy && p.previewUrl ? "Approve and go live" : "Approve"}
+        />
+      )}
+      {pageUrl && (
         <div className="ag-actions">
-          <a href={p.previewUrl} target="_blank" rel="noreferrer" className="ag-b2">
+          <a href={pageUrl} target="_blank" rel="noopener noreferrer" className="ag-b2">
             <ExternalLink /> Open full size
           </a>
         </div>

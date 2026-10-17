@@ -17,6 +17,12 @@ export const WORK_DIR = join(DATA_DIR, "work");
 export const META_SCRIPT = join(RUNNER_DIR, "bin", "meta.mjs").split("\\").join("/");
 export const SNAPSHOTS_FILE = join(DATA_DIR, "snapshots.json");
 
+// Landing pages the runner deployed: a snapshot per card, copied out of the
+// agent's work folder so the agent cannot change a page after Jake saw it.
+// Wrangler runs in its own empty folder (see pages.ts for why).
+export const SITES_DIR = join(DATA_DIR, "sites");
+export const PAGES_CWD = join(DATA_DIR, "pages-cwd");
+
 // The Google Drive for desktop mount, where every client has a "<handshake>
 // Name" folder beside the agency SOPs. Overridable so a second PC with a
 // different drive letter does not need a code change.

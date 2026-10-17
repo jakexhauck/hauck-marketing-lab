@@ -1,0 +1,12 @@
+
+ ⛅️ wrangler 4.91.0 (update available 4.151.1)
+──────────────────────────────────────────────
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mA request to the Cloudflare API (/accounts/0000000000000000000000000000000/pages/projects) failed.[0m
+
+  An unknown error occurred. Contact your account team or Cloudflare support: [4mhttps://cfl.re/3WgEyrH[0m. [code: 8000000]
+  
+  If you think this is a bug, please open an issue at: [4mhttps://github.com/cloudflare/workers-sdk/issues/new/choose[0m
+
+
+🪵  Logs were written to "C:\Users\games\AppData\Roaming\xdg.config\.wrangler\logs\wrangler-2026-10-17_19-17-33_907.log"

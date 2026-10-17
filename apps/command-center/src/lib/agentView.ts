@@ -108,6 +108,10 @@ export interface ItemPayloadView {
   quote: string | null;
   plan: string[];
   previewUrl: string | null;
+  // Set once an approved landing page is live (file-asset).
+  liveUrl: string | null;
+  // The card asks for a deploy: its Approve puts the page live.
+  deploy: boolean;
   thumbs: string[];
 }
 
@@ -129,13 +133,17 @@ export function itemPayload(payload: Record<string, unknown>): ItemPayloadView {
     if (!str(label) || (typeof value !== "string" && typeof value !== "number")) return [];
     return [{ label, value: String(value) }];
   });
-  const previewUrl = str(payload.previewUrl) && /^https:\/\//.test(payload.previewUrl) ? payload.previewUrl : null;
+  const https = (v: unknown): string | null => (str(v) && /^https:\/\//.test(v) ? v : null);
+  const previewUrl = https(payload.previewUrl);
+  const grant = payload.grant as { kind?: unknown } | undefined;
   return {
     steps,
     stats,
     quote: str(payload.quote) ? payload.quote : null,
     plan: arr(payload.plan).filter(str),
     previewUrl,
+    liveUrl: https(payload.liveUrl),
+    deploy: !!grant && typeof grant === "object" && grant.kind === "deploy",
     thumbs: arr(payload.thumbs).filter((t): t is string => str(t) && /^https:\/\//.test(t)),
   };
 }

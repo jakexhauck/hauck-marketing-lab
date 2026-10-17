@@ -241,6 +241,16 @@ function AgentStyle() {
       .ag-m.ai { display: flex; gap: 12px; }
       .ag-ai-body { min-width: 0; }
       .ag-tx { white-space: pre-wrap; overflow-wrap: anywhere; }
+      .ag-md { white-space: normal; }
+      .ag-md p, .ag-md ol, .ag-md ul { margin: 0 0 8px; }
+      .ag-md > :last-child { margin-bottom: 0; }
+      .ag-md ol, .ag-md ul { padding-left: 20px; }
+      .ag-md ol { list-style: decimal; }
+      .ag-md ul { list-style: disc; }
+      .ag-md li { margin: 3px 0; }
+      .ag-md strong { font-weight: 600; color: var(--text); }
+      .ag-md code { font-size: 0.92em; background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; }
+      .ag-md a { color: var(--brand-text); text-decoration: underline; text-underline-offset: 2px; }
       .ag-av { width: 28px; height: 28px; border-radius: 9px; flex-shrink: 0; display: grid; place-items: center; background: var(--grad-brand); color: #fff; }
       .ag-av svg { width: 15px; height: 15px; }
       .ag-used { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; margin-right: 6px; font-size: 12px; color: var(--text-muted); background: var(--brand-tint); border-radius: 999px; padding: 3px 10px; }

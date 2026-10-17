@@ -6,6 +6,7 @@ import type { RunnerApi } from "../src/api.ts";
 import type {
   AutoChatBody,
   ClaimResponse,
+  FileAssetBody,
   HeartbeatResponse,
   ItemBody,
   LessonsBody,
@@ -20,6 +21,7 @@ export interface FakeApi extends RunnerApi {
   lessonPosts: LessonsBody[];
   heartbeats: { host: string; monitored?: boolean }[];
   autoChats: AutoChatBody[];
+  fileAssets: FileAssetBody[];
   claims: (ClaimResponse | null)[];
   snapshots: Record<string, Snapshot>;
   tenantList: ClaimTenant[];
@@ -33,6 +35,7 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     lessonPosts: [],
     heartbeats: [],
     autoChats: [],
+    fileAssets: [],
     claims: init.claims ?? [],
     snapshots: init.snapshots ?? {},
     tenantList: init.tenantList ?? [],
@@ -65,6 +68,10 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     async autoChat(b) {
       api.autoChats.push(b);
       return { chatId: `chat-${api.autoChats.length}` };
+    },
+    async fileAsset(b) {
+      api.fileAssets.push(b);
+      return { assetId: `asset-${api.fileAssets.length}` };
     },
   };
   return api;

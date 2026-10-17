@@ -27,8 +27,9 @@ import { join } from "node:path";
 import { createApi } from "./api.ts";
 import { defaultBundleEnv } from "./bundle.ts";
 import { runClaude } from "./claude.ts";
-import { API_BASE, DATA_DIR, HEARTBEAT_MS, POLL_MS, REPO_DIR, RUNNER_DIR, SNAPSHOTS_FILE } from "./config.ts";
+import { API_BASE, DATA_DIR, HEARTBEAT_MS, PAGES_CWD, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
 import { commitBrains } from "./git.ts";
+import { deployDraft, promote } from "./pages.ts";
 import { runMonitorIfDue } from "./monitor.ts";
 import { applyQueuedEdits, handleClaim, syncAllBrains, type RunnerDeps } from "./runner.ts";
 import type { ClaimTenant } from "./wire.ts";
@@ -77,6 +78,11 @@ async function main(): Promise<void> {
       return env;
     },
     log,
+    landing: {
+      sitesRoot: SITES_DIR,
+      deployDraft: (slug, itemId, dir) => deployDraft(slug, itemId, dir, { cwd: PAGES_CWD }),
+      promote: (slug, dir) => promote(slug, dir, { cwd: PAGES_CWD }),
+    },
   };
 
   let tenants: ClaimTenant[] = [];

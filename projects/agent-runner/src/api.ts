@@ -12,6 +12,7 @@
 import type {
   AutoChatBody,
   ClaimResponse,
+  FileAssetBody,
   HeartbeatBody,
   HeartbeatResponse,
   ItemBody,
@@ -30,6 +31,7 @@ export interface RunnerApi {
   snapshot(tenantId: string): Promise<Snapshot>;
   tenants(): Promise<TenantsResponse>;
   autoChat(body: AutoChatBody): Promise<{ chatId: string }>;
+  fileAsset(body: FileAssetBody): Promise<{ assetId: string }>;
 }
 
 export interface ApiOptions {
@@ -67,5 +69,6 @@ export function createApi(opts: ApiOptions): RunnerApi {
     snapshot: (id) => call<Snapshot>("GET", `snapshot?tenant=${encodeURIComponent(id)}`),
     tenants: async () => (await call<TenantsResponse | null>("GET", "tenants")) ?? [],
     autoChat: (b) => call<{ chatId: string }>("POST", "auto-chat", b),
+    fileAsset: (b) => call<{ assetId: string }>("POST", "file-asset", b),
   };
 }
