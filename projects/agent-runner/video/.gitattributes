@@ -1,0 +1,5 @@
+# The page build inlines these byte for byte (the AAG regression gate).
+*.css text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.wav binary

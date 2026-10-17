@@ -48,8 +48,10 @@ const ACCENT = colors.accent;
 const INK = colors.ink;
 const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ");
 const VARS = { ink: "--ink", ink2: "--ink-2", fg: "--fg", chrome: "--chrome", accent: "--cyan", accentDeep: "--cyan-deep", star: "--star" };
+// A Windows checkout can turn the CSS's line ends into CRLF; the page is built
+// with the LF the template was written in either way.
 const themed = (css) => {
-  let out = css;
+  let out = css.replace(/\r\n/g, "\n");
   for (const [key, v] of Object.entries(VARS)) out = out.split(`${v}: ${AAG[key]};`).join(`${v}: ${colors[key]};`);
   return out.split(`rgba(${rgb(AAG.accent)},`).join(`rgba(${rgb(colors.accent)},`);
 };
