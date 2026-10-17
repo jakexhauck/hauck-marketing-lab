@@ -337,3 +337,91 @@ Brain tab UI (per mockup): Obsidian-style force graph (clients, agents, lessons 
 1. Open Willis > Ads Agent and send one real message.
 2. Check that one lesson shows up in `vault/Clients/Willis Windows/Brain.md` in Obsidian.
 3. Restart the PC once and confirm Auto chats only appear where something moved.
+
+---
+
+# Phases 2 to 4 (run as three parallel lanes once Phase 1 is merged)
+
+Same header rules as Phase 1: Global Constraints and the wire types in `src/lib/agentWire.ts` apply to every task below. Each lane branches from the merged Phase 1 commit. File ownership is split so the lanes never edit the same file, except each adding its own lines to `projects/agent-runner/src/bundle.ts` (merge by hand; each lane only touches its own agent's branch of the switch).
+
+## Cross-lane rule: enforcement lives in code
+
+Every gate Jake set is enforced by the runner or the server, never only by the agent's instructions:
+
+- **Approval-gated tools.** `buildBundle` gains a third argument, `grant: Grant | null`, read from the claimed message's `meta.grant`. A grant exists only on a follow-up message created by `PATCH items/:id approve`, which copies `{ itemId, kind, limit }` from the item's payload into the follow-up's meta. Gated tools are added to `allowedTools` only when a matching grant is present.
+- **Server-side checks.** Any runner endpoint that changes something outside the app (deploy promote, GHL write, Creatives filing) takes `messageId` and checks on the server: the message is `running`, belongs to the right agent's chat, and either carries a matching approved grant or (GHL only) is a direct ask from Jake (`role = 'me'`, chat not `auto`, no `meta.fromRequest`).
+
+Shared change, done once by Lane 2 (it lands first in the merge order): `transitionItem` in `functions/lib/agentItems.ts` copies `payload.grant` into the follow-up message meta on approve; `ClaimResponse.message` already carries `meta` via `AgentMessage` once Lane 2 adds `grant: Grant | null` to `AgentMessage` in `agentWire.ts` (type `Grant = { itemId: string; kind: "deploy" | "spend" | "ghl" | "file"; limit: number | null }`). Lanes 3 and 4 code against that type from the start.
+
+---
+
+## Phase 2: Landing Page Agent tools (Lane 2)
+
+**Goal:** the Landing Page Agent builds a page as code, deploys each draft to its own Cloudflare preview URL, shows it live in the Building card, and on Approve promotes it and files it into Conversion Assets.
+
+**Files:**
+- Create: `projects/agent-runner/src/pages.ts` (+ test), `projects/agent-runner/sites/` (gitignored working dirs, one per client slug)
+- Modify: `projects/agent-runner/src/bundle.ts` (landing branch), `projects/agent-runner/agents/landing.md`
+- Create: `apps/command-center/supabase/migrations/0167_followup_external_url.sql` (adds `external_url text` to `followup_pages`)
+- Create: `apps/command-center/functions/api/agent-runner/file-asset.ts` (+ gate path)
+- Modify: `apps/command-center/functions/lib/agentItems.ts`, `src/lib/agentWire.ts` (`Grant`), the Conversion Assets list in `src/components/admin/cockpit/ghl/ConversionAssetPanel.tsx` (an asset with `external_url` shows as a link card with the live URL; the builder steps stay for the rest), `src/components/admin/agents/ItemCard.tsx` (iframe preview card for `payload.previewUrl`, "Approve and go live" and "Open full size")
+
+**Interfaces:**
+- CF project per client: `hm-<slug>` (my call). Draft deploy: `npx wrangler pages deploy <dir> --project-name hm-<slug> --branch d-<itemId8>` gives `https://d-<itemId8>.hm-<slug>.pages.dev`. Promote: the same dir with `--branch main`. Wrangler uses the PC's existing wrangler login (same as the ads-cron worker deploys); `ensureProject(slug)` runs `wrangler pages project create` once.
+- `deployDraft(slug: string, itemId: string, dir: string): Promise<{ previewUrl: string }>`, `promote(slug, dir): Promise<{ liveUrl: string }>`, `parseDeployUrl(stdout: string): string | null`.
+- Flow: the agent writes files under `sites/<slug>/<itemId>/`, then emits an ```item block; the runner (not the agent) runs `deployDraft` and posts the item as `needs_ok` with `payload: { previewUrl, dir, grant: { kind: "deploy" } }`. Approve gives a follow-up with the grant; the runner sees `grant.kind === "deploy"`, runs `promote`, then calls `POST /api/agent-runner/file-asset {messageId, tenantId, title, liveUrl}`, which inserts a `followup_pages` row with `external_url`, then sets the item `live`.
+- `wrangler` is never in the agent's `allowedTools`. Only the runner deploys.
+
+- [ ] Tests: `parseDeployUrl` on recorded wrangler stdout (record one real draft deploy of a hello page to a throwaway project, then delete that project); `bundle("landing")` does not allow wrangler; `file-asset` refuses a message with no deploy grant (409) and a message from another agent (403).
+- [ ] Migration 0167, `npm run db:migrate`.
+- [ ] Implement, tests green, typecheck clean, `vite build` clean.
+- [ ] Live check on Clear Choice: ask the agent for a one-section test page, preview card loads the real URL, Approve, the asset appears in Conversion Assets with the live URL. Delete the test asset afterwards.
+
+## Phase 3: Creative Agent tools (Lane 3)
+
+**Goal:** the Creative Agent edits clients' talking-head footage into ads in the AAG style and makes Higgsfield images and video, with the credit cost on an approval card before every paid generation. Approved work files into Creatives.
+
+**Files:**
+- Create: `projects/agent-runner/video/` (moved from `C:\Users\games\Desktop\aag-video-ads\template\`: `build.mjs`, `style.css`, `extra.css`, `sfx/`; brand assets come from per-client data, not the folder), `projects/agent-runner/video/brand.ts` (+ test), `projects/agent-runner/src/video.ts` (+ test: proxy, transcribe, frames, build, render), `projects/agent-runner/src/spend.ts` (+ test)
+- Modify: `projects/agent-runner/src/bundle.ts` (creative branch), `projects/agent-runner/agents/creative.md`
+- Create: `apps/command-center/functions/api/agent-runner/upload-url.ts` (signed upload URL into the `ad-creatives` bucket at `newPath(tenantId, ext)`), `apps/command-center/functions/api/agent-runner/file-creative.ts` (calls `recordAdCreative`)
+- Modify: `src/components/admin/agents/ItemCard.tsx` (spend card: credits, what it makes, Approve; video card: player for `payload.previewUrl`)
+
+**Interfaces:**
+- `Brand = { name, logoPath, photosDir, ownerName, rating, cta, colors }` from vault Profile/Memory plus the client's Drive Photos folder. `brandFor(slug): Brand`.
+- Video pipeline (from the folded Video Editor plan): `proxy(src)`, `transcribe(proxy)` (`hyperframes transcribe --engine parakeet --json`), `frames(proxy, n)`, `buildProject(config, brand)` with `hyperframes@0.8.140` pinned, `render(project, "preview" | "final")`. `phrase not found` from `build.mjs` goes back to the agent once as a retry prompt.
+- Regression gate: rebuilding AAG ad 5 from its config with the generalised template must match the original output's frame count and duration exactly, and a frame grab at 3s must be pixel-identical (my call for "identical").
+- Credit gate: Higgsfield generate tools (`mcp__higgsfield__generate_image`, `generate_video`, `generate_image_batch`, `generate_video_batch`, `ads_studio_generate`, `execute_preset`) are in `disallowedTools` unless the grant is `{ kind: "spend", limit }`. Quote tools (`ads_studio_quote`, `balance`, `models_explore`) are always allowed. The agent quotes first and emits an item with `payload: { credits, what, grant: { kind: "spend", limit: credits } }`. After the approved turn, the runner reads balance before and after; if spend exceeds `limit`, it posts an error reply and an item flagged for Jake. `checkSpend(before, after, limit): "ok" | "over"`.
+- Filing: approved finals and images upload through `upload-url`, then `file-creative {messageId, tenantId, path, kind, name}` needs a `{ kind: "file" }` grant on a Creatives item.
+
+- [ ] Tests: `brandFor` on the AAG vault notes; `bundle("creative", t, null)` disallows every generate tool and `bundle("creative", t, spendGrant)` allows them; `checkSpend`; `file-creative` refuses without a file grant.
+- [ ] Template move and the AAG ad 5 regression check (run it, paste frame count, duration, pixel diff).
+- [ ] Implement, tests green.
+- [ ] Live check on AAG: one clip to preview to final, filed to Creatives after Approve; one Higgsfield image with the cost card approved. Jake sees the credits before anything is spent.
+
+## Phase 4: GHL Agent tools (Lane 4)
+
+**Goal:** the GHL Agent makes changes in a client's sub-account through the Marketplace app, only on Jake's direct ask or an approved request, and the Landing Page to GHL handoff works end to end.
+
+**What the GHL API can and cannot do (check live before building; see feedback "check live GHL first"):** the app's scopes (`functions/lib/ghlApp.ts` `APP_SCOPES`) cover custom values, custom fields, tags, contacts, opportunities and calendar events. There are no message write scopes yet (Jake owes that reinstall). GHL's public API has no funnel-page or pipeline-stage creation that I can confirm. So for "put this page in the Winter funnel" the agent does what the API allows (custom value with the live URL, tags) and posts the rest as an exact click-by-click checklist in its approval card. Confirm at kickoff with one live read; if a stage or funnel endpoint does exist, add it to the allowlist.
+
+**Files:**
+- Create: `apps/command-center/functions/api/agent-runner/ghl.ts` (+ test), `apps/command-center/functions/lib/agentGhlOps.ts` (+ test)
+- Create: `projects/agent-runner/bin/ghl.mjs` (calls the endpoint; the agent runs it through Bash)
+- Modify: `projects/agent-runner/src/bundle.ts` (ghl branch), `projects/agent-runner/agents/ghl.md`, `projects/agent-runner/agents/landing.md` (on going live, send a request to ghl with the live URL)
+
+**Interfaces:**
+- `GHL_OPS` allowlist, each op a typed function on top of `functions/lib/ghl.ts` and the tenant's app token: `read.pipelines`, `read.customValues`, `read.customFields`, `read.calendars` (always allowed); `write.customValue {key, value}`, `write.customField {name, type}`, `write.tag {contactId, tag}`, `write.moveOpportunity {opportunityId, pipelineId, stageId}` (gated).
+- `POST /api/agent-runner/ghl {messageId, tenantId, op, args}`: reads run if the message belongs to a ghl chat for that tenant. Writes need `writeAllowed(message, chat, item?)` true: either a direct ask (role `me`, chat not auto, no `meta.fromRequest`) or an approved grant `{ kind: "ghl" }`. Every write is logged with `logAdminAction` as `agent:ghl`.
+- `bin/ghl.mjs` is the only GHL path in the ghl bundle; no other agent gets it.
+
+- [ ] Tests: `writeAllowed` for direct ask (true), auto chat (false), request follow-up without approval (false), with approval (true); an unknown op gives 400; the ghl bundle allows `bin/ghl.mjs` and no other bundle does.
+- [ ] Kickoff live read with the `ghl` CLI on Willis (`OznT3yyuwK3dqVXDsCaD`): pipelines, custom values. Record what exists before building.
+- [ ] Implement, tests green.
+- [ ] Live check: on Willis, ask the GHL Agent to set one harmless custom value, Approve, confirm it in GHL, then set it back. Then the full handoff: a Landing Page approval sends a request, the GHL card shows the plan, Approve, the custom value holds the live URL.
+
+## Merge order and ship
+
+1. Lane 2 first (it owns the shared `Grant` change), then Lanes 3 and 4 rebase on it.
+2. Full test run in both packages, `code-review`, `security-review` (grants, server-side checks, no tool bypass), release note per phase, push, deploy, live checks above.
+3. Jake owes: one approved landing page, one approved video, one approved Higgsfield spend, one approved GHL change.
