@@ -9,6 +9,7 @@ import AccountsTab from "../../components/admin/cockpit/AccountsTab";
 import ManagementTab from "../../components/admin/cockpit/ManagementTab";
 import ImageConverterTab from "../../components/admin/cockpit/ImageConverterTab";
 import AgentPage from "../../components/admin/agents/AgentPage";
+import { BriefPage } from "../../components/admin/agents/BriefPanel";
 import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
 import SoftwareTab from "../../components/admin/cockpit/software/SoftwareTab";
 import { adminHomeFor } from "./AdminLayout";
@@ -136,6 +137,8 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
           <ClientSheet tenantId={client.id} />
         </div>
       );
+    case "brief":
+      return <BriefPage tenantId={client.id} brandColor={client.brandColor} />;
     case "software":
       return <SoftwareTab tenantId={client.id} />;
     case "paid-ads":

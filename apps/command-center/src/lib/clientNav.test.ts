@@ -29,7 +29,7 @@ describe("clientNavGroups", () => {
   it("lists every page for a fully wired client", () => {
     expect(labels(linked)).toEqual([
       [null, ["Full Setup Checklist", "Onboarding Call", "Launch Call"]],
-      [null, ["Accounts", "Client Information", "Software"]],
+      [null, ["Accounts", "Client Information", "Brief", "Software"]],
       ["Agents", AGENT_NAMES],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Conversion Assets", "Custom Values", "Calendars"]],
@@ -40,7 +40,7 @@ describe("clientNavGroups", () => {
   it("gates Paid Ads and GHL until they are connected", () => {
     expect(labels(bare)).toEqual([
       [null, ["Full Setup Checklist", "Onboarding Call", "Launch Call"]],
-      [null, ["Accounts", "Client Information", "Software"]],
+      [null, ["Accounts", "Client Information", "Brief", "Software"]],
       ["Agents", AGENT_NAMES],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Connect GHL", "Conversion Assets"]],
@@ -51,6 +51,13 @@ describe("clientNavGroups", () => {
   it("treats a blank ad account id as not linked", () => {
     const rows = clientNavGroups({ ...linked, metaAdAccountId: "  " })[3].rows;
     expect(rows[0].sub).toBe("setup");
+  });
+
+  it("puts the Client Brief under Client Information, as its own page", () => {
+    const rows = clientNavGroups(bare)[1].rows;
+    expect(rows[2]).toEqual({ page: "brief", sub: null, label: "Brief" });
+    expect(clientPath("t1", "brief")).toBe("/admin/client/t1/brief");
+    expect(resolveClientPage(bare, "brief", "x")).toEqual({ page: "brief", sub: null });
   });
 
   it("marks the last group with a rule instead of a caption", () => {

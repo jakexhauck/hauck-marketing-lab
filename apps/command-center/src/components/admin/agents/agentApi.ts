@@ -1,7 +1,16 @@
+import { useCallback } from "react";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "../../../lib/api";
+import { api, ApiError } from "../../../lib/api";
 import type { AgentId } from "../../../lib/agents";
-import type { AgentItem, AgentLesson, AgentMessage, ChatSummary, RunnerStatus } from "../../../lib/agentWire";
+import type {
+  AgentItem,
+  AgentLesson,
+  AgentMessage,
+  BriefResponse,
+  BriefSection,
+  ChatSummary,
+  RunnerStatus,
+} from "../../../lib/agentWire";
 import { pollMs } from "../../../lib/agentView";
 import type { BrainScope } from "../../../lib/brainGraph";
 
@@ -24,15 +33,27 @@ export const agentApi = {
     api<ChatSummary>(`${BASE}/chats`, { method: "POST", body: JSON.stringify({ tenant, agent }) }),
   messages: (chatId: string) => api<{ messages: AgentMessage[] }>(`${BASE}/chats/${encodeURIComponent(chatId)}`),
   send: (chatId: string, body: string) =>
-    api<AgentMessage>(`${BASE}/chats/${encodeURIComponent(chatId)}`, { method: "POST", body: JSON.stringify({ body }) }),
+    api<AgentMessage>(`${BASE}/chats/${encodeURIComponent(chatId)}`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    }),
   items: (tenant: TenantKey, agent?: AgentId) => api<{ items: AgentItem[] }>(`${BASE}/items?${qs({ tenant, agent })}`),
   actOnItem: (id: string, action: ItemAction, note?: string) =>
-    api<unknown>(`${BASE}/items/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ action, note }) }),
+    api<unknown>(`${BASE}/items/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ action, note }),
+    }),
   lessons: (tenant: TenantKey, agent: AgentId, scope: BrainScope) =>
     api<{ lessons: AgentLesson[]; pendingEditIds: string[] }>(`${BASE}/lessons?${qs({ tenant, agent, scope })}`),
   editLesson: (lessonId: string, action: LessonAction, text?: string) =>
     api<unknown>(`${BASE}/lessons`, { method: "POST", body: JSON.stringify({ lessonId, action, text }) }),
   status: () => api<RunnerStatus>(`${BASE}/status`),
+  brief: (tenantId: string) => api<BriefResponse>(`${BASE}/brief?${qs({ tenant: tenantId })}`),
+  saveBrief: (tenantId: string, section: BriefSection["section"], body: string, version: number) =>
+    api<{ section: BriefSection }>(`${BASE}/brief?${qs({ tenant: tenantId })}`, {
+      method: "PUT",
+      body: JSON.stringify({ section, body, version }),
+    }),
 };
 
 const keys = {
@@ -44,6 +65,7 @@ const keys = {
   lessons: (tenant: TenantKey, agent: AgentId, scope: BrainScope) =>
     ["admin", "agents", "lessons", tenant, agent, scope] as const,
   status: ["admin", "agents", "status"] as const,
+  brief: (tenantId: string) => ["admin", "agents", "brief", tenantId] as const,
 };
 
 export function useAgentChats(tenant: TenantKey, agent: AgentId) {
@@ -151,4 +173,48 @@ export function useRunnerStatus() {
     refetchInterval: 30_000,
     staleTime: 15_000,
   });
+}
+
+// The Client Brief: one read per client, shared by the side panel on every
+// agent page and the Brief page. 15s so an agent's edit shows up on its own.
+export function useClientBrief(tenantId: string) {
+  return useQuery({
+    queryKey: keys.brief(tenantId),
+    queryFn: () => agentApi.brief(tenantId),
+    refetchInterval: 15_000,
+    staleTime: 5_000,
+  });
+}
+
+export type BriefSaveResult = { saved: BriefSection } | { stale: BriefSection };
+
+/**
+ * Save one section at the version it was based on. A 409 is an answer, not an
+ * error: it carries the newer section, which the editor shows (briefDraft.ts).
+ * Either way the cached brief takes the server's copy of that section.
+ */
+export function useSaveBriefSection(tenantId: string) {
+  const qc = useQueryClient();
+  return useCallback(
+    async (section: BriefSection["section"], body: string, version: number): Promise<BriefSaveResult> => {
+      const put = (next: BriefSection) =>
+        qc.setQueryData<BriefResponse>(keys.brief(tenantId), (prev) =>
+          prev ? { ...prev, sections: prev.sections.map((s) => (s.section === next.section ? next : s)) } : prev,
+        );
+      try {
+        const res = await agentApi.saveBrief(tenantId, section, body, version);
+        put(res.section);
+        // The Drive chip: the sync runs after the save, so look again shortly.
+        setTimeout(() => void qc.invalidateQueries({ queryKey: keys.brief(tenantId) }), 4_000);
+        return { saved: res.section };
+      } catch (e) {
+        const current =
+          e instanceof ApiError && e.status === 409 ? (e.body as { section?: BriefSection } | null)?.section : null;
+        if (!current) throw e;
+        put(current);
+        return { stale: current };
+      }
+    },
+    [qc, tenantId],
+  );
 }

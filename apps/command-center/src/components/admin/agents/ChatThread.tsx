@@ -165,7 +165,7 @@ function AiMessage({ msg }: { msg: AgentMessage }) {
 // An agent's reply, drawn from the parsed tree in lib/chatMarkdown.ts. Model
 // text only ever lands as React text children, never as HTML, and the parser
 // has already dropped any link that is not https.
-function Markdown({ text }: { text: string }) {
+export function Markdown({ text }: { text: string }) {
   const blocks = useMemo(() => parseChatMarkdown(text), [text]);
   return (
     <div className="ag-tx ag-md">

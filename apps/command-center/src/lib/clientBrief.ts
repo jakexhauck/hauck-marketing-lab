@@ -7,7 +7,7 @@
 // in src/wire.ts.
 
 import { AGENTS, isAgentId, type AgentId } from "./agents";
-import type { BriefAuthor, BriefSection } from "./agentWire";
+import type { BriefAuthor, BriefDrive, BriefSection } from "./agentWire";
 
 // Status (the Manager) leads, because it is where the client stands; then the
 // agents in rail order.
@@ -66,4 +66,29 @@ export function whoEdited(s: Pick<BriefSection, "updatedBy" | "updatedAt">, now:
   if (!s.updatedBy) return "";
   const who = s.updatedBy === "jake" ? "You" : (AGENTS.find((a) => a.id === s.updatedBy)?.name ?? s.updatedBy);
   return s.updatedAt ? `${who}, ${since(s.updatedAt, now)}` : who;
+}
+
+export type DriveChipTone = "ok" | "busy" | "bad" | "none";
+
+// How long a save may wait on its Drive sync before the chip stops saying it
+// is on its way. The sync is one Docs call after the save, so seconds.
+const SYNC_GRACE_MS = 2 * 60_000;
+
+/**
+ * The "Saved to Drive" chip. ok when the Doc was written from the brief as it
+ * stands, busy for a save whose sync is still running, bad when the last sync
+ * failed (title says why) or never caught up, none before anything is written.
+ */
+export function driveChip(
+  drive: BriefDrive | null,
+  sections: BriefSection[],
+  now: Date,
+): { tone: DriveChipTone; label: string; title: string | null } {
+  const rev = briefRevision(sections);
+  if (drive?.error) return { tone: "bad", label: "Drive sync failed", title: drive.error };
+  if (rev === 0) return { tone: "none", label: "Not in Drive yet", title: null };
+  if (drive && drive.revision >= rev) return { tone: "ok", label: "Saved to Drive", title: null };
+  const newest = Math.max(0, ...sections.map((s) => (s.updatedAt ? Date.parse(s.updatedAt) : 0)));
+  if (now.getTime() - newest < SYNC_GRACE_MS) return { tone: "busy", label: "Saving to Drive", title: null };
+  return { tone: "bad", label: "Drive out of date", title: "The last save has not reached Drive. Edit any section to sync again." };
 }

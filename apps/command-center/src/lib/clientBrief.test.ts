@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { BRIEF_SECTIONS, briefRevision, fullBrief, sectionLabel, whoEdited } from "./clientBrief";
+import { BRIEF_SECTIONS, briefRevision, driveChip, fullBrief, sectionLabel, whoEdited } from "./clientBrief";
 
 describe("BRIEF_SECTIONS", () => {
   it("has one section per agent, Status first", () => {
@@ -37,10 +37,12 @@ describe("briefRevision", () => {
   it("is the sum of the versions, so every save moves it", () => {
     expect(briefRevision(fullBrief([]))).toBe(0);
     expect(
-      briefRevision([
-        { section: "ads", body: "", version: 3, updatedBy: "jake", updatedAt: null },
-        { section: "ghl", body: "", version: 2, updatedBy: "ghl", updatedAt: null },
-      ]),
+      briefRevision(
+        fullBrief([
+          { section: "ads", body: "", version: 3, updatedBy: "jake", updatedAt: null },
+          { section: "ghl", body: "", version: 2, updatedBy: "ghl", updatedAt: null },
+        ]),
+      ),
     ).toBe(5);
   });
 });
@@ -55,5 +57,33 @@ describe("whoEdited", () => {
 
   it("is empty for a section nobody wrote", () => {
     expect(whoEdited({ updatedBy: null, updatedAt: null }, now)).toBe("");
+  });
+});
+
+describe("driveChip", () => {
+  const now = new Date("2026-10-17T12:00:00Z");
+  const written = fullBrief([{ section: "ads", body: "x", version: 2, updatedBy: "jake", updatedAt: "2026-10-17T11:59:30Z" }]);
+  const drive = (revision: number, error: string | null = null) => ({ docUrl: "https://docs.google.com/document/d/d1/edit", syncedAt: null, error, revision });
+
+  it("is Saved to Drive when the Doc holds the brief as it stands", () => {
+    expect(driveChip(drive(2), written, now)).toMatchObject({ tone: "ok", label: "Saved to Drive" });
+  });
+
+  it("is on its way just after a save, out of date once that is long past", () => {
+    expect(driveChip(drive(1), written, now)).toMatchObject({ tone: "busy" });
+    expect(driveChip(null, written, now)).toMatchObject({ tone: "busy" });
+    expect(driveChip(drive(1), written, new Date("2026-10-17T12:10:00Z"))).toMatchObject({ tone: "bad", label: "Drive out of date" });
+  });
+
+  it("shows a failed sync with its reason", () => {
+    expect(driveChip(drive(2, "This client has no Drive folder."), written, now)).toEqual({
+      tone: "bad",
+      label: "Drive sync failed",
+      title: "This client has no Drive folder.",
+    });
+  });
+
+  it("is neutral before anything is written", () => {
+    expect(driveChip(null, fullBrief([]), now).tone).toBe("none");
   });
 });

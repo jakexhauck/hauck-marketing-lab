@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
-import { Search, SquarePen, type LucideIcon } from "lucide-react";
+import { Inbox, MessageSquare, Search, SquarePen, Zap, type LucideIcon } from "lucide-react";
 import type { ChatSummary } from "../../../lib/agentWire";
 import { groupChats } from "../../../lib/agentView";
 
-// The left column: agent name, New chat, search, chats grouped by day.
+// The left column: agent name, New chat, search, chats grouped by day. Mini
+// (layout B, beside the Client Brief) shrinks it to icons: the agent, New chat
+// and one button per chat, its title on hover.
 export default function ChatList({
   name,
   icon: Icon,
@@ -14,6 +16,7 @@ export default function ChatList({
   onSelect,
   onNew,
   newBusy,
+  mini = false,
 }: {
   name: string;
   icon: LucideIcon;
@@ -24,6 +27,7 @@ export default function ChatList({
   onSelect: (id: string) => void;
   onNew: () => void;
   newBusy: boolean;
+  mini?: boolean;
 }) {
   const [q, setQ] = useState("");
   const groups = useMemo(() => {
@@ -33,6 +37,48 @@ export default function ChatList({
       : chats;
     return groupChats(hits, new Date());
   }, [chats, q]);
+
+  if (mini) {
+    const sorted = groups.flatMap((g) => g.chats);
+    return (
+      <section className="ag-convos mini">
+        <div className="ag-convos-head" title={name}>
+          <div className="ag-agent-ic">
+            <Icon />
+          </div>
+        </div>
+        <button
+          type="button"
+          className="ag-btn-new"
+          onClick={onNew}
+          disabled={newBusy}
+          aria-label="New chat"
+          title="New chat"
+        >
+          <SquarePen />
+        </button>
+        <div className="ag-mini-list">
+          {sorted.map((c) => {
+            const ChatIcon = c.hasRequest ? Inbox : c.auto ? Zap : MessageSquare;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                className={`ag-mini-cv${c.id === selectedId ? " on" : ""}`}
+                onClick={() => onSelect(c.id)}
+                aria-current={c.id === selectedId ? "true" : undefined}
+                aria-label={c.title}
+                title={c.title}
+              >
+                <ChatIcon />
+                {c.hasRequest && <i className="req" />}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="ag-convos">
@@ -70,7 +116,11 @@ export default function ChatList({
                   aria-current={c.id === selectedId ? "true" : undefined}
                 >
                   <div className="ag-cv-t">
-                    {c.hasRequest ? <span className="from">Request</span> : c.auto ? <span className="auto">Auto</span> : null}
+                    {c.hasRequest ? (
+                      <span className="from">Request</span>
+                    ) : c.auto ? (
+                      <span className="auto">Auto</span>
+                    ) : null}
                     <span className="t">{c.title}</span>
                   </div>
                   {c.lastLine && <div className="ag-cv-s">{c.lastLine}</div>}
