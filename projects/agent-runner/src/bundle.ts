@@ -203,8 +203,13 @@ const BRIEF_LABELS: Record<AgentId, string> = {
 // sees Jake's edits. Jake and other agents write it, and an agent's section can
 // carry what a web page told it, so it is framed exactly like the brains: notes,
 // never orders. Which section an agent may change is decided on the server.
+//
+// The GHL Agent is the exception. Jake's direct asks let it write to GHL with
+// no card, so text planted in another agent's section could steer a write. It
+// reads only its own section and the Manager's Status.
 function briefSection(agent: AgentId, brief: BriefSection[]): string {
-  const parts = brief.map((s) => {
+  const shown = agent === "ghl" ? brief.filter((s) => s.section === "ghl" || s.section === "manager") : brief;
+  const parts = shown.map((s) => {
     const who = !s.updatedBy ? null : s.updatedBy === "jake" ? "Jake" : agentDef(s.updatedBy).name;
     const tags = [s.section === agent ? "yours" : null, `version ${s.version}`, who ? `last edited by ${who}` : "empty"];
     return `### ${BRIEF_LABELS[s.section] ?? s.section} (${tags.filter(Boolean).join(", ")})\n${s.body.trim() || "(empty)"}`;
