@@ -113,9 +113,42 @@ async function graphPost(token: string, path: string, params: Record<string, str
   return json;
 }
 
-/** Read one object back and refuse unless it is this client's, under the card's name. */
-async function liveObject(ctx: Ctx, level: Level, objectId: string, name: string, extra: string[] = []): Promise<Row> {
-  const fields = ["account_id", "name", "status", LEVEL_FIELD[level], ...extra].join(",");
+// Where an object sits, as the card names it: an ad's ad set and campaign,
+// an ad set's campaign. Two ads can share a name; the path tells them apart,
+// and a card whose path no longer matches is out of date.
+interface Parents {
+  adsetName?: string;
+  campaignName?: string;
+}
+
+const PARENT_FIELDS: Record<Level, string[]> = { campaign: [], adset: ["campaign{name}"], ad: ["adset{name}", "campaign{name}"] };
+
+/** The parent names a level must carry, read from the agent's args. */
+function parseParents(level: Level, a: Row): Parsed<Parents> {
+  const out: Parents = {};
+  if (level === "ad") {
+    const adsetName = text(a.adsetName, 400);
+    if (!adsetName) return { ok: false, error: "an ad names its ad set (adsetName)" };
+    out.adsetName = adsetName;
+  }
+  if (level !== "campaign") {
+    const campaignName = text(a.campaignName, 400);
+    if (!campaignName) return { ok: false, error: `an ${level === "ad" ? "ad" : "ad set"} names its campaign (campaignName)` };
+    out.campaignName = campaignName;
+  }
+  return { ok: true, args: out };
+}
+
+/** Read one object back and refuse unless it is this client's, under the card's name and path. */
+async function liveObject(
+  ctx: Ctx,
+  level: Level,
+  objectId: string,
+  name: string,
+  extra: string[] = [],
+  parents: Parents = {},
+): Promise<Row> {
+  const fields = ["account_id", "name", "status", LEVEL_FIELD[level], ...PARENT_FIELDS[level], ...extra].join(",");
   let o: Row;
   try {
     o = await graphGet(ctx.token, `/${objectId}`, { fields });
@@ -128,10 +161,17 @@ async function liveObject(ctx: Ctx, level: Level, objectId: string, name: string
   if (!sameName(o.name, name)) {
     throw new MetaOpRefused(409, `${LEVEL_WORD[level]} ${objectId} is called "${String(o.name ?? "")}" now, not "${name}"; the card is out of date`);
   }
+  const parentName = (key: "adset" | "campaign") => String(((o[key] ?? {}) as Row).name ?? "");
+  if (parents.adsetName !== undefined && !sameName(parentName("adset"), parents.adsetName)) {
+    throw new MetaOpRefused(409, `${LEVEL_WORD[level]} "${name}" is in ad set "${parentName("adset")}", not "${parents.adsetName}"; the card is out of date`);
+  }
+  if (parents.campaignName !== undefined && !sameName(parentName("campaign"), parents.campaignName)) {
+    throw new MetaOpRefused(409, `${LEVEL_WORD[level]} "${name}" is in campaign "${parentName("campaign")}", not "${parents.campaignName}"; the card is out of date`);
+  }
   return o;
 }
 
-interface StatusArgs {
+interface StatusArgs extends Parents {
   level: Level;
   id: string;
   name: string;
@@ -143,13 +183,15 @@ function parseStatus(a: Row): Parsed<StatusArgs> {
   const name = text(a.name, 400);
   if (!LEVELS.includes(level)) return { ok: false, error: "level is campaign, adset or ad" };
   if (!objectId || !name) return { ok: false, error: "id (digits) and name (as Ads Manager shows it) required" };
-  return { ok: true, args: { level, id: objectId, name } };
+  const parents = parseParents(level, a);
+  if (!parents.ok) return parents;
+  return { ok: true, args: { level, id: objectId, name, ...parents.args } };
 }
 
 const statusOp = (to: "PAUSED" | "ACTIVE"): Op<StatusArgs> => ({
   write: true,
   parse: parseStatus,
-  check: (ctx, a) => liveObject(ctx, a.level, a.id, a.name),
+  check: (ctx, a) => liveObject(ctx, a.level, a.id, a.name, [], a),
   send: async (ctx, a, checked) => {
     await graphPost(ctx.token, `/${a.id}`, { status: to });
     return {
@@ -163,7 +205,7 @@ const statusOp = (to: "PAUSED" | "ACTIVE"): Op<StatusArgs> => ({
   },
 });
 
-interface BudgetArgs {
+interface BudgetArgs extends Parents {
   level: "campaign" | "adset";
   id: string;
   name: string;
@@ -187,6 +229,7 @@ type AdSource = { kind: "file"; fileId: string; fileName: string } | { kind: "vi
 interface CreateAdArgs {
   adsetId: string;
   adsetName: string;
+  campaignName: string;
   fileId?: string;
   fileName?: string;
   videoId?: string;
@@ -281,9 +324,10 @@ const createAd: Op<CreateAdArgs> = {
   parse: (a) => {
     const adsetId = id(a.adsetId);
     const adsetName = text(a.adsetName, 400);
+    const campaignName = text(a.campaignName, 400);
     const name = text(a.name, 400);
     const message = text(a.message, 5000);
-    if (!adsetId || !adsetName) return { ok: false, error: "adsetId and adsetName required" };
+    if (!adsetId || !adsetName || !campaignName) return { ok: false, error: "adsetId, adsetName and campaignName required" };
     const hasFile = a.fileId !== undefined || a.fileName !== undefined;
     const hasVideo = a.videoId !== undefined || a.videoName !== undefined;
     if (hasFile === hasVideo) {
@@ -309,7 +353,7 @@ const createAd: Op<CreateAdArgs> = {
     }
     const status = a.status ?? "PAUSED";
     if (status !== "PAUSED" && status !== "ACTIVE") return { ok: false, error: "status is PAUSED or ACTIVE" };
-    return { ok: true, args: { adsetId, adsetName, ...source, name, message, headline, status } };
+    return { ok: true, args: { adsetId, adsetName, campaignName, ...source, name, message, headline, status } };
   },
   check: async (ctx, a): Promise<CreateChecked> => {
     // A new ad runs from the client's own Page, so that Page must be on file:
@@ -317,7 +361,7 @@ const createAd: Op<CreateAdArgs> = {
     if (!ctx.pageId) throw new MetaOpRefused(409, "this client has no Facebook Page on file; set the client's Page first");
     const media = await mediaFor(ctx, sourceOf(a));
 
-    await liveObject(ctx, "adset", a.adsetId, a.adsetName);
+    await liveObject(ctx, "adset", a.adsetId, a.adsetName, [], { campaignName: a.campaignName });
 
     const ads = await graphGetAll(ctx.token, `/${a.adsetId}/ads`, { fields: "id,name,creative{object_story_spec}", limit: "100" }, 5, { strict: true });
     if (ads.some((x) => sameName(x.name, a.name))) throw new MetaOpRefused(409, `ad set "${a.adsetName}" already has an ad called "${a.name}"`);
@@ -436,14 +480,16 @@ const ops = {
       const to = cents(a.to);
       if (level !== "campaign" && level !== "adset") return { ok: false, error: "level is campaign or adset" };
       if (!objectId || !name) return { ok: false, error: "id and name required" };
+      const parents = parseParents(level, a);
+      if (!parents.ok) return parents;
       if (from === null || to === null) return { ok: false, error: "from and to are whole cents per day" };
       if (from === to) return { ok: false, error: "to is the same as from" };
       const guard = budgetGuard(from, to);
       if (guard) return { ok: false, error: guard };
-      return { ok: true, args: { level, id: objectId, name, from, to } };
+      return { ok: true, args: { level, id: objectId, name, ...parents.args, from, to } };
     },
     check: async (ctx, a) => {
-      const o = await liveObject(ctx, a.level, a.id, a.name, ["daily_budget", "lifetime_budget"]);
+      const o = await liveObject(ctx, a.level, a.id, a.name, ["daily_budget", "lifetime_budget"], a);
       const live = Number(o.daily_budget ?? 0);
       if (!(live > 0)) {
         throw new MetaOpRefused(409, `${LEVEL_WORD[a.level]} "${a.name}" has no daily budget of its own (lifetime, or set at the ${a.level === "adset" ? "campaign" : "ad set"} level)`);

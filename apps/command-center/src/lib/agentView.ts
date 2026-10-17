@@ -127,17 +127,28 @@ const str = (v: unknown): v is string => typeof v === "string" && v.length > 0;
 const META_LEVEL: Record<string, string> = { campaign: "campaign", adset: "ad set", ad: "ad" };
 const dollars = (v: unknown): string => (typeof v === "number" && Number.isFinite(v) ? `$${(v / 100).toFixed(2)}` : "?");
 
-function changeLine(op: string, a: Record<string, unknown>): string {
+// Where a Meta object sits, so two ads with one name read apart: the id's
+// last six digits, then its ad set and campaign as the card names them.
+function metaTarget(a: Record<string, unknown>): string {
   const level = META_LEVEL[String(a.level)] ?? String(a.level);
+  const tail = typeof a.id === "string" ? ` (id ending ${a.id.slice(-6)})` : "";
+  const adset = str(a.adsetName) ? ` in ad set "${a.adsetName}"` : "";
+  const campaign = str(a.campaignName) ? ` (campaign "${a.campaignName}")` : "";
+  return `${level} "${a.name}"${tail}${adset}${campaign}`;
+}
+
+function changeLine(op: string, a: Record<string, unknown>): string {
   switch (op) {
     case "pause":
-      return `Pause ${level} "${a.name}"`;
+      return `Pause ${metaTarget(a)}`;
     case "resume":
-      return `Resume ${level} "${a.name}"`;
-    case "dailyBudget":
-      return `${a.name} ${level} daily budget ${dollars(a.from)} to ${dollars(a.to)}`;
+      return `Resume ${metaTarget(a)}`;
+    case "dailyBudget": {
+      const t = metaTarget(a);
+      return `${t.charAt(0).toUpperCase()}${t.slice(1)} daily budget ${dollars(a.from)} to ${dollars(a.to)}`;
+    }
     case "createAd":
-      return `Create ad "${a.name}" in ad set "${a.adsetName}" from ${a.videoId ? `Meta library video "${a.videoName}"` : `Creatives file "${a.fileName}"`}, ${a.status === "ACTIVE" ? "active" : "paused"}`;
+      return `Create ad "${a.name}" in ad set "${a.adsetName}"${typeof a.adsetId === "string" ? ` (id ending ${a.adsetId.slice(-6)})` : ""} (campaign "${a.campaignName}") from ${a.videoId ? `Meta library video "${a.videoName}"` : `Creatives file "${a.fileName}"`}, ${a.status === "ACTIVE" ? "active" : "paused"}`;
     case "write.customValue":
       return `Set custom value "${a.key}" to "${a.value}"`;
     case "write.customField":

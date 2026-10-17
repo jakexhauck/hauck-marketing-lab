@@ -91,19 +91,26 @@ describe("META_OPS", () => {
   });
 
   it("checks args before anything is sent", () => {
-    expect(parseMetaOpArgs("pause", { level: "ad", id: "120", name: "Winter 2" })).toEqual({
+    expect(parseMetaOpArgs("pause", { level: "ad", id: "120", name: "Winter 2", adsetName: "Willis Winter", campaignName: "Fall" })).toEqual({
       ok: true,
-      args: { level: "ad", id: "120", name: "Winter 2" },
+      args: { level: "ad", id: "120", name: "Winter 2", adsetName: "Willis Winter", campaignName: "Fall" },
     });
+    // The parent path is part of the change: an ad names its ad set and
+    // campaign, an ad set its campaign.
+    expect(parseMetaOpArgs("pause", { level: "ad", id: "120", name: "Winter 2", campaignName: "Fall" }).ok).toBe(false);
+    expect(parseMetaOpArgs("pause", { level: "adset", id: "9", name: "Willis Winter" }).ok).toBe(false);
+    expect(parseMetaOpArgs("pause", { level: "adset", id: "9", name: "Willis Winter", campaignName: "Fall" }).ok).toBe(true);
+    expect(parseMetaOpArgs("pause", { level: "campaign", id: "1", name: "Fall" })).toEqual({ ok: true, args: { level: "campaign", id: "1", name: "Fall" } });
     expect(parseMetaOpArgs("pause", { level: "account", id: "120", name: "x" }).ok).toBe(false);
     expect(parseMetaOpArgs("pause", { level: "ad", id: "../me", name: "x" }).ok).toBe(false);
     expect(parseMetaOpArgs("pause", { level: "ad", id: "120" }).ok).toBe(false);
-    expect(parseMetaOpArgs("dailyBudget", { level: "adset", id: "9", name: "x", from: 4000, to: 5000 }).ok).toBe(true);
+    expect(parseMetaOpArgs("dailyBudget", { level: "adset", id: "9", name: "x", campaignName: "Fall", from: 4000, to: 5000 }).ok).toBe(true);
+    expect(parseMetaOpArgs("dailyBudget", { level: "adset", id: "9", name: "x", from: 4000, to: 5000 }).ok).toBe(false);
     expect(parseMetaOpArgs("dailyBudget", { level: "ad", id: "9", name: "x", from: 4000, to: 5000 }).ok).toBe(false);
     expect(parseMetaOpArgs("dailyBudget", { level: "adset", id: "9", name: "x", from: 4000, to: 50.5 }).ok).toBe(false);
     expect(parseMetaOpArgs("dailyBudget", { level: "adset", id: "9", name: "x", from: 4000, to: 4000 }).ok).toBe(false);
     expect(parseMetaOpArgs("dailyBudget", { level: "adset", id: "9", name: "x", to: 5000 }).ok).toBe(false);
-    const ad = { adsetId: "9", adsetName: "Willis Winter", fileId: FILE, fileName: "winter-3.mp4", name: "Winter 3", message: "Free estimate" };
+    const ad = { adsetId: "9", adsetName: "Willis Winter", campaignName: "Fall", fileId: FILE, fileName: "winter-3.mp4", name: "Winter 3", message: "Free estimate" };
     expect(parseMetaOpArgs("createAd", ad)).toEqual({ ok: true, args: { ...ad, headline: null, status: "PAUSED" } });
     expect(parseMetaOpArgs("createAd", { ...ad, status: "ACTIVE" })).toMatchObject({ ok: true, args: { status: "ACTIVE" } });
     expect(parseMetaOpArgs("createAd", { ...ad, status: "DELETED" }).ok).toBe(false);
@@ -117,6 +124,8 @@ describe("META_OPS", () => {
     });
     expect(parseMetaOpArgs("createAd", { ...ad, videoId: "777", videoName: "v" }).ok).toBe(false);
     expect(parseMetaOpArgs("createAd", noFile).ok).toBe(false);
+    const { campaignName: _c, ...noCampaign } = ad;
+    expect(parseMetaOpArgs("createAd", noCampaign).ok).toBe(false);
     expect(parseMetaOpArgs("delete", {}).ok).toBe(false);
   });
 
@@ -133,11 +142,12 @@ describe("META_OPS", () => {
   });
 
   it("matches a card op by its parsed args, so a different id or name is not on the card", () => {
-    const ops = [{ op: "pause", args: { level: "ad", id: "120", name: "Winter 2" } }];
-    expect(metaOpOnCard(ops, "pause", { level: "ad", id: "120", name: "Winter 2" })).toBe(true);
-    expect(metaOpOnCard(ops, "pause", { level: "ad", id: "121", name: "Winter 2" })).toBe(false);
-    expect(metaOpOnCard(ops, "resume", { level: "ad", id: "120", name: "Winter 2" })).toBe(false);
-    expect(metaOpOnCard(undefined, "pause", { level: "ad", id: "120", name: "Winter 2" })).toBe(false);
+    const p = { level: "ad", id: "120", name: "Winter 2", adsetName: "Willis Winter", campaignName: "Fall" };
+    const ops = [{ op: "pause", args: p }];
+    expect(metaOpOnCard(ops, "pause", p)).toBe(true);
+    expect(metaOpOnCard(ops, "pause", { ...p, id: "121" })).toBe(false);
+    expect(metaOpOnCard(ops, "resume", p)).toBe(false);
+    expect(metaOpOnCard(undefined, "pause", p)).toBe(false);
   });
 });
 
@@ -233,8 +243,16 @@ const deps: MetaCallDeps = {
   download: async () => new Blob([new Uint8Array(1000)], { type: "image/jpeg" }),
 };
 
-const PAUSE = { level: "ad", id: "120", name: "Winter 2" };
-const AD_120 = { id: "120", account_id: "100", name: "Winter 2", status: "ACTIVE", adset_id: "9" };
+const PAUSE = { level: "ad", id: "120", name: "Winter 2", adsetName: "Willis Winter", campaignName: "Fall" };
+const AD_120 = {
+  id: "120",
+  account_id: "100",
+  name: "Winter 2",
+  status: "ACTIVE",
+  adset_id: "9",
+  adset: { id: "9", name: "Willis Winter" },
+  campaign: { id: "1", name: "Fall" },
+};
 
 describe("callMetaOp", () => {
   it("answers 400 for an unknown op and never calls Meta", async () => {
@@ -340,6 +358,20 @@ describe("callMetaOp", () => {
     expect(calls.some((c) => c.method === "POST")).toBe(false);
   });
 
+  it("refuses when the ad's ad set or campaign is not the one on the card (same name, other place)", async () => {
+    for (const live of [
+      { ...AD_120, adset: { id: "8", name: "Willis Spring" } },
+      { ...AD_120, campaign: { id: "2", name: "Spring" } },
+    ]) {
+      const w = world({ ops: [{ op: "pause", args: PAUSE }] });
+      const calls = fakeGraph({ "GET /me/permissions": PERMS, "GET /120": live, "POST /120": { success: true } });
+      const res = await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "pause", args: PAUSE }, deps);
+      expect(res.status).toBe(409);
+      expect(calls.some((c) => c.method === "POST")).toBe(false);
+      expect(w.rows("admin_audit_log")).toEqual([]);
+    }
+  });
+
   it("refuses when the token lacks ads_management", async () => {
     const w = world({ ops: [{ op: "pause", args: PAUSE }] });
     const calls = fakeGraph({
@@ -402,8 +434,8 @@ describe("callMetaOp", () => {
 
   // ---- createAd -------------------------------------------------------
 
-  const AD = { adsetId: "9", adsetName: "Willis Winter", fileId: FILE, fileName: "winter-3.jpg", name: "Winter 3", message: "Free estimate this week" };
-  const ADSET_9 = { id: "9", account_id: "100", name: "Willis Winter", campaign_id: "1" };
+  const AD = { adsetId: "9", adsetName: "Willis Winter", campaignName: "Fall", fileId: FILE, fileName: "winter-3.jpg", name: "Winter 3", message: "Free estimate this week" };
+  const ADSET_9 = { id: "9", account_id: "100", name: "Willis Winter", campaign_id: "1", campaign: { id: "1", name: "Fall" } };
   const LEAD_SPEC = {
     page_id: "PAGE1",
     instagram_user_id: "IG1",
@@ -532,6 +564,12 @@ describe("callMetaOp", () => {
     let w = world({ ops: [{ op: "createAd", args: AD }] });
     let calls = fakeGraph(adRoutes({ "GET /9": { ...ADSET_9, account_id: "200" } }));
     expect((await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "createAd", args: AD }, deps)).status).toBe(403);
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+
+    // The ad set moved to another campaign since the card was made.
+    w = world({ ops: [{ op: "createAd", args: AD }] });
+    calls = fakeGraph(adRoutes({ "GET /9": { ...ADSET_9, campaign: { id: "2", name: "Spring" } } }));
+    expect((await callMetaOp(w.client(), { messageId: MSG, tenantId: T1, op: "createAd", args: AD }, deps)).status).toBe(409);
     expect(calls.some((c) => c.method === "POST")).toBe(false);
 
     const dupe = { ...AD, name: "Winter 2" };
