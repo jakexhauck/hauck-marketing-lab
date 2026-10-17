@@ -183,6 +183,25 @@ describe("itemPayload", () => {
   });
 
   it("is empty for an empty payload", () => {
-    expect(itemPayload({})).toEqual({ steps: [], stats: [], quote: null, plan: [], previewUrl: null, thumbs: [] });
+    expect(itemPayload({})).toEqual({
+      steps: [],
+      stats: [],
+      quote: null,
+      plan: [],
+      previewUrl: null,
+      liveUrl: null,
+      deploy: false,
+      thumbs: [],
+    });
+  });
+
+  it("reads a landing page's preview, live URL and deploy grant", () => {
+    const v = itemPayload({
+      previewUrl: "https://d-1.hm-a.pages.dev",
+      liveUrl: "https://hm-a.pages.dev",
+      grant: { kind: "deploy" },
+    });
+    expect(v).toMatchObject({ previewUrl: "https://d-1.hm-a.pages.dev", liveUrl: "https://hm-a.pages.dev", deploy: true });
+    expect(itemPayload({ grant: { kind: "spend" }, liveUrl: "javascript:x" })).toMatchObject({ deploy: false, liveUrl: null });
   });
 });

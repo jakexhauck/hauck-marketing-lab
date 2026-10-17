@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties } from "react";
-import { Check, Copy, Plus, Trash2, Upload, X } from "lucide-react";
+import { Check, Copy, ExternalLink, Plus, Trash2, Upload, X } from "lucide-react";
 import { cn } from "../../../../lib/cn";
 import ConversionAssetPreview, {
   STUDIO_ACCENT,
@@ -272,7 +272,10 @@ function AssetSlots({
   // Rows written before the three slots existed. They describe pages nobody can
   // place now, so they get a delete button and nothing else: opening one would
   // start a wizard that can never be completed.
-  const orphans = assets.filter((a) => !a.kind);
+  const orphans = assets.filter((a) => !a.kind && !a.externalUrl);
+  // Pages the Landing Page Agent built and put live on their own address. The
+  // wizard has nothing to say about them, so they are a link and a delete.
+  const external = assets.filter((a) => a.externalUrl && /^https:\/\//.test(a.externalUrl));
 
   return (
     <div className="flex flex-col gap-4">
@@ -318,6 +321,49 @@ function AssetSlots({
           );
         })}
       </ul>
+
+      {external.length > 0 && (
+        <div>
+          <SectionLabel>Live pages</SectionLabel>
+          <ul className="grid gap-2.5 lg:grid-cols-3">
+            {external.map((asset) => (
+              <li
+                key={asset.id}
+                className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-4"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-text">
+                    {asset.title || "Landing page"}
+                  </span>
+                  <span className="shrink-0 rounded-full border border-brand/40 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-brand">
+                    live
+                  </span>
+                </span>
+                <span className="mt-auto flex items-center gap-2 pt-1">
+                  <a
+                    href={asset.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-w-0 flex-1 items-center gap-1.5 font-data text-[11.5px] text-muted hover:text-brand"
+                  >
+                    <ExternalLink size={12} aria-hidden className="shrink-0" />
+                    <span className="truncate">{asset.externalUrl.replace(/^https:\/\//, "")}</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(asset.id)}
+                    disabled={deleting}
+                    aria-label={`Delete ${asset.title || "this page"}`}
+                    className="shrink-0 rounded-[var(--radius)] border border-border p-1.5 text-faint transition-colors hover:border-danger hover:text-danger disabled:opacity-60"
+                  >
+                    <Trash2 size={14} aria-hidden />
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {orphans.length > 0 && (
         <div>
