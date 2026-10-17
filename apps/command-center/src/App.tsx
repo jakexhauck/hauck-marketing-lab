@@ -71,6 +71,7 @@ import AdminApps from "./routes/admin/AdminApps";
 import AdminOnboarding from "./routes/admin/AdminOnboarding";
 import ClientPage from "./routes/admin/ClientPage";
 import AgencyAgentPage from "./routes/admin/AgencyAgentPage";
+import AgentSopsPage from "./routes/admin/AgentSopsPage";
 import LegacyClientRedirect from "./routes/admin/LegacyClientRedirect";
 import SetterSuite from "./routes/admin/SetterSuite";
 import QuickBook from "./routes/admin/QuickBook";
@@ -591,6 +592,15 @@ export default function App() {
               />
               {/* The agency Manager Agent (Jake, 2026-10-17): the one agent
                   that overlooks every client, so it has an agency address. */}
+              {/* Agent SOPs (Jake, 2026-10-17): one flow map per agent. */}
+              <Route
+                path="/admin/sops/:agent?"
+                element={
+                  <AdminRoute roles={["owner"]}>
+                    <AgentSopsPage />
+                  </AdminRoute>
+                }
+              />
               <Route
                 path="/admin/agents/:agent"
                 element={

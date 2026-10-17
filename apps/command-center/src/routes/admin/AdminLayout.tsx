@@ -21,6 +21,7 @@ import {
   Wallet,
   ListChecks,
   Rocket,
+  Workflow,
 } from "lucide-react";
 import { resolvePillarTab, type PillarId } from "../../lib/adminPillars";
 import { clientNavGroups, clientPath, parseClientPath, type ClientNavRow } from "../../lib/clientNav";
@@ -142,8 +143,12 @@ const PILLAR_GROUPS: RailGroup[] = [
   {
     // Agents (Jake, 2026-10-17): the Manager Agent overlooks every client from
     // here. The other six agents only live inside a client (lib/agents.ts).
+    // SOPs holds every agent's flow map, one sub-page each (lib/agentSops.ts).
     caption: "Agents",
-    rows: [{ to: "/admin/agents/manager", label: "Manager Agent", icon: Gauge }],
+    rows: [
+      { to: "/admin/agents/manager", label: "Manager Agent", icon: Gauge },
+      { to: "/admin/sops", label: "SOPs", icon: Workflow },
+    ],
   },
 ];
 

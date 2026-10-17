@@ -716,3 +716,17 @@ Your action items:
 Still parked:
 - Swap Midwest Window's "in the Midwest" double vs triple pane graphic for a Clear Choice version (Claude, 10 min, before ads).
 - Optional: service-area zip list (right now any zip is accepted); thank-you page.
+
+## Agent SOPs page (2026-10-17)
+
+What's in the app now: Agents > SOPs in the sidebar, a flow map per agent at /admin/sops/<agent>.
+
+Your action items:
+1. Open Agents > SOPs and click through all 7 agent tabs.
+2. Send corrections per agent (wrong order, missing step, wrong owner).
+3. Fill in Creative, Market Research and Reporting (Draft): the Client Setup SOP has no section for them.
+4. Decide keep or drop on the colour-key line under each map title.
+5. Remove the GHL staff password from the Client Setup SOP doc.
+
+Still parked:
+- Agents keeping the maps up to date, suggested changes with Approve, and History. Needs your go.

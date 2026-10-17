@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-17-agent-sops",
+    date: "17 October 2026",
+    title: "Agent SOPs",
+    items: [
+      "SOPs under Agents in the sidebar has a flow map for each agent, with a tab per agent: Manager, GHL, Ads, Creative, Landing Page, Market Research and Reporting.",
+      "Click any box to see its steps, where it comes from, where it goes, and the Client Setup SOP section it comes from. A handoff box opens that agent's map.",
+      "Creative, Market Research and Reporting are marked Draft: the Client Setup SOP has no section for them yet.",
+    ],
+  },
+  {
     id: "2026-10-17-ads-agent-changes",
     date: "17 October 2026",
     title: "Ads Agent changes Ads Manager on your Approve",
