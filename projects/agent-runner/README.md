@@ -26,7 +26,8 @@ Off switch: create `data\.stop`.
 
 ## Layout
 
-- `agents/<id>.md`: each agent's instructions. `_rules.md` and `_protocol.md` go into every agent's prompt.
+- `agents/<id>.md`: each agent's instructions. `_rules.md`, `_protocol.md` and `_copy.md` go into every agent's prompt.
+- `agents/copy/`: the four copy skills (Ogilvy, Copywriting, Copy Editing, Stop Slop), copied into each work folder as `copy-skills/` every turn. Source in its README.
 - `src/bundle.ts`: instructions + brains + allowed tools per agent.
 - `src/claude.ts`: spawns `claude -p`, parses stream-json.
 - `src/output.ts`: the lessons, item and request blocks.

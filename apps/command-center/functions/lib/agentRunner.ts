@@ -73,6 +73,8 @@ export const AGENT_RUNNER_POST_PATHS: readonly string[] = [
   "brief",
   // An agent ticks boxes in its own brief section(s) (lib/briefTicks.ts).
   "tick",
+  // An approved request's reply, back to the agent that asked (lib/agentItems.ts postAnswer).
+  "answer",
 ].map((p) => BASE + p);
 
 /** Routes the runner may GET. */
@@ -155,6 +157,7 @@ export function messageFromRow(r: Row): AgentMessage {
     fromAgent: from && isAgentId(from) ? from : null,
     followUpOf: str(meta.followUpOf),
     grant: grantOf(meta.grant),
+    answerOf: str(meta.answerOf),
     error: str(r.error),
     createdAt: r.created_at as string,
   };
@@ -204,7 +207,7 @@ export async function reclaimStale(
   const { data, error } = await client
     .from("agent_messages")
     .update({ status: "queued" })
-    .eq("role", "me")
+    .in("role", RUNNABLE_ROLES)
     .eq("status", "running")
     .eq("host", host)
     .lt("updated_at", cutoff)
@@ -217,8 +220,17 @@ export async function reclaimStale(
 // handler), so this file and the brief store do not import each other.
 export type ClaimCore = Omit<ClaimResponse, "brief">;
 
+// What the runner works: Jake's messages, and another agent's answer to a
+// request (postAnswer). A request card's own message is written done, so it
+// is never queued and never claimed.
+const RUNNABLE_ROLES = ["me", "request"];
+
+function runnable(r: Row): boolean {
+  return r.role === "me" || (r.role === "request" && !!str((r.meta as Row | null)?.answerOf));
+}
+
 /**
- * Claim the oldest queued `me` message for this host, or null.
+ * Claim the oldest queued message for this host, or null.
  *
  * The lock is the status filter on the PATCH, exactly as in the lead scraper's
  * claim_next_run: if another poll got there first the row no longer says
@@ -236,7 +248,7 @@ export async function claimNext(
   const { data: queued, error: qErr } = await client
     .from("agent_messages")
     .select("*")
-    .eq("role", "me")
+    .in("role", RUNNABLE_ROLES)
     .eq("status", "queued")
     .order("created_at", { ascending: true })
     .limit(1);
@@ -312,11 +324,11 @@ export async function applyReply(
 
   const { data: me, error: meErr } = await client
     .from("agent_messages")
-    .select("id, chat_id, role, status")
+    .select("id, chat_id, role, status, meta")
     .eq("id", body.messageId)
     .maybeSingle();
   fail("message", meErr);
-  if (!me || (me as Row).role !== "me") return { error: 404 };
+  if (!me || !runnable(me as Row)) return { error: 404 };
   const chatId = (me as Row).chat_id as string;
   // Progress posts are fire-and-forget on the runner, so one can land after
   // the reply. A finished message never goes back to running.

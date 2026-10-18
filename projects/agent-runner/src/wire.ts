@@ -37,6 +37,10 @@ export interface AgentMessage {
   // me: the card a click answered, and the grant when the click was Approve.
   followUpOf: string | null;
   grant: Grant | null;
+  // request: set on an answer, the request card it answers. An answer is
+  // queued in the asking agent's chat and run like Jake's message, but it is
+  // never role "me", so no "Jake asked" gate opens for it.
+  answerOf: string | null;
   error: string | null;
   createdAt: string;
 }
@@ -104,6 +108,13 @@ export interface ClaimResponse {
   // The client's whole Client Brief with versions ([] at the agency). Optional
   // here so a claim from an app that predates the brief still runs.
   brief?: BriefSection[];
+}
+
+// The agent's reply to an approved request, for the agent that asked. The app
+// finds the request through the claimed message and posts it once.
+export interface AnswerBody {
+  messageId: string;
+  body: string;
 }
 
 export interface ReplyBody {

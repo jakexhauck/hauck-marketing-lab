@@ -5,6 +5,7 @@ import type {
   AgentItem,
   AgentLesson,
   AgentMessage,
+  AnswerBody,
   AutoChatBody,
   ChatSummary,
   ItemBody,
@@ -341,6 +342,72 @@ export async function upsertItem(client: SupabaseClient, body: ItemBody): Promis
     await touchChat(client, chatId);
   }
   return item;
+}
+
+/**
+ * An approved request's reply, back to the agent that asked.
+ *
+ * Everything is looked up from the claimed message, never taken from the
+ * runner: the message must be a running follow-up of a request card, the card
+ * names who asked and the chat they asked from (the runner wrote fromChatId
+ * when it filed the request), and that chat must be the asker's at the same
+ * client. Only an Approve answers (the card is then done; a Decline or a
+ * Change note is not an answer), and only once per card.
+ *
+ * The answer is queued as a `request` message with meta.answerOf, so the
+ * runner works it like Jake's message, but it is never role "me": every
+ * "Jake asked" check (agentGhlOps.writeAllowed, agentMetaOps.metaWriteAllowed)
+ * stays shut for it.
+ */
+export async function postAnswer(
+  client: SupabaseClient,
+  body: AnswerBody,
+): Promise<{ posted: boolean } | { error: 400 | 404 }> {
+  const text = typeof body.body === "string" ? stripEmDash(body.body.trim()) : "";
+  if (typeof body.messageId !== "string" || !body.messageId || !text) return { error: 400 };
+
+  const { data: msg, error: mErr } = await client
+    .from("agent_messages")
+    .select("*")
+    .eq("id", body.messageId)
+    .maybeSingle();
+  fail("message", mErr);
+  const m = msg ? messageFromRow(msg as Row) : null;
+  if (!m || m.role !== "me" || m.status !== "running" || !m.followUpOf) return { error: 404 };
+
+  const { data: itemRow, error: iErr } = await client.from("agent_items").select("*").eq("id", m.followUpOf).maybeSingle();
+  fail("item", iErr);
+  const item = itemRow ? itemFromRow(itemRow as Row) : null;
+  const fromChatId = item?.payload.fromChatId;
+  if (!item || item.kind !== "request" || !item.fromAgent || item.chatId !== m.chatId || typeof fromChatId !== "string") {
+    return { error: 404 };
+  }
+
+  const { data: chatRow, error: cErr } = await client.from("agent_chats").select("*").eq("id", fromChatId).maybeSingle();
+  fail("asking chat", cErr);
+  const asker = chatRow as Row | null;
+  if (!asker || asker.agent !== item.fromAgent || ((asker.tenant_id as string | null) ?? null) !== item.tenantId) return { error: 404 };
+
+  if (item.status !== "done") return { posted: false };
+  const { data: already, error: aErr } = await client
+    .from("agent_messages")
+    .select("id")
+    .eq("chat_id", fromChatId)
+    .eq("meta->>answerOf", item.id)
+    .limit(1);
+  fail("answer lookup", aErr);
+  if ((already ?? []).length) return { posted: false };
+
+  const { error } = await client.from("agent_messages").insert({
+    chat_id: fromChatId,
+    role: "request",
+    body: text,
+    status: "queued",
+    meta: { fromAgent: item.agent, answerOf: item.id },
+  });
+  fail("answer", error);
+  await touchChat(client, fromChatId);
+  return { posted: true };
 }
 
 /** Every card for one tenant (null = agency), optionally one agent, newest first. */

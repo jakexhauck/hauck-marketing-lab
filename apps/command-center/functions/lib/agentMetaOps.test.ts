@@ -41,6 +41,7 @@ function msg(over: Partial<AgentMessage> = {}): AgentMessage {
     itemId: null,
     fromAgent: null,
     followUpOf: null,
+    answerOf: null,
     grant: null,
     error: null,
     createdAt: "2026-10-17T09:00:00.000Z",
