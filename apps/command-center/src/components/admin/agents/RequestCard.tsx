@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ArrowRight, Link as LinkIcon, Sparkles } from "lucide-react";
 import { AGENTS, type AgentId } from "../../../lib/agents";
 import type { AgentItem, AgentMessage } from "../../../lib/agentWire";
@@ -12,18 +13,22 @@ const agentName = (id: AgentId | null) => AGENTS.find((a) => a.id === id)?.name 
 // A request from another agent: who sent it, the ask, any link. Then, when the
 // item behind it carries a plan, the receiving agent's exact planned changes
 // with Approve / Change it / Decline. Nothing happens without that click.
+// An answer (msg.answerOf) is the other agent's reply to a request this chat
+// sent: same card, no item, the reply drawn by the caller as children.
 export default function RequestCard({
   msg,
   item,
   now,
   onAction,
   busy,
+  children,
 }: {
   msg: AgentMessage;
   item: AgentItem | null;
   now: Date;
   onAction: (action: ItemAction, note?: string) => void;
   busy: boolean;
+  children?: ReactNode;
 }) {
   const from = msg.fromAgent ?? item?.fromAgent ?? null;
   const Icon = AGENT_ICONS[from ?? ""] ?? Sparkles;
@@ -36,10 +41,10 @@ export default function RequestCard({
             <Icon />
           </span>
           <b>{agentName(from)}</b>
-          <span className="ag-ho-tag">Request</span>
+          <span className="ag-ho-tag">{msg.answerOf ? "Answer" : "Request"}</span>
           <span className="ag-ho-time">{ago(msg.createdAt, now)}</span>
         </div>
-        <div className="ag-ho-tx">{msg.body}</div>
+        <div className="ag-ho-tx">{children ?? msg.body}</div>
         {p?.previewUrl && (
           <a className="ag-ho-link" href={p.previewUrl} target="_blank" rel="noreferrer">
             <LinkIcon />
