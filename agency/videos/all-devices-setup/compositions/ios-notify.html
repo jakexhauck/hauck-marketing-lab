@@ -1,0 +1,217 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #in-root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+        #in-note { left: 120px; top: 700px; width: 540px; opacity: 0; }
+        #in-note2 { left: 120px; top: 700px; width: 540px; opacity: 0; }
+        .in-dots { display: inline-flex; gap: 5px; vertical-align: middle; margin: 0 6px; padding: 6px 12px; border-radius: 12px; background: rgba(77, 187, 131, 0.18); }
+        .in-dots i { width: 8px; height: 8px; border-radius: 50%; background: #4dbb83; }
+
+        /* Safari */
+        #in-safari .page { position: absolute; left: 0; right: 0; top: 0; bottom: 118px; overflow: hidden; }
+        .in-sbar { position: absolute; left: 0; right: 0; bottom: 0; height: 118px; background: rgba(249, 249, 251, 0.97); border-top: 1px solid #e2e2e8; }
+        .in-pill { position: absolute; left: 16px; top: 10px; width: 354px; height: 44px; border-radius: 14px; background: #e7e7ec;
+          font: 400 15px/44px Inter, sans-serif; color: #111; text-align: center; }
+        .in-tools { position: absolute; left: 0; right: 0; top: 62px; height: 40px; }
+        .in-tools svg { position: absolute; top: 6px; width: 28px; height: 28px; }
+
+        /* share sheet */
+        #in-share { position: absolute; left: 0; right: 0; top: 300px; height: 536px; border-radius: 16px 16px 0 0; background: #f2f2f7; overflow: hidden;
+          box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.18); z-index: 30; }
+        #in-dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.28); opacity: 0; z-index: 29; }
+        #in-share .hd { position: absolute; left: 16px; right: 16px; top: 18px; height: 48px; }
+        #in-share .hd .ic { position: absolute; left: 0; top: 0; width: 44px; height: 44px; border-radius: 10px; overflow: hidden; }
+        #in-share .hd .ic img { width: 100%; height: 100%; display: block; }
+        #in-share .hd .n { position: absolute; left: 56px; top: 3px; font: 700 15px Inter, sans-serif; color: #111; }
+        #in-share .hd .u { position: absolute; left: 56px; top: 24px; font: 400 13px Inter, sans-serif; color: #636368; }
+        #in-share .hd .x { position: absolute; right: 0; top: 8px; width: 30px; height: 30px; border-radius: 50%; background: #e3e3e8; }
+        #in-listvp { position: absolute; left: 0; right: 0; top: 76px; bottom: 0; overflow: hidden; }
+        #in-list { position: absolute; left: 0; right: 0; top: -76px; height: 760px; }
+        .in-targets { position: absolute; left: 16px; right: 16px; top: 84px; height: 96px; display: flex; justify-content: space-between; }
+        .in-targets div { width: 60px; text-align: center; font: 400 11px Inter, sans-serif; color: #333; }
+        .in-targets div i { display: block; width: 58px; height: 58px; margin: 0 auto 6px; border-radius: 50%; }
+        .in-grp { position: absolute; left: 16px; right: 16px; border-radius: 12px; background: #fff; overflow: hidden; }
+        .in-row { position: relative; height: 48px; border-bottom: 1px solid #ececf0; padding: 0 16px; font: 400 16px/48px Inter, sans-serif; color: #111; }
+        .in-row:last-child { border-bottom: 0; }
+        .in-row .gl { position: absolute; right: 16px; top: 14px; width: 20px; height: 20px; border-radius: 5px; border: 2px solid #111; }
+        .in-row .hi { position: absolute; inset: 0; background: #d9d9de; opacity: 0; }
+        .in-row span { position: relative; }
+
+        /* add to home screen */
+        #in-ahs { position: absolute; left: 0; right: 0; top: 54px; bottom: 0; border-radius: 14px 14px 0 0; background: #f2f2f7; z-index: 35;
+          box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.15); }
+        #in-ahs .nav { position: absolute; left: 0; right: 0; top: 0; height: 56px; font: 400 17px/56px Inter, sans-serif; }
+        #in-ahs .nav .c { position: absolute; left: 18px; color: #0a84ff; }
+        #in-ahs .nav .t { position: absolute; left: 0; right: 0; text-align: center; font-weight: 700; color: #111; }
+        #in-ahs .nav .a { position: absolute; right: 18px; color: #0a84ff; font-weight: 700; }
+        #in-ahs .grp { position: absolute; left: 16px; right: 16px; top: 76px; height: 100px; border-radius: 12px; background: #fff; }
+        #in-ahs .grp .ic { position: absolute; left: 14px; top: 18px; width: 64px; height: 64px; border-radius: 15px; overflow: hidden; }
+        #in-ahs .grp .ic img { width: 100%; height: 100%; display: block; }
+        #in-ahs .grp .nm { position: absolute; left: 94px; right: 14px; top: 16px; height: 34px; border-bottom: 1px solid #ececf0; font: 400 17px/34px Inter, sans-serif; color: #111; }
+        #in-ahs .grp .ur { position: absolute; left: 94px; top: 60px; font: 400 14px Inter, sans-serif; color: #636368; }
+        #in-ahs .ft { position: absolute; left: 32px; right: 32px; top: 188px; font: 400 13px/1.4 Inter, sans-serif; color: #6c6c72; }
+
+        /* home screen */
+        #in-home .dock { position: absolute; left: 14px; right: 14px; bottom: 16px; height: 92px; border-radius: 32px; background: rgba(255, 255, 255, 0.22); }
+        #in-hring { position: absolute; left: 204px; top: 280px; width: 62px; height: 62px; margin: 0; border-radius: 16px; border: 3px solid #4dbb83; opacity: 0; }
+
+        /* alert */
+        #in-adim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.32); opacity: 0; z-index: 60; }
+        #in-alert { position: absolute; left: 58px; top: 300px; width: 270px; border-radius: 14px; background: rgba(242, 242, 247, 0.98); overflow: hidden; z-index: 61; opacity: 0; }
+        #in-alert .t { padding: 20px 16px 6px; text-align: center; font: 700 16px/1.3 Inter, sans-serif; color: #111; }
+        #in-alert .m { padding: 0 16px 18px; text-align: center; font: 400 13px/1.35 Inter, sans-serif; color: #333; }
+        #in-alert .b { display: flex; border-top: 1px solid #d1d1d6; height: 44px; }
+        #in-alert .b span { flex: 1; text-align: center; font: 400 17px/44px Inter, sans-serif; color: #0a84ff; }
+        #in-alert .b span + span { border-left: 1px solid #d1d1d6; font-weight: 700; }
+      </style>
+      <div id="in-root" data-composition-id="ios-notify" data-width="1920" data-height="1080">
+        <div class="h-left" id="in-left">
+          <div class="hl-block"><div class="kicker">iPhone</div><div class="headline">Turn on notifications</div><div class="rule"></div></div>
+        </div>
+        <div class="callout" id="in-note2">Notifications only work in the <b>Home Screen app</b>, so add it first.</div>
+
+        <div class="steps" id="in-steps">
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">1</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Open Hauck Marketing</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">2</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Tap Turn on</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">3</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Tap Allow</div></div>
+        </div>
+
+        <div class="phone" id="in-phone"><div class="screen" id="in-scr" data-layout-allow-overlap data-layout-allow-occlusion data-layout-allow-overflow>
+          <div class="island"></div>
+
+
+          <div class="layer" id="in-home">
+            <div class="wall"></div>
+            <div class="statusbar light"><span>9:41</span><span class="sb-r"><i class="sig"></i><i class="bat"></i></span></div>
+            <div id="in-grid"></div>
+            <div class="hicon" id="in-hico" style="left:204px;top:280px"><img src="assets/hauck-icon.png" alt="" /></div>
+            <div class="icon-l" id="in-hlab" style="left:204px;top:348px">Hauck</div>
+            <div id="in-hring"></div>
+            <div class="dock"></div>
+            <div id="in-dockicons"></div>
+          </div>
+
+          <div class="layer" id="in-app" style="transform-origin:235px 311px">
+            <div class="app">
+              <div class="app-top"><div class="logo"></div><div class="t">Home</div></div>
+              <div class="ncard" id="in-ncard"><div class="row"><div class="bell"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div><div class="ttl">Turn on notifications</div></div><div class="btns"><div class="on" id="in-on">Turn on</div><div class="off">Not now</div></div></div>
+              <div class="sk" id="in-sk1" style="top:278px;height:120px"><i style="top:20px;width:120px"></i><i style="top:52px;width:220px;background:#f0f1f6"></i><i style="top:80px;width:180px;background:#f0f1f6"></i></div>
+              <div class="sk" id="in-sk2" style="top:414px;height:120px"><i style="top:20px;width:150px"></i><i style="top:52px;width:200px;background:#f0f1f6"></i><i style="top:80px;width:240px;background:#f0f1f6"></i></div>
+            </div>
+            <div class="statusbar"><span>9:41</span><span class="sb-r"><i class="sig"></i><i class="bat"></i></span></div>
+            <div id="in-adim"></div>
+            <div id="in-alert"><div class="t">“Hauck” Would Like to Send You Notifications</div><div class="m">Notifications may include alerts, sounds, and icon badges. These can be configured in Settings.</div><div class="b"><span>Don’t Allow</span><span>Allow</span></div></div>
+          </div>
+        </div></div>
+
+                                                                        <audio id="in-a1" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="3.3" data-track-index="16" data-volume="0.5"></audio>
+        <audio id="in-a2" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="4.6" data-track-index="16" data-volume="0.5"></audio>
+        <audio id="in-a3" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="5.7" data-track-index="16" data-volume="0.5"></audio>
+        <audio id="in-a4" src="assets/sfx/pop.mp3" data-duration="0.72" data-start="5.85" data-track-index="17" data-volume="0.25"></audio>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          const q = (s) => document.querySelector(s);
+          const scr = q("#in-scr");
+          function tap(x, y, t) {
+            const f = document.createElement("div");
+            f.className = "finger";
+            f.style.left = x + "px";
+            f.style.top = y + "px";
+            const r = document.createElement("div");
+            r.className = "tap";
+            r.style.left = x + "px";
+            r.style.top = y + "px";
+            scr.appendChild(r);
+            scr.appendChild(f);
+            tl.fromTo(f, { opacity: 0, scale: 1.3 }, { opacity: 1, scale: 1, duration: 0.16, ease: "power2.out", immediateRender: false }, t - 0.16);
+            tl.to(f, { opacity: 0, scale: 0.9, duration: 0.2, ease: "power2.in" }, t + 0.18);
+            tl.fromTo(r, { opacity: 0.95, scale: 0.4 }, { opacity: 0, scale: 1.7, duration: 0.55, ease: "power2.out", immediateRender: false }, t);
+          }
+          const steps = document.querySelectorAll("#in-steps .step");
+          function stepOn(i, t) {
+            const s = steps[i];
+            tl.to(s.querySelector(".hl"), { opacity: 1, duration: 0.3, ease: "power2.out" }, t);
+            tl.to(s.querySelector(".txt"), { color: "#eaf5ef", duration: 0.3 }, t);
+            tl.to(s.querySelector(".num"), { borderColor: "#4dbb83", duration: 0.3 }, t);
+            tl.to(s.querySelector(".d"), { color: "#4dbb83", duration: 0.3 }, t);
+            tl.to(s, { x: -10, duration: 0.3, ease: "power2.out" }, t);
+          }
+          function stepDone(i, t) {
+            const s = steps[i];
+            tl.to(s.querySelector(".hl"), { opacity: 0, duration: 0.3 }, t);
+            tl.to(s, { x: 0, duration: 0.3, ease: "power2.inOut" }, t);
+            tl.to(s.querySelector(".nf"), { opacity: 1, duration: 0.2 }, t);
+            tl.to(s.querySelector(".d"), { opacity: 0, duration: 0.15 }, t);
+            tl.fromTo(s.querySelector(".num svg"), { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2.2)" }, t + 0.05);
+            tl.to(s.querySelector(".txt"), { color: "#b9d3c8", duration: 0.3 }, t);
+          }
+
+          // generic home screen apps, no brands
+          const apps = [["#ffffff","Calendar"],["#f5a524","Photos"],["#8e8e93","Camera"],["#3b9bff","Mail"],["#ffd23f","Notes"],["#ff9f0a","Reminders"],["#1c1c1e","Clock"],["#4fb3f6","Weather"],["#30c48d","Maps"],["#8e8e93","Settings"]];
+          const cols = [30, 117, 204, 291], rows = [80, 180, 280];
+          const grid = q("#in-grid");
+          apps.forEach(([c, n], i) => {
+            const x = cols[i % 4], y = rows[Math.floor(i / 4)];
+            const ic = document.createElement("div");
+            ic.className = "icon"; ic.style.left = x + "px"; ic.style.top = y + "px"; ic.style.background = c;
+            const lb = document.createElement("div");
+            lb.className = "icon-l"; lb.style.left = x + "px"; lb.style.top = (y + 68) + "px"; lb.textContent = n;
+            grid.appendChild(ic); grid.appendChild(lb);
+          });
+          const dock = q("#in-dockicons");
+          ["#34c759", "#3b9bff", "#30d158", "#ff375f"].forEach((c, i) => {
+            const ic = document.createElement("div");
+            ic.className = "icon"; ic.style.left = (34 + i * 87) + "px"; ic.style.top = "758px"; ic.style.background = c;
+            dock.appendChild(ic);
+          });
+
+          gsap.set("#in-app", { opacity: 0, scale: 0.16 });
+
+          tl.fromTo("#in-left .hl-block > *", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", stagger: 0.1 }, 0.15);
+          tl.fromTo("#in-left .rule", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power3.out" }, 0.4);
+          tl.fromTo("#in-steps .step", { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out", stagger: 0.08 }, 0.35);
+
+          // 1 open the app from the home screen
+          stepOn(0, 0.7);
+          tl.fromTo("#in-hring", { scale: 1, opacity: 0.9 }, { scale: 1.6, opacity: 0, duration: 0.7, ease: "power2.out" }, 1.4);
+          tl.fromTo("#in-hring", { scale: 1, opacity: 0.9 }, { scale: 1.6, opacity: 0, duration: 0.7, ease: "power2.out", immediateRender: false }, 2.3);
+          tap(235, 311, 3.3);
+          tl.to("#in-hico", { scale: 0.9, duration: 0.1, yoyo: true, repeat: 1 }, 3.3);
+          tl.to("#in-app", { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 3.45);
+          tl.set("#in-home", { opacity: 0 }, 3.95);
+          stepDone(0, 3.5);
+
+          // 2 turn on
+          stepOn(1, 4.0);
+          tap(143, 224, 4.6);
+          tl.to("#in-on", { scale: 0.96, duration: 0.09, yoyo: true, repeat: 1 }, 4.6);
+          stepDone(1, 4.8);
+          tl.to("#in-adim", { opacity: 1, duration: 0.25 }, 4.85);
+          tl.fromTo("#in-alert", { opacity: 0, scale: 1.12 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power2.out" }, 4.85);
+
+          // 3 allow
+          stepOn(2, 5.1);
+          tap(260, 460, 5.7);
+          tl.to("#in-alert", { opacity: 0, scale: 0.96, duration: 0.2, ease: "power2.in" }, 5.8);
+          tl.to("#in-adim", { opacity: 0, duration: 0.25 }, 5.8);
+          tl.to("#in-ncard", { opacity: 0, scale: 0.94, duration: 0.3, ease: "power2.in" }, 6.05);
+          tl.to(["#in-sk1", "#in-sk2"], { y: -142, duration: 0.5, ease: "power3.inOut" }, 6.2);
+          stepDone(2, 5.9);
+
+          // the iPhone rule
+          tl.fromTo("#in-note2", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 6.4);
+          tl.fromTo("#in-phone", { y: 0 }, { y: -10, duration: 3.5, ease: "sine.inOut", yoyo: true, repeat: 1 }, 6.6);
+
+          tl.to(["#in-left", "#in-steps", "#in-note2"], { y: -20, opacity: 0, duration: 0.45, ease: "power2.in", stagger: 0.05 }, 13.9);
+          tl.to("#in-phone", { x: -320, opacity: 0, duration: 0.55, ease: "power2.in" }, 13.95);
+          window.__timelines["ios-notify"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

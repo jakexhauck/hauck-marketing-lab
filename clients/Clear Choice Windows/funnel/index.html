@@ -1,0 +1,2111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clear Choice Windows Owensboro | Free Triple Pane Glass</title>
+<meta name="description" content="Free triple pane glass with any new window installation ($300 value). Keep your Owensboro home warmer this winter. Lifetime warranty, BBB A+ rated, free in-home estimate.">
+<link rel="icon" type="image/webp" href="img/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    /* Clear Choice palette (green + night from the follow-up pages), orange CTA kept from the original */
+    --blue:       #1B8352;   /* Clear Choice green */
+    --blue-dark:  #156B43;
+    --blue-deep:  #0F4A2E;
+    --navy:       #0F2219;   /* Clear Choice night */
+    --navy-2:     #17331F;
+    --orange:     #F26522;   /* MWC orange - CTAs / highlights / accents */
+    --orange-dk:  #D4531A;   /* darker MWC orange - hover / active */
+    --white:      #FFFFFF;
+    --gray-1:     #F4F6F8;
+    --gray-2:     #E8ECF0;
+    --gray-3:     #D0D8DF;
+    --text:       #1A2733;
+    --text-mid:   #4A5C6A;
+    --text-lt:    #7A8C9A;
+    --green:      #1A9E5C;
+    --red:        #D63B2F;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    background: var(--navy);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    padding-top: 0;                /* no fixed top elements anymore - header scrolls with the page */
+    padding-bottom: 76px;          /* compensate for fixed bottom mobile bar */
+  }
+
+  /* ── GHL ESCAPE ── */
+  .cc-wrap {
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER (logo left, phone CTA right) - scrolls with the page, NOT sticky ── */
+  .site-header {
+    background: var(--navy);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 1px 10px rgba(0,0,0,0.06);
+  }
+  .site-header-inner {
+    max-width: 1240px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 28px;
+  }
+  .site-logo-link { display: inline-flex; align-items: center; }
+  .site-logo { height: 68px; width: auto; display: block; }
+  .site-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--orange); color: #fff; text-decoration: none;
+    font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 1rem;
+    letter-spacing: 0.02em; white-space: nowrap;
+    padding: 10px 20px; border-radius: 100px;
+    box-shadow: 0 3px 12px rgba(242,101,34,0.40);
+    transition: background 0.18s, transform 0.12s;
+  }
+  .site-cta:hover { background: var(--orange-dk); }
+  .site-cta:active { transform: scale(0.98); }
+  @media (max-width: 600px) {
+    .site-header-inner { padding: 5px 16px; }
+    .site-logo { height: 54px; }
+    .site-cta { font-size: 0.85rem; padding: 9px 16px; gap: 6px; }
+  }
+
+  /* ── ATTENTION PULSE (reuses the old offer-bar "shine" sweep; toggled via .pulse-active by JS) ── */
+  @keyframes shine {
+    0%        { left: -70%; }
+    55%, 100% { left: 130%; }
+  }
+  .site-cta.pulse-active, .mb-book.pulse-active { position: relative; overflow: hidden; }
+  .site-cta.pulse-active::before, .mb-book.pulse-active::before {
+    content: '';
+    position: absolute; top: 0; left: -70%;
+    width: 55%; height: 100%;
+    background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.55) 50%, transparent 100%);
+    animation: shine 3.5s ease-in-out infinite;
+    pointer-events: none; z-index: 0;
+  }
+  .site-cta > *, .mb-book > * { position: relative; z-index: 1; }
+
+  /* ── HERO ── */
+  .hero {
+    /* Anchor the gradient in MWC navy so the hero feels rich + cohesive with the dark sections above/below; ramp into MWC blue for the bright accent corner. */
+    background: linear-gradient(155deg, var(--navy) 0%, #14492F 52%, var(--blue) 100%);
+    position: relative; overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 85% 15%, rgba(255,255,255,0.08) 0%, transparent 45%),
+      radial-gradient(ellipse at 5% 85%, rgba(0,0,0,0.22) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  /* Hero layout - single column on mobile, 2-col with photo on desktop */
+  .hero-inner {
+    max-width: 560px; margin: 0 auto;
+    padding: 14px 22px 36px;
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+  }
+  .hero-content { display: flex; flex-direction: column; }
+
+  /* Photo column - hidden on mobile, visible 2-col on desktop */
+  .hero-photo-wrap {
+    display: none;
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 18px 48px rgba(0,0,0,0.32);
+    align-self: stretch;
+    min-height: 100%;
+  }
+  .hero-photo-wrap img {
+    width: 100%; height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center;
+  }
+  /* Subtle bottom-shadow gradient inside the photo so any text overlaid here reads */
+  .hero-photo-wrap::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.18) 100%);
+    pointer-events: none;
+  }
+  .hero-photo-caption {
+    position: absolute; left: 14px; top: 14px;
+    background: rgba(15,34,25,0.82);
+    color: #fff;
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 6px 12px; border-radius: 4px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 2;
+  }
+
+  /* Mobile-only hero photo card - sits between sub-headline and form.
+     Inset 20px from each viewport edge with rounded corners + drop shadow.
+     Hidden on desktop where the photo lives in the left column of the
+     hero grid. */
+  .hero-photo-mobile {
+    display: none;
+    position: relative;
+    width: calc(100vw - 40px);                       /* 20px from each viewport edge */
+    margin-left: calc(-50vw + 50% + 20px);           /* centered, breaks out of hero-inner padding */
+    margin-right: 0;
+    margin-top: 12px;
+    margin-bottom: 16px;
+    height: 180px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .hero-photo-mobile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.25);
+  }
+  .hero-photo-mobile:focus-visible {
+    outline: 3px solid var(--blue);
+    outline-offset: 3px;
+  }
+  .hero-photo-mobile img {
+    width: 100%; height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+  .hero-photo-mobile-badge {
+    position: absolute;
+    top: 12px; left: 12px;
+    background: rgba(15,34,25,0.80);
+    color: #fff;
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.625rem; /* ~10px */
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: 100px; /* pill */
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  /* Before/after slider (hero photo, desktop + mobile). Both photos are the
+     same aligned 4:3 crop, so object-fit:cover keeps them registered. */
+  .hero-photo-wrap.ba, .hero-photo-mobile.ba { cursor: ew-resize; touch-action: pan-y; user-select: none; -webkit-user-select: none; --pos: 50%; }
+  .hero-photo-wrap.ba img, .hero-photo-mobile.ba img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; object-position: center; pointer-events: none; transform: none !important;
+  }
+  .hero-photo-wrap.ba { aspect-ratio: 4 / 3; align-self: start; margin-top: 8px; min-height: 0; height: auto; }
+  .ba .ba-before { clip-path: inset(0 calc(100% - var(--pos)) 0 0); }
+  .ba-line { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 3px; margin-left: -1.5px; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.45); pointer-events: none; z-index: 2; }
+  .ba-knob {
+    position: absolute; top: 50%; left: var(--pos); z-index: 3;
+    width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%;
+    background: #fff; color: var(--navy); box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; font-weight: 700; letter-spacing: 2px; line-height: 1; pointer-events: none;
+  }
+  .ba-label {
+    position: absolute; bottom: 12px; z-index: 2;
+    background: rgba(15,34,25,0.82); color: #fff;
+    font-family: 'Oswald', sans-serif; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 5px 12px; border-radius: 100px; pointer-events: none;
+  }
+  .ba-label-b { left: 12px; }
+  .ba-label-a { right: 12px; background: var(--orange); }
+  .hero-photo-caption, .hero-photo-mobile-badge { z-index: 4; }
+
+  /* Geo line above H1 */
+  .v2-geo-pill {
+    display: inline-block;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.28);
+    color: #fff;
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 100px;
+    margin-bottom: 10px;
+    width: fit-content;
+  }
+
+  .hero-h1 {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(2.1rem, 6vw, 3.2rem);
+    font-weight: 700; color: #fff; line-height: 1.04;
+    margin-bottom: 6px; letter-spacing: 0.01em;
+  }
+  .hero-h1 .orange { color: #F26522; display: block; font-size: clamp(1.7rem, 5vw, 2.5rem); font-weight: 700; text-shadow: 0 1px 10px rgba(242,101,34,0.35); }
+  /* Mobile-only offer line , hidden by default so desktop keeps the H1 as the
+     single offer statement. Enabled in the <=767px block below. */
+  .hero-offer-mobile { display: none; }
+
+  .hero-sub {
+    font-size: 0.98rem; color: rgba(255,255,255,0.86);
+    margin: 8px 0 16px; line-height: 1.5;
+  }
+  .hero-sub strong { color: #fff; font-weight: 600; }
+
+  /* Testimonial - now inside the white form card, styled as a subtle inset
+     so it reads as part of the form's voice rather than competing with it. */
+  .v2-pullquote {
+    background: var(--gray-1);
+    border-left: 5px solid #F26522;
+    padding: 12px 14px;
+    margin: 14px 0 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .v2-pullquote p {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 0.92rem;
+    color: var(--text);
+    line-height: 1.48;
+    margin-bottom: 6px;
+  }
+  .v2-pullquote .by {
+    font-size: 0.68rem;
+    color: var(--text-mid);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .v2-pullquote .by .stars { color: #FFB300; margin-right: 6px; letter-spacing: 0.04em; }
+
+  /* ── MULTI-STEP FORM (white card, sits on the dark hero) ── */
+  .v2-form {
+    background: #fff;
+    color: var(--text);
+    border-radius: 14px;
+    padding: 22px 22px 20px;
+    /* Stronger drop + subtle ring so the white form pops off the navy/blue hero gradient - CRO move, form is the conversion goal */
+    box-shadow: 0 24px 56px rgba(0,0,0,0.30), 0 0 0 1px rgba(255,255,255,0.05);
+    position: relative;
+  }
+
+  /* Every photograph on the page opens in the lightbox on click */
+  .hero-photo-wrap,
+  .wwt-media,
+  .prod-img,
+  .wd-imgwrap { cursor: pointer; }
+  .hero-photo-wrap img,
+  .wwt-media img,
+  .prod-img img,
+  .wd-imgwrap img { transition: transform 0.3s ease; }
+  .hero-photo-wrap:hover img,
+  .wwt-media:hover img,
+  .prod-img:hover img,
+  .wd-imgwrap:hover img { transform: scale(1.03); }
+  .hero-photo-wrap:focus-visible,
+  .wwt-media:focus-visible,
+  .prod-img:focus-visible,
+  .wd-imgwrap:focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; }
+
+  /* 3-dot progress indicator - recolored for white form card */
+  .v2-progress-dots {
+    display: flex; justify-content: center; align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .v2-progress-dots .dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--gray-3);
+    transition: background 0.3s, transform 0.3s;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .v2-progress-dots .dot.active {
+    background: #F26522;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 4px rgba(242,101,34,0.20);
+  }
+  .v2-progress-dots .dot.done { background: var(--orange); }
+  .v2-progress-dots .dot.done::after {
+    content: '\2713';
+    position: absolute;
+    inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .v2-progress-dots .step-text {
+    margin-left: 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--orange);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .m2s-question {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.18rem; font-weight: 700; color: var(--navy);
+    margin-bottom: 14px; line-height: 1.25; text-align: center;
+  }
+  .m2s-input {
+    width: 100%; padding: 13px 14px;
+    border: 1.5px solid var(--gray-3); border-radius: 6px;
+    font-family: 'Inter', sans-serif; font-size: 1rem; color: var(--text);
+    background: var(--gray-1); outline: none; margin-bottom: 10px;
+    transition: border-color 0.18s, background 0.18s;
+  }
+  .m2s-input:focus { border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(27,131,82,0.1); }
+  .m2s-input::placeholder { color: var(--text-lt); }
+  .m2s-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .m2s-btn {
+    width: 100%; background: var(--orange); color: #fff; border: none;
+    padding: 15px 20px; font-family: 'Oswald', sans-serif;
+    font-size: 1.18rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    border-radius: 6px; cursor: pointer; margin-top: 4px;
+    box-shadow: 0 6px 22px rgba(242,101,34,0.50), 0 0 0 1px rgba(242,101,34,0.18);
+    transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
+  }
+  .m2s-btn:hover { background: var(--orange-dk); box-shadow: 0 8px 26px rgba(242,101,34,0.58); }
+  .m2s-btn:active { background: var(--orange-dk); transform: scale(0.98); }
+
+  /* Tile grid for window count - light on white card */
+  .v2-tiles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 4px 0 0;
+  }
+  .v2-tile {
+    background: var(--gray-1);
+    border: 1.5px solid var(--gray-3);
+    color: var(--navy);
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.12rem; font-weight: 700; letter-spacing: 0.04em;
+    padding: 22px 8px;
+    border-radius: 8px;
+    cursor: pointer; text-align: center;
+    transition: all 0.18s;
+  }
+  .v2-tile:hover, .v2-tile:active {
+    background: var(--orange);
+    border-color: var(--orange);
+    color: #fff;
+    transform: scale(0.98);
+  }
+
+  /* Tri-microcopy under CTA */
+  .v2-cta-micro {
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--text-mid);
+    margin-top: 10px;
+    font-style: italic;
+  }
+  .v2-cta-micro .sep { margin: 0 5px; opacity: 0.5; }
+
+  /* Co-equal secondary call link */
+  .v2-call-secondary {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+    padding: 10px;
+    border: 1.5px solid var(--gray-3);
+    border-radius: 6px;
+    color: var(--navy);
+    text-decoration: none;
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.92rem; font-weight: 600; letter-spacing: 0.04em;
+    transition: background 0.18s, border-color 0.18s;
+  }
+  .v2-call-secondary:hover { background: var(--gray-1); border-color: var(--text-lt); }
+  .v2-call-secondary .phone-num { color: var(--orange); }
+
+  .m2s-fine {
+    text-align: center; font-size: 0.66rem;
+    color: var(--text-lt); margin-top: 8px; line-height: 1.45;
+  }
+
+  /* 3-checkmark blended benefits - sits BELOW form as supporting context */
+  .v2-benefits {
+    list-style: none;
+    margin: 18px 0 0;
+  }
+  .v2-benefits li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 0.95rem;
+    color: rgba(255,255,255,0.94);
+    padding: 6px 0;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+  .v2-benefits .ck {
+    color: var(--green);
+    font-weight: 700;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ── WHY-MIDWEST EDUCATIONAL STRIP (replaces vanity stats) ── */
+  .why-strip {
+    background: var(--gray-1);
+    border-bottom: 1px solid var(--gray-2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    padding: 44px 22px;
+  }
+  .why-inner { max-width: 1040px; margin: 0 auto; }
+  .why-eyebrow {
+    text-align: center;
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--blue);
+    margin-bottom: 6px; display: block;
+  }
+  .why-h2 {
+    text-align: center;
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(1.4rem, 2.6vw, 2rem);
+    font-weight: 700; color: var(--navy); line-height: 1.15;
+    margin-bottom: 22px;
+  }
+  .why-h2 .accent { color: var(--orange); }
+  /* ── NATIVE WEATHER / ENGINEERING DIAGRAM ── */
+  .weather-diagram {
+    max-width: 900px; margin: 28px auto 0;
+    background: #fff; border: 1px solid var(--gray-2); border-radius: 14px;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.05);
+    padding: 36px 40px; display: flex; justify-content: center; align-items: center;
+  }
+  .wd-image { width: 100%; display: flex; align-items: center; justify-content: center; }
+  .wd-imgwrap { position: relative; display: block; width: 100%; }
+  .wd-imgwrap img { display: block; width: 100%; height: auto; max-width: 100%; border-radius: 10px; }
+
+  /* ── GENERIC SECTION ── */
+  .sec { padding: 64px 22px; }
+  .sec-gray { background: var(--gray-1); }
+  .sec-white { background: var(--white); }
+  .sec-navy { background: var(--navy); }
+  .sec-inner { max-width: 1040px; margin: 0 auto; }
+  .eyebrow {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--blue); margin-bottom: 8px; display: block;
+  }
+  .sec-navy .eyebrow { color: var(--orange); }
+  .sec-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(1.7rem, 3.2vw, 2.5rem); font-weight: 700;
+    color: var(--navy); line-height: 1.1; margin-bottom: 12px; letter-spacing: 0.01em;
+  }
+  .sec-navy .sec-title { color: #fff; }
+  .sec-title .accent { color: var(--orange); }
+
+  /* Founder / trust-tiles CSS removed - section deleted (Change 4). */
+
+  /* (Work-photos-grid CSS removed - "Our Work" section deleted.) */
+
+  /* ── HOW IT WORKS ── */
+  .steps-row {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 0; margin-top: 40px; position: relative;
+  }
+  .steps-row::before {
+    content: ''; position: absolute; top: 24px;
+    left: calc(16.66% + 28px); right: calc(16.66% + 28px);
+    height: 2px; background: linear-gradient(90deg, var(--orange), var(--blue)); z-index: 0;
+  }
+  .step { text-align: center; padding: 0 22px; position: relative; z-index: 1; }
+  .step-num {
+    width: 50px; height: 50px; border-radius: 50%;
+    background: var(--orange); color: #fff;
+    font-family: 'Oswald', sans-serif; font-size: 1.35rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 14px; box-shadow: 0 4px 16px rgba(242,101,34,0.38);
+  }
+  .step h3 {
+    font-family: 'Oswald', sans-serif; font-size: 1rem; font-weight: 600;
+    color: #fff; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .step p { font-size: 0.85rem; color: rgba(255,255,255,0.65); line-height: 1.55; }
+  /* Centered process header + subheading */
+  .proc-head { text-align: center; }
+  .proc-head .sec-title { text-transform: uppercase; margin-bottom: 6px; }
+  .proc-sub { color: rgba(255,255,255,0.75); font-size: 1rem; }
+
+  /* Old MWC testimonials CSS removed - replaced by the #wwt-testimonials section. */
+
+  /* (Before/After CSS removed - section deleted in Change 6.) */
+
+  /* (Offer-closer CSS removed - section deleted in Change 9.) */
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--navy); padding: 32px 22px; text-align: center;
+    border-top: 3px solid var(--blue);
+  }
+  .footer-logo { height: 72px; margin-bottom: 12px; }
+  footer p { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 5px; line-height: 1.55; }
+  footer a { color: rgba(255,255,255,0.6); text-decoration: none; }
+  footer a:hover { color: var(--orange); }
+
+  /* ── STICKY MOBILE BAR ── */
+  .mobile-bar {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 9998;
+    background: var(--navy);
+    border-top: 3px solid var(--orange);
+    padding: 9px 14px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    box-shadow: 0 -4px 18px rgba(0,0,0,0.25);
+  }
+  .mb-call {
+    background: transparent; border: 2px solid rgba(255,255,255,0.25); color: #fff;
+    text-decoration: none; text-align: center; padding: 11px 8px; border-radius: 6px;
+    font-family: 'Oswald', sans-serif; font-size: 0.95rem; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 6px; letter-spacing: 0.04em;
+  }
+  .mb-book {
+    background: var(--orange); color: #fff; border: none; text-align: center;
+    padding: 11px 8px; border-radius: 6px; font-family: 'Oswald', sans-serif;
+    font-size: 0.95rem; font-weight: 700; cursor: pointer; letter-spacing: 0.06em;
+    text-transform: uppercase;
+    box-shadow: 0 3px 14px rgba(242,101,34,0.45);
+  }
+  .mb-book:active { background: var(--orange-dk); }
+
+  /* ── LIGHTBOX ── */
+  .lightbox {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.92); align-items: center; justify-content: center;
+    padding: 22px;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; object-fit: contain; }
+  .lightbox-close {
+    position: absolute; top: 16px; right: 20px; font-size: 2rem; color: #fff;
+    cursor: pointer; background: none; border: none; line-height: 1;
+  }
+
+  /* ── REVEAL ANIMATIONS ── */
+  .js-ready .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.55s ease, transform 0.55s ease; }
+  .reveal.in { opacity: 1 !important; transform: translateY(0) !important; }
+  .d1 { transition-delay: 0.08s; }
+  .d2 { transition-delay: 0.16s; }
+
+  /* ── FOCUS MODE ── Triggered on first user interaction with form.
+     Fades out surrounding page chrome, repositions the form to center of
+     viewport on a warm neutral background. */
+  .focus-progress {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 4px;
+    background: rgba(0,0,0,0.08);
+    z-index: 10001;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  .focus-progress .focus-progress-fill {
+    height: 100%;
+    background: var(--orange);
+    width: 33%;
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .focus-back {
+    position: fixed; top: 12px; left: 14px;
+    z-index: 10002;
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--text-mid);
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem; font-weight: 600;
+    background: rgba(255,255,255,0.85);
+    padding: 6px 12px; border-radius: 6px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0,0,0,0.06);
+    opacity: 0; visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease, background 0.18s;
+  }
+  .focus-back:hover { background: #fff; color: var(--navy); }
+
+  /* Activate */
+  body.focus-mode {
+    overflow: hidden;
+    background: #F5F0E8;
+  }
+  /* .cc-wrap has transform:translateX which creates a containing block
+     for position:fixed descendants - neutralize the transform in focus
+     mode so the form is positioned relative to the viewport. The wrap's
+     content is opacity:0 in focus mode, so the layout shift is invisible. */
+  body.focus-mode .cc-wrap { transform: none; left: 0; width: 100%; }
+  body.focus-mode .focus-progress,
+  body.focus-mode .focus-back {
+    opacity: 1; visibility: visible; pointer-events: auto;
+  }
+
+  /* Fade out the rest of the page */
+  body.focus-mode .site-header,
+  body.focus-mode .hero-photo-wrap,
+  body.focus-mode .hero-photo-mobile,
+  body.focus-mode .hero-h1,
+  body.focus-mode .hero-sub,
+  body.focus-mode .v2-benefits,
+  body.focus-mode .why-strip,
+  body.focus-mode .sec,
+  body.focus-mode footer,
+  body.focus-mode .mobile-bar {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none;
+  }
+  body.focus-mode .hero { background: transparent; }
+  body.focus-mode .hero::after { display: none; }
+
+  /* Re-layer ONLY the active form on top of everything, centered. Any other form hides. */
+  body.focus-mode .v2-form:not(.is-focused) { display: none; }
+  body.focus-mode .v2-form.is-focused {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 560px;
+    width: calc(100% - 32px);
+    max-height: calc(100vh - 60px);
+    overflow-y: auto;
+    z-index: 10000;
+    visibility: visible;   /* override a hidden wrapper section (the 2nd form) */
+    opacity: 1;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.16);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, max-width 0.3s ease;
+  }
+  /* 2nd form sits in its own (non-.sec) wrapper; hide its chrome via visibility in focus
+     mode so the focused form can override it - opacity:0 would trap the fixed child. */
+  body.focus-mode .form-zone { visibility: hidden; }
+  @media (max-width: 600px) {
+    body.focus-mode .v2-form.is-focused {
+      width: calc(100% - 24px);
+      max-height: calc(100vh - 56px);
+    }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (min-width: 901px) {
+    /* Desktop: 2-col hero - photo on left (flex), content on right (~480px) */
+    .hero-inner {
+      max-width: 1140px;
+      padding: 28px 32px 56px;
+      display: grid;
+      grid-template-columns: 1fr 480px;
+      gap: 44px;
+      align-items: stretch;
+    }
+    .hero-photo-wrap { display: block; }
+    .hero-content { justify-content: center; }
+    .v2-form { padding: 22px 24px 22px; }
+    .m2s-question { font-size: 1.28rem; }
+    .v2-tile { padding: 26px 8px; font-size: 1.15rem; }
+    .m2s-btn { font-size: 1.2rem; padding: 16px 22px; }
+    .hero-h1 { font-size: 2.7rem; }
+    .hero-h1 .orange { font-size: 2.1rem; }
+    .v2-pullquote { margin-bottom: 16px; }
+    /* Why-strip slightly tighter on desktop */
+    .why-strip { padding: 44px 22px; }
+  }
+
+  @media (max-width: 900px) {
+    .sdiv { display: none; }
+    /* Weather diagram → image-only, full width */
+    .weather-diagram { padding: 22px; }
+    .wd-image { width: 100%; }
+  }
+
+  /* Mobile process: 3 compact cards side-by-side in one row (no wrap) */
+  @media (max-width: 768px) {
+    .steps-row { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 8px; margin-top: 26px; }
+    .steps-row::before { display: none; }
+    .step {
+      flex: 1 1 0; min-width: 0; padding: 16px 8px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+    }
+    .step-num { width: 32px; height: 32px; font-size: 1rem; margin: 0 auto 10px; background: var(--blue); box-shadow: none; }
+    .step h3 { font-size: 0.72rem; letter-spacing: 0.02em; margin-bottom: 6px; }
+    .step p { font-size: 0.66rem; line-height: 1.35; }
+  }
+
+  /* Mobile (≤767px) - hero collapses to: offer strip → photo → form.
+     H1 + sub-head are hidden so the photo carries the visual weight. */
+  @media (max-width: 767px) {
+    /* Offer line replacing the hidden H1. ~58px, funded by trimming the photo
+       below from 300px to 225px, so the form's first question does not move.
+       Colour is white, NOT var(--orange): the brand accent scores 2.3:1 on
+       this hero gradient. White is 4.9-7.3:1 across it. */
+    .hero-offer-mobile {
+      display: block;
+      text-align: center;
+      font-family: 'Oswald', sans-serif;
+      line-height: 1.2;
+      padding: 9px 12px;
+      margin: 2px 0 0;
+      border-top: 1px solid rgba(255,255,255,0.16);
+      border-bottom: 1px solid rgba(255,255,255,0.16);
+    }
+    .hero-offer-mobile strong {
+      display: block;
+      font-size: 1.3rem; font-weight: 700; letter-spacing: 0.01em;
+      color: #fff;
+    }
+    .hero-offer-mobile span {
+      display: block;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem; font-weight: 600;
+      color: rgba(255,255,255,0.88);
+      margin-top: 3px;
+    }
+
+    .hero-h1 { display: none; }
+    .hero-sub { display: none; }
+    .v2-form { padding: 20px; }
+    .hero-photo-mobile {
+      display: block;
+      height: 260px;           /* was 300px , funds the offer line above, which wraps to 2 rows at 375px */
+      margin-top: 12px;
+      margin-bottom: 16px;      /* gap to form card */
+    }
+  }
+
+  @media (max-width: 480px) {
+    .sec { padding: 48px 18px; }
+    .hero-inner { padding: 12px 18px 32px; }
+  }
+
+  /* ── DUPLICATED LEAD FORM WRAPPER (below testimonials) ── */
+  /* ── CONVERSION FORM ZONE (forms 2 & 3) - dark gradient "get a quote" bands ── */
+  .form-zone {
+    background: linear-gradient(160deg, var(--navy) 0%, var(--blue-deep) 78%, var(--blue-dark) 100%);
+    padding: 60px 22px;
+  }
+  .form-zone-inner { max-width: 600px; margin: 0 auto; }
+  .form-zone-h {
+    font-family: 'Oswald', sans-serif; font-weight: 700;
+    font-size: clamp(1.6rem, 3.4vw, 2.2rem); color: #fff;
+    text-align: center; line-height: 1.18; margin-bottom: 26px;
+  }
+  .form-zone-sub { text-align: center; color: rgba(255,255,255,0.82); font-size: 1rem; line-height: 1.5; margin-top: -16px; margin-bottom: 26px; }
+  .form-zone-trust { text-align: center; color: rgba(255,255,255,0.72); font-size: 0.9rem; margin-top: 16px; }
+
+  /* ── PRODUCTS CAROUSEL ── */
+  .products { background: #fff; }
+  .prod-head { text-align: center; }
+  .prod-head h2 {
+    font-family: 'Oswald', sans-serif; font-weight: 700;
+    font-size: clamp(2rem, 4vw, 2.25rem); color: var(--navy);
+    line-height: 1.12; margin-bottom: 8px;
+  }
+  .prod-head p { color: var(--text-mid); font-size: 1.05rem; margin-bottom: 34px; }
+  .prod-carousel { position: relative; }
+  .prod-track {
+    display: flex; gap: 20px; overflow-x: auto;
+    scroll-snap-type: x mandatory; scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; padding: 4px 2px 8px; scrollbar-width: none;
+  }
+  .prod-track::-webkit-scrollbar { display: none; }
+  .prod-card {
+    flex: 0 0 calc((100% - 40px) / 3);   /* 3 across on desktop (two 20px gaps) */
+    scroll-snap-align: start;
+    background: #fff; border: 1px solid var(--gray-2); border-radius: 12px;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.06);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .prod-img { background: #eef2f8; height: 320px; }
+  .prod-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .prod-body { padding: 24px 24px 26px; display: flex; flex-direction: column; flex: 1; }
+  .prod-name { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 1.5rem; color: var(--navy); margin-bottom: 10px; line-height: 1.15; }
+  .prod-desc { font-size: 0.95rem; color: var(--text-mid); line-height: 1.55; margin-bottom: 22px; }
+  .prod-cta {
+    margin-top: auto; width: 100%; background: var(--blue); color: #fff; border: none; cursor: pointer;
+    font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 1rem; letter-spacing: 0.03em;
+    padding: 13px 16px; border-radius: 8px; transition: background 0.18s;
+  }
+  .prod-cta:hover { background: var(--blue-dark); }
+  .prod-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 44px; border-radius: 50%;
+    background: #fff; border: 1px solid var(--gray-3); color: var(--blue);
+    font-size: 1.1rem; line-height: 1; cursor: pointer; z-index: 2;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .prod-arrow:hover { background: var(--gray-1); }
+  .prod-arrow.prev { left: -6px; }
+  .prod-arrow.next { right: -6px; }
+  .prod-arrow[disabled] { opacity: 0.35; cursor: default; }
+  .prod-dots { display: flex; justify-content: center; gap: 8px; margin-top: 22px; }
+  .prod-dots .pdot {
+    width: 9px; height: 9px; border-radius: 50%; background: var(--gray-3);
+    border: none; padding: 0; cursor: pointer; transition: background 0.18s, transform 0.18s;
+  }
+  .prod-dots .pdot.active { background: var(--blue); transform: scale(1.2); }
+  @media (max-width: 900px) { .prod-card { flex-basis: calc((100% - 20px) / 2); } }   /* 2 across */
+  @media (max-width: 600px) {
+    .prod-card { flex-basis: 100%; }                                                    /* 1 across */
+    .prod-arrow { display: none; }                                                       /* swipe instead */
+  }
+</style>
+<!-- Meta Pixel: Clear Choice Owensboro dataset. Lives here, NOT in GHL's funnel
+     tracking settings too, or every visit counts twice. -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('set', 'autoConfig', false, '2340863710020370');   // no automatic button-click events
+fbq('init', '2340863710020370');
+fbq('track', 'PageView');
+</script>
+<!-- End Meta Pixel -->
+</head>
+<body>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=2340863710020370&ev=PageView&noscript=1" alt=""></noscript>
+
+<!-- FOCUS MODE UI (hidden until user starts filling the form) -->
+<div class="focus-progress" id="focus-progress" aria-hidden="true">
+  <div class="focus-progress-fill" id="focus-progress-fill"></div>
+</div>
+<a href="#" class="focus-back" id="focus-back" onclick="exitFocusMode(event)">&larr; Back to page</a>
+
+<!-- HEADER (logo left, phone CTA right) -->
+<header class="site-header">
+  <div class="site-header-inner">
+    <a href="#hero-anchor" class="site-logo-link" aria-label="Clear Choice Windows Owensboro home">
+      <img class="site-logo" src="img/logo.webp" alt="Clear Choice Windows Owensboro">
+    </a>
+    <a href="#mobile-form-anchor" class="site-cta" onclick="openWizard(event)">
+      <span class="site-cta-text">Claim Free Upgrade</span>
+    </a>
+  </div>
+</header>
+
+<!-- MAIN CONTENT WRAPPER -->
+<div class="cc-wrap">
+
+<!-- HERO -->
+<section class="hero" id="hero-anchor">
+  <div class="hero-inner">
+
+    <!-- Desktop-only photo column (left) - hidden on mobile via CSS -->
+    <div class="hero-photo-wrap ba" role="slider" tabindex="0" aria-label="Before and after: Landon H.'s windows replaced by Clear Choice Windows Owensboro" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+      <img class="ba-after" src="img/hero-after.webp" alt="After: new windows installed by Clear Choice Windows Owensboro" draggable="false">
+      <img class="ba-before" src="img/hero-before.webp" alt="Before: old windows" draggable="false">
+      <div class="ba-line" aria-hidden="true"></div>
+      <div class="ba-knob" aria-hidden="true">&#8249;&#8250;</div>
+      <span class="ba-label ba-label-b">Before</span>
+      <span class="ba-label ba-label-a">After</span>
+      <div class="hero-photo-caption">Owensboro, KY</div>
+    </div>
+
+    <!-- Content column (right on desktop, full width on mobile) -->
+    <div class="hero-content">
+
+    <h1 class="hero-h1">
+      Free Triple Pane Glass <span class="orange">With Any New Window Installation ($300 Value)</span>
+    </h1>
+
+    <p class="hero-sub"><strong>Stay warmer this winter.</strong> Free in-home estimate, no pressure, no obligation.</p>
+
+    <!-- Mobile-only offer line. Below 768px .hero-h1 and .hero-sub are both
+         display:none, so without this the offer never appears above the form
+         on mobile. White rather than the brand accent: the accent fails
+         contrast on this hero gradient (see the note in the CSS). -->
+    <div class="hero-offer-mobile">
+      <strong>Free Triple Pane Glass</strong>
+      <span>With Any New Window Installation ($300 Value)</span>
+    </div>
+
+    <!-- Mobile-only hero photo card - sits between sub-headline (hidden on
+         mobile) and the form. Clickable: opens the same image in the
+         lightbox, matching the .photo-item and .why-compare patterns.
+         Hidden on desktop where the photo lives in the left column of the
+         hero grid (.hero-photo-wrap). -->
+    <div class="hero-photo-mobile ba" role="slider" tabindex="0" aria-label="Before and after: Landon H.'s windows replaced by Clear Choice Windows Owensboro" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+      <img class="ba-after" src="img/hero-after.webp" alt="After: new windows installed by Clear Choice Windows Owensboro" draggable="false">
+      <img class="ba-before" src="img/hero-before.webp" alt="Before: old windows" draggable="false">
+      <div class="ba-line" aria-hidden="true"></div>
+      <div class="ba-knob" aria-hidden="true">&#8249;&#8250;</div>
+      <span class="ba-label ba-label-b">Before</span>
+      <span class="ba-label ba-label-a">After</span>
+      <div class="hero-photo-mobile-badge">Owensboro, KY</div>
+    </div>
+
+    <!-- MULTI-STEP FORM (visible on all viewports) -->
+    <div class="v2-form" id="mobile-form-anchor">
+      <div class="v2-progress-dots" id="v2-dots">
+        <div class="dot active" data-step="1"></div>
+        <div class="dot" data-step="2"></div>
+        <div class="dot" data-step="3"></div>
+        <span class="step-text" id="v2-step-text">Step 1 of 3</span>
+      </div>
+
+      <!-- Step 1: home age tile -->
+      <div id="m2s-step0">
+        <p class="m2s-question">Approximately how old is your home?</p>
+        <div class="v2-tiles">
+          <button type="button" class="v2-tile" onclick="m2sStartTile(this,'1-5 years')">1&ndash;5 years</button>
+          <button type="button" class="v2-tile" onclick="m2sStartTile(this,'5-10 years')">5&ndash;10 years</button>
+          <button type="button" class="v2-tile" onclick="m2sStartTile(this,'10-20 years')">10&ndash;20 years</button>
+          <button type="button" class="v2-tile" onclick="m2sStartTile(this,'20+ years')">20+ years</button>
+        </div>
+        <p class="v2-cta-micro" style="margin-top:12px">
+          <span>&#10003; Free Estimate</span><span class="sep">&middot;</span>
+          <span>&#10003; No Obligation</span><span class="sep">&middot;</span>
+          <span>&#10003; Takes 60 Seconds</span>
+        </p>
+      </div>
+
+
+      <!-- Step 2: ZIP CODE (low-friction qualifier - confirms service area before asking for personal contact info) -->
+      <div id="m2s-step1" style="display:none">
+        <p class="m2s-question">What&rsquo;s your zip code?</p>
+        <input class="m2s-input" type="text" id="m2s-zip" placeholder="42301" maxlength="5" inputmode="numeric">
+        <button class="m2s-btn" onclick="m2sNext(this)">Continue &rarr;</button>
+        <p class="v2-cta-micro">
+          <span>&#10003; Free Estimate</span><span class="sep">&middot;</span>
+          <span>&#10003; No Obligation</span><span class="sep">&middot;</span>
+          <span>&#10003; Takes 60 Seconds</span>
+        </p>
+        <p class="m2s-fine">Owensboro &amp; surrounding areas</p>
+      </div>
+
+      <!-- Out-of-service-area: shown only when entered zip is not in APPROVED_ZIPS. Stops the flow before step 3. -->
+      <div id="m2s-zip-error" style="display:none; text-align:center; padding:14px 4px 6px;">
+        <p style="font-size:1rem; color:var(--text); line-height:1.55; margin-bottom:18px">Sorry, your zip code is outside of our service area. We currently serve Owensboro and surrounding area homeowners only. If you think that&rsquo;s a mistake, check your zip code and try again.</p>
+        <button type="button" class="m2s-btn" onclick="m2sRetryZip(this)">&larr; Edit Zip Code</button>
+      </div>
+
+      <!-- Step 3: name + phone + email (PII collected only after zip qualifier) -->
+      <div id="m2s-step2" style="display:none">
+        <p class="m2s-question">Just a couple more details:</p>
+        <div class="m2s-row">
+          <input class="m2s-input" type="text" id="m2s-fname" placeholder="First name" style="margin-bottom:0">
+          <input class="m2s-input" type="text" id="m2s-lname" placeholder="Last name" style="margin-bottom:0">
+        </div>
+        <input class="m2s-input" type="tel" id="m2s-phone" placeholder="(270) 555-1234" inputmode="tel" style="margin-top:10px; margin-bottom:4px">
+        <button class="m2s-btn" onclick="m2sSubmit(this)">Claim My Free Upgrade &rarr;</button>
+        <p class="v2-cta-micro">
+          <span>&#10003; Free Estimate</span><span class="sep">&middot;</span>
+          <span>&#10003; No Obligation</span><span class="sep">&middot;</span>
+          <span>&#10003; Takes 60 Seconds</span>
+        </p>
+        <p class="m2s-fine">Owensboro &amp; surrounding areas &middot; No obligation</p>
+      </div>
+
+      <!-- Success -->
+      <div id="m2s-success" style="display:none; text-align:center; padding:8px 0 4px;">
+        <div style="font-size:2.4rem; margin-bottom:10px">&#127881;</div>
+        <p style="font-family:'Oswald',sans-serif; font-size:1.4rem; font-weight:700; color:var(--navy); margin-bottom:8px">You&rsquo;re All Set!</p>
+        <p style="font-size:0.88rem; color:var(--text-mid); line-height:1.6">We&rsquo;ll be in touch shortly to schedule your free estimate.</p>
+      </div>
+
+      <!-- Testimonial - inside the form card. Persistent across steps. -->
+      <div class="v2-pullquote">
+        <p>&ldquo;They finished 15 windows in 2 days. They were ALL business. Very professional!&rdquo;</p>
+        <div class="by"><span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span> Katina H. &middot; Google Review</div>
+      </div>
+    </div>
+
+    <!-- 3-checkmark blended benefit list (supporting context below form) -->
+    <ul class="v2-benefits">
+      <li><span class="ck">&#10003;</span> <span><strong>Triple Pane Glass.</strong> ENERGY STAR Most Efficient.</span></li>
+      <li><span class="ck">&#10003;</span> <span><strong>Lifetime Warranty.</strong> Transferable and non-pro-rated.</span></li>
+      <li><span class="ck">&#10003;</span> <span><strong>BBB A+ Rated.</strong> Locally owned and operated.</span></li>
+    </ul>
+
+    </div><!-- /.hero-content -->
+  </div>
+</section>
+
+<!-- WHY WINDOW WORLD - quick-scan trust bar -->
+<section class="sec sec-navy" id="why-ww">
+  <style>
+    #why-ww .sec-inner { max-width: 1000px; }
+    .tb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 18px; }
+    .tb-item { text-align: center; }
+    .tb-icon {
+      width: 68px; height: 68px; border-radius: 50%; background: var(--orange);
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;
+    }
+    .tb-icon svg { width: 32px; height: 32px; }
+    .tb-h { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 1.4rem; color: #fff; line-height: 1.2; margin-bottom: 8px; }
+    .tb-p { font-size: 0.95rem; color: rgba(255,255,255,0.72); line-height: 1.5; }
+    .tb-badges { display: flex; justify-content: center; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: 40px; }
+    .tb-badges img { height: 64px; width: auto; background: #fff; border-radius: 10px; padding: 8px 12px; display: block; }
+    @media (max-width: 760px) { .tb-grid { grid-template-columns: 1fr; gap: 34px; } .tb-badges img { height: 52px; } }
+  </style>
+  <div class="sec-inner">
+    <h2 class="sec-title reveal" style="text-align:center; margin-bottom:6px">Why Clear Choice Windows Owensboro?</h2>
+    <div class="tb-grid reveal">
+      <div class="tb-item">
+        <div class="tb-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+        <div class="tb-h">Bill &amp; His Local Crew</div>
+        <div class="tb-p">Locally owned and operated. Honest advice, no high-pressure sales.</div>
+      </div>
+      <div class="tb-item">
+        <div class="tb-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="tb-h">Lifetime Warranty</div>
+        <div class="tb-p">Transferable and non-pro-rated, backed by our Fair Pricing Pledge.</div>
+      </div>
+      <div class="tb-item">
+        <div class="tb-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="12" x2="21" y2="12"/></svg></div>
+        <div class="tb-h">BBB A+ Rated</div>
+        <div class="tb-p">Accredited by the Better Business Bureau with an A+ rating.</div>
+      </div>
+    </div>
+    <div class="tb-badges reveal">
+      <img src="img/badge-bbb.webp" alt="BBB Accredited Business, A+ rating">
+      <img src="img/badge-energy-star.webp" alt="ENERGY STAR Most Efficient 2023">
+    </div>
+  </div>
+</section>
+
+<!-- WINTER: WHY TRIPLE PANE (stats from their site) -->
+<section class="why-strip winter">
+  <style>
+    .winter { background: linear-gradient(180deg, #EEF4F8 0%, var(--gray-1) 100%); }
+    .pane-compare { max-width: 960px; margin: 28px auto 0; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .pane-card { background: #fff; border: 1px solid var(--gray-2); border-radius: 14px; box-shadow: 0 2px 14px rgba(0,0,0,0.05); padding: 24px 22px 22px; }
+    .pane-card.best { border: 2px solid var(--blue); box-shadow: 0 10px 30px rgba(27,131,82,0.16); }
+    .pane-tag { display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; border-radius: 100px; background: var(--gray-2); color: var(--text-mid); margin-bottom: 10px; }
+    .pane-card.best .pane-tag { background: var(--blue); color: #fff; }
+    .pane-title { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 1.5rem; color: var(--navy); margin-bottom: 14px; }
+    .pane-diagram { display: flex; align-items: stretch; height: 150px; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+    .pd-side { flex: 0 0 26%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; text-align: center; }
+    .pd-side .ico { font-size: 1.6rem; line-height: 1; }
+    .pd-cold { background: #DCEBF7; color: #2B5C85; }
+    .pd-warm { background: #FCE9DC; color: #A24A16; }
+    .pd-glass { flex: 1; display: flex; align-items: stretch; justify-content: center; background: #F7FAFC; padding: 0 6px; }
+    .pd-pane { width: 9px; background: linear-gradient(180deg, #B9D3E6, #8FB4CF); border-radius: 2px; margin: 10px 0; }
+    .pd-gas { flex: 1; max-width: 46px; margin: 10px 0; background: repeating-linear-gradient(180deg, rgba(27,131,82,0.10) 0 6px, rgba(27,131,82,0.04) 6px 12px); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; color: var(--blue); writing-mode: vertical-rl; letter-spacing: 0.08em; }
+    .pane-list { list-style: none; }
+    .pane-list li { display: flex; gap: 8px; font-size: 0.95rem; color: var(--text-mid); line-height: 1.45; padding: 4px 0; }
+    .pane-list .x { color: var(--red); font-weight: 800; flex-shrink: 0; }
+    .pane-list .ok { color: var(--green); font-weight: 800; flex-shrink: 0; }
+    .winter-benefits { max-width: 1040px; margin: 34px auto 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .wb { background: #fff; border: 1px solid var(--gray-2); border-radius: 12px; padding: 20px 18px; }
+    .wb-ico { width: 44px; height: 44px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 12px; }
+    .wb h3 { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 1.12rem; color: var(--navy); line-height: 1.2; margin-bottom: 6px; }
+    .wb p { font-size: 0.9rem; color: var(--text-mid); line-height: 1.5; }
+    .stat-grid { max-width: 960px; margin: 34px auto 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .stat-card { background: var(--navy); border-radius: 14px; padding: 24px 20px; text-align: center; }
+    .stat-pre { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.6); }
+    .stat-num { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 3.2rem; line-height: 1.05; color: #fff; margin: 4px 0 6px; }
+    .stat-label { font-size: 0.95rem; color: rgba(255,255,255,0.78); line-height: 1.45; }
+    .stat-note { max-width: 760px; margin: 24px auto 0; text-align: center; color: var(--text-mid); font-size: 1rem; line-height: 1.6; }
+    .winter-cta { display: block; width: fit-content; margin: 26px auto 0; background: var(--orange); color: #fff; border: none; cursor: pointer; font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 1.15rem; letter-spacing: 0.04em; text-transform: uppercase; padding: 16px 30px; border-radius: 8px; box-shadow: 0 6px 22px rgba(242,101,34,0.45); }
+    .winter-cta:hover { background: var(--orange-dk); }
+    @media (max-width: 900px) { .winter-benefits { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 760px) {
+      .pane-compare, .stat-grid { grid-template-columns: 1fr; gap: 14px; }
+      .winter-benefits { grid-template-columns: 1fr; gap: 12px; }
+      .stat-num { font-size: 2.7rem; }
+      .pane-diagram { height: 130px; }
+    }
+  </style>
+  <div class="why-inner">
+    <span class="why-eyebrow">Get Ready for Winter</span>
+    <h2 class="why-h2">Why Triple Pane Glass Keeps Your Home <span class="accent">Warmer This Winter</span></h2>
+
+    <div class="weather-diagram reveal">
+      <div class="wd-image">
+        <div class="wd-imgwrap" onclick="openLightbox('img/double-vs-triple-pane.webp')" role="button" tabindex="0" aria-label="View larger: double pane vs. triple pane window cross-section">
+          <img src="img/double-vs-triple-pane.webp" alt="Double pane vs. triple pane window cross-section" loading="lazy">
+        </div>
+      </div>
+    </div>
+
+    <div class="winter-benefits reveal">
+      <div class="wb"><div class="wb-ico" aria-hidden="true">&#10052;</div><h3>Keeps the Cold Out</h3><p>A third pane and a second gas-filled chamber slow heat loss, so the cold stays outside.</p></div>
+      <div class="wb"><div class="wb-ico" aria-hidden="true">&#9832;</div><h3>No Cold Spots</h3><p>Sit by the window without feeling a chill. Rooms stay evenly warm, wall to wall.</p></div>
+      <div class="wb"><div class="wb-ico" aria-hidden="true">&#128167;</div><h3>Less Frost &amp; Fog</h3><p>Warmer inside glass means less moisture, frost and ice building up on your windows.</p></div>
+      <div class="wb"><div class="wb-ico" aria-hidden="true">$</div><h3>Lower Heating Bills</h3><p>Your furnace works less to keep the house warm, month after month, all winter long.</p></div>
+    </div>
+
+    <div class="stat-grid reveal">
+      <div class="stat-card"><div class="stat-pre">Up to</div><div class="stat-num">59%</div><div class="stat-label">Better energy savings from lower U-factors</div></div>
+      <div class="stat-card"><div class="stat-pre">Up to</div><div class="stat-num">35%</div><div class="stat-label">Less outside noise</div></div>
+      <div class="stat-card"><div class="stat-pre">A</div><div class="stat-num">$300</div><div class="stat-label">Upgrade, free with any new window installation</div></div>
+    </div>
+    <p class="stat-note reveal">Our Signature Series triple pane windows were awarded ENERGY STAR Most Efficient. Get yours installed before the coldest months hit.</p>
+    <button class="winter-cta reveal" type="button" onclick="openWizard(event)">Claim My Free Triple Pane &rarr;</button>
+  </div>
+</section>
+
+
+<!-- ============ SEE WHAT PEOPLE ARE SAYING (local testimonials) ============ -->
+<section class="sec sec-gray" id="wwt-testimonials">
+  <style>
+    .wwt-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 32px; }
+    .wwt-card {
+      background: #fff; border: 1px solid var(--gray-2); border-radius: 12px;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.06); overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    /* Featured image (rounded top via card overflow:hidden) */
+    .wwt-media { position: relative; width: 100%; height: 300px; overflow: hidden; }
+    .wwt-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .wwt-verified {
+      position: absolute; bottom: 10px; right: 10px;
+      background: rgba(255,255,255,0.92); color: var(--text);
+      font-size: 0.66rem; font-weight: 700; letter-spacing: 0.03em;
+      padding: 4px 9px; border-radius: 100px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .wwt-verified .ck { color: var(--green); font-weight: 800; }
+    /* Reviewer row */
+    .wwt-head { display: flex; align-items: center; gap: 11px; padding: 16px 18px 0; }
+    .wwt-avatar {
+      width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%;
+      background: var(--text-lt); color: #fff;
+      font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 1.05rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .wwt-head-text { display: flex; flex-direction: column; gap: 1px; }
+    .wwt-name { font-weight: 700; color: var(--navy); font-size: 0.95rem; }
+    .wwt-stars { color: #FFB800; font-size: 0.9rem; letter-spacing: 0.04em; }
+    /* Review text + Show More/Less */
+    .wwt-review { padding: 10px 18px 0; }
+    .wwt-review-text {
+      color: var(--text-mid); font-size: 0.9rem; line-height: 1.6;
+      display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .wwt-review-text.expanded { -webkit-line-clamp: unset; display: block; overflow: visible; }
+    .wwt-toggle {
+      background: none; border: none; padding: 4px 0 0;
+      color: var(--orange); font-family: 'Inter', sans-serif;
+      font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    }
+    .wwt-toggle:hover { text-decoration: underline; }
+    /* Supporting thumbnails (open in the page's existing lightbox) */
+    .wwt-thumbs { display: flex; gap: 8px; flex-wrap: wrap; padding: 14px 18px 18px; margin-top: auto; }
+    .wwt-thumb {
+      width: 80px; height: 80px; object-fit: cover;
+      border: 1px solid var(--gray-3); border-radius: 6px; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .wwt-thumb:hover { transform: scale(1.04); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    @media (max-width: 900px) {
+      .wwt-grid { grid-template-columns: 1fr; max-width: 460px; margin-left: auto; margin-right: auto; }
+    }
+    /* Mobile: collapse the first card behind a "See More Reviews" button (desktop shows all 3) */
+    .wwt-more-wrap { display: none; text-align: center; margin-top: 20px; }
+    .wwt-more-btn {
+      background: var(--orange); color: #fff; border: none; cursor: pointer;
+      font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 0.95rem; letter-spacing: 0.03em;
+      padding: 12px 28px; border-radius: 100px; transition: background 0.18s;
+    }
+    .wwt-more-btn:hover { background: var(--orange-dk); }
+    @media (max-width: 768px) {
+      .wwt-card--more { display: none; }
+      .wwt-card--more.show { display: flex; animation: wwtSlide 0.4s ease; }
+      .wwt-more-wrap { display: block; }
+      .wwt-more-wrap.hidden { display: none; }
+    }
+    @keyframes wwtSlide { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+
+  <div class="sec-inner">
+    <span class="eyebrow">Reviews</span>
+    <h2 class="sec-title reveal">See What Your <span class="accent">Neighbors Are Saying</span></h2>
+    <div class="wwt-grid reveal">
+
+      <article class="wwt-card">
+        <div class="wwt-media" onclick="openLightbox('img/review-landon-after.webp')" role="button" tabindex="0" aria-label="View larger: Landon H.'s new windows after install">
+          <img src="img/review-landon-after.webp" alt="Landon H.'s new windows after install" loading="lazy">
+          <span class="wwt-verified"><span class="ck">&#10003;</span> Google Review</span>
+        </div>
+        <div class="wwt-head">
+          <span class="wwt-avatar" aria-hidden="true">L</span>
+          <div class="wwt-head-text">
+            <span class="wwt-name">Landon H.</span>
+            <span class="wwt-stars" aria-label="5 out of 5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          </div>
+        </div>
+        <div class="wwt-review">
+          <span class="wwt-review-text">Bill Maday of Clear Choice Exteriors did an incredible job installing and finishing replacement windows for my family. Very happy with the finished product! Here are some before and after photos.</span>
+          <button type="button" class="wwt-toggle" onclick="wwtToggle(this)">Show More</button>
+        </div>
+        <div class="wwt-thumbs">
+          <img class="wwt-thumb" src="img/review-landon-before.webp" onclick="openLightbox(this.src)" alt="Landon H. before photo" loading="lazy">
+          <img class="wwt-thumb" src="img/review-landon-after2.webp" onclick="openLightbox(this.src)" alt="Landon H. after photo 2" loading="lazy">
+        </div>
+      </article>
+
+      <article class="wwt-card">
+        <div class="wwt-media" onclick="openLightbox('img/review-katina.webp')" role="button" tabindex="0" aria-label="View larger: Katina H.'s new window">
+          <img src="img/review-katina.webp" alt="Katina H.'s new window" loading="lazy">
+          <span class="wwt-verified"><span class="ck">&#10003;</span> Google Review</span>
+        </div>
+        <div class="wwt-head">
+          <span class="wwt-avatar" aria-hidden="true">K</span>
+          <div class="wwt-head-text">
+            <span class="wwt-name">Katina H.</span>
+            <span class="wwt-stars" aria-label="5 out of 5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          </div>
+        </div>
+        <div class="wwt-review">
+          <span class="wwt-review-text">Bill Maday at Clear Choice Windows did EXACTLY what he said he would do. He showed up on time to show us sample windows and give us an estimate. He showed up with a crew of two other gentlemen a few weeks later and they all worked non-stop. They finished 15 windows in 2 days. They were ALL business. Very professional! We never had to worry about the quality of the product or service. We never wondered if they were showing up or not. It was a pleasant business transaction from the moment we called. I don&rsquo;t know Bill Maday personally or anything about Clear Choice windows. I can only speak from our experience, and it was excellent. We have had our windows since March 2023, and we absolutely love them. We did our research. We got lots of quotes, and we couldn&rsquo;t be more pleased with Clear Choice.</span>
+          <button type="button" class="wwt-toggle" onclick="wwtToggle(this)">Show More</button>
+        </div>
+      </article>
+
+      <article class="wwt-card wwt-card--more">
+        <div class="wwt-media" onclick="openLightbox('img/review-lois.webp')" role="button" tabindex="0" aria-label="View larger: Lois S.'s new back porch windows">
+          <img src="img/review-lois.webp" alt="Lois S.'s new back porch windows" loading="lazy">
+          <span class="wwt-verified"><span class="ck">&#10003;</span> Google Review</span>
+        </div>
+        <div class="wwt-head">
+          <span class="wwt-avatar" aria-hidden="true">L</span>
+          <div class="wwt-head-text">
+            <span class="wwt-name">Lois S.</span>
+            <span class="wwt-stars" aria-label="5 out of 5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          </div>
+        </div>
+        <div class="wwt-review">
+          <span class="wwt-review-text">Bill Maday and his crew did an awesome job replacing four windows on our back porch! If you&rsquo;re looking for professional, reasonable and trustworthy, call him. He did EXACTLY what he said he would do and then cleaned up afterwards.</span>
+          <button type="button" class="wwt-toggle" onclick="wwtToggle(this)">Show More</button>
+        </div>
+      </article>
+
+      <article class="wwt-card wwt-card--more">
+        <div class="wwt-head">
+          <span class="wwt-avatar" aria-hidden="true">N</span>
+          <div class="wwt-head-text">
+            <span class="wwt-name">Nick M.</span>
+            <span class="wwt-stars" aria-label="5 out of 5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          </div>
+        </div>
+        <div class="wwt-review">
+          <span class="wwt-review-text">Bill Maday did a fantastic job installing our windows. Excellent trim work and attention to detail with the finish caulking. They left our house a very clean work site and hauled off all of the takeout materials. These guys went the extra mile for us and also wrapped our front porch pillars with white metal. Finished product is stunning. Our house looks the best it has in many years!</span>
+          <button type="button" class="wwt-toggle" onclick="wwtToggle(this)">Show More</button>
+        </div>
+      </article>
+
+      <article class="wwt-card wwt-card--more">
+        <div class="wwt-head">
+          <span class="wwt-avatar" aria-hidden="true">P</span>
+          <div class="wwt-head-text">
+            <span class="wwt-name">Pam W.</span>
+            <span class="wwt-stars" aria-label="5 out of 5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          </div>
+        </div>
+        <div class="wwt-review">
+          <span class="wwt-review-text">Bill Maday &amp; his team did an awesome job. I love my new windows. They open so easily &amp; look great. They replaced 3 doors &amp; all open &amp; close with ease. The neighbors slow down to see the new front door with side lites. I highly recommend Bill, he is fair, honest &amp; does a superior job!</span>
+          <button type="button" class="wwt-toggle" onclick="wwtToggle(this)">Show More</button>
+        </div>
+      </article>
+
+      <article class="wwt-card wwt-card--more">
+        <div class="wwt-head">
+          <span class="wwt-avatar" aria-hidden="true">E</span>
+          <div class="wwt-head-text">
+            <span class="wwt-name">Ella K.</span>
+            <span class="wwt-stars" aria-label="5 out of 5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          </div>
+        </div>
+        <div class="wwt-review">
+          <span class="wwt-review-text">Bill Maday &amp; his crew did an excellent job! He is a perfectionist and made sure everything was right. We are so happy with these windows! We highly recommend him!!</span>
+          <button type="button" class="wwt-toggle" onclick="wwtToggle(this)">Show More</button>
+        </div>
+      </article>
+
+    </div>
+    <div class="wwt-more-wrap"><button type="button" class="wwt-more-btn" onclick="wwtShowMore(this)">See More Reviews</button></div>
+  </div>
+
+  <script>
+    // Mobile: reveal the collapsed first card and hide the button
+    function wwtShowMore(btn) {
+      document.querySelectorAll('.wwt-card--more').forEach(function (c) { c.classList.add('show'); });
+      var wrap = btn.closest('.wwt-more-wrap'); if (wrap) wrap.classList.add('hidden');
+    }
+    // Show More / Show Less toggle (line-clamp based, no libraries)
+    function wwtToggle(btn) {
+      var t = btn.previousElementSibling;
+      var expanded = t.classList.toggle('expanded');
+      btn.textContent = expanded ? 'Show Less' : 'Show More';
+    }
+    // Hide the toggle on reviews that aren't actually truncated (e.g. shorter ones)
+    document.querySelectorAll('#wwt-testimonials .wwt-review').forEach(function (r) {
+      var t = r.querySelector('.wwt-review-text');
+      var btn = r.querySelector('.wwt-toggle');
+      if (t && btn && t.scrollHeight <= t.clientHeight + 2) { btn.style.display = 'none'; }
+    });
+  </script>
+</section>
+
+<!-- CONVERSION ZONE - FORM 2 (below testimonials), IDs suffixed with -2 -->
+<section class="form-zone" id="form-zone-2">
+  <div class="form-zone-inner">
+    <h2 class="form-zone-h reveal">See What It Will Cost to Install New Windows</h2>
+    <div class="v2-form" id="mobile-form-anchor-2">
+      <div class="v2-progress-dots" id="v2-dots-2">
+        <div class="dot active" data-step="1"></div>
+        <div class="dot" data-step="2"></div>
+        <div class="dot" data-step="3"></div>
+        <span class="step-text" id="v2-step-text-2">Step 1 of 3</span>
+      </div>
+
+      <div id="m2s-step0-2">
+        <p class="m2s-question">Approximately how old is your home?</p>
+        <div class="v2-tiles">
+          <button type="button" class="v2-tile" onclick="m2sStartTile(this,'1-5 years')">1&ndash;5 years</button>
+          <button type="button" class="v2-tile" onclick="m2sStartTile(this,'5-10 years')">5&ndash;10 years</button>
+          <button type="button" class="v2-tile" onclick="m2sStartTile(this,'10-20 years')">10&ndash;20 years</button>
+          <button type="button" class="v2-tile" onclick="m2sStartTile(this,'20+ years')">20+ years</button>
+        </div>
+        <p class="v2-cta-micro" style="margin-top:12px">
+          <span>&#10003; Free Estimate</span><span class="sep">&middot;</span>
+          <span>&#10003; No Obligation</span><span class="sep">&middot;</span>
+          <span>&#10003; Takes 60 Seconds</span>
+        </p>
+      </div>
+
+
+      <div id="m2s-step1-2" style="display:none">
+        <p class="m2s-question">What&rsquo;s your zip code?</p>
+        <input class="m2s-input" type="text" id="m2s-zip-2" placeholder="42301" maxlength="5" inputmode="numeric">
+        <button class="m2s-btn" onclick="m2sNext(this)">Continue &rarr;</button>
+        <p class="v2-cta-micro">
+          <span>&#10003; Free Estimate</span><span class="sep">&middot;</span>
+          <span>&#10003; No Obligation</span><span class="sep">&middot;</span>
+          <span>&#10003; Takes 60 Seconds</span>
+        </p>
+        <p class="m2s-fine">Owensboro &amp; surrounding areas</p>
+      </div>
+
+      <div id="m2s-zip-error-2" style="display:none; text-align:center; padding:14px 4px 6px;">
+        <p style="font-size:1rem; color:var(--text); line-height:1.55; margin-bottom:18px">Sorry, your zip code is outside of our service area. We currently serve Owensboro and surrounding area homeowners only. If you think that&rsquo;s a mistake, check your zip code and try again.</p>
+        <button type="button" class="m2s-btn" onclick="m2sRetryZip(this)">&larr; Edit Zip Code</button>
+      </div>
+
+      <div id="m2s-step2-2" style="display:none">
+        <p class="m2s-question">Just a couple more details:</p>
+        <div class="m2s-row">
+          <input class="m2s-input" type="text" id="m2s-fname-2" placeholder="First name" style="margin-bottom:0">
+          <input class="m2s-input" type="text" id="m2s-lname-2" placeholder="Last name" style="margin-bottom:0">
+        </div>
+        <input class="m2s-input" type="tel" id="m2s-phone-2" placeholder="(270) 555-1234" inputmode="tel" style="margin-top:10px; margin-bottom:4px">
+        <button class="m2s-btn" onclick="m2sSubmit(this)">Claim My Free Upgrade &rarr;</button>
+        <p class="v2-cta-micro">
+          <span>&#10003; Free Estimate</span><span class="sep">&middot;</span>
+          <span>&#10003; No Obligation</span><span class="sep">&middot;</span>
+          <span>&#10003; Takes 60 Seconds</span>
+        </p>
+        <p class="m2s-fine">Owensboro &amp; surrounding areas &middot; No obligation</p>
+      </div>
+
+      <div id="m2s-success-2" style="display:none; text-align:center; padding:8px 0 4px;">
+        <div style="font-size:2.4rem; margin-bottom:10px">&#127881;</div>
+        <p style="font-family:'Oswald',sans-serif; font-size:1.4rem; font-weight:700; color:var(--navy); margin-bottom:8px">You&rsquo;re All Set!</p>
+        <p style="font-size:0.88rem; color:var(--text-mid); line-height:1.6">We&rsquo;ll be in touch shortly to schedule your free estimate.</p>
+      </div>
+
+      <div class="v2-pullquote">
+        <p>&ldquo;They finished 15 windows in 2 days. They were ALL business. Very professional!&rdquo;</p>
+        <div class="by"><span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span> Katina H. &middot; Google Review</div>
+      </div>
+    </div>
+    <p class="form-zone-trust">&#9201; Takes less than 2 minutes</p>
+  </div>
+</section>
+
+<!-- PRODUCTS CAROUSEL -->
+<section class="sec products">
+  <div class="sec-inner">
+    <div class="prod-head reveal">
+      <h2>Pick a Window Style That Matches Your Home</h2>
+      <p>Vinyl, composite, fiberglass and real wood, from several top manufacturers</p>
+    </div>
+    <div class="prod-carousel reveal">
+      <button class="prod-arrow prev" type="button" aria-label="Previous windows" onclick="prodScroll(-1)">&#10094;</button>
+      <button class="prod-arrow next" type="button" aria-label="More windows" onclick="prodScroll(1)">&#10095;</button>
+      <div class="prod-track" id="prod-track">
+        <div class="prod-card">
+          <div class="prod-img" onclick="openLightbox('img/style-double-hung.webp')" role="button" tabindex="0" aria-label="View larger: double hung windows"><img src="img/style-double-hung.webp" alt="double hung windows" loading="lazy"></div>
+          <div class="prod-body">
+            <div class="prod-name">Double Hung Windows</div>
+            <div class="prod-desc">Our most popular window. Both sashes tilt in so you can clean the outside from inside your home.</div>
+            <button class="prod-cta" type="button" onclick="getPricing(this)">Get Pricing &rsaquo;</button>
+          </div>
+        </div>
+        <div class="prod-card">
+          <div class="prod-img" onclick="openLightbox('img/style-casement.webp')" role="button" tabindex="0" aria-label="View larger: casement windows"><img src="img/style-casement.webp" alt="casement windows" loading="lazy"></div>
+          <div class="prod-body">
+            <div class="prod-name">Casement Windows</div>
+            <div class="prod-desc">Hinged at the side and opened with a crank. They open further than any other window for a full breeze.</div>
+            <button class="prod-cta" type="button" onclick="getPricing(this)">Get Pricing &rsaquo;</button>
+          </div>
+        </div>
+        <div class="prod-card">
+          <div class="prod-img" onclick="openLightbox('img/style-slider.webp')" role="button" tabindex="0" aria-label="View larger: slider windows"><img src="img/style-slider.webp" alt="slider windows" loading="lazy"></div>
+          <div class="prod-body">
+            <div class="prod-name">Slider Windows</div>
+            <div class="prod-desc">One sash glides sideways to open. A wide, clean view with no swing space needed.</div>
+            <button class="prod-cta" type="button" onclick="getPricing(this)">Get Pricing &rsaquo;</button>
+          </div>
+        </div>
+        <div class="prod-card">
+          <div class="prod-img" onclick="openLightbox('img/style-picture.webp')" role="button" tabindex="0" aria-label="View larger: fixed and special windows"><img src="img/style-picture.webp" alt="fixed and special windows" loading="lazy"></div>
+          <div class="prod-body">
+            <div class="prod-name">Fixed &amp; Special Windows</div>
+            <div class="prod-desc">Large fixed panes and custom shapes that fill the room with light and frame the view.</div>
+            <button class="prod-cta" type="button" onclick="getPricing(this)">Get Pricing &rsaquo;</button>
+          </div>
+        </div>
+        <div class="prod-card">
+          <div class="prod-img" onclick="openLightbox('img/style-bay-bow.webp')" role="button" tabindex="0" aria-label="View larger: bay and bow windows"><img src="img/style-bay-bow.webp" alt="bay and bow windows" loading="lazy"></div>
+          <div class="prod-body">
+            <div class="prod-name">Bay &amp; Bow Windows</div>
+            <div class="prod-desc">Three or more panels that project out from the wall, opening up the room and adding curb appeal.</div>
+            <button class="prod-cta" type="button" onclick="getPricing(this)">Get Pricing &rsaquo;</button>
+          </div>
+        </div>
+        <div class="prod-card">
+          <div class="prod-img" onclick="openLightbox('img/style-garden.webp')" role="button" tabindex="0" aria-label="View larger: garden windows"><img src="img/style-garden.webp" alt="garden windows" loading="lazy"></div>
+          <div class="prod-body">
+            <div class="prod-name">Garden Windows</div>
+            <div class="prod-desc">A bright glass box with a shelf for plants and herbs, perfect over the kitchen sink.</div>
+            <button class="prod-cta" type="button" onclick="getPricing(this)">Get Pricing &rsaquo;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="prod-dots" id="prod-dots"></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="sec sec-navy">
+  <div class="sec-inner">
+    <div class="proc-head reveal">
+      <span class="eyebrow">Simple Process</span>
+      <h2 class="sec-title">Our <span class="accent">3-Step Process</span></h2>
+      <p class="proc-sub">Simple. Transparent. Professional.</p>
+    </div>
+    <div class="steps-row">
+      <div class="step reveal"><div class="step-num">1</div><h3>Stress-Free Consultation</h3><p>We learn what you need and show your options. No pressure, no gimmicks.</p></div>
+      <div class="step reveal d1"><div class="step-num">2</div><h3>Down-to-the-Penny Quote</h3><p>Pick your style and get exact pricing, backed by our Fair Pricing Pledge.</p></div>
+      <div class="step reveal d2"><div class="step-num">3</div><h3>Professional Install</h3><p>Dedicated installers. Quality over quantity. Lifetime warranty.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CONVERSION ZONE - FORM 3 (after the process), IDs suffixed with -3 -->
+<section class="form-zone" id="form-zone-3">
+  <div class="form-zone-inner">
+    <h2 class="form-zone-h reveal">Ready for a Warmer Winter?</h2>
+    <p class="form-zone-sub reveal">Claim your free triple pane glass in under 2 minutes.</p>
+    <div class="v2-form" id="mobile-form-anchor-3">
+      <div class="v2-progress-dots" id="v2-dots-3">
+        <div class="dot active" data-step="1"></div>
+        <div class="dot" data-step="2"></div>
+        <div class="dot" data-step="3"></div>
+        <span class="step-text" id="v2-step-text-3">Step 1 of 3</span>
+      </div>
+
+      <div id="m2s-step0-3">
+        <p class="m2s-question">Approximately how old is your home?</p>
+        <div class="v2-tiles">
+          <button type="button" class="v2-tile" onclick="m2sStartTile(this,'1-5 years')">1&ndash;5 years</button>
+          <button type="button" class="v2-tile" onclick="m2sStartTile(this,'5-10 years')">5&ndash;10 years</button>
+          <button type="button" class="v2-tile" onclick="m2sStartTile(this,'10-20 years')">10&ndash;20 years</button>
+          <button type="button" class="v2-tile" onclick="m2sStartTile(this,'20+ years')">20+ years</button>
+        </div>
+        <p class="v2-cta-micro" style="margin-top:12px">
+          <span>&#10003; Free Estimate</span><span class="sep">&middot;</span>
+          <span>&#10003; No Obligation</span><span class="sep">&middot;</span>
+          <span>&#10003; Takes 60 Seconds</span>
+        </p>
+      </div>
+
+
+      <div id="m2s-step1-3" style="display:none">
+        <p class="m2s-question">What&rsquo;s your zip code?</p>
+        <input class="m2s-input" type="text" id="m2s-zip-3" placeholder="42301" maxlength="5" inputmode="numeric">
+        <button class="m2s-btn" onclick="m2sNext(this)">Continue &rarr;</button>
+        <p class="v2-cta-micro">
+          <span>&#10003; Free Estimate</span><span class="sep">&middot;</span>
+          <span>&#10003; No Obligation</span><span class="sep">&middot;</span>
+          <span>&#10003; Takes 60 Seconds</span>
+        </p>
+        <p class="m2s-fine">Owensboro &amp; surrounding areas</p>
+      </div>
+
+      <div id="m2s-zip-error-3" style="display:none; text-align:center; padding:14px 4px 6px;">
+        <p style="font-size:1rem; color:var(--text); line-height:1.55; margin-bottom:18px">Sorry, your zip code is outside of our service area. We currently serve Owensboro and surrounding area homeowners only. If you think that&rsquo;s a mistake, check your zip code and try again.</p>
+        <button type="button" class="m2s-btn" onclick="m2sRetryZip(this)">&larr; Edit Zip Code</button>
+      </div>
+
+      <div id="m2s-step2-3" style="display:none">
+        <p class="m2s-question">Just a couple more details:</p>
+        <div class="m2s-row">
+          <input class="m2s-input" type="text" id="m2s-fname-3" placeholder="First name" style="margin-bottom:0">
+          <input class="m2s-input" type="text" id="m2s-lname-3" placeholder="Last name" style="margin-bottom:0">
+        </div>
+        <input class="m2s-input" type="tel" id="m2s-phone-3" placeholder="(270) 555-1234" inputmode="tel" style="margin-top:10px; margin-bottom:4px">
+        <button class="m2s-btn" onclick="m2sSubmit(this)">Claim My Free Upgrade &rarr;</button>
+        <p class="v2-cta-micro">
+          <span>&#10003; Free Estimate</span><span class="sep">&middot;</span>
+          <span>&#10003; No Obligation</span><span class="sep">&middot;</span>
+          <span>&#10003; Takes 60 Seconds</span>
+        </p>
+        <p class="m2s-fine">Owensboro &amp; surrounding areas &middot; No obligation</p>
+      </div>
+
+      <div id="m2s-success-3" style="display:none; text-align:center; padding:8px 0 4px;">
+        <div style="font-size:2.4rem; margin-bottom:10px">&#127881;</div>
+        <p style="font-family:'Oswald',sans-serif; font-size:1.4rem; font-weight:700; color:var(--navy); margin-bottom:8px">You&rsquo;re All Set!</p>
+        <p style="font-size:0.88rem; color:var(--text-mid); line-height:1.6">We&rsquo;ll be in touch shortly to schedule your free estimate.</p>
+      </div>
+
+      <div class="v2-pullquote">
+        <p>&ldquo;They finished 15 windows in 2 days. They were ALL business. Very professional!&rdquo;</p>
+        <div class="by"><span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span> Katina H. &middot; Google Review</div>
+      </div>
+    </div>
+    <p class="form-zone-trust">&#9201; Takes less than 2 minutes</p>
+  </div>
+</section>
+
+<!-- (May-only offer-closer section removed) -->
+
+<!-- FOOTER -->
+<footer>
+    <img src="img/logo.webp" alt="Clear Choice Windows Owensboro" class="footer-logo">
+  <p>401 Salem Dr, Owensboro, KY 42303</p>
+  <p>Serving Owensboro, Kentucky &amp; surrounding areas</p>
+  <p style="margin-top:10px">&copy; <span class="js-year">2026</span> Clear Choice Windows Owensboro. All rights reserved.</p>
+</footer>
+
+</div><!-- end .cc-wrap -->
+
+<!-- STICKY BOTTOM BAR (mobile) & LIGHTBOX outside .cc-wrap -->
+<div class="mobile-bar">
+  <button class="mb-book" onclick="openWizard(event)"><span>Claim Free Upgrade &rarr;</span></button>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+  // Lead endpoint: Clear Choice's GHL workflow (Inbound Webhook trigger). It
+  // answers CORS for any origin, so the browser posts JSON straight to it.
+  // Every lead posts the same payload to each URL. One workflow handles the
+  // contact, the pipeline and the Conversions API event.
+  const LEAD_WEBHOOKS = [
+    'https://services.leadconnectorhq.com/hooks/p9v7EWFPgHxNkPbR7NVk/webhook-trigger/3ij9ev027NF1X929ykdV'
+  ];
+  const THANK_YOU_URL = '';     // TODO: Clear Choice thank-you page
+
+  // Service-area gate: when APPROVED_ZIPS is empty, every zip is accepted (matches MWC's existing production-LP behavior where any IA/IL zip flows through).
+  // Populate this array later if you need to start gating leads to specific zips.
+  const APPROVED_ZIPS = [];
+
+  // Meta Pixel: only two events, by design. PageView on load, Lead on quiz submit.
+  const META_PIXEL_ID = '2340863710020370';
+  function px() { if (window.fbq) { try { window.fbq.apply(null, arguments); } catch (e) {} } }
+
+  document.body.classList.add('js-ready');
+
+  // Attention pulse: the header phone button pulses while the header is on-screen;
+  // once the header scrolls out of view, hand the pulse off to the sticky footer CTA.
+  (function () {
+    var header = document.querySelector('.site-header');
+    var headerCta = document.querySelector('.site-cta');
+    var footerCta = document.querySelector('.mobile-bar .mb-book');
+    if (!header || !headerCta) return;
+    headerCta.classList.add('pulse-active');   // start on the header CTA
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          headerCta.classList.add('pulse-active');
+          if (footerCta) footerCta.classList.remove('pulse-active');
+        } else {
+          headerCta.classList.remove('pulse-active');
+          if (footerCta) footerCta.classList.add('pulse-active');
+        }
+      });
+    }, { threshold: 0 });
+    io.observe(header);
+  })();
+
+  function getUrlParams() {
+    var p = new URLSearchParams(window.location.search);
+    return {
+      gclid:        p.get('gclid') || '',
+      fbclid:       p.get('fbclid') || '',
+      utm_source:   p.get('utm_source') || '',
+      utm_medium:   p.get('utm_medium') || '',
+      utm_campaign: p.get('utm_campaign') || '',
+      utm_content:  p.get('utm_content') || '',
+      utm_term:     p.get('utm_term') || ''
+    };
+  }
+
+  function cookie(name) {
+    var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  // SHA-256 hex, Meta's required format for user data sent server-side.
+  // GHL can't hash, so the page sends the hashed copies alongside the plain ones.
+  async function sha256(v) {
+    v = (v || '').trim().toLowerCase();
+    if (!v || !window.crypto || !crypto.subtle) return '';
+    var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
+    return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  }
+
+  // Field names here are what the GHL workflows map: keep them stable.
+  async function sendLead(data) {
+    if (!LEAD_WEBHOOKS.length) return;
+    var params = getUrlParams();
+    var digits = (data.phone || '').replace(/\D/g, '');
+    if (digits.length === 10) digits = '1' + digits;
+    var fbc = cookie('_fbc') || (params.fbclid ? 'fb.1.' + Date.now() + '.' + params.fbclid : '');
+    var hashed = await Promise.all([digits, data.first_name, data.last_name, (data.zip || '').slice(0, 5), 'ky', 'us'].map(sha256));
+    var body = JSON.stringify({
+          first_name:   data.first_name || '',
+          last_name:    data.last_name || '',
+          phone:        digits ? '+' + digits : (data.phone || ''),
+          zip:          data.zip || '',
+          state:        data.state || 'Kentucky',
+          home_age:     data.home_age || '',
+          offer:        'Free Triple Pane Glass ($300 Value)',
+          source:       data.source || '',
+          page_url:     location.href.split('#')[0],
+          event_id:     data.event_id || '',
+          event_name:   'Lead',
+          event_time:   Math.floor(Date.now() / 1000),
+          user_agent:   navigator.userAgent,
+          fbp:          cookie('_fbp'),
+          fbc:          fbc,
+          ph_hash:      hashed[0],
+          fn_hash:      hashed[1],
+          ln_hash:      hashed[2],
+          zp_hash:      hashed[3],
+          st_hash:      hashed[4],
+          country_hash: hashed[5],
+          fbclid:       params.fbclid,
+          gclid:        params.gclid,
+          utm_source:   params.utm_source,
+          utm_medium:   params.utm_medium,
+          utm_campaign: params.utm_campaign,
+          utm_content:  params.utm_content,
+          utm_term:     params.utm_term
+    });
+    await Promise.all(LEAD_WEBHOOKS.map(function (url) {
+      return fetch(url, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: body })
+        .catch(function (err) { console.error('Lead webhook error:', url, err); });
+    }));
+  }
+
+  // Sticky bottom bar - hidden until hero scrolls out of view. Shows on
+  // every viewport (mobile + desktop) since the v2 desktop layout has no
+  // sticky nav of its own; this is the only persistent CTA after scroll.
+  const mobileBar = document.querySelector('.mobile-bar');
+  const heroSection = document.getElementById('hero-anchor');
+  if (mobileBar && heroSection) {
+    mobileBar.style.display = 'none';
+    const barObserver = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        mobileBar.style.display = e.isIntersecting ? 'none' : 'grid';
+      });
+    }, { threshold: 0 });
+    barObserver.observe(heroSection);
+  }
+
+  // Dynamic month/year - drives the sticky strip + offer fine print
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const now = new Date();
+  const monthLabel = monthNames[now.getMonth()].toUpperCase();
+  const monthTitle = monthNames[now.getMonth()];
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  document.querySelectorAll('.js-month').forEach(el => el.textContent = monthTitle);
+  document.querySelectorAll('.js-month-upper').forEach(el => el.textContent = monthLabel);
+  document.querySelectorAll('.js-month-end').forEach(el => el.textContent = end.getDate());
+  document.querySelectorAll('.js-year').forEach(el => el.textContent = now.getFullYear());
+
+  // 4-step form flow ─────────────────────────────────────────────────────
+  // ── Multi-step lead form - container-scoped so multiple copies coexist ──
+  // Each form's elements share base IDs; the 2nd form suffixes them with "-2".
+  // Handlers derive their form root from the clicked element and resolve IDs by suffix.
+  function leadRoot(el) { return el.closest('.v2-form'); }
+  function lf(root, baseId) { return document.getElementById(baseId + root.id.replace('mobile-form-anchor', '')); }
+  var activeLeadForm = null;   // the form currently in focus mode
+
+  function v2UpdateDots(root, activeStep) {
+    var wrap = lf(root, 'v2-dots');
+    if (wrap) wrap.querySelectorAll('.dot').forEach(function (d) {
+      var s = parseInt(d.dataset.step, 10);
+      d.classList.remove('active', 'done');
+      if (s < activeStep) d.classList.add('done');
+      else if (s === activeStep) d.classList.add('active');
+    });
+    var label = lf(root, 'v2-step-text');
+    if (label) label.textContent = 'Step ' + activeStep + ' of 3';
+  }
+
+  // ── Focus mode (full-screen takeover on first interaction with a form) ──
+  function enterFocusMode(root) {
+    if (root._focusEntered) return;
+    root._focusEntered = true;
+    activeLeadForm = root;
+    root.classList.add('is-focused');
+    document.body.classList.add('focus-mode');
+    updateFocusProgress(1);
+  }
+
+  function exitFocusMode(e) {
+    if (e) e.preventDefault();
+    var root = activeLeadForm;
+    document.body.classList.remove('focus-mode');
+    if (!root) return;
+    root._focusEntered = false;
+    root.classList.remove('is-focused');
+    // Reset to step 1 so a returning visitor starts over
+    lf(root, 'm2s-step0').style.display = 'block';
+    lf(root, 'm2s-step1').style.display = 'none';
+    lf(root, 'm2s-step2').style.display = 'none';
+    lf(root, 'm2s-success').style.display = 'none';
+    var errReset = lf(root, 'm2s-zip-error'); if (errReset) errReset.style.display = 'none';
+    var pqReset = root.querySelector('.v2-pullquote'); if (pqReset) pqReset.style.display = '';
+    root._homeAge = ''; root._state = '';
+    v2UpdateDots(root, 1);
+    updateFocusProgress(1);
+    activeLeadForm = null;
+    scrollFormToTop(root);
+  }
+
+  function updateFocusProgress(step) {
+    var pct = step === 1 ? 33 : step === 2 ? 67 : 100;
+    var fill = document.getElementById('focus-progress-fill');
+    if (fill) fill.style.width = pct + '%';
+  }
+
+  function scrollFormToTop(root) {
+    if (!root) return;
+    root.scrollTop = 0;
+    requestAnimationFrame(function () {
+      root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(function () { window.scrollBy(0, -16); }, 60);
+    });
+  }
+
+  // Step 1 → 2: home age tile clicked
+  function m2sStartTile(el, age) {
+    var root = leadRoot(el);
+    root._homeAge = age;
+    enterFocusMode(root);
+    root._state = 'Kentucky';   // Kentucky only, no state question
+    lf(root, 'm2s-step0').style.display = 'none';
+    lf(root, 'm2s-step1').style.display = 'block';
+    v2UpdateDots(root, 2);
+    updateFocusProgress(2);
+    scrollFormToTop(root);
+    var zip = lf(root, 'm2s-zip');
+    if (zip) zip.focus();
+  }
+
+
+  // Step 2 → 3: zip submitted
+  function m2sNext(el) {
+    var root = leadRoot(el);
+    var zipInput = lf(root, 'm2s-zip');
+    var zip = zipInput.value.trim();
+    if (!zip) { zipInput.focus(); return; }
+    // Accept-all when APPROVED_ZIPS is empty (current MWC behavior). When populated, gate kicks in.
+    if (APPROVED_ZIPS.length && !APPROVED_ZIPS.includes(zip)) {
+      lf(root, 'm2s-step1').style.display = 'none';
+      lf(root, 'm2s-zip-error').style.display = 'block';
+      var pq = root.querySelector('.v2-pullquote'); if (pq) pq.style.display = 'none';
+      scrollFormToTop(root);
+      return;
+    }
+    lf(root, 'm2s-step1').style.display = 'none';
+    lf(root, 'm2s-step2').style.display = 'block';
+    v2UpdateDots(root, 3);
+    updateFocusProgress(3);
+    scrollFormToTop(root);
+    lf(root, 'm2s-fname').focus();
+  }
+
+  // Out-of-area screen: back to the zip step
+  function m2sRetryZip(el) {
+    var root = leadRoot(el);
+    lf(root, 'm2s-zip-error').style.display = 'none';
+    lf(root, 'm2s-step1').style.display = 'block';
+    var pq = root.querySelector('.v2-pullquote'); if (pq) pq.style.display = '';
+    var zip = lf(root, 'm2s-zip'); if (zip) { zip.value = ''; zip.focus(); }
+  }
+
+  async function m2sSubmit(el) {
+    var root = leadRoot(el);
+    var fname = lf(root, 'm2s-fname').value.trim();
+    var lname = lf(root, 'm2s-lname').value.trim();
+    var zip   = lf(root, 'm2s-zip').value.trim();
+    var phone = lf(root, 'm2s-phone').value.trim();
+    if (!fname) { lf(root, 'm2s-fname').focus(); return; }
+    if (!phone) { lf(root, 'm2s-phone').focus(); return; }
+    if (root._sent) return;
+    root._sent = true;
+    // event_id travels with the lead so a server-side (CAPI) copy can be
+    // de-duplicated against this browser event when lead capture is wired.
+    var eventId = 'lead-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+    var data = {
+      first_name: fname, last_name: lname, phone: phone, zip: zip,
+      home_age: root._homeAge || '', state: root._state || '',
+      source: 'Clear Choice LP - free triple pane', event_id: eventId
+    };
+    // Advanced matching: the pixel hashes these before sending
+    var digits = phone.replace(/\D/g, ''); if (digits.length === 10) digits = '1' + digits;
+    px('init', META_PIXEL_ID, { fn: fname.toLowerCase(), ln: lname.toLowerCase(), ph: digits, zp: zip, st: 'ky', country: 'us' });
+    px('track', 'Lead', { content_name: 'Free Triple Pane Glass', home_age: data.home_age }, { eventID: eventId });
+    await sendLead(data);
+    // Show in-page success briefly, then redirect to the thank-you page once one exists.
+    lf(root, 'm2s-step2').style.display = 'none';
+    lf(root, 'm2s-success').style.display = 'block';
+    scrollFormToTop(root);
+    if (THANK_YOU_URL) {
+      setTimeout(function () { window.location.href = THANK_YOU_URL; }, 600);
+    }
+  }
+
+  // Product "Get Pricing" → open the nearest form (form 2, just above the products) in the
+  // same focused/form-only view the form enters after step 1, landing on the contact step.
+  function getPricing(el) {
+    var forms = Array.prototype.slice.call(document.querySelectorAll('.v2-form'));
+    if (!forms.length) return;
+    var before = forms.filter(function (f) { return el.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_PRECEDING; });
+    var root = before.length ? before[before.length - 1] : forms[0];
+    enterFocusMode(root);                                  // same fullscreen takeover as after step 1
+    ['m2s-step0', 'm2s-step1', 'm2s-success'].forEach(function (b) {
+      var e = lf(root, b); if (e) e.style.display = 'none';
+    });
+    var contact = lf(root, 'm2s-step2'); if (contact) contact.style.display = 'block';
+    v2UpdateDots(root, 2);                                 // present as step 2 (contact), not step 4
+    updateFocusProgress(2);
+    scrollFormToTop(root);
+    setTimeout(function () { var f = lf(root, 'm2s-fname'); if (f) f.focus(); }, 450);
+  }
+
+  // Claim buttons (header, sticky bar, winter section): open the hero form straight
+  // into the full-screen quiz, on question 1
+  function openWizard(e) {
+    if (e) e.preventDefault();
+    var root = document.getElementById('mobile-form-anchor');
+    if (!root) return;
+    ['m2s-step1', 'm2s-step2', 'm2s-success', 'm2s-zip-error'].forEach(function (b) {
+      var el = lf(root, b); if (el) el.style.display = 'none';
+    });
+    lf(root, 'm2s-step0').style.display = 'block';
+    var pq = root.querySelector('.v2-pullquote'); if (pq) pq.style.display = '';
+    v2UpdateDots(root, 1);
+    enterFocusMode(root);
+    root.scrollTop = 0;
+  }
+
+  // Anchor scroll helper used by bottom-bar + offer-closer CTA (targets the hero form)
+  function scrollToForm(e) {
+    if (e) e.preventDefault();
+    var f = document.getElementById('mobile-form-anchor');
+    if (f) f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── Products carousel (vanilla; pages = card-sets-per-view, so dots match cards) ──
+  (function () {
+    var track = document.getElementById('prod-track');
+    var dotsWrap = document.getElementById('prod-dots');
+    if (!track || !dotsWrap) return;
+    var prev = document.querySelector('.prod-arrow.prev');
+    var next = document.querySelector('.prod-arrow.next');
+    var cards = track.querySelectorAll('.prod-card');
+    function metrics() {
+      var style = getComputedStyle(track);
+      var gap = parseFloat(style.columnGap || style.gap) || 0;
+      var step = (cards[0] ? cards[0].offsetWidth : track.clientWidth) + gap;  // one card incl. gap
+      var perView = Math.max(1, Math.round(track.clientWidth / step));
+      var pages = Math.max(1, Math.ceil(cards.length / perView));
+      return { pageWidth: step * perView, pages: pages };
+    }
+    function page(m) { return Math.min(m.pages - 1, Math.round(track.scrollLeft / m.pageWidth)); }
+    function refreshUI() {
+      var m = metrics(), cp = page(m);
+      dotsWrap.querySelectorAll('.pdot').forEach(function (d, i) { d.classList.toggle('active', i === cp); });
+      if (prev) prev.disabled = cp <= 0;
+      if (next) next.disabled = cp >= m.pages - 1;
+    }
+    function buildDots() {
+      var m = metrics();
+      dotsWrap.innerHTML = '';
+      for (var i = 0; i < m.pages; i++) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'pdot'; b.setAttribute('aria-label', 'Go to set ' + (i + 1));
+        (function (idx) { b.addEventListener('click', function () { track.scrollTo({ left: idx * metrics().pageWidth, behavior: 'smooth' }); }); })(i);
+        dotsWrap.appendChild(b);
+      }
+      refreshUI();
+    }
+    window.prodScroll = function (dir) { track.scrollBy({ left: dir * metrics().pageWidth, behavior: 'smooth' }); };
+    track.addEventListener('scroll', function () { window.requestAnimationFrame(refreshUI); });
+    var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(buildDots, 150); });
+    buildDots();
+  })();
+
+  // Before/after slider: drag (mouse or touch) or arrow keys move the divider
+  document.querySelectorAll('.ba').forEach(function (el) {
+    var dragging = false;
+    function set(pct) {
+      pct = Math.max(0, Math.min(100, pct));
+      el.style.setProperty('--pos', pct + '%');
+      el.setAttribute('aria-valuenow', Math.round(pct));
+    }
+    function fromEvent(e) {
+      var r = el.getBoundingClientRect();
+      set((e.clientX - r.left) / r.width * 100);
+    }
+    el.addEventListener('pointerdown', function (e) { dragging = true; fromEvent(e); try { el.setPointerCapture(e.pointerId); } catch (err) {} });
+    el.addEventListener('pointermove', function (e) { if (dragging) fromEvent(e); });
+    el.addEventListener('pointerup', function () { dragging = false; });
+    el.addEventListener('pointercancel', function () { dragging = false; });
+    el.addEventListener('keydown', function (e) {
+      var now = parseFloat(el.getAttribute('aria-valuenow')) || 50;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); set(now - 5); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); set(now + 5); }
+    });
+  });
+
+  // Reveal-on-scroll
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Lightbox
+  function openLightbox(src) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+  // Enter / Space activates click on any role="button" photo container (hero photo, testimonial main photos, product carousel cards, weather diagram).
+  document.querySelectorAll('.hero-photo-wrap[role="button"], .hero-photo-mobile[role="button"], .wwt-media[role="button"], .prod-img[role="button"], .wd-imgwrap[role="button"]').forEach(el => {
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+    });
+  });
+</script>
+
+<!-- ============================================================
+     DESKTOP ENHANCEMENTS - sizing/spacing only, no layout changes.
+     Placed last so it wins the cascade over earlier head + section style rules.
+     Mobile (≤768px) is untouched (all rules are min-width). ============ -->
+<style>
+@media (min-width: 769px) {
+  /* Global: wider content, more breathing room, larger section headings */
+  .sec { padding: 84px 22px; }
+  .sec-inner { max-width: 1200px; }
+  .sec-title { font-size: clamp(2rem, 3.4vw, 2.9rem); }
+
+  /* Hero - bigger headline / sub / benefits (structure unchanged) */
+  .hero-h1 { font-size: clamp(2.7rem, 4.6vw, 3.7rem); }
+  .hero-h1 .orange { font-size: clamp(2.1rem, 3.6vw, 3rem); }
+  .hero-sub { font-size: 1.15rem; }
+  .v2-benefits li { font-size: 1.05rem; }
+
+  /* Multi-step form (all 3 copies) - bigger question, tiles, inputs, button */
+  .m2s-question { font-size: 1.5rem; }
+  .v2-tile { font-size: 1.22rem; padding: 30px 10px; }
+  .m2s-input { font-size: 1.05rem; padding: 15px 16px; }
+  .m2s-btn { font-size: 1.28rem; padding: 18px 24px; }   /* ≈56px tall */
+
+  /* Conversion form zones - wider card, larger heading, more padding */
+  .form-zone { padding: 92px 22px; }
+  .form-zone-inner { max-width: 700px; }
+  .form-zone-h { font-size: clamp(2rem, 3.4vw, 2.5rem); }
+  .form-zone-sub { font-size: 1.1rem; }
+  .form-zone-trust { font-size: 1rem; }
+
+  /* "Why Clear Choice Windows" trust bar - bigger icons/text, wider, more gap */
+  #why-ww .sec-inner { max-width: 1100px; }
+  .tb-grid { gap: 56px; }
+  .tb-icon { width: 76px; height: 76px; }
+  .tb-icon svg { width: 38px; height: 38px; }
+  .tb-h { font-size: 1.6rem; }
+  .tb-p { font-size: 1.05rem; }
+
+  /* Testimonials - bigger cards, image, text, thumbnails, wider section */
+  #wwt-testimonials .sec-inner { max-width: 1200px; }
+  .wwt-grid { gap: 30px; }
+  .wwt-media { height: 380px; }
+  .wwt-name { font-size: 1.15rem; }
+  .wwt-stars { font-size: 1.05rem; }
+  .wwt-review-text { font-size: 1rem; }
+  .wwt-thumb { width: 100px; height: 100px; }
+
+  /* Products - bigger images, names, CTA, arrows, heading */
+  .prod-head h2 { font-size: clamp(2.2rem, 4vw, 2.6rem); }
+  .prod-head p { font-size: 1.1rem; }
+  .prod-img { height: 380px; }
+  .prod-name { font-size: 1.7rem; }
+  .prod-desc { font-size: 1rem; }
+  .prod-cta { font-size: 1.1rem; padding: 16px 18px; }   /* ≈49px tall */
+  .prod-arrow { width: 52px; height: 52px; font-size: 1.3rem; }
+  .prod-arrow.prev { left: -12px; }
+  .prod-arrow.next { right: -12px; }
+
+  /* Weather / engineering diagram - image displayed large and prominent */
+  .why-strip { padding: 72px 22px; }
+  .why-h2 { font-size: clamp(2rem, 3vw, 2.5rem); }
+  .weather-diagram { max-width: 1000px; padding: 44px 48px; }
+
+  /* Process - bigger subheading */
+  .proc-sub { font-size: 1.1rem; }
+}
+
+/* Hero 2-col already exists at ≥901px - widen it to use more horizontal space (no structure change) */
+@media (min-width: 901px) {
+  .hero-inner { max-width: 1240px; grid-template-columns: 1fr 520px; gap: 56px; }
+}
+</style>
+</body>
+</html>

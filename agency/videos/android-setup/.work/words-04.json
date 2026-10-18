@@ -1,0 +1,92 @@
+[
+  {
+    "id": "w0",
+    "text": "Now",
+    "start": 0,
+    "end": 0.32
+  },
+  {
+    "id": "w1",
+    "text": "open",
+    "start": 0.32,
+    "end": 0.56
+  },
+  {
+    "id": "w2",
+    "text": "the",
+    "start": 0.56,
+    "end": 0.72
+  },
+  {
+    "id": "w3",
+    "text": "Hawk",
+    "start": 0.72,
+    "end": 1.12
+  },
+  {
+    "id": "w4",
+    "text": "Marketing",
+    "start": 1.2,
+    "end": 1.68
+  },
+  {
+    "id": "w5",
+    "text": "software",
+    "start": 1.68,
+    "end": 2.08
+  },
+  {
+    "id": "w6",
+    "text": "from",
+    "start": 2.08,
+    "end": 2.24
+  },
+  {
+    "id": "w7",
+    "text": "your",
+    "start": 2.24,
+    "end": 2.4
+  },
+  {
+    "id": "w8",
+    "text": "home",
+    "start": 2.4,
+    "end": 2.64
+  },
+  {
+    "id": "w9",
+    "text": "screen.",
+    "start": 2.64,
+    "end": 3.28
+  },
+  {
+    "id": "w10",
+    "text": "Tap",
+    "start": 3.28,
+    "end": 3.68
+  },
+  {
+    "id": "w11",
+    "text": "Turn",
+    "start": 3.68,
+    "end": 4
+  },
+  {
+    "id": "w12",
+    "text": "On,",
+    "start": 4,
+    "end": 4.32
+  },
+  {
+    "id": "w13",
+    "text": "then",
+    "start": 4.32,
+    "end": 4.64
+  },
+  {
+    "id": "w14",
+    "text": "Allow.",
+    "start": 4.64,
+    "end": 5.12
+  }
+]

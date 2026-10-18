@@ -13,6 +13,7 @@ import {
   queueLessonEdit,
   payloadHash,
   listItems,
+  postAnswer,
 } from "./agentItems";
 
 // What the page sends with an Approve: the hash of the payload it drew.
@@ -416,5 +417,70 @@ describe("lessons for the Brain tab", () => {
     const edit = await queueLessonEdit(db.client(), { lessonId: "l-a1", action: "edit", text: `New text ${EM} here` });
     expect(edit).toMatchObject({ lessonId: "l-a1", action: "edit", text: "New text, here" });
     expect(await queueLessonEdit(db.client(), { lessonId: "l-nope", action: "delete" })).toBeNull();
+  });
+});
+
+describe("postAnswer", () => {
+  // Research answered Ads: the request card sits with Research, the follow-up
+  // Jake's Approve queued is running in Research's chat, and Ads asked from a1.
+  function setup(over: { status?: string; payload?: Record<string, unknown>; asker?: Record<string, unknown> } = {}) {
+    return new FakeDb()
+      .seed("agent_chats", [chat("r1", T1, "research"), { ...chat("a1", T1, "ads"), ...over.asker }])
+      .seed("agent_items", [
+        {
+          id: "req1",
+          tenant_id: T1,
+          agent: "research",
+          from_agent: "ads",
+          chat_id: "r1",
+          kind: "request",
+          title: "Customer words",
+          status: over.status ?? "done",
+          payload: over.payload ?? { body: "What words?", fromChatId: "a1" },
+          approved_at: "2026-10-18T09:00:00.000Z",
+        },
+      ])
+      .seed("agent_messages", [
+        { id: "f1", chat_id: "r1", role: "me", body: "Approved: Customer words", status: "running", meta: { followUpOf: "req1" } },
+      ]);
+  }
+
+  it("queues the answer once in the asking agent's chat, as a request message, never as Jake", async () => {
+    const db = setup();
+    expect(await postAnswer(db.client(), { messageId: "f1", body: `Drafty ${EM} cold rooms` })).toEqual({ posted: true });
+    expect(await postAnswer(db.client(), { messageId: "f1", body: "again" })).toEqual({ posted: false });
+    const answers = db.rows("agent_messages").filter((r) => r.chat_id === "a1");
+    expect(answers).toHaveLength(1);
+    expect(answers[0]).toMatchObject({
+      role: "request",
+      status: "queued",
+      body: "Drafty, cold rooms",
+      meta: { fromAgent: "research", answerOf: "req1" },
+    });
+  });
+
+  it("posts nothing for a request Jake declined or has not decided", async () => {
+    for (const status of ["declined", "needs_ok"]) {
+      const db = setup({ status });
+      expect(await postAnswer(db.client(), { messageId: "f1", body: "x" })).toEqual({ posted: false });
+      expect(db.rows("agent_messages").filter((r) => r.chat_id === "a1")).toHaveLength(0);
+    }
+  });
+
+  it("404s when the message is not a running follow-up of a request, or the asking chat is wrong or gone", async () => {
+    const cases = [
+      setup({ payload: { body: "x" } }),
+      setup({ payload: { body: "x", fromChatId: "missing" } }),
+      setup({ asker: { agent: "landing" } }),
+      setup({ asker: { tenant_id: null } }),
+    ];
+    for (const db of cases) expect(await postAnswer(db.client(), { messageId: "f1", body: "x" })).toEqual({ error: 404 });
+    const notRequest = setup();
+    notRequest.rows("agent_items")[0].kind = "ad_plan";
+    expect(await postAnswer(notRequest.client(), { messageId: "f1", body: "x" })).toEqual({ error: 404 });
+    const done = setup();
+    done.rows("agent_messages")[0].status = "done";
+    expect(await postAnswer(done.client(), { messageId: "f1", body: "x" })).toEqual({ error: 404 });
+    expect(await postAnswer(setup().client(), { messageId: "f1", body: "  " })).toEqual({ error: 400 });
   });
 });

@@ -39,7 +39,7 @@ describe("agent runner gate", () => {
 
   it("is exactly the paths the runner calls", () => {
     expect([...AGENT_RUNNER_POST_PATHS].sort()).toEqual(
-      ["auto-chat", "brief", "claim", "file-asset", "file-creative", "ghl", "heartbeat", "item", "lessons", "meta-ops", "read-url", "reply", "tick", "upload-url"].map((p) => `/api/agent-runner/${p}`),
+      ["answer", "auto-chat", "brief", "claim", "file-asset", "file-creative", "ghl", "heartbeat", "item", "lessons", "meta-ops", "read-url", "reply", "tick", "upload-url"].map((p) => `/api/agent-runner/${p}`),
     );
     expect([...AGENT_RUNNER_GET_PATHS].sort()).toEqual(
       ["meta", "snapshot", "tenants"].map((p) => `/api/agent-runner/${p}`),
@@ -366,5 +366,27 @@ describe("meta query", () => {
     expect(metaQuery("account", "0")).toBeNull();
     expect(metaQuery("account", "91")).toBeNull();
     expect(metaQuery("account", "x")).toBeNull();
+  });
+});
+
+describe("answers between agents", () => {
+  const now = new Date("2026-10-17T12:00:00.000Z");
+
+  it("claims a queued answer like Jake's message and takes its reply", async () => {
+    const db = new FakeDb()
+      .seed("agent_chats", [chat("c1", { started: true })])
+      .seed("agent_messages", [msg("ans", { role: "request", body: "Drafty", meta: { fromAgent: "research", answerOf: "req1" } })]);
+    const res = await claimNext(db.client(), "PC", now);
+    expect(res?.message).toMatchObject({ id: "ans", role: "request", answerOf: "req1", fromAgent: "research" });
+    expect(await applyReply(db.client(), { messageId: "ans", status: "done", aiBody: "Drafting" })).toEqual({ ok: true });
+    expect(db.rows("agent_messages").find((r) => r.role === "ai")).toMatchObject({ body: "Drafting", status: "done" });
+  });
+
+  it("never claims or takes a reply for a request card message", async () => {
+    const db = new FakeDb()
+      .seed("agent_chats", [chat("c1")])
+      .seed("agent_messages", [msg("req", { role: "request", status: "done", meta: { itemId: "i1", fromAgent: "ads" } })]);
+    expect(await claimNext(db.client(), "PC", now)).toBeNull();
+    expect(await applyReply(db.client(), { messageId: "req", status: "done", aiBody: "x" })).toEqual({ error: 404 });
   });
 });

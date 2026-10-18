@@ -1,0 +1,166 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #s3-root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+        .s3-badge { position: absolute; top: 330px; width: 440px; border-radius: 28px; padding: 34px 36px;
+          background: rgba(16, 48, 42, 0.78); border: 2px solid rgba(77, 187, 131, 0.4); box-shadow: 0 24px 50px rgba(0, 0, 0, 0.3); }
+        #s3-bl { left: 180px; }
+        #s3-br { left: 1290px; }
+        .s3-badge .k { font: 700 22px Inter, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: #4dbb83; }
+        .s3-badge .d { margin-top: 14px; font: 700 48px/1.05 Poppins, sans-serif; color: #eaf5ef; }
+        .s3-badge .b { margin-top: 26px; display: flex; align-items: center; gap: 14px; font: 700 30px Inter, sans-serif; color: #b9d3c8; }
+        .s3-badge .b svg { width: 40px; height: 40px; flex: none; }
+
+        #s3-start { background: #f2f2f7; }
+        #s3-start .fav { position: absolute; left: 24px; top: 96px; font: 700 22px Inter, sans-serif; color: #111; }
+        #s3-start .tile { position: absolute; width: 64px; height: 64px; border-radius: 16px; background: #e1e1e8; }
+        .s3-sbar { position: absolute; left: 0; right: 0; bottom: 0; height: 118px; background: rgba(249, 249, 251, 0.96); border-top: 1px solid #e2e2e8; z-index: 20; }
+        #s3-pill { position: absolute; left: 16px; top: 12px; width: 354px; height: 46px; border-radius: 14px; background: #e7e7ec; }
+        #s3-pill .ph { position: absolute; left: 0; right: 0; top: 13px; text-align: center; font: 400 15px/20px Inter, sans-serif; color: #636368; }
+        #s3-pill .val { position: absolute; left: 0; right: 0; top: 13px; text-align: center; font: 400 15px/20px Inter, sans-serif; color: #111; white-space: nowrap; }
+        #s3-pill .val .c { display: none; }
+        #s3-pill .ring { position: absolute; inset: -2px; border-radius: 15px; border: 2px solid #0a84ff; opacity: 0; }
+        .s3-tools { position: absolute; left: 0; right: 0; top: 66px; display: flex; justify-content: space-around; padding: 0 20px; }
+        .s3-tools i { width: 22px; height: 22px; border-radius: 5px; border: 2.5px solid #0a84ff; }
+
+        #s3-login { opacity: 0; background: linear-gradient(180deg, #e2e1f8 0%, #f3f2fb 60%, #f6f6fb 100%); }
+        #s3-login h2 { position: absolute; left: 30px; right: 30px; top: 92px; text-align: center; font: 700 30px/1.15 Poppins, sans-serif; color: #14161f; }
+        #s3-card { position: absolute; left: 18px; right: 18px; top: 196px; padding: 26px 30px 24px; border-radius: 22px; background: #fff;
+          box-shadow: 0 18px 40px rgba(79, 70, 229, 0.12); }
+        #s3-card h1 { font: 700 23px/1.3 Poppins, sans-serif; color: #14161f; text-align: center; }
+        .s3-lbl { margin-top: 20px; font: 400 12px Inter, sans-serif; color: #3b3f4c; height: 14px; }
+        .s3-in { position: relative; margin-top: 8px; height: 48px; border-radius: 12px; border: 1px solid #d5d4ee; background: #fff; }
+        .s3-in .fr { position: absolute; inset: -1px; border-radius: 12px; border: 2px solid #4f46e5; opacity: 0; }
+        .s3-in .ph { position: absolute; left: 16px; top: 14px; font: 400 16px/20px Inter, sans-serif; color: #686c7c; }
+        .s3-in .val { position: absolute; left: 16px; top: 14px; font: 400 16px/20px Inter, sans-serif; color: #14161f; white-space: nowrap; }
+        .s3-in .val .c { display: none; }
+        #s3-btn { margin-top: 16px; height: 48px; border-radius: 12px; background: #a7a2f2; color: #fff; font: 700 15px Inter, sans-serif;
+          display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 22px rgba(79, 70, 229, 0.25); }
+        #s3-card hr { margin-top: 22px; border: 0; border-top: 1px solid #e6e8f0; }
+        #s3-card .adm { margin-top: 14px; text-align: center; font: 400 14px Inter, sans-serif; color: #555a6b; }
+
+        #s3-app { opacity: 0; }
+      </style>
+      <div id="s3-root" data-composition-id="s3" data-width="1920" data-height="1080">
+        <div class="s3-badge" id="s3-bl">
+          <div class="k">iPhone</div><div class="d">Open Safari</div>
+          <div class="b"><svg viewBox="0 0 40 40" fill="none" stroke="#4dbb83" stroke-width="2.6"><circle cx="20" cy="20" r="16"/><path d="M26 14l-4 8-8 4 4-8z" fill="#4dbb83" stroke-linejoin="round"/></svg>Safari</div>
+        </div>
+        <div class="s3-badge" id="s3-br">
+          <div class="k">Android</div><div class="d">Open Chrome</div>
+          <div class="b"><svg viewBox="0 0 40 40" fill="none" stroke="#4dbb83" stroke-width="2.6"><circle cx="20" cy="20" r="16"/><circle cx="20" cy="20" r="6.5"/><path d="M20 13.5h14M14.4 23.2L7.5 35M25.6 23.2L18.6 35.2"/></svg>Chrome</div>
+        </div>
+
+        <div class="phone" id="s3-phone"><div class="screen" id="s3-scr" data-layout-allow-overlap data-layout-allow-occlusion data-layout-allow-overflow>
+          <div class="island"></div>
+          <div class="statusbar"><span>9:41</span><span class="sb-r"><i class="sig"></i><i class="bat"></i></span></div>
+          <div class="layer" id="s3-start">
+            <div class="fav">Favorites</div>
+            <div class="tile" style="left:24px;top:142px"></div><div class="tile" style="left:112px;top:142px"></div><div class="tile" style="left:200px;top:142px"></div><div class="tile" style="left:288px;top:142px"></div>
+          </div>
+          <div class="layer" id="s3-login">
+            <h2>Your Business Command Center</h2>
+            <div id="s3-card">
+              <h1>Sign in with your email and password</h1>
+              <div class="s3-lbl">Email</div>
+              <div class="s3-in" id="s3-em"><div class="fr"></div><div class="ph">name@email.com</div><div class="val"></div></div>
+              <div class="s3-lbl">Password</div>
+              <div class="s3-in" id="s3-pw"><div class="fr"></div><div class="ph">Enter password</div><div class="val"></div></div>
+              <div id="s3-btn">Sign in</div>
+              <hr /><div class="adm">Admin sign-in</div>
+            </div>
+          </div>
+          <div class="layer" id="s3-app"><div class="app">
+            <div class="app-top"><div class="logo"></div><div class="t">Home</div></div>
+            <div class="ncard"><div class="row"><div class="bell"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div><div class="ttl">Turn on notifications</div></div><div class="btns"><div class="on">Turn on</div><div class="off">Not now</div></div></div>
+            <div class="sk" style="top:278px;height:120px"><i style="top:20px;width:120px"></i><i style="top:52px;width:220px;background:#f0f1f6"></i><i style="top:80px;width:180px;background:#f0f1f6"></i></div>
+            <div class="sk" style="top:414px;height:120px"><i style="top:20px;width:150px"></i><i style="top:52px;width:200px;background:#f0f1f6"></i><i style="top:80px;width:240px;background:#f0f1f6"></i></div>
+          </div></div>
+          <div class="s3-sbar" id="s3-sbar">
+            <div id="s3-pill"><div class="ring"></div><div class="ph">Search or enter website</div><div class="val"></div></div>
+            <div class="s3-tools"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+        </div></div>
+
+        <audio id="s3-a1" src="assets/sfx/pop.mp3" data-duration="0.72" data-start="1.7" data-track-index="15" data-volume="0.25"></audio>
+        <audio id="s3-a2" src="assets/sfx/pop.mp3" data-duration="0.72" data-start="3.4" data-track-index="15" data-volume="0.25"></audio>
+        <audio id="s3-a3" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="4.9" data-track-index="15" data-volume="0.5"></audio>
+        <audio id="s3-a4" src="assets/sfx/typing.mp3" data-start="5.1" data-duration="1.0" data-track-index="16" data-volume="0.28"></audio>
+        <audio id="s3-a5" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="6.8" data-track-index="15" data-volume="0.5"></audio>
+        <audio id="s3-a6" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="7.6" data-track-index="15" data-volume="0.5"></audio>
+        <audio id="s3-a7" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="8.35" data-track-index="15" data-volume="0.55"></audio>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          const q = (s) => document.querySelector(s);
+          const scr = q("#s3-scr");
+          function typed(container, text, t0, dur, mask) {
+            const chars = [];
+            for (const ch of text) {
+              const s = document.createElement("span");
+              s.className = "c";
+              s.textContent = mask ? "•" : ch;
+              container.appendChild(s);
+              chars.push(s);
+            }
+            chars.forEach((s, i) => tl.set(s, { display: "inline" }, t0 + (dur * i) / chars.length));
+          }
+          // a finger press: dot lands, ring blooms, dot lifts
+          function tap(x, y, t) {
+            const f = document.createElement("div");
+            f.className = "finger";
+            f.style.left = x + "px";
+            f.style.top = y + "px";
+            const r = document.createElement("div");
+            r.className = "tap";
+            r.style.left = x + "px";
+            r.style.top = y + "px";
+            scr.appendChild(r);
+            scr.appendChild(f);
+            tl.fromTo(f, { opacity: 0, scale: 1.3 }, { opacity: 1, scale: 1, duration: 0.16, ease: "power2.out", immediateRender: false }, t - 0.16);
+            tl.to(f, { opacity: 0, scale: 0.9, duration: 0.2, ease: "power2.in" }, t + 0.18);
+            tl.fromTo(r, { opacity: 0.95, scale: 0.4 }, { opacity: 0, scale: 1.7, duration: 0.55, ease: "power2.out", immediateRender: false }, t);
+          }
+
+          tl.fromTo("#s3-phone", { x: 300, opacity: 0 }, { x: 0, opacity: 1, duration: 0.75, ease: "power3.out" }, 0);
+          tl.fromTo("#s3-phone", { y: 0 }, { y: -8, duration: 4.5, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 0.8);
+          tl.fromTo("#s3-bl", { x: -40, opacity: 0, scale: 0.96 }, { x: 0, opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.4)" }, 1.7);
+          tl.fromTo("#s3-br", { x: 40, opacity: 0, scale: 0.96 }, { x: 0, opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.4)" }, 3.4);
+
+          // same address
+          tap(193, 753, 4.9);
+          tl.to("#s3-pill .ring", { opacity: 1, duration: 0.15 }, 4.9);
+          tl.to("#s3-pill .ph", { opacity: 0, duration: 0.1 }, 5.0);
+          typed(q("#s3-pill .val"), "app.hauckmarketing.com", 5.1, 1.0, false);
+          tl.to("#s3-pill .ring", { opacity: 0, duration: 0.15 }, 6.2);
+          tl.to("#s3-start", { opacity: 0, duration: 0.3 }, 6.2);
+          tl.fromTo("#s3-login", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 6.25);
+
+          // same login
+          tap(193, 348, 6.8);
+          tl.to("#s3-em .fr", { opacity: 1, duration: 0.12 }, 6.8);
+          tl.to("#s3-em .ph", { opacity: 0, duration: 0.1 }, 6.9);
+          typed(q("#s3-em .val"), "you@yourcompany.com", 6.95, 0.55, false);
+          tap(193, 438, 7.6);
+          tl.to("#s3-em .fr", { opacity: 0, duration: 0.12 }, 7.6);
+          tl.to("#s3-pw .fr", { opacity: 1, duration: 0.12 }, 7.6);
+          tl.to("#s3-pw .ph", { opacity: 0, duration: 0.1 }, 7.68);
+          typed(q("#s3-pw .val"), "xxxxxxxxxx", 7.7, 0.3, true);
+          tl.to("#s3-btn", { backgroundColor: "#4f46e5", duration: 0.25 }, 8.0);
+          tap(193, 502, 8.35);
+          tl.to("#s3-btn", { scale: 0.96, duration: 0.09, yoyo: true, repeat: 1 }, 8.35);
+          tl.to("#s3-login", { opacity: 0, duration: 0.3 }, 8.65);
+          tl.fromTo("#s3-app", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 8.7);
+
+          // exit
+          tl.to(["#s3-phone", "#s3-bl", "#s3-br"], { x: -320, opacity: 0, duration: 0.5, ease: "power2.in", stagger: 0.04 }, 9.4);
+          window.__timelines["s3"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

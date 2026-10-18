@@ -45,6 +45,7 @@ function claim(body: string, grant: Grant | null = null): ClaimResponse {
       itemId: null,
       fromAgent: null,
       followUpOf: grant?.itemId ?? null,
+      answerOf: null,
       grant,
       error: null,
       createdAt: "2026-10-17T10:00:00Z",

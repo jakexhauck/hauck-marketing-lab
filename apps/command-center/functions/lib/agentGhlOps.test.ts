@@ -35,6 +35,7 @@ function msg(over: Partial<AgentMessage> = {}): AgentMessage {
     fromAgent: null,
     followUpOf: null,
     grant: null,
+    answerOf: null,
     error: null,
     createdAt: "2026-10-17T09:00:00.000Z",
     ...over,
@@ -54,6 +55,10 @@ const grant = { itemId: ITEM, kind: "ghl" as const, limit: null };
 describe("writeAllowed", () => {
   it("allows Jake's direct ask in an ordinary ghl chat", () => {
     expect(writeAllowed(msg(), chat())).toBe(true);
+  });
+
+  it("refuses another agent's answer, which reads like a direct ask but is not Jake", () => {
+    expect(writeAllowed(msg({ role: "request", fromAgent: "research", answerOf: ITEM }), chat())).toBe(false);
   });
 
   it("refuses an Auto chat, whatever the message says", () => {

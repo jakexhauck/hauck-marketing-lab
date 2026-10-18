@@ -73,7 +73,7 @@ export default function ChatThread({
         ) : (
           list.map((m) => {
             if (m.role === "request") {
-              const item = itemById(m.itemId);
+              const item = m.answerOf ? null : itemById(m.itemId);
               return (
                 <RequestCard
                   key={m.id}
@@ -82,7 +82,9 @@ export default function ChatThread({
                   now={now}
                   busy={actionBusy}
                   onAction={(action, note) => item && onAction(item.id, action, note)}
-                />
+                >
+                  {m.answerOf ? <Markdown text={m.body} /> : undefined}
+                </RequestCard>
               );
             }
             if (m.role === "me") return <MeMessage key={m.id} msg={m} />;

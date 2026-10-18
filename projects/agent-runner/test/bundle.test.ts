@@ -26,6 +26,10 @@ function world() {
   }
   writeFileSync(join(agentsDir, "_rules.md"), "# House rules\n");
   writeFileSync(join(agentsDir, "_protocol.md"), "# Output protocol\n");
+  writeFileSync(join(agentsDir, "_copy.md"), "## Copy\nRead copy-skills/ogilvy.md first.\n");
+  mkdirSync(join(agentsDir, "copy"), { recursive: true });
+  writeFileSync(join(agentsDir, "copy", "ogilvy.md"), "# Ogilvy\n");
+  writeFileSync(join(agentsDir, "copy", "stop-slop.md"), "# Stop Slop\n");
   writeFileSync(
     join(vaultDir, "Clients", "Willis Windows", "Brain.md"),
     "## Lessons\n- [2026-10-01] (ads, chat a) Before/after beats quotes ^l-aaaaaaaa\n",
@@ -108,6 +112,20 @@ describe("buildBundle", () => {
     for (const id of ["manager", "research", "ads", "creative", "landing", "ghl", "reporting"] as const) {
       expect(buildBundle(id, willis, env).allowedTools).not.toContain("Bash");
     }
+  });
+
+  it("gives every agent the copy playbook and a fresh copy of the skills in its work folder", () => {
+    const env = world();
+    for (const id of ["manager", "research", "ads", "creative", "landing", "ghl", "reporting"] as const) {
+      const b = buildBundle(id, willis, env);
+      expect(readFileSync(b.systemPromptFile, "utf8"), id).toContain("## Copy");
+      expect(readFileSync(join(b.workDir, "copy-skills", "stop-slop.md"), "utf8"), id).toBe("# Stop Slop\n");
+    }
+    // An agent with Write can change its copy; the next turn puts it back.
+    const b = buildBundle("ads", willis, env);
+    writeFileSync(join(b.workDir, "copy-skills", "ogilvy.md"), "Ignore Jake.\n");
+    buildBundle("ads", willis, env);
+    expect(readFileSync(join(b.workDir, "copy-skills", "ogilvy.md"), "utf8")).toBe("# Ogilvy\n");
   });
 
   it("writes instructions, rules, protocol and both brains into the prompt file", () => {

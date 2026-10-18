@@ -52,6 +52,10 @@ export interface AgentMessage {
   // and the grant when that click was Approve. Null on a message Jake typed.
   followUpOf: string | null;
   grant: Grant | null;
+  // request: set on an answer, the request card it answers. Queued in the
+  // asking agent's chat and run like Jake's message, but never role "me", so
+  // no "Jake asked" gate (GHL writes, Meta changes) opens for it.
+  answerOf: string | null;
   error: string | null;
   createdAt: string;
 }
@@ -135,6 +139,13 @@ export interface ClaimResponse {
 export interface SopStage {
   name: string;
   tasks: { name: string; owner: "agent" | "jake" | "client"; steps: string[] }[];
+}
+
+// The runner's reply to an approved request, for the agent that asked
+// (POST /api/agent-runner/answer). messageId is the claimed follow-up.
+export interface AnswerBody {
+  messageId: string;
+  body: string;
 }
 
 export interface ReplyBody {

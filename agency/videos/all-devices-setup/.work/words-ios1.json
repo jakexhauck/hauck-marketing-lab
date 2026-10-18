@@ -1,0 +1,134 @@
+[
+  {
+    "id": "w0",
+    "text": "On",
+    "start": 0,
+    "end": 0.24
+  },
+  {
+    "id": "w1",
+    "text": "iPhone,",
+    "start": 0.24,
+    "end": 1.04
+  },
+  {
+    "id": "w2",
+    "text": "open",
+    "start": 1.04,
+    "end": 1.44
+  },
+  {
+    "id": "w3",
+    "text": "Safari.",
+    "start": 1.44,
+    "end": 2.48
+  },
+  {
+    "id": "w4",
+    "text": "Tap",
+    "start": 2.48,
+    "end": 2.88
+  },
+  {
+    "id": "w5",
+    "text": "the",
+    "start": 2.88,
+    "end": 3.04
+  },
+  {
+    "id": "w6",
+    "text": "address",
+    "start": 3.04,
+    "end": 3.44
+  },
+  {
+    "id": "w7",
+    "text": "bar",
+    "start": 3.44,
+    "end": 3.68
+  },
+  {
+    "id": "w8",
+    "text": "and",
+    "start": 3.76,
+    "end": 4
+  },
+  {
+    "id": "w9",
+    "text": "type",
+    "start": 4,
+    "end": 4.32
+  },
+  {
+    "id": "w10",
+    "text": "app.hockmarketing.com.",
+    "start": 4.32,
+    "end": 6.88
+  },
+  {
+    "id": "w11",
+    "text": "Then",
+    "start": 6.88,
+    "end": 7.2
+  },
+  {
+    "id": "w12",
+    "text": "sign",
+    "start": 7.2,
+    "end": 7.52
+  },
+  {
+    "id": "w13",
+    "text": "in",
+    "start": 7.68,
+    "end": 7.84
+  },
+  {
+    "id": "w14",
+    "text": "with",
+    "start": 7.84,
+    "end": 8.08
+  },
+  {
+    "id": "w15",
+    "text": "the",
+    "start": 8.08,
+    "end": 8.24
+  },
+  {
+    "id": "w16",
+    "text": "email",
+    "start": 8.24,
+    "end": 8.72
+  },
+  {
+    "id": "w17",
+    "text": "and",
+    "start": 8.72,
+    "end": 8.88
+  },
+  {
+    "id": "w18",
+    "text": "password",
+    "start": 8.88,
+    "end": 9.44
+  },
+  {
+    "id": "w19",
+    "text": "we",
+    "start": 9.44,
+    "end": 9.6
+  },
+  {
+    "id": "w20",
+    "text": "sent",
+    "start": 9.6,
+    "end": 9.84
+  },
+  {
+    "id": "w21",
+    "text": "you.",
+    "start": 9.84,
+    "end": 10.16
+  }
+]

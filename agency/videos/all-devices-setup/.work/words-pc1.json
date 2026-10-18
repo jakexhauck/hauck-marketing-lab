@@ -1,0 +1,68 @@
+[
+  {
+    "id": "w0",
+    "text": "On",
+    "start": 0,
+    "end": 0.24
+  },
+  {
+    "id": "w1",
+    "text": "your",
+    "start": 0.24,
+    "end": 0.48
+  },
+  {
+    "id": "w2",
+    "text": "computer,",
+    "start": 0.48,
+    "end": 1.12
+  },
+  {
+    "id": "w3",
+    "text": "open",
+    "start": 1.12,
+    "end": 1.52
+  },
+  {
+    "id": "w4",
+    "text": "any",
+    "start": 1.52,
+    "end": 1.76
+  },
+  {
+    "id": "w5",
+    "text": "web",
+    "start": 1.84,
+    "end": 1.92
+  },
+  {
+    "id": "w6",
+    "text": "browser,",
+    "start": 2.08,
+    "end": 2.72
+  },
+  {
+    "id": "w7",
+    "text": "and",
+    "start": 2.72,
+    "end": 2.88
+  },
+  {
+    "id": "w8",
+    "text": "go",
+    "start": 2.88,
+    "end": 3.04
+  },
+  {
+    "id": "w9",
+    "text": "to",
+    "start": 3.04,
+    "end": 3.2
+  },
+  {
+    "id": "w10",
+    "text": "app.hawkmarketing.com.",
+    "start": 3.2,
+    "end": 5.44
+  }
+]

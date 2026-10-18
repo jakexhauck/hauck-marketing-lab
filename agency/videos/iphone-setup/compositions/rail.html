@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #rail-root { position: absolute; inset: 0; }
+        #rail { position: absolute; left: 80px; top: 48px; display: flex; gap: 10px; }
+        .chip { position: relative; display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 18px 0 8px;
+          border-radius: 25px; border: 2px solid rgba(234, 245, 239, 0.16); background: rgba(10, 29, 25, 0.6); }
+        .chip-fill { position: absolute; inset: -2px; border-radius: 25px; background: #4dbb83; opacity: 0; }
+        .chip-n { position: relative; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+          font: 700 16px Inter, sans-serif; color: #eaf5ef; background: rgba(234, 245, 239, 0.12); }
+        .chip-n svg { position: absolute; left: 6px; top: 6px; width: 20px; height: 20px; opacity: 0; }
+        .chip-n .d { position: relative; }
+        .chip-l { position: relative; font: 700 19px Inter, sans-serif; color: #b9d3c8; letter-spacing: 0.01em; }
+      </style>
+      <div id="rail-root" data-composition-id="rail" data-width="1920" data-height="1080">
+        <div id="rail">
+          <div class="chip" id="chip1"><div class="chip-fill"></div><div class="chip-n"><span class="d">1</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="chip-l">Log in</div></div>
+          <div class="chip" id="chip2"><div class="chip-fill"></div><div class="chip-n"><span class="d">2</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="chip-l">Home Screen</div></div>
+          <div class="chip" id="chip3"><div class="chip-fill"></div><div class="chip-n"><span class="d">3</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="chip-l">Notifications</div></div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          // mounted at 5.4s; chapter times below are local (film time minus the mount)
+          const tl = gsap.timeline({ paused: true });
+          const O = 5.4;
+          tl.fromTo("#rail", { y: -30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 0.1);
+          tl.fromTo("#rail .chip", { y: -16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out", stagger: 0.07 }, 0.15);
+          const starts = [6, 19.5, 32.5].map((t) => t - O);
+          const ends = [19.5, 32.5, 47].map((t) => t - O);
+          starts.forEach((s, i) => {
+            const c = "#chip" + (i + 1);
+            const e = ends[i];
+            tl.to(c + " .chip-fill", { opacity: 1, duration: 0.35, ease: "power2.out" }, s);
+            tl.to(c + " .chip-l", { color: "#0a1d19", duration: 0.35, ease: "power2.out" }, s);
+            tl.to(c + " .chip-n", { backgroundColor: "rgba(10,29,25,0.16)", duration: 0.35 }, s);
+            tl.to(c + " .chip-n .d", { color: "#0a1d19", duration: 0.35 }, s);
+            tl.to(c, { scale: 1.06, duration: 0.18, ease: "power2.out", yoyo: true, repeat: 1 }, s);
+            // done: fill clears, the number becomes a green check
+            tl.to(c + " .chip-fill", { opacity: 0, duration: 0.35, ease: "power2.inOut" }, e);
+            tl.to(c + " .chip-l", { color: "#eaf5ef", duration: 0.35 }, e);
+            tl.to(c + " .chip-n", { backgroundColor: "#4dbb83", duration: 0.35 }, e);
+            tl.to(c + " .chip-n .d", { opacity: 0, duration: 0.2 }, e);
+            tl.fromTo(c + " .chip-n svg", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" }, e + 0.1);
+          });
+          tl.to("#rail", { y: -30, opacity: 0, duration: 0.45, ease: "power2.in" }, 47.1 - O);
+          window.__timelines["rail"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

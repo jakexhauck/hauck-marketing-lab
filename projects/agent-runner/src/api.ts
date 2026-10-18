@@ -10,6 +10,7 @@
 // instead of the network.
 
 import type {
+  AnswerBody,
   AutoChatBody,
   ClaimResponse,
   FileAssetBody,
@@ -41,6 +42,9 @@ export interface RunnerApi {
   brief(body: RunnerBriefBody): Promise<RunnerBriefResult>;
   // Boxes in the agent's own section(s). The app refuses any other label.
   tick(body: RunnerTickBody): Promise<RunnerTickResult>;
+  // An approved request's reply, back to the asking agent's chat. posted is
+  // false when there is nothing to answer (not approved, or already answered).
+  answer(body: AnswerBody): Promise<{ posted: boolean }>;
 }
 
 export interface ApiOptions {
@@ -93,5 +97,6 @@ export function createApi(opts: ApiOptions): RunnerApi {
       return { saved: status !== 409, section: data.section };
     },
     tick: (b) => call<RunnerTickResult>("POST", "tick", b),
+    answer: (b) => call<{ posted: boolean }>("POST", "answer", b),
   };
 }

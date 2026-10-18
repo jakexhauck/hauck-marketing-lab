@@ -19,7 +19,7 @@
 // the app's api/agent-runner/meta-ops.ts allows a change only under Jake's
 // Approve of a card that lists it.
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { agentDef, AGENTS } from "./agents.ts";
 import { readLessons } from "./brain.ts";
@@ -308,6 +308,7 @@ export function buildBundle(
     clientSection(env, agent, tenant, drive),
     readOr(join(env.agentsDir, "_rules.md")),
     readOr(join(env.agentsDir, "_protocol.md")),
+    readOr(join(env.agentsDir, "_copy.md")),
   ];
   if (tenant && brief.length) sections.push(briefSection(agent, brief));
   if (agent === "landing") sections.push(landingSection(join(env.workRoot, `landing-${tenant?.slug ?? "agency"}`), grant));
@@ -336,6 +337,7 @@ export function buildBundle(
   // the folder it runs in, so --resume only finds a chat from the same one.
   const workDir = join(env.workRoot, `${agent}-${tenant?.slug ?? "agency"}`);
   mkdirSync(workDir, { recursive: true });
+  copySkillsInto(env.agentsDir, workDir);
   // grant is read by the Landing and Creative branches. The GHL and Ads
   // Manager tools need none: their gates are on the server (the GHL one also
   // has to allow Jake's direct asks, which carry no grant).
@@ -353,6 +355,17 @@ export function buildBundle(
     bundle.mcpConfig = writeHiggsfieldConfig(join(env.outDir, `${agent}-${tenant?.slug ?? "agency"}.mcp.json`));
   }
   return bundle;
+}
+
+// The four copy skills (agents/copy, see its README) for every agent, whole,
+// read on demand per agents/_copy.md rather than pasted into every prompt.
+// agents/ is out of the agents' reach, so each turn gets a fresh copy in its
+// own work folder: anything an agent wrote over it lasts that turn and no more.
+export const COPY_DIR_NAME = "copy-skills";
+
+function copySkillsInto(agentsDir: string, workDir: string): void {
+  const from = join(agentsDir, "copy");
+  if (existsSync(from)) cpSync(from, join(workDir, COPY_DIR_NAME), { recursive: true, force: true });
 }
 
 // What this one turn may spend, in the prompt so the agent knows; the tool

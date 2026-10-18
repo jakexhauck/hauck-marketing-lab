@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #s1-root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+        #s1-stack { position: absolute; left: 0; right: 0; top: 190px; display: flex; flex-direction: column; align-items: center; }
+        #s1-iconwrap { position: relative; width: 200px; height: 200px; }
+        #s1-ring { position: absolute; left: -40px; top: -40px; width: 280px; height: 280px; border-radius: 50%; border: 3px solid #4dbb83; opacity: 0; }
+        #s1-icon { position: absolute; inset: 0; border-radius: 46px; overflow: hidden; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(77, 187, 131, 0.45); }
+        #s1-icon img { width: 100%; height: 100%; display: block; }
+        #s1-title { margin-top: 64px; font: 700 104px/1 Poppins, sans-serif; color: #eaf5ef; letter-spacing: -0.015em; display: flex; gap: 28px; }
+        #s1-title .w { display: block; }
+        #s1-title .g { color: #4dbb83; }
+        #s1-devs { margin-top: 58px; display: flex; gap: 22px; }
+        .s1-dev { display: flex; align-items: center; gap: 14px; height: 64px; padding: 0 26px; border-radius: 32px;
+          border: 2px solid rgba(77, 187, 131, 0.4); background: rgba(16, 48, 42, 0.7); font: 700 26px Inter, sans-serif; color: #eaf5ef; }
+        .s1-dev svg { width: 30px; height: 30px; }
+      </style>
+      <div id="s1-root" data-composition-id="s1" data-width="1920" data-height="1080">
+        <div id="s1-stack">
+          <div id="s1-iconwrap">
+            <div id="s1-ring"></div>
+            <div id="s1-icon"><img src="assets/hauck-icon.png" alt="" /></div>
+          </div>
+          <div id="s1-title"><span class="w">Hauck,</span><span class="w">on</span><span class="w">every</span><span class="w g">device.</span></div>
+          <div id="s1-devs">
+            <div class="s1-dev"><svg viewBox="0 0 32 32" fill="none" stroke="#4dbb83" stroke-width="2.6" stroke-linejoin="round"><rect x="5" y="6" width="22" height="15" rx="2"/><path d="M2 25h28"/></svg>Computer</div>
+            <div class="s1-dev"><svg viewBox="0 0 32 32" fill="none" stroke="#4dbb83" stroke-width="2.6" stroke-linejoin="round"><rect x="9" y="3" width="14" height="26" rx="3.5"/><path d="M14 7h4"/></svg>iPhone</div>
+            <div class="s1-dev"><svg viewBox="0 0 32 32" fill="none" stroke="#4dbb83" stroke-width="2.6" stroke-linejoin="round"><rect x="9" y="3" width="14" height="26" rx="2.5"/><circle cx="16" cy="7" r="1" fill="#4dbb83"/></svg>Android</div>
+          </div>
+        </div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        // icon lands with a soft spring, a ring blooms out of it
+        tl.fromTo("#s1-icon", { scale: 0.55, opacity: 0, rotation: -8 }, { scale: 1, opacity: 1, rotation: 0, duration: 0.9, ease: "back.out(1.7)" }, 0.15);
+        tl.fromTo("#s1-ring", { scale: 0.7, opacity: 0.9 }, { scale: 1.35, opacity: 0, duration: 1.1, ease: "power2.out" }, 0.5);
+        // headline words rise in sequence
+        tl.fromTo("#s1-title .w", { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out", stagger: 0.12 }, 0.75);
+        // device pills arrive as the line names them
+        tl.fromTo(".s1-dev", { y: 24, opacity: 0, scale: 0.94 }, { y: 0, opacity: 1, scale: 1, duration: 0.55, ease: "power3.out", stagger: 0.16 }, 1.9);
+        // a slow settle so the hold never freezes
+        tl.fromTo("#s1-stack", { scale: 1 }, { scale: 1.025, duration: 5, ease: "sine.inOut" }, 0.5);
+        // exit: lift and clear before the first chapter
+        tl.to("#s1-stack", { y: -60, opacity: 0, duration: 0.5, ease: "power2.in" }, 5.4);
+        window.__timelines["s1"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

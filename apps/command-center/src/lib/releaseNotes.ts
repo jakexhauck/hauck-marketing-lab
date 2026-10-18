@@ -39,6 +39,16 @@ export const RELEASES: Release[] = [
     ],
   },
   {
+    id: "2026-10-18-agent-copy-answers",
+    date: "18 October 2026",
+    title: "Agents write copy with four copy skills, and get answers back",
+    items: [
+      "Every agent writes ads, pages, texts and scripts through Ogilvy, Copywriting, Copy Editing and Stop Slop, in that order.",
+      "Each copy card shows, under every version, the promise it makes and the proof it uses.",
+      "When you approve one agent's request to another, the answer comes back to the chat that asked, marked Answer, and that agent carries on with it.",
+    ],
+  },
+  {
     id: "2026-10-17-sidebar-order",
     date: "17 October 2026",
     title: "The sidebar follows a lead's path",

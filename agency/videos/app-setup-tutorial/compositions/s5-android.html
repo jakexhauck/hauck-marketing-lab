@@ -1,0 +1,283 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #s5-root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+        #s5-note { left: 120px; top: 700px; width: 540px; opacity: 0; }
+        .s5-asb { position: absolute; left: 0; right: 0; top: 0; height: 44px; display: flex; justify-content: space-between; align-items: center;
+          padding: 0 26px; font: 700 15px Inter, sans-serif; color: #111; z-index: 40; }
+        .s5-asb.light { color: #fff; }
+        .s5-asb .r { display: flex; gap: 6px; }
+        .s5-asb .r i { width: 14px; height: 14px; border-radius: 3px; background: currentColor; }
+
+        /* Chrome */
+        #s5-top { position: absolute; left: 0; right: 0; top: 44px; height: 60px; background: #fff; border-bottom: 1px solid #e6e6e6; z-index: 20; }
+        #s5-top .home { position: absolute; left: 16px; top: 18px; width: 24px; height: 24px; }
+        #s5-top .pill { position: absolute; left: 52px; top: 8px; width: 250px; height: 44px; border-radius: 22px; background: #f1f3f4;
+          font: 400 15px/44px Inter, sans-serif; color: #202124; padding-left: 38px; white-space: nowrap; overflow: hidden; }
+        #s5-top .pill svg { position: absolute; left: 14px; top: 14px; width: 16px; height: 16px; }
+        #s5-top .tabs { position: absolute; left: 316px; top: 19px; width: 22px; height: 22px; border-radius: 5px; border: 2.5px solid #444;
+          font: 700 11px/17px Inter, sans-serif; text-align: center; color: #444; }
+        #s5-top .menu { position: absolute; left: 352px; top: 16px; width: 20px; height: 28px; display: flex; flex-direction: column; align-items: center; justify-content: space-around; }
+        #s5-top .menu i { width: 5px; height: 5px; border-radius: 50%; background: #444; }
+        #s5-pagewrap { position: absolute; left: 0; right: 0; top: 50px; bottom: 0; overflow: hidden; }
+
+        #s5-menu { position: absolute; left: 160px; top: 50px; width: 216px; border-radius: 10px; background: #fff; z-index: 30; overflow: hidden;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); transform-origin: 100% 0; opacity: 0; }
+        #s5-menu .ico { height: 48px; display: flex; justify-content: space-around; align-items: center; padding: 0 6px; border-bottom: 1px solid #eee; }
+        #s5-menu .ico i { width: 18px; height: 18px; border-radius: 4px; border: 2px solid #555; }
+        #s5-menu .it { position: relative; height: 42px; padding: 0 18px; font: 400 15px/42px Inter, sans-serif; color: #202124; }
+        #s5-menu .it .hi { position: absolute; inset: 0; background: #e8eaed; opacity: 0; }
+        #s5-menu .it span { position: relative; }
+
+        #s5-sdim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); opacity: 0; z-index: 50; }
+        #s5-inst { position: absolute; left: 34px; top: 300px; width: 318px; border-radius: 28px; background: #f3f5f4; padding: 26px 24px 18px; z-index: 51; opacity: 0; }
+        #s5-inst .t { font: 400 22px Inter, sans-serif; color: #1b1c1c; }
+        #s5-inst .r { margin-top: 18px; display: flex; gap: 14px; align-items: center; }
+        #s5-inst .r .ic { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; flex: none; }
+        #s5-inst .r .ic img { width: 100%; height: 100%; display: block; }
+        #s5-inst .r b { display: block; font: 700 16px Inter, sans-serif; color: #1b1c1c; }
+        #s5-inst .r small { display: block; margin-top: 3px; font: 400 13px Inter, sans-serif; color: #44474c; }
+        #s5-inst .bt { margin-top: 22px; display: flex; justify-content: flex-end; gap: 6px; }
+        #s5-inst .bt span { height: 40px; padding: 0 16px; border-radius: 20px; font: 700 14px/40px Inter, sans-serif; color: #0b57d0; }
+
+        /* home */
+        #s5-home .glance { position: absolute; left: 30px; top: 70px; font: 400 18px Inter, sans-serif; color: #fff; }
+        #s5-home .search { position: absolute; left: 24px; right: 24px; bottom: 30px; height: 52px; border-radius: 26px; background: rgba(255, 255, 255, 0.85); }
+        .s5-ic { position: absolute; width: 60px; height: 60px; border-radius: 50%; }
+        #s5-hico { position: absolute; left: 207px; top: 340px; width: 60px; height: 60px; border-radius: 50%; overflow: hidden; }
+        #s5-hico img { width: 100%; height: 100%; display: block; }
+        #s5-hring { position: absolute; left: 207px; top: 340px; width: 60px; height: 60px; border-radius: 50%; border: 3px solid #4dbb83; opacity: 0; }
+
+        /* permission */
+        #s5-pdim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); opacity: 0; z-index: 60; }
+        #s5-perm { position: absolute; left: 30px; top: 250px; width: 326px; border-radius: 28px; background: #f3f5f4; padding: 24px 22px 20px; z-index: 61; opacity: 0; text-align: center; }
+        #s5-perm .bl { width: 30px; height: 30px; margin: 0 auto; }
+        #s5-perm .t { margin-top: 16px; font: 400 21px/1.3 Inter, sans-serif; color: #1b1c1c; }
+        #s5-perm .t b { font-weight: 700; }
+        #s5-perm .b { margin-top: 22px; height: 46px; border-radius: 23px; font: 700 15px/46px Inter, sans-serif; }
+        #s5-perm .b.y { background: #d3e3fd; color: #041e49; }
+        #s5-perm .b.n { margin-top: 8px; background: #e3e7e6; color: #1b1c1c; }
+      </style>
+      <div id="s5-root" data-composition-id="s5" data-width="1920" data-height="1080">
+        <div class="h-left" id="s5-left">
+          <div class="hl-block" id="s5-h1"><div class="kicker">Android</div><div class="headline">Add Hauck to your Home screen</div><div class="rule"></div></div>
+          <div class="hl-block" id="s5-h2" style="opacity:0"><div class="kicker">Android</div><div class="headline">Turn on notifications</div><div class="rule"></div></div>
+        </div>
+        <div class="callout" id="s5-note">Some phones say <b>Install app</b> instead. Same thing.</div>
+
+        <div class="steps" id="s5-steps">
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">1</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Tap the three dots</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">2</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Add to Home screen</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">3</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Tap Install</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">4</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Open Hauck</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">5</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Tap Turn on</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">6</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Tap Allow</div></div>
+        </div>
+
+        <div class="phone android" id="s5-phone"><div class="screen" id="s5-scr" data-layout-allow-overlap data-layout-allow-occlusion data-layout-allow-overflow>
+          <div class="punch"></div>
+
+          <div class="layer" id="s5-chrome" style="background:#fff">
+            <div id="s5-pagewrap"><div class="app">
+              <div class="app-top"><div class="logo"></div><div class="t">Home</div></div>
+              <div class="ncard"><div class="row"><div class="bell"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div><div class="ttl">Turn on notifications</div></div><div class="btns"><div class="on">Turn on</div><div class="off">Not now</div></div></div>
+              <div class="sk" style="top:278px;height:120px"><i style="top:20px;width:120px"></i><i style="top:52px;width:220px;background:#f0f1f6"></i><i style="top:80px;width:180px;background:#f0f1f6"></i></div>
+              <div class="sk" style="top:414px;height:120px"><i style="top:20px;width:150px"></i><i style="top:52px;width:200px;background:#f0f1f6"></i><i style="top:80px;width:240px;background:#f0f1f6"></i></div>
+            </div></div>
+            <div id="s5-top">
+              <svg class="home" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>
+              <div class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2.4"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>app.hauckmarketing.com</div>
+              <div class="tabs">1</div>
+              <div class="menu" id="s5-dots"><i></i><i></i><i></i></div>
+            </div>
+            <div class="s5-asb"><span>9:41</span><span class="r"><i></i><i></i></span></div>
+            <div id="s5-menu">
+              <div class="ico"><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="it"><span>New tab</span></div>
+              <div class="it"><span>New Incognito tab</span></div>
+              <div class="it"><span>History</span></div>
+              <div class="it"><span>Bookmarks</span></div>
+              <div class="it"><span>Recent tabs</span></div>
+              <div class="it"><span>Share</span></div>
+              <div class="it"><span>Find in page</span></div>
+              <div class="it" id="s5-ahs"><div class="hi"></div><span>Add to Home screen</span></div>
+              <div class="it"><span>Settings</span></div>
+            </div>
+            <div id="s5-sdim"></div>
+            <div id="s5-inst">
+              <div class="t">Install app</div>
+              <div class="r"><div class="ic"><img src="assets/hauck-icon.png" alt="" /></div><div><b>Hauck</b><small>app.hauckmarketing.com</small></div></div>
+              <div class="bt"><span>Cancel</span><span id="s5-install">Install</span></div>
+            </div>
+          </div>
+
+          <div class="layer" id="s5-home">
+            <div class="wall" style="background:radial-gradient(130% 90% at 80% 0%, #3d6e8f 0%, #1c3d55 45%, #0d1d2c 100%)"></div>
+            <div class="s5-asb light"><span>9:41</span><span class="r"><i></i><i></i></span></div>
+            <div class="glance">Friday, Oct 10</div>
+            <div id="s5-grid"></div>
+            <div id="s5-hico"><img src="assets/hauck-icon.png" alt="" /></div>
+            <div class="icon-l" id="s5-hlab" style="left:207px;top:406px">Hauck</div>
+            <div id="s5-hring"></div>
+            <div class="search"></div>
+          </div>
+
+          <div class="layer" id="s5-app" style="transform-origin:237px 370px">
+            <div class="app">
+              <div class="app-top" style="top:44px"><div class="logo"></div><div class="t">Home</div></div>
+              <div class="ncard" id="s5-ncard" style="top:126px"><div class="row"><div class="bell"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div><div class="ttl">Turn on notifications</div></div><div class="btns"><div class="on" id="s5-on">Turn on</div><div class="off">Not now</div></div></div>
+              <div class="sk" id="s5-sk1" style="top:268px;height:120px"><i style="top:20px;width:120px"></i><i style="top:52px;width:220px;background:#f0f1f6"></i><i style="top:80px;width:180px;background:#f0f1f6"></i></div>
+              <div class="sk" id="s5-sk2" style="top:404px;height:120px"><i style="top:20px;width:150px"></i><i style="top:52px;width:200px;background:#f0f1f6"></i><i style="top:80px;width:240px;background:#f0f1f6"></i></div>
+            </div>
+            <div class="s5-asb"><span>9:41</span><span class="r"><i></i><i></i></span></div>
+            <div id="s5-pdim"></div>
+            <div id="s5-perm">
+              <svg class="bl" viewBox="0 0 24 24" fill="none" stroke="#0b57d0" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              <div class="t">Allow <b>Hauck</b> to send you notifications?</div>
+              <div class="b y" id="s5-allow">Allow</div>
+              <div class="b n">Don’t allow</div>
+            </div>
+          </div>
+        </div></div>
+
+        <audio id="s5-a1" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="2.5" data-track-index="19" data-volume="0.5"></audio>
+        <audio id="s5-a2" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="4.9" data-track-index="19" data-volume="0.5"></audio>
+        <audio id="s5-a3" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="7.9" data-track-index="19" data-volume="0.5"></audio>
+        <audio id="s5-a4" src="assets/sfx/pop.mp3" data-duration="0.72" data-start="8.85" data-track-index="19" data-volume="0.35"></audio>
+        <audio id="s5-a5" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="11.4" data-track-index="19" data-volume="0.5"></audio>
+        <audio id="s5-a6" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="13.3" data-track-index="19" data-volume="0.5"></audio>
+        <audio id="s5-a7" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="14.1" data-track-index="19" data-volume="0.55"></audio>
+        <audio id="s5-a8" src="assets/sfx/pop.mp3" data-duration="0.72" data-start="14.25" data-track-index="20" data-volume="0.25"></audio>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          const q = (s) => document.querySelector(s);
+          const scr = q("#s5-scr");
+          function tap(x, y, t) {
+            const f = document.createElement("div");
+            f.className = "finger";
+            f.style.left = x + "px";
+            f.style.top = y + "px";
+            const r = document.createElement("div");
+            r.className = "tap";
+            r.style.left = x + "px";
+            r.style.top = y + "px";
+            scr.appendChild(r);
+            scr.appendChild(f);
+            tl.fromTo(f, { opacity: 0, scale: 1.3 }, { opacity: 1, scale: 1, duration: 0.16, ease: "power2.out", immediateRender: false }, t - 0.16);
+            tl.to(f, { opacity: 0, scale: 0.9, duration: 0.2, ease: "power2.in" }, t + 0.18);
+            tl.fromTo(r, { opacity: 0.95, scale: 0.4 }, { opacity: 0, scale: 1.7, duration: 0.55, ease: "power2.out", immediateRender: false }, t);
+          }
+          const steps = document.querySelectorAll("#s5-steps .step");
+          function stepOn(i, t) {
+            const s = steps[i];
+            tl.to(s.querySelector(".hl"), { opacity: 1, duration: 0.3, ease: "power2.out" }, t);
+            tl.to(s.querySelector(".txt"), { color: "#eaf5ef", duration: 0.3 }, t);
+            tl.to(s.querySelector(".num"), { borderColor: "#4dbb83", duration: 0.3 }, t);
+            tl.to(s.querySelector(".d"), { color: "#4dbb83", duration: 0.3 }, t);
+            tl.to(s, { x: -10, duration: 0.3, ease: "power2.out" }, t);
+          }
+          function stepDone(i, t) {
+            const s = steps[i];
+            tl.to(s.querySelector(".hl"), { opacity: 0, duration: 0.3 }, t);
+            tl.to(s, { x: 0, duration: 0.3, ease: "power2.inOut" }, t);
+            tl.to(s.querySelector(".nf"), { opacity: 1, duration: 0.2 }, t);
+            tl.to(s.querySelector(".d"), { opacity: 0, duration: 0.15 }, t);
+            tl.fromTo(s.querySelector(".num svg"), { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2.2)" }, t + 0.05);
+            tl.to(s.querySelector(".txt"), { color: "#b9d3c8", duration: 0.3 }, t);
+          }
+
+          // generic round home screen apps, no brands
+          const apps = ["#ffffff", "#f5a524", "#8e8e93", "#3b9bff", "#ffd23f", "#34a853", "#ea4335", "#4fb3f6", "#30c48d", "#5f6368"];
+          const names = ["Calendar", "Photos", "Camera", "Mail", "Notes", "Phone", "Clock", "Weather", "Maps", "Settings"];
+          const cols = [31, 119, 207, 295], rows = [140, 240, 340];
+          const grid = q("#s5-grid");
+          apps.forEach((c, i) => {
+            const x = cols[i % 4], y = rows[Math.floor(i / 4)];
+            const ic = document.createElement("div");
+            ic.className = "s5-ic"; ic.style.left = x + "px"; ic.style.top = y + "px"; ic.style.background = c;
+            const lb = document.createElement("div");
+            lb.className = "icon-l"; lb.style.left = x + "px"; lb.style.top = (y + 66) + "px"; lb.textContent = names[i];
+            grid.appendChild(ic); grid.appendChild(lb);
+          });
+
+          gsap.set("#s5-home", { opacity: 0 });
+          gsap.set("#s5-app", { opacity: 0, scale: 0.16 });
+
+          // establish
+          tl.fromTo("#s5-phone", { x: 300, opacity: 0 }, { x: 0, opacity: 1, duration: 0.75, ease: "power3.out" }, 0);
+          tl.fromTo("#s5-h1 > *", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", stagger: 0.1 }, 0.35);
+          tl.fromTo("#s5-h1 .rule", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power3.out" }, 0.6);
+          tl.fromTo("#s5-steps .step", { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out", stagger: 0.07 }, 0.6);
+
+          // 1 three dots
+          stepOn(0, 1.9);
+          tap(362, 74, 2.5);
+          tl.fromTo("#s5-menu", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power3.out" }, 2.6);
+          stepDone(0, 2.8);
+
+          // 2 add to home screen
+          stepOn(1, 4.2);
+          tap(268, 413, 4.9);
+          tl.to("#s5-ahs .hi", { opacity: 1, duration: 0.1 }, 4.9);
+          tl.to("#s5-menu", { opacity: 0, duration: 0.2 }, 5.15);
+          tl.to("#s5-sdim", { opacity: 1, duration: 0.25 }, 5.2);
+          tl.fromTo("#s5-inst", { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out" }, 5.25);
+          stepDone(1, 5.2);
+          tl.fromTo("#s5-note", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 5.9);
+
+          // 3 install
+          stepOn(2, 7.2);
+          tap(287, 461, 7.9);
+          stepDone(2, 8.1);
+          tl.to("#s5-chrome", { opacity: 0, scale: 0.94, duration: 0.4, ease: "power2.in" }, 8.1);
+          tl.to("#s5-home", { opacity: 1, duration: 0.4 }, 8.3);
+          tl.fromTo("#s5-hico", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(2)" }, 8.8);
+          tl.fromTo("#s5-hlab", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 9.1);
+          tl.fromTo("#s5-hring", { scale: 1, opacity: 0.9 }, { scale: 1.9, opacity: 0, duration: 0.8, ease: "power2.out" }, 9.05);
+          tl.to("#s5-note", { y: -10, opacity: 0, duration: 0.35, ease: "power2.in" }, 10.4);
+
+          // headline swaps
+          tl.to("#s5-h1", { y: -30, opacity: 0, duration: 0.4, ease: "power2.in" }, 10.9);
+          tl.fromTo("#s5-h2", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power3.out" }, 11.2);
+          tl.fromTo("#s5-h2 .rule", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power3.out" }, 11.35);
+
+          // 4 open
+          stepOn(3, 10.9);
+          tap(237, 370, 11.4);
+          tl.to("#s5-hico", { scale: 0.9, duration: 0.1, yoyo: true, repeat: 1 }, 11.4);
+          tl.to("#s5-app", { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 11.55);
+          stepDone(3, 11.6);
+          tl.set("#s5-home", { opacity: 0 }, 12.05);
+
+          // 5 turn on
+          stepOn(4, 12.6);
+          tap(143, 214, 13.3);
+          tl.to("#s5-on", { scale: 0.96, duration: 0.09, yoyo: true, repeat: 1 }, 13.3);
+          stepDone(4, 13.45);
+          tl.to("#s5-pdim", { opacity: 1, duration: 0.25 }, 13.5);
+          tl.fromTo("#s5-perm", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 13.5);
+
+          // 6 allow
+          stepOn(5, 13.7);
+          tap(193, 420, 14.1);
+          tl.to("#s5-perm", { opacity: 0, y: 20, duration: 0.25, ease: "power2.in" }, 14.2);
+          tl.to("#s5-pdim", { opacity: 0, duration: 0.25 }, 14.2);
+          tl.to("#s5-ncard", { opacity: 0, scale: 0.94, duration: 0.3, ease: "power2.in" }, 14.45);
+          tl.to(["#s5-sk1", "#s5-sk2"], { y: -142, duration: 0.5, ease: "power3.inOut" }, 14.6);
+          stepDone(5, 14.3);
+
+          tl.fromTo("#s5-phone", { y: 0 }, { y: -8, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 14.7);
+
+          // exit
+          tl.to(["#s5-phone", "#s5-left", "#s5-steps"], { x: -320, opacity: 0, duration: 0.55, ease: "power2.in", stagger: 0.04 }, 16.9);
+          window.__timelines["s5"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

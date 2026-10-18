@@ -1,0 +1,263 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #s2-root { position: absolute; inset: 0; font-family: Inter, sans-serif; overflow: hidden; }
+        #s2-cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+        #s2-lap { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+        #s2-lid { position: absolute; left: 370px; top: 70px; width: 1180px; height: 748px; border-radius: 26px 26px 12px 12px; padding: 14px;
+          background: linear-gradient(170deg, #2a3a35, #141c1a); box-shadow: 0 40px 90px rgba(0, 0, 0, 0.5), inset 0 0 0 2px #3a5750; }
+        #s2-disp { position: relative; width: 1152px; height: 720px; border-radius: 8px; overflow: hidden; background: #fff; }
+        #s2-base { position: absolute; left: 280px; top: 818px; width: 1360px; height: 26px; border-radius: 4px 4px 22px 22px;
+          background: linear-gradient(180deg, #3b4f49, #1c2724); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45); }
+        #s2-notch { position: absolute; left: 870px; top: 818px; width: 180px; height: 9px; border-radius: 0 0 10px 10px; background: #15201d; }
+
+        #s2-br { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; transform: scale(0.9); transform-origin: 0 0; background: #fff; }
+        #s2-tabs { position: absolute; left: 0; top: 0; right: 0; height: 40px; background: #dfe3e8; }
+        #s2-tab { position: absolute; left: 10px; top: 8px; width: 250px; height: 32px; border-radius: 10px 10px 0 0; background: #fff;
+          display: flex; align-items: center; gap: 8px; padding: 0 12px; font: 400 13px Inter, sans-serif; color: #202124; }
+        #s2-tab .fav { width: 16px; height: 16px; border-radius: 4px; overflow: hidden; flex: none; }
+        #s2-tab .fav img { width: 100%; height: 100%; display: block; }
+        #s2-tab .tt { position: relative; height: 16px; flex: 1; }
+        #s2-tab .tt span { position: absolute; left: 0; top: 0; white-space: nowrap; }
+        #s2-bar { position: absolute; left: 0; right: 0; top: 40px; height: 48px; background: #fff; border-bottom: 1px solid #e3e6ea; }
+        #s2-nav { position: absolute; left: 16px; top: 14px; display: flex; gap: 18px; }
+        #s2-nav svg { width: 20px; height: 20px; }
+        #s2-url { position: absolute; left: 130px; top: 7px; width: 1000px; height: 34px; border-radius: 17px; background: #f1f3f4; }
+        #s2-url .ring { position: absolute; inset: -2px; border-radius: 19px; border: 2px solid #1a73e8; opacity: 0; }
+        #s2-lock { position: absolute; left: 14px; top: 9px; width: 16px; height: 16px; opacity: 0; }
+        #s2-urltext { position: absolute; left: 40px; top: 7px; font: 400 15px/20px Inter, sans-serif; color: #202124; white-space: nowrap; }
+        #s2-urltext .c { display: none; }
+        .s2-caret { display: inline-block; width: 2px; height: 18px; background: #1a73e8; vertical-align: -3px; margin-left: 1px; }
+        #s2-star { position: absolute; left: 958px; top: 7px; width: 20px; height: 20px; }
+        #s2-star .fill { opacity: 0; }
+        #s2-prof { position: absolute; left: 1232px; top: 11px; width: 26px; height: 26px; border-radius: 50%; background: #4dbb83; }
+
+        #s2-page { position: absolute; left: 0; top: 88px; width: 1280px; height: 712px; overflow: hidden; }
+        #s2-newtab { position: absolute; inset: 0; background: #fff; }
+        #s2-newtab .q { position: absolute; left: 340px; top: 300px; width: 600px; height: 46px; border-radius: 23px; border: 1px solid #dfe1e5; }
+
+        #s2-login { position: absolute; inset: 0; opacity: 0; }
+        #s2-left { position: absolute; left: 0; top: 0; width: 640px; height: 712px;
+          background: radial-gradient(120% 90% at 85% 100%, #8a80f2 0%, #5e55e8 45%, #4f46e5 100%); }
+        #s2-left h2 { position: absolute; left: 32px; top: 300px; width: 440px; font: 700 40px/1.08 Poppins, sans-serif; color: #fff; }
+        #s2-left p { position: absolute; left: 32px; top: 400px; font: 400 15px Inter, sans-serif; color: rgba(255, 255, 255, 0.85); }
+        #s2-left small { position: absolute; left: 32px; bottom: 30px; font: 400 11px Inter, sans-serif; color: rgba(255, 255, 255, 0.7); }
+        #s2-right { position: absolute; left: 640px; top: 0; width: 640px; height: 712px; background: #f6f7fb; }
+        #s2-card { position: absolute; left: 120px; top: 150px; width: 400px; padding: 28px; border-radius: 14px; background: #fff;
+          border: 1px solid #e6e8f0; box-shadow: 0 10px 30px rgba(20, 22, 31, 0.08); }
+        #s2-card h1 { font: 700 22px/1.25 Poppins, sans-serif; color: #14161f; text-align: center; height: 56px; }
+        .s2-lbl { margin-top: 22px; font: 700 12px Inter, sans-serif; color: #3b3f4c; height: 14px; }
+        .s2-lbl.b { margin-top: 16px; }
+        .s2-in { position: relative; margin-top: 8px; height: 44px; border-radius: 10px; border: 1px solid #d5d8e2; background: #fff; }
+        .s2-in .fr { position: absolute; inset: -1px; border-radius: 10px; border: 2px solid #4f46e5; opacity: 0; }
+        .s2-in .ph { position: absolute; left: 14px; top: 12px; font: 400 15px/20px Inter, sans-serif; color: #686c7c; }
+        .s2-in .val { position: absolute; left: 14px; top: 12px; font: 400 15px/20px Inter, sans-serif; color: #14161f; white-space: nowrap; }
+        .s2-in .val .c { display: none; }
+        #s2-btn { position: relative; margin-top: 16px; height: 44px; border-radius: 10px; background: #a7a2f2; color: #fff;
+          font: 700 14px Inter, sans-serif; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px rgba(79, 70, 229, 0.22); }
+        #s2-card hr { margin-top: 22px; border: 0; border-top: 1px solid #e6e8f0; }
+        #s2-card .adm { margin-top: 14px; text-align: center; font: 400 13px Inter, sans-serif; color: #555a6b; }
+
+        #s2-dash { position: absolute; inset: 0; opacity: 0; background: #f6f7fb; }
+        #s2-dash .side { position: absolute; left: 0; top: 0; width: 220px; height: 712px; background: #fff; border-right: 1px solid #e6e8f0; }
+        #s2-dash .side .lg { position: absolute; left: 20px; top: 22px; width: 34px; height: 34px; border-radius: 10px; background: #4f46e5; }
+        #s2-dash .side i { position: absolute; left: 20px; height: 12px; border-radius: 6px; background: #e8eaf2; }
+        #s2-dash h3 { position: absolute; left: 252px; top: 30px; font: 700 26px Poppins, sans-serif; color: #14161f; }
+        #s2-dash .card { position: absolute; border-radius: 14px; background: #fff; border: 1px solid #e6e8f0; }
+        #s2-dash .card i { position: absolute; left: 18px; height: 12px; border-radius: 6px; background: #e8eaf2; }
+        #s2-dash .card b { position: absolute; left: 18px; top: 44px; height: 26px; width: 90px; border-radius: 8px; background: #dedcfb; }
+
+        #s2-bub { position: absolute; left: 860px; top: 82px; width: 330px; padding: 18px; border-radius: 12px; background: #fff;
+          box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22); opacity: 0; transform-origin: 85% 0; }
+        #s2-bub .h { font: 700 16px Inter, sans-serif; color: #202124; }
+        #s2-bub .f { margin-top: 12px; font: 400 12px Inter, sans-serif; color: #5f6368; }
+        #s2-bub .v { margin-top: 4px; height: 32px; border-radius: 6px; border: 1px solid #dadce0; padding: 7px 10px; font: 400 13px Inter, sans-serif; color: #202124; }
+        #s2-bub .bt { margin-top: 14px; display: flex; justify-content: flex-end; gap: 8px; }
+        #s2-bub .bt span { height: 32px; padding: 0 16px; border-radius: 16px; font: 700 13px/32px Inter, sans-serif; }
+        #s2-bub .rm { color: #1a73e8; border: 1px solid #dadce0; }
+        #s2-bub .dn { color: #fff; background: #1a73e8; }
+
+        #s2-cur { position: absolute; left: 0; top: 0; width: 26px; height: 26px; opacity: 0; z-index: 30; transform-origin: 3px 2px; }
+        .s2-ring { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 3px solid #4dbb83; opacity: 0; z-index: 29; }
+      </style>
+      <div id="s2-root" data-composition-id="s2" data-width="1920" data-height="1080">
+        <div id="s2-cam">
+          <div id="s2-lap">
+            <div id="s2-lid"><div id="s2-disp">
+              <div id="s2-br">
+                <div id="s2-tabs"><div id="s2-tab"><div class="fav"><img src="assets/hauck-icon.png" alt="" /></div><div class="tt"><span id="s2-tt1">New Tab</span><span id="s2-tt2" style="opacity:0">Hauck Command Center</span></div></div></div>
+                <div id="s2-bar">
+                  <div id="s2-nav">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#b5b9be" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2.2" stroke-linecap="round"><path d="M19 12a7 7 0 1 1-2.05-4.95M19 4v4h-4"/></svg>
+                  </div>
+                  <div id="s2-url">
+                    <div class="ring"></div>
+                    <svg id="s2-lock" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                    <div id="s2-urltext"></div>
+                    <svg id="s2-star" viewBox="0 0 24 24"><path class="fill" d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z" fill="#1a73e8"/><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z" fill="none" stroke="#5f6368" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                  </div>
+                  <div id="s2-prof"></div>
+                </div>
+                <div id="s2-page">
+                  <div id="s2-newtab"><div class="q"></div></div>
+                  <div id="s2-login">
+                    <div id="s2-left"><h2>Your Business Command Center</h2><p>Your clients, your pipeline, one command center.</p><small>Secured by Hauck Marketing</small></div>
+                    <div id="s2-right"><div id="s2-card">
+                      <h1>Sign in with your email and password</h1>
+                      <div class="s2-lbl">Email</div>
+                      <div class="s2-in" id="s2-em"><div class="fr"></div><div class="ph">name@email.com</div><div class="val"></div></div>
+                      <div class="s2-lbl b">Password</div>
+                      <div class="s2-in" id="s2-pw"><div class="fr"></div><div class="ph">Enter password</div><div class="val"></div></div>
+                      <div id="s2-btn">Sign in</div>
+                      <hr /><div class="adm">Admin sign-in</div>
+                    </div></div>
+                  </div>
+                  <div id="s2-dash">
+                    <div class="side"><div class="lg"></div><i style="top:90px;width:140px"></i><i style="top:126px;width:110px"></i><i style="top:162px;width:150px"></i><i style="top:198px;width:120px"></i><i style="top:234px;width:100px"></i></div>
+                    <h3>Home</h3>
+                    <div class="card" style="left:252px;top:90px;width:300px;height:110px"><i style="top:20px;width:120px"></i><b></b></div>
+                    <div class="card" style="left:572px;top:90px;width:300px;height:110px"><i style="top:20px;width:100px"></i><b></b></div>
+                    <div class="card" style="left:892px;top:90px;width:300px;height:110px"><i style="top:20px;width:140px"></i><b></b></div>
+                    <div class="card" style="left:252px;top:222px;width:940px;height:440px"><i style="top:24px;width:200px"></i><i style="top:70px;width:860px;background:#f0f1f6"></i><i style="top:110px;width:860px;background:#f0f1f6"></i><i style="top:150px;width:860px;background:#f0f1f6"></i><i style="top:190px;width:860px;background:#f0f1f6"></i></div>
+                  </div>
+                </div>
+                <div id="s2-bub"><div class="h">Bookmark added</div><div class="f">Name</div><div class="v">Hauck Command Center</div><div class="f">Folder</div><div class="v">Bookmarks bar</div><div class="bt"><span class="rm">Remove</span><span class="dn">Done</span></div></div>
+                <svg id="s2-cur" viewBox="0 0 26 26"><path d="M3 2l17 10.5-7.3 1.6L9 21z" fill="#fff" stroke="#14161f" stroke-width="1.8" stroke-linejoin="round"/></svg>
+              </div>
+            </div></div>
+            <div id="s2-base"></div>
+            <div id="s2-notch"></div>
+          </div>
+        </div>
+
+        <audio id="s2-a1" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="2.05" data-track-index="13" data-volume="0.5"></audio>
+        <audio id="s2-a2" src="assets/sfx/typing.mp3" data-start="2.3" data-duration="1.5" data-track-index="14" data-volume="0.3"></audio>
+        <audio id="s2-a3" src="assets/sfx/typing.mp3" data-start="3.75" data-duration="0.8" data-track-index="13" data-volume="0.3"></audio>
+        <audio id="s2-a4" src="assets/sfx/key-press.mp3" data-duration="0.40" data-start="4.72" data-track-index="13" data-volume="0.45"></audio>
+        <audio id="s2-a5" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="7.5" data-track-index="13" data-volume="0.5"></audio>
+        <audio id="s2-a6" src="assets/sfx/typing.mp3" data-start="7.7" data-duration="0.9" data-track-index="14" data-volume="0.3"></audio>
+        <audio id="s2-a7" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="8.9" data-track-index="13" data-volume="0.5"></audio>
+        <audio id="s2-a8" src="assets/sfx/typing.mp3" data-start="9.0" data-duration="0.55" data-track-index="14" data-volume="0.3"></audio>
+        <audio id="s2-a9" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="9.9" data-track-index="13" data-volume="0.55"></audio>
+        <audio id="s2-a10" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="12.25" data-track-index="13" data-volume="0.5"></audio>
+        <audio id="s2-a11" src="assets/sfx/pop.mp3" data-duration="0.72" data-start="12.35" data-track-index="14" data-volume="0.3"></audio>
+        <audio id="s2-a12" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="14.4" data-track-index="13" data-volume="0.5"></audio>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          const q = (s) => document.querySelector(s);
+          const br = q("#s2-br");
+
+          // build typed text as hidden chars so every frame is seekable
+          function typed(container, text, t0, dur, mask) {
+            const chars = [];
+            for (const ch of text) {
+              const s = document.createElement("span");
+              s.className = "c";
+              s.textContent = mask ? "•" : ch;
+              container.appendChild(s);
+              chars.push(s);
+            }
+            chars.forEach((s, i) => tl.set(s, { display: "inline" }, t0 + (dur * i) / chars.length));
+            return chars;
+          }
+          function caret(container) {
+            const c = document.createElement("span");
+            c.className = "s2-caret";
+            container.appendChild(c);
+            return c;
+          }
+          function ring(x, y, t) {
+            const r = document.createElement("div");
+            r.className = "s2-ring";
+            r.style.left = x + "px";
+            r.style.top = y + "px";
+            br.appendChild(r);
+            tl.fromTo(r, { scale: 0.4, opacity: 0.95 }, { scale: 1.7, opacity: 0, duration: 0.55, ease: "power2.out", immediateRender: false }, t);
+          }
+          function click(x, y, t) {
+            tl.fromTo("#s2-cur", { scale: 1 }, { scale: 0.82, duration: 0.08, yoyo: true, repeat: 1, ease: "power1.inOut", immediateRender: false }, t);
+            ring(x, y, t);
+          }
+          // camera: origin 0 0, so x/y = target - s * point
+          function cam(t, s, x, y, d) {
+            tl.to("#s2-cam", { scale: s, x: x, y: y, duration: d || 0.8, ease: "power2.inOut" }, t);
+          }
+
+          // establish: laptop slides in from the right
+          tl.fromTo("#s2-lap", { x: 260, opacity: 0 }, { x: 0, opacity: 1, duration: 0.8, ease: "power3.out" }, 0);
+          gsap.set("#s2-cam", { scale: 1, x: 0, y: 0 });
+
+          // address bar: caret blinks, cursor clicks, the address types in
+          const urlBox = q("#s2-urltext");
+          typed(urlBox, "app.hauckmarketing.com", 2.3, 2.2, false);
+          const uc = caret(urlBox);
+          tl.fromTo(uc, { opacity: 0 }, { opacity: 1, duration: 0.01 }, 0.9);
+          tl.to(uc, { opacity: 0, duration: 0.25, yoyo: true, repeat: 3, ease: "steps(1)" }, 0.95);
+          tl.set(uc, { opacity: 1 }, 2.25);
+          tl.set(uc, { opacity: 0 }, 4.75);
+          cam(1.2, 2.1, -1037, 102);
+          tl.fromTo("#s2-cur", { x: 820, y: 360, opacity: 0 }, { x: 640, y: 66, opacity: 1, duration: 0.65, ease: "power2.inOut" }, 1.4);
+          click(630, 64, 2.05);
+          tl.to("#s2-url .ring", { opacity: 1, duration: 0.15 }, 2.05);
+          tl.to("#s2-cur", { x: 700, y: 120, opacity: 0, duration: 0.4, ease: "power2.in" }, 2.3);
+
+          // enter: the login page loads
+          tl.to("#s2-url .ring", { opacity: 0, duration: 0.2 }, 4.8);
+          tl.to("#s2-lock", { opacity: 1, duration: 0.2 }, 4.85);
+          tl.to("#s2-newtab", { opacity: 0, duration: 0.3 }, 4.85);
+          tl.fromTo("#s2-login", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 4.9);
+          tl.to("#s2-tt1", { opacity: 0, duration: 0.2 }, 4.9);
+          tl.to("#s2-tt2", { opacity: 1, duration: 0.2 }, 5.0);
+          cam(4.95, 1, 0, 0, 0.9);
+
+          // sign in: push onto the card
+          cam(6.4, 1.65, -1099, -335, 0.9);
+          tl.fromTo("#s2-cur", { x: 1180, y: 560, opacity: 0 }, { x: 965, y: 392, opacity: 1, duration: 0.55, ease: "power2.inOut", immediateRender: false }, 6.95);
+          click(960, 388, 7.5);
+          tl.to("#s2-em .fr", { opacity: 1, duration: 0.15 }, 7.5);
+          tl.to("#s2-em .ph", { opacity: 0, duration: 0.1 }, 7.65);
+          typed(q("#s2-em .val"), "you@yourcompany.com", 7.7, 0.8, false);
+          tl.to("#s2-cur", { y: 474, duration: 0.35, ease: "power2.inOut" }, 8.55);
+          click(960, 470, 8.9);
+          tl.to("#s2-em .fr", { opacity: 0, duration: 0.15 }, 8.9);
+          tl.to("#s2-pw .fr", { opacity: 1, duration: 0.15 }, 8.9);
+          tl.to("#s2-pw .ph", { opacity: 0, duration: 0.1 }, 8.98);
+          typed(q("#s2-pw .val"), "xxxxxxxxxx", 9.0, 0.5, true);
+          tl.to("#s2-btn", { backgroundColor: "#4f46e5", duration: 0.3 }, 9.45);
+          tl.to("#s2-cur", { y: 534, duration: 0.3, ease: "power2.inOut" }, 9.55);
+          click(960, 530, 9.9);
+          tl.to("#s2-btn", { scale: 0.96, duration: 0.09, yoyo: true, repeat: 1, ease: "power1.inOut" }, 9.9);
+
+          // signed in: the app opens, camera pulls back
+          tl.to("#s2-login", { opacity: 0, duration: 0.35 }, 10.25);
+          tl.fromTo("#s2-dash", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 10.3);
+          tl.to("#s2-cur", { opacity: 0, duration: 0.2 }, 10.3);
+          cam(10.3, 1, 0, 0, 0.85);
+
+          // bookmark: push to the star, click, the bubble confirms
+          cam(11.4, 2.0, -1598, 116, 0.8);
+          tl.fromTo("#s2-cur", { x: 1020, y: 200, opacity: 0 }, { x: 1098, y: 66, opacity: 1, duration: 0.5, ease: "power2.inOut", immediateRender: false }, 11.65);
+          click(1098, 64, 12.25);
+          tl.to("#s2-star .fill", { opacity: 1, duration: 0.15 }, 12.25);
+          tl.fromTo("#s2-bub", { opacity: 0, scale: 0.92, y: -8 }, { opacity: 1, scale: 1, y: 0, duration: 0.35, ease: "back.out(1.6)" }, 12.35);
+          tl.to("#s2-cur", { x: 1150, y: 268, duration: 0.5, ease: "power2.inOut" }, 13.8);
+          click(1150, 264, 14.4);
+          tl.to("#s2-bub", { opacity: 0, scale: 0.96, duration: 0.2, ease: "power2.in" }, 14.5);
+          tl.to("#s2-cur", { opacity: 0, duration: 0.2 }, 14.7);
+          cam(14.6, 1, 0, 0, 0.8);
+
+          // exit: push left
+          tl.to("#s2-lap", { x: -320, opacity: 0, duration: 0.55, ease: "power2.in" }, 15.9);
+          window.__timelines["s2"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

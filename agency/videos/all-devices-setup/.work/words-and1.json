@@ -1,0 +1,134 @@
+[
+  {
+    "id": "w0",
+    "text": "On",
+    "start": 0,
+    "end": 0.32
+  },
+  {
+    "id": "w1",
+    "text": "Android,",
+    "start": 0.32,
+    "end": 1.04
+  },
+  {
+    "id": "w2",
+    "text": "open",
+    "start": 1.04,
+    "end": 1.52
+  },
+  {
+    "id": "w3",
+    "text": "Chrome.",
+    "start": 1.52,
+    "end": 2.32
+  },
+  {
+    "id": "w4",
+    "text": "Tap",
+    "start": 2.32,
+    "end": 2.64
+  },
+  {
+    "id": "w5",
+    "text": "the",
+    "start": 2.64,
+    "end": 2.8
+  },
+  {
+    "id": "w6",
+    "text": "address",
+    "start": 2.8,
+    "end": 3.2
+  },
+  {
+    "id": "w7",
+    "text": "bar",
+    "start": 3.2,
+    "end": 3.52
+  },
+  {
+    "id": "w8",
+    "text": "and",
+    "start": 3.52,
+    "end": 3.76
+  },
+  {
+    "id": "w9",
+    "text": "type",
+    "start": 3.76,
+    "end": 4.08
+  },
+  {
+    "id": "w10",
+    "text": "app.hawkmarketing.com.",
+    "start": 4.08,
+    "end": 6.64
+  },
+  {
+    "id": "w11",
+    "text": "Then",
+    "start": 6.64,
+    "end": 7.04
+  },
+  {
+    "id": "w12",
+    "text": "sign",
+    "start": 7.04,
+    "end": 7.36
+  },
+  {
+    "id": "w13",
+    "text": "in",
+    "start": 7.36,
+    "end": 7.6
+  },
+  {
+    "id": "w14",
+    "text": "with",
+    "start": 7.6,
+    "end": 7.84
+  },
+  {
+    "id": "w15",
+    "text": "the",
+    "start": 7.84,
+    "end": 8
+  },
+  {
+    "id": "w16",
+    "text": "email",
+    "start": 8,
+    "end": 8.4
+  },
+  {
+    "id": "w17",
+    "text": "and",
+    "start": 8.4,
+    "end": 8.64
+  },
+  {
+    "id": "w18",
+    "text": "password",
+    "start": 8.64,
+    "end": 9.2
+  },
+  {
+    "id": "w19",
+    "text": "we",
+    "start": 9.2,
+    "end": 9.36
+  },
+  {
+    "id": "w20",
+    "text": "sent",
+    "start": 9.36,
+    "end": 9.6
+  },
+  {
+    "id": "w21",
+    "text": "you.",
+    "start": 9.6,
+    "end": 9.76
+  }
+]
