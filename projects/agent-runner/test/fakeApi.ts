@@ -4,6 +4,7 @@
 
 import type { RunnerApi } from "../src/api.ts";
 import type {
+  AnswerBody,
   AutoChatBody,
   ClaimResponse,
   FileAssetBody,
@@ -39,6 +40,7 @@ export interface FakeApi extends RunnerApi {
   ticks: RunnerTickBody[];
   // What the next tick post answers; every label ticked if unset.
   tickAnswer: ((b: RunnerTickBody) => RunnerTickResult) | null;
+  answers: AnswerBody[];
 }
 
 // The n-th card id the fake hands out: a real uuid shape, as the app's are.
@@ -61,6 +63,7 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     briefAnswer: null,
     ticks: [],
     tickAnswer: null,
+    answers: [],
     async claim() {
       return api.claims.shift() ?? null;
     },
@@ -104,6 +107,10 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
       api.ticks.push(b);
       if (api.tickAnswer) return api.tickAnswer(b);
       return { ticked: b.labels, refused: [] };
+    },
+    async answer(b) {
+      api.answers.push(b);
+      return { posted: true };
     },
   };
   return api;
