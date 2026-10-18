@@ -1,70 +1,83 @@
 # GHL Client Setup Checklist
 
 Same list for every new client. The snapshot comes from the Test Account (`yVfX127fswQ03fydxBQg`).
-Every workflow in the snapshot ships as a draft. Nothing sends until step 9.
+Every workflow in the snapshot ships as a draft. Nothing sends until Publish + test.
 
-## 1. Load
-- [ ] Load the client snapshot into the new sub-account
+This is the GHL map on Agents > SOPs, one section per box in the map's order, each line word for word
+from the box. `src/lib/ghlChecklistDoc.test.ts` fails if the two ever differ, so change the map
+(`src/lib/agentSops.ts`, GHL) and this file together.
 
-## 2. Account (Settings > Business Profile)
-- [ ] Timezone = the client's real timezone (Owensboro KY = Central, not Detroit)
-- [ ] Business address = the client's (not Allen Park)
-- [ ] Website = the client's real site
+## 1. Sub-account
+- [ ] Create the new sub-account
+- [ ] Load the Facebook Ads Client Snapshot 10/10
+- [ ] Business profile: the client's timezone, address and website (never Allen Park)
+- [ ] Delete every pipeline that is not Sales Pipeline (GHL adds a Marketing Pipeline with example deals)
+- [ ] Verify the email sending domain
+- [ ] Upload the client's media into the Media Library
 
-## 3. People and phone
-- [ ] Add Jake and the owner as staff; the owner's user has their real cell number (auto-calls ring this number)
-- [ ] Connect Facebook to GHL (pages + Instagram; needs Jake's login)
-- [ ] A2P submitted
-- [ ] Buy the local GHL number
+## 2. Staff added
+- [ ] Add Jake as staff
+- [ ] Add the owner as staff (email from the onboarding form) with their real cell number, the auto-calls ring it
+- [ ] Owner connects their Google Calendar, two-way
+
+## 3. Connect Facebook
+- [ ] Connect the client's Facebook and Instagram pages
+- [ ] Needs Jake's login, the agent cannot do this
+
+## 4. Custom values
+- [ ] Business Name, Business Owner First Name, Business Owner Full Name
+- [ ] Business Phone Number, GHL Phone Number
+- [ ] Facebook Access Token, Facebook Dataset ID (the client's own dataset, check its name in Events Manager)
+- [ ] Open Lead (from the app)
+- [ ] Recent Work, Owner Story, Unique Mechanism links, Conversion Asset Offer
+- [ ] Custom fields set
+- [ ] Buy and apply the subdomain for the conversion asset pages
+
+## 5. A2P submitted
+- [ ] Fill the A2P Wizard form from the onboarding form
+- [ ] Business profile emails from the wizard site
+- [ ] Trust Center > A2P Messaging > Start Registration
+- [ ] Low volume, manual setup, Local on the wizard
+- [ ] Tick every Business Website Compliance box
+- [ ] Pass the AI check, then submit
+
+## 6. Phone system
+- [ ] Buy a local number on the client's area code
 - [ ] Buy the Appointment Outcome number
 - [ ] Buy the Facebook Ad Speed to Lead number
 - [ ] Turn off message compliance (all 3 boxes, type CONFIRM)
 - [ ] Turn on call recording and transcription
 - [ ] Route calls to the owner's phone
-- [ ] Buy and apply the subdomain (conversion asset pages)
 
-## 4. Custom values (Settings > Custom Values)
-- [ ] Business Name
-- [ ] Business Owner First Name
-- [ ] Business Owner Full Name
-- [ ] Business Phone Number
-- [ ] GHL Phone Number
-- [ ] Facebook Access Token
-- [ ] Facebook Dataset ID (the CLIENT'S dataset, check the name in Events Manager)
-- [ ] Open Lead (from the app)
-- [ ] Recent Work, Owner Story, Unique Mechanism (conversion asset links)
-- [ ] Conversion Asset Offer
-- [ ] Custom fields set
+## 7. Calendars
+- [ ] Home Estimate, Job and Conversion Asset Calendar: hours set to the owner's real hours
+- [ ] Owner as team member on Home Estimate, Job and Conversion Asset Calendar
+- [ ] Phone Appointment: the owner's hours, or left unused if the client is form only
+- [ ] The asset calendar is named exactly Conversion Asset Calendar, the app finds it by name
 
-## 5. Calendars
-- [ ] Home Estimate, Conversion Asset Estimate, Job: hours = the owner's real hours
-- [ ] Phone Appointment: hours = the owner's real hours (or leave unused if the client is form only)
+## 8. Workflows
+- [ ] Rewrite every step named REWRITE: LF Follow Ups, LP Follow Ups (funnel only), Long Term Nurture, the 2 Unique Mechanism texts in Home Estimate Reminders
+- [ ] Swap every photo for the client's own job photos, then take REWRITE off each step name
+- [ ] Every Client alert, reminder and Track What Happened text goes to the owner
+- [ ] Every Agency alert goes to Jake
+- [ ] Owner in App Call, New Lead Auto Call and Phone Appointment Auto Call
 
-## 6. Meta wiring
-- [ ] LF Follow Ups trigger: client's Facebook Page + the live lead form
-- [ ] Conversions API (Leads) trigger: same Page + same form
-- [ ] Every new lead form the client runs gets added to BOTH triggers
+## 9. CAPI + Meta
+- [ ] LF Follow Ups trigger: the client's Page + their live lead form
+- [ ] Conversions API (Leads) trigger: the same Page + form
+- [ ] Every new lead form goes into both triggers
+- [ ] Conversions API (Schedules): fires on Home Estimate and Conversion Asset bookings
+- [ ] Token and dataset come from the custom values, never typed into a step
 
-## 7. Rewrite the client texts (every step named "REWRITE: ...")
-- [ ] LF Follow Ups: first text, photos, Recent Work, Owner Story, another-quote text, hail mary
-- [ ] LP Follow Ups: same set (only if the client has a funnel)
-- [ ] Long Term Nurture: 4 texts
-- [ ] Home Estimate Reminders: 2 Unique Mechanism texts
-- [ ] Swap every photo for the client's own job photos
-- [ ] Remove "REWRITE: " from each step name once it's done
+## 10. Jake review
+- [ ] Read every SMS against the custom values
+- [ ] No text that assumes an address we never asked for
 
-## 8. Who gets what
-- [ ] Every "Client" alert, reminder and "Track What Happened" text: owner
-- [ ] Every "Agency" alert: Jake
-- [ ] Assign user in App Call, New Lead Auto Call, Phone Appointment Auto Call: owner
-
-## 9. Publish
-- [ ] Publish all workflows (LP Follow Ups only if there is a funnel; Phone Appointment ones only if the client takes phone calls)
-- [ ] Delete any pipeline that is not "Sales Pipeline" (GHL adds a "Marketing Pipeline" with example deals)
-
-## 10. Test before ads go on
-- [ ] Submit the real lead form with your own phone: owner gets the New Lead text and the auto-call, opportunity lands in Sales Pipeline > Lead, you get the agency text
-- [ ] Meta Events Manager: a Lead event on the CLIENT'S dataset
+## 11. Publish + test
+- [ ] Publish every workflow (LP Follow Ups only with a funnel, the Phone Appointment ones only if they take calls)
+- [ ] Accounts page all green
+- [ ] Submit the real lead form with your own phone: owner text + auto-call, lead in Sales Pipeline > Lead, agency text
+- [ ] Events Manager: a Lead event on the client's dataset
 - [ ] Book a test estimate: confirmation text, owner alert, Schedule event on the client's dataset
 - [ ] Delete the test contact
-- [ ] Launch call: send a test text, client saves both outcome numbers in their phone
+- [ ] Launch call: send a test text, client saves both outcome numbers
