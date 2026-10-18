@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-18-ghl-sop-checklist",
+    date: "18 October 2026",
+    title: "The GHL SOP is the client setup checklist",
+    items: [
+      "The GHL map on the SOPs graph now runs the same setup list for every client, built on the cleaned client snapshot.",
+      "Two new boxes: Calendars, and Publish + test (yours), both on the GHL Director board too.",
+      "Phone system now buys all three numbers, and CAPI + Meta covers the lead form triggers.",
+    ],
+  },
+  {
     id: "2026-10-18-director",
     date: "18 October 2026",
     title: "Director: tell the agents what to do",

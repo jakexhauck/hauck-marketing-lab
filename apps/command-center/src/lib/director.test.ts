@@ -53,7 +53,8 @@ describe("taskSteps", () => {
   it("takes a linked task's steps from its graph box", () => {
     expect(taskSteps(task({ nodeId: "staff" }))).toEqual([
       "Add Jake as staff",
-      "Add the client as staff (email from the onboarding form)",
+      "Add the owner as staff (email from the onboarding form) with their real cell number, the auto-calls ring it",
+      "Owner connects their Google Calendar, two-way",
     ]);
   });
   it("reads an added task's approved steps, none for a draft", () => {

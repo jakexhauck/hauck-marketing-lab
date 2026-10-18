@@ -12,10 +12,16 @@ Every workflow in the snapshot ships as a draft. Nothing sends until step 9.
 - [ ] Website = the client's real site
 
 ## 3. People and phone
-- [ ] Add the owner as a user with their real cell number (auto-calls ring this number)
-- [ ] Buy the GHL number
-- [ ] Forward the GHL number to the owner's cell
-- [ ] A2P registered
+- [ ] Add Jake and the owner as staff; the owner's user has their real cell number (auto-calls ring this number)
+- [ ] Connect Facebook to GHL (pages + Instagram; needs Jake's login)
+- [ ] A2P submitted
+- [ ] Buy the local GHL number
+- [ ] Buy the Appointment Outcome number
+- [ ] Buy the Facebook Ad Speed to Lead number
+- [ ] Turn off message compliance (all 3 boxes, type CONFIRM)
+- [ ] Turn on call recording and transcription
+- [ ] Route calls to the owner's phone
+- [ ] Buy and apply the subdomain (conversion asset pages)
 
 ## 4. Custom values (Settings > Custom Values)
 - [ ] Business Name
@@ -28,6 +34,7 @@ Every workflow in the snapshot ships as a draft. Nothing sends until step 9.
 - [ ] Open Lead (from the app)
 - [ ] Recent Work, Owner Story, Unique Mechanism (conversion asset links)
 - [ ] Conversion Asset Offer
+- [ ] Custom fields set
 
 ## 5. Calendars
 - [ ] Home Estimate, Conversion Asset Estimate, Job: hours = the owner's real hours
@@ -60,3 +67,4 @@ Every workflow in the snapshot ships as a draft. Nothing sends until step 9.
 - [ ] Meta Events Manager: a Lead event on the CLIENT'S dataset
 - [ ] Book a test estimate: confirmation text, owner alert, Schedule event on the client's dataset
 - [ ] Delete the test contact
+- [ ] Launch call: send a test text, client saves both outcome numbers in their phone
