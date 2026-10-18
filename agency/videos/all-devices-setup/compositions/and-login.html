@@ -1,0 +1,232 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #al-root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+        #al-addr { position: absolute; left: 120px; top: 700px; opacity: 0; }
+        .al-asb { position: absolute; left: 0; right: 0; top: 0; height: 44px; display: flex; justify-content: space-between; align-items: center;
+          padding: 0 26px; font: 700 15px Inter, sans-serif; color: #111; z-index: 40; }
+        .al-asb.light { color: #fff; }
+        .al-asb .r { display: flex; gap: 6px; }
+        .al-asb .r i { width: 14px; height: 14px; border-radius: 3px; background: currentColor; }
+
+        #al-home .glance { position: absolute; left: 30px; top: 70px; font: 400 18px Inter, sans-serif; color: #fff; }
+        #al-home .search { position: absolute; left: 24px; right: 24px; bottom: 30px; height: 52px; border-radius: 26px; background: rgba(255, 255, 255, 0.85); }
+        .al-ic { position: absolute; width: 60px; height: 60px; border-radius: 50%; }
+        #al-chromeic { position: absolute; left: 119px; top: 680px; width: 60px; height: 60px; border-radius: 50%; background: #fff; }
+        #al-chromeic svg { position: absolute; inset: 0; width: 60px; height: 60px; }
+        #al-chring { position: absolute; left: 119px; top: 680px; width: 60px; height: 60px; border-radius: 50%; border: 3px solid #4dbb83; opacity: 0; }
+
+        #al-chrome { background: #fff; transform-origin: 149px 710px; }
+        #al-top { position: absolute; left: 0; right: 0; top: 44px; height: 60px; background: #fff; border-bottom: 1px solid #e6e6e6; z-index: 20; }
+        #al-top .home { position: absolute; left: 16px; top: 18px; width: 24px; height: 24px; }
+        #al-pill { position: absolute; left: 52px; top: 8px; width: 250px; height: 44px; border-radius: 22px; background: #f1f3f4; overflow: hidden; }
+        #al-pill .ring { position: absolute; inset: 0; border-radius: 22px; border: 2px solid #0b57d0; opacity: 0; }
+        #al-pill .ph { position: absolute; left: 18px; top: 12px; font: 400 15px/20px Inter, sans-serif; color: #5f6368; white-space: nowrap; }
+        #al-pill .val { position: absolute; left: 18px; top: 12px; font: 400 15px/20px Inter, sans-serif; color: #202124; white-space: nowrap; }
+        #al-pill .val .c { display: none; }
+        #al-top .tabs { position: absolute; left: 316px; top: 19px; width: 22px; height: 22px; border-radius: 5px; border: 2.5px solid #444;
+          font: 700 11px/17px Inter, sans-serif; text-align: center; color: #444; }
+        #al-top .menu { position: absolute; left: 352px; top: 16px; width: 20px; height: 28px; display: flex; flex-direction: column; align-items: center; justify-content: space-around; }
+        #al-top .menu i { width: 5px; height: 5px; border-radius: 50%; background: #444; }
+        #al-ntp { position: absolute; left: 0; right: 0; top: 104px; bottom: 0; background: #fff; }
+        #al-ntp .logo { position: absolute; left: 143px; top: 120px; width: 100px; height: 34px; border-radius: 17px; background: #eceff1; }
+        #al-ntp .tile { position: absolute; width: 56px; height: 56px; border-radius: 50%; background: #eceff1; }
+
+        #al-login { position: absolute; left: 0; right: 0; top: 104px; bottom: 0; opacity: 0; background: linear-gradient(180deg, #e2e1f8 0%, #f3f2fb 60%, #f6f6fb 100%); }
+        #al-login h2 { position: absolute; left: 30px; right: 30px; top: 22px; text-align: center; font: 700 28px/1.15 Poppins, sans-serif; color: #14161f; }
+        #al-card { position: absolute; left: 18px; right: 18px; top: 126px; padding: 26px 30px 24px; border-radius: 22px; background: #fff; box-shadow: 0 18px 40px rgba(79, 70, 229, 0.12); }
+        #al-card h1 { font: 700 23px/1.3 Poppins, sans-serif; color: #14161f; text-align: center; }
+        .al-lbl { margin-top: 20px; font: 400 12px Inter, sans-serif; color: #3b3f4c; height: 14px; }
+        .al-in { position: relative; margin-top: 8px; height: 48px; border-radius: 12px; border: 1px solid #d5d4ee; background: #fff; }
+        .al-in .fr { position: absolute; inset: -1px; border-radius: 12px; border: 2px solid #4f46e5; opacity: 0; }
+        .al-in .ph { position: absolute; left: 16px; top: 14px; font: 400 16px/20px Inter, sans-serif; color: #686c7c; }
+        .al-in .val { position: absolute; left: 16px; top: 14px; font: 400 16px/20px Inter, sans-serif; color: #14161f; white-space: nowrap; }
+        .al-in .val .c { display: none; }
+        #al-btn { margin-top: 16px; height: 48px; border-radius: 12px; background: #a7a2f2; color: #fff; font: 700 15px Inter, sans-serif;
+          display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 22px rgba(79, 70, 229, 0.25); }
+        #al-card hr { margin-top: 22px; border: 0; border-top: 1px solid #e6e8f0; }
+        #al-card .adm { margin-top: 14px; text-align: center; font: 400 14px Inter, sans-serif; color: #555a6b; }
+        #al-pagewrap { position: absolute; left: 0; right: 0; top: 50px; bottom: 0; overflow: hidden; opacity: 0; }
+      </style>
+      <div id="al-root" data-composition-id="and-login" data-width="1920" data-height="1080">
+        <div class="h-left" id="al-left">
+          <div class="hl-block"><div class="kicker">Android</div><div class="headline">Log in to Hauck Marketing</div><div class="rule"></div></div>
+        </div>
+        <div class="callout addr" id="al-addr">app.<b>hauck</b>marketing.com</div>
+
+        <div class="steps" id="al-steps">
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">1</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Open Chrome</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">2</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Type the address</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">3</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Sign in</div></div>
+        </div>
+
+        <div class="phone android" id="al-phone"><div class="screen" id="al-scr" data-layout-allow-overlap data-layout-allow-occlusion data-layout-allow-overflow>
+          <div class="punch"></div>
+          <div class="layer" id="al-home">
+            <div class="wall" style="background:radial-gradient(130% 90% at 80% 0%, #3d6e8f 0%, #1c3d55 45%, #0d1d2c 100%)"></div>
+            <div class="al-asb light"><span>9:41</span><span class="r"><i></i><i></i></span></div>
+            <div class="glance">Friday, Oct 10</div>
+            <div id="al-grid"></div>
+            <div class="al-ic" style="left:31px;top:680px;background:#34a853"></div>
+            <div id="al-chromeic"><svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="24" fill="#e8eaed"/><circle cx="30" cy="30" r="10" fill="#0b57d0" stroke="#fff" stroke-width="4"/></svg></div>
+            <div id="al-chring"></div>
+            <div class="al-ic" style="left:207px;top:680px;background:#3b9bff"></div>
+            <div class="al-ic" style="left:295px;top:680px;background:#f5a524"></div>
+            <div class="search"></div>
+          </div>
+
+          <div class="layer" id="al-chrome">
+            <div id="al-ntp"><div class="logo"></div>
+              <div class="tile" style="left:40px;top:220px"></div><div class="tile" style="left:126px;top:220px"></div><div class="tile" style="left:212px;top:220px"></div><div class="tile" style="left:298px;top:220px"></div>
+            </div>
+            <div id="al-login">
+              <h2>Your Business Command Center</h2>
+              <div id="al-card">
+                <h1>Sign in with your email and password</h1>
+                <div class="al-lbl">Email</div>
+                <div class="al-in" id="al-em"><div class="fr"></div><div class="ph">name@email.com</div><div class="val"></div></div>
+                <div class="al-lbl">Password</div>
+                <div class="al-in" id="al-pw"><div class="fr"></div><div class="ph">Enter password</div><div class="val"></div></div>
+                <div id="al-btn">Sign in</div>
+                <hr /><div class="adm">Admin sign-in</div>
+              </div>
+            </div>
+            <div id="al-pagewrap"><div class="app">
+              <div class="app-top"><div class="logo"></div><div class="t">Home</div></div>
+              <div class="ncard"><div class="row"><div class="bell"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div><div class="ttl">Turn on notifications</div></div><div class="btns"><div class="on">Turn on</div><div class="off">Not now</div></div></div>
+              <div class="sk" style="top:278px;height:120px"><i style="top:20px;width:120px"></i><i style="top:52px;width:220px;background:#f0f1f6"></i><i style="top:80px;width:180px;background:#f0f1f6"></i></div>
+              <div class="sk" style="top:414px;height:120px"><i style="top:20px;width:150px"></i><i style="top:52px;width:200px;background:#f0f1f6"></i><i style="top:80px;width:240px;background:#f0f1f6"></i></div>
+            </div></div>
+            <div id="al-top">
+              <svg class="home" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>
+              <div id="al-pill"><div class="ring"></div><div class="ph">Search or type web address</div><div class="val"></div></div>
+              <div class="tabs">1</div>
+              <div class="menu"><i></i><i></i><i></i></div>
+            </div>
+            <div class="al-asb"><span>9:41</span><span class="r"><i></i><i></i></span></div>
+          </div>
+        </div></div>
+
+        <audio id="al-a1" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="1.5" data-track-index="14" data-volume="0.5"></audio>
+        <audio id="al-a2" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="2.9" data-track-index="14" data-volume="0.5"></audio>
+        <audio id="al-a3" src="assets/sfx/typing.mp3" data-duration="1.5" data-start="3.8" data-track-index="14" data-volume="0.28"></audio>
+        <audio id="al-a4" src="assets/sfx/key-press.mp3" data-duration="0.40" data-start="5.55" data-track-index="14" data-volume="0.4"></audio>
+        <audio id="al-a5" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="7.4" data-track-index="14" data-volume="0.5"></audio>
+        <audio id="al-a6" src="assets/sfx/typing.mp3" data-duration="0.6" data-start="7.55" data-track-index="15" data-volume="0.28"></audio>
+        <audio id="al-a7" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="8.35" data-track-index="14" data-volume="0.5"></audio>
+        <audio id="al-a8" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="9.4" data-track-index="14" data-volume="0.55"></audio>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          const q = (s) => document.querySelector(s);
+          const scr = q("#al-scr");
+          function typed(container, text, t0, dur, mask) {
+            const chars = [];
+            for (const ch of text) {
+              const s = document.createElement("span");
+              s.className = "c";
+              s.textContent = mask ? "•" : ch;
+              container.appendChild(s);
+              chars.push(s);
+            }
+            chars.forEach((s, i) => tl.set(s, { display: "inline" }, t0 + (dur * i) / chars.length));
+          }
+          function tap(x, y, t) {
+            const f = document.createElement("div");
+            f.className = "finger"; f.style.left = x + "px"; f.style.top = y + "px";
+            const r = document.createElement("div");
+            r.className = "tap"; r.style.left = x + "px"; r.style.top = y + "px";
+            scr.appendChild(r); scr.appendChild(f);
+            tl.fromTo(f, { opacity: 0, scale: 1.3 }, { opacity: 1, scale: 1, duration: 0.16, ease: "power2.out", immediateRender: false }, t - 0.16);
+            tl.to(f, { opacity: 0, scale: 0.9, duration: 0.2, ease: "power2.in" }, t + 0.18);
+            tl.fromTo(r, { opacity: 0.95, scale: 0.4 }, { opacity: 0, scale: 1.7, duration: 0.55, ease: "power2.out", immediateRender: false }, t);
+          }
+          const steps = document.querySelectorAll("#al-steps .step");
+          function stepOn(i, t) {
+            const s = steps[i];
+            tl.to(s.querySelector(".hl"), { opacity: 1, duration: 0.3, ease: "power2.out" }, t);
+            tl.to(s.querySelector(".txt"), { color: "#eaf5ef", duration: 0.3 }, t);
+            tl.to(s.querySelector(".num"), { borderColor: "#4dbb83", duration: 0.3 }, t);
+            tl.to(s.querySelector(".d"), { color: "#4dbb83", duration: 0.3 }, t);
+            tl.to(s, { x: -10, duration: 0.3, ease: "power2.out" }, t);
+          }
+          function stepDone(i, t) {
+            const s = steps[i];
+            tl.to(s.querySelector(".hl"), { opacity: 0, duration: 0.3 }, t);
+            tl.to(s, { x: 0, duration: 0.3, ease: "power2.inOut" }, t);
+            tl.to(s.querySelector(".nf"), { opacity: 1, duration: 0.2 }, t);
+            tl.to(s.querySelector(".d"), { opacity: 0, duration: 0.15 }, t);
+            tl.fromTo(s.querySelector(".num svg"), { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2.2)" }, t + 0.05);
+            tl.to(s.querySelector(".txt"), { color: "#b9d3c8", duration: 0.3 }, t);
+          }
+          // generic round home screen apps, no brands
+          const apps = ["#ffffff", "#f5a524", "#8e8e93", "#3b9bff", "#ffd23f", "#34a853", "#ea4335", "#4fb3f6", "#30c48d", "#5f6368"];
+          const names = ["Calendar", "Photos", "Camera", "Mail", "Notes", "Phone", "Clock", "Weather", "Maps", "Settings"];
+          const cols = [31, 119, 207, 295], rows = [140, 240, 340];
+          const grid = q("#al-grid");
+          apps.forEach((c, i) => {
+            const x = cols[i % 4], y = rows[Math.floor(i / 4)];
+            const ic = document.createElement("div");
+            ic.className = "al-ic"; ic.style.left = x + "px"; ic.style.top = y + "px"; ic.style.background = c;
+            const lb = document.createElement("div");
+            lb.className = "icon-l"; lb.style.left = x + "px"; lb.style.top = (y + 66) + "px"; lb.textContent = names[i];
+            grid.appendChild(ic); grid.appendChild(lb);
+          });
+          gsap.set("#al-chrome", { opacity: 0, scale: 0.2 });
+
+          tl.fromTo("#al-phone", { x: 300, opacity: 0 }, { x: 0, opacity: 1, duration: 0.75, ease: "power3.out" }, 0);
+          tl.fromTo("#al-left .hl-block > *", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", stagger: 0.1 }, 0.3);
+          tl.fromTo("#al-left .rule", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power3.out" }, 0.55);
+          tl.fromTo("#al-steps .step", { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out", stagger: 0.08 }, 0.5);
+
+          // 1 open chrome
+          stepOn(0, 0.9);
+          tl.fromTo("#al-chring", { scale: 1, opacity: 0.9 }, { scale: 1.5, opacity: 0, duration: 0.6, ease: "power2.out" }, 1.0);
+          tap(149, 710, 1.5);
+          tl.to("#al-chromeic", { scale: 0.9, duration: 0.1, yoyo: true, repeat: 1 }, 1.5);
+          tl.to("#al-chrome", { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 1.6);
+          tl.set("#al-home", { opacity: 0 }, 2.1);
+          stepDone(0, 1.8);
+
+          // 2 type the address
+          stepOn(1, 2.3);
+          tap(177, 74, 2.9);
+          tl.to("#al-pill .ring", { opacity: 1, duration: 0.15 }, 2.9);
+          tl.to("#al-pill .ph", { opacity: 0, duration: 0.1 }, 3.0);
+          typed(q("#al-pill .val"), "app.hauckmarketing.com", 3.8, 1.5, false);
+          tl.fromTo("#al-addr", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 3.8);
+          tl.to("#al-pill .ring", { opacity: 0, duration: 0.15 }, 5.6);
+          tl.to("#al-ntp", { opacity: 0, duration: 0.3 }, 5.6);
+          tl.fromTo("#al-login", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 5.65);
+          stepDone(1, 5.85);
+
+          // 3 sign in
+          stepOn(2, 6.6);
+          tap(193, 382, 7.4);
+          tl.to("#al-em .fr", { opacity: 1, duration: 0.12 }, 7.4);
+          tl.to("#al-em .ph", { opacity: 0, duration: 0.1 }, 7.5);
+          typed(q("#al-em .val"), "you@yourcompany.com", 7.55, 0.6, false);
+          tap(193, 472, 8.35);
+          tl.to("#al-em .fr", { opacity: 0, duration: 0.12 }, 8.35);
+          tl.to("#al-pw .fr", { opacity: 1, duration: 0.12 }, 8.35);
+          tl.to("#al-pw .ph", { opacity: 0, duration: 0.1 }, 8.42);
+          typed(q("#al-pw .val"), "xxxxxxxxxx", 8.45, 0.3, true);
+          tl.to("#al-btn", { backgroundColor: "#4f46e5", duration: 0.25 }, 8.75);
+          tap(193, 536, 9.4);
+          tl.to("#al-btn", { scale: 0.96, duration: 0.09, yoyo: true, repeat: 1 }, 9.4);
+          tl.to("#al-login", { opacity: 0, duration: 0.3 }, 9.7);
+          tl.fromTo("#al-pagewrap", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 9.75);
+          stepDone(2, 9.9);
+
+          tl.fromTo("#al-phone", { y: 0 }, { y: -8, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 10.3);
+          tl.to(["#al-left", "#al-steps", "#al-addr"], { y: -20, opacity: 0, duration: 0.45, ease: "power2.in", stagger: 0.05 }, 12.6);
+          window.__timelines["and-login"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

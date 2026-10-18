@@ -1,0 +1,128 @@
+[
+  {
+    "id": "w0",
+    "text": "Type",
+    "start": 0,
+    "end": 0.4
+  },
+  {
+    "id": "w1",
+    "text": "the",
+    "start": 0.4,
+    "end": 0.48
+  },
+  {
+    "id": "w2",
+    "text": "email",
+    "start": 0.48,
+    "end": 0.88
+  },
+  {
+    "id": "w3",
+    "text": "and",
+    "start": 0.88,
+    "end": 1.04
+  },
+  {
+    "id": "w4",
+    "text": "password",
+    "start": 1.04,
+    "end": 1.6
+  },
+  {
+    "id": "w5",
+    "text": "we",
+    "start": 1.6,
+    "end": 1.76
+  },
+  {
+    "id": "w6",
+    "text": "sent",
+    "start": 1.76,
+    "end": 1.92
+  },
+  {
+    "id": "w7",
+    "text": "you,",
+    "start": 1.92,
+    "end": 2.24
+  },
+  {
+    "id": "w8",
+    "text": "then",
+    "start": 2.24,
+    "end": 2.48
+  },
+  {
+    "id": "w9",
+    "text": "click",
+    "start": 2.48,
+    "end": 2.88
+  },
+  {
+    "id": "w10",
+    "text": "sign",
+    "start": 2.88,
+    "end": 3.04
+  },
+  {
+    "id": "w11",
+    "text": "in.",
+    "start": 3.36,
+    "end": 3.92
+  },
+  {
+    "id": "w12",
+    "text": "Bookmark",
+    "start": 3.92,
+    "end": 4.64
+  },
+  {
+    "id": "w13",
+    "text": "the",
+    "start": 4.64,
+    "end": 4.72
+  },
+  {
+    "id": "w14",
+    "text": "page,",
+    "start": 4.72,
+    "end": 5.12
+  },
+  {
+    "id": "w15",
+    "text": "so",
+    "start": 5.12,
+    "end": 5.36
+  },
+  {
+    "id": "w16",
+    "text": "it's",
+    "start": 5.36,
+    "end": 5.6
+  },
+  {
+    "id": "w17",
+    "text": "one",
+    "start": 5.6,
+    "end": 5.76
+  },
+  {
+    "id": "w18",
+    "text": "click",
+    "start": 5.84,
+    "end": 6.16
+  },
+  {
+    "id": "w19",
+    "text": "next",
+    "start": 6.16,
+    "end": 6.48
+  },
+  {
+    "id": "w20",
+    "text": "time.",
+    "start": 6.48,
+    "end": 6.72
+  }
+]

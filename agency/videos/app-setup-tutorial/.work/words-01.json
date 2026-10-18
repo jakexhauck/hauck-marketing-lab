@@ -1,0 +1,98 @@
+[
+  {
+    "id": "w0",
+    "text": "Let's",
+    "start": 0,
+    "end": 0.24
+  },
+  {
+    "id": "w1",
+    "text": "get",
+    "start": 0.24,
+    "end": 0.32
+  },
+  {
+    "id": "w2",
+    "text": "Hawk",
+    "start": 0.4,
+    "end": 0.72
+  },
+  {
+    "id": "w3",
+    "text": "on",
+    "start": 0.88,
+    "end": 0.96
+  },
+  {
+    "id": "w4",
+    "text": "your",
+    "start": 0.96,
+    "end": 1.12
+  },
+  {
+    "id": "w5",
+    "text": "computer,",
+    "start": 1.12,
+    "end": 1.68
+  },
+  {
+    "id": "w6",
+    "text": "and",
+    "start": 1.68,
+    "end": 1.84
+  },
+  {
+    "id": "w7",
+    "text": "your",
+    "start": 1.84,
+    "end": 2.08
+  },
+  {
+    "id": "w8",
+    "text": "phone,",
+    "start": 2.08,
+    "end": 2.64
+  },
+  {
+    "id": "w9",
+    "text": "so",
+    "start": 2.64,
+    "end": 2.88
+  },
+  {
+    "id": "w10",
+    "text": "you",
+    "start": 2.88,
+    "end": 3.04
+  },
+  {
+    "id": "w11",
+    "text": "never",
+    "start": 3.04,
+    "end": 3.2
+  },
+  {
+    "id": "w12",
+    "text": "miss",
+    "start": 3.2,
+    "end": 3.44
+  },
+  {
+    "id": "w13",
+    "text": "a",
+    "start": 3.44,
+    "end": 3.52
+  },
+  {
+    "id": "w14",
+    "text": "new",
+    "start": 3.52,
+    "end": 3.68
+  },
+  {
+    "id": "w15",
+    "text": "lead.",
+    "start": 3.68,
+    "end": 4.16
+  }
+]

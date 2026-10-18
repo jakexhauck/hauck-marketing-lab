@@ -1,0 +1,98 @@
+[
+  {
+    "id": "w0",
+    "text": "Now",
+    "start": 0,
+    "end": 0.24
+  },
+  {
+    "id": "w1",
+    "text": "every",
+    "start": 0.32,
+    "end": 0.64
+  },
+  {
+    "id": "w2",
+    "text": "new",
+    "start": 0.64,
+    "end": 0.96
+  },
+  {
+    "id": "w3",
+    "text": "laid,",
+    "start": 0.96,
+    "end": 1.68
+  },
+  {
+    "id": "w4",
+    "text": "message,",
+    "start": 1.68,
+    "end": 2.16
+  },
+  {
+    "id": "w5",
+    "text": "and",
+    "start": 2.16,
+    "end": 2.32
+  },
+  {
+    "id": "w6",
+    "text": "booked",
+    "start": 2.32,
+    "end": 2.72
+  },
+  {
+    "id": "w7",
+    "text": "appointment",
+    "start": 2.72,
+    "end": 3.2
+  },
+  {
+    "id": "w8",
+    "text": "lands",
+    "start": 3.2,
+    "end": 3.52
+  },
+  {
+    "id": "w9",
+    "text": "on",
+    "start": 3.52,
+    "end": 3.68
+  },
+  {
+    "id": "w10",
+    "text": "your",
+    "start": 3.68,
+    "end": 3.84
+  },
+  {
+    "id": "w11",
+    "text": "phone",
+    "start": 3.84,
+    "end": 4.16
+  },
+  {
+    "id": "w12",
+    "text": "the",
+    "start": 4.32,
+    "end": 4.56
+  },
+  {
+    "id": "w13",
+    "text": "moment",
+    "start": 4.56,
+    "end": 4.8
+  },
+  {
+    "id": "w14",
+    "text": "it",
+    "start": 4.8,
+    "end": 4.96
+  },
+  {
+    "id": "w15",
+    "text": "happens.",
+    "start": 4.96,
+    "end": 5.44
+  }
+]

@@ -1,0 +1,110 @@
+[
+  {
+    "id": "w0",
+    "text": "Here's",
+    "start": 0,
+    "end": 0.32
+  },
+  {
+    "id": "w1",
+    "text": "how",
+    "start": 0.32,
+    "end": 0.48
+  },
+  {
+    "id": "w2",
+    "text": "to",
+    "start": 0.48,
+    "end": 0.56
+  },
+  {
+    "id": "w3",
+    "text": "put",
+    "start": 0.56,
+    "end": 0.64
+  },
+  {
+    "id": "w4",
+    "text": "the",
+    "start": 0.64,
+    "end": 0.8
+  },
+  {
+    "id": "w5",
+    "text": "Hawk",
+    "start": 0.8,
+    "end": 1.2
+  },
+  {
+    "id": "w6",
+    "text": "Marketing",
+    "start": 1.36,
+    "end": 1.84
+  },
+  {
+    "id": "w7",
+    "text": "software",
+    "start": 1.84,
+    "end": 2.24
+  },
+  {
+    "id": "w8",
+    "text": "on",
+    "start": 2.24,
+    "end": 2.4
+  },
+  {
+    "id": "w9",
+    "text": "your",
+    "start": 2.4,
+    "end": 2.56
+  },
+  {
+    "id": "w10",
+    "text": "iPhone,",
+    "start": 2.56,
+    "end": 3.36
+  },
+  {
+    "id": "w11",
+    "text": "so",
+    "start": 3.36,
+    "end": 3.6
+  },
+  {
+    "id": "w12",
+    "text": "you",
+    "start": 3.6,
+    "end": 3.76
+  },
+  {
+    "id": "w13",
+    "text": "never",
+    "start": 3.76,
+    "end": 4
+  },
+  {
+    "id": "w14",
+    "text": "miss",
+    "start": 4,
+    "end": 4.24
+  },
+  {
+    "id": "w15",
+    "text": "a",
+    "start": 4.24,
+    "end": 4.32
+  },
+  {
+    "id": "w16",
+    "text": "new",
+    "start": 4.32,
+    "end": 4.56
+  },
+  {
+    "id": "w17",
+    "text": "lead.",
+    "start": 4.56,
+    "end": 5.04
+  }
+]

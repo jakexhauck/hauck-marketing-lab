@@ -1,0 +1,3 @@
+{"type":"progress","phase":"transcription","model":"parakeet-tdt-0.6b-v3","status":"started","durationSeconds":5.5064375}
+{"type":"words","model":"parakeet-tdt-0.6b-v3","words":[{"text":"On","start":0,"end":0.24},{"text":"your","start":0.24,"end":0.48},{"text":"computer,","start":0.48,"end":1.12},{"text":"open","start":1.12,"end":1.52},{"text":"any","start":1.52,"end":1.76},{"text":"web","start":1.84,"end":1.92},{"text":"browser,","start":2.08,"end":2.72},{"text":"and","start":2.72,"end":2.88},{"text":"go","start":2.88,"end":3.04},{"text":"to","start":3.04,"end":3.2},{"text":"app.hawkmarketing.com.","start":3.2,"end":5.44}],"through":5.504}
+{"type":"progress","phase":"transcription","model":"parakeet-tdt-0.6b-v3","status":"completed"}

@@ -1,0 +1,233 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #il-root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+        #il-addr { position: absolute; left: 120px; top: 700px; opacity: 0; }
+
+        /* Safari bottom bar, shared look with the home-screen scene */
+        .il-sbar { position: absolute; left: 0; right: 0; bottom: 0; height: 118px; background: rgba(249, 249, 251, 0.97); border-top: 1px solid #e2e2e8; z-index: 20; }
+        #il-pill { position: absolute; left: 16px; top: 10px; width: 354px; height: 44px; border-radius: 14px; background: #e7e7ec; }
+        #il-pill .ring { position: absolute; inset: -2px; border-radius: 15px; border: 2px solid #0a84ff; opacity: 0; }
+        #il-pill .ph { position: absolute; left: 0; right: 0; top: 12px; text-align: center; font: 400 15px/20px Inter, sans-serif; color: #636368; }
+        #il-pill .val { position: absolute; left: 0; right: 0; top: 12px; text-align: center; font: 400 15px/20px Inter, sans-serif; color: #111; white-space: nowrap; }
+        #il-pill .val .c { display: none; }
+        .il-tools { position: absolute; left: 0; right: 0; top: 62px; height: 40px; }
+        .il-tools svg { position: absolute; top: 6px; width: 28px; height: 28px; }
+
+        #il-safari { opacity: 0; transform-origin: 152px 789px; }
+        #il-start { position: absolute; inset: 0; background: #f2f2f7; }
+        #il-start .fav { position: absolute; left: 24px; top: 96px; font: 700 22px Inter, sans-serif; color: #111; }
+        #il-start .tile { position: absolute; width: 64px; height: 64px; border-radius: 16px; background: #e1e1e8; }
+
+        #il-login { position: absolute; inset: 0; opacity: 0; background: linear-gradient(180deg, #e2e1f8 0%, #f3f2fb 60%, #f6f6fb 100%); }
+        #il-login h2 { position: absolute; left: 30px; right: 30px; top: 92px; text-align: center; font: 700 30px/1.15 Poppins, sans-serif; color: #14161f; }
+        #il-card { position: absolute; left: 18px; right: 18px; top: 196px; padding: 26px 30px 24px; border-radius: 22px; background: #fff; box-shadow: 0 18px 40px rgba(79, 70, 229, 0.12); }
+        #il-card h1 { font: 700 23px/1.3 Poppins, sans-serif; color: #14161f; text-align: center; }
+        .il-lbl { margin-top: 20px; font: 400 12px Inter, sans-serif; color: #3b3f4c; height: 14px; }
+        .il-in { position: relative; margin-top: 8px; height: 48px; border-radius: 12px; border: 1px solid #d5d4ee; background: #fff; }
+        .il-in .fr { position: absolute; inset: -1px; border-radius: 12px; border: 2px solid #4f46e5; opacity: 0; }
+        .il-in .ph { position: absolute; left: 16px; top: 14px; font: 400 16px/20px Inter, sans-serif; color: #686c7c; }
+        .il-in .val { position: absolute; left: 16px; top: 14px; font: 400 16px/20px Inter, sans-serif; color: #14161f; white-space: nowrap; }
+        .il-in .val .c { display: none; }
+        #il-btn { margin-top: 16px; height: 48px; border-radius: 12px; background: #a7a2f2; color: #fff; font: 700 15px Inter, sans-serif;
+          display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 22px rgba(79, 70, 229, 0.25); }
+        #il-card hr { margin-top: 22px; border: 0; border-top: 1px solid #e6e8f0; }
+        #il-card .adm { margin-top: 14px; text-align: center; font: 400 14px Inter, sans-serif; color: #555a6b; }
+        #il-app { position: absolute; left: 0; right: 0; top: 0; bottom: 118px; overflow: hidden; opacity: 0; }
+
+        #il-safariic { position: absolute; left: 121px; top: 758px; width: 62px; height: 62px; border-radius: 16px; background: linear-gradient(180deg, #4fb0ff, #0a6cff); }
+        #il-safariic svg { position: absolute; left: 9px; top: 9px; width: 44px; height: 44px; }
+        #il-safring { position: absolute; left: 121px; top: 758px; width: 62px; height: 62px; border-radius: 16px; border: 3px solid #4dbb83; opacity: 0; }
+
+        .ncard .inst { margin-top: 12px; }
+        .ncard .inst .ih { font: 700 11px Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: #555a6b; }
+        .ncard .inst ol { list-style: none; margin-top: 6px; }
+        .ncard .inst li { position: relative; padding-left: 26px; margin-top: 6px; font: 400 12px/1.35 Inter, sans-serif; color: #3f4350; }
+        .ncard .inst li b { position: absolute; left: 0; top: 0; width: 18px; height: 18px; border-radius: 50%; background: #eef0f5; font: 700 10px/18px Inter, sans-serif; text-align: center; color: #14161f; }
+      </style>
+      <div id="il-root" data-composition-id="ios-login" data-width="1920" data-height="1080">
+        <div class="h-left" id="il-left">
+          <div class="hl-block"><div class="kicker">iPhone</div><div class="headline">Log in to Hauck Marketing</div><div class="rule"></div></div>
+        </div>
+        <div class="callout addr" id="il-addr">app.<b>hauck</b>marketing.com</div>
+
+        <div class="steps" id="il-steps">
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">1</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Open Safari</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">2</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Type the address</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">3</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Sign in</div></div>
+        </div>
+
+        <div class="phone" id="il-phone"><div class="screen" id="il-scr" data-layout-allow-overlap data-layout-allow-occlusion data-layout-allow-overflow>
+          <div class="island"></div>
+          <div class="layer" id="il-home">
+            <div class="wall"></div>
+            <div class="statusbar light"><span>9:41</span><span class="sb-r"><i class="sig"></i><i class="bat"></i></span></div>
+            <div id="il-grid"></div>
+            <div class="dock" style="position:absolute;left:14px;right:14px;bottom:16px;height:92px;border-radius:32px;background:rgba(255,255,255,0.22)"></div>
+            <div class="icon" style="left:34px;top:758px;background:#34c759"></div>
+            <div id="il-safariic"><svg viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="18" stroke="#fff" stroke-width="2.5"/><path d="M29 15l-5 9-9 5 5-9z" fill="#fff"/><path d="M15 29l5-9 4 4z" fill="#ff3b30"/></svg></div>
+            <div id="il-safring"></div>
+            <div class="icon" style="left:208px;top:758px;background:#30d158"></div>
+            <div class="icon" style="left:295px;top:758px;background:#ff375f"></div>
+          </div>
+
+          <div class="layer" id="il-safari">
+            <div id="il-start"><div class="fav">Favorites</div>
+              <div class="tile" style="left:24px;top:142px"></div><div class="tile" style="left:112px;top:142px"></div><div class="tile" style="left:200px;top:142px"></div><div class="tile" style="left:288px;top:142px"></div>
+            </div>
+            <div id="il-login">
+              <h2>Your Business Command Center</h2>
+              <div id="il-card">
+                <h1>Sign in with your email and password</h1>
+                <div class="il-lbl">Email</div>
+                <div class="il-in" id="il-em"><div class="fr"></div><div class="ph">name@email.com</div><div class="val"></div></div>
+                <div class="il-lbl">Password</div>
+                <div class="il-in" id="il-pw"><div class="fr"></div><div class="ph">Enter password</div><div class="val"></div></div>
+                <div id="il-btn">Sign in</div>
+                <hr /><div class="adm">Admin sign-in</div>
+              </div>
+            </div>
+            <div id="il-app"><div class="app">
+              <div class="app-top"><div class="logo"></div><div class="t">Home</div></div>
+              <div class="ncard"><div class="row"><div class="bell"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div><div class="ttl">Turn on notifications</div></div><div class="inst"><div class="ih">How to install</div><ol><li><b>1</b>Tap the Share button in Safari (the square with an arrow pointing up).</li><li><b>2</b>Scroll down and tap "Add to Home Screen".</li><li><b>3</b>Tap "Add", then open Hauck from your home screen.</li><li><b>4</b>Come back to Settings and turn notifications on.</li></ol></div><div class="btns"><div class="off" style="flex:1">Not now</div></div></div>
+              <div class="sk" style="top:380px;height:120px"><i style="top:20px;width:120px"></i><i style="top:52px;width:220px;background:#f0f1f6"></i><i style="top:80px;width:180px;background:#f0f1f6"></i></div>
+              <div class="sk" style="top:516px;height:120px"><i style="top:20px;width:150px"></i><i style="top:52px;width:200px;background:#f0f1f6"></i><i style="top:80px;width:240px;background:#f0f1f6"></i></div>
+            </div></div>
+            <div class="il-sbar">
+              <div id="il-pill"><div class="ring"></div><div class="ph">Search or enter website</div><div class="val"></div></div>
+              <div class="il-tools">
+                <svg style="left:28px" viewBox="0 0 28 28" fill="none" stroke="#0a84ff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>
+                <svg style="left:102px" viewBox="0 0 28 28" fill="none" stroke="#c7c7cc" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5l9 9-9 9"/></svg>
+                <svg style="left:179px" viewBox="0 0 28 28" fill="none" stroke="#0a84ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v15M9 8l5-5 5 5M8 12H6v13h16V12h-2"/></svg>
+                <svg style="left:256px" viewBox="0 0 28 28" fill="none" stroke="#0a84ff" stroke-width="2.4" stroke-linejoin="round"><path d="M4 6c4-1 7 0 10 2 3-2 6-3 10-2v17c-4-1-7 0-10 2-3-2-6-3-10-2z M14 8v17"/></svg>
+                <svg style="left:332px" viewBox="0 0 28 28" fill="none" stroke="#0a84ff" stroke-width="2.4" stroke-linejoin="round"><rect x="4" y="8" width="14" height="14" rx="3"/><path d="M9 4h12a3 3 0 0 1 3 3v12"/></svg>
+              </div>
+            </div>
+            <div class="statusbar"><span>9:41</span><span class="sb-r"><i class="sig"></i><i class="bat"></i></span></div>
+          </div>
+        </div></div>
+
+        <audio id="il-a1" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="1.45" data-track-index="14" data-volume="0.5"></audio>
+        <audio id="il-a2" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="3.0" data-track-index="14" data-volume="0.5"></audio>
+        <audio id="il-a3" src="assets/sfx/typing.mp3" data-duration="1.5" data-start="3.9" data-track-index="14" data-volume="0.28"></audio>
+        <audio id="il-a4" src="assets/sfx/key-press.mp3" data-duration="0.40" data-start="5.7" data-track-index="14" data-volume="0.4"></audio>
+        <audio id="il-a5" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="7.6" data-track-index="14" data-volume="0.5"></audio>
+        <audio id="il-a6" src="assets/sfx/typing.mp3" data-duration="0.6" data-start="7.75" data-track-index="15" data-volume="0.28"></audio>
+        <audio id="il-a7" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="8.55" data-track-index="14" data-volume="0.5"></audio>
+        <audio id="il-a8" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="9.6" data-track-index="14" data-volume="0.55"></audio>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          const q = (s) => document.querySelector(s);
+          const scr = q("#il-scr");
+          function typed(container, text, t0, dur, mask) {
+            const chars = [];
+            for (const ch of text) {
+              const s = document.createElement("span");
+              s.className = "c";
+              s.textContent = mask ? "•" : ch;
+              container.appendChild(s);
+              chars.push(s);
+            }
+            chars.forEach((s, i) => tl.set(s, { display: "inline" }, t0 + (dur * i) / chars.length));
+          }
+          function tap(x, y, t) {
+            const f = document.createElement("div");
+            f.className = "finger"; f.style.left = x + "px"; f.style.top = y + "px";
+            const r = document.createElement("div");
+            r.className = "tap"; r.style.left = x + "px"; r.style.top = y + "px";
+            scr.appendChild(r); scr.appendChild(f);
+            tl.fromTo(f, { opacity: 0, scale: 1.3 }, { opacity: 1, scale: 1, duration: 0.16, ease: "power2.out", immediateRender: false }, t - 0.16);
+            tl.to(f, { opacity: 0, scale: 0.9, duration: 0.2, ease: "power2.in" }, t + 0.18);
+            tl.fromTo(r, { opacity: 0.95, scale: 0.4 }, { opacity: 0, scale: 1.7, duration: 0.55, ease: "power2.out", immediateRender: false }, t);
+          }
+          const steps = document.querySelectorAll("#il-steps .step");
+          function stepOn(i, t) {
+            const s = steps[i];
+            tl.to(s.querySelector(".hl"), { opacity: 1, duration: 0.3, ease: "power2.out" }, t);
+            tl.to(s.querySelector(".txt"), { color: "#eaf5ef", duration: 0.3 }, t);
+            tl.to(s.querySelector(".num"), { borderColor: "#4dbb83", duration: 0.3 }, t);
+            tl.to(s.querySelector(".d"), { color: "#4dbb83", duration: 0.3 }, t);
+            tl.to(s, { x: -10, duration: 0.3, ease: "power2.out" }, t);
+          }
+          function stepDone(i, t) {
+            const s = steps[i];
+            tl.to(s.querySelector(".hl"), { opacity: 0, duration: 0.3 }, t);
+            tl.to(s, { x: 0, duration: 0.3, ease: "power2.inOut" }, t);
+            tl.to(s.querySelector(".nf"), { opacity: 1, duration: 0.2 }, t);
+            tl.to(s.querySelector(".d"), { opacity: 0, duration: 0.15 }, t);
+            tl.fromTo(s.querySelector(".num svg"), { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2.2)" }, t + 0.05);
+            tl.to(s.querySelector(".txt"), { color: "#b9d3c8", duration: 0.3 }, t);
+          }
+          // generic home screen apps, no brands
+          const apps = [["#ffffff","Calendar"],["#f5a524","Photos"],["#8e8e93","Camera"],["#3b9bff","Mail"],["#ffd23f","Notes"],["#ff9f0a","Reminders"],["#1c1c1e","Clock"],["#4fb3f6","Weather"],["#30c48d","Maps"],["#8e8e93","Settings"]];
+          const cols = [30, 117, 204, 291], rows = [80, 180, 280];
+          const grid = q("#il-grid");
+          apps.forEach(([c, n], i) => {
+            const x = cols[i % 4], y = rows[Math.floor(i / 4)];
+            const ic = document.createElement("div");
+            ic.className = "icon"; ic.style.left = x + "px"; ic.style.top = y + "px"; ic.style.background = c;
+            const lb = document.createElement("div");
+            lb.className = "icon-l"; lb.style.left = x + "px"; lb.style.top = (y + 68) + "px"; lb.textContent = n;
+            grid.appendChild(ic); grid.appendChild(lb);
+          });
+          gsap.set("#il-safari", { opacity: 0, scale: 0.2 });
+
+          // establish
+          tl.fromTo("#il-phone", { x: 300, opacity: 0 }, { x: 0, opacity: 1, duration: 0.75, ease: "power3.out" }, 0);
+          tl.fromTo("#il-left .hl-block > *", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", stagger: 0.1 }, 0.3);
+          tl.fromTo("#il-left .rule", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power3.out" }, 0.55);
+          tl.fromTo("#il-steps .step", { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out", stagger: 0.08 }, 0.5);
+
+          // 1 open safari
+          stepOn(0, 0.9);
+          tl.fromTo("#il-safring", { scale: 1, opacity: 0.9 }, { scale: 1.5, opacity: 0, duration: 0.6, ease: "power2.out" }, 0.95);
+          tap(152, 789, 1.45);
+          tl.to("#il-safariic", { scale: 0.9, duration: 0.1, yoyo: true, repeat: 1 }, 1.45);
+          tl.to("#il-safari", { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 1.55);
+          tl.set("#il-home", { opacity: 0 }, 2.05);
+          stepDone(0, 1.75);
+
+          // 2 type the address
+          stepOn(1, 2.3);
+          tap(193, 750, 3.0);
+          tl.to("#il-pill .ring", { opacity: 1, duration: 0.15 }, 3.0);
+          tl.to("#il-pill .ph", { opacity: 0, duration: 0.1 }, 3.1);
+          typed(q("#il-pill .val"), "app.hauckmarketing.com", 3.9, 1.5, false);
+          tl.fromTo("#il-addr", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 3.9);
+          tl.to("#il-pill .ring", { opacity: 0, duration: 0.15 }, 5.75);
+          tl.to("#il-start", { opacity: 0, duration: 0.3 }, 5.75);
+          tl.fromTo("#il-login", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 5.8);
+          stepDone(1, 6.0);
+
+          // 3 sign in
+          stepOn(2, 6.7);
+          tap(193, 348, 7.6);
+          tl.to("#il-em .fr", { opacity: 1, duration: 0.12 }, 7.6);
+          tl.to("#il-em .ph", { opacity: 0, duration: 0.1 }, 7.7);
+          typed(q("#il-em .val"), "you@yourcompany.com", 7.75, 0.6, false);
+          tap(193, 438, 8.55);
+          tl.to("#il-em .fr", { opacity: 0, duration: 0.12 }, 8.55);
+          tl.to("#il-pw .fr", { opacity: 1, duration: 0.12 }, 8.55);
+          tl.to("#il-pw .ph", { opacity: 0, duration: 0.1 }, 8.62);
+          typed(q("#il-pw .val"), "xxxxxxxxxx", 8.65, 0.3, true);
+          tl.to("#il-btn", { backgroundColor: "#4f46e5", duration: 0.25 }, 8.95);
+          tap(193, 502, 9.6);
+          tl.to("#il-btn", { scale: 0.96, duration: 0.09, yoyo: true, repeat: 1 }, 9.6);
+          tl.to("#il-login", { opacity: 0, duration: 0.3 }, 9.9);
+          tl.fromTo("#il-app", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 9.95);
+          stepDone(2, 10.1);
+
+          tl.fromTo("#il-phone", { y: 0 }, { y: -8, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 10.5);
+          // side copy clears; the phone stays for the next step
+          tl.to(["#il-left", "#il-steps", "#il-addr"], { y: -20, opacity: 0, duration: 0.45, ease: "power2.in", stagger: 0.05 }, 12.9);
+          window.__timelines["ios-login"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

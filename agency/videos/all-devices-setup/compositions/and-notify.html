@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #an-root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+        #an-note { left: 120px; top: 700px; width: 540px; opacity: 0; }
+        .an-asb { position: absolute; left: 0; right: 0; top: 0; height: 44px; display: flex; justify-content: space-between; align-items: center;
+          padding: 0 26px; font: 700 15px Inter, sans-serif; color: #111; z-index: 40; }
+        .an-asb.light { color: #fff; }
+        .an-asb .r { display: flex; gap: 6px; }
+        .an-asb .r i { width: 14px; height: 14px; border-radius: 3px; background: currentColor; }
+
+        /* Chrome */
+        #an-top { position: absolute; left: 0; right: 0; top: 44px; height: 60px; background: #fff; border-bottom: 1px solid #e6e6e6; z-index: 20; }
+        #an-top .home { position: absolute; left: 16px; top: 18px; width: 24px; height: 24px; }
+        #an-top .pill { position: absolute; left: 52px; top: 8px; width: 250px; height: 44px; border-radius: 22px; background: #f1f3f4;
+          font: 400 15px/44px Inter, sans-serif; color: #202124; padding-left: 38px; white-space: nowrap; overflow: hidden; }
+        #an-top .pill svg { position: absolute; left: 14px; top: 14px; width: 16px; height: 16px; }
+        #an-top .tabs { position: absolute; left: 316px; top: 19px; width: 22px; height: 22px; border-radius: 5px; border: 2.5px solid #444;
+          font: 700 11px/17px Inter, sans-serif; text-align: center; color: #444; }
+        #an-top .menu { position: absolute; left: 352px; top: 16px; width: 20px; height: 28px; display: flex; flex-direction: column; align-items: center; justify-content: space-around; }
+        #an-top .menu i { width: 5px; height: 5px; border-radius: 50%; background: #444; }
+        #an-pagewrap { position: absolute; left: 0; right: 0; top: 50px; bottom: 0; overflow: hidden; }
+
+        #an-menu { position: absolute; left: 160px; top: 50px; width: 216px; border-radius: 10px; background: #fff; z-index: 30; overflow: hidden;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); transform-origin: 100% 0; opacity: 0; }
+        #an-menu .ico { height: 48px; display: flex; justify-content: space-around; align-items: center; padding: 0 6px; border-bottom: 1px solid #eee; }
+        #an-menu .ico i { width: 18px; height: 18px; border-radius: 4px; border: 2px solid #555; }
+        #an-menu .it { position: relative; height: 42px; padding: 0 18px; font: 400 15px/42px Inter, sans-serif; color: #202124; }
+        #an-menu .it .hi { position: absolute; inset: 0; background: #e8eaed; opacity: 0; }
+        #an-menu .it span { position: relative; }
+
+        #an-sdim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); opacity: 0; z-index: 50; }
+        #an-inst { position: absolute; left: 34px; top: 300px; width: 318px; border-radius: 28px; background: #f3f5f4; padding: 26px 24px 18px; z-index: 51; opacity: 0; }
+        #an-inst .t { font: 400 22px Inter, sans-serif; color: #1b1c1c; }
+        #an-inst .r { margin-top: 18px; display: flex; gap: 14px; align-items: center; }
+        #an-inst .r .ic { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; flex: none; }
+        #an-inst .r .ic img { width: 100%; height: 100%; display: block; }
+        #an-inst .r b { display: block; font: 700 16px Inter, sans-serif; color: #1b1c1c; }
+        #an-inst .r small { display: block; margin-top: 3px; font: 400 13px Inter, sans-serif; color: #44474c; }
+        #an-inst .bt { margin-top: 22px; display: flex; justify-content: flex-end; gap: 6px; }
+        #an-inst .bt span { height: 40px; padding: 0 16px; border-radius: 20px; font: 700 14px/40px Inter, sans-serif; color: #0b57d0; }
+
+        /* home */
+        #an-home .glance { position: absolute; left: 30px; top: 70px; font: 400 18px Inter, sans-serif; color: #fff; }
+        #an-home .search { position: absolute; left: 24px; right: 24px; bottom: 30px; height: 52px; border-radius: 26px; background: rgba(255, 255, 255, 0.85); }
+        .an-ic { position: absolute; width: 60px; height: 60px; border-radius: 50%; }
+        #an-hico { position: absolute; left: 207px; top: 340px; width: 60px; height: 60px; border-radius: 50%; overflow: hidden; }
+        #an-hico img { width: 100%; height: 100%; display: block; }
+        #an-hring { position: absolute; left: 207px; top: 340px; width: 60px; height: 60px; border-radius: 50%; border: 3px solid #4dbb83; opacity: 0; }
+
+        /* permission */
+        #an-pdim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); opacity: 0; z-index: 60; }
+        #an-perm { position: absolute; left: 30px; top: 250px; width: 326px; border-radius: 28px; background: #f3f5f4; padding: 24px 22px 20px; z-index: 61; opacity: 0; text-align: center; }
+        #an-perm .bl { width: 30px; height: 30px; margin: 0 auto; }
+        #an-perm .t { margin-top: 16px; font: 400 21px/1.3 Inter, sans-serif; color: #1b1c1c; }
+        #an-perm .t b { font-weight: 700; }
+        #an-perm .b { margin-top: 22px; height: 46px; border-radius: 23px; font: 700 15px/46px Inter, sans-serif; }
+        #an-perm .b.y { background: #d3e3fd; color: #041e49; }
+        #an-perm .b.n { margin-top: 8px; background: #e3e7e6; color: #1b1c1c; }
+      </style>
+      <div id="an-root" data-composition-id="and-notify" data-width="1920" data-height="1080">
+        <div class="h-left" id="an-left">
+          <div class="hl-block"><div class="kicker">Android</div><div class="headline">Turn on notifications</div><div class="rule"></div></div>
+        </div>
+
+        <div class="steps" id="an-steps">
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">1</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Open Hauck Marketing</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">2</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Tap Turn on</div></div>
+          <div class="step"><div class="hl"></div><div class="num"><div class="nf"></div><span class="d">3</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#0a1d19" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="txt">Tap Allow</div></div>
+        </div>
+
+        <div class="phone android" id="an-phone"><div class="screen" id="an-scr" data-layout-allow-overlap data-layout-allow-occlusion data-layout-allow-overflow>
+          <div class="punch"></div>
+
+          <div class="layer" id="an-home">
+            <div class="wall" style="background:radial-gradient(130% 90% at 80% 0%, #3d6e8f 0%, #1c3d55 45%, #0d1d2c 100%)"></div>
+            <div class="an-asb light"><span>9:41</span><span class="r"><i></i><i></i></span></div>
+            <div class="glance">Friday, Oct 10</div>
+            <div id="an-grid"></div>
+            <div id="an-hico"><img src="assets/hauck-icon.png" alt="" /></div>
+            <div class="icon-l" id="an-hlab" style="left:207px;top:406px">Hauck</div>
+            <div id="an-hring"></div>
+            <div class="search"></div>
+          </div>
+
+          <div class="layer" id="an-app" style="transform-origin:237px 370px">
+            <div class="app">
+              <div class="app-top" style="top:44px"><div class="logo"></div><div class="t">Home</div></div>
+              <div class="ncard" id="an-ncard" style="top:126px"><div class="row"><div class="bell"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div><div class="ttl">Turn on notifications</div></div><div class="btns"><div class="on" id="an-on">Turn on</div><div class="off">Not now</div></div></div>
+              <div class="sk" id="an-sk1" style="top:268px;height:120px"><i style="top:20px;width:120px"></i><i style="top:52px;width:220px;background:#f0f1f6"></i><i style="top:80px;width:180px;background:#f0f1f6"></i></div>
+              <div class="sk" id="an-sk2" style="top:404px;height:120px"><i style="top:20px;width:150px"></i><i style="top:52px;width:200px;background:#f0f1f6"></i><i style="top:80px;width:240px;background:#f0f1f6"></i></div>
+            </div>
+            <div class="an-asb"><span>9:41</span><span class="r"><i></i><i></i></span></div>
+            <div id="an-pdim"></div>
+            <div id="an-perm">
+              <svg class="bl" viewBox="0 0 24 24" fill="none" stroke="#0b57d0" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              <div class="t">Allow <b>Hauck</b> to send you notifications?</div>
+              <div class="b y" id="an-allow">Allow</div>
+              <div class="b n">Don’t allow</div>
+            </div>
+          </div>
+        </div></div>
+
+                                                                        <audio id="an-a1" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="2.9" data-track-index="16" data-volume="0.5"></audio>
+        <audio id="an-a2" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="4.3" data-track-index="16" data-volume="0.5"></audio>
+        <audio id="an-a3" src="assets/sfx/click-soft.mp3" data-duration="0.37" data-start="5.3" data-track-index="16" data-volume="0.5"></audio>
+        <audio id="an-a4" src="assets/sfx/pop.mp3" data-duration="0.72" data-start="5.45" data-track-index="17" data-volume="0.3"></audio>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          const q = (s) => document.querySelector(s);
+          const scr = q("#an-scr");
+          function tap(x, y, t) {
+            const f = document.createElement("div");
+            f.className = "finger";
+            f.style.left = x + "px";
+            f.style.top = y + "px";
+            const r = document.createElement("div");
+            r.className = "tap";
+            r.style.left = x + "px";
+            r.style.top = y + "px";
+            scr.appendChild(r);
+            scr.appendChild(f);
+            tl.fromTo(f, { opacity: 0, scale: 1.3 }, { opacity: 1, scale: 1, duration: 0.16, ease: "power2.out", immediateRender: false }, t - 0.16);
+            tl.to(f, { opacity: 0, scale: 0.9, duration: 0.2, ease: "power2.in" }, t + 0.18);
+            tl.fromTo(r, { opacity: 0.95, scale: 0.4 }, { opacity: 0, scale: 1.7, duration: 0.55, ease: "power2.out", immediateRender: false }, t);
+          }
+          const steps = document.querySelectorAll("#an-steps .step");
+          function stepOn(i, t) {
+            const s = steps[i];
+            tl.to(s.querySelector(".hl"), { opacity: 1, duration: 0.3, ease: "power2.out" }, t);
+            tl.to(s.querySelector(".txt"), { color: "#eaf5ef", duration: 0.3 }, t);
+            tl.to(s.querySelector(".num"), { borderColor: "#4dbb83", duration: 0.3 }, t);
+            tl.to(s.querySelector(".d"), { color: "#4dbb83", duration: 0.3 }, t);
+            tl.to(s, { x: -10, duration: 0.3, ease: "power2.out" }, t);
+          }
+          function stepDone(i, t) {
+            const s = steps[i];
+            tl.to(s.querySelector(".hl"), { opacity: 0, duration: 0.3 }, t);
+            tl.to(s, { x: 0, duration: 0.3, ease: "power2.inOut" }, t);
+            tl.to(s.querySelector(".nf"), { opacity: 1, duration: 0.2 }, t);
+            tl.to(s.querySelector(".d"), { opacity: 0, duration: 0.15 }, t);
+            tl.fromTo(s.querySelector(".num svg"), { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2.2)" }, t + 0.05);
+            tl.to(s.querySelector(".txt"), { color: "#b9d3c8", duration: 0.3 }, t);
+          }
+
+          // generic round home screen apps, no brands
+          const apps = ["#ffffff", "#f5a524", "#8e8e93", "#3b9bff", "#ffd23f", "#34a853", "#ea4335", "#4fb3f6", "#30c48d", "#5f6368"];
+          const names = ["Calendar", "Photos", "Camera", "Mail", "Notes", "Phone", "Clock", "Weather", "Maps", "Settings"];
+          const cols = [31, 119, 207, 295], rows = [140, 240, 340];
+          const grid = q("#an-grid");
+          apps.forEach((c, i) => {
+            const x = cols[i % 4], y = rows[Math.floor(i / 4)];
+            const ic = document.createElement("div");
+            ic.className = "an-ic"; ic.style.left = x + "px"; ic.style.top = y + "px"; ic.style.background = c;
+            const lb = document.createElement("div");
+            lb.className = "icon-l"; lb.style.left = x + "px"; lb.style.top = (y + 66) + "px"; lb.textContent = names[i];
+            grid.appendChild(ic); grid.appendChild(lb);
+          });
+
+          gsap.set("#an-app", { opacity: 0, scale: 0.16 });
+
+          tl.fromTo("#an-left .hl-block > *", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", stagger: 0.1 }, 0.15);
+          tl.fromTo("#an-left .rule", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power3.out" }, 0.4);
+          tl.fromTo("#an-steps .step", { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out", stagger: 0.08 }, 0.35);
+
+          // 1 open
+          stepOn(0, 0.7);
+          tl.fromTo("#an-hring", { scale: 1, opacity: 0.9 }, { scale: 1.6, opacity: 0, duration: 0.7, ease: "power2.out" }, 1.4);
+          tl.fromTo("#an-hring", { scale: 1, opacity: 0.9 }, { scale: 1.6, opacity: 0, duration: 0.7, ease: "power2.out", immediateRender: false }, 2.1);
+          tap(237, 370, 2.9);
+          tl.to("#an-hico", { scale: 0.9, duration: 0.1, yoyo: true, repeat: 1 }, 2.9);
+          tl.to("#an-app", { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 3.05);
+          tl.set("#an-home", { opacity: 0 }, 3.55);
+          stepDone(0, 3.1);
+
+          // 2 turn on
+          stepOn(1, 3.7);
+          tap(143, 214, 4.3);
+          tl.to("#an-on", { scale: 0.96, duration: 0.09, yoyo: true, repeat: 1 }, 4.3);
+          stepDone(1, 4.45);
+          tl.to("#an-pdim", { opacity: 1, duration: 0.25 }, 4.55);
+          tl.fromTo("#an-perm", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 4.55);
+
+          // 3 allow
+          stepOn(2, 4.75);
+          tap(193, 420, 5.3);
+          tl.to("#an-perm", { opacity: 0, y: 20, duration: 0.25, ease: "power2.in" }, 5.4);
+          tl.to("#an-pdim", { opacity: 0, duration: 0.25 }, 5.4);
+          tl.to("#an-ncard", { opacity: 0, scale: 0.94, duration: 0.3, ease: "power2.in" }, 5.65);
+          tl.to(["#an-sk1", "#an-sk2"], { y: -142, duration: 0.5, ease: "power3.inOut" }, 5.8);
+          stepDone(2, 5.5);
+
+          tl.fromTo("#an-phone", { y: 0 }, { y: -8, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 6.0);
+          tl.to(["#an-left", "#an-steps"], { y: -20, opacity: 0, duration: 0.45, ease: "power2.in", stagger: 0.05 }, 8.4);
+          window.__timelines["and-notify"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

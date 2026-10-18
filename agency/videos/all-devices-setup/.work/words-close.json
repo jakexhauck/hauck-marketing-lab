@@ -1,0 +1,20 @@
+[
+  {
+    "id": "w0",
+    "text": "You're",
+    "start": 0,
+    "end": 0.32
+  },
+  {
+    "id": "w1",
+    "text": "all",
+    "start": 0.32,
+    "end": 0.56
+  },
+  {
+    "id": "w2",
+    "text": "set.",
+    "start": 0.56,
+    "end": 0.88
+  }
+]
