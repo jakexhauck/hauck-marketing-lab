@@ -2,9 +2,9 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildBundle } from "../src/bundle.ts";
+import { buildBundle, sopSection } from "../src/bundle.ts";
 import { HF_GENERATE_TOOLS, HF_QUOTE_TOOLS } from "../src/spend.ts";
-import type { ClaimTenant } from "../src/wire.ts";
+import type { ClaimTenant, SopStage } from "../src/wire.ts";
 
 const EM = "\u2014";
 
@@ -294,5 +294,34 @@ describe("buildBundle", () => {
       expect(b.mcpConfig).toBeUndefined();
       expect(b.allowedTools.some((t) => t.startsWith("mcp__"))).toBe(false);
     }
+  });
+});
+
+describe("the SOP from the Director", () => {
+  const sop: SopStage[] = [
+    {
+      name: "Account",
+      tasks: [
+        { name: "Create the sub-account", owner: "agent", steps: ["Create it", "Load the snapshot"] },
+        { name: "Connect Facebook", owner: "jake", steps: [] },
+      ],
+    },
+    { name: "Compliance", tasks: [{ name: "Submit A2P", owner: "agent", steps: ["Fill the wizard"] }] },
+  ];
+
+  it("puts the agent's stages, tasks and steps in its prompt, with the stage stop", () => {
+    const env = world();
+    const prompt = readFileSync(buildBundle("ghl", willis, env, null, [], sop).systemPromptFile, "utf8");
+    expect(prompt).toContain("## Your SOP");
+    expect(prompt).toContain("### Stage 1: Account\n- Create the sub-account (you)\n   1. Create it\n   2. Load the snapshot");
+    expect(prompt).toContain("- Connect Facebook (Jake does this)");
+    expect(prompt).toContain("### Stage 2: Compliance");
+    expect(prompt).toContain("Do not start the next stage until Jake approves that card.");
+  });
+
+  it("leaves the section out when the app sent no SOP", () => {
+    const env = world();
+    expect(sopSection("ghl", [])).toBeNull();
+    expect(readFileSync(buildBundle("ghl", willis, env).systemPromptFile, "utf8")).not.toContain("## Your SOP");
   });
 });

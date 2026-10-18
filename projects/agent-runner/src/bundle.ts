@@ -28,7 +28,7 @@ import { findDriveFolder, vaultFolder } from "./clients.ts";
 import { AGENTS_DIR, DRIVE_ROOT, GHL_SCRIPT, META_SCRIPT, METAOPS_SCRIPT, PROMPTS_DIR, STATE_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
 import { stripEmDashes } from "./output.ts";
 import { creativeHiggsfieldTools, spendLimit, writeHiggsfieldConfig } from "./spend.ts";
-import type { AgentId, BriefSection, BriefSectionId, ClaimTenant, Grant } from "./wire.ts";
+import type { AgentId, BriefSection, BriefSectionId, ClaimTenant, Grant, SopStage } from "./wire.ts";
 
 export type { Bundle };
 
@@ -262,12 +262,40 @@ function briefSection(agent: AgentId, brief: BriefSection[]): string {
   ].join("\n\n");
 }
 
+// The agent's own SOP, from Jake's Director page. Jake wrote it (or approved
+// every line of it), so unlike the brief and the brains it IS instructions.
+// Stage approval is a rule here, in the prompt: an agent is told to stop at
+// the end of a stage and file a card, and Jake's Approve is what moves it on.
+export function sopSection(agent: AgentId, sop: SopStage[]): string | null {
+  if (!sop.length) return null;
+  const name = agentDef(agent).name;
+  const who = { agent: "you", jake: "Jake does this", client: "the client does this" } as const;
+  const stages = sop.map((s, i) => {
+    const tasks = s.tasks.map((t) => {
+      const steps = t.steps.map((x, j) => `   ${j + 1}. ${x}`).join("\n");
+      return `- ${t.name} (${who[t.owner]})${steps ? `\n${steps}` : ""}`;
+    });
+    return `### Stage ${i + 1}: ${s.name}\n${tasks.join("\n")}`;
+  });
+  return [
+    "## Your SOP",
+    `Jake's standard operating procedure for the ${name}, from his Director page. It is the work you do for every client, in order, one stage at a time.`,
+    "- Work out which stage this client is in from the Client brief, its ticked boxes and your own Building cards.",
+    "- Do the tasks marked (you) in the current stage, following their steps. A task Jake or the client does is theirs: tell Jake what you need, never do it for them.",
+    "- When every task you own in the stage is done, stop. File a needs_ok card titled \"Start stage N: <name>\" that lists what you finished and what the next stage will do. Do not start the next stage until Jake approves that card.",
+    "- Jake's direct ask in this chat wins over the SOP. The house rules and every approval gate above still apply to every step.",
+    "",
+    stages.join("\n\n"),
+  ].join("\n");
+}
+
 export function buildBundle(
   agent: AgentId,
   tenant: ClaimTenant | null,
   env: BundleEnv = defaultBundleEnv(),
   grant: Grant | null = null,
   brief: BriefSection[] = [],
+  sop: SopStage[] = [],
 ): Bundle {
   const def = agentDef(agent);
   // The GHL Agent works on GHL only. No Drive folder: less text in its turn
@@ -276,6 +304,7 @@ export function buildBundle(
 
   const sections = [
     readOr(join(env.agentsDir, `${agent}.md`), `# ${def.name}`),
+    sopSection(agent, sop) ?? "",
     clientSection(env, agent, tenant, drive),
     readOr(join(env.agentsDir, "_rules.md")),
     readOr(join(env.agentsDir, "_protocol.md")),

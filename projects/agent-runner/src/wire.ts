@@ -104,6 +104,14 @@ export interface ClaimResponse {
   // The client's whole Client Brief with versions ([] at the agency). Optional
   // here so a claim from an app that predates the brief still runs.
   brief?: BriefSection[];
+  // The agent's own SOP from the Director: stages in order, drafts left out.
+  // Optional so a claim from an app that predates the Director still runs.
+  sop?: SopStage[];
+}
+
+export interface SopStage {
+  name: string;
+  tasks: { name: string; owner: "agent" | "jake" | "client"; steps: string[] }[];
 }
 
 export interface ReplyBody {

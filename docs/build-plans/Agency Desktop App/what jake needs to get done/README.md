@@ -730,3 +730,19 @@ Your action items:
 
 Still parked:
 - Agents keeping the maps up to date, suggested changes with Approve, and History. Needs your go.
+
+## Director (2026-10-18)
+
+What's in the app now: Agents > Director, each agent's stages and tasks. SOPs graph follows it. Agents get their board in every prompt and stop at the end of each stage for your OK.
+
+Your action items:
+1. Open Agents > Director, pick GHL, and check the stage splits I made. Rename or move anything that is wrong.
+2. Type one instruction in the Tell bar, then Add or Drop the New card.
+3. Open that new task's Steps, read the draft, then Approve it on the SOPs graph.
+4. Send the GHL Agent one message at a client and check that it names the stage it is in.
+
+Still parked:
+- Routines (daily ad check, monthly report) as their own boards.
+- Per-client progress on each card.
+- Folding the Brief setup boxes into the Director.
+- The stage stop is a prompt rule, not a code gate.

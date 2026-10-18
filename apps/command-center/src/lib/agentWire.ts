@@ -126,6 +126,15 @@ export interface ClaimResponse {
   // The client's whole brief with versions, every section in BRIEF_SECTIONS
   // order. [] for the agency Manager, which has no client.
   brief: BriefSection[];
+  // The agent's own SOP from the Director (lib/director.ts): stages in order,
+  // each task with its owner and steps. Draft tasks are left out. Optional so
+  // the runner still reads a claim from an app that predates the Director.
+  sop?: SopStage[];
+}
+
+export interface SopStage {
+  name: string;
+  tasks: { name: string; owner: "agent" | "jake" | "client"; steps: string[] }[];
 }
 
 export interface ReplyBody {

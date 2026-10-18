@@ -1,14 +1,22 @@
-import { NavLink, Navigate, useNavigate, useParams } from "react-router-dom";
+import { NavLink, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import AgentSopMap from "../../components/admin/sops/AgentSopMap";
+import { useDirector } from "../../components/admin/director/directorApi";
 import { AGENT_SOPS, getAgentSop } from "../../lib/agentSops";
 
 // /admin/sops/:agent (Jake, 2026-10-17). One sub-page per agent, each its flow
 // map. The agent pills are the sub-page links, so a map is linkable and the
 // Open map button on a handoff box is an ordinary navigation. Anything unknown
 // lands on the Manager.
+//
+// The Director's board rides in (Jake, 2026-10-18): box names, Off boxes and
+// added tasks come from it. ?node=<id> or ?task=<id> opens that box, which is
+// where a Director card's Steps button lands.
 export default function AgentSopsPage() {
   const { agent } = useParams();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const director = useDirector();
+  const initial = params.get("node") ?? (params.get("task") ? `task:${params.get("task")}` : null);
   const map = getAgentSop(agent);
   if (!map) return <Navigate to="/admin/sops/manager" replace />;
 
@@ -38,7 +46,7 @@ export default function AgentSopsPage() {
           </NavLink>
         ))}
       </nav>
-      <AgentSopMap key={map.id} map={map} onOpenAgent={(id) => navigate(`/admin/sops/${id}`)} />
+      <AgentSopMap key={map.id} map={map} director={director.data} initial={initial} onOpenAgent={(id) => navigate(`/admin/sops/${id}`)} />
     </div>
   );
 }

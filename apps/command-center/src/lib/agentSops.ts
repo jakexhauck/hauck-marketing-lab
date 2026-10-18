@@ -56,9 +56,8 @@ export const KIND: Record<NodeKind, { fill: string; label: string; gate?: boolea
   done: { fill: "#cdeedb", label: "Done / handoff" },
 };
 
-export const SOP_SOURCE = "Client Setup SOP";
 export const SOP_KEY =
-  "Solid arrows = the main line. Dashed = edits and loop-backs. Orange = second route. Green outline = Jake approves. Blue = agent, purple = Jake, peach = client, green = done or handoff.";
+  "Solid arrows = the main line. Dashed = edits and loop-backs. Orange = second route. Green outline = Jake approves. Blue = agent, purple = Jake, peach = client, green = done or handoff. Dashed box = draft steps. Faded = off on the Director.";
 
 export const AGENT_SOPS: AgentSop[] = [
   {

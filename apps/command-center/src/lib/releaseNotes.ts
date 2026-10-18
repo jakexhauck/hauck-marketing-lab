@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-18-director",
+    date: "18 October 2026",
+    title: "Director: tell the agents what to do",
+    items: [
+      "Agents > Director shows each agent's work as stages, left to right, with your approval between them.",
+      "Add, rename, reassign, move or delete a task right on its card, or add a stage.",
+      "Type or say what you want in the bar at the top and the agent turns it into a New card to Add or Drop.",
+      "A card's Steps button opens its box on the SOPs graph, which still holds how each task is done.",
+      "A new task's steps are drafted for you and wait on the SOPs graph until you approve them.",
+      "Every agent now works from its Director board, one stage at a time, and asks you before the next stage.",
+    ],
+  },
+  {
     id: "2026-10-17-sidebar-order",
     date: "17 October 2026",
     title: "The sidebar follows a lead's path",

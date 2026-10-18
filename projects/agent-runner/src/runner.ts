@@ -161,7 +161,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
   try {
     await d.api.reply({ messageId, status: "running" });
     const brief = claim.brief ?? [];
-    const bundle = buildBundle(agent, tenant, d.env, message.grant, brief);
+    const bundle = buildBundle(agent, tenant, d.env, message.grant, brief, claim.sop ?? []);
     // An approved landing page goes live before the agent's turn, so the turn
     // can say where. See landing.ts.
     const liveNote = d.landing ? await goLive(claim, { api: d.api, landing: d.landing }) : null;
