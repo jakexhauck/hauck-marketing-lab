@@ -111,6 +111,18 @@ export interface ClaimResponse {
   // The agent's own SOP, read off its map on the SOPs tab: stages in order.
   // Optional so a claim from an app that sends none still runs.
   sop?: SopStage[];
+  // The client's setup tasks from its Director: all of them for the Manager,
+  // its own for any other agent. Absent at the agency.
+  tasks?: WireTask[];
+}
+
+export interface WireTask {
+  key: string;
+  name: string;
+  owner: string;
+  phase: string;
+  state: "todo" | "doing" | "done" | "cut";
+  reason: string | null;
 }
 
 export interface SopStage {
@@ -273,6 +285,25 @@ export interface RunnerTickBody {
 export interface RunnerTickResult {
   ticked: string[];
   refused: string[];
+}
+
+// Runner-only: an agent moves its own client tasks forward, by key.
+// POST /api/agent-runner/task. The app checks owner and proof.
+export interface RunnerTaskUpdate {
+  key: string;
+  state: "doing" | "done";
+  evidence?: string;
+  note?: string;
+}
+
+export interface RunnerTaskBody {
+  messageId: string;
+  updates: RunnerTaskUpdate[];
+}
+
+export interface RunnerTaskResult {
+  updated: string[];
+  refused: { key: string; reason: string }[];
 }
 
 // Runner-only: an agent rewrites its own section at the version it read.

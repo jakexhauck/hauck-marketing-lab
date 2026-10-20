@@ -210,6 +210,35 @@ ${F}`);
     expect(done.aiBody).toMatch(/Not ticked \(not in your section\): Invoice Paid/);
   });
 
+  it("posts a task block's updates and says what moved and what was refused", async () => {
+    const { env } = world();
+    const { api, d } = deps(env, `Submitted.
+${F}task
+ghl:a2p-submitted | done | Brand BN123
+paid:invoice-paid | done | paid
+${F}`);
+    api.taskAnswer = () => ({ updated: ["ghl:a2p-submitted"], refused: [{ key: "paid:invoice-paid", reason: "not your task" }] });
+    await handleClaim(claim(), d);
+    expect(api.tasks).toEqual([
+      { messageId: "m1", updates: [{ key: "ghl:a2p-submitted", state: "done", evidence: "Brand BN123" }, { key: "paid:invoice-paid", state: "done", evidence: "paid" }] },
+    ]);
+    const done = api.replies.at(-1)!;
+    expect(done.tools).toContain("Task ghl:a2p-submitted done");
+    expect(done.aiBody).toMatch(/Task not moved: paid:invoice-paid \(not your task\)/);
+  });
+
+  it("drops a task block at the agency", async () => {
+    const { env } = world();
+    const agency = deps(env, `ok
+${F}task
+paid:invoice-paid | doing
+${F}`);
+    const c = claim({ tenantId: null, agent: "manager" });
+    c.tenant = null;
+    await handleClaim(c, agency.d);
+    expect(agency.api.tasks).toEqual([]);
+  });
+
   it("drops a tick block at the agency, and posts nothing without one", async () => {
     const { env } = world();
     const agency = deps(env, `ok

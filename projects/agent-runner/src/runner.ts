@@ -121,7 +121,7 @@ function allLessons(vaultDir: string): Map<string, AgentLesson> {
 // While the answer streams, the protocol blocks are not for Jake to read: show
 // the prose up to the first block and nothing of a half-written one.
 function preview(text: string): string {
-  const cut = text.split(/```(?:lessons|item|request|video|brief|tick)/)[0];
+  const cut = text.split(/```(?:lessons|item|request|video|brief|tick|task)/)[0];
   return extractCitations(stripEmDashes(cut)).reply.trim();
 }
 
@@ -189,7 +189,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
   try {
     await d.api.reply({ messageId, status: "running" });
     const brief = claim.brief ?? [];
-    const bundle = buildBundle(agent, tenant, d.env, message.grant, brief, claim.sop ?? []);
+    const bundle = buildBundle(agent, tenant, d.env, message.grant, brief, claim.sop ?? [], claim.tasks ?? []);
     // An approved landing page goes live before the agent's turn, so the turn
     // can say where. See landing.ts.
     const liveNote = d.landing ? await goLive(claim, { api: d.api, landing: d.landing }) : null;
@@ -377,6 +377,22 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
       } catch (e) {
         log(`tick post failed: ${(e as Error).message}`);
         notes.push("Boxes not ticked: the app did not take them. Ask me again to retry.");
+      }
+    }
+
+    // Client tasks the agent moved. The app checks each is the agent's own,
+    // not cut, and that done carries proof; the runner passes them on and
+    // says what happened.
+    if (out.tasks.length && !tenant) log("task block dropped: the agency has no tasks");
+    if (out.tasks.length && tenant) {
+      try {
+        const res = await d.api.task({ messageId, updates: out.tasks });
+        const state = new Map(out.tasks.map((u) => [u.key, u.state]));
+        for (const key of res.updated) tools.push(`Task ${key} ${state.get(key)}`);
+        if (res.refused.length) notes.push(`Task not moved: ${res.refused.map((r) => `${r.key} (${r.reason})`).join(", ")}`);
+      } catch (e) {
+        log(`task post failed: ${(e as Error).message}`);
+        notes.push("Tasks not moved: the app did not take them. Ask me again to retry.");
       }
     }
 

@@ -17,7 +17,7 @@
 
 import { isAgentId } from "./agents.ts";
 import { UUID } from "./paths.ts";
-import type { AgentId, ItemStatus } from "./wire.ts";
+import type { AgentId, ItemStatus, RunnerTaskUpdate } from "./wire.ts";
 
 export interface ItemDraft {
   id?: string;
@@ -44,6 +44,8 @@ export interface AgentOutput {
   // Labels of brief boxes the agent finished this turn. The app checks they
   // are in the agent's own section.
   ticks: string[];
+  // Client tasks the agent moved this turn. The app checks they are its own.
+  tasks: RunnerTaskUpdate[];
 }
 
 // The house rule is no em dashes anywhere. The agents are told; this is the
@@ -53,7 +55,7 @@ export function stripEmDashes(s: string): string {
   return s.replace(/\s*\u2014\s*/g, ", ");
 }
 
-const BLOCK = /```(lessons|item|request|brief|tick)[^\n]*\n([\s\S]*?)```/g;
+const BLOCK = /```(lessons|item|request|brief|tick|task)[^\n]*\n([\s\S]*?)```/g;
 
 function parseJson(body: string): unknown[] {
   try {
@@ -84,7 +86,7 @@ function toRequest(v: unknown): RequestDraft | null {
 }
 
 export function parseAgentOutput(text: string): AgentOutput {
-  const out: AgentOutput = { reply: "", lessons: [], items: [], requests: [], brief: null, ticks: [] };
+  const out: AgentOutput = { reply: "", lessons: [], items: [], requests: [], brief: null, ticks: [], tasks: [] };
   for (const [, kind, body] of text.matchAll(BLOCK)) {
     if (kind === "lessons") {
       for (const raw of body.split("\n")) {
@@ -95,6 +97,14 @@ export function parseAgentOutput(text: string): AgentOutput {
       for (const raw of body.split("\n")) {
         const label = raw.replace(/^\s*(?:[-*]\s+)?(?:\[[ xX]?\]\s*)?/, "").trim();
         if (label && !out.ticks.some((t) => t.toLowerCase() === label.toLowerCase())) out.ticks.push(label);
+      }
+    } else if (kind === "task") {
+      // key | doing, or key | done | proof. Anything else is dropped.
+      for (const raw of body.split("\n")) {
+        const [key, state, ...rest] = raw.replace(/^\s*[-*]\s+/, "").split("|").map((x) => x.trim());
+        if (!key || (state !== "doing" && state !== "done")) continue;
+        const proof = stripEmDashes(rest.join("|").trim());
+        out.tasks.push(state === "done" && proof ? { key, state, evidence: proof } : proof ? { key, state, note: proof } : { key, state });
       }
     } else if (kind === "brief") {
       // The last one wins: it is the agent's final word on its section.

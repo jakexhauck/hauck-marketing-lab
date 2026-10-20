@@ -49,4 +49,11 @@ Lead Form Setup
 Ads LIVE
 ```
 
+Tasks you started or finished, from "Your tasks for this client", one per line: the key, then doing or done, then for done the proof (a record id, an ad id, a link, or a short note when there is no record). Move only the tasks Jake named in this chat, and only your own. The app refuses anything else and Jake is told. You never move a task back; that is Jake's.
+
+```task
+ghl:a2p-submitted | doing
+ghl:local-number-bought | done | Bought (313) 555-0101 in the sub-account
+```
+
 Malformed JSON is dropped, so keep it valid. No block is fine when there is nothing to file.

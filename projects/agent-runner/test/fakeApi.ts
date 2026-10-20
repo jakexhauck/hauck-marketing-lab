@@ -15,6 +15,8 @@ import type {
   RunnerBriefBody,
   RunnerBriefResult,
   RunnerTickBody,
+  RunnerTaskBody,
+  RunnerTaskResult,
   RunnerTickResult,
   Snapshot,
   ClaimTenant,
@@ -38,6 +40,9 @@ export interface FakeApi extends RunnerApi {
   // What the next brief post answers; saved at the version sent + 1 if unset.
   briefAnswer: ((b: RunnerBriefBody) => RunnerBriefResult) | null;
   ticks: RunnerTickBody[];
+  tasks: RunnerTaskBody[];
+  // What the next task post answers; every update taken if unset.
+  taskAnswer: ((b: RunnerTaskBody) => RunnerTaskResult) | null;
   // What the next tick post answers; every label ticked if unset.
   tickAnswer: ((b: RunnerTickBody) => RunnerTickResult) | null;
   answers: AnswerBody[];
@@ -63,6 +68,8 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     briefAnswer: null,
     ticks: [],
     tickAnswer: null,
+    tasks: [],
+    taskAnswer: null,
     answers: [],
     async claim() {
       return api.claims.shift() ?? null;
@@ -102,6 +109,11 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
       api.briefs.push(b);
       if (api.briefAnswer) return api.briefAnswer(b);
       return { saved: true, section: { section: "ads", body: b.body, version: b.version + 1, updatedBy: "ads", updatedAt: null } };
+    },
+    async task(b) {
+      api.tasks.push(b);
+      if (api.taskAnswer) return api.taskAnswer(b);
+      return { updated: b.updates.map((u) => u.key), refused: [] };
     },
     async tick(b) {
       api.ticks.push(b);

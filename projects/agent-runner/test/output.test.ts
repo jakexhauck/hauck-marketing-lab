@@ -5,6 +5,16 @@ const EM = "\u2014";
 const F = "```";
 
 describe("parseAgentOutput", () => {
+  it("takes a task block as key | state | proof lines, bad lines dropped", () => {
+    const text = ["On it.", `${F}task`, "ghl:a2p-submitted | doing", "- ghl:local-number-bought | done | Bought (313) 555-0101", "nonsense", "ghl:x | todo", F].join("\n");
+    const out = parseAgentOutput(text);
+    expect(out.reply).toBe("On it.");
+    expect(out.tasks).toEqual([
+      { key: "ghl:a2p-submitted", state: "doing" },
+      { key: "ghl:local-number-bought", state: "done", evidence: "Bought (313) 555-0101" },
+    ]);
+  });
+
   it("takes a tick block as one item label per line, markers and blanks dropped, repeats once", () => {
     const text = ["Done.", `${F}tick`, "- [x] Lead Form Setup", "* Ads LIVE", "", "Lead Form Setup", F].join("\n");
     const out = parseAgentOutput(text);
@@ -56,7 +66,7 @@ describe("parseAgentOutput", () => {
 
   it("returns the text as the reply when there are no blocks", () => {
     const out = parseAgentOutput("Just an answer.\n");
-    expect(out).toEqual({ reply: "Just an answer.", lessons: [], items: [], requests: [], brief: null, ticks: [] });
+    expect(out).toEqual({ reply: "Just an answer.", lessons: [], items: [], requests: [], brief: null, ticks: [], tasks: [] });
   });
 
   it("drops malformed JSON and keeps the reply", () => {

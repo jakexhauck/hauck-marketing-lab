@@ -21,14 +21,14 @@
 
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { agentDef, AGENTS } from "./agents.ts";
+import { agentDef, AGENTS, isAgentId } from "./agents.ts";
 import { readLessons } from "./brain.ts";
 import type { Bundle } from "./claude.ts";
 import { findDriveFolder, vaultFolder } from "./clients.ts";
 import { AGENTS_DIR, DRIVE_ROOT, GHL_SCRIPT, META_SCRIPT, METAOPS_SCRIPT, PROMPTS_DIR, STATE_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
 import { stripEmDashes } from "./output.ts";
 import { creativeHiggsfieldTools, spendLimit, writeHiggsfieldConfig } from "./spend.ts";
-import type { AgentId, BriefSection, BriefSectionId, ClaimTenant, Grant, SopStage } from "./wire.ts";
+import type { AgentId, BriefSection, BriefSectionId, ClaimTenant, Grant, SopStage, WireTask } from "./wire.ts";
 
 export type { Bundle };
 
@@ -281,15 +281,40 @@ export function sopSection(agent: AgentId, sop: SopStage[]): string | null {
   return [
     "## Your SOP",
     `Jake's standard operating procedure for the ${name}, from the SOPs tab. It is the work you do for every client, in order, one stage at a time.`,
-    "- Work out which stage this client is in from the Client brief, its ticked boxes and your own Building cards.",
-    "- Do the tasks marked (you) in the current stage, following their steps. A task Jake or the client does is theirs: tell Jake what you need, never do it for them.",
-    "- When every task you own in the stage is done, stop. File a needs_ok card titled \"Start stage N: <name>\" that lists what you finished and what the next stage will do. Do not start the next stage until Jake approves that card.",
+    "- Your map is how you work. Do only the tasks Jake names in this chat; never start the next one on your own.",
+    "- Follow the steps of the box the task belongs to. A box marked (Jake does this) or (the client does this) is theirs: tell Jake what you need, never do it for them.",
+    "- When a task Jake named is finished, say so and stop. Jake decides what comes next.",
     "- Jake's direct ask in this chat wins over the SOP. The house rules and every approval gate above still apply to every step.",
     ...(sop.some((s) => s.draft)
       ? ["- Stages marked (draft) are Jake's first pass, not signed off. Follow them, and tell Jake where one does not fit this client."]
       : []),
     "",
     stages.join("\n\n"),
+  ].join("\n");
+}
+
+// The client's setup tasks from its Director. Like the SOP, this is Jake's
+// list, but it is a list to work from, never a queue: the agent moves a task
+// only when Jake names it in the chat.
+const OWNER_NAMES: Record<string, string> = { client: "Client", jake: "Jake" };
+const ownerName = (o: string) => OWNER_NAMES[o] ?? (isAgentId(o) ? agentDef(o).name.replace(/ Agent$/, "") : o);
+const taskLine = (t: WireTask) => `- [${t.state}] ${t.key}: ${t.name}${t.state === "cut" && t.reason ? ` (${t.reason})` : ""}`;
+
+export function tasksSection(agent: AgentId, tasks: WireTask[]): string | null {
+  if (!tasks.length) return null;
+  if (agent === "manager") {
+    const owners = [...new Set(tasks.map((t) => t.owner))];
+    return [
+      "## The client's tasks",
+      "Every setup task on this client's Director, by owner. Keys are what a tasks card names.",
+      ...owners.map((o) => `### ${ownerName(o)}\n${tasks.filter((t) => t.owner === o).map(taskLine).join("\n")}`),
+    ].join("\n\n");
+  }
+  const open = tasks.filter((t) => t.state === "todo" || t.state === "doing");
+  return [
+    "## Your tasks for this client",
+    "Work only on the tasks Jake names in this chat. When you start one, or finish one, say so in a ```task block (see the output protocol). Done needs proof.",
+    open.length ? open.map(taskLine).join("\n") : "None open.",
   ].join("\n");
 }
 
@@ -300,6 +325,7 @@ export function buildBundle(
   grant: Grant | null = null,
   brief: BriefSection[] = [],
   sop: SopStage[] = [],
+  tasks: WireTask[] = [],
 ): Bundle {
   const def = agentDef(agent);
   // The GHL Agent works on GHL only. No Drive folder: less text in its turn
@@ -315,6 +341,8 @@ export function buildBundle(
     readOr(join(env.agentsDir, "_copy.md")),
   ];
   if (tenant && brief.length) sections.push(briefSection(agent, brief));
+  const taskText = tenant ? tasksSection(agent, tasks) : null;
+  if (taskText) sections.push(taskText);
   if (agent === "landing") sections.push(landingSection(join(env.workRoot, `landing-${tenant?.slug ?? "agency"}`), grant));
   if (agent === "manager") {
     sections.push(brainSection("Mega Brain", megaBrain(env.vaultDir)));

@@ -134,6 +134,19 @@ export interface ClaimResponse {
   // stages in order, each task with its owner and steps. Optional so the
   // runner still reads a claim from an app that sends none.
   sop?: SopStage[];
+  // The client's setup tasks from its Director (lib/agentTasks.ts withTasks):
+  // the Manager gets all of them, any other agent its own. Absent at the
+  // agency and from an app that predates the Director.
+  tasks?: WireTask[];
+}
+
+export interface WireTask {
+  key: string;
+  name: string;
+  owner: string;
+  phase: string;
+  state: "todo" | "doing" | "done" | "cut";
+  reason: string | null;
 }
 
 export interface SopStage {
@@ -338,4 +351,24 @@ export interface RunnerTickBody {
 export interface RunnerTickResult {
   ticked: string[];
   refused: string[];
+}
+
+// Runner-only: an agent moves its own client tasks forward, by key.
+// POST /api/agent-runner/task. The agent and client come from the claimed
+// message on the server (lib/agentTasks.ts); done needs evidence or a note.
+export interface RunnerTaskUpdate {
+  key: string;
+  state: "doing" | "done";
+  evidence?: string;
+  note?: string;
+}
+
+export interface RunnerTaskBody {
+  messageId: string;
+  updates: RunnerTaskUpdate[];
+}
+
+export interface RunnerTaskResult {
+  updated: string[];
+  refused: { key: string; reason: string }[];
 }

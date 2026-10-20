@@ -2,9 +2,9 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildBundle, sopSection } from "../src/bundle.ts";
+import { buildBundle, sopSection, tasksSection } from "../src/bundle.ts";
 import { HF_GENERATE_TOOLS, HF_QUOTE_TOOLS } from "../src/spend.ts";
-import type { ClaimTenant, SopStage } from "../src/wire.ts";
+import type { ClaimTenant, SopStage, WireTask } from "../src/wire.ts";
 
 const EM = "\u2014";
 
@@ -334,7 +334,6 @@ describe("the SOP from the SOPs tab", () => {
     expect(prompt).toContain("### Stage 1: Account\n- Create the sub-account (you)\n   1. Create it\n   2. Load the snapshot");
     expect(prompt).toContain("- Connect Facebook (Jake does this)");
     expect(prompt).toContain("### Stage 2: Compliance");
-    expect(prompt).toContain("Do not start the next stage until Jake approves that card.");
     expect(prompt).toContain("from the SOPs tab");
     expect(prompt).not.toContain("Director");
   });
@@ -350,5 +349,42 @@ describe("the SOP from the SOPs tab", () => {
     const env = world();
     expect(sopSection("ghl", [])).toBeNull();
     expect(readFileSync(buildBundle("ghl", willis, env).systemPromptFile, "utf8")).not.toContain("## Your SOP");
+  });
+});
+
+describe("the client's tasks", () => {
+  const t = (o: Partial<WireTask>): WireTask => ({ key: "ghl:a2p-submitted", name: "A2P Submitted", owner: "ghl", phase: "ghl", state: "todo", reason: null, ...o });
+  const tasks = [t({}), t({ key: "ghl:local-number-bought", name: "Local Number Bought", state: "doing" }), t({ key: "ghl:x", name: "Done one", state: "done" }), t({ key: "ghl:y", name: "Cut one", state: "cut" })];
+
+  it("lists an agent's open tasks by key, and says to work only on what Jake names", () => {
+    const text = tasksSection("ghl", tasks)!;
+    expect(text).toContain("## Your tasks for this client");
+    expect(text).toContain("- [todo] ghl:a2p-submitted: A2P Submitted");
+    expect(text).toContain("- [doing] ghl:local-number-bought: Local Number Bought");
+    expect(text).not.toContain("Cut one");
+    expect(text).toContain("Work only on the tasks Jake names in this chat.");
+  });
+
+  it("gives the Manager every task grouped by owner, cut ones with their reason", () => {
+    const text = tasksSection("manager", [...tasks, t({ key: "paid:invoice-paid", name: "Invoice Paid", owner: "client", phase: "paid", state: "done" }), t({ key: "ghl:z", name: "Cut two", state: "cut", reason: "No jobs" })])!;
+    expect(text).toContain("## The client's tasks");
+    expect(text).toContain("### Client");
+    expect(text).toContain("### GHL");
+    expect(text).toContain("- [cut] ghl:z: Cut two (No jobs)");
+  });
+
+  it("is left out with no tasks, and goes in the prompt with them", () => {
+    expect(tasksSection("ghl", [])).toBeNull();
+    const env = world();
+    const prompt = readFileSync(buildBundle("ghl", willis, env, null, [], [], tasks).systemPromptFile, "utf8");
+    expect(prompt).toContain("## Your tasks for this client");
+  });
+});
+
+describe("the SOP rule once tasks exist", () => {
+  it("tells the agent to do only the tasks Jake names, never to start the next stage itself", () => {
+    const text = sopSection("ghl", [{ name: "Account", tasks: [{ name: "Create", owner: "agent", steps: [] }] }])!;
+    expect(text).not.toContain("Start stage");
+    expect(text).toContain("Your map is how you work. Do only the tasks Jake names in this chat; never start the next one on your own.");
   });
 });
