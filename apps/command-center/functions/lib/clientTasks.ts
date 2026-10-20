@@ -128,7 +128,7 @@ async function insertAdded(
 export async function createTask(
   client: SupabaseClient,
   tenantId: string,
-  body: { phase: unknown; owner: unknown; name: unknown; steps?: unknown },
+  body: { phase?: unknown; owner?: unknown; name?: unknown; steps?: unknown },
   by: string,
 ): Promise<ClientTask | Fail> {
   if (!phaseOk(body.phase)) return { error: 400, reason: "unknown phase" };

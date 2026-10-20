@@ -26,6 +26,7 @@ import type {
   GenerateResponse,
 } from "../lib/secretsApi";
 import type { CreateClientPayload } from "../lib/clientOnboarding";
+import type { ClientTask, TaskOwner, TaskState } from "../lib/clientTasks";
 import {
   type AdsStatus,
   api,
@@ -4045,4 +4046,69 @@ export function useAdminClientContractRead(tenantId: string) {
 export async function openClientContract(tenantId: string): Promise<string> {
   const { url } = await api<{ url: string }>(`/api/admin/clients/${tenantId}/contract/file`);
   return url;
+}
+
+// ---------------------------------------------------------------------------
+// Director: a client's setup tasks (/api/admin/client-tasks, lib/clientTasks.ts)
+// ---------------------------------------------------------------------------
+
+export interface ClientTaskPatch {
+  name?: string;
+  owner?: TaskOwner;
+  phase?: string;
+  position?: number;
+  state?: TaskState;
+  note?: string | null;
+  evidence?: string | null;
+}
+
+const clientTasksKey = (tenantId: string) => ["admin", "client-tasks", tenantId];
+
+export function useClientTasksQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: clientTasksKey(tenantId),
+    enabled: enabled && !!tenantId,
+    staleTime: 15_000,
+    queryFn: () => api<{ tasks: ClientTask[] }>(`/api/admin/client-tasks/${tenantId}`),
+  });
+}
+
+export function useClientTaskCreate(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { phase: string; owner: TaskOwner; name: string }) =>
+      api<{ task: ClientTask }>(`/api/admin/client-tasks/${tenantId}`, { method: "POST", body: JSON.stringify(body) }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: clientTasksKey(tenantId) }),
+  });
+}
+
+// Optimistic, like the checklist toggle: a card that waits a round trip before
+// it moves feels broken, and a failure rolls back.
+export function useClientTaskPatch(tenantId: string) {
+  const qc = useQueryClient();
+  const key = clientTasksKey(tenantId);
+  return useMutation({
+    mutationFn: (vars: { id: string; patch: ClientTaskPatch }) =>
+      api<{ task: ClientTask }>(`/api/admin/client-tasks/${tenantId}/${vars.id}`, { method: "PATCH", body: JSON.stringify(vars.patch) }),
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<{ tasks: ClientTask[] }>(key);
+      qc.setQueryData<{ tasks: ClientTask[] }>(key, (old) =>
+        old ? { tasks: old.tasks.map((t) => (t.id === vars.id ? { ...t, ...vars.patch } : t)) } : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(key, context.previous);
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: key }),
+  });
+}
+
+export function useClientTaskDelete(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<{ ok: true }>(`/api/admin/client-tasks/${tenantId}/${id}`, { method: "DELETE" }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: clientTasksKey(tenantId) }),
+  });
 }
