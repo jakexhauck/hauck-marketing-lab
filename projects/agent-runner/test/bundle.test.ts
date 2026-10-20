@@ -158,34 +158,18 @@ describe("buildBundle", () => {
     expect(readFileSync(buildBundle("manager", null, env, null, []).systemPromptFile, "utf8")).not.toContain("## Client brief");
   });
 
-  it("names the new sections and lists the boxes the agent may tick", () => {
+  it("names the new sections and offers no boxes to tick", () => {
     const env = world();
     const brief = [
-      { section: "client" as const, body: "### Business\n- Business name: Willis", version: 1, updatedBy: "jake" as const, updatedAt: null, boxes: [] },
-      { section: "manager" as const, body: "", version: 0, updatedBy: null, updatedAt: null, boxes: [{ label: "Invoice Paid", done: true }] },
-      { section: "onboarding-call" as const, body: "", version: 0, updatedBy: null, updatedAt: null, boxes: [{ label: "Set Expectations", done: false }] },
-      {
-        section: "ads" as const,
-        body: "",
-        version: 0,
-        updatedBy: null,
-        updatedAt: null,
-        boxes: [
-          { label: "Lead Form Setup", done: true },
-          { label: "Ads LIVE", done: false },
-        ],
-      },
+      { section: "client" as const, body: "### Business\n- Business name: Willis", version: 1, updatedBy: "jake" as const, updatedAt: null },
+      { section: "onboarding-call" as const, body: "", version: 0, updatedBy: null, updatedAt: null },
+      { section: "ads" as const, body: "", version: 0, updatedBy: null, updatedAt: null },
     ];
     const ads = readFileSync(buildBundle("ads", willis, env, null, brief).systemPromptFile, "utf8");
     expect(ads).toContain("### Client (version 1, last edited by Jake)");
     expect(ads).toContain("### Onboarding Call (version 0, empty)");
-    expect(ads).toContain("Boxes you may tick:\n- [x] Lead Form Setup\n- [ ] Ads LIVE");
-    // Another section's boxes are not offered to it.
-    expect(ads).not.toContain("[x] Invoice Paid");
-    const manager = readFileSync(buildBundle("manager", willis, env, null, brief).systemPromptFile, "utf8");
-    expect(manager).toContain("- [x] Invoice Paid");
-    expect(manager).toContain("- [ ] Set Expectations");
-    expect(manager).not.toContain("[ ] Ads LIVE");
+    expect(ads).not.toContain("Boxes you may tick");
+    expect(ads).not.toContain("```tick");
   });
 
   it("gives the GHL Agent only its own and the Status sections of the brief", () => {

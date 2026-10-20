@@ -259,32 +259,12 @@ export interface FileCreativeBody {
 export type BriefAuthor = "jake" | AgentId;
 export type BriefSectionId = AgentId | "client" | "onboarding-call" | "launch-call";
 
-// A checkbox under a section: the label a ```tick block names.
-export interface BriefBox {
-  label: string;
-  done: boolean;
-}
-
 export interface BriefSection {
   section: BriefSectionId;
   body: string;
   version: number;
   updatedBy: BriefAuthor | null;
   updatedAt: string | null;
-  // The section's manual boxes, from an app that has Brief v2.
-  boxes?: BriefBox[];
-}
-
-// Runner-only: an agent ticks boxes by label. POST /api/agent-runner/tick. The
-// app decides which sections the chat's agent may tick and refuses the rest.
-export interface RunnerTickBody {
-  messageId: string;
-  labels: string[];
-}
-
-export interface RunnerTickResult {
-  ticked: string[];
-  refused: string[];
 }
 
 // Runner-only: an agent moves its own client tasks forward, by key.

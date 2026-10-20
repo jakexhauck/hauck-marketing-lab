@@ -6,7 +6,6 @@ import {
   fullBrief,
   isBriefSectionId,
   sectionLabel,
-  tickSections,
   whoEdited,
 } from "./clientBrief";
 
@@ -49,13 +48,6 @@ describe("BRIEF_SECTIONS", () => {
   });
 });
 
-describe("tickSections", () => {
-  it("lets the Manager tick Status and both calls, every other agent only its own", () => {
-    expect(tickSections("manager")).toEqual(["manager", "onboarding-call", "launch-call"]);
-    expect(tickSections("ads")).toEqual(["ads"]);
-    expect(tickSections("research")).toEqual(["research"]);
-  });
-});
 
 describe("fullBrief", () => {
   it("fills missing sections as unwritten and keeps the order", () => {

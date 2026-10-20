@@ -51,7 +51,7 @@ describe("planMonitor", () => {
 
   it("fires manager on a checklist or accounts change", () => {
     expect(plan({ checklistDone: 11 })).toEqual([
-      { tenantId: "t1", agent: "manager", reason: "Setup checklist 10/30 to 11/30" },
+      { tenantId: "t1", agent: "manager", reason: "Setup tasks 10/30 to 11/30" },
     ]);
     expect(plan({ accountsRed: 0 })).toEqual([
       { tenantId: "t1", agent: "manager", reason: "Account checks red 1 to 0" },

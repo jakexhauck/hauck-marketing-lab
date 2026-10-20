@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Env } from "./env";
 import type { Snapshot } from "../../src/lib/agentWire";
-import { SOP_LISTS, sopKeys } from "../../src/lib/sopChecklists";
+import { ensureTasks } from "./clientTasks";
 import { fetchAllOpportunities, type GhlOpportunity } from "./ghl";
 import { graphGet } from "./metaGraph";
 import { actionsValue, UNIFIED_ATTRIBUTION } from "./metaActions";
@@ -64,16 +64,11 @@ export function stuckInNew(
   }).length;
 }
 
-const FULL_SETUP_KEYS = sopKeys(SOP_LISTS["full-setup"]);
-
-export function checklistCounts(
-  rows: { task_key: string; done: boolean | null }[],
-): Pick<Snapshot, "checklistDone" | "checklistTotal"> {
-  const keys = new Set(FULL_SETUP_KEYS);
-  return {
-    checklistDone: rows.filter((r) => r.done === true && keys.has(r.task_key)).length,
-    checklistTotal: FULL_SETUP_KEYS.length,
-  };
+// Setup progress is the client's Director (lib/clientTasks.ts): done out of
+// every task not cut. The field names stay so an older runner still reads it.
+export function checklistCounts(rows: { state: string }[]): Pick<Snapshot, "checklistDone" | "checklistTotal"> {
+  const live = rows.filter((r) => r.state !== "cut");
+  return { checklistDone: live.filter((r) => r.state === "done").length, checklistTotal: live.length };
 }
 
 /** Red rows only: blocked and unknown are consequences or blips, not new reds. */
@@ -108,9 +103,9 @@ export async function buildSnapshot(
   origin: string,
   now: Date = new Date(),
 ): Promise<Snapshot | null> {
-  const [tenantRes, ticksRes, accounts] = await Promise.all([
+  const [tenantRes, tasks, accounts] = await Promise.all([
     client.from("tenants").select("meta_ad_account_id").eq("id", tenantId).maybeSingle(),
-    client.from("onboarding_checklist").select("task_key, done").eq("tenant_id", tenantId),
+    ensureTasks(client, tenantId).catch(() => [] as { state: string }[]),
     runChecks(env, tenantId, origin).catch((err: Error) => ({ error: err.message, status: 500 }) as const),
   ]);
   if (!tenantRes.data) return null;
@@ -135,7 +130,7 @@ export async function buildSnapshot(
   return {
     ...meta,
     stuckNewOver48h: stuck,
-    ...checklistCounts((ticksRes.data ?? []) as { task_key: string; done: boolean | null }[]),
+    ...checklistCounts(tasks),
     accountsRed: "error" in accounts ? 0 : redCount(accounts.body.checks),
   };
 }

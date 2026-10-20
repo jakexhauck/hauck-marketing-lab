@@ -6,8 +6,7 @@ import type { AgentItem } from "../../../lib/agentWire";
 import { STATUS_PILL, WORKING_AGENTS, clientRowView } from "../../../lib/agentView";
 import { shortAgentName } from "../../../lib/brainGraph";
 import type { AdminClient } from "../../../lib/api";
-import { SOP_LISTS, sopKeys } from "../../../lib/sopChecklists";
-import { useAdminOnboardingChecklistQuery } from "../../../hooks/useApi";
+import { useClientTasksQuery } from "../../../hooks/useApi";
 import ClientMark from "../../ClientMark";
 import { AGENT_ICONS } from "../clientRowIcons";
 import ItemCard from "./ItemCard";
@@ -52,12 +51,11 @@ export function AgentBuilding({
 // The Manager inside one client: setup progress, what waits on Jake, and
 // where each agent is.
 export function ManagerBuilding({ client, items }: { client: AdminClient; items: AgentItem[] }) {
-  const checklist = useAdminOnboardingChecklistQuery(client.id);
+  const tasks = useClientTasksQuery(client.id);
   const setup = useMemo(() => {
-    const keys = sopKeys(SOP_LISTS["full-setup"]);
-    const done = new Set((checklist.data?.items ?? []).filter((i) => i.done).map((i) => i.task_key));
-    return { done: keys.filter((k) => done.has(k)).length, total: keys.length };
-  }, [checklist.data]);
+    const live = (tasks.data?.tasks ?? []).filter((t) => t.state !== "cut");
+    return { done: live.filter((t) => t.state === "done").length, total: live.length };
+  }, [tasks.data]);
   const waiting = items.filter((i) => i.status === "needs_ok").sort(byNewest);
   const live = client.onboardingStatus === "live";
 
@@ -73,8 +71,8 @@ export function ManagerBuilding({ client, items }: { client: AdminClient; items:
           <i style={{ width: `${setup.total ? Math.round((setup.done / setup.total) * 100) : 0}%` }} />
         </div>
         <div className="ag-meta-row">
-          <span>{SOP_LISTS["full-setup"].title}</span>
-          <span>{checklist.data ? `${setup.done} / ${setup.total}` : ""}</span>
+          <span>Director</span>
+          <span>{tasks.data ? `${setup.done} / ${setup.total}` : ""}</span>
         </div>
       </div>
       <div className="ag-card">

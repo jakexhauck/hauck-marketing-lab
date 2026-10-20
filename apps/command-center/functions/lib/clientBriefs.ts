@@ -3,7 +3,6 @@ import { isAgentId, type AgentId } from "../../src/lib/agents";
 import type { BriefAuthor, BriefDrive, BriefSection, BriefSectionId, ClaimResponse, RunnerBriefBody } from "../../src/lib/agentWire";
 import { fullBrief, isBriefAuthor, isBriefSectionId, MAX_SECTION_CHARS } from "../../src/lib/clientBrief";
 import { clientSeed } from "../../src/lib/briefClientSeed";
-import { claimBoxes } from "../../src/lib/briefChecklist";
 import { isUuid } from "./agentItems";
 import { messageFromRow, stripEmDash, type ClaimCore } from "./agentRunner";
 
@@ -208,17 +207,10 @@ export async function seedClientSection(
   return { sections: sections.map((s) => (s.section === "client" ? next : s)), seeded: "saved" in res };
 }
 
-/** The done "sop:" keys of a client's checklist. */
-async function doneKeys(client: SupabaseClient, tenantId: string): Promise<Set<string>> {
-  const { data, error } = await client.from("onboarding_checklist").select("task_key, done").eq("tenant_id", tenantId);
-  fail("checklist", error);
-  return new Set(((data ?? []) as Row[]).filter((r) => r.done).map((r) => r.task_key as string));
-}
-
 /**
  * The claim as the runner gets it: the client's whole brief rides along, the
- * Client section seeded if it is still empty, and each section carries its
- * manual boxes and their state, so an agent knows what it may tick.
+ * Client section seeded if it is still empty. The setup tasks ride in
+ * separately (lib/agentTasks.ts withTasks).
  */
 export async function withBrief(client: SupabaseClient, claim: ClaimCore | null): Promise<ClaimResponse | null> {
   if (!claim) return null;
@@ -228,8 +220,7 @@ export async function withBrief(client: SupabaseClient, claim: ClaimCore | null)
   try {
     const tenantId = claim.tenant.id;
     const { sections } = await seedClientSection(client, tenantId, await readBrief(client, tenantId));
-    const done = await doneKeys(client, tenantId).catch(() => new Set<string>());
-    return { ...claim, brief: sections.map((s) => ({ ...s, boxes: claimBoxes(s.section, done) })) };
+    return { ...claim, brief: sections };
   } catch (err) {
     console.error(`claim: brief read failed for ${claim.tenant.id}: ${(err as Error).message}`);
     return { ...claim, brief: [] };

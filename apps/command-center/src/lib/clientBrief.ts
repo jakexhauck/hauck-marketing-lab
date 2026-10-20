@@ -6,7 +6,7 @@
 // API, the runner API and the page; projects/agent-runner keeps the wire half
 // in src/wire.ts.
 
-import { AGENTS, isAgentId, type AgentId } from "./agents";
+import { AGENTS, isAgentId } from "./agents";
 import type { BriefAuthor, BriefDrive, BriefSection, BriefSectionId } from "./agentWire";
 
 // Brief v2 (Jake, 2026-10-17): the brief replaced the client setup pages. Client
@@ -39,14 +39,6 @@ export function isBriefSectionId(v: unknown): v is BriefSectionId {
   return typeof v === "string" && BRIEF_SECTIONS.some((s) => s.id === v);
 }
 
-/**
- * The sections whose boxes an agent may tick with a ```tick block: its own,
- * and for the Manager the two call checklists too (Jake, 2026-10-17). Jake can
- * tick any manual box from the app.
- */
-export function tickSections(agent: AgentId): BriefSectionId[] {
-  return agent === "manager" ? ["manager", "onboarding-call", "launch-call"] : [agent];
-}
 
 /** Every section in order; one nobody wrote yet is empty at version 0. */
 export function fullBrief(rows: BriefSection[]): BriefSection[] {

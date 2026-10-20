@@ -14,10 +14,8 @@ import type {
   ReplyBody,
   RunnerBriefBody,
   RunnerBriefResult,
-  RunnerTickBody,
   RunnerTaskBody,
   RunnerTaskResult,
-  RunnerTickResult,
   Snapshot,
   ClaimTenant,
 } from "../src/wire.ts";
@@ -39,12 +37,9 @@ export interface FakeApi extends RunnerApi {
   briefs: RunnerBriefBody[];
   // What the next brief post answers; saved at the version sent + 1 if unset.
   briefAnswer: ((b: RunnerBriefBody) => RunnerBriefResult) | null;
-  ticks: RunnerTickBody[];
   tasks: RunnerTaskBody[];
   // What the next task post answers; every update taken if unset.
   taskAnswer: ((b: RunnerTaskBody) => RunnerTaskResult) | null;
-  // What the next tick post answers; every label ticked if unset.
-  tickAnswer: ((b: RunnerTickBody) => RunnerTickResult) | null;
   answers: AnswerBody[];
 }
 
@@ -66,8 +61,6 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     refused: new Set(),
     briefs: [],
     briefAnswer: null,
-    ticks: [],
-    tickAnswer: null,
     tasks: [],
     taskAnswer: null,
     answers: [],
@@ -114,11 +107,6 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
       api.tasks.push(b);
       if (api.taskAnswer) return api.taskAnswer(b);
       return { updated: b.updates.map((u) => u.key), refused: [] };
-    },
-    async tick(b) {
-      api.ticks.push(b);
-      if (api.tickAnswer) return api.tickAnswer(b);
-      return { ticked: b.labels, refused: [] };
     },
     async answer(b) {
       api.answers.push(b);

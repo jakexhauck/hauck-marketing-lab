@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { FakeDb } from "./agentFakeDb";
 import { agentSaveBrief, readBrief, readBriefDrive, saveBriefSection, seedClientSection, withBrief } from "./clientBriefs";
-import { sopTaskKey } from "../../src/lib/sopChecklists";
 
 const T1 = "11111111-1111-4111-8111-111111111111";
 const T2 = "22222222-2222-4222-8222-222222222222";
@@ -190,16 +189,13 @@ describe("seedClientSection", () => {
   });
 });
 
-describe("withBrief, boxes", () => {
-  it("gives each section its manual boxes and their state", async () => {
-    const db = new FakeDb().seed("onboarding_checklist", [
-      { tenant_id: T1, task_key: sopTaskKey("full-setup", "Facebook Ads", "Ads LIVE"), done: true },
-    ]);
-    const core = { message: {} as never, chat: {} as never, history: [], tenant: { id: T1, name: "W", slug: "w", metaAdAccountId: null } };
-    const res = await withBrief(db.client(), core);
-    const ads = res?.brief.find((s) => s.section === "ads");
-    expect(ads?.boxes).toContainEqual({ label: "Ads LIVE", done: true });
-    expect(ads?.boxes).toContainEqual({ label: "Lead Form Setup", done: false });
-    expect(res?.brief.find((s) => s.section === "research")?.boxes).toEqual([]);
+describe("withBrief, no boxes", () => {
+  it("sends the sections with no boxes: tasks live on the Director now", async () => {
+    const db0 = new FakeDb();
+    const core0 = { message: {} as never, chat: {} as never, history: [], tenant: { id: T1, name: "W", slug: "w", metaAdAccountId: null } };
+    const res0 = await withBrief(db0.client(), core0);
+    expect(res0!.brief.every((s) => !("boxes" in s))).toBe(true);
   });
+
+
 });

@@ -23,8 +23,6 @@ import type {
   RunnerBriefResult,
   RunnerTaskBody,
   RunnerTaskResult,
-  RunnerTickBody,
-  RunnerTickResult,
   Snapshot,
   TenantsResponse,
 } from "./wire.ts";
@@ -43,7 +41,6 @@ export interface RunnerApi {
   // edited it), not an error, so it comes back as saved: false.
   brief(body: RunnerBriefBody): Promise<RunnerBriefResult>;
   // Boxes in the agent's own section(s). The app refuses any other label.
-  tick(body: RunnerTickBody): Promise<RunnerTickResult>;
   // An agent moves its own client tasks forward; the app checks owner and proof.
   task(body: RunnerTaskBody): Promise<RunnerTaskResult>;
   // An approved request's reply, back to the asking agent's chat. posted is
@@ -100,7 +97,6 @@ export function createApi(opts: ApiOptions): RunnerApi {
       const { status, data } = await send<{ section: RunnerBriefResult["section"] }>("POST", "brief", b, [409]);
       return { saved: status !== 409, section: data.section };
     },
-    tick: (b) => call<RunnerTickResult>("POST", "tick", b),
     task: (b) => call<RunnerTaskResult>("POST", "task", b),
     answer: (b) => call<{ posted: boolean }>("POST", "answer", b),
   };

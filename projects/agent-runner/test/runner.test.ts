@@ -195,20 +195,6 @@ describe("handleClaim", () => {
     expect(runs.at(-1)!.prompt).not.toMatch(/Jake edited/);
   });
 
-  it("posts a tick block's labels and says what was ticked and refused", async () => {
-    const { env } = world();
-    const { api, d } = deps(env, `Launched.
-${F}tick
-Ads LIVE
-Invoice Paid
-${F}`);
-    api.tickAnswer = () => ({ ticked: ["Ads LIVE"], refused: ["Invoice Paid"] });
-    await handleClaim(claim(), d);
-    expect(api.ticks).toEqual([{ messageId: "m1", labels: ["Ads LIVE", "Invoice Paid"] }]);
-    const done = api.replies.at(-1)!;
-    expect(done.tools).toContain("Ticked Ads LIVE");
-    expect(done.aiBody).toMatch(/Not ticked \(not in your section\): Invoice Paid/);
-  });
 
   it("posts a task block's updates and says what moved and what was refused", async () => {
     const { env } = world();
@@ -239,19 +225,15 @@ ${F}`);
     expect(agency.api.tasks).toEqual([]);
   });
 
-  it("drops a tick block at the agency, and posts nothing without one", async () => {
+  it("posts nothing for an old tick block", async () => {
     const { env } = world();
-    const agency = deps(env, `ok
+    const { api, d } = deps(env, `Launched.
 ${F}tick
-Invoice Paid
+Ads LIVE
 ${F}`);
-    const c = claim({ tenantId: null, agent: "manager" });
-    c.tenant = null;
-    await handleClaim(c, agency.d);
-    expect(agency.api.ticks).toEqual([]);
-    const none = deps(env, "ok");
-    await handleClaim(claim(), none.d);
-    expect(none.api.ticks).toEqual([]);
+    await handleClaim(claim(), d);
+    expect(api.tasks).toEqual([]);
+    expect((api.replies.at(-1)!.tools ?? []).some((t: string) => t.startsWith("Ticked"))).toBe(false);
   });
 
   it("drops a brief block at the agency, where there is no brief", async () => {

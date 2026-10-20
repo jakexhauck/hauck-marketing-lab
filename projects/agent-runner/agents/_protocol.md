@@ -42,13 +42,6 @@ Something still being built goes on a Building card, not in the brief. When it i
 
 You can only change your own section (marked yours in the Client brief). Jake may have edited it: build on his text and keep what he wrote unless he asked you to change it. If he edits it while you work, your block is not saved and you are told next turn.
 
-Boxes you finished, one item label per line, copied exactly from "Boxes you may tick" under a section of the Client brief. Tick a box only when that item is truly done (finished work only, as in the brief). You may tick only the boxes listed for you: your own section's, and for the Manager also Onboarding Call and Launch Call. The app refuses any other label and Jake is told. You never untick; that is Jake's. The account checks (Meta ad account, GHL app and the like) follow the live check and cannot be ticked.
-
-```tick
-Lead Form Setup
-Ads LIVE
-```
-
 Tasks you started or finished, from "Your tasks for this client", one per line: the key, then doing or done, then for done the proof (a record id, an ad id, a link, or a short note when there is no record). Move only the tasks Jake named in this chat, and only your own. The app refuses anything else and Jake is told. You never move a task back; that is Jake's.
 
 ```task

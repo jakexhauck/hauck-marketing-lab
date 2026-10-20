@@ -74,7 +74,7 @@ export function planMonitor(
       const mgr: string[] = [];
       if (was.checklistDone !== now.checklistDone || was.checklistTotal !== now.checklistTotal) {
         mgr.push(
-          `Setup checklist ${was.checklistDone}/${was.checklistTotal} to ${now.checklistDone}/${now.checklistTotal}`,
+          `Setup tasks ${was.checklistDone}/${was.checklistTotal} to ${now.checklistDone}/${now.checklistTotal}`,
         );
       }
       if (was.accountsRed !== now.accountsRed) mgr.push(`Account checks red ${was.accountsRed} to ${now.accountsRed}`);

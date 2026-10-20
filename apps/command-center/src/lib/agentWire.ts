@@ -291,12 +291,6 @@ export interface FileCreativeBody {
 export type BriefAuthor = "jake" | AgentId;
 export type BriefSectionId = AgentId | "client" | "onboarding-call" | "launch-call";
 
-// One checkbox under a section, as the runner gets it in the claim: the label
-// an agent names in a ```tick block, and whether it is ticked.
-export interface BriefBox {
-  label: string;
-  done: boolean;
-}
 
 export interface BriefSection {
   section: BriefSectionId;
@@ -304,9 +298,6 @@ export interface BriefSection {
   version: number;
   updatedBy: BriefAuthor | null;
   updatedAt: string | null;
-  // Only on a claim: the section's manual boxes (BRIEF_BOXES). Never sent to
-  // the app, which reads the checklist itself.
-  boxes?: BriefBox[];
 }
 
 // Where the brief's Google Doc is and how the last sync went. null until the
@@ -338,19 +329,6 @@ export interface RunnerBriefBody {
   messageId: string;
   body: string;
   version: number;
-}
-
-// Runner-only: an agent ticks boxes in a section it may tick, by label.
-// POST /api/agent-runner/tick. Which sections that is comes from the chat's
-// agent on the server (tickSections); a label anywhere else is refused.
-export interface RunnerTickBody {
-  messageId: string;
-  labels: string[];
-}
-
-export interface RunnerTickResult {
-  ticked: string[];
-  refused: string[];
 }
 
 // Runner-only: an agent moves its own client tasks forward, by key.

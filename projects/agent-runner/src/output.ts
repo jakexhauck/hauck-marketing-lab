@@ -8,8 +8,8 @@
 //   ```item      JSON ItemDraft (or an array): a card for the Building panel
 //   ```request   JSON RequestDraft: an ask for another agent
 //   ```brief     the agent's whole new Client Brief section, markdown
-//   ```tick      finished items in the agent's own brief section, one label
-//                per line
+//   ```task      the agent's own client tasks moved: key | doing, or
+//                key | done | proof
 //
 // Everything here is forgiving on purpose. A model that writes a broken JSON
 // block has still answered Jake, so a bad block is dropped and the reply kept.
@@ -41,9 +41,6 @@ export interface AgentOutput {
   requests: RequestDraft[];
   // The agent's full new Client Brief section, or null for no change.
   brief: string | null;
-  // Labels of brief boxes the agent finished this turn. The app checks they
-  // are in the agent's own section.
-  ticks: string[];
   // Client tasks the agent moved this turn. The app checks they are its own.
   tasks: RunnerTaskUpdate[];
 }
@@ -55,7 +52,7 @@ export function stripEmDashes(s: string): string {
   return s.replace(/\s*\u2014\s*/g, ", ");
 }
 
-const BLOCK = /```(lessons|item|request|brief|tick|task)[^\n]*\n([\s\S]*?)```/g;
+const BLOCK = /```(lessons|item|request|brief|task)[^\n]*\n([\s\S]*?)```/g;
 
 function parseJson(body: string): unknown[] {
   try {
@@ -86,17 +83,12 @@ function toRequest(v: unknown): RequestDraft | null {
 }
 
 export function parseAgentOutput(text: string): AgentOutput {
-  const out: AgentOutput = { reply: "", lessons: [], items: [], requests: [], brief: null, ticks: [], tasks: [] };
+  const out: AgentOutput = { reply: "", lessons: [], items: [], requests: [], brief: null, tasks: [] };
   for (const [, kind, body] of text.matchAll(BLOCK)) {
     if (kind === "lessons") {
       for (const raw of body.split("\n")) {
         const line = stripEmDashes(raw.replace(/^\s*[-*]\s+/, "").trim());
         if (line) out.lessons.push(line);
-      }
-    } else if (kind === "tick") {
-      for (const raw of body.split("\n")) {
-        const label = raw.replace(/^\s*(?:[-*]\s+)?(?:\[[ xX]?\]\s*)?/, "").trim();
-        if (label && !out.ticks.some((t) => t.toLowerCase() === label.toLowerCase())) out.ticks.push(label);
       }
     } else if (kind === "task") {
       // key | doing, or key | done | proof. Anything else is dropped.

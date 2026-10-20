@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { SOP_LISTS, sopKeys } from "../../src/lib/sopChecklists";
 import { checklistCounts, metaWeek, redCount, stuckInNew } from "./agentSnapshot";
 
 describe("metaWeek", () => {
@@ -44,15 +43,9 @@ describe("stuckInNew", () => {
 });
 
 describe("checklistCounts", () => {
-  it("counts the Full Setup Checklist ticks only", () => {
-    const keys = sopKeys(SOP_LISTS["full-setup"]);
-    const rows = [
-      { task_key: keys[0], done: true },
-      { task_key: keys[1], done: false },
-      { task_key: "sop:launch-call:x:y", done: true },
-      { task_key: "some-setup-step", done: true },
-    ];
-    expect(checklistCounts(rows)).toEqual({ checklistDone: 1, checklistTotal: keys.length });
+  it("counts the client's Director tasks done, out of those not cut", () => {
+    const rows = [{ state: "done" }, { state: "todo" }, { state: "doing" }, { state: "cut" }, { state: "done" }];
+    expect(checklistCounts(rows)).toEqual({ checklistDone: 2, checklistTotal: 4 });
   });
 });
 

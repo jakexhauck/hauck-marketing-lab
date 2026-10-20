@@ -365,21 +365,6 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
         notes.push("Brief not saved: the app did not take it. Ask me again to retry.");
       }
     }
-    // Brief boxes the agent finished. The app decides which sections this
-    // chat's agent may tick and refuses every other label; the runner only
-    // passes the labels on and says what happened.
-    if (out.ticks.length && !tenant) log("tick block dropped: the agency has no brief");
-    if (out.ticks.length && tenant) {
-      try {
-        const res = await d.api.tick({ messageId, labels: out.ticks });
-        for (const label of res.ticked) tools.push(`Ticked ${label}`);
-        if (res.refused.length) notes.push(`Not ticked (not in your section): ${res.refused.join(", ")}`);
-      } catch (e) {
-        log(`tick post failed: ${(e as Error).message}`);
-        notes.push("Boxes not ticked: the app did not take them. Ask me again to retry.");
-      }
-    }
-
     // Client tasks the agent moved. The app checks each is the agent's own,
     // not cut, and that done carries proof; the runner passes them on and
     // says what happened.

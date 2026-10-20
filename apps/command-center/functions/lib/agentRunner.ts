@@ -71,8 +71,6 @@ export const AGENT_RUNNER_POST_PATHS: readonly string[] = [
   "file-creative",
   // An agent rewrites its own Client Brief section (lib/clientBriefs.ts).
   "brief",
-  // An agent ticks boxes in its own brief section(s) (lib/briefTicks.ts).
-  "tick",
   // An agent moves its own client tasks forward (lib/agentTasks.ts).
   "task",
   // An approved request's reply, back to the agent that asked (lib/agentItems.ts postAnswer).
