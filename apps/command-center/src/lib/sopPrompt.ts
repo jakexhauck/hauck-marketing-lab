@@ -20,9 +20,12 @@ function owner(n: SopNode): SopTask["owner"] {
   return "agent";
 }
 
-function task(n: SopNode, onMain: boolean): SopTask {
+// A linked box with nothing coming into it brings work in from that map; any
+// other linked box hands work over to it.
+function task(map: AgentSop, n: SopNode, onMain: boolean): SopTask {
   let name = n.t;
-  if (n.link) name = `Hand off to ${getAgentSop(n.link)?.name ?? n.link}: ${n.t}`;
+  const other = n.link ? getAgentSop(n.link)?.name ?? n.link : "";
+  if (n.link) name = map.edges.some(([, b]) => b === n.id) ? `Hand off to ${other}: ${n.t}` : `From ${other}: ${n.t}`;
   else if (n.k === "edit" && !onMain) name = `${n.t} (only when sent here)`;
   const steps = n.steps ?? n.d ?? [];
   return { name, owner: owner(n), steps: n.k === "review" ? [REVIEW_STEP, ...steps] : [...steps] };
@@ -59,7 +62,7 @@ export function mapStages(map: AgentSop): SopStage[] {
 
   const stages: SopStage[] = groups.map((g) => ({
     name: g.length === 1 ? g[0].t : `${g[0].t} to ${g[g.length - 1].t}`,
-    tasks: g.map((n) => task(n, true)),
+    tasks: g.map((n) => task(map, n, true)),
     ...(map.draft ? { draft: true } : {}),
   }));
 
@@ -70,16 +73,16 @@ export function mapStages(map: AgentSop): SopStage[] {
     const from = map.edges.find(([a, b]) => b === n.id && onMain.has(a))?.[0];
     const to = map.edges.find(([a, b]) => a === n.id && onMain.has(b))?.[1];
     const at = stageOf.get(from ?? to ?? "") ?? stages.length - 1;
-    stages[at].tasks.push(task(n, false));
+    stages[at].tasks.push(task(map, n, false));
   }
   return stages;
 }
 
-// The Manager also carries the whole client journey it oversees.
+// Each agent follows its own map only. The Manager's map is already the client
+// journey; the Client Fulfillment map joins its prompt in Build 2, when the
+// Manager map is rewritten to its own kickoff-and-track job (as a numbered
+// stage list here it repeated the journey with the wrong owners).
 export function sopForAgent(agent: AgentId): SopStage[] {
   const own = getAgentSop(agent);
-  const stages = own ? mapStages(own) : [];
-  if (agent !== "manager") return stages;
-  const journey = getAgentSop("fulfillment");
-  return journey ? [...stages, ...mapStages(journey).map((s) => ({ ...s, name: `Client Fulfillment: ${s.name}` }))] : stages;
+  return own ? mapStages(own) : [];
 }

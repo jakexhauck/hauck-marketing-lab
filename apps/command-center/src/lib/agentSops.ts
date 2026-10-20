@@ -154,7 +154,7 @@ export const AGENT_SOPS: AgentSop[] = [
         steps: ["Ads: Ads LIVE", "Ads Agent starts daily monitoring", "Reporting Agent starts the monthly cycle"] },
       { id: "fix", c: 1.4, r: 1, k: "edit", t: "fix list", d: ["side door", "back to the owner"], src: "Launch Call > Before The Call",
         steps: ["Each failed check goes back to the agent or person that owns it", "Re-check when every item is fixed"] },
-      { id: "toghl", c: 2.6, r: 1, k: "done", t: "GHL Agent", d: ["sub-account to CAPI"], link: "ghl" },
+      { id: "toghl", c: 2.3, r: 1, k: "done", t: "GHL Agent", d: ["sub-account to CAPI"], link: "ghl" },
       { id: "toads", c: 0, r: 3, k: "done", t: "Ads Agent", d: ["form + campaign"], link: "ads" },
       { id: "tocre", c: 1, r: 3, k: "done", t: "Creative Agent", d: ["images + videos"], link: "creative" },
       { id: "tolp", c: 2, r: 3, k: "done", t: "Landing Page Agent", d: ["conversion assets"], link: "landing" },

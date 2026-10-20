@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AGENTS } from "./agents";
-import { AGENT_SOPS, frameSize, getAgentSop, layoutEdges, port, route, sopMapPath } from "./agentSops";
+import { AGENT_SOPS, frameSize, getAgentSop, layoutEdges, nodeBox, port, route, sopMapPath } from "./agentSops";
 import { mapStages } from "./sopPrompt";
 import { SOP_LISTS } from "./sopChecklists";
 
@@ -63,6 +63,20 @@ describe("agent SOP maps", () => {
   it("draws every edge with finite coordinates", () => {
     for (const map of AGENT_SOPS)
       for (const e of layoutEdges(map)) expect(e.d, `${map.id}: ${e.key}`).not.toMatch(/NaN|Infinity/);
+  });
+
+  it("no edge label sits on a box on the Client Fulfillment map", () => {
+    const m = getAgentSop("fulfillment")!;
+    for (const e of layoutEdges(m)) {
+      if (!e.label) continue;
+      const w = e.label.text.length * 5.2, h = 12; // 10px label text
+      const l = { x: e.label.x - w / 2, y: e.label.y - 10, w, h };
+      for (const n of m.nodes) {
+        const b = nodeBox(n);
+        const hit = l.x < b.x + b.w && l.x + l.w > b.x && l.y < b.y + b.h && l.y + l.h > b.y;
+        expect(hit, `${e.key} label on ${n.id}`).toBe(false);
+      }
+    }
   });
 
   it("frame is at least 1100 wide", () => {

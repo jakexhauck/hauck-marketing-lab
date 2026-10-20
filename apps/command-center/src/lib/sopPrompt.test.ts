@@ -6,7 +6,7 @@ describe("mapStages", () => {
   it("walks the main line in order and splits after each Jake approves box", () => {
     const s = mapStages(getAgentSop("ghl")!);
     expect(s[0].tasks.map((t) => t.name).slice(0, 2)).toEqual(["sub-account", "staff added"]);
-    expect(s[0].tasks.filter((t) => !t.name.includes("(only when") && !t.name.startsWith("Hand off")).at(-1)!.name).toBe("Jake review");
+    expect(s[0].tasks.filter((t) => !t.name.includes("(only when") && !t.name.startsWith("Hand off") && !t.name.startsWith("From ")).at(-1)!.name).toBe("Jake review");
     expect(s[1].tasks.map((t) => t.name)).toContain("publish + test");
   });
 
@@ -24,7 +24,14 @@ describe("mapStages", () => {
 
   it("names handoffs after the map they open", () => {
     const t = mapStages(getAgentSop("ghl")!).flatMap((x) => x.tasks).map((x) => x.name);
-    expect(t).toContain("Hand off to Ads: Ads Agent");
+    expect(t).toContain("Hand off to Manager: back to Manager");
+  });
+
+  it("names a box that only brings work in as coming from that map", () => {
+    const ghl = mapStages(getAgentSop("ghl")!).flatMap((x) => x.tasks).map((x) => x.name);
+    expect(ghl).toContain("From Ads: Ads Agent");
+    expect(ghl).not.toContain("Hand off to Ads: Ads Agent");
+    expect(mapStages(getAgentSop("ads")!)[0].tasks[0].name).toBe("From Market Research: research in");
   });
 
   it("uses steps, else the box lines", () => {
@@ -55,8 +62,8 @@ describe("mapStages", () => {
 });
 
 describe("sopForAgent", () => {
-  it("gives the Manager its own map, then Client Fulfillment", () => {
-    expect(sopForAgent("manager").some((x) => x.name.startsWith("Client Fulfillment: "))).toBe(true);
-    expect(sopForAgent("ghl").some((x) => x.name.startsWith("Client Fulfillment: "))).toBe(false);
+  it("gives each agent only its own map, so no journey is listed twice", () => {
+    expect(sopForAgent("manager")).toEqual(mapStages(getAgentSop("manager")!));
+    expect(sopForAgent("ghl")).toEqual(mapStages(getAgentSop("ghl")!));
   });
 });
