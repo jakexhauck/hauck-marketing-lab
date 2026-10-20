@@ -33,7 +33,7 @@ function task(map: AgentSop, n: SopNode, onMain: boolean): SopTask {
 
 // Start at the box with an outgoing main edge and none coming in, follow the
 // first outgoing main edge, stop at a box already visited (a loop never hangs).
-function mainLine(map: AgentSop): SopNode[] {
+export function mainLine(map: AgentSop): SopNode[] {
   const main = map.edges.filter(([, , , kind = "main"]) => kind === "main");
   const into = new Set(main.map(([, b]) => b));
   const byId = new Map(map.nodes.map((n) => [n.id, n]));

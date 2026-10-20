@@ -151,7 +151,7 @@ export const AGENT_SOPS: AgentSop[] = [
           "Client: Send Test SMS & Have Client Save Both Outcome Numbers",
         ] },
       { id: "live", c: 3, r: 2, k: "done", t: "ads LIVE", d: ["Ads Agent monitors", "Reporting starts"], src: "Full Setup Checklist > Facebook Ads",
-        steps: ["Ads: Ads LIVE", "Ads Agent starts daily monitoring", "Reporting Agent starts the monthly cycle"] },
+        steps: ["Ads: Ads LIVE", "Ads: Ads Agent starts daily monitoring", "Reporting: Reporting Agent starts the monthly cycle"] },
       { id: "fix", c: 1.4, r: 1, k: "edit", t: "fix list", d: ["side door", "back to the owner"], src: "Launch Call > Before The Call",
         steps: ["Each failed check goes back to the agent or person that owns it", "Re-check when every item is fixed"] },
       { id: "toghl", c: 2.3, r: 1, k: "done", t: "GHL Agent", d: ["sub-account to CAPI"], link: "ghl" },
