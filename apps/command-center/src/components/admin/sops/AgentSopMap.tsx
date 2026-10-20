@@ -9,10 +9,7 @@ import {
   nodeBox,
   type AgentSop,
   type SopMapId,
-  type SopNode,
 } from "../../../lib/agentSops";
-import { boardFor, howLines, ownerKind, ownerLabel, type DirectorResponse, type DirectorTask } from "../../../lib/director";
-import { directorApi, useDirectorWrite } from "../director/directorApi";
 
 // One agent's flow map (lib/agentSops), drawn like a Figma board. The board
 // stays light in both themes, like the file in the video; only the side panel
@@ -20,40 +17,19 @@ import { directorApi, useDirectorWrite } from "../director/directorApi";
 // never needs scrolling (Jake, 2026-10-17). Phones keep a readable floor and
 // scroll instead.
 //
-// The Director (Jake, 2026-10-18) decides what is on it: a box takes its
-// task's name, a task switched off there shows faded, and a task added there
-// gets a box in the rows below the map. Those boxes carry their own steps,
-// which Jake writes or approves here; a draft is dashed and no agent runs on it.
+// The map is the agent's whole SOP: the runner builds its "Your SOP" prompt
+// from these same boxes (lib/sopPrompt.ts), so what Jake reads here is what
+// the agent follows.
 
 const EDGE_COLOR = { main: "#1b1b1b", side: "#7d2233", alt: "#c7742b" } as const;
-const ADDED = "task:";
-
-// The Director's added tasks, as boxes in rows of five under the map.
-function addedNodes(map: AgentSop, director: DirectorResponse | undefined): { nodes: SopNode[]; tasks: Map<string, DirectorTask> } {
-  const tasks = new Map<string, DirectorTask>();
-  const nodes: SopNode[] = [];
-  const top = Math.max(...map.nodes.map((n) => n.r)) + 1.3;
-  for (const { stage, tasks: list } of map.id === "fulfillment" ? [] : boardFor(map.id, director)) {
-    for (const t of list) {
-      if (t.nodeId) continue;
-      const i = nodes.length;
-      const id = ADDED + t.id;
-      tasks.set(id, t);
-      nodes.push({ id, c: i % 5, r: top + Math.floor(i / 5), k: ownerKind(t.owner), t: t.name, d: [stage.name] });
-    }
-  }
-  return { nodes, tasks };
-}
 
 export default function AgentSopMap({
   map,
-  director,
   initial,
   onOpenAgent,
 }: {
   map: AgentSop;
-  director?: DirectorResponse;
-  // A box to open on arrival: a graph node id, or "task:<id>" for an added one.
+  // A box to open on arrival, by node id.
   initial?: string | null;
   onOpenAgent: (id: SopMapId) => void;
 }) {
@@ -66,18 +42,9 @@ export default function AgentSopMap({
     if (initial) setSelected(initial);
   }, [initial]);
 
-  const added = useMemo(() => addedNodes(map, director), [map, director]);
-  const full = useMemo<AgentSop>(() => ({ ...map, nodes: [...map.nodes, ...added.nodes] }), [map, added]);
-  const linked = useMemo(
-    () => new Map((director?.tasks ?? []).filter((t) => t.agent === map.id && t.nodeId).map((t) => [t.nodeId!, t])),
-    [director, map.id],
-  );
-  const stageName = (id: string) => director?.stages.find((s) => s.id === id)?.name ?? "";
-
-  const size = useMemo(() => frameSize(full), [full]);
+  const size = useMemo(() => frameSize(map), [map]);
   const edges = useMemo(() => layoutEdges(map), [map]);
-  const node = selected ? full.nodes.find((n) => n.id === selected) ?? null : null;
-  const label = (n: SopNode) => linked.get(n.id)?.name ?? added.tasks.get(n.id)?.name ?? n.t;
+  const node = selected ? map.nodes.find((n) => n.id === selected) ?? null : null;
 
   useLayoutEffect(() => {
     const wrap = wrapRef.current, stage = stageRef.current;
@@ -91,7 +58,7 @@ export default function AgentSopMap({
     const ro = new ResizeObserver(measure);
     ro.observe(wrap);
     return () => ro.disconnect();
-  }, [full]);
+  }, [map]);
 
   return (
     <div className="asop-body">
@@ -126,22 +93,20 @@ export default function AgentSopMap({
                   ),
               )}
             </svg>
-            {full.nodes.map((n, i) => {
+            {map.nodes.map((n, i) => {
               const b = nodeBox(n);
               const K = KIND[n.k];
-              const off = linked.get(n.id)?.removed;
-              const draft = added.tasks.get(n.id)?.howStatus === "draft";
               return (
                 <button
                   key={n.id}
                   type="button"
-                  className={`asop-node${K.gate ? " gate" : ""}${selected === n.id ? " sel" : ""}${off ? " off" : ""}${draft ? " draft" : ""}`}
+                  className={`asop-node${K.gate ? " gate" : ""}${selected === n.id ? " sel" : ""}`}
                   style={{ left: b.x, top: b.y, "--f": K.fill } as CSSProperties}
                   onClick={() => setSelected(n.id)}
                 >
                   <div className="t">
                     <b>{i + 1}</b>
-                    {label(n)}
+                    {n.t}
                   </div>
                   {n.d && n.d.length > 0 && (
                     <div className="d">
@@ -150,7 +115,6 @@ export default function AgentSopMap({
                       ))}
                     </div>
                   )}
-                  {(off || draft) && <span className="asop-flag">{off ? "Off" : "Draft"}</span>}
                 </button>
               );
             })}
@@ -163,17 +127,13 @@ export default function AgentSopMap({
           <div className="asop-ph">
             <div>
               <span className="asop-chip">{KIND[node.k].label}</span>
-              <h3>{label(node)}</h3>
+              <h3>{node.t}</h3>
             </div>
             <button type="button" className="asop-x" aria-label="Close" onClick={() => setSelected(null)}>
               <X size={16} />
             </button>
           </div>
-          {added.tasks.has(node.id) ? (
-            <AddedSteps key={node.id} task={added.tasks.get(node.id)!} agentName={map.name} stage={stageName(added.tasks.get(node.id)!.stageId)} />
-          ) : (
-            <>
-              {linked.get(node.id) && <DirectorLine task={linked.get(node.id)!} agentName={map.name} stage={stageName(linked.get(node.id)!.stageId)} />}
+          <>
               {node.steps && (
                 <div className="asop-sec">
                   <h4>Steps</h4>
@@ -193,67 +153,10 @@ export default function AgentSopMap({
               )}
               <Links title="Comes from" items={map.edges.filter((e) => e[1] === node.id).map((e) => ({ id: e[0] }))} map={map} />
               <Links title="Goes to" items={map.edges.filter((e) => e[0] === node.id).map((e) => ({ id: e[1], label: e[2] }))} map={map} />
-            </>
-          )}
+          </>
         </aside>
       )}
     </div>
-  );
-}
-
-// Where a graph box sits on the Director, and Undo for one switched off there.
-function DirectorLine({ task, agentName, stage }: { task: DirectorTask; agentName: string; stage: string }) {
-  const restore = useDirectorWrite(() => directorApi.patchTask(task.id, { restore: true }));
-  return (
-    <div className="asop-sec">
-      <h4>Director</h4>
-      <div className="asop-links">
-        <div>
-          {stage} <span className="asop-src">({ownerLabel(task.owner, agentName)})</span>
-        </div>
-      </div>
-      {task.removed && (
-        <button type="button" className="asop-btn asop-mt" disabled={restore.isPending} onClick={() => restore.mutate(undefined)}>
-          Turn back on
-        </button>
-      )}
-    </div>
-  );
-}
-
-// An added task's steps: written here, approved here, then the agent runs them.
-function AddedSteps({ task, agentName, stage }: { task: DirectorTask; agentName: string; stage: string }) {
-  const [text, setText] = useState(howLines(task.how).map((l, i) => `${i + 1}. ${l}`).join("\n"));
-  const save = useDirectorWrite((approve: boolean) => directorApi.patchTask(task.id, { how: text, approve }));
-  const changed = text.trim() !== howLines(task.how).map((l, i) => `${i + 1}. ${l}`).join("\n").trim();
-  return (
-    <>
-      <div className="asop-sec">
-        <h4>Director</h4>
-        <div className="asop-links">
-          <div>
-            {stage} <span className="asop-src">({ownerLabel(task.owner, agentName)})</span>
-          </div>
-        </div>
-      </div>
-      <div className="asop-sec">
-        <h4>Steps {task.howStatus === "draft" ? <span className="asop-pill draft">Draft</span> : <span className="asop-pill ok">Approved</span>}</h4>
-        <textarea className="asop-how" value={text} onChange={(e) => setText(e.target.value)} rows={8} maxLength={4000} aria-label="Steps" />
-        {save.isError && <p className="asop-err">Not saved</p>}
-        <div className="asop-acts">
-          {(task.howStatus === "draft" || changed) && (
-            <button type="button" className="asop-b1" disabled={save.isPending || !text.trim()} onClick={() => save.mutate(true)}>
-              Approve
-            </button>
-          )}
-          {changed && (
-            <button type="button" className="asop-btn" disabled={save.isPending} onClick={() => save.mutate(false)}>
-              Save as draft
-            </button>
-          )}
-        </div>
-      </div>
-    </>
   );
 }
 
@@ -315,16 +218,9 @@ function AgentSopStyle() {
       .asop-links > div { padding: 8px 10px; border-radius: 9px; background: color-mix(in srgb, var(--text) 5%, var(--surface)); }
       .asop-src { font-size: 12px; color: var(--text-muted); }
       .asop-btn { padding: 7px 12px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); font-size: 12.5px; font-weight: 600; color: var(--text); }
-      .asop-node.off { opacity: .4; border-style: dashed; }
-      .asop-node.draft { border-style: dashed; border-width: 2px; }
-      .asop-flag { position: absolute; top: -9px; right: 18px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: #1b1b1b; color: #fff; }
-      .asop-node.draft .asop-flag { background: #d97706; }
-      .asop-mt { margin-top: 10px; }
       .asop-pill { margin-left: 6px; font-size: 10px; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px; }
       .asop-pill.draft { color: #d97706; background: color-mix(in srgb, #d97706 14%, transparent); }
       .asop-pill.ok { color: var(--positive, #16a34a); background: color-mix(in srgb, var(--positive, #16a34a) 12%, transparent); }
-      .asop-how { width: 100%; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.55; resize: vertical; outline: none; }
-      .asop-how:focus { border-color: color-mix(in srgb, var(--brand) 55%, var(--border)); }
       .asop-acts { display: flex; gap: 8px; margin-top: 10px; }
       .asop-b1 { padding: 7px 14px; border-radius: 9px; font-size: 12.5px; font-weight: 600; color: #fff; background-image: var(--grad-brand); }
       .asop-b1:disabled, .asop-btn:disabled { opacity: .55; }

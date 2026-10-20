@@ -72,7 +72,6 @@ import AdminOnboarding from "./routes/admin/AdminOnboarding";
 import ClientPage from "./routes/admin/ClientPage";
 import AgencyAgentPage from "./routes/admin/AgencyAgentPage";
 import AgentSopsPage from "./routes/admin/AgentSopsPage";
-import DirectorPage from "./routes/admin/DirectorPage";
 import LegacyClientRedirect from "./routes/admin/LegacyClientRedirect";
 import SetterSuite from "./routes/admin/SetterSuite";
 import QuickBook from "./routes/admin/QuickBook";
@@ -593,17 +592,11 @@ export default function App() {
               />
               {/* The agency Manager Agent (Jake, 2026-10-17): the one agent
                   that overlooks every client, so it has an agency address. */}
-              {/* The Director (Jake, 2026-10-18): each agent's stages and tasks,
-                  the WHAT that the SOPs graph gives the HOW for. */}
-              <Route
-                path="/admin/director/:agent?"
-                element={
-                  <AdminRoute roles={["owner"]}>
-                    <DirectorPage />
-                  </AdminRoute>
-                }
-              />
-              {/* Agent SOPs (Jake, 2026-10-17): one flow map per agent. */}
+              {/* The agency Director was retired 2026-10-20; old links open the
+                  SOPs tab. A Director inside each client replaces it. */}
+              <Route path="/admin/director/:agent?" element={<Navigate to="/admin/sops" replace />} />
+              {/* Agent SOPs (Jake, 2026-10-17): Client Fulfillment, then one
+                  flow map per agent. */}
               <Route
                 path="/admin/sops/:agent?"
                 element={

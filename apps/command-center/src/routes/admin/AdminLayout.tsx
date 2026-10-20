@@ -15,7 +15,6 @@ import {
   Target,
   SquareKanban,
   Gauge,
-  Compass,
   Layers,
   type LucideIcon,
   MessagesSquare,
@@ -154,12 +153,11 @@ const PILLAR_GROUPS: RailGroup[] = [
   {
     // Agents (Jake, 2026-10-17): the Manager Agent overlooks every client from
     // here. The other six agents only live inside a client (lib/agents.ts).
-    // Director holds what each agent does, in stages (lib/director.ts); SOPs
-    // holds how, one flow map per agent (lib/agentSops.ts).
+    // SOPs holds the process: Client Fulfillment plus one flow map per agent
+    // (lib/agentSops.ts), the same maps the agents follow.
     caption: "Agents",
     rows: [
       { to: "/admin/agents/manager", label: "Manager Agent", icon: Gauge },
-      { to: "/admin/director", label: "Director", icon: Compass },
       { to: "/admin/sops", label: "SOPs", icon: Workflow },
     ],
   },

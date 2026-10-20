@@ -61,7 +61,7 @@ export const KIND: Record<NodeKind, { fill: string; label: string; gate?: boolea
 };
 
 export const SOP_KEY =
-  "Solid arrows = the main line. Dashed = edits and loop-backs. Orange = second route. Green outline = Jake approves. Blue = agent, purple = Jake, peach = client, green = done or handoff. Dashed box = draft steps. Faded = off on the Director.";
+  "Solid arrows = the main line. Dashed = edits and loop-backs. Orange = second route. Green outline = Jake approves. Blue = agent, purple = Jake, peach = client, green = done or handoff.";
 
 export const AGENT_SOPS: AgentSop[] = [
   // The whole client journey, paid to live (Jake, 2026-10-20;
@@ -366,6 +366,12 @@ export const AGENT_SOPS: AgentSop[] = [
 
 export function getAgentSop(id: string | undefined): AgentSop | null {
   return AGENT_SOPS.find((a) => a.id === id) ?? null;
+}
+
+// Where a map lives on the SOPs tab. Anything unknown, including an old
+// Director link, opens Client Fulfillment, the first map.
+export function sopMapPath(id: string | undefined): string {
+  return `/admin/sops/${getAgentSop(id)?.id ?? AGENT_SOPS[0].id}`;
 }
 
 // ---------------------------------------------------------------------------

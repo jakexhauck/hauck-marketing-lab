@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-20-client-fulfillment-sop",
+    date: "20 October 2026",
+    title: "Client Fulfillment SOP",
+    items: [
+      "Agents > SOPs opens on Client Fulfillment: every step of a client setup, paid to live, with who does each one.",
+      "Every agent now works from its own map on the SOPs tab.",
+      "The Director page is gone. A Director inside each client is next.",
+    ],
+  },
+  {
     id: "2026-10-20-cold-sms-day-load",
     date: "20 October 2026",
     title: "Cold SMS day view loads again",

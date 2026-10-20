@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AGENTS } from "./agents";
-import { AGENT_SOPS, frameSize, getAgentSop, layoutEdges, port, route } from "./agentSops";
+import { AGENT_SOPS, frameSize, getAgentSop, layoutEdges, port, route, sopMapPath } from "./agentSops";
 import { mapStages } from "./sopPrompt";
 import { SOP_LISTS } from "./sopChecklists";
 
@@ -9,6 +9,12 @@ describe("Client Fulfillment map", () => {
 
   it("comes first", () => {
     expect(AGENT_SOPS[0].id).toBe("fulfillment");
+  });
+
+  it("is where a missing or unknown map lands", () => {
+    expect(sopMapPath(undefined)).toBe("/admin/sops/fulfillment");
+    expect(sopMapPath("director")).toBe("/admin/sops/fulfillment");
+    expect(sopMapPath("ghl")).toBe("/admin/sops/ghl");
   });
 
   it("runs the phases paid to live, in order", () => {
