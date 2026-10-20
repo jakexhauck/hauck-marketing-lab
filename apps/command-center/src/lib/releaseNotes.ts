@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-20-cold-sms-day-load",
+    date: "20 October 2026",
+    title: "Cold SMS day view loads again",
+    items: [
+      "Picking a day on Cold SMS > Pipeline showed \"GoHighLevel did not answer\". The pipeline grew past 6,900 prospects and one load asked GHL more than its limit of 100 requests per 10 seconds. It now asks about a third less and reads in steps, so the day view loads.",
+    ],
+  },
+  {
     id: "2026-10-18-ghl-sop-checklist",
     date: "18 October 2026",
     title: "The GHL SOP is the client setup checklist",

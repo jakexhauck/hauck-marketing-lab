@@ -219,13 +219,7 @@ export async function classifyReplies(
   return [...out].map(([key, verdict]) => ({ key, verdict }));
 }
 
-// The stamp that says which reply a stored verdict was for. The newest inbound
-// message's date is enough: a new reply moves it, our own texts do not.
-export function replyKey(lastInboundAt: string | number | null | undefined): string | null {
-  if (lastInboundAt == null || lastInboundAt === "") return null;
-  const ms = typeof lastInboundAt === "number" ? lastInboundAt : +new Date(lastInboundAt);
-  return Number.isFinite(ms) ? String(ms) : null;
-}
+export { replyKey } from "./coldSmsDecorate";
 
 // The auto-sort rule lives in coldSmsSort.ts so the board can run it in the
 // browser too (cards move on screen the moment a verdict is known).

@@ -5,6 +5,7 @@ import type { BusinessHealthInputs, PeriodType } from "./businessHealth";
 import type { BudgetInputs } from "./coldSmsBudget";
 import type { StageKey as LeadBoardStageKey } from "./leadBoard";
 import type { SheetCall } from "../../functions/lib/salesSheetRows";
+import { decorate, type ReplyInfo, type StoredVerdict } from "../../functions/lib/coldSmsDecorate";
 
 // What one reconciliation against the agency's GoHighLevel calendars did.
 // Shared by the two pages that trigger one: Sales Calls and Sales Data.
@@ -2541,25 +2542,38 @@ export interface ColdSmsBoard {
 }
 
 // day = YYYY-MM-DD (Jake's zone): only prospects first texted that day. The
-// server hands back the columns and a part count; every part is read side by
-// side and the cards dropped into their columns (one request for the whole
-// pipeline hit Cloudflare's per-request cap, 2026-10-13).
+// server hands back the columns, a part count and the latest replies; the parts
+// are read ONE AFTER ANOTHER and the replies laid over their cards here (one
+// request for the whole pipeline hit Cloudflare's per-request cap, 2026-10-13;
+// all parts at once, each re-reading the replies, hit GHL's 100 calls per 10
+// seconds and showed "GoHighLevel did not answer", 2026-10-20).
 export async function getColdSmsBoard(day?: string, kind: PipelineBoardKind = "cold-sms"): Promise<ColdSmsBoard> {
   if (kind !== "cold-sms") return api(`/api/admin/cold-sms/board?board=${kind}`);
   if (!day) return api("/api/admin/cold-sms/board");
   const q = `?day=${encodeURIComponent(day)}`;
-  const head = await api<ColdSmsBoard & { parts?: number; pages?: number }>(`/api/admin/cold-sms/board${q}`);
-  if (!head.stages || !head.parts) return head;
-  const parts = await Promise.all(
-    Array.from({ length: head.parts }, (_, k) =>
-      api<{ cards: ColdSmsCard[] }>(`/api/admin/cold-sms/board${q}&part=${k}&pages=${head.pages ?? 0}`),
-    ),
+  const head = await api<ColdSmsBoard & { parts?: number; pages?: number; replies?: [string, ReplyInfo][] }>(
+    `/api/admin/cold-sms/board${q}`,
   );
+  const { replies, ...board } = head;
+  if (!board.stages || !board.parts || !board.pipeline) return board;
+  const parts: { cards: ColdSmsCard[]; verdicts?: StoredVerdict[] }[] = [];
+  for (let k = 0; k < board.parts; k++) {
+    parts.push(
+      await api(
+        `/api/admin/cold-sms/board${q}&part=${k}&pages=${board.pages ?? 0}&pipeline=${encodeURIComponent(board.pipeline.id)}`,
+      ),
+    );
+  }
+  const stored = new Map(parts.flatMap((p) => p.verdicts ?? []).map((v) => [v.contact_id, v]));
   const seen = new Set<string>();
-  const cards = parts.flatMap((p) => p.cards).filter((c) => !seen.has(c.id) && seen.add(c.id));
+  const cards = decorate(
+    parts.flatMap((p) => p.cards).filter((c) => !seen.has(c.id) && seen.add(c.id)),
+    new Map(replies ?? []),
+    stored,
+  );
   return {
-    ...head,
-    stages: head.stages.map((s) => {
+    ...board,
+    stages: board.stages.map((s) => {
       const mine = cards.filter((c) => c.stageId === s.id);
       return { ...s, cards: mine, total: mine.length };
     }),

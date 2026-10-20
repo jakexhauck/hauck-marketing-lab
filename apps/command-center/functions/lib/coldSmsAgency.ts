@@ -13,10 +13,12 @@ import {
   findSortStages,
   isVerdict,
   type SortStages,
-  replyKey,
   variationOf,
   type Verdict,
 } from "./coldSmsBoard";
+import { decorate, type ReplyInfo, type StoredVerdict } from "./coldSmsDecorate";
+
+export { decorate, type ReplyInfo, type StoredVerdict };
 
 export const STAGE_PAGE = 50;
 
@@ -79,11 +81,6 @@ interface RawOpp {
 interface OppSearch {
   opportunities?: RawOpp[];
   meta?: { total?: number; startAfterId?: string | null; startAfter?: string | number | null };
-}
-
-export interface ReplyInfo {
-  body: string;
-  at: number; // epoch ms
 }
 
 export interface BoardCard {
@@ -247,13 +244,6 @@ export async function fetchLatestReplies(agency: GhlContext): Promise<Map<string
   return out;
 }
 
-export interface StoredVerdict {
-  contact_id: string;
-  reply_key: string;
-  reply_body: string;
-  verdict: Verdict;
-  classified_at: string;
-}
 
 export async function loadVerdicts(
   db: SupabaseClient,
@@ -272,26 +262,6 @@ export async function loadVerdicts(
     for (const r of (data ?? []) as StoredVerdict[]) if (isVerdict(r.verdict)) out.set(r.contact_id, r);
   }
   return out;
-}
-
-// Put the reply and verdict on each card. A fresh reply GHL has that the stored
-// verdict was not for shows the reply with NO verdict yet: a stale label on a
-// new message is worse than a blank one for the few seconds until it is read.
-export function decorate(
-  cards: BoardCard[],
-  replies: Map<string, ReplyInfo>,
-  stored: Map<string, StoredVerdict>,
-): BoardCard[] {
-  return cards.map((c) => {
-    const live = replies.get(c.contactId) ?? null;
-    const row = stored.get(c.contactId) ?? null;
-    if (live) {
-      const fresh = row && row.reply_key === replyKey(live.at);
-      return { ...c, reply: live, verdict: fresh ? row!.verdict : null };
-    }
-    if (row) return { ...c, reply: { body: row.reply_body, at: Number(row.reply_key) || 0 }, verdict: row.verdict };
-    return c;
-  });
 }
 
 // ---------------------------------------------------------------------------

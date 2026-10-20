@@ -25,9 +25,9 @@ import { pickOnboardingPipeline, pickSalesPipeline } from "../../../lib/salesPip
 
 // GET /api/admin/cold-sms/board                     -> every column, first page each
 // GET /api/admin/cold-sms/board?day=YYYY-MM-DD      -> the columns, and how many parts to read
-// GET /api/admin/cold-sms/board?day=&part=k&pages=n -> part k of that day's cards
-//   (the client reads every part side by side; one request for the whole pipeline
-//   went past Cloudflare's 50 outside calls, see coldSmsAgency.ts)
+// GET /api/admin/cold-sms/board?day=&part=k&pages=n&pipeline= -> part k of that day's cards
+//   (the client reads the parts one after another; one request for the whole
+//   pipeline went past Cloudflare's 50 outside calls, see coldSmsAgency.ts)
 // GET /api/admin/cold-sms/board?stageId=&cursor=    -> the next page of one column
 // Add &board=sales to any of the column reads for the agency's Sales pipeline
 // instead (Sales > Sales Pipeline, Jake 2026-10-13: the same board, same panel,
@@ -81,6 +81,28 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   };
 
   try {
+    // One part of a day: its pages, kept to the prospects first texted that day.
+    // The client names the pipeline the day read already found, and lays the
+    // head's replies over the cards itself: seven parts each re-reading the
+    // pipelines and four reply pages was ~113 GHL calls at once, past GHL's 100
+    // per 10 seconds, and the board showed "GoHighLevel did not answer" (2026-10-20).
+    const partPipeline = (params.get("pipeline") ?? "").trim();
+    if (part !== null && partPipeline) {
+      const range = zoneDayRange(day, zone);
+      const [texted, cards] = await Promise.all([
+        contactsTextedBetween(db, range.start, range.end),
+        fetchCardPart(agency, partPipeline, part, pageCount),
+      ]);
+      const mine = cards
+        .filter((c) => texted.has(c.contactId))
+        .map((c) => ({ ...c, firstContactedAt: texted.get(c.contactId)! }));
+      const stored = await loadVerdicts(db, mine.map((c) => c.contactId));
+      return Response.json({
+        cards: await withFollowUps(db, decorate(mine, new Map(), stored)),
+        verdicts: [...stored.values()],
+      });
+    }
+
     const pipelines = await listPipelines(agency);
     const board = onboarding
       ? pickOnboardingPipeline(pipelines)
@@ -89,7 +111,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         : pickColdSmsPipeline(pipelines);
     if (!board) return Response.json({ configured: true, missing: true, pipelines });
 
-    // One part of a day: its pages, kept to the prospects first texted that day.
+    // A part from a client that predates the pipeline param.
     if (part !== null) {
       const range = zoneDayRange(day, zone);
       const [texted, cards, replies] = await Promise.all([
@@ -154,9 +176,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       console.warn("[cold-sms/board] first-text sync", e instanceof Error ? e.message : e),
     );
     if (day) {
-      const [days, pages] = await Promise.all([
+      const [days, pages, replies] = await Promise.all([
         synced.then(() => firstTextDays(db, zone)),
         countCardPages(agency, board.id),
+        fetchLatestReplies(agency),
       ]);
       return Response.json({
         configured: true,
@@ -168,6 +191,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         day,
         pages,
         parts: Math.ceil(pages / PAGES_PER_PART),
+        replies: [...replies],
         stages: board.stages.map((s) => ({ id: s.id, name: s.name, total: 0, cursor: null, cards: [] })),
       });
     }
