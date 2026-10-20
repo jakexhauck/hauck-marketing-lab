@@ -740,6 +740,20 @@ Your action items:
 2. Send the GHL Agent one message at Willis and check that it talks from its map.
 
 Still parked:
-- Build 2: a Director tab inside each client (tasks in swimlanes), the Manager kickoff that fills it, Brief boxes replaced.
 - Per-task approval before GHL writes (you said not yet).
+
+## Director inside each client (2026-10-21)
+
+What's in the app now: each client has a Director under Brief: every setup task by owner and phase. The four live clients start with what they had ticked. Agents tick their own tasks when you name them. The Manager runs the kickoff and files one card of task changes for your Approve. The Brief tick boxes are gone (account checks stay).
+
+Your action items:
+1. Open Willis > Director and check the done tasks match what you had ticked.
+2. Do the same for Made Better, Clear Choice and Above All Garage Doors.
+3. Tick and untick one harmless task to see it stick.
+4. Dry run: open the Manager at Clear Choice (or the next new client) and say "run the kickoff". Answer its questions, then read and Approve its tasks card.
+5. Tell one agent to do one of its tasks and check it ticks with proof.
+
+Still parked:
+- The tasks card shows task keys, not names, for changes and cuts.
+- Board cards do not show the reason; open the card to see it.
 - The stage stop is a prompt rule, not a code gate.
