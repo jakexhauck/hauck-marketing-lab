@@ -315,7 +315,7 @@ describe("buildBundle", () => {
   });
 });
 
-describe("the SOP from the Director", () => {
+describe("the SOP from the SOPs tab", () => {
   const sop: SopStage[] = [
     {
       name: "Account",
@@ -335,6 +335,15 @@ describe("the SOP from the Director", () => {
     expect(prompt).toContain("- Connect Facebook (Jake does this)");
     expect(prompt).toContain("### Stage 2: Compliance");
     expect(prompt).toContain("Do not start the next stage until Jake approves that card.");
+    expect(prompt).toContain("from the SOPs tab");
+    expect(prompt).not.toContain("Director");
+  });
+
+  it("marks a draft stage and says what a draft means", () => {
+    const text = sopSection("creative", [{ ...sop[0], draft: true }])!;
+    expect(text).toContain("### Stage 1: Account (draft)");
+    expect(text).toContain("Stages marked (draft) are Jake's first pass");
+    expect(sopSection("ghl", sop)!).not.toContain("(draft)");
   });
 
   it("leaves the section out when the app sent no SOP", () => {
