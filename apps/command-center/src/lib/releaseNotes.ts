@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-21-client-director",
+    date: "21 October 2026",
+    title: "Director inside each client",
+    items: [
+      "Each client has a Director: every setup task, who owns it and where it stands, in one board.",
+      "Willis, Made Better, Clear Choice and Above All Garage Doors start with what their checklists already had ticked.",
+      "Agents tick their own tasks when you tell them to work on them.",
+    ],
+  },
+  {
     id: "2026-10-20-client-fulfillment-sop",
     date: "20 October 2026",
     title: "Client Fulfillment SOP",

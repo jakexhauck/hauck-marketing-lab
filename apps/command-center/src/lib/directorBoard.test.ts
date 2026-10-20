@@ -1,0 +1,37 @@
+import { describe, expect, it } from "vitest";
+import { directorBoard } from "./directorBoard";
+import type { ClientTask } from "./clientTasks";
+
+const task = (o: Partial<ClientTask>): ClientTask => ({
+  id: o.key ?? "x", key: "x", phase: "ghl", owner: "ghl", name: "x", position: 0, sourceNode: null, sopKey: null,
+  steps: [], state: "todo", change: "kept", reason: null, evidence: null, note: null, doneBy: null, doneAt: null, ...o,
+});
+
+describe("directorBoard", () => {
+  const tasks = [
+    task({ key: "a", owner: "ghl", phase: "ghl", position: 1, state: "done" }),
+    task({ key: "b", owner: "ghl", phase: "ghl", position: 0 }),
+    task({ key: "c", owner: "client", phase: "paid" }),
+    task({ key: "d", owner: "ghl", phase: "follow", state: "cut" }),
+  ];
+  const board = directorBoard(tasks);
+
+  it("columns are the Client Fulfillment phases in order", () => {
+    expect(board.phases.map((p) => p.id)).toEqual(["paid", "onboard", "ghl", "follow", "adsbuild", "check", "launch", "live"]);
+  });
+
+  it("rows follow the owner order and drop owners with no tasks", () => {
+    expect(board.rows.map((r) => r.owner)).toEqual(["client", "ghl"]);
+    expect(board.rows.map((r) => r.label)).toEqual(["Client", "GHL"]);
+  });
+
+  it("each task sits in its phase column, in position order", () => {
+    const ghl = board.rows[1];
+    expect(ghl.cells[2].map((t) => t.key)).toEqual(["b", "a"]);
+    expect(ghl.cells[3].map((t) => t.key)).toEqual(["d"]);
+  });
+
+  it("counts done out of the tasks that are not cut", () => {
+    expect(board.rows[1]).toMatchObject({ done: 1, total: 2 });
+  });
+});

@@ -28,7 +28,7 @@ const labels = (c: ClientGateInfo) =>
 describe("clientNavGroups", () => {
   it("lists every page for a fully wired client, Brief on top", () => {
     expect(labels(linked)).toEqual([
-      [null, ["Brief"]],
+      [null, ["Brief", "Director"]],
       ["Agents", AGENT_NAMES],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Conversion Assets", "Custom Values", "Calendars"]],
@@ -38,7 +38,7 @@ describe("clientNavGroups", () => {
 
   it("gates Paid Ads and GHL until they are connected", () => {
     expect(labels(bare)).toEqual([
-      [null, ["Brief"]],
+      [null, ["Brief", "Director"]],
       ["Agents", AGENT_NAMES],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Connect GHL", "Conversion Assets"]],
@@ -49,6 +49,12 @@ describe("clientNavGroups", () => {
   it("treats a blank ad account id as not linked", () => {
     const rows = clientNavGroups({ ...linked, metaAdAccountId: "  " })[2].rows;
     expect(rows[0].sub).toBe("setup");
+  });
+
+  it("puts the Director right under the Brief, as its own page", () => {
+    expect(clientNavGroups(bare)[0].rows[1]).toEqual({ page: "director", sub: null, label: "Director" });
+    expect(clientPath("t1", "director")).toBe("/admin/client/t1/director");
+    expect(resolveClientPage(bare, "director", "x")).toEqual({ page: "director", sub: null });
   });
 
   it("puts the Client Brief at the top of the rail, as its own page", () => {

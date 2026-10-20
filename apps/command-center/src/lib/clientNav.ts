@@ -29,6 +29,7 @@ import { AGENTS } from "./agents";
 
 export type ClientPageId =
   | "brief"
+  | "director"
   | "paid-ads"
   | "ghl"
   | "management"
@@ -79,6 +80,9 @@ const PAGE_LABELS: Record<ClientPageId, string> = {
   // section per agent, Google Docs style (components/admin/agents/BriefPanel).
   // The same document sits beside the chat on every agent page.
   brief: "Brief",
+  // Jake, 2026-10-20: the client's setup tasks in swimlanes, owners by phase,
+  // seeded from the Client Fulfillment map (components/admin/director).
+  director: "Director",
   "paid-ads": "Paid Ads",
   ghl: "GHL",
   management: "Management",
@@ -114,7 +118,7 @@ const subRows = (c: ClientGateInfo, page: ClientPageId): ClientNavRow[] =>
 
 export function clientNavGroups(c: ClientGateInfo): ClientNavGroup[] {
   return [
-    { caption: null, rows: [single("brief")] },
+    { caption: null, rows: [single("brief"), single("director")] },
     { caption: "Agents", rows: subRows(c, "agent") },
     { caption: "Paid Ads", rows: subRows(c, "paid-ads") },
     { caption: "GHL", rows: subRows(c, "ghl") },
