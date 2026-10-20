@@ -277,13 +277,187 @@ In `agentSops.test.ts`: the fulfillment map is first; its main line is the 8 box
 
 ---
 
-# Build 2 outline (planned in full after Build 1 ships)
+# Build 2 Implementation Plan
 
-1. `client_tasks` table (owner only), seeded from the fulfillment map; backfill for Willis, Made Better, Clear Choice and Above All Garage Doors from `onboarding_checklist` ticks.
-2. Director tab in the client rail (`src/lib/clientNav.ts`): swimlanes, card panel, Jake's add, edit, move and tick.
-3. Task output block in the runner, replacing the tick block. The server rejects done with no evidence or note, own tasks only, never unticks.
-4. Prompt lists the agent's open tasks; the stage-stop rule becomes "do only what Jake names".
-5. Manager kickoff: map walk, decisions into Brief Status, one task-list card, Approve writes the tasks. The Manager map is rewritten to its own kickoff-and-track job (moved here from Build 1: there is nothing to kick off into until tasks exist).
-6. Brief boxes retired (`BRIEF_BOXES`, `BriefBoxes.tsx`, `briefTicks.ts`); the monitor rule watches task states; the pre-launch check reads tasks.
-7. Security review (M8): task text never becomes a `role:"me"` message.
-8. One full dry run on a real client.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** A Director tab inside each client holding that client's tasks in swimlanes, seeded from the Client Fulfillment map, edited by the Manager's kickoff card, worked by agents only when Jake names them, and replacing the Brief tick boxes.
+
+**Architecture:** One table, `client_tasks`. A pure lib turns the fulfillment map into seed tasks with stable keys and applies change ops. The server seeds a client the first time its tasks are read (this is also the backfill for the four live clients, marking done what their old ticks say). The Manager never writes rows: it files one `tasks` card of ops (add / change / cut by key); Jake's Approve applies it server-side, guarded by the existing payloadHash. Agents move their own tasks with a ```task block through a turn-checked endpoint. The Brief boxes and the ```tick block are removed.
+
+**Tech Stack:** as Build 1.
+
+**Spec:** the design above (Build 2 sections), in this file.
+
+**Workspace:** a worktree off `main`; `git status` first.
+
+## Global Constraints
+
+- Build 1's constraints all apply (no em dashes, no sub-text under headings, `RELEASES` entry, blueprint, ask before local servers, Doppler).
+- Task text never reaches an agent as a `role:"me"` message; only as prompt context. (`agentGhlOps.writeAllowed` treats `me` messages as Jake's ask.)
+- Agents never untick; done needs evidence or a note, enforced by the server.
+- GHL write gating unchanged.
+- Owners: `client`, `jake`, and the seven agent ids. Phases: the fulfillment map's main-line box ids, in order.
+
+## Rulings made while planning (tell Jake at handoff)
+
+- **Auto-seed on first read** replaces a backfill script and a "seed" button: the first time a client's tasks are read (Director tab or a claim), they are seeded from the map, old `sop:` ticks marked done with their `done_by`. Live clients are backfilled on first open.
+- **The Manager edits by ops, not a full list.** Untouched tasks stay as they are, so nothing can silently disappear; a cut task stays visible (state `cut`, with its reason).
+- **Account checks stay on the Brief** (automatic green/red, not a list anyone ticks), so they are not a second checklist. Only the tickable `sop:` boxes move to the Director.
+- **No pre-launch check code exists today**; the Manager's map and prompt carry it, reading tasks.
+
+## Review Focus
+
+1. A tasks card approved after a task it names was deleted or renamed by Jake: Approve applies the ops it can and reports the rest; never 500s, never half-applies silently. Task 6.
+2. Two first reads at once for a new client (Director tab and a claim): seeding must not double the tasks. Unique `(tenant_id, key)` + insert-ignore. Task 2.
+3. An agent naming another agent's task, a cut task, or a key that does not exist in a ```task block: refused by name, nothing written. Task 5.
+4. An old runner still sending ```tick after deploy: the endpoint is gone, the runner logs the failure and the turn still finishes. Task 7.
+5. The agency Manager (no tenant): no tasks section, no seed. Task 5.
+
+---
+
+### Task 1: Seed tasks from the map (pure)
+
+**Files:**
+- Modify: `apps/command-center/src/lib/agentSops.ts` (fulfillment `live` steps get owner prefixes: `"Ads: Ads Agent starts daily monitoring"`, `"Reporting: Reporting Agent starts the monthly cycle"`)
+- Modify: `apps/command-center/src/lib/sopPrompt.ts` (export `mainLine`)
+- Create: `apps/command-center/src/lib/clientTasks.ts`
+- Test: `apps/command-center/src/lib/clientTasks.test.ts`
+
+**Interfaces (Produces):**
+```ts
+export type TaskOwner = "client" | "jake" | AgentId;
+export type TaskState = "todo" | "doing" | "done" | "cut";
+export interface SeedTask { key: string; phase: string; owner: TaskOwner; name: string; position: number; sourceNode: string; sopKey: string | null }
+export interface ClientTask extends Omit<SeedTask, "sourceNode"> { id: string; sourceNode: string | null; steps: string[]; state: TaskState; change: "kept" | "changed" | "added"; reason: string | null; evidence: string | null; note: string | null; doneBy: string | null; doneAt: string | null }
+export const TASK_OWNERS: TaskOwner[]; // row order: client, jake, manager, research, ghl, ads, creative, landing, reporting
+export function taskPhases(): { id: string; name: string }[];   // fulfillment main line
+export function seedTasks(): SeedTask[];
+export function seedWithTicks(seed: SeedTask[], ticks: { task_key: string; done: boolean; done_by: string | null; done_at: string | null }[]): (SeedTask & { state: TaskState; doneBy: string | null; doneAt: string | null })[];
+export type TaskOp =
+  | { op: "add"; phase: string; owner: TaskOwner; name: string; reason: string }
+  | { op: "change"; key: string; name?: string; owner?: TaskOwner; phase?: string; reason: string }
+  | { op: "cut"; key: string; reason: string };
+export function parseTaskOps(v: unknown): { ok: true; ops: TaskOp[] } | { ok: false; error: string };
+```
+
+- [ ] **Step 1: Failing tests:**
+  - `seedTasks()` has one task per step of every main-line fulfillment box; every key unique; key = `<node>:<slug of name>`.
+  - Owner from the step prefix (`"GHL: Setup Sub Account"` gives owner `ghl`, name `"Setup Sub Account"`; prefixes: Manager, GHL, Jake, Client, Ads, Creative, Landing Page, Reporting, Market Research), else from the box (`client` box gives `client`, `jake` box gives `jake`, `review` box gives `manager`, any other gives `manager`).
+  - Every item of every `SOP_LISTS` list is the `sopKey` (`sopTaskKey(...)`) of at least one seed task (label contained in the step, case-insensitive).
+  - `seedWithTicks` marks a task done with `doneBy`/`doneAt` when its `sopKey` row is done; others `todo`.
+  - `parseTaskOps` rejects: unknown op, unknown owner, unknown phase, empty reason, more than 200 ops, name over 120 chars.
+  - No em dash in any seed name.
+- [ ] **Step 2:** `npx vitest run src/lib/clientTasks.test.ts`. Expected: FAIL (module missing).
+- [ ] **Step 3:** Implement. Phases from `mainLine(getAgentSop("fulfillment")!)`.
+- [ ] **Step 4:** Re-run. Expected: PASS. `npm run typecheck`.
+- [ ] **Step 5: Commit** `feat(director): seed client tasks from the Client Fulfillment map`.
+
+### Task 2: `client_tasks` table and store
+
+**Files:**
+- Create: `apps/command-center/supabase/migrations/0173_client_tasks.sql`
+- Create: `apps/command-center/functions/lib/clientTasks.ts`
+- Modify: `apps/command-center/functions/lib/agentFakeDb.ts` (`defaults("client_tasks")`)
+- Test: `apps/command-center/functions/lib/clientTasks.test.ts`
+
+**Interfaces (Produces):**
+```ts
+export async function ensureTasks(client: SupabaseClient, tenantId: string): Promise<ClientTask[]>;   // seeds if none, then lists in position order
+export async function createTask(client, tenantId, body: { phase; owner; name; steps?: string[] }, by: string): Promise<ClientTask | { error: 400; reason: string }>;
+export async function patchTask(client, tenantId, id, patch: Partial<{ name; owner; phase; position; steps; state; note; evidence; reason }>, by: string): Promise<ClientTask | { error: 400 | 404; reason: string }>;
+export async function deleteTask(client, tenantId, id): Promise<boolean>;
+export async function applyTaskOps(client, tenantId, ops: TaskOp[], by: string): Promise<{ applied: number; skipped: { op: TaskOp; reason: string }[] }>;
+```
+
+- [ ] **Step 1: Migration.** Columns: `id uuid pk default gen_random_uuid()`, `tenant_id uuid not null references tenants on delete cascade`, `key text not null`, `phase text not null`, `owner text not null check (owner in ('client','jake','manager','research','ads','creative','landing','ghl','reporting'))`, `name text not null check (length(name) between 1 and 120)`, `steps jsonb not null default '[]'`, `position int not null default 0`, `source_node text`, `sop_key text`, `state text not null default 'todo' check (state in ('todo','doing','done','cut'))`, `change text not null default 'kept' check (change in ('kept','changed','added'))`, `reason text`, `evidence text`, `note text`, `done_by text`, `done_at timestamptz`, `created_by text`, `created_at`, `updated_at` timestamptz default now(); `unique (tenant_id, key)`; index on `tenant_id`; RLS on, no policies (service role only, like 0168); `touch_agent_row` update trigger.
+- [ ] **Step 2: Failing tests** (FakeDb): `ensureTasks` seeds once and a second call adds nothing (Review Focus 2: two concurrent calls still give one set); old `sop:` ticks become done with `done_by`; `patchTask` by Jake can untick (`state: "todo"` clears `done_by`/`done_at`); a done patch stamps `done_by` and `done_at`; `createTask` gives `change: "added"`, key `added:<slug>` (suffix `-2` on clash); `applyTaskOps`: add, change (sets `change: "changed"`, `reason`), cut (state `cut`, reason), a missing key is skipped with a reason, not thrown.
+- [ ] **Step 3:** `npx vitest run functions/lib/clientTasks.test.ts`. Expected: FAIL.
+- [ ] **Step 4:** Implement. Seed insert uses upsert `onConflict: "tenant_id,key", ignoreDuplicates: true`.
+- [ ] **Step 5:** Re-run. Expected: PASS. Typecheck.
+- [ ] **Step 6: Commit** `feat(director): client_tasks table and store`.
+
+### Task 3: Admin API and hooks
+
+**Files:**
+- Create: `apps/command-center/functions/api/admin/client-tasks/[tenantId]/index.ts` (GET list via `ensureTasks`, POST create), `.../[tenantId]/[taskId].ts` (PATCH, DELETE). Owner only, same guard as `functions/api/admin/onboarding/[tenantId]/checklist.ts`; audit-log each write like the items route.
+- Modify: `apps/command-center/src/hooks/useApi.ts` (`useClientTasksQuery(tenantId)`, `useClientTaskCreate`, `useClientTaskPatch` with optimistic update like `useAdminOnboardingChecklistToggle`, `useClientTaskDelete`)
+- Test: `apps/command-center/functions/api/admin/client-tasks/index.test.ts` if route tests exist in the repo for admin routes, else covered by Task 2's store tests plus a typecheck.
+
+- [ ] **Step 1:** Write the routes and hooks. 400 on bad JSON, 503 with no service client, 404 on a missing task.
+- [ ] **Step 2:** `npm run typecheck && npx vitest run functions`. Expected: clean.
+- [ ] **Step 3: Commit** `feat(director): client tasks API`.
+
+### Task 4: Director tab
+
+**Files:**
+- Modify: `apps/command-center/src/lib/clientNav.ts` (`"director"` in `ClientPageId` and `PAGE_LABELS` as `"Director"`, `single("director")` right after `brief`), `apps/command-center/src/lib/clientNav.test.ts` (rail tests :29 and :39 gain the row; `resolveClientPage(bare, "director", "x")` gives `{ page: "director", sub: null }`)
+- Modify: `apps/command-center/src/routes/admin/ClientPage.tsx` (`case "director"`)
+- Create: `apps/command-center/src/components/admin/director/ClientDirector.tsx`
+- Create: `apps/command-center/src/lib/directorBoard.ts` + `directorBoard.test.ts`
+- Modify: `apps/command-center/src/lib/releaseNotes.ts`
+
+**Interfaces:** `directorBoard(tasks: ClientTask[]): { phases: {id,name}[]; rows: { owner: TaskOwner; label: string; cells: ClientTask[][] }[] }` (rows with no tasks dropped; cells by phase, position order); `ownerLabel(o: TaskOwner): string` ("Client", "Jake", then `AGENTS` names without " Agent").
+
+- [ ] **Step 1: Failing tests:** clientNav changes above; `directorBoard` drops empty owners, keeps row order `TASK_OWNERS`, puts each task in its phase column, counts `done`/total per row excluding `cut`.
+- [ ] **Step 2:** Run. Expected: FAIL.
+- [ ] **Step 3:** Implement the lib, then the page: header "Director"; grid of owners by phases (horizontal scroll on phones, sticky owner column); card = name, state chip (To do / Doing / Done / Cut), small "Changed" or "Added" mark; click opens a side panel: name, owner, phase, state buttons, steps (from the seed's map box when `sourceNode` is set), evidence, note, reason, done by + when, Delete. "+ Task" button in the header opens the same panel empty. No helper text anywhere.
+- [ ] **Step 4: Release note:** `"<date>-client-director"`, title `"Director inside each client"`, items: `"Each client has a Director: every setup task, who owns it and where it stands, in one board."`, `"Willis, Made Better, Clear Choice and Above All Garage Doors start with what their checklists already had ticked."`, `"Agents tick their own tasks when you tell them to work on them."`
+- [ ] **Step 5:** Run tests + typecheck. Expected: PASS.
+- [ ] **Step 6: Commit** `feat(director): Director tab inside each client`.
+
+### Task 5: Agents see and move their tasks
+
+**Files:**
+- Modify: `apps/command-center/src/lib/agentWire.ts` and `projects/agent-runner/src/wire.ts` (`ClaimResponse.tasks?: WireTask[]`, `WireTask { key; name; owner; phase; state; steps }`; `RunnerTaskBody { messageId: string; updates: { key: string; state: "doing" | "done"; evidence?: string; note?: string }[] }`; `RunnerTaskResult { updated: string[]; refused: { key: string; reason: string }[] }`)
+- Create: `apps/command-center/functions/lib/agentTasks.ts` (`withTasks(client, claim)`, `agentTaskUpdate(client, body, now?)`), `apps/command-center/functions/api/agent-runner/task.ts`
+- Modify: `apps/command-center/functions/api/agent-runner/claim.ts` (`withSop(await withTasks(client, await withBrief(...)))`), `apps/command-center/functions/lib/agentRunner.ts:55-78` + `agentRunner.test.ts:42` (add `task`)
+- Modify: `projects/agent-runner/src/output.ts` (block `task`: lines `key | doing` or `key | done | evidence or note`), `src/runner.ts` (post after items, like tick), `src/api.ts` (`task(body)`), `src/bundle.ts` (`tasksSection`; `sopSection` rule text), `agents/_protocol.md` (task block replaces tick)
+- Test: `functions/lib/agentTasks.test.ts`, `projects/agent-runner/test/output.test.ts`, `test/bundle.test.ts`, `test/runner.test.ts`
+
+- [ ] **Step 1: Failing tests:**
+  - `agentTaskUpdate` uses `turnChat` (agent and tenant never from the body); own tasks only (owner equals the chat's agent); refuses with a reason: another owner's task, a `cut` task, an unknown key, `done` with neither evidence nor note, any move to `todo`; at most 50 updates; done stamps `done_by: "agent:<id>"`.
+  - `withTasks`: a client claim gets all tasks (Manager) or own open tasks plus own done ones (others); the agency claim gets none and seeds nothing.
+  - `parseAgentOutput` reads a ```task block into updates; malformed lines dropped.
+  - `tasksSection("ghl", tasks)` lists open tasks as `- [doing] <key>: <name>` and the line `"Work only on the tasks Jake names in this chat."`; Manager gets every task grouped by owner.
+  - `sopSection` no longer contains `"Start stage"`; it contains `"Your map is how you work. Do only the tasks Jake names in this chat; never start the next one on your own."`
+- [ ] **Step 2:** Run app and runner tests. Expected: FAIL.
+- [ ] **Step 3:** Implement. Runner: refused updates go to notes like refused ticks today.
+- [ ] **Step 4:** Re-run both suites. Expected: PASS.
+- [ ] **Step 5: Commit** `feat(agents): agents see and tick their own client tasks`.
+
+### Task 6: Manager kickoff card
+
+**Files:**
+- Modify: `apps/command-center/functions/lib/agentItems.ts` (in `decideItem`: before the status move, if `item.kind === "tasks"` and `item.agent === "manager"` and a tenant, `parseTaskOps(payload.ops)` must be ok else 422; after the move, `applyTaskOps(client, tenantId, ops, "jake")`, and put the applied/skipped counts in the follow-up message body)
+- Modify: `apps/command-center/src/lib/agentView.ts` (`itemPayload` reads `taskOps` for kind `tasks`), `src/components/admin/agents/ItemCard.tsx` (block: ops grouped by phase, each `Add` / `Change` / `Cut` with name, owner and reason)
+- Modify: `apps/command-center/src/lib/agentSops.ts` (Manager map rewritten: `prep` agent "kickoff prep" reads intake, Brief, Profile; `kickoff` jake "kickoff with Jake" with steps for creatives and videos, GHL setup, who dials the leads, landing or form only, budget and anything else on the Client Fulfillment map; `plan` review "task card" ; `track` agent "track tasks"; `check` review "pre-launch check" reading tasks; `launch` jake; `live` done; handoff boxes to ghl, ads, creative, landing)
+- Modify: `projects/agent-runner/agents/manager.md` (kickoff: ask only what the brief and profile do not answer, topic by topic; decisions go in the Status section with a ```brief block; then one ```item with `kind: "tasks"`, `payload.ops` against the task keys in the prompt; a cut or change always has a reason; never invent an answer, an unknown becomes an `add` owned by `jake` or `client` named "Ask: ...")
+- Test: `functions/lib/agentItems.test.ts`, `src/lib/agentView.test.ts`, `src/lib/agentSops.test.ts`
+
+- [ ] **Step 1: Failing tests:** approving a Manager `tasks` card applies its ops (FakeDb rows change); a bad ops payload is 422 and the card stays needs_ok; the same card from another agent applies nothing; a changed payload is still 409 (existing hash check); an op naming a missing key is reported in the follow-up, the rest applied (Review Focus 1); the Manager map has no em dashes and links resolve (existing tests).
+- [ ] **Step 2:** Run. Expected: FAIL.
+- [ ] **Step 3:** Implement.
+- [ ] **Step 4:** Re-run. Expected: PASS.
+- [ ] **Step 5: Commit** `feat(agents): Manager kickoff files the client task card`.
+
+### Task 7: Retire the Brief boxes and the tick block
+
+**Files:**
+- Delete: `functions/lib/briefTicks.ts` (+ test), `functions/api/agent-runner/tick.ts`, the `ManualBoxes` part of `src/components/admin/agents/BriefBoxes.tsx` (keep `AutoBoxes` and `StatusActions`)
+- Modify: `src/lib/briefChecklist.ts` (drop `BRIEF_BOXES`, `sectionBoxKeys`, `resolveTicks`, `claimBoxes`; keep account-check mapping) + test; `functions/lib/clientBriefs.ts` (`withBrief` sends no boxes) + test; `agentWire.ts` / runner `wire.ts` (drop `boxes`, tick types); `functions/lib/agentRunner.ts` + test (drop `tick`); runner `output.ts`, `runner.ts`, `api.ts`, `bundle.ts` (no boxes, no tick) + tests; `agents/_protocol.md`
+- Modify: `functions/lib/agentSnapshot.ts` (`checklistCounts` becomes task counts: done / total excluding cut, from `client_tasks`), `projects/agent-runner/src/monitorRules.ts` row text `"Setup tasks a/b to c/d"` + test, `src/components/admin/agents/BuildPanel.tsx` (count from `useClientTasksQuery`)
+
+- [ ] **Step 1: Failing tests:** snapshot counts from `client_tasks`; monitor row reads "Setup tasks"; runner output ignores a ```tick block (treated as text, no API call; Review Focus 4); `withBrief` sections carry no `boxes`.
+- [ ] **Step 2:** Run. Expected: FAIL.
+- [ ] **Step 3:** Remove and rewire. `grep -rn "BRIEF_BOXES\|agentTick\|resolveTicks\|claimBoxes\|api.tick" apps/command-center projects/agent-runner` returns nothing.
+- [ ] **Step 4:** Both suites + typecheck. Expected: PASS.
+- [ ] **Step 5: Commit** `refactor(brief): tasks replace the Brief tick boxes`.
+
+### Task 8: Review, ship, verify
+
+- [ ] **Step 1:** `security-review` (M8) on the branch: task text never queued as `role:"me"`; `task` route turn-checked; kickoff apply only on Jake's Approve with a matching hash; owner-only admin routes.
+- [ ] **Step 2:** Final whole-branch review (fresh reviewer, most capable model); one fix pass.
+- [ ] **Step 3:** Merge, push, watch the deploy, `npm run db:migrate` (0173), restart the agent runner.
+- [ ] **Step 4: Live smoke:** open Willis > Director: tasks seeded, old ticks done; open the other three clients the same way; one Jake tick and untick on a harmless task; confirm no duplicate rows (`select tenant_id, count(*) from client_tasks group by 1`).
+- [ ] **Step 5:** Blueprint, memory, Jake's checks README (dry run: one real kickoff with the Manager on the next new client, or Clear Choice), then `git rm` this doc in the shipping commit.
