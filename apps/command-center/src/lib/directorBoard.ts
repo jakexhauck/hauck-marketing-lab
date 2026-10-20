@@ -36,3 +36,11 @@ export function blurSave(local: string, atFocus: string): string | null {
   const next = local.trim();
   return next === atFocus.trim() ? null : next;
 }
+
+// One cell of the board, drawn small so all of a client's tasks fit on one
+// screen (Jake, 2026-10-21): a dot per task in board order, and done out of
+// the tasks not cut. The names open in the side panel.
+export function cellSummary(cell: ClientTask[]): { dots: ClientTask[]; done: number; total: number } {
+  const live = cell.filter((t) => t.state !== "cut");
+  return { dots: cell, done: live.filter((t) => t.state === "done").length, total: live.length };
+}

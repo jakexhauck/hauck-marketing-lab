@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blurSave, directorBoard } from "./directorBoard";
+import { blurSave, cellSummary, directorBoard } from "./directorBoard";
 import type { ClientTask } from "./clientTasks";
 
 const task = (o: Partial<ClientTask>): ClientTask => ({
@@ -50,5 +50,19 @@ describe("blurSave", () => {
   it("an emptied field clears, a whitespace edit does not count", () => {
     expect(blurSave("", "note")).toBe("");
     expect(blurSave("note  ", "note")).toBeNull();
+  });
+});
+
+describe("cellSummary", () => {
+  const t = (state: ClientTask["state"], position = 0) => task({ key: `${state}${position}`, state, position });
+
+  it("one dot per task in board order, and done out of the tasks not cut", () => {
+    const s = cellSummary([t("done", 0), t("todo", 1), t("doing", 2), t("cut", 3)]);
+    expect(s.dots.map((d) => d.state)).toEqual(["done", "todo", "doing", "cut"]);
+    expect(s).toMatchObject({ done: 1, total: 3 });
+  });
+
+  it("an empty cell has no dots and no count", () => {
+    expect(cellSummary([])).toEqual({ dots: [], done: 0, total: 0 });
   });
 });

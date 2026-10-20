@@ -33,6 +33,7 @@ export const RELEASES: Release[] = [
       "Each client has a Director: every setup task, who owns it and where it stands, in one board.",
       "Willis, Made Better, Clear Choice and Above All Garage Doors start with what their checklists already had ticked.",
       "Agents tick their own tasks when you tell them to work on them.",
+      "The whole board fits on one screen: each cell is a dot per task and a count. Click a cell to see and open its tasks.",
     ],
   },
   {
