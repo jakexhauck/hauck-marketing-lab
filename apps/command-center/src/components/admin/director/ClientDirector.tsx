@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { useClientTaskCreate, useClientTaskDelete, useClientTaskPatch, useClientTasksQuery } from "../../../hooks/useApi";
 import { ownerLabel, TASK_OWNERS, taskPhases, type ClientTask, type TaskOwner, type TaskState } from "../../../lib/clientTasks";
-import { directorBoard } from "../../../lib/directorBoard";
+import { blurSave, directorBoard } from "../../../lib/directorBoard";
 
 // The per-client Director (Jake, 2026-10-20; docs/build-plans/client-fulfillment-and-director.md).
 // Owners down the side, Client Fulfillment phases across the top, each task a
@@ -116,6 +116,18 @@ function TaskPanel({ tenantId, task, onClose }: { tenantId: string; task: Client
   const del = useClientTaskDelete(tenantId);
   const [name, setName] = useState(task.name);
   const [note, setNote] = useState(task.note ?? "");
+  const [confirming, setConfirming] = useState(false);
+  // The text each field held when Jake focused it, or null while unfocused.
+  const focusName = useRef<string | null>(null);
+  const focusNote = useRef<string | null>(null);
+  // An agent's note or a Manager rename lands while the panel is open: show
+  // it, unless Jake is typing in that field.
+  useEffect(() => {
+    if (focusName.current === null) setName(task.name);
+  }, [task.name]);
+  useEffect(() => {
+    if (focusNote.current === null) setNote(task.note ?? "");
+  }, [task.note]);
   const save = (p: Parameters<typeof patch.mutate>[0]["patch"]) => patch.mutate({ id: task.id, patch: p });
   const phase = taskPhases().find((p) => p.id === task.sourceNode)?.name;
 
@@ -133,8 +145,14 @@ function TaskPanel({ tenantId, task, onClose }: { tenantId: string; task: Client
         maxLength={120}
         aria-label="Name"
         onChange={(e) => setName(e.target.value)}
-        onBlur={() => name.trim() && name.trim() !== task.name && save({ name: name.trim() })}
+        onFocus={() => (focusName.current = name)}
+        onBlur={() => {
+          const v = blurSave(name, focusName.current ?? name);
+          focusName.current = null;
+          if (v) save({ name: v });
+        }}
       />
+      {patch.isError && <div className="dir-err">Not saved: {(patch.error as Error).message}</div>}
       <div className="dir-states">
         {STATES.map((s) => (
           <button key={s} type="button" className={`dir-state${task.state === s ? " on" : ""}`} onClick={() => task.state !== s && save({ state: s })}>
@@ -164,7 +182,19 @@ function TaskPanel({ tenantId, task, onClose }: { tenantId: string; task: Client
       )}
       <label className="dir-field">
         <span>Note</span>
-        <textarea className="dir-input" rows={3} value={note} maxLength={2000} onChange={(e) => setNote(e.target.value)} onBlur={() => note !== (task.note ?? "") && save({ note: note || null })} />
+        <textarea
+          className="dir-input"
+          rows={3}
+          value={note}
+          maxLength={2000}
+          onChange={(e) => setNote(e.target.value)}
+          onFocus={() => (focusNote.current = note)}
+          onBlur={() => {
+            const v = blurSave(note, focusNote.current ?? note);
+            focusNote.current = null;
+            if (v !== null) save({ note: v || null });
+          }}
+        />
       </label>
       {task.doneBy && task.doneAt && (
         <div className="dir-field">
@@ -180,14 +210,17 @@ function TaskPanel({ tenantId, task, onClose }: { tenantId: string; task: Client
           <p>Client Fulfillment, {phase}</p>
         </div>
       )}
+      {/* Deleting cannot be undone, so it takes a second click. */}
       <button
         type="button"
         className="dir-btn dir-danger"
         disabled={del.isPending}
-        onClick={() => del.mutate(task.id, { onSuccess: onClose })}
+        onClick={() => (confirming ? del.mutate(task.id, { onSuccess: onClose }) : setConfirming(true))}
+        onBlur={() => setConfirming(false)}
       >
-        Delete
+        {confirming ? "Delete for good" : "Delete"}
       </button>
+      {del.isError && <div className="dir-err">Not deleted: {(del.error as Error).message}</div>}
     </aside>
   );
 }

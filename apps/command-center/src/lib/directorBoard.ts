@@ -27,3 +27,12 @@ export function directorBoard(tasks: ClientTask[]): { phases: { id: string; name
   }
   return { phases, rows };
 }
+
+// What a text field on a task panel saves when it loses focus: Jake's edit
+// since he focused it, trimmed, or null when he changed nothing. Comparing with
+// the text at focus, not the server's current text, means a field Jake only
+// tabbed through never writes old text over an agent's newer note or rename.
+export function blurSave(local: string, atFocus: string): string | null {
+  const next = local.trim();
+  return next === atFocus.trim() ? null : next;
+}

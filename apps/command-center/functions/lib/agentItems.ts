@@ -500,9 +500,15 @@ export async function decideItem(
 
   let followUp = t.followUp;
   if (taskOps?.ok && item.tenantId) {
-    const res = await applyTaskOps(client, item.tenantId, taskOps.ops, "jake");
-    const missed = res.skipped.map((x) => `${"key" in x.op ? x.op.key : x.op.name} (${x.reason})`);
-    followUp += `\nTasks applied: ${res.applied}.${missed.length ? ` Not applied: ${missed.join(", ")}.` : ""}`;
+    // The card is already done; a failure here must still reach the Manager,
+    // never a 500 with the ops half-applied and nobody told.
+    try {
+      const res = await applyTaskOps(client, item.tenantId, taskOps.ops, "jake");
+      const missed = res.skipped.map((x) => `${"key" in x.op ? x.op.key : x.op.name} (${x.reason})`);
+      followUp += `\nTasks applied: ${res.applied}.${missed.length ? ` Not applied: ${missed.join(", ")}.` : ""}`;
+    } catch (err) {
+      followUp += `\nTasks not applied: ${(err as Error).message}. Ask Jake to look at the Director.`;
+    }
   }
 
   if (followUp) {

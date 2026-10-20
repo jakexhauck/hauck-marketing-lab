@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { directorBoard } from "./directorBoard";
+import { blurSave, directorBoard } from "./directorBoard";
 import type { ClientTask } from "./clientTasks";
 
 const task = (o: Partial<ClientTask>): ClientTask => ({
@@ -33,5 +33,22 @@ describe("directorBoard", () => {
 
   it("counts done out of the tasks that are not cut", () => {
     expect(board.rows[1]).toMatchObject({ done: 1, total: 2 });
+  });
+});
+
+describe("blurSave", () => {
+  it("saves only what Jake changed since he focused the field", () => {
+    expect(blurSave(" New name ", "Old name")).toBe("New name");
+    expect(blurSave("Old name", "Old name")).toBeNull();
+  });
+
+  it("never writes back text an agent changed while the field sat untouched", () => {
+    // Focused with the old text, left as is, while the server moved on.
+    expect(blurSave("Old name", "Old name")).toBeNull();
+  });
+
+  it("an emptied field clears, a whitespace edit does not count", () => {
+    expect(blurSave("", "note")).toBe("");
+    expect(blurSave("note  ", "note")).toBeNull();
   });
 });

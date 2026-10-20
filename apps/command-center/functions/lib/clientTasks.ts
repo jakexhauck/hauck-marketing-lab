@@ -214,8 +214,12 @@ export async function applyTaskOps(
   let applied = 0;
   for (const op of ops) {
     if (op.op === "add") {
-      await insertAdded(client, tenantId, { phase: op.phase, owner: op.owner, name: op.name, reason: op.reason }, by);
-      applied++;
+      try {
+        await insertAdded(client, tenantId, { phase: op.phase, owner: op.owner, name: op.name, reason: op.reason }, by);
+        applied++;
+      } catch (err) {
+        skipped.push({ op, reason: (err as Error).message });
+      }
       continue;
     }
     const t = byKey.get(op.key);

@@ -15,6 +15,7 @@ import {
   listItems,
   postAnswer,
 } from "./agentItems";
+import { ensureTasks } from "./clientTasks";
 
 // What the page sends with an Approve: the hash of the payload it drew.
 const shown = (db: FakeDb, id = "i1") =>
@@ -251,6 +252,45 @@ describe("decideItem, the Manager's tasks card", () => {
     expect(tasks.find((r) => r.key === "added:ask-who-answers-the-phone")).toMatchObject({ owner: "client", change: "added" });
     const follow = db.rows("agent_messages").find((r) => r.status === "queued")!;
     expect(follow.body).toBe("Approved: Kickoff tasks\nTasks applied: 2. Not applied: nope:gone (no task with that key).");
+  });
+
+  // A client whose client_tasks table fails: on insert only, or on every call.
+  function failing(db: FakeDb, mode: "insert" | "all") {
+    const base = db.client();
+    const broken = { message: "boom" };
+    return {
+      from(table: string) {
+        const q = base.from(table) as unknown as Record<string, unknown>;
+        if (table !== "client_tasks") return q;
+        if (mode === "insert") {
+          q.insert = () => ({ select: () => ({ maybeSingle: async () => ({ data: null, error: broken }) }) });
+          return q;
+        }
+        const dead: Record<string, unknown> = {};
+        for (const m of ["select", "eq", "insert", "update", "upsert", "delete", "maybeSingle", "order"]) dead[m] = () => dead;
+        dead.then = (ok: (v: unknown) => unknown) => Promise.resolve({ data: null, error: broken }).then(ok);
+        return dead;
+      },
+    } as unknown as ReturnType<FakeDb["client"]>;
+  }
+
+  it("a failing add is reported and the other ops still apply", async () => {
+    const db = card();
+    await ensureTasks(db.client(), T1);
+    const res = await decideItem(failing(db, "insert"), "i1", "approve", undefined, undefined, await shown(db));
+    expect("item" in res && res.item.status).toBe("done");
+    expect(db.rows("client_tasks").find((r) => r.key === "follow:job-reminders")).toMatchObject({ state: "cut" });
+    const follow = db.rows("agent_messages").find((r) => r.status === "queued")!;
+    expect(follow.body).toContain("Tasks applied: 1.");
+    expect(follow.body).toContain("Ask: who answers the phone (client_tasks insert: boom)");
+  });
+
+  it("a Director that cannot be read still finishes the Approve and says nothing applied", async () => {
+    const db = card();
+    const res = await decideItem(failing(db, "all"), "i1", "approve", undefined, undefined, await shown(db));
+    expect("item" in res && res.item.status).toBe("done");
+    const follow = db.rows("agent_messages").find((r) => r.status === "queued")!;
+    expect(follow.body).toMatch(/^Approved: Kickoff tasks\nTasks not applied: /);
   });
 
   it("a bad tasks payload is refused and the card stays waiting", async () => {
