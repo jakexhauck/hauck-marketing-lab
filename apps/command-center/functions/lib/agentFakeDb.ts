@@ -36,6 +36,7 @@ class Query implements PromiseLike<{ data: unknown; error: null; count?: number 
   private single = false;
   private op: "select" | "insert" | "update" | "delete" | "upsert" = "select";
   private conflict: string[] = ["id"];
+  private ignoreDuplicates = false;
   private payload: Row | Row[] | null = null;
   private returning = false;
 
@@ -53,9 +54,10 @@ class Query implements PromiseLike<{ data: unknown; error: null; count?: number 
     this.payload = rows;
     return this;
   }
-  upsert(rows: Row | Row[], opts: { onConflict?: string } = {}) {
+  upsert(rows: Row | Row[], opts: { onConflict?: string; ignoreDuplicates?: boolean } = {}) {
     this.op = "upsert";
     this.payload = rows;
+    this.ignoreDuplicates = !!opts.ignoreDuplicates;
     if (opts.onConflict) this.conflict = opts.onConflict.split(",").map((c) => c.trim());
     return this;
   }
@@ -115,8 +117,9 @@ class Query implements PromiseLike<{ data: unknown; error: null; count?: number 
       const out: Row[] = [];
       for (const p of list) {
         const hit = rows.find((r) => this.conflict.every((c) => r[c] === p[c]));
+        if (hit && this.ignoreDuplicates) continue;
         if (hit) Object.assign(hit, p, { updated_at: now });
-        else rows.push({ created_at: now, updated_at: now, ...this.db.defaults(this.table), ...p });
+        else rows.push({ id: nextId(), created_at: now, updated_at: now, ...this.db.defaults(this.table), ...p });
         out.push({ ...(hit ?? rows[rows.length - 1]) });
       }
       return { data: this.returning ? out : null, error: null };
@@ -184,6 +187,9 @@ export class FakeDb {
     }
     if (table === "agent_items") return { payload: {}, status: "building", approved_at: null, chat_id: null, from_agent: null };
     if (table === "agent_lesson_edits") return { status: "queued", text: null };
+    if (table === "client_tasks") {
+      return { steps: [], position: 0, source_node: null, sop_key: null, state: "todo", change: "kept", reason: null, evidence: null, note: null, done_by: null, done_at: null, created_by: null };
+    }
     return {};
   }
 
