@@ -1,12 +1,12 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { AGENT_SOPS, type SopNode } from "./agentSops";
+// ?raw, not node:fs: this project's tsconfig carries no @types/node and the
+// Cloudflare build runs tsc over tests too.
+import DOC from "../../../../docs/ghl-client-setup-checklist.md?raw";
 
 // docs/ghl-client-setup-checklist.md is the GHL map written out (Jake,
 // 2026-10-18): one section per box on the main line, in order, each line the
 // box's step word for word. Change one and this fails until the other matches.
-
-const DOC = new URL("../../../../docs/ghl-client-setup-checklist.md", import.meta.url);
 
 // The main line, start box onward, following solid edges and stopping at the
 // handoff back to the Manager.
@@ -25,7 +25,7 @@ function mainLine(): SopNode[] {
 
 function docSections(): { title: string; items: string[] }[] {
   const out: { title: string; items: string[] }[] = [];
-  for (const line of readFileSync(DOC, "utf8").split(/\r?\n/)) {
+  for (const line of DOC.split(/\r?\n/)) {
     const h = line.match(/^## \d+\. (.+)$/);
     if (h) out.push({ title: h[1].trim(), items: [] });
     const item = line.match(/^- \[ \] (.+)$/);
