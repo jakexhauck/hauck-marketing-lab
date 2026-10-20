@@ -157,7 +157,17 @@ export default function ItemCard({
           ))}
         </div>
       )}
-      {p.changes.length === 0 && p.plan.length > 0 && (
+      {p.taskChanges.length > 0 && (
+        <div className="ag-list">
+          {p.taskChanges.map((c, i) => (
+            <div key={i} style={{ whiteSpace: "pre-wrap" }}>
+              <ArrowRight />
+              <strong>{c.kind}</strong> {c.text}. {c.reason}
+            </div>
+          ))}
+        </div>
+      )}
+      {p.changes.length === 0 && p.taskChanges.length === 0 && p.plan.length > 0 && (
         <div className="ag-list">
           {p.plan.map((t, i) => (
             <div key={i}>

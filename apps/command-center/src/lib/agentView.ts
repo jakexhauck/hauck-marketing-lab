@@ -4,6 +4,7 @@
 // tested without rendering anything.
 
 import type { AgentId } from "./agents";
+import { ownerLabel, parseTaskOps } from "./clientTasks";
 import type { AgentItem, AgentMessage, ChatSummary, RunnerStatus } from "./agentWire";
 import { formatBudget, isCurrencyCode } from "./metaCurrency";
 
@@ -121,6 +122,26 @@ export interface ItemPayloadView {
   // on the server (lib/agentGhlOps.ts, lib/agentMetaOps.ts), so the card
   // shows them, not only the plan.
   changes: ItemChange[];
+  // The Manager's kickoff card (kind "tasks"): each change to the client's
+  // Director, with the reason. An Approve applies exactly these.
+  taskChanges: TaskChangeLine[];
+}
+
+export interface TaskChangeLine {
+  kind: "Add" | "Change" | "Cut";
+  text: string;
+  reason: string;
+}
+
+function taskChangeLines(v: unknown): TaskChangeLine[] {
+  const parsed = parseTaskOps(Array.isArray(v) ? v.filter((o) => !!o && typeof o === "object") : v);
+  if (!parsed.ok) return [];
+  return parsed.ops.map((o) => {
+    if (o.op === "add") return { kind: "Add", text: `${o.name} (${ownerLabel(o.owner)})`, reason: o.reason };
+    if (o.op === "cut") return { kind: "Cut", text: o.key, reason: o.reason };
+    const bits = [o.name ? `name ${o.name}` : "", o.owner ? `owner ${ownerLabel(o.owner)}` : "", o.phase ? `phase ${o.phase}` : ""].filter(Boolean);
+    return { kind: "Change", text: [o.key, ...bits].join(", "), reason: o.reason };
+  });
 }
 
 // One line of a card's changes. `bold` is drawn strong after the text (a new
@@ -229,6 +250,7 @@ export function itemPayload(payload: Record<string, unknown>): ItemPayloadView {
       const a = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
       return op === "createAd" ? createAdLines(a) : [{ text: changeLine(op, a) }];
     }),
+    taskChanges: taskChangeLines(payload.taskOps),
   };
 }
 

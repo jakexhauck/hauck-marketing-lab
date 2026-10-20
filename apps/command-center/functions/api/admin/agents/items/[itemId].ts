@@ -34,7 +34,8 @@ export const onRequestPatch: PagesFunction<Env, "itemId", ApiData> = async (ctx)
   const shown = typeof body.payloadHash === "string" ? body.payloadHash : null;
   const res = await decideItem(client, itemId, action, note, new Date(), shown);
   if ("error" in res) {
-    const error = res.error === 404 ? "item not found" : "changed" in res ? "card changed, look again" : "already decided";
+    const error =
+      res.error === 404 ? "item not found" : "reason" in res ? res.reason : "changed" in res ? "card changed, look again" : "already decided";
     return Response.json({ error }, { status: res.error });
   }
   await logAdminAction(client, admin.id, `agent_item.${action}`, res.item.tenantId, { itemId });

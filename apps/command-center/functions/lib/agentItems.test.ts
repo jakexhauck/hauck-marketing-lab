@@ -230,6 +230,50 @@ describe("upsertItem", () => {
   });
 });
 
+describe("decideItem, the Manager's tasks card", () => {
+  const ops = [
+    { op: "cut", key: "follow:job-reminders", reason: "No jobs in GHL" },
+    { op: "add", phase: "ghl", owner: "client", name: "Ask: who answers the phone", reason: "Not on the intake" },
+    { op: "cut", key: "nope:gone", reason: "x" },
+  ];
+  function card(agent = "manager", taskOps: unknown = ops) {
+    return new FakeDb()
+      .seed("agent_chats", [chat("c1", T1, agent)])
+      .seed("agent_items", [{ id: "i1", tenant_id: T1, agent, chat_id: "c1", kind: "tasks", title: "Kickoff tasks", status: "needs_ok", payload: { taskOps }, approved_at: null }]);
+  }
+
+  it("approve applies the ops, reports the ones it could not, and says so in the follow-up", async () => {
+    const db = card();
+    const res = await decideItem(db.client(), "i1", "approve", undefined, undefined, await shown(db));
+    expect("item" in res && res.item.status).toBe("done");
+    const tasks = db.rows("client_tasks");
+    expect(tasks.find((r) => r.key === "follow:job-reminders")).toMatchObject({ state: "cut", reason: "No jobs in GHL" });
+    expect(tasks.find((r) => r.key === "added:ask-who-answers-the-phone")).toMatchObject({ owner: "client", change: "added" });
+    const follow = db.rows("agent_messages").find((r) => r.status === "queued")!;
+    expect(follow.body).toBe("Approved: Kickoff tasks\nTasks applied: 2. Not applied: nope:gone (no task with that key).");
+  });
+
+  it("a bad tasks payload is refused and the card stays waiting", async () => {
+    const db = card("manager", [{ op: "add", reason: "x" }]);
+    const res = await decideItem(db.client(), "i1", "approve", undefined, undefined, await shown(db));
+    expect(res).toMatchObject({ error: 422 });
+    expect(db.rows("agent_items")[0].status).toBe("needs_ok");
+    expect(db.rows("client_tasks")).toHaveLength(0);
+  });
+
+  it("the same card from any other agent changes no tasks", async () => {
+    const db = card("ghl");
+    await decideItem(db.client(), "i1", "approve", undefined, undefined, await shown(db));
+    expect(db.rows("client_tasks")).toHaveLength(0);
+  });
+
+  it("decline applies nothing", async () => {
+    const db = card();
+    await decideItem(db.client(), "i1", "decline");
+    expect(db.rows("client_tasks")).toHaveLength(0);
+  });
+});
+
 describe("decideItem", () => {
   function setup(status = "needs_ok") {
     return new FakeDb()

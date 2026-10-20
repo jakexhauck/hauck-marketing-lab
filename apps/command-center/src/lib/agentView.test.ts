@@ -158,6 +158,25 @@ describe("clientRowView", () => {
   });
 });
 
+describe("itemPayload, a tasks card", () => {
+  it("spells out each task change with its owner and reason, junk dropped", () => {
+    const v = itemPayload({
+      taskOps: [
+        { op: "add", phase: "ghl", owner: "client", name: "Ask: who answers the phone", reason: "Not on the intake" },
+        { op: "change", key: "ghl:a2p-submitted", owner: "jake", reason: "Jake does A2P here" },
+        { op: "cut", key: "follow:job-reminders", reason: "No jobs in GHL" },
+        "junk",
+      ],
+    });
+    expect(v.taskChanges).toEqual([
+      { kind: "Add", text: "Ask: who answers the phone (Client)", reason: "Not on the intake" },
+      { kind: "Change", text: "ghl:a2p-submitted, owner Jake", reason: "Jake does A2P here" },
+      { kind: "Cut", text: "follow:job-reminders", reason: "No jobs in GHL" },
+    ]);
+    expect(v.changes).toEqual([]);
+  });
+});
+
 describe("itemPayload", () => {
   // What Jake approves on a GHL card must be what the server will allow: the
   // card lists its ops, in words, not just the agent's own plan text.
@@ -291,6 +310,7 @@ describe("itemPayload", () => {
       credits: null,
       what: null,
       changes: [],
+      taskChanges: [],
     });
   });
 

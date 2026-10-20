@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { parseTaskOps } from "../../src/lib/clientTasks";
+import { applyTaskOps } from "./clientTasks";
 import { isAgentId } from "../../src/lib/agents";
 import type { AgentId } from "../../src/lib/agents";
 import type {
@@ -465,7 +467,7 @@ export async function decideItem(
   note?: string,
   now: Date = new Date(),
   shownHash: string | null = null,
-): Promise<{ item: AgentItem } | { error: 404 | 409; changed?: true }> {
+): Promise<{ item: AgentItem } | { error: 404 | 409; changed?: true } | { error: 422; reason: string }> {
   const { data: row, error } = await client.from("agent_items").select("*").eq("id", itemId).maybeSingle();
   fail("item", error);
   if (!row) return { error: 404 };
@@ -475,6 +477,14 @@ export async function decideItem(
   // Approve is for the payload Jake was shown. A rewrite since (a redraft,
   // new GHL ops) changes the hash, and he has to look again.
   if (action === "approve" && shownHash !== (await payloadHash(item.payload))) return { error: 409, changed: true };
+  // The Manager's kickoff card (kind "tasks") edits the client's Director on
+  // Approve. Checked before the card moves, so a malformed card stays waiting
+  // rather than being approved and then doing nothing. Only the Manager's,
+  // only at a client. Its ops sit under taskOps, never ops, so they can never
+  // be read as GHL or Meta ops.
+  const taskCard = action === "approve" && item.kind === "tasks" && item.agent === "manager" && !!item.tenantId;
+  const taskOps = taskCard ? parseTaskOps(item.payload.taskOps) : null;
+  if (taskOps && !taskOps.ok) return { error: 422, reason: taskOps.error };
 
   const patch: Row = { status: t.next };
   if (action === "approve") patch.approved_at = now.toISOString();
@@ -488,13 +498,20 @@ export async function decideItem(
   const after = ((moved ?? []) as Row[])[0];
   if (!after) return { error: 409 };
 
-  if (t.followUp) {
+  let followUp = t.followUp;
+  if (taskOps?.ok && item.tenantId) {
+    const res = await applyTaskOps(client, item.tenantId, taskOps.ops, "jake");
+    const missed = res.skipped.map((x) => `${"key" in x.op ? x.op.key : x.op.name} (${x.reason})`);
+    followUp += `\nTasks applied: ${res.applied}.${missed.length ? ` Not applied: ${missed.join(", ")}.` : ""}`;
+  }
+
+  if (followUp) {
     let chatId = item.chatId ?? (await newestChatId(client, item.tenantId, item.agent));
     if (!chatId) chatId = (await createChat(client, { tenantId: item.tenantId, agent: item.agent, title: item.title })).id as string;
     // Every follow-up says which card it answers. Only an Approve carries the
     // card's grant, which is what switches a gated tool on for that one turn.
     const grant = action === "approve" ? grantFrom(item) : null;
-    await queueMessage(client, chatId, t.followUp, grant ? { followUpOf: item.id, grant } : { followUpOf: item.id });
+    await queueMessage(client, chatId, followUp, grant ? { followUpOf: item.id, grant } : { followUpOf: item.id });
   }
   return { item: itemFromRow(after) };
 }
