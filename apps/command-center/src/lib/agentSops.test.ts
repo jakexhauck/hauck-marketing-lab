@@ -1,10 +1,37 @@
 import { describe, expect, it } from "vitest";
 import { AGENTS } from "./agents";
 import { AGENT_SOPS, frameSize, getAgentSop, layoutEdges, port, route } from "./agentSops";
+import { mapStages } from "./sopPrompt";
+import { SOP_LISTS } from "./sopChecklists";
+
+describe("Client Fulfillment map", () => {
+  const map = () => getAgentSop("fulfillment")!;
+
+  it("comes first", () => {
+    expect(AGENT_SOPS[0].id).toBe("fulfillment");
+  });
+
+  it("runs the phases paid to live, in order", () => {
+    const m = map();
+    const main = mapStages(m).flatMap((s) => s.tasks).map((t) => t.name);
+    const order = ["paid", "onboard", "ghl", "follow", "adsbuild", "check", "launch", "live"].map(
+      (id) => m.nodes.find((n) => n.id === id)!.t,
+    );
+    expect(main.filter((n) => order.includes(n))).toEqual(order);
+  });
+
+  it("carries every item of Jake's three setup checklists", () => {
+    const steps = map().nodes.flatMap((n) => n.steps ?? []).join("\n").toLowerCase();
+    for (const list of Object.values(SOP_LISTS))
+      for (const s of list.sections)
+        for (const g of s.groups)
+          for (const i of g.items) expect(steps, `${list.id}: ${i.label}`).toContain(i.label.toLowerCase());
+  });
+});
 
 describe("agent SOP maps", () => {
-  it("has one map per agent", () => {
-    expect(AGENT_SOPS.map((a) => a.id).sort()).toEqual(AGENTS.map((a) => a.id).sort());
+  it("has one map per agent, plus Client Fulfillment", () => {
+    expect(AGENT_SOPS.map((a) => a.id).sort()).toEqual([...AGENTS.map((a) => a.id), "fulfillment"].sort());
   });
 
   it("every edge joins two boxes on its own map, and box ids are unique", () => {

@@ -8,9 +8,9 @@ import {
   layoutEdges,
   nodeBox,
   type AgentSop,
+  type SopMapId,
   type SopNode,
 } from "../../../lib/agentSops";
-import type { AgentId } from "../../../lib/agents";
 import { boardFor, howLines, ownerKind, ownerLabel, type DirectorResponse, type DirectorTask } from "../../../lib/director";
 import { directorApi, useDirectorWrite } from "../director/directorApi";
 
@@ -33,7 +33,7 @@ function addedNodes(map: AgentSop, director: DirectorResponse | undefined): { no
   const tasks = new Map<string, DirectorTask>();
   const nodes: SopNode[] = [];
   const top = Math.max(...map.nodes.map((n) => n.r)) + 1.3;
-  for (const { stage, tasks: list } of boardFor(map.id, director)) {
+  for (const { stage, tasks: list } of map.id === "fulfillment" ? [] : boardFor(map.id, director)) {
     for (const t of list) {
       if (t.nodeId) continue;
       const i = nodes.length;
@@ -55,7 +55,7 @@ export default function AgentSopMap({
   director?: DirectorResponse;
   // A box to open on arrival: a graph node id, or "task:<id>" for an added one.
   initial?: string | null;
-  onOpenAgent: (id: AgentId) => void;
+  onOpenAgent: (id: SopMapId) => void;
 }) {
   const [selected, setSelected] = useState<string | null>(initial ?? null);
   const wrapRef = useRef<HTMLDivElement>(null);

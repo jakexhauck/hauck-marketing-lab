@@ -18,6 +18,10 @@
 
 import type { AgentId } from "./agents";
 
+// A map is an agent's, or the Client Fulfillment journey that ties them
+// together (Jake, 2026-10-20). "fulfillment" is a map id, never an agent id.
+export type SopMapId = AgentId | "fulfillment";
+
 export type NodeKind = "start" | "agent" | "review" | "jake" | "edit" | "client" | "done";
 export type EdgeKind = "main" | "side" | "alt";
 
@@ -30,14 +34,14 @@ export interface SopNode {
   d?: string[];
   src?: string; // section of the Client Setup SOP
   steps?: string[];
-  link?: AgentId; // a handoff box opens that agent's map
+  link?: SopMapId; // a handoff box opens that map
 }
 
 // [from, to, label, kind, start port, end port, bend]
 export type SopEdge = [string, string, string?, EdgeKind?, string?, string?, (number | "gap")?];
 
 export interface AgentSop {
-  id: AgentId;
+  id: SopMapId;
   name: string;
   tag: string;
   title: string;
@@ -60,6 +64,111 @@ export const SOP_KEY =
   "Solid arrows = the main line. Dashed = edits and loop-backs. Orange = second route. Green outline = Jake approves. Blue = agent, purple = Jake, peach = client, green = done or handoff. Dashed box = draft steps. Faded = off on the Director.";
 
 export const AGENT_SOPS: AgentSop[] = [
+  // The whole client journey, paid to live (Jake, 2026-10-20;
+  // docs/build-plans/client-fulfillment-and-director.md). Every item of the
+  // Full Setup, Onboarding Call and Launch Call lists in sopChecklists.ts is a
+  // step here, in its own words, prefixed with its owner when that is not the
+  // box's owner. A test holds that nothing in those lists goes missing.
+  {
+    id: "fulfillment", name: "Client Fulfillment", tag: "Client Fulfillment · signed to live", title: "CLIENT FULFILLMENT · paid to live",
+    nodes: [
+      { id: "paid", c: 0, r: 0, k: "client", t: "paid + signed", d: ["invoice paid", "contract signed"], src: "Full Setup Checklist > Operations",
+        steps: ["Invoice Paid", "Contract Signed"] },
+      { id: "onboard", c: 1, r: 0, k: "jake", t: "onboarding call", d: ["folder, sub-account, assets", "who dials the leads"], src: "Onboarding Call",
+        steps: [
+          "Manager: Make Google Drive Folder (🤝 | [CLIENT NAME])",
+          "Manager: Copy Assets Within \"Client Setup\" Folder Into Client Folder With Proper Naming Conventions (WW | Video Scripts)",
+          "Manager: Customize Dialling Script",
+          "Manager: Client Folder Made",
+          "Manager: Software Account Made",
+          "GHL: Setup Sub Account",
+          "Access Business Manager",
+          "Log Into Software & Explain",
+          "Set Expectations",
+          "Expect around X-Y leads in the first week",
+          "Usually about ## in month 1 (first appointments in X timeframe)",
+          "First lead will come in around 2-3 days",
+          "Not every lead is going to be quality, that's just the way it goes",
+          "Lead quality always starts out the worst, and improves over time",
+          "Get Assets For Marketing",
+          "Dialing Script (if needed)",
+          "Decide who dials the leads: Jake or the client",
+          "Onboarding Call Done",
+          "Client: Marketing Assets Sent",
+          "Client: Ad Account Access",
+        ] },
+      { id: "ghl", c: 2, r: 0, k: "agent", t: "GHL + phone", d: ["staff, values, calendars", "A2P, 3 numbers, routing"], src: "Full Setup Checklist > GHL, Phone",
+        steps: [
+          "GHL: Add Jake & Client As Staff",
+          "Jake: Connect Facebook To GHL",
+          "GHL: Buy & Apply Subdomain",
+          "GHL: Custom Values Set",
+          "GHL: Custom Fields Set",
+          "GHL: Calendar Availability/Settings Configured",
+          "GHL: Create Lead Form Custom Values Created & Set",
+          "GHL: Turn Off Message Compliance",
+          "GHL: A2P Submitted",
+          "GHL: Local Number Bought",
+          "GHL: Appointment Outcome # Bought",
+          "GHL: Facebook Ad Speed To Lead # Bought",
+          "GHL: Turn On Call Recording & Transcription",
+          "GHL: Call Routing to Owner Phone Number (or to Jake, if Jake dials)",
+        ] },
+      { id: "follow", c: 3, r: 0, k: "agent", t: "follow ups + CAPI", d: ["reminders, nurture", "Conversions API"], src: "Full Setup Checklist > GHL Follow Ups",
+        steps: [
+          "GHL: Phone Appointment",
+          "GHL: Estimate Reminders",
+          "GHL: Job Reminders",
+          "GHL: Conversions API (Leads)",
+          "GHL: Long Term Nurture",
+          "GHL: Lead Form FU's",
+        ] },
+      { id: "adsbuild", c: 0, r: 2, k: "agent", t: "ads + creative", d: ["lead form, creatives", "conversion assets, campaign"], src: "Full Setup Checklist > Facebook Ads",
+        steps: [
+          "Jake: Link Ad Account To Command Center",
+          "Ads: Lead Form Setup",
+          "Creative: Creatives Done/Added To Media Library",
+          "Landing Page: Conversion Assets Created/Placed Into Funnel",
+          "Ads: Campaign Setup",
+        ] },
+      { id: "check", c: 1, r: 2, k: "review", t: "pre-launch check", d: ["account fully done", "Accounts page all green"], src: "Launch Call > Before The Call",
+        steps: [
+          "Manager: Make Sure Account Is Fully Done",
+          "Follow Ups",
+          "Appointment Automations",
+          "CAPI",
+          "Campaign, Adset, Creatives, Copy, Lead Form",
+          "Make Sure Software Account Is Fully Done",
+          "Accounts page all green",
+        ] },
+      { id: "launch", c: 2, r: 2, k: "jake", t: "launch call", d: ["walk the client through", "test SMS"], src: "Launch Call > Todo",
+        steps: [
+          "Go Over Creatives",
+          "Go Over Copy/Headlines",
+          "Go Over Lead Form",
+          "Go Over GHL Automations",
+          "Explain Software",
+          "Client: Send Test SMS & Have Client Save Both Outcome Numbers",
+        ] },
+      { id: "live", c: 3, r: 2, k: "done", t: "ads LIVE", d: ["Ads Agent monitors", "Reporting starts"], src: "Full Setup Checklist > Facebook Ads",
+        steps: ["Ads: Ads LIVE", "Ads Agent starts daily monitoring", "Reporting Agent starts the monthly cycle"] },
+      { id: "fix", c: 1.4, r: 1, k: "edit", t: "fix list", d: ["side door", "back to the owner"], src: "Launch Call > Before The Call",
+        steps: ["Each failed check goes back to the agent or person that owns it", "Re-check when every item is fixed"] },
+      { id: "toghl", c: 2.6, r: 1, k: "done", t: "GHL Agent", d: ["sub-account to CAPI"], link: "ghl" },
+      { id: "toads", c: 0, r: 3, k: "done", t: "Ads Agent", d: ["form + campaign"], link: "ads" },
+      { id: "tocre", c: 1, r: 3, k: "done", t: "Creative Agent", d: ["images + videos"], link: "creative" },
+      { id: "tolp", c: 2, r: 3, k: "done", t: "Landing Page Agent", d: ["conversion assets"], link: "landing" },
+    ],
+    edges: [
+      ["paid", "onboard", "signed"], ["onboard", "ghl", "assets in"], ["ghl", "follow", "numbers live"],
+      ["follow", "adsbuild", "automations built", "main", "b:0.5", "t:0.3", "gap"],
+      ["adsbuild", "check", "all built"], ["check", "launch", "all green"], ["launch", "live", "go live"],
+      ["check", "fix", "not ready", "side", "t:0.6", "b:0.3"], ["fix", "ghl", "back to build", "side", "t:0.5", "b:0.2"],
+      ["ghl", "toghl", "how", "alt", "b:0.75", "t:0.3"],
+      ["adsbuild", "toads", "how", "alt", "b:0.2", "t:0.5"], ["adsbuild", "tocre", "", "alt", "b:0.2", "t:0.5"],
+      ["adsbuild", "tolp", "", "alt", "b:0.2", "t:0.5"],
+    ],
+  },
   {
     id: "manager", name: "Manager", tag: "Manager · client lifecycle", title: "MANAGER · paid to live",
     nodes: [

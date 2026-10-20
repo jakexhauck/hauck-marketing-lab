@@ -130,15 +130,17 @@ export interface ClaimResponse {
   // The client's whole brief with versions, every section in BRIEF_SECTIONS
   // order. [] for the agency Manager, which has no client.
   brief: BriefSection[];
-  // The agent's own SOP from the Director (lib/director.ts): stages in order,
-  // each task with its owner and steps. Draft tasks are left out. Optional so
-  // the runner still reads a claim from an app that predates the Director.
+  // The agent's own SOP, read off its map on the SOPs tab (lib/sopPrompt.ts):
+  // stages in order, each task with its owner and steps. Optional so the
+  // runner still reads a claim from an app that sends none.
   sop?: SopStage[];
 }
 
 export interface SopStage {
   name: string;
   tasks: { name: string; owner: "agent" | "jake" | "client"; steps: string[] }[];
+  // From a map still marked draft: Jake has not signed it off.
+  draft?: boolean;
 }
 
 // The runner's reply to an approved request, for the agent that asked
