@@ -25,7 +25,7 @@ import { agentDef, AGENTS, isAgentId } from "./agents.ts";
 import { readLessons } from "./brain.ts";
 import type { Bundle } from "./claude.ts";
 import { findDriveFolder, vaultFolder } from "./clients.ts";
-import { AGENTS_DIR, DRIVE_ROOT, GHL_SCRIPT, META_SCRIPT, METAOPS_SCRIPT, PROMPTS_DIR, STATE_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
+import { AGENTS_DIR, DRIVE_ROOT, ENGINE, GHL_SCRIPT, META_SCRIPT, METAOPS_SCRIPT, PROMPTS_DIR, STATE_DIR, VAULT_DIR, WORK_DIR } from "./config.ts";
 import { stripEmDashes } from "./output.ts";
 import { creativeHiggsfieldTools, spendLimit, writeHiggsfieldConfig } from "./spend.ts";
 import type { AgentId, BriefSection, BriefSectionId, ClaimTenant, Grant, SopStage, WireTask } from "./wire.ts";
