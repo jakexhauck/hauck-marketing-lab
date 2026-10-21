@@ -33,6 +33,22 @@ describe("agentTaskUpdate", () => {
     expect(row(db, A2P)).toMatchObject({ state: "done", evidence: "Brand BN123 submitted", done_by: "agent:ghl", done_at: now.toISOString() });
   });
 
+  it("saves named outputs with the proof, and says which pairs it dropped", async () => {
+    const db = await world();
+    const outputs = { dataset_id: "123", "Bad Name": "x", long: "y".repeat(501) };
+    const res = ok(await agentTaskUpdate(db.client(), { messageId: M1, updates: [{ key: A2P, state: "done", evidence: "Made", outputs }] }, now));
+    expect(res.updated).toEqual([A2P]);
+    expect(res.refused).toEqual([{ key: A2P, reason: "outputs dropped: Bad Name, long" }]);
+    expect(row(db, A2P).outputs).toEqual({ dataset_id: "123" });
+  });
+
+  it("keeps at most 10 outputs", async () => {
+    const db = await world();
+    const outputs = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`k${i}`, "v"]));
+    await agentTaskUpdate(db.client(), { messageId: M1, updates: [{ key: A2P, state: "done", evidence: "Made", outputs }] }, now);
+    expect(Object.keys(row(db, A2P).outputs as object)).toHaveLength(10);
+  });
+
   it("refuses by name and writes nothing for: another owner's task, a cut task, an unknown key, done with no proof, a step back", async () => {
     const db = await world();
     row(db, "follow:job-reminders").state = "cut";

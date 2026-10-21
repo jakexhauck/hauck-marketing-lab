@@ -49,4 +49,10 @@ ghl:a2p-submitted | doing
 ghl:local-number-bought | done | Bought (313) 555-0101 in the sub-account
 ```
 
+When a finished task produced something another task needs (an id, a link, a number), add it after the proof as name=value pairs, lowercase names with underscores, no spaces in a value. Whatever waits on the task is handed them.
+
+```task
+adsbuild:meta-dataset | done | Dataset made in Events Manager | dataset_id=1234567890
+```
+
 Malformed JSON is dropped, so keep it valid. No block is fine when there is nothing to file.

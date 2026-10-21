@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ClaimResponse, RunnerTaskBody, RunnerTaskResult, WireTask } from "../../src/lib/agentWire";
 import { turnChat } from "./clientBriefs";
 import { ensureTasks, toTask } from "./clientTasks";
+import { stripEmDash } from "./agentRunner";
 
 // Agents and the per-client Director (docs/build-plans/client-fulfillment-and-director.md).
 //
@@ -32,6 +33,23 @@ export async function withTasks(client: SupabaseClient, claim: ClaimResponse | n
 }
 
 const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
+
+// A task's outputs (a dataset id) go into the trigger of whatever waits on it,
+// so they are kept short and plainly named: at most 10, name like dataset_id,
+// value up to 500 characters. Anything else is dropped and named back.
+const MAX_OUTPUTS = 10;
+const OUTPUT_NAME = /^[a-z][a-z0-9_]{0,39}$/;
+function cleanOutputs(v: unknown): { kept: Record<string, string>; dropped: string[] } {
+  const kept: Record<string, string> = {};
+  const dropped: string[] = [];
+  if (!v || typeof v !== "object" || Array.isArray(v)) return { kept, dropped };
+  for (const [name, value] of Object.entries(v as Record<string, unknown>)) {
+    const ok = OUTPUT_NAME.test(name) && typeof value === "string" && value.trim() && value.length <= 500;
+    if (!ok) dropped.push(name);
+    else if (Object.keys(kept).length < MAX_OUTPUTS) kept[name] = stripEmDash(value.trim());
+  }
+  return { kept, dropped };
+}
 
 export async function agentTaskUpdate(
   client: SupabaseClient,
@@ -79,10 +97,13 @@ export async function agentTaskUpdate(
       refuse("done needs evidence or a note");
       continue;
     }
+    const named = cleanOutputs(u.outputs);
+    if (named.dropped.length) out.refused.push({ key, reason: `outputs dropped: ${named.dropped.join(", ")}` });
+    const outputs = Object.keys(named.kept).length ? { outputs: { ...t.outputs, ...named.kept } } : {};
     const patch: Row =
       u.state === "done"
-        ? { state: "done", done_by: `agent:${turn.agent}`, done_at: now.toISOString(), ...(evidence ? { evidence } : {}), ...(note ? { note } : {}) }
-        : { state: "doing", ...(note ? { note } : {}) };
+        ? { state: "done", done_by: `agent:${turn.agent}`, done_at: now.toISOString(), ...(evidence ? { evidence } : {}), ...(note ? { note } : {}), ...outputs }
+        : { state: "doing", ...(note ? { note } : {}), ...outputs };
     const { error: upErr } = await client.from("client_tasks").update(patch).eq("tenant_id", turn.tenantId).eq("id", t.id);
     if (upErr) {
       refuse(upErr.message);

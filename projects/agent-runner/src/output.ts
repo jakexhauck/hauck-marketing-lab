@@ -76,6 +76,21 @@ function toItem(v: unknown): ItemDraft | null {
   return out;
 }
 
+// "dataset_id=123 pixel=abc" as {dataset_id: "123", pixel: "abc"}, or null
+// when any word is not a name=value pair (then the field is proof text). The
+// app checks names and lengths again.
+function namedOutputs(field: string): Record<string, string> | null {
+  const words = field.split(/\s+/).filter(Boolean);
+  if (!words.length) return null;
+  const out: Record<string, string> = {};
+  for (const w of words) {
+    const m = w.match(/^([a-z][a-z0-9_]{0,39})=(\S+)$/);
+    if (!m) return null;
+    out[m[1]] = m[2];
+  }
+  return out;
+}
+
 function toRequest(v: unknown): RequestDraft | null {
   if (!isObj(v) || !isAgentId(v.toAgent) || v.toAgent === "manager" || typeof v.title !== "string" || typeof v.body !== "string") return null;
   const plan = Array.isArray(v.plan) ? v.plan.filter((p): p is string => typeof p === "string") : [];
@@ -91,12 +106,16 @@ export function parseAgentOutput(text: string): AgentOutput {
         if (line) out.lessons.push(line);
       }
     } else if (kind === "task") {
-      // key | doing, or key | done | proof. Anything else is dropped.
+      // key | doing, or key | done | proof, optionally | name=value ... (the
+      // outputs handed to what waits on the task). Anything else is dropped.
       for (const raw of body.split("\n")) {
         const [key, state, ...rest] = raw.replace(/^\s*[-*]\s+/, "").split("|").map((x) => x.trim());
         if (!key || (state !== "doing" && state !== "done")) continue;
-        const proof = stripEmDashes(rest.join("|").trim());
-        out.tasks.push(state === "done" && proof ? { key, state, evidence: proof } : proof ? { key, state, note: proof } : { key, state });
+        const outputs = rest.length >= 2 ? namedOutputs(rest[rest.length - 1]) : null;
+        const proof = stripEmDashes((outputs ? rest.slice(0, -1) : rest).join("|").trim());
+        const base: RunnerTaskUpdate =
+          state === "done" && proof ? { key, state, evidence: proof } : proof ? { key, state, note: proof } : { key, state };
+        out.tasks.push(outputs ? { ...base, outputs } : base);
       }
     } else if (kind === "brief") {
       // The last one wins: it is the agent's final word on its section.

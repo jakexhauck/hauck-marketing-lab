@@ -274,6 +274,8 @@ export interface RunnerTaskUpdate {
   state: "doing" | "done";
   evidence?: string;
   note?: string;
+  // Named values for the tasks that wait on this one (a dataset id).
+  outputs?: Record<string, string>;
 }
 
 export interface RunnerTaskBody {

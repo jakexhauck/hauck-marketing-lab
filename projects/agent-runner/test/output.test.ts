@@ -5,6 +5,21 @@ const EM = "\u2014";
 const F = "```";
 
 describe("parseAgentOutput", () => {
+  it("takes named outputs after the proof, and leaves a proof with = in it alone", () => {
+    const text = [
+      `${F}task`,
+      "adsbuild:meta-dataset | done | Dataset made | dataset_id=123 pixel=abc",
+      "ghl:custom-values-set | done | set url=https://x.test/a",
+      "ghl:a | done | Bought | one | not=pairs here",
+      F,
+    ].join("\n");
+    expect(parseAgentOutput(text).tasks).toEqual([
+      { key: "adsbuild:meta-dataset", state: "done", evidence: "Dataset made", outputs: { dataset_id: "123", pixel: "abc" } },
+      { key: "ghl:custom-values-set", state: "done", evidence: "set url=https://x.test/a" },
+      { key: "ghl:a", state: "done", evidence: "Bought|one|not=pairs here" },
+    ]);
+  });
+
   it("takes a task block as key | state | proof lines, bad lines dropped", () => {
     const text = ["On it.", `${F}task`, "ghl:a2p-submitted | doing", "- ghl:local-number-bought | done | Bought (313) 555-0101", "nonsense", "ghl:x | todo", F].join("\n");
     const out = parseAgentOutput(text);
