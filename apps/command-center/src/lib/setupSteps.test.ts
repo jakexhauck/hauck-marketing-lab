@@ -57,7 +57,7 @@ describe("the seed", () => {
   it("carries Jake's doc: 6, 8, 6 and 5 steps", () => {
     const rows = seedRows();
     const counts = SETUP_SECTIONS.map((s) => rows.filter((r) => r.section === s.id).length);
-    expect(counts).toEqual([6, 8, 6, 5]);
+    expect(counts).toEqual([6, 7, 6, 5]);
   });
 
   it("gives the onboarding call its Fathom link box, and nothing else a box", () => {

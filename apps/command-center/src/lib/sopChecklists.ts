@@ -56,7 +56,6 @@ export const SOP_LISTS: Record<SopListId, SopList> = {
           "Custom Values Set",
           "Custom Fields Set",
           "Calendar Availability/Settings Configured",
-          "Conversion Assets Created/Placed Into Funnel",
           "Create Lead Form Custom Values Created & Set",
           "Turn Off Message Compliance",
         ),

@@ -20,7 +20,7 @@ describe("sopChecklists", () => {
   });
 
   it("counts the doc's items", () => {
-    expect(sopKeys(SOP_LISTS["full-setup"])).toHaveLength(33);
+    expect(sopKeys(SOP_LISTS["full-setup"])).toHaveLength(32);
     expect(sopKeys(SOP_LISTS["onboarding-call"])).toHaveLength(14);
     expect(sopKeys(SOP_LISTS["launch-call"])).toHaveLength(11);
   });

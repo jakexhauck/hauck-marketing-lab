@@ -166,7 +166,6 @@ const SEED: Record<SetupSection, SeedStep[]> = {
     { label: "Custom Values Set" },
     { label: "Custom Fields Set" },
     { label: "Calendar Availability/Settings Configured" },
-    { label: "Conversion Assets Created/Placed Into Funnel" },
   ],
   followups: [
     { label: "Phone Appointment", group: "Appointments" },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AGENTS } from "./agents";
+import { CLIENT_AGENTS } from "./agents";
 import { AGENT_SOPS, frameSize, getAgentSop, layoutEdges, nodeBox, port, route, sopMapPath } from "./agentSops";
 import { mapStages } from "./sopPrompt";
 import { SOP_LISTS } from "./sopChecklists";
@@ -36,8 +36,20 @@ describe("Client Fulfillment map", () => {
 });
 
 describe("agent SOP maps", () => {
-  it("has one map per agent, plus Client Fulfillment", () => {
-    expect(AGENT_SOPS.map((a) => a.id).sort()).toEqual([...AGENTS.map((a) => a.id), "fulfillment"].sort());
+  it("has one map per client agent, plus Client Fulfillment, and none for the agency Manager", () => {
+    expect(AGENT_SOPS.map((a) => a.id)).toEqual(["fulfillment", "csm", "ghl", "ads", "research"]);
+    expect(AGENT_SOPS.map((a) => a.id).sort()).toEqual([...CLIENT_AGENTS.map((a) => a.id), "fulfillment"].sort());
+  });
+
+  it("names no retired agent and no conversion asset anywhere", () => {
+    const retired = /conversion asset|recent work|owner story|unique mechanism|creative agent|landing page agent|reporting agent/i;
+    for (const m of AGENT_SOPS)
+      for (const n of m.nodes) for (const line of [n.t, ...(n.d ?? []), ...(n.steps ?? [])]) expect(line, `${m.id}/${n.id}`).not.toMatch(retired);
+  });
+
+  it("hands Market Research to Ads only", () => {
+    const links = getAgentSop("research")!.nodes.filter((n) => n.link).map((n) => n.link);
+    expect(links).toEqual(["ads"]);
   });
 
   it("every edge joins two boxes on its own map, and box ids are unique", () => {

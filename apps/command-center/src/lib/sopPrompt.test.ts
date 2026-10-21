@@ -24,7 +24,7 @@ describe("mapStages", () => {
 
   it("names handoffs after the map they open", () => {
     const t = mapStages(getAgentSop("ghl")!).flatMap((x) => x.tasks).map((x) => x.name);
-    expect(t).toContain("Hand off to Manager: back to Manager");
+    expect(t).toContain("Hand off to Customer Success: back to Customer Success");
   });
 
   it("names a box that only brings work in as coming from that map", () => {
@@ -35,12 +35,12 @@ describe("mapStages", () => {
   });
 
   it("uses steps, else the box lines", () => {
-    const t = mapStages(getAgentSop("landing")!).flatMap((x) => x.tasks);
-    expect(t.find((x) => x.name === "recent work page")!.steps).toEqual(["job photos + reviews"]);
+    const t = mapStages(getAgentSop("research")!).flatMap((x) => x.tasks);
+    expect(t.find((x) => x.name === "pain points")!.steps).toEqual(["reviews, forums, Reddit"]);
   });
 
   it("marks draft maps", () => {
-    expect(mapStages(getAgentSop("creative")!).every((s) => s.draft)).toBe(true);
+    expect(mapStages(getAgentSop("research")!).every((s) => s.draft)).toBe(true);
     expect(mapStages(getAgentSop("ghl")!).some((s) => s.draft)).toBe(false);
   });
 
@@ -49,13 +49,13 @@ describe("mapStages", () => {
   });
 
   it("survives a main line that loops back", () => {
-    const base = getAgentSop("landing")!;
-    const m: AgentSop = { ...base, edges: [...base.edges, ["sms", "brief", "again"]] };
+    const base = getAgentSop("research")!;
+    const m: AgentSop = { ...base, edges: [...base.edges, ["ads", "form", "again"]] };
     expect(mapStages(m).flatMap((s) => s.tasks)).toHaveLength(base.nodes.length);
   });
 
   it("a map with no review box is one stage", () => {
-    const base = getAgentSop("landing")!;
+    const base = getAgentSop("research")!;
     const m: AgentSop = { ...base, nodes: base.nodes.map((n) => ({ ...n, k: n.k === "review" ? "agent" : n.k })) };
     expect(mapStages(m)).toHaveLength(1);
   });
@@ -63,7 +63,9 @@ describe("mapStages", () => {
 
 describe("sopForAgent", () => {
   it("gives each agent only its own map, so no journey is listed twice", () => {
-    expect(sopForAgent("manager")).toEqual(mapStages(getAgentSop("manager")!));
+    expect(sopForAgent("csm")).toEqual(mapStages(getAgentSop("csm")!));
+    expect(sopForAgent("csm").length).toBeGreaterThan(0);
+    expect(getAgentSop("manager")).toBeNull();
     expect(sopForAgent("ghl")).toEqual(mapStages(getAgentSop("ghl")!));
   });
 });

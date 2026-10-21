@@ -29,9 +29,8 @@ from the box. `src/lib/ghlChecklistDoc.test.ts` fails if the two ever differ, so
 - [ ] Business Phone Number, GHL Phone Number
 - [ ] Facebook Access Token, Facebook Dataset ID (the client's own dataset, check its name in Events Manager)
 - [ ] Open Lead (from the app)
-- [ ] Recent Work, Owner Story, Unique Mechanism links, Conversion Asset Offer
 - [ ] Custom fields set
-- [ ] Buy and apply the subdomain for the conversion asset pages
+- [ ] Buy and apply the subdomain for the client's funnel pages
 
 ## 5. A2P submitted
 - [ ] Fill the A2P Wizard form from the onboarding form
@@ -50,13 +49,12 @@ from the box. `src/lib/ghlChecklistDoc.test.ts` fails if the two ever differ, so
 - [ ] Route calls to the owner's phone
 
 ## 7. Calendars
-- [ ] Home Estimate, Job and Conversion Asset Calendar: hours set to the owner's real hours
-- [ ] Owner as team member on Home Estimate, Job and Conversion Asset Calendar
+- [ ] Home Estimate and Job: hours set to the owner's real hours
+- [ ] Owner as team member on Home Estimate and Job
 - [ ] Phone Appointment: the owner's hours, or left unused if the client is form only
-- [ ] The asset calendar is named exactly Conversion Asset Calendar, the app finds it by name
 
 ## 8. Workflows
-- [ ] Rewrite every step named REWRITE: LF Follow Ups, LP Follow Ups (funnel only), Long Term Nurture, the 2 Unique Mechanism texts in Home Estimate Reminders
+- [ ] Rewrite every step named REWRITE: LF Follow Ups, LP Follow Ups (funnel only), Long Term Nurture, Home Estimate Reminders
 - [ ] Swap every photo for the client's own job photos, then take REWRITE off each step name
 - [ ] Every Client alert, reminder and Track What Happened text goes to the owner
 - [ ] Every Agency alert goes to Jake
@@ -66,7 +64,7 @@ from the box. `src/lib/ghlChecklistDoc.test.ts` fails if the two ever differ, so
 - [ ] LF Follow Ups trigger: the client's Page + their live lead form
 - [ ] Conversions API (Leads) trigger: the same Page + form
 - [ ] Every new lead form goes into both triggers
-- [ ] Conversions API (Schedules): fires on Home Estimate and Conversion Asset bookings
+- [ ] Conversions API (Schedules): fires on Home Estimate bookings
 - [ ] Token and dataset come from the custom values, never typed into a step
 
 ## 10. Jake review
