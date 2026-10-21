@@ -9,6 +9,12 @@ import { ghlEventStartTime, pickBridgeWorkflow, type GhlWorkflowSummary } from "
 
 export const APP_CALL_WORKFLOW = "App Call";
 
+// Names compared on letters and digits only. The snapshot puts an emoji in
+// front ("💻 App Call", AAG 2026-10-22), which an exact match missed.
+export function workflowKey(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
 export type AppCallResult = { ok: true } | { ok: false; message: string };
 
 export async function startAppCall(gctx: GhlContext, contactId: string): Promise<AppCallResult> {
@@ -23,7 +29,10 @@ export async function startAppCall(gctx: GhlContext, contactId: string): Promise
     return { ok: false, message: `Could not read the workflows: ${readableError(err)}` };
   }
 
-  const pick = pickBridgeWorkflow(workflows, APP_CALL_WORKFLOW);
+  const pick = pickBridgeWorkflow(
+    workflows.map((w) => ({ ...w, name: workflowKey(w.name ?? "") })),
+    workflowKey(APP_CALL_WORKFLOW),
+  );
   if (!pick.ok) {
     return {
       ok: false,
