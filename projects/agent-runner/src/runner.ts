@@ -205,6 +205,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
     const briefNote = d.briefNotes?.get(chat.id) ?? null;
     const withNote = (p: string) => [p, liveNote, briefNote].filter(Boolean).join("\n\n");
     const base = {
+      agent,
       sessionId: chat.claudeSessionId,
       bundle,
       cwd: bundle.workDir,

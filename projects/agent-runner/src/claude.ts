@@ -19,6 +19,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Readable, Writable } from "node:stream";
+import type { AgentId } from "./wire.ts";
 
 export interface Bundle {
   systemPromptFile: string;
@@ -160,6 +161,9 @@ interface ChildLike {
 export type SpawnLike = (cmd: string, args: string[], opts: { cwd?: string; env?: NodeJS.ProcessEnv }) => ChildLike;
 
 export interface RunOptions {
+  // Which agent the turn is for. The Hermes engine sends it to that agent's
+  // profile; claude ignores it (the bundle already is the agent).
+  agent?: AgentId;
   sessionId: string;
   resume: boolean;
   prompt: string;

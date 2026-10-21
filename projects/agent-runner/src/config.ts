@@ -47,3 +47,9 @@ export const HEARTBEAT_MS = 30_000;
 // The agents this runner claims. The VPS runner answers the Hermes agents and
 // the PC runner the rest; unset means all of them (one runner, as before).
 export const CLAIM_AGENTS = parseAgentList(process.env.AGENT_AGENTS);
+
+// Which engine answers: "claude" (claude -p on this machine, the default) or
+// "hermes" (the agent's Hermes profile, docs/build-plans/hermes-agents.md).
+export const ENGINE: "claude" | "hermes" = process.env.AGENT_ENGINE === "hermes" ? "hermes" : "claude";
+// The Hermes gateway. On the VPS the runner reaches it by its Docker name.
+export const HERMES_API = process.env.HERMES_API ?? "http://hermes-agent:8642";

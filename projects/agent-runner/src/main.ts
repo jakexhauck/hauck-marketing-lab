@@ -26,8 +26,10 @@ import { hostname } from "node:os";
 import { join } from "node:path";
 import { createApi } from "./api.ts";
 import { defaultBundleEnv } from "./bundle.ts";
-import { runClaude } from "./claude.ts";
-import { API_BASE, CLAIM_AGENTS, DATA_DIR, HEARTBEAT_MS, PAGES_CWD, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
+import { runClaude, type RunOptions } from "./claude.ts";
+import { AGENT_IDS } from "./agents.ts";
+import { hermesRunner } from "./hermes.ts";
+import { API_BASE, CLAIM_AGENTS, DATA_DIR, ENGINE, HERMES_API, HEARTBEAT_MS, PAGES_CWD, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
 import { createCreativeApi } from "./creativeApi.ts";
 import { commitBrains } from "./git.ts";
 import { deployDraft, promote } from "./pages.ts";
@@ -64,6 +66,18 @@ function readSecret(): string {
   }
 }
 
+// Each Hermes profile's API key, from HERMES_KEY_<AGENT> (the VPS container's
+// env, filled from Doppler). An agent with no key fails its turn with that
+// reason rather than calling Hermes unauthenticated.
+function hermesRun(): (o: RunOptions) => Promise<{ text: string; tools: string[] }> {
+  const keys = Object.fromEntries(AGENT_IDS.map((a) => [a, process.env[`HERMES_KEY_${a.toUpperCase()}`] ?? ""]).filter(([, k]) => k));
+  const run = hermesRunner({ base: HERMES_API, keys });
+  return (o) => {
+    if (!o.agent) throw new Error("a Hermes turn needs its agent");
+    return run({ ...o, agent: o.agent });
+  };
+}
+
 async function main(): Promise<void> {
   const secret = readSecret();
   if (secret.length < 32) throw new Error("AGENT_RUNNER_SECRET looks too short; check Doppler");
@@ -73,7 +87,7 @@ async function main(): Promise<void> {
     api,
     env: defaultBundleEnv(),
     today: () => new Date().toLocaleDateString("en-CA"),
-    run: runClaude,
+    run: ENGINE === "hermes" ? hermesRun() : runClaude,
     commit: (paths, summary) => commitBrains(paths, summary, { cwd: REPO_DIR }),
     // The secret stays out of claude's environment (see RunnerDeps).
     childEnv: (tenant, messageId) => {
@@ -174,7 +188,7 @@ async function main(): Promise<void> {
     if (!existsSync(STOP_FILE)) void beat();
   }, HEARTBEAT_MS);
 
-  log(`watching for ${CLAIM_AGENTS?.join(", ") ?? "all"} agent messages on ${API_BASE} as ${host}`);
+  log(`watching for ${CLAIM_AGENTS?.join(", ") ?? "all"} agent messages on ${API_BASE} as ${host} (${ENGINE})`);
   let failures = 0;
   for (;;) {
     if (existsSync(STOP_FILE)) {
