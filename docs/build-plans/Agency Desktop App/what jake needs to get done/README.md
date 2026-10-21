@@ -757,3 +757,23 @@ Still parked:
 - The tasks card shows task keys, not names, for changes and cuts.
 - Board cards do not show the reason; open the card to see it.
 - The stage stop is a prompt rule, not a code gate.
+
+## Leaner agents (2026-10-22)
+
+What's in the app now: the Manager is a chat in the bottom right of every admin page, for agency questions. Inside each client the Customer Success Manager runs the kickoff, plan, tracking and monthly report. Each client has four agents: Customer Success Manager, Market Research, Ads and GHL. Ads makes the creatives and ad funnel pages. Creative, Landing Page and Reporting are gone, their work moved over. Conversion Assets are gone from the app.
+
+Your action items (in GHL, for every client sub-account and the snapshot):
+1. LF Follow Ups workflow: remove "SMS: Recent Work", the 24 hour wait after it, and "SMS: Owner Story". Re-time SMS 3 so it still lands a few days after the first text. Check LP Follow Ups for the same steps.
+2. Home Estimate Reminders: remove the two Unique Mechanism texts.
+3. Custom Values: delete Recent Work, Owner Story, Unique Mechanism and Conversion Asset Offer.
+4. Calendars: delete the Conversion Asset Calendar, then remove it from the trigger of the "Conversions API (Schedules)" workflow so only Home Estimate is left.
+5. Funnels: unpublish or delete the Recent Work, Meet the Owner and Our Process pages on Clear Choice, Above All Garage Doors and Made Better. Tell me when they are gone and I remove their files from the app.
+6. Re-save the snapshot so new clients start clean.
+
+Then in the app:
+7. Click the bubble in the bottom right and ask the Manager one agency question.
+8. Open Willis > Agents and check the four agents are there, then send the Customer Success Manager one message.
+
+Still parked:
+- Task handoffs (tasks that start on their own, your gates, Needs your OK / Acts live): Build B, next.
+- The bubble's New chat and Close icons are a shade too dark; Esc closes the bubble even from another dialog.
