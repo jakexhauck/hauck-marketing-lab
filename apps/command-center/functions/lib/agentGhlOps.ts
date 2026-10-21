@@ -341,8 +341,13 @@ export function opOnCard(ops: unknown, op: GhlOpName, args: Row): boolean {
  *     client that Jake approved.
  * A request from another agent is never a direct ask: it arrives as a
  * `request` message, and Jake's answer to it is a follow-up.
+ *
+ * A Director trigger (lib/taskHandoffs.ts) writes only when every task it
+ * carries is set to Acts live; on Needs your OK it goes through a card like
+ * anything else (Jake, 2026-10-20). Never Meta, spend or deploys.
  */
 export function writeAllowed(message: AgentMessage, chat: GhlCallerChat, item: GhlGrantItem | null = null): boolean {
+  if (message.role === "trigger") return message.status === "running" && chat.agent === "ghl" && message.live === true;
   if (message.role !== "me" || message.status !== "running" || chat.agent !== "ghl") return false;
   if (message.followUpOf === null && message.grant === null) return !chat.auto;
   const g = message.grant;
@@ -411,7 +416,8 @@ export async function callGhlOp(client: SupabaseClient, body: GhlCallBody, deps:
   const chat: GhlCallerChat | null = c
     ? { agent: c.agent as AgentId, tenantId: (c.tenant_id as string | null) ?? null, auto: c.auto === true }
     : null;
-  if (!chat || chat.agent !== "ghl" || chat.tenantId !== tenantId || message.role !== "me" || message.status !== "running") {
+  // Jake's turn or a Director trigger turn; writeAllowed below decides writes.
+  if (!chat || chat.agent !== "ghl" || chat.tenantId !== tenantId || (message.role !== "me" && message.role !== "trigger") || message.status !== "running") {
     return out(403, { error: "not a GHL Agent turn for this client" });
   }
 

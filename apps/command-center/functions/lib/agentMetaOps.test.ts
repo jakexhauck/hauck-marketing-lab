@@ -60,6 +60,11 @@ const approved = (over: Partial<MetaGrantItem> = {}): MetaGrantItem => ({
 const grant = { itemId: ITEM, kind: "meta" as const, limit: null };
 
 describe("metaWriteAllowed", () => {
+  it("never lets a Director trigger change Meta, even on an Acts live task", () => {
+    expect(metaWriteAllowed(msg({ role: "trigger", live: true }), chat(), approved())).toBe(false);
+    expect(metaWriteAllowed(msg({ role: "trigger", live: true, followUpOf: ITEM, grant }), chat(), approved())).toBe(false);
+  });
+
   it("never allows a typed ask on its own, not even Jake's", () => {
     expect(metaWriteAllowed(msg(), chat())).toBe(false);
     expect(metaWriteAllowed(msg(), chat(), approved())).toBe(false);
@@ -291,6 +296,21 @@ describe("callMetaOp", () => {
     expect(res.status).toBe(200);
     expect(res.body.result).toMatchObject({ campaigns: [{ name: "Fall" }], adsets: [{ name: "Willis Winter" }], ads: [{ name: "Winter 2" }] });
     expect(calls.every((c) => c.method === "GET")).toBe(true);
+  });
+
+  it("lets a Director trigger read Meta and never change it, even acting live", async () => {
+    fakeGraph({
+      "GET /act_100/campaigns": { data: [] },
+      "GET /act_100/adsets": { data: [] },
+      "GET /act_100/ads": { data: [] },
+    });
+    const trigger = { role: "trigger", meta: { live: true, followUpOf: ITEM, grant: { itemId: ITEM, kind: "meta", limit: null } } };
+    const read = await callMetaOp(world({ message: trigger }).client(), { messageId: MSG, tenantId: T1, op: "read.structure" }, deps);
+    expect(read.status).toBe(200);
+    const calls = fakeGraph({ [`GET /120`]: AD_120 });
+    const res = await callMetaOp(world({ message: trigger, ops: [{ op: "pause", args: PAUSE }] }).client(), { messageId: MSG, tenantId: T1, op: "pause", args: PAUSE }, deps);
+    expect(res.status).toBe(403);
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
   });
 
   it("lists only this client's Creatives files", async () => {

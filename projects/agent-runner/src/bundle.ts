@@ -268,7 +268,7 @@ export function sopSection(agent: AgentId, sop: SopStage[]): string | null {
   return [
     "## Your SOP",
     `Jake's standard operating procedure for the ${name}, from the SOPs tab. It is the work you do for every client, in order, one stage at a time.`,
-    "- Your map is how you work. Do only the tasks Jake names in this chat; never start the next one on your own.",
+    "- Your map is how you work. Do only the tasks Jake names in this chat, or the tasks a Director turn hands you; never start any other one on your own.",
     "- Follow the steps of the box the task belongs to. A box marked (Jake does this) or (the client does this) is theirs: tell Jake what you need, never do it for them.",
     "- When a task Jake named is finished, say so and stop. Jake decides what comes next.",
     "- Jake's direct ask in this chat wins over the SOP. The house rules and every approval gate above still apply to every step.",
@@ -300,7 +300,7 @@ export function tasksSection(agent: AgentId, tasks: WireTask[]): string | null {
   const open = tasks.filter((t) => t.state === "todo" || t.state === "doing");
   return [
     "## Your tasks for this client",
-    "Work only on the tasks Jake names in this chat. When you start one, or finish one, say so in a ```task block (see the output protocol). Done needs proof.",
+    "Work only on the tasks Jake names in this chat, or the tasks a Director turn hands you. When you start one, or finish one, say so in a ```task block (see the output protocol). Done needs proof.",
     open.length ? open.map(taskLine).join("\n") : "None open.",
   ].join("\n");
 }

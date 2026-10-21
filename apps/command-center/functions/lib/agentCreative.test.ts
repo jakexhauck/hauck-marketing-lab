@@ -76,6 +76,13 @@ describe("fileGrantFor", () => {
     expect(await fileGrantFor(d.client(), await turnOf(d), FILE)).toBeNull();
   });
 
+  it("lets a Director trigger turn stage, but never file without Jake's Approve", async () => {
+    const d = db(message({ live: true }, { role: "trigger" }));
+    const turn = await turnOf(d);
+    expect(turn).toMatchObject({ chatId: "c1" });
+    expect(await fileGrantFor(d.client(), turn, FILE)).toMatchObject({ status: 409, error: "no file grant on this message" });
+  });
+
   it("refuses without a file grant (409)", async () => {
     const d = db(message({ followUpOf: ITEM }));
     expect(await fileGrantFor(d.client(), await turnOf(d), FILE)).toMatchObject({ status: 409, error: "no file grant on this message" });

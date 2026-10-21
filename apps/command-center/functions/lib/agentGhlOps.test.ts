@@ -85,6 +85,20 @@ describe("writeAllowed", () => {
     expect(writeAllowed(msg({ followUpOf: "other", grant }), chat(), approved())).toBe(false);
   });
 
+  it("a Director trigger writes only on an Acts live task, only in a GHL chat, only while running", () => {
+    expect(writeAllowed(msg({ role: "trigger", live: false }), chat())).toBe(false);
+    expect(writeAllowed(msg({ role: "trigger" }), chat())).toBe(false);
+    expect(writeAllowed(msg({ role: "trigger", live: true }), chat())).toBe(true);
+    expect(writeAllowed(msg({ role: "trigger", live: true }), chat({ agent: "ads" }))).toBe(false);
+    expect(writeAllowed(msg({ role: "trigger", live: true, status: "done" }), chat())).toBe(false);
+    // A grant on a trigger changes nothing: an approval only ever rides on Jake's follow-up.
+    expect(writeAllowed(msg({ role: "trigger", live: false, followUpOf: ITEM, grant }), chat(), approved())).toBe(false);
+  });
+
+  it("live means nothing on Jake's own message", () => {
+    expect(writeAllowed(msg({ live: true }), chat({ auto: true }))).toBe(false);
+  });
+
   it("refuses anything not a running message of Jake's in a ghl chat", () => {
     expect(writeAllowed(msg({ status: "done" }), chat())).toBe(false);
     expect(writeAllowed(msg({ role: "request" }), chat())).toBe(false);
@@ -231,6 +245,19 @@ describe("callGhlOp", () => {
     expect((await callGhlOp(world({ chat: { agent: "ads" } }).client(), { ...body, tenantId: T1 }, deps)).status).toBe(403);
     expect((await callGhlOp(world({ message: { status: "done" } }).client(), { ...body, tenantId: T1 }, deps)).status).toBe(403);
     expect((await callGhlOp(world().client(), { ...body, messageId: "55555555-5555-4555-8555-000000000000", tenantId: T1 }, deps)).status).toBe(403);
+  });
+
+  it("lets a Director trigger read, and write only when its tasks act live", async () => {
+    const write = { messageId: MSG, tenantId: T1, op: "write.customValue", args: { key: "winter page", value: "https://new" } };
+    fakeGhl({ "GET /opportunities/pipelines": { pipelines: [] } });
+    const read = await callGhlOp(world({ message: { role: "trigger", meta: { live: false } } }).client(), { messageId: MSG, tenantId: T1, op: "read.pipelines" }, deps);
+    expect(read.status).toBe(200);
+    let calls = fakeGhl({ "GET /locations/LOC1/customValues": CV_LIST, "PUT /locations/LOC1/customValues/v1": {} });
+    expect((await callGhlOp(world({ message: { role: "trigger", meta: { live: false } } }).client(), write, deps)).status).toBe(403);
+    expect(calls.some((c) => c.method === "PUT")).toBe(false);
+    calls = fakeGhl({ "GET /locations/LOC1/customValues": CV_LIST, "PUT /locations/LOC1/customValues/v1": {} });
+    expect((await callGhlOp(world({ message: { role: "trigger", meta: { live: true } } }).client(), write, deps)).status).toBe(200);
+    expect(calls.some((c) => c.method === "PUT")).toBe(true);
   });
 
   it("writes on Jake's direct ask and logs it as agent:ghl first", async () => {

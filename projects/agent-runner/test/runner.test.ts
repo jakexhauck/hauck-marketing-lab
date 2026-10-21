@@ -283,6 +283,33 @@ ${F}`);
     expect(runs[0].prompt).toContain("What did CPL do?");
   });
 
+  it("frames a Director trigger as the Director's, and says whether its writes need a card", async () => {
+    const { env } = world();
+    const ask = deps(env, "ok");
+    const c = claim({ started: true, agent: "ghl" }, "The Director started these tasks for you.\n\n- ghl:a: A");
+    c.message.role = "trigger";
+    c.message.live = false;
+    await handleClaim(c, ask.d);
+    expect(ask.runs[0].prompt).toContain("This turn comes from the Director, not Jake");
+    expect(ask.runs[0].prompt).toContain("Every change goes on a card for Jake's OK");
+    expect(ask.runs[0].prompt).toContain("- ghl:a: A");
+    const live = deps(env, "ok");
+    const l = claim({ started: true, agent: "ghl" }, "The Director started these tasks for you.");
+    l.message.role = "trigger";
+    l.message.live = true;
+    await handleClaim(l, live.d);
+    expect(live.runs[0].prompt).toContain("These tasks act live");
+  });
+
+  it("names the Director as the speaker in a fresh session's history", async () => {
+    const { env } = world();
+    const { runs, d } = deps(env, "ok");
+    const c = claim();
+    c.history = [{ ...c.message, id: "t0", role: "trigger", body: "The Director started ghl:a" }];
+    await handleClaim(c, d);
+    expect(runs[0].prompt).toContain("Director: The Director started ghl:a");
+  });
+
   it("tells a resumed chat what an approved request asked, and sends the answer back", async () => {
     const { env } = world();
     const { api, runs, d } = deps(env, "Owners say drafty, cold rooms, high heat bills.\n\n```lessons\n- Drafty is their word\n```");

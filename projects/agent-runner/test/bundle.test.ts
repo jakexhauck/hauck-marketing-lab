@@ -333,7 +333,7 @@ describe("the SOP from the SOPs tab", () => {
     expect(prompt).toContain("- Connect Facebook (Jake does this)");
     expect(prompt).toContain("### Stage 2: Compliance");
     expect(prompt).toContain("from the SOPs tab");
-    expect(prompt).not.toContain("Director");
+    expect(prompt).not.toContain("Director tab");
   });
 
   it("marks a draft stage and says what a draft means", () => {
@@ -360,7 +360,7 @@ describe("the client's tasks", () => {
     expect(text).toContain("- [todo] ghl:a2p-submitted: A2P Submitted");
     expect(text).toContain("- [doing] ghl:local-number-bought: Local Number Bought");
     expect(text).not.toContain("Cut one");
-    expect(text).toContain("Work only on the tasks Jake names in this chat.");
+    expect(text).toContain("Work only on the tasks Jake names in this chat, or the tasks a Director turn hands you.");
   });
 
   it("gives the Manager every task grouped by owner, cut ones with their reason", () => {
@@ -383,6 +383,6 @@ describe("the SOP rule once tasks exist", () => {
   it("tells the agent to do only the tasks Jake names, never to start the next stage itself", () => {
     const text = sopSection("ghl", [{ name: "Account", tasks: [{ name: "Create", owner: "agent", steps: [] }] }])!;
     expect(text).not.toContain("Start stage");
-    expect(text).toContain("Your map is how you work. Do only the tasks Jake names in this chat; never start the next one on your own.");
+    expect(text).toContain("Your map is how you work. Do only the tasks Jake names in this chat, or the tasks a Director turn hands you; never start any other one on your own.");
   });
 });

@@ -733,7 +733,8 @@ export async function callMetaOp(client: SupabaseClient, body: MetaCallBody, dep
   const chat: MetaCallerChat | null = c
     ? { agent: c.agent as AgentId, tenantId: (c.tenant_id as string | null) ?? null, auto: c.auto === true }
     : null;
-  if (!chat || chat.agent !== "ads" || chat.tenantId !== tenantId || message.role !== "me" || message.status !== "running") {
+  // Jake's turn or a Director trigger turn may read; metaWriteAllowed never lets a trigger change Meta.
+  if (!chat || chat.agent !== "ads" || chat.tenantId !== tenantId || (message.role !== "me" && message.role !== "trigger") || message.status !== "running") {
     return out(403, { error: "not an Ads Agent turn for this client" });
   }
 

@@ -158,6 +158,7 @@ export function messageFromRow(r: Row): AgentMessage {
     followUpOf: str(meta.followUpOf),
     grant: grantOf(meta.grant),
     answerOf: str(meta.answerOf),
+    ...(r.role === "trigger" ? { live: meta.live === true } : {}),
     error: str(r.error),
     createdAt: r.created_at as string,
   };

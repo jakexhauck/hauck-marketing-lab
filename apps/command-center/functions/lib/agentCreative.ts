@@ -43,7 +43,8 @@ export async function creativeTurn(
   if (error) throw new Error(`message: ${error.message}`);
   if (!m) return { status: 404, error: "message not found" };
   const message = messageFromRow(m as Row);
-  if (message.role !== "me" || message.status !== "running") return { status: 409, error: "message is not running" };
+  // A Director trigger turn may stage previews too; filing still needs Jake's Approve (a file grant).
+  if ((message.role !== "me" && message.role !== "trigger") || message.status !== "running") return { status: 409, error: "message is not running" };
   const { data: c, error: cErr } = await client
     .from("agent_chats")
     .select("id, tenant_id, agent")

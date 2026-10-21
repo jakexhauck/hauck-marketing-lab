@@ -8,7 +8,7 @@
 
 export type AgentId = "manager" | "csm" | "research" | "ads" | "ghl";
 
-export type MessageRole = "me" | "ai" | "request";
+export type MessageRole = "me" | "ai" | "request" | "trigger";
 export type MessageStatus = "queued" | "running" | "done" | "error";
 export type ItemStatus = "building" | "needs_ok" | "live" | "done" | "declined";
 export type LessonScope = "client" | "agent" | "manager";
@@ -41,6 +41,9 @@ export interface AgentMessage {
   // queued in the asking agent's chat and run like Jake's message, but it is
   // never role "me", so no "Jake asked" gate opens for it.
   answerOf: string | null;
+  // trigger: a Director start (lib/taskHandoffs.ts). live is true only when
+  // every task it carries is set to Acts live, and only the server sets it.
+  live?: boolean;
   error: string | null;
   createdAt: string;
 }

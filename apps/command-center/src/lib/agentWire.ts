@@ -56,6 +56,9 @@ export interface AgentMessage {
   // asking agent's chat and run like Jake's message, but never role "me", so
   // no "Jake asked" gate (GHL writes, Meta changes) opens for it.
   answerOf: string | null;
+  // trigger: a Director start (lib/taskHandoffs.ts). live is true only when
+  // every task it carries is set to Acts live, and only the server sets it.
+  live?: boolean;
   error: string | null;
   createdAt: string;
 }
