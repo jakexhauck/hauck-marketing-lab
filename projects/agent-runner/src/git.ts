@@ -60,7 +60,7 @@ async function pushWithRetry(git: GitRunner, cwd: string): Promise<void> {
   let last: Error | null = null;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      await git(["pull", "--rebase", "-q"], cwd);
+      await pullOrAbort(git, cwd);
       await git(["push", "-q"], cwd);
       return;
     } catch (e) {
@@ -74,7 +74,20 @@ async function pushWithRetry(git: GitRunner, cwd: string): Promise<void> {
 // notes), in the same queue as commits so the two never share .git/index.lock.
 export function pullRepo(opts: { cwd: string; git?: GitRunner }): Promise<void> {
   const git = opts.git ?? defaultGit;
-  const run = queue.then(() => git(["pull", "--rebase", "-q"], opts.cwd)).then(() => {});
+  const run = queue.then(() => pullOrAbort(git, opts.cwd));
   queue = run.catch(() => {});
   return run;
+}
+
+// A pull whose rebase conflicts (Jake and an agent changed the same lines of a
+// Brain.md) would leave the clone mid-rebase, and every later commit, pull and
+// push would fail with it. So a failed pull puts the clone back as it was: the
+// local brain commits stay, unpushed, and the conflict waits for a person.
+async function pullOrAbort(git: GitRunner, cwd: string): Promise<void> {
+  try {
+    await git(["pull", "--rebase", "-q"], cwd);
+  } catch (e) {
+    await git(["rebase", "--abort"], cwd).catch(() => {});
+    throw e;
+  }
 }

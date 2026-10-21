@@ -228,6 +228,11 @@ export type ClaimCore = Omit<ClaimResponse, "brief">;
 // whose wait is over starts on its own. It is never role "me".
 const RUNNABLE_ROLES = ["me", "request", "trigger"];
 
+// How many of the oldest queued messages a claim with an agent list looks
+// through for one of its own. Another runner's backlog this deep would hide
+// this one's messages until it drains; at a handful of chats a day it never is.
+const CLAIM_SCAN = 100;
+
 function runnable(r: Row): boolean {
   return r.role === "me" || r.role === "trigger" || (r.role === "request" && !!str((r.meta as Row | null)?.answerOf));
 }
@@ -253,20 +258,27 @@ export async function claimNext(
 ): Promise<ClaimCore | null> {
   await reclaimStale(client, host, STALE_SECONDS, now);
 
-  let chatIds: string[] | null = null;
-  if (agents) {
-    if (agents.length === 0) return null;
-    const { data: chats, error: chsErr } = await client.from("agent_chats").select("id").in("agent", agents);
-    fail("agent chats", chsErr);
-    chatIds = ((chats ?? []) as Row[]).map((c) => c.id as string);
-    if (chatIds.length === 0) return null;
-  }
-
-  let q = client.from("agent_messages").select("*").in("role", RUNNABLE_ROLES).eq("status", "queued");
-  if (chatIds) q = q.in("chat_id", chatIds);
-  const { data: queued, error: qErr } = await q.order("created_at", { ascending: true }).limit(1);
+  if (agents?.length === 0) return null;
+  // With an agent list, look at the oldest queued messages and keep the first
+  // whose chat is one of those agents'. The list of chats to check is never
+  // longer than CLAIM_SCAN, however many chats there are in all.
+  const { data: queued, error: qErr } = await client
+    .from("agent_messages")
+    .select("*")
+    .in("role", RUNNABLE_ROLES)
+    .eq("status", "queued")
+    .order("created_at", { ascending: true })
+    .limit(agents ? CLAIM_SCAN : 1);
   fail("queued", qErr);
-  const next = (queued ?? [])[0] as Row | undefined;
+  let rows = (queued ?? []) as Row[];
+  if (agents && rows.length) {
+    const ids = [...new Set(rows.map((r) => r.chat_id as string))];
+    const { data: chats, error: chsErr } = await client.from("agent_chats").select("id, agent").in("id", ids);
+    fail("agent chats", chsErr);
+    const mine = new Set(((chats ?? []) as Row[]).filter((c) => (agents as string[]).includes(c.agent as string)).map((c) => c.id as string));
+    rows = rows.filter((r) => mine.has(r.chat_id as string));
+  }
+  const next = rows[0];
   if (!next) return null;
 
   const { data: claimed, error: cErr } = await client

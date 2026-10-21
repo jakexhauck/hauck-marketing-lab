@@ -141,3 +141,23 @@ describe("pullRepo", () => {
     expect(calls).toEqual([["pull", "--rebase", "-q"]]);
   });
 });
+
+describe("a pull that conflicts", () => {
+  it("aborts the rebase so the clone is never left mid-rebase", async () => {
+    const calls: string[][] = [];
+    const git = async (args: string[]) => {
+      calls.push(args);
+      if (args[0] === "status") return " M vault/a/Brain.md\n";
+      if (args[0] === "pull") throw new Error("git pull failed: CONFLICT (content)");
+      return "";
+    };
+    await expect(commitBrains(["vault/a/Brain.md"], "1 lessons", { cwd: "/r", git, push: true })).rejects.toThrow(/not pushed/);
+    expect(calls.filter((a) => a[0] === "rebase")).toEqual([
+      ["rebase", "--abort"],
+      ["rebase", "--abort"],
+    ]);
+    expect(calls.map((a) => a[0])).not.toContain("push");
+    await expect(pullRepo({ cwd: "/r", git })).rejects.toThrow(/CONFLICT/);
+    expect(calls.at(-1)).toEqual(["rebase", "--abort"]);
+  });
+});
