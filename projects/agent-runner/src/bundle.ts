@@ -344,6 +344,10 @@ export function buildBundle(
   // the folder it runs in, so --resume only finds a chat from the same one.
   const workDir = join(env.workRoot, `${agent}-${tenant?.slug ?? "agency"}`);
   if (agent === "ads" && tenant) sections.push(landingSection(workDir, grant));
+  // claude runs inside its work folder; a Hermes turn does not, so it is told.
+  if (env.appTools === "mcp") {
+    sections.push(`## Your work folder\n\`${workDir}\`. Write your files here (or in the client's Drive folder above, when your job puts them there). The copy playbooks are in \`${join(workDir, COPY_DIR_NAME)}\`.`);
+  }
   if (agent === "manager") {
     sections.push(brainSection("Mega Brain", megaBrain(env.vaultDir)));
   } else {

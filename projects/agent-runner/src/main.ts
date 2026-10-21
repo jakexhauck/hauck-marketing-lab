@@ -31,9 +31,11 @@ import { AGENT_IDS } from "./agents.ts";
 import { hermesRunner } from "./hermes.ts";
 import { appTools } from "./appOps.ts";
 import { startBridge, type Bridge } from "./mcpBridge.ts";
-import { API_BASE, CLAIM_AGENTS, DATA_DIR, ENGINE, HERMES_API, HEARTBEAT_MS, PAGES_CWD, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
+import { API_BASE, CLAIM_AGENTS, DATA_DIR, DRIVE_MODE, DRIVE_REMOTE, DRIVE_ROOT, ENGINE, GIT_PUSH, HERMES_API, HEARTBEAT_MS, PAGES_CWD, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
 import { createCreativeApi } from "./creativeApi.ts";
-import { commitBrains } from "./git.ts";
+import { commitBrains, pullRepo } from "./git.ts";
+import { changedSince, defaultExec, driveAgent, pullDrive, pushChanged, snapshotFiles, type DriveSync } from "./drive.ts";
+import { findDriveFolder } from "./clients.ts";
 import { deployDraft, promote } from "./pages.ts";
 import { runMonitorIfDue } from "./monitor.ts";
 import { fileBriefNotes } from "./notes.ts";
@@ -90,7 +92,7 @@ async function main(): Promise<void> {
     env: defaultBundleEnv(),
     today: () => new Date().toLocaleDateString("en-CA"),
     run: ENGINE === "hermes" ? hermesRun() : runClaude,
-    commit: (paths, summary) => commitBrains(paths, summary, { cwd: REPO_DIR }),
+    commit: (paths, summary) => commitBrains(paths, summary, { cwd: REPO_DIR, push: GIT_PUSH }),
     // The secret stays out of claude's environment (see RunnerDeps).
     childEnv: (tenant, messageId) => {
       const env: NodeJS.ProcessEnv = {
@@ -129,11 +131,27 @@ async function main(): Promise<void> {
     log(`app tools for Hermes on port ${bridge.port} (${Object.keys(tokens).join(", ") || "no tokens set"})`);
   }
 
+  // The VPS's Drive mirror (drive.ts). The pull runs beside the claim loop, not
+  // in it: the first one copies gigabytes, and Jake's message should not wait.
+  const drive: DriveSync | null = DRIVE_MODE === "rclone" ? { remote: DRIVE_REMOTE, localRoot: DRIVE_ROOT, exec: defaultExec } : null;
+  let pulling = false;
+  function refreshDrive(): void {
+    if (!drive || pulling) return;
+    pulling = true;
+    pullDrive(drive)
+      .then(() => log("drive mirror refreshed"))
+      .catch((e) => log(`drive pull failed: ${(e as Error).message}`))
+      .finally(() => (pulling = false));
+  }
+
   let tenants: ClaimTenant[] = [];
   let tenantsAt = 0;
   async function refreshTenants(force = false): Promise<void> {
     if (!force && Date.now() - tenantsAt < TENANTS_EVERY_MS) return;
     try {
+      // The VPS clone picks up Jake's vault edits before they are mirrored.
+      if (GIT_PUSH) await pullRepo({ cwd: REPO_DIR }).catch((e) => log(`git pull failed: ${(e as Error).message}`));
+      refreshDrive();
       tenants = await api.tenants();
       tenantsAt = Date.now();
       const n = await syncAllBrains(tenants, deps);
@@ -176,10 +194,22 @@ async function main(): Promise<void> {
     log(`claimed ${claim.message.id} (${claim.chat.agent}, ${claim.tenant?.name ?? "agency"})`);
     // The bridge answers this agent's tool calls for this turn only.
     bridge?.setTurn(claim.chat.agent, { tenantId: claim.tenant?.id ?? null, messageId: claim.message.id });
+    // On the VPS, what the CSM or Research wrote into the client's Drive
+    // folder goes back up after the turn, and only that (drive.ts).
+    const folder = drive && claim.tenant && driveAgent(claim.chat.agent) ? findDriveFolder(DRIVE_ROOT, claim.tenant) : null;
+    const before = folder ? snapshotFiles(folder) : null;
     try {
       await handleClaim(claim, deps);
     } finally {
       bridge?.setTurn(claim.chat.agent, null);
+    }
+    if (drive && folder && before) {
+      const changed = changedSince(folder, before);
+      if (changed.length) {
+        await pushChanged(drive, folder, changed)
+          .then((sent) => log(`drive: uploaded ${sent.join(", ")}`))
+          .catch((e) => log(`drive push failed: ${(e as Error).message}`));
+      }
     }
     log(`finished ${claim.message.id}`);
     return true;

@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { commitBrains } from "../src/git.ts";
+import { commitBrains, pullRepo } from "../src/git.ts";
 
 function git(cwd: string, ...args: string[]): string {
   return execFileSync("git", args, { cwd, encoding: "utf8" });
@@ -87,5 +87,57 @@ describe("commitBrains, two at once", () => {
       commitBrains(["vault/b/Brain.md"], "two", { cwd: "/r", git: fake }),
     ]);
     expect(most).toBe(1);
+  });
+});
+
+describe("commitBrains with push (the VPS clone)", () => {
+  function fakeGit(pushFails: number) {
+    const calls: string[][] = [];
+    let fails = pushFails;
+    const git = async (args: string[]) => {
+      calls.push(args);
+      if (args[0] === "status") return " M vault/a/Brain.md\n";
+      if (args[0] === "push" && fails > 0) {
+        fails -= 1;
+        throw new Error("git push failed: rejected (fetch first)");
+      }
+      return "";
+    };
+    return { calls, git };
+  }
+
+  it("pulls with rebase and pushes after the commit", async () => {
+    const f = fakeGit(0);
+    expect(await commitBrains(["vault/a/Brain.md"], "1 lessons", { cwd: "/r", git: f.git, push: true })).toBe(true);
+    expect(f.calls.map((a) => a[0])).toEqual(["status", "add", "commit", "pull", "push"]);
+    expect(f.calls[3]).toEqual(["pull", "--rebase", "-q"]);
+  });
+
+  it("retries a rejected push once after another pull", async () => {
+    const f = fakeGit(1);
+    expect(await commitBrains(["vault/a/Brain.md"], "1 lessons", { cwd: "/r", git: f.git, push: true })).toBe(true);
+    expect(f.calls.map((a) => a[0])).toEqual(["status", "add", "commit", "pull", "push", "pull", "push"]);
+  });
+
+  it("keeps the commit and says so when the push fails twice", async () => {
+    const f = fakeGit(2);
+    await expect(commitBrains(["vault/a/Brain.md"], "1 lessons", { cwd: "/r", git: f.git, push: true })).rejects.toThrow(
+      /committed here but not pushed/,
+    );
+    expect(f.calls.filter((a) => a[0] === "commit")).toHaveLength(1);
+  });
+
+  it("never pushes without push set (Jake's PC checkout)", async () => {
+    const f = fakeGit(0);
+    await commitBrains(["vault/a/Brain.md"], "1 lessons", { cwd: "/r", git: f.git });
+    expect(f.calls.map((a) => a[0])).not.toContain("push");
+  });
+});
+
+describe("pullRepo", () => {
+  it("pulls with rebase in the queue", async () => {
+    const calls: string[][] = [];
+    await pullRepo({ cwd: "/r", git: async (a) => (calls.push(a), "") });
+    expect(calls).toEqual([["pull", "--rebase", "-q"]]);
   });
 });

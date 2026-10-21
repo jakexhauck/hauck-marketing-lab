@@ -23,6 +23,10 @@ const defaultGit: GitRunner = (args, cwd) =>
 export interface CommitOptions {
   cwd: string;
   git?: GitRunner;
+  // The VPS runner's own clone (AGENT_GIT_PUSH=1): after the commit, pull with
+  // rebase and push, so the lesson reaches origin and Jake's checkout. Never on
+  // Jake's PC, where pushing is his call.
+  push?: boolean;
 }
 
 // One commit at a time. The heartbeat's queued edits and a chat's lessons can
@@ -45,5 +49,32 @@ async function commitNow(paths: string[], summary: string, opts: CommitOptions):
   if (!status.trim()) return false;
   await git(["add", "--", ...specs], opts.cwd);
   await git(["commit", "-m", `brain: ${summary}`, "--", ...specs], opts.cwd);
+  if (opts.push) await pushWithRetry(git, opts.cwd);
   return true;
+}
+
+// Jake (or the PC runner) may have pushed since the last pull, so a push can
+// be rejected once for being behind. One more pull and push covers that; past
+// that the lesson stays committed here and goes up with the next push.
+async function pushWithRetry(git: GitRunner, cwd: string): Promise<void> {
+  let last: Error | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      await git(["pull", "--rebase", "-q"], cwd);
+      await git(["push", "-q"], cwd);
+      return;
+    } catch (e) {
+      last = e as Error;
+    }
+  }
+  throw new Error(`brain committed here but not pushed: ${last?.message}`);
+}
+
+// Brings the VPS clone up to date (Jake's Obsidian edits, Profile and Memory
+// notes), in the same queue as commits so the two never share .git/index.lock.
+export function pullRepo(opts: { cwd: string; git?: GitRunner }): Promise<void> {
+  const git = opts.git ?? defaultGit;
+  const run = queue.then(() => git(["pull", "--rebase", "-q"], opts.cwd)).then(() => {});
+  queue = run.catch(() => {});
+  return run;
 }

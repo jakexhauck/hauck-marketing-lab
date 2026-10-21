@@ -7,13 +7,18 @@ import { fileURLToPath } from "node:url";
 import { parseAgentList } from "./agents.ts";
 
 export const RUNNER_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-export const REPO_DIR = resolve(RUNNER_DIR, "..", "..");
+// On the VPS the runner's own clone of the repo (AGENT_REPO_DIR); on the PC,
+// the checkout it lives in.
+export const REPO_DIR = process.env.AGENT_REPO_DIR ?? resolve(RUNNER_DIR, "..", "..");
 export const VAULT_DIR = join(REPO_DIR, "vault");
 export const AGENTS_DIR = join(RUNNER_DIR, "agents");
 export const DATA_DIR = join(RUNNER_DIR, "data");
 export const PROMPTS_DIR = join(DATA_DIR, "prompts");
 // Agents run here, one folder each, never in the runner's own folder.
-export const WORK_DIR = join(DATA_DIR, "work");
+// On the VPS it is inside Hermes's data dir (AGENT_WORK_DIR=/opt/data/work),
+// at the same path in both containers, so a path in the prompt is a path the
+// agent's file tools can open.
+export const WORK_DIR = process.env.AGENT_WORK_DIR ?? join(DATA_DIR, "work");
 // The runner's own state per agent and client (what it staged for which
 // card, prepared clips). Beside data/work, never in it: an agent can write
 // anywhere in its work folder.
@@ -53,3 +58,10 @@ export const CLAIM_AGENTS = parseAgentList(process.env.AGENT_AGENTS);
 export const ENGINE: "claude" | "hermes" = process.env.AGENT_ENGINE === "hermes" ? "hermes" : "claude";
 // The Hermes gateway. On the VPS the runner reaches it by its Docker name.
 export const HERMES_API = process.env.HERMES_API ?? "http://hermes-agent:8642";
+
+// The VPS clone pushes its brain commits (git.ts); the PC never does.
+export const GIT_PUSH = process.env.AGENT_GIT_PUSH === "1";
+// The Drive mirror (drive.ts): AGENT_DRIVE=rclone, with AGENT_DRIVE_REMOTE the
+// rclone remote and folder and AGENT_DRIVE_ROOT the local mirror.
+export const DRIVE_MODE: "mount" | "rclone" = process.env.AGENT_DRIVE === "rclone" ? "rclone" : "mount";
+export const DRIVE_REMOTE = process.env.AGENT_DRIVE_REMOTE ?? "gdrive:\u{1F31F} Hauck Marketing";
