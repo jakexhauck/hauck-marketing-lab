@@ -788,3 +788,19 @@ Your action items:
 Still parked:
 - Setting a task to wait on tasks that are already finished does not start it; tick or name it yourself.
 - Two people wiring tasks at the same instant could make two tasks wait on each other (both just stay waiting).
+
+## Agents on Hermes (2026-10-21)
+
+What's in the app now: Manager, CSM, Research and GHL are answered by their own Hermes profiles on the VPS (own memory, skills and past chats), 24/7. Ads stays on your PC. Same chats, cards and gates.
+
+Your action items:
+1. Google Drive for the VPS agents: on the VPS run `docker run --rm -it -v /srv/hauck/config:/config -e RCLONE_CONFIG=/config/rclone.conf rclone/rclone config`, make a remote named `gdrive` (Google Drive, your account), then `docker restart hauck-agent-runner`. Until then the CSM and Research cannot see client Drive folders.
+2. One chat each with Manager, CSM (Made Better) and Research in the app. Check the answer arrives and says Sir.
+3. Tell the CSM a fact, open a new CSM chat, ask for it.
+4. Turn your PC off one evening and send the Manager a message. It should still answer.
+
+Still parked:
+- Ads on Hermes, with your PC doing only the video and deploy jobs (Phase 2).
+- The Manager on your text messages.
+- Agents working on their own on a schedule (Hermes cron).
+
