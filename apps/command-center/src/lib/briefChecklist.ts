@@ -18,8 +18,8 @@ export const ACCOUNT_CHECK_SECTION: Record<AccountCheckId, BriefSectionId> = {
   calendars: "ghl",
   "owner-links": "ghl",
   "owner-phone": "ghl",
-  login: "manager",
-  push: "manager",
+  login: "csm",
+  push: "csm",
 };
 
 export function accountChecksFor(section: BriefSectionId): AccountCheckId[] {

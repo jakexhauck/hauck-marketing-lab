@@ -12,15 +12,7 @@ import {
 const linked: ClientGateInfo = { metaAdAccountId: "act_1", ghlConnected: true, onboardingStatus: "live" };
 const bare: ClientGateInfo = { metaAdAccountId: null, ghlConnected: false, onboardingStatus: "setup" };
 
-const AGENT_NAMES = [
-  "Manager Agent",
-  "Market Research Agent",
-  "Ads Agent",
-  "Creative Agent",
-  "Landing Page Agent",
-  "GHL Agent",
-  "Reporting Agent",
-];
+const AGENT_NAMES = ["Customer Success Manager", "Market Research Agent", "Ads Agent", "GHL Agent"];
 
 const labels = (c: ClientGateInfo) =>
   clientNavGroups(c).map((g) => [g.caption, g.rows.map((r) => r.label)]);
@@ -73,13 +65,10 @@ describe("clientNavGroups", () => {
   it("gives every agent a row on the agent page, keyed by its id", () => {
     const rows = clientNavGroups(bare)[1].rows;
     expect(rows.map((r) => [r.page, r.sub])).toEqual([
-      ["agent", "manager"],
+      ["agent", "csm"],
       ["agent", "research"],
       ["agent", "ads"],
-      ["agent", "creative"],
-      ["agent", "landing"],
       ["agent", "ghl"],
-      ["agent", "reporting"],
     ]);
   });
 });
@@ -89,9 +78,10 @@ describe("resolveClientPage, agents", () => {
     expect(resolveClientPage(linked, "agent", "ads")).toEqual({ page: "agent", sub: "ads" });
   });
 
-  it("sends an unknown or missing agent to the Manager", () => {
-    expect(resolveClientPage(linked, "agent", "nope")).toEqual({ page: "agent", sub: "manager" });
-    expect(resolveClientPage(bare, "agent", null)).toEqual({ page: "agent", sub: "manager" });
+  it("sends an unknown, missing or agency-only agent to the Customer Success Manager", () => {
+    expect(resolveClientPage(linked, "agent", "nope")).toEqual({ page: "agent", sub: "csm" });
+    expect(resolveClientPage(bare, "agent", null)).toEqual({ page: "agent", sub: "csm" });
+    expect(resolveClientPage(bare, "agent", "manager")).toEqual({ page: "agent", sub: "csm" });
   });
 });
 

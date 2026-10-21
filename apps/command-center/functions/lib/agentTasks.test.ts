@@ -88,8 +88,8 @@ describe("withTasks", () => {
   });
 
   it("gives the Manager every task", async () => {
-    const db = await world("manager");
-    const out = (await withTasks(db.client(), claim("manager", T1)))!;
+    const db = await world("csm");
+    const out = (await withTasks(db.client(), claim("csm", T1)))!;
     expect(new Set(out.tasks!.map((t) => t.owner)).size).toBeGreaterThan(3);
   });
 

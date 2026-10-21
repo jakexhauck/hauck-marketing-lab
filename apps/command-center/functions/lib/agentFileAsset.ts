@@ -58,7 +58,7 @@ export async function fileLandingAsset(client: SupabaseClient, body: FileAssetBo
     .eq("id", message.chatId)
     .maybeSingle();
   fail("chat", cErr);
-  if (!chat || (chat as Row).agent !== "landing") return no(403, "not a Landing Page Agent chat");
+  if (!chat || (chat as Row).agent !== "ads") return no(403, "not an Ads Agent chat");
   if ((chat as Row).tenant_id !== body.tenantId) return no(403, "chat is for another client");
 
   const grant = message.grant;
@@ -68,7 +68,7 @@ export async function fileLandingAsset(client: SupabaseClient, body: FileAssetBo
   fail("item", iErr);
   if (!itemRow) return no(409, "the granted card is gone");
   const item = itemFromRow(itemRow as Row);
-  if (item.agent !== "landing" || item.tenantId !== body.tenantId || item.chatId !== message.chatId) {
+  if (item.agent !== "ads" || item.tenantId !== body.tenantId || item.chatId !== message.chatId) {
     return no(403, "the granted card belongs elsewhere");
   }
   // done is what Approve leaves; live is a re-run of this same call.

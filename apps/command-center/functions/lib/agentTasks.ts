@@ -6,7 +6,7 @@ import { ensureTasks, toTask } from "./clientTasks";
 // Agents and the per-client Director (docs/build-plans/client-fulfillment-and-director.md).
 //
 // withTasks puts the client's tasks in every claim as prompt context: the
-// Manager sees all of them, any other agent its own. The text only ever
+// Customer Success Manager sees all of them, any other agent its own. The text only ever
 // reaches an agent there, never as a role "me" message, because the GHL and
 // Meta write gates read a "me" message as Jake's ask.
 //
@@ -21,7 +21,7 @@ export async function withTasks(client: SupabaseClient, claim: ClaimResponse | n
   if (!claim || !claim.chat.tenantId) return claim;
   try {
     const all = await ensureTasks(client, claim.chat.tenantId);
-    const mine = claim.chat.agent === "manager" ? all : all.filter((t) => t.owner === claim.chat.agent);
+    const mine = claim.chat.agent === "csm" ? all : all.filter((t) => t.owner === claim.chat.agent);
     const tasks: WireTask[] = mine.map((t) => ({ key: t.key, name: t.name, owner: t.owner, phase: t.phase, state: t.state, reason: t.reason }));
     return { ...claim, tasks };
   } catch (err) {

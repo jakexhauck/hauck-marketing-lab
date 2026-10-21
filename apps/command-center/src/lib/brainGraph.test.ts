@@ -22,8 +22,8 @@ const lesson = (id: string, over: Partial<AgentLesson> = {}): AgentLesson => ({
 
 const lessons = [
   lesson("l-1"),
-  lesson("l-2", { tenantId: "t2", agent: "creative" }),
-  lesson("l-3", { scope: "agent", tenantId: null, agent: "landing" }),
+  lesson("l-2", { tenantId: "t2", agent: "csm" }),
+  lesson("l-3", { scope: "agent", tenantId: null, agent: "ghl" }),
   lesson("l-4", { scope: "manager", tenantId: null, agent: "manager" }),
   lesson("l-5", { tenantId: "gone", agent: "ads" }),
 ];
@@ -54,7 +54,7 @@ describe("graphFor", () => {
   it("mega has every client and agent, and the Manager links to every client", () => {
     const g = graphFor(lessons, clients, AGENTS, "mega", { tenantId: null, agent: "manager" });
     expect(g.nodes.filter((n) => n.kind === "client")).toHaveLength(3);
-    expect(g.nodes.filter((n) => n.kind === "agent")).toHaveLength(7);
+    expect(g.nodes.filter((n) => n.kind === "agent")).toHaveLength(5);
     const fromManager = g.links.filter((l) => l.source === "a-manager" && l.target.startsWith("c-"));
     expect(fromManager.map((l) => l.target).sort()).toEqual(["c-t1", "c-t2", "c-t3"]);
     noDangling(g);
@@ -67,7 +67,7 @@ describe("graphFor", () => {
   });
 
   it("never points at a missing node", () => {
-    noDangling(graphFor(lessons, clients, AGENTS, "client", { tenantId: "t2", agent: "creative" }));
+    noDangling(graphFor(lessons, clients, AGENTS, "client", { tenantId: "t2", agent: "csm" }));
     noDangling(graphFor(lessons, [], AGENTS, "client", { tenantId: null, agent: "ads" }));
   });
 });

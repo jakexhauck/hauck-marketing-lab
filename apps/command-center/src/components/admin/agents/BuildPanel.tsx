@@ -126,7 +126,7 @@ export function ClientsBoard({ clients }: { clients: AdminClient[] }) {
         const view = clientRowView(results[i]?.data?.items ?? []);
         const live = c.onboardingStatus === "live";
         return (
-          <Link key={c.id} to={agentPath(c.id, "manager")} className="ag-clientrow">
+          <Link key={c.id} to={agentPath(c.id, "csm")} className="ag-clientrow">
             <div
               className="ag-cmark"
               style={{ background: `linear-gradient(135deg, ${c.brandColor}, color-mix(in srgb, ${c.brandColor} 72%, white))` }}

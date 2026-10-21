@@ -56,7 +56,7 @@ export default function ClientPage() {
   // edge to edge like the mockup, so it skips the padded page and the live
   // app button.
   if (resolved.page === "agent") {
-    return <AgentPage tenantId={client.id} agent={isAgentId(resolved.sub) ? resolved.sub : "manager"} />;
+    return <AgentPage tenantId={client.id} agent={isAgentId(resolved.sub) && resolved.sub !== "manager" ? resolved.sub : "csm"} />;
   }
 
   return (
@@ -146,6 +146,6 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
     case "image-converter":
       return <ImageConverterTab tenantId={client.id} />;
     case "agent":
-      return <AgentPage tenantId={client.id} agent={isAgentId(sub) ? sub : "manager"} />;
+      return <AgentPage tenantId={client.id} agent={isAgentId(sub) && sub !== "manager" ? sub : "csm"} />;
   }
 }

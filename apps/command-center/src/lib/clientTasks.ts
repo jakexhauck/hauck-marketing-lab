@@ -12,7 +12,8 @@ import { getAgentSop, type SopNode } from "./agentSops";
 import { mainLine } from "./sopPrompt";
 import { SOP_LISTS, sopTaskKey } from "./sopChecklists";
 
-export type TaskOwner = "client" | "jake" | AgentId;
+// The agency Manager owns no client task; the CSM does that work.
+export type TaskOwner = "client" | "jake" | Exclude<AgentId, "manager">;
 export type TaskState = "todo" | "doing" | "done" | "cut";
 
 export interface SeedTask {
@@ -39,17 +40,18 @@ export interface ClientTask extends Omit<SeedTask, "sourceNode"> {
 }
 
 // Row order on the Director.
-export const TASK_OWNERS: TaskOwner[] = ["client", "jake", "manager", "research", "ghl", "ads", "creative", "landing", "reporting"];
+export const TASK_OWNERS: TaskOwner[] = ["client", "jake", "csm", "research", "ghl", "ads"];
 
 const PREFIX: Record<string, TaskOwner> = {
-  manager: "manager",
+  "customer success": "csm",
+  manager: "csm",
   ghl: "ghl",
   jake: "jake",
   client: "client",
   ads: "ads",
-  creative: "creative",
-  "landing page": "landing",
-  reporting: "reporting",
+  creative: "ads",
+  "landing page": "ads",
+  reporting: "csm",
   "market research": "research",
 };
 
@@ -73,7 +75,7 @@ export function taskPhases(): { id: string; name: string }[] {
 function boxOwner(n: SopNode): TaskOwner {
   if (n.k === "client") return "client";
   if (n.k === "jake") return "jake";
-  return "manager";
+  return "csm";
 }
 
 function splitStep(n: SopNode, step: string): { owner: TaskOwner; name: string } {

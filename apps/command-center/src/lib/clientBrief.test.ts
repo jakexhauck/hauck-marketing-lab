@@ -13,15 +13,12 @@ describe("BRIEF_SECTIONS", () => {
   it("is Client, Status, the two calls, then one section per agent", () => {
     expect(BRIEF_SECTIONS.map((s) => s.id)).toEqual([
       "client",
-      "manager",
+      "csm",
       "onboarding-call",
       "launch-call",
       "research",
       "ads",
-      "creative",
-      "landing",
       "ghl",
-      "reporting",
     ]);
     expect(BRIEF_SECTIONS.map((s) => s.label)).toEqual([
       "Client",
@@ -30,12 +27,9 @@ describe("BRIEF_SECTIONS", () => {
       "Launch Call",
       "Market Research",
       "Ads",
-      "Creative",
-      "Landing Page",
       "GHL",
-      "Reporting",
     ]);
-    expect(sectionLabel("landing")).toBe("Landing Page");
+    expect(sectionLabel("csm")).toBe("Status");
     expect(sectionLabel("onboarding-call")).toBe("Onboarding Call");
   });
 
@@ -56,7 +50,7 @@ describe("fullBrief", () => {
     ]);
     expect(out.map((s) => s.section)).toEqual(BRIEF_SECTIONS.map((s) => s.id));
     expect(out[5]).toMatchObject({ section: "ads", body: "Cap $40/day", version: 3 });
-    expect(out[1]).toEqual({ section: "manager", body: "", version: 0, updatedBy: null, updatedAt: null });
+    expect(out[1]).toEqual({ section: "csm", body: "", version: 0, updatedBy: null, updatedAt: null });
   });
 
   it("ignores rows for unknown sections", () => {

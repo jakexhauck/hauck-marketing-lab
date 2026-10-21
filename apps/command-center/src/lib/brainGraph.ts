@@ -30,12 +30,10 @@ export interface GraphLink {
 // One colour per agent, from the mockup. Lesson dots in the list use it too.
 export const AGENT_COLORS: Record<AgentId, string> = {
   manager: "#8b5cf6",
+  csm: "#14b8a6",
   research: "#0ea5e9",
   ads: "#2f6fde",
-  creative: "#ec4899",
-  landing: "#14b8a6",
   ghl: "#f59e0b",
-  reporting: "#64748b",
 };
 
 const LABEL_MAX = 22;

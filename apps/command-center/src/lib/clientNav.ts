@@ -25,7 +25,7 @@ import {
   subTabsFor,
   type SubTabDef,
 } from "./fulfillmentPages";
-import { AGENTS } from "./agents";
+import { CLIENT_AGENTS } from "./agents";
 
 export type ClientPageId =
   | "brief"
@@ -89,7 +89,7 @@ const PAGE_LABELS: Record<ClientPageId, string> = {
   // Jake, 2026-10-15: photos from the client's Drive folder as JPGs under
   // 750 KB, for GHL texts (components/admin/cockpit/ImageConverterTab.tsx).
   "image-converter": "Image Converter",
-  // Jake, 2026-10-17: one page for all seven agents, the agent is the sub-page
+  // Jake, 2026-10-17: one page for all the client's agents, the agent is the sub-page
   // (lib/agents.ts). Never shown as a row of its own; the Agents group lists
   // the agents themselves.
   agent: "Agents",
@@ -106,7 +106,7 @@ const adsLinked = (c: ClientGateInfo) => Boolean((c.metaAdAccountId ?? "").trim(
 // The sub-pages a client is offered on a page, after the gates. [] for a page
 // with no second level.
 function offeredSubs(c: ClientGateInfo, page: ClientPageId): SubTabDef[] {
-  if (page === "agent") return AGENTS.map((a) => ({ id: a.id, label: a.name, ready: true }));
+  if (page === "agent") return CLIENT_AGENTS.map((a) => ({ id: a.id, label: a.name, ready: true }));
   if (page === "paid-ads") return paidAdsSubTabs(subTabsFor("paid-ads"), adsLinked(c));
   if (page === "ghl") return ghlSubTabs(subTabsFor("ghl"), c.ghlConnected);
   return [];

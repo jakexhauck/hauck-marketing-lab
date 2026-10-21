@@ -4,21 +4,21 @@ import { isUuid, itemFromRow } from "./agentItems";
 import { messageFromRow } from "./agentRunner";
 import { AD_CREATIVES_BUCKET, pathBelongsTo } from "./adCreativeFiles";
 
-// The Creative Agent's server-side checks (docs/build-plans/agents.md,
+// The Ads Agent's creative checks (docs/build-plans/agents.md,
 // "Cross-lane rule: enforcement lives in code", and Phase 3).
 //
 // The runner secret alone buys nothing here. Every call names the message the
 // runner claimed, and the app checks it against its own rows:
 //
-//   upload-url, read-url   the message is running, in a Creative chat for
+//   upload-url, read-url   the message is running, in an Ads chat for
 //                          that very client
 //   file-creative          all of that, and the message carries a file grant
-//                          whose card is a Creative card in the same chat,
+//                          whose card is an Ads card in the same chat,
 //                          approved by Jake, asking for a file grant, for
 //                          exactly the path being filed
 //
 // So a stolen secret, or an agent that talked the runner into something, can
-// at most upload into one client's previews while a Creative turn is running.
+// at most upload into one client's previews while an Ads turn is running.
 // Filing into the client's Creatives (which the client sees) takes Jake's
 // click on the card that shows that file.
 
@@ -32,7 +32,7 @@ export interface CreativeTurn {
   tenantId: string;
 }
 
-/** Is this message a running turn of the Creative Agent at this client? */
+/** Is this message a running turn of the Ads Agent at this client? */
 export async function creativeTurn(
   client: SupabaseClient,
   messageId: unknown,
@@ -51,8 +51,8 @@ export async function creativeTurn(
     .maybeSingle();
   if (cErr) throw new Error(`chat: ${cErr.message}`);
   const chat = c as Row | null;
-  if (!chat || chat.agent !== "creative" || chat.tenant_id !== tenantId) {
-    return { status: 403, error: "not a Creative chat for this client" };
+  if (!chat || chat.agent !== "ads" || chat.tenant_id !== tenantId) {
+    return { status: 403, error: "not an Ads chat for this client" };
   }
   return { message, chatId: chat.id as string, tenantId };
 }
@@ -65,7 +65,7 @@ export function checkFileGrant(turn: CreativeTurn, item: AgentItem | null, path:
   const g: Grant | null = turn.message.grant;
   if (!g || g.kind !== "file") return { status: 409, error: "no file grant on this message" };
   if (!item || item.id !== g.itemId) return { status: 409, error: "the granted card is gone" };
-  if (item.agent !== "creative" || item.tenantId !== turn.tenantId || item.chatId !== turn.chatId) {
+  if (item.agent !== "ads" || item.tenantId !== turn.tenantId || item.chatId !== turn.chatId) {
     return { status: 403, error: "the granted card belongs elsewhere" };
   }
   if (item.status !== "done" || !item.approvedAt) return { status: 409, error: "the card was not approved" };

@@ -8,7 +8,7 @@ const M1 = "aaaaaaaa-0000-4000-8000-000000000001";
 const ITEM = "bbbbbbbb-0000-4000-8000-000000000001";
 const FILE = `${T1}/cccccccc-0000-4000-8000-000000000001.mp4`;
 
-function chat(id: string, tenant_id: string, agent = "creative") {
+function chat(id: string, tenant_id: string, agent = "ads") {
   return { id, tenant_id, agent, title: id, auto: false, claude_session_id: `s-${id}`, started: true };
 }
 
@@ -20,7 +20,7 @@ function card(over: Record<string, unknown> = {}, payload: Record<string, unknow
   return {
     id: ITEM,
     tenant_id: T1,
-    agent: "creative",
+    agent: "ads",
     chat_id: "c1",
     kind: "creative",
     title: "Ad 1",
@@ -53,7 +53,7 @@ describe("creativeTurn", () => {
   });
 
   it("refuses a message from another agent's chat (403)", async () => {
-    const t = await creativeTurn(db(message(), null, [chat("c1", T1, "ads")]).client(), M1, T1);
+    const t = await creativeTurn(db(message(), null, [chat("c1", T1, "ghl")]).client(), M1, T1);
     expect(t).toMatchObject({ status: 403 });
   });
 
@@ -98,7 +98,7 @@ describe("fileGrantFor", () => {
   });
 
   it("refuses a card from another agent or chat (403)", async () => {
-    const d = db(message(fileGrant), card({ agent: "landing" }));
+    const d = db(message(fileGrant), card({ agent: "ghl" }));
     expect(await fileGrantFor(d.client(), await turnOf(d), FILE)).toMatchObject({ status: 403 });
     const e = db(message(fileGrant), card({ chat_id: "c2" }));
     expect(await fileGrantFor(e.client(), await turnOf(e), FILE)).toMatchObject({ status: 403 });

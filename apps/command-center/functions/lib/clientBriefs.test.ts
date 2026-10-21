@@ -23,7 +23,7 @@ describe("readBrief", () => {
   it("is every section in order, this client's rows only", async () => {
     const db = new FakeDb().seed("client_briefs", [row(), row({ tenant_id: T2, section: "ghl", body: "other client" })]);
     const out = await readBrief(db.client(), T1);
-    expect(out).toHaveLength(10);
+    expect(out).toHaveLength(7);
     expect(out.find((s) => s.section === "ads")).toEqual({
       section: "ads",
       body: "Cap $40/day",
@@ -140,7 +140,7 @@ describe("withBrief", () => {
     const db = new FakeDb().seed("client_briefs", [row()]);
     const core = { message: {} as never, chat: {} as never, history: [], tenant: { id: T1, name: "W", slug: "w", metaAdAccountId: null } };
     const res = await withBrief(db.client(), core);
-    expect(res?.brief).toHaveLength(10);
+    expect(res?.brief).toHaveLength(7);
     expect(res?.brief.find((s) => s.section === "ads")?.version).toBe(3);
     expect((await withBrief(db.client(), { ...core, tenant: null }))?.brief).toEqual([]);
     expect(await withBrief(db.client(), null)).toBeNull();

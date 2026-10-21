@@ -146,14 +146,14 @@ describe("clientRowView", () => {
       item({ agent: "ads", status: "needs_ok", updatedAt: "2026-10-17T10:00:00Z" }),
       item({ agent: "ads", status: "live", updatedAt: "2026-10-16T10:00:00Z" }),
       item({ agent: "research", status: "done" }),
-      item({ agent: "creative", status: "building" }),
+      item({ agent: "ghl", status: "building" }),
     ]);
     expect(v.next).toBe("1 waiting on you");
-    expect(v.dots).toEqual(["d", "s", "w", "", "", ""]);
+    expect(v.dots).toEqual(["d", "s", "w"]);
   });
 
   it("falls back to the newest building item, then All quiet", () => {
-    expect(clientRowView([item({ title: "Winter page", agent: "landing" })]).next).toBe("Winter page");
+    expect(clientRowView([item({ title: "Winter page", agent: "ads" })]).next).toBe("Winter page");
     expect(clientRowView([]).next).toBe("All quiet");
   });
 });

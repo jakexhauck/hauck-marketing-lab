@@ -482,7 +482,7 @@ export async function decideItem(
   // rather than being approved and then doing nothing. Only the Manager's,
   // only at a client. Its ops sit under taskOps, never ops, so they can never
   // be read as GHL or Meta ops.
-  const taskCard = action === "approve" && item.kind === "tasks" && item.agent === "manager" && !!item.tenantId;
+  const taskCard = action === "approve" && item.kind === "tasks" && item.agent === "csm" && !!item.tenantId;
   const taskOps = taskCard ? parseTaskOps(item.payload.taskOps) : null;
   if (taskOps && !taskOps.ok) return { error: 422, reason: taskOps.error };
 

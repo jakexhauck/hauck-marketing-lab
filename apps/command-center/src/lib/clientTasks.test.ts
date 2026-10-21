@@ -21,14 +21,17 @@ describe("seedTasks", () => {
     const t = seed.find((x) => x.key === "onboard:setup-sub-account")!;
     expect(t.owner).toBe("ghl");
     expect(seed.find((x) => x.name === "Connect Facebook To GHL")!.owner).toBe("jake");
-    expect(seed.find((x) => x.name === "Conversion Assets Created/Placed Into Funnel")!.owner).toBe("landing");
-    expect(seed.find((x) => x.name === "Reporting Agent starts the monthly cycle")!.owner).toBe("reporting");
+    expect(seed.find((x) => x.name === "Creatives Done/Added To Media Library")!.owner).toBe("ads");
+    expect(seed.find((x) => x.name === "Creatives Done/Added To Media Library")!.key).toBe("adsbuild:creatives-done-added-to-media-library");
+    expect(seed.find((x) => x.name === "Monthly client report cycle starts")!.owner).toBe("csm");
+    expect(seed.some((x) => /conversion asset/i.test(x.name))).toBe(false);
+    for (const t of seed) expect(["creative", "landing", "reporting", "manager"]).not.toContain(t.owner);
   });
 
-  it("falls back to the box owner, with the Manager owning review and agent boxes", () => {
+  it("falls back to the box owner, with the Customer Success Manager owning review and agent boxes", () => {
     expect(seed.find((x) => x.name === "Invoice Paid")!.owner).toBe("client");
     expect(seed.find((x) => x.name === "Access Business Manager")!.owner).toBe("jake");
-    expect(seed.find((x) => x.name === "Accounts page all green")!.owner).toBe("manager");
+    expect(seed.find((x) => x.name === "Accounts page all green")!.owner).toBe("csm");
   });
 
   it("phases are the main line in order", () => {

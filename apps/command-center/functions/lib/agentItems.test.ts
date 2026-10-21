@@ -98,8 +98,8 @@ describe("chatSummaries", () => {
         { id: "i2", tenant_id: T1, agent: "ghl", status: "done", title: "Old" },
       ])
       .seed("agent_messages", [
-        { id: "r1", chat_id: "c1", role: "request", body: "Put page in funnel", meta: { itemId: "i1", fromAgent: "landing" }, status: "done", created_at: "2026-10-17T09:00:00.000Z" },
-        { id: "r2", chat_id: "c2", role: "request", body: "Old", meta: { itemId: "i2", fromAgent: "landing" }, status: "done", created_at: "2026-10-17T10:00:00.000Z" },
+        { id: "r1", chat_id: "c1", role: "request", body: "Put page in funnel", meta: { itemId: "i1", fromAgent: "ads" }, status: "done", created_at: "2026-10-17T09:00:00.000Z" },
+        { id: "r2", chat_id: "c2", role: "request", body: "Old", meta: { itemId: "i2", fromAgent: "ads" }, status: "done", created_at: "2026-10-17T10:00:00.000Z" },
       ]);
     const list = await chatSummaries(db.client(), T1, "ghl");
     expect(list.map((c) => [c.id, c.hasRequest])).toEqual([
@@ -119,15 +119,15 @@ describe("upsertItem", () => {
     const item = await upsertItem(db.client(), {
       tenantId: T1,
       agent: "ghl",
-      fromAgent: "landing",
+      fromAgent: "ads",
       kind: "request",
       title: "Put the spring page in the funnel",
       status: "needs_ok",
       payload: { body: "Page is live at x", plan: ["Add step"] },
     });
-    expect(item).toMatchObject({ agent: "ghl", fromAgent: "landing", chatId: "new", status: "needs_ok" });
+    expect(item).toMatchObject({ agent: "ghl", fromAgent: "ads", chatId: "new", status: "needs_ok" });
     const req = db.rows("agent_messages").find((r) => r.role === "request");
-    expect(req).toMatchObject({ chat_id: "new", body: "Page is live at x", meta: { itemId: item.id, fromAgent: "landing" } });
+    expect(req).toMatchObject({ chat_id: "new", body: "Page is live at x", meta: { itemId: item.id, fromAgent: "ads" } });
   });
 
   it("opens a chat for the request when the agent has none", async () => {
@@ -135,7 +135,7 @@ describe("upsertItem", () => {
     const item = await upsertItem(db.client(), {
       tenantId: T1,
       agent: "ghl",
-      fromAgent: "landing",
+      fromAgent: "ads",
       kind: "request",
       title: "Funnel step",
       status: "needs_ok",
@@ -176,37 +176,37 @@ describe("upsertItem", () => {
 
   it("refuses to rewrite another chat's card", async () => {
     const db = new FakeDb().seed("agent_items", [
-      { id: "i1", tenant_id: T1, agent: "landing", chat_id: "c1", title: "Page", status: "needs_ok", payload: {} },
+      { id: "i1", tenant_id: T1, agent: "ads", chat_id: "c1", title: "Page", status: "needs_ok", payload: {} },
     ]);
     await expect(
-      upsertItem(db.client(), { id: "i1", tenantId: T1, agent: "landing", chatId: "c2", kind: "page", title: "Hijack", status: "building", payload: {} }),
+      upsertItem(db.client(), { id: "i1", tenantId: T1, agent: "ads", chatId: "c2", kind: "page", title: "Hijack", status: "building", payload: {} }),
     ).rejects.toThrow("item not found");
     expect(db.rows("agent_items")[0]).toMatchObject({ chat_id: "c1", title: "Page" });
   });
 
   it("marks a runner card runnerOwned and refuses the agent's rewrite of it", async () => {
-    const db = new FakeDb().seed("agent_chats", [chat("c1", T1, "creative")]);
+    const db = new FakeDb().seed("agent_chats", [chat("c1", T1, "ads")]);
     const card = await upsertItem(db.client(), {
-      tenantId: T1, agent: "creative", chatId: "c1", kind: "creative", title: "Final", status: "needs_ok",
+      tenantId: T1, agent: "ads", chatId: "c1", kind: "creative", title: "Final", status: "needs_ok",
       payload: { path: "t/f1.mp4", grant: { kind: "file" } }, origin: "runner",
     });
     expect(card.payload).toMatchObject({ runnerOwned: true, path: "t/f1.mp4" });
     await expect(
       upsertItem(db.client(), {
-        id: card.id, tenantId: T1, agent: "creative", chatId: "c1", kind: "creative", title: "Swapped", status: "needs_ok",
+        id: card.id, tenantId: T1, agent: "ads", chatId: "c1", kind: "creative", title: "Swapped", status: "needs_ok",
         payload: { path: "t/other.mp4", grant: { kind: "file" } }, origin: "agent",
       }),
     ).rejects.toThrow("item not found");
     // No origin at all is the agent's, never the runner's.
     await expect(
       upsertItem(db.client(), {
-        id: card.id, tenantId: T1, agent: "creative", chatId: "c1", kind: "creative", title: "Swapped", status: "needs_ok", payload: {},
+        id: card.id, tenantId: T1, agent: "ads", chatId: "c1", kind: "creative", title: "Swapped", status: "needs_ok", payload: {},
       }),
     ).rejects.toThrow("item not found");
     expect(db.rows("agent_items")[0]).toMatchObject({ title: "Final", payload: { path: "t/f1.mp4" } });
     // The runner may still rewrite its own card.
     const again = await upsertItem(db.client(), {
-      id: card.id, tenantId: T1, agent: "creative", chatId: "c1", kind: "creative", title: "Final v2", status: "needs_ok",
+      id: card.id, tenantId: T1, agent: "ads", chatId: "c1", kind: "creative", title: "Final v2", status: "needs_ok",
       payload: { path: "t/f2.mp4" }, origin: "runner",
     });
     expect(again.payload).toMatchObject({ runnerOwned: true, path: "t/f2.mp4" });
@@ -237,7 +237,7 @@ describe("decideItem, the Manager's tasks card", () => {
     { op: "add", phase: "ghl", owner: "client", name: "Ask: who answers the phone", reason: "Not on the intake" },
     { op: "cut", key: "nope:gone", reason: "x" },
   ];
-  function card(agent = "manager", taskOps: unknown = ops) {
+  function card(agent = "csm", taskOps: unknown = ops) {
     return new FakeDb()
       .seed("agent_chats", [chat("c1", T1, agent)])
       .seed("agent_items", [{ id: "i1", tenant_id: T1, agent, chat_id: "c1", kind: "tasks", title: "Kickoff tasks", status: "needs_ok", payload: { taskOps }, approved_at: null }]);
@@ -294,7 +294,7 @@ describe("decideItem, the Manager's tasks card", () => {
   });
 
   it("a bad tasks payload is refused and the card stays waiting", async () => {
-    const db = card("manager", [{ op: "add", reason: "x" }]);
+    const db = card("csm", [{ op: "add", reason: "x" }]);
     const res = await decideItem(db.client(), "i1", "approve", undefined, undefined, await shown(db));
     expect(res).toMatchObject({ error: 422 });
     expect(db.rows("agent_items")[0].status).toBe("needs_ok");
@@ -335,9 +335,9 @@ describe("decideItem", () => {
   // (deploy, spend, ghl, file). It rides on the follow-up message, nowhere else.
   function withGrant(grant: unknown, extra: Record<string, unknown> = {}) {
     return new FakeDb()
-      .seed("agent_chats", [chat("c1", T1, "creative")])
+      .seed("agent_chats", [chat("c1", T1, "ads")])
       .seed("agent_items", [
-        { id: "i1", tenant_id: T1, agent: "creative", chat_id: "c1", title: "Image", status: "needs_ok", payload: { grant, ...extra }, approved_at: null },
+        { id: "i1", tenant_id: T1, agent: "ads", chat_id: "c1", title: "Image", status: "needs_ok", payload: { grant, ...extra }, approved_at: null },
       ]);
   }
 
@@ -410,7 +410,7 @@ describe("decideItem", () => {
     const landing = { site: "winter", previewUrl: "https://d-1.hm-a.pages.dev", grant: { kind: "deploy" }, runnerOwned: true };
     for (const [agent, before, after, origin] of [
       ["ghl", ghl, { ...ghl, ops: [{ op: "write.customValue", args: { key: "Winter Page", value: "https://evil" } }] }, "agent"],
-      ["landing", landing, { ...landing, previewUrl: "https://d-2.hm-a.pages.dev" }, "runner"],
+      ["ads", landing, { ...landing, previewUrl: "https://d-2.hm-a.pages.dev" }, "runner"],
     ] as const) {
       const db = new FakeDb()
         .seed("agent_chats", [chat("c1", T1, agent)])
@@ -555,7 +555,7 @@ describe("postAnswer", () => {
     const cases = [
       setup({ payload: { body: "x" } }),
       setup({ payload: { body: "x", fromChatId: "missing" } }),
-      setup({ asker: { agent: "landing" } }),
+      setup({ asker: { agent: "ghl" } }),
       setup({ asker: { tenant_id: null } }),
     ];
     for (const db of cases) expect(await postAnswer(db.client(), { messageId: "f1", body: "x" })).toEqual({ error: 404 });

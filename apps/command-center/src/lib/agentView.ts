@@ -65,8 +65,8 @@ export function needsOkCounts(items: AgentItem[]): Partial<Record<AgentId, numbe
   return out;
 }
 
-// The six working agents, in rail order, for the Manager's per-client dots.
-export const WORKING_AGENTS: AgentId[] = ["research", "ads", "creative", "landing", "ghl", "reporting"];
+// The working agents, in rail order, for the per-client dots.
+export const WORKING_AGENTS: AgentId[] = ["research", "ads", "ghl"];
 
 export type Dot = "d" | "w" | "s" | "";
 

@@ -34,12 +34,12 @@ describe("liveUrlMatches", () => {
 
 function world(over: { agent?: string; status?: string; grant?: unknown; itemStatus?: string; itemAgent?: string; itemTenant?: string; chatTenant?: string; role?: string; runnerOwned?: boolean } = {}) {
   return new FakeDb()
-    .seed("agent_chats", [{ id: C1, tenant_id: over.chatTenant ?? T1, agent: over.agent ?? "landing", title: "Winter", auto: false }])
+    .seed("agent_chats", [{ id: C1, tenant_id: over.chatTenant ?? T1, agent: over.agent ?? "ads", title: "Winter", auto: false }])
     .seed("agent_items", [
       {
         id: I1,
         tenant_id: over.itemTenant ?? T1,
-        agent: over.itemAgent ?? "landing",
+        agent: over.itemAgent ?? "ads",
         chat_id: C1,
         kind: "landing_page",
         title: "Winter offer page",
@@ -105,7 +105,7 @@ describe("fileLandingAsset", () => {
   });
 
   it("403 for a message from another agent's chat", async () => {
-    const db = world({ agent: "creative" });
+    const db = world({ agent: "ghl" });
     expect(await fileLandingAsset(db.client(), body)).toMatchObject({ error: 403 });
     expect(db.rows("followup_pages")).toHaveLength(0);
   });
@@ -113,7 +113,7 @@ describe("fileLandingAsset", () => {
   it("403 for another client", async () => {
     expect(await fileLandingAsset(world().client(), { ...body, tenantId: T2 })).toMatchObject({ error: 403 });
     expect(await fileLandingAsset(world({ itemTenant: T2 }).client(), body)).toMatchObject({ error: 403 });
-    expect(await fileLandingAsset(world({ itemAgent: "ads" }).client(), body)).toMatchObject({ error: 403 });
+    expect(await fileLandingAsset(world({ itemAgent: "ghl" }).client(), body)).toMatchObject({ error: 403 });
   });
 
   it("400 for a live URL that is not the approved preview's project", async () => {

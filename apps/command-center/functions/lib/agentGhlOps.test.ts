@@ -79,7 +79,7 @@ describe("writeAllowed", () => {
     expect(writeAllowed(msg({ followUpOf: ITEM, grant: { ...grant, kind: "deploy" } }), chat(), approved())).toBe(false);
     expect(writeAllowed(msg({ followUpOf: ITEM, grant }), chat())).toBe(false);
     expect(writeAllowed(msg({ followUpOf: ITEM, grant }), chat(), approved({ approvedAt: null }))).toBe(false);
-    expect(writeAllowed(msg({ followUpOf: ITEM, grant }), chat(), approved({ agent: "landing" }))).toBe(false);
+    expect(writeAllowed(msg({ followUpOf: ITEM, grant }), chat(), approved({ agent: "ads" }))).toBe(false);
     expect(writeAllowed(msg({ followUpOf: ITEM, grant }), chat(), approved({ tenantId: T2 }))).toBe(false);
     expect(writeAllowed(msg({ followUpOf: ITEM, grant }), chat(), approved({ id: "other" }))).toBe(false);
     expect(writeAllowed(msg({ followUpOf: "other", grant }), chat(), approved())).toBe(false);
@@ -89,7 +89,7 @@ describe("writeAllowed", () => {
     expect(writeAllowed(msg({ status: "done" }), chat())).toBe(false);
     expect(writeAllowed(msg({ role: "request" }), chat())).toBe(false);
     expect(writeAllowed(msg({ role: "ai" }), chat())).toBe(false);
-    expect(writeAllowed(msg(), chat({ agent: "landing" }))).toBe(false);
+    expect(writeAllowed(msg(), chat({ agent: "ads" }))).toBe(false);
   });
 });
 
@@ -228,7 +228,7 @@ describe("callGhlOp", () => {
     fakeGhl({ "GET /opportunities/pipelines": { pipelines: [] } });
     const body = { messageId: MSG, op: "read.pipelines" };
     expect((await callGhlOp(world().client(), { ...body, tenantId: T2 }, deps)).status).toBe(403);
-    expect((await callGhlOp(world({ chat: { agent: "landing" } }).client(), { ...body, tenantId: T1 }, deps)).status).toBe(403);
+    expect((await callGhlOp(world({ chat: { agent: "ads" } }).client(), { ...body, tenantId: T1 }, deps)).status).toBe(403);
     expect((await callGhlOp(world({ message: { status: "done" } }).client(), { ...body, tenantId: T1 }, deps)).status).toBe(403);
     expect((await callGhlOp(world().client(), { ...body, messageId: "55555555-5555-4555-8555-000000000000", tenantId: T1 }, deps)).status).toBe(403);
   });

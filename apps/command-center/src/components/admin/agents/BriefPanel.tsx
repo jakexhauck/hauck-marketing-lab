@@ -140,7 +140,7 @@ export function SectionBlock({
         </span>
       </div>
 
-      {section.section === "manager" && <StatusActions tenantId={tenantId} />}
+      {section.section === "csm" && <StatusActions tenantId={tenantId} />}
 
       {state.conflict && (
         <div className="brf-conflict" role="alert">

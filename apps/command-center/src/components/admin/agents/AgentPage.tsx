@@ -107,11 +107,11 @@ function AgentView({ tenantId, agent }: { tenantId: string | null; agent: AgentI
   const building =
     tenantId === null ? (
       <ClientsBoard clients={clients} />
-    ) : items.isLoading || (isManager && !client) ? (
+    ) : items.isLoading || (agent === "csm" && !client) ? (
       <div className="ag-empty">Loading...</div>
     ) : items.isLoadingError ? (
       <div className="ag-empty">Work did not load.</div>
-    ) : isManager && client ? (
+    ) : agent === "csm" && client ? (
       <ManagerBuilding client={client} items={allItems} />
     ) : (
       <AgentBuilding agent={agent} items={allItems} onAction={onAction} busy={act.isPending} />

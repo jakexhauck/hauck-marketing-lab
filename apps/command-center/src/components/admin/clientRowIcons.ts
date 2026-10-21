@@ -1,10 +1,7 @@
 import {
   AppWindow,
-  Clapperboard,
-  FileChartColumn,
   Gauge,
   NotebookText,
-  LayoutTemplate,
   Megaphone,
   Telescope,
   Workflow,
@@ -21,7 +18,6 @@ import {
   PhoneCall,
   Rocket,
   Plug,
-  Sparkles,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -40,7 +36,6 @@ const ICONS: Record<string, LucideIcon> = {
   "lead-form": ClipboardList,
   setup: Plug,
   connect: Plug,
-  "conversion-assets": Sparkles,
   calendars: CalendarDays,
   "follow-ups": MessageSquareText,
   capi: Radio,
@@ -52,12 +47,10 @@ const ICONS: Record<string, LucideIcon> = {
 // "ads" would otherwise collide with page ids.
 export const AGENT_ICONS: Record<string, LucideIcon> = {
   manager: Gauge,
+  csm: Gauge,
   research: Telescope,
   ads: Megaphone,
-  creative: Clapperboard,
-  landing: LayoutTemplate,
   ghl: Workflow,
-  reporting: FileChartColumn,
 };
 
 // The Client Brief's sections (lib/clientBrief.ts): an agent's own icon, plus

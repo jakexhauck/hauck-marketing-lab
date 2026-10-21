@@ -12,7 +12,7 @@ describe("briefDocText", () => {
       "Willis Windows",
       fullBrief([
         { section: "ads", body: "- Cap $40/day\n- Never say affordable", version: 2, updatedBy: "jake", updatedAt: null },
-        { section: "manager", body: "Live.", version: 1, updatedBy: "manager", updatedAt: null },
+        { section: "csm", body: "Live.", version: 1, updatedBy: "csm", updatedAt: null },
       ]),
     );
     expect(doc.text).toBe("Brief: Willis Windows\nStatus\nLive.\nAds\n• Cap $40/day\n• Never say affordable\n");

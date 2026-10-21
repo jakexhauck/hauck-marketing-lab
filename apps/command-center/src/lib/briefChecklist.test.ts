@@ -10,7 +10,7 @@ describe("ACCOUNT_CHECK_SECTION", () => {
   it("sends Meta to Ads, GHL pieces to GHL, the client app to Status", () => {
     expect(accountChecksFor("ads")).toEqual(["meta-ads", "meta-page"]);
     expect(accountChecksFor("ghl")).toEqual(["ghl", "pipeline", "calendars", "owner-links", "owner-phone"]);
-    expect(accountChecksFor("manager")).toEqual(["login", "push"]);
+    expect(accountChecksFor("csm")).toEqual(["login", "push"]);
     expect(accountChecksFor("research")).toEqual([]);
   });
 });

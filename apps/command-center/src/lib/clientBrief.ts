@@ -16,15 +16,12 @@ import type { BriefAuthor, BriefDrive, BriefSection, BriefSectionId } from "./ag
 // ever lands on the writing agent's own section.
 export const BRIEF_SECTIONS: { id: BriefSectionId; label: string }[] = [
   { id: "client", label: "Client" },
-  { id: "manager", label: "Status" },
+  { id: "csm", label: "Status" },
   { id: "onboarding-call", label: "Onboarding Call" },
   { id: "launch-call", label: "Launch Call" },
   { id: "research", label: "Market Research" },
   { id: "ads", label: "Ads" },
-  { id: "creative", label: "Creative" },
-  { id: "landing", label: "Landing Page" },
   { id: "ghl", label: "GHL" },
-  { id: "reporting", label: "Reporting" },
 ];
 
 // The longest a section may be. Generous for a summary, small enough that the

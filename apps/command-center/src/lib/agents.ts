@@ -1,14 +1,15 @@
 // The Agents section (Jake, 2026-10-17; docs/build-plans/agents.md).
 //
-// Seven service-delivery agents, the same for every client. This file is the
-// one list of who they are, in rail order, and where each one lives. The ids
-// are also the values migration 0166 checks, and the PC runner keys its
-// instruction files by them, so an id never changes once shipped.
+// Four agents work inside every client, and the Manager works at the agency
+// (Jake, 2026-10-20; docs/build-plans/four-agents-and-handoffs.md). This file
+// is the one list of who they are, in rail order. The ids are also the values
+// migration 0174 checks, and the PC runner keys its instruction files by them.
 //
-// The Manager is the only agent with an agency address as well as a client
-// one: on the agency rail it overlooks every client at once.
+// The Manager is agency only: the bubble on every admin page. The Customer
+// Success Manager took its place inside each client, and Creative, Landing
+// Page and Reporting were folded into Ads and the CSM.
 
-export type AgentId = "manager" | "research" | "ads" | "creative" | "landing" | "ghl" | "reporting";
+export type AgentId = "manager" | "csm" | "research" | "ads" | "ghl";
 
 export interface AgentDef {
   id: AgentId;
@@ -16,14 +17,15 @@ export interface AgentDef {
 }
 
 export const AGENTS: AgentDef[] = [
-  { id: "manager", name: "Manager Agent" },
+  { id: "csm", name: "Customer Success Manager" },
   { id: "research", name: "Market Research Agent" },
   { id: "ads", name: "Ads Agent" },
-  { id: "creative", name: "Creative Agent" },
-  { id: "landing", name: "Landing Page Agent" },
   { id: "ghl", name: "GHL Agent" },
-  { id: "reporting", name: "Reporting Agent" },
+  { id: "manager", name: "Manager Agent" },
 ];
+
+// The agents inside a client, in rail order.
+export const CLIENT_AGENTS: AgentDef[] = AGENTS.filter((a) => a.id !== "manager");
 
 const IDS = AGENTS.map((a) => a.id) as string[];
 

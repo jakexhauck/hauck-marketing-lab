@@ -1,18 +1,24 @@
 import { describe, it, expect } from "vitest";
-import { AGENTS, agentPath, isAgentId } from "./agents";
+import { AGENTS, CLIENT_AGENTS, agentPath, isAgentId } from "./agents";
 
 describe("AGENTS", () => {
-  it("lists the seven agents in rail order", () => {
-    expect(AGENTS.map((a) => a.id)).toEqual(["manager", "research", "ads", "creative", "landing", "ghl", "reporting"]);
+  it("lists the five agents in rail order, the agency Manager last", () => {
+    expect(AGENTS.map((a) => a.id)).toEqual(["csm", "research", "ads", "ghl", "manager"]);
     expect(AGENTS.map((a) => a.name)).toEqual([
-      "Manager Agent",
+      "Customer Success Manager",
       "Market Research Agent",
       "Ads Agent",
-      "Creative Agent",
-      "Landing Page Agent",
       "GHL Agent",
-      "Reporting Agent",
+      "Manager Agent",
     ]);
+  });
+
+  it("gives a client every agent but the agency Manager", () => {
+    expect(CLIENT_AGENTS.map((a) => a.id)).toEqual(["csm", "research", "ads", "ghl"]);
+  });
+
+  it("no longer knows the retired agents", () => {
+    for (const id of ["creative", "landing", "reporting"]) expect(isAgentId(id)).toBe(false);
   });
 
   it("knows its own ids", () => {

@@ -329,8 +329,8 @@ describe("helpers", () => {
   });
 
   it("maps a request row", () => {
-    const m = messageFromRow(msg("r1", { role: "request", status: "done", meta: { itemId: "i1", fromAgent: "landing" } }));
-    expect(m).toMatchObject({ role: "request", itemId: "i1", fromAgent: "landing", tools: [], used: [], learned: [] });
+    const m = messageFromRow(msg("r1", { role: "request", status: "done", meta: { itemId: "i1", fromAgent: "ads" } }));
+    expect(m).toMatchObject({ role: "request", itemId: "i1", fromAgent: "ads", tools: [], used: [], learned: [] });
   });
 
   it("reads a meta grant off a follow-up, and drops an unknown kind", () => {
