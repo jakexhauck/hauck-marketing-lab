@@ -136,11 +136,19 @@ export interface TaskChangeLine {
 function taskChangeLines(v: unknown): TaskChangeLine[] {
   const parsed = parseTaskOps(Array.isArray(v) ? v.filter((o) => !!o && typeof o === "object") : v);
   if (!parsed.ok) return [];
+  // What a task waits on and its Writes switch are spelled out, Acts live in
+  // capitals: an Approve that turns it on lets that task write to GHL with no
+  // card, so it must never ride through unseen.
+  const wiring = (o: { waitsOn?: string[]; mode?: string }) =>
+    [
+      o.waitsOn === undefined ? "" : o.waitsOn.length ? `waits on ${o.waitsOn.join(", ")}` : "waits on nothing",
+      o.mode === "live" ? "ACTS LIVE: GHL changes without your OK" : o.mode === "ask" ? "needs your OK" : "",
+    ].filter(Boolean);
   return parsed.ops.map((o) => {
-    if (o.op === "add") return { kind: "Add", text: `${o.name} (${ownerLabel(o.owner)})`, reason: o.reason };
+    if (o.op === "add") return { kind: "Add", text: [`${o.name} (${ownerLabel(o.owner)})`, ...wiring(o)].join(", "), reason: o.reason };
     if (o.op === "cut") return { kind: "Cut", text: o.key, reason: o.reason };
     const bits = [o.name ? `name ${o.name}` : "", o.owner ? `owner ${ownerLabel(o.owner)}` : "", o.phase ? `phase ${o.phase}` : ""].filter(Boolean);
-    return { kind: "Change", text: [o.key, ...bits].join(", "), reason: o.reason };
+    return { kind: "Change", text: [o.key, ...bits, ...wiring(o)].join(", "), reason: o.reason };
   });
 }
 

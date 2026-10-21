@@ -175,6 +175,21 @@ describe("itemPayload, a tasks card", () => {
     ]);
     expect(v.changes).toEqual([]);
   });
+
+  it("never hides a switch to Acts live or what a task waits on", () => {
+    const v = itemPayload({
+      taskOps: [
+        { op: "add", phase: "follow", owner: "ghl", name: "CAPI wired", waitsOn: ["added:dataset-made"], mode: "live", reason: "x" },
+        { op: "change", key: "ghl:a2p-submitted", mode: "live", reason: "y" },
+        { op: "change", key: "ghl:local-number-bought", mode: "ask", waitsOn: [], reason: "z" },
+      ],
+    });
+    expect(v.taskChanges).toEqual([
+      { kind: "Add", text: "CAPI wired (GHL), waits on added:dataset-made, ACTS LIVE: GHL changes without your OK", reason: "x" },
+      { kind: "Change", text: "ghl:a2p-submitted, ACTS LIVE: GHL changes without your OK", reason: "y" },
+      { kind: "Change", text: "ghl:local-number-bought, waits on nothing, needs your OK", reason: "z" },
+    ]);
+  });
 });
 
 describe("itemPayload", () => {

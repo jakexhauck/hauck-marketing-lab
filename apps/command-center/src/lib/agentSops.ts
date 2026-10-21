@@ -182,7 +182,7 @@ export const AGENT_SOPS: AgentSop[] = [
       { id: "card", c: 3, r: 0, k: "review", t: "tasks card", d: ["add, change, cut", "each with a reason"],
         steps: ["One item of kind tasks: payload.taskOps against the task keys you were given", "Every change and cut carries a reason; anything not named stays as it is", "Jake's Approve writes them to the client's Director"] },
       { id: "track", c: 0, r: 2, k: "agent", t: "track tasks", d: ["what is open, who owns it", "what waits on Jake"],
-        steps: ["Lead with what Jake has to do next, as a numbered list", "Then what each agent has open", "Agents start a task only when Jake names it in their chat"] },
+        steps: ["Lead with what Jake has to do next, as a numbered list", "Then what each agent has open", "Agents start a task when Jake names it, or when the Director starts it once what it waits on is finished"] },
       { id: "check", c: 1, r: 2, k: "review", t: "pre-launch check", d: ["every task done or cut", "Accounts page all green"],
         steps: ["Every task before launch call is done or cut", "Accounts page all green", "Anything open goes on the fix list with its owner"] },
       { id: "launch", c: 2, r: 2, k: "jake", t: "launch call", d: ["Jake walks the client through"] },

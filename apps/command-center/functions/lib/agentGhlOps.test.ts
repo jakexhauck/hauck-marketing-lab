@@ -256,8 +256,27 @@ describe("callGhlOp", () => {
     expect((await callGhlOp(world({ message: { role: "trigger", meta: { live: false } } }).client(), write, deps)).status).toBe(403);
     expect(calls.some((c) => c.method === "PUT")).toBe(false);
     calls = fakeGhl({ "GET /locations/LOC1/customValues": CV_LIST, "PUT /locations/LOC1/customValues/v1": {} });
-    expect((await callGhlOp(world({ message: { role: "trigger", meta: { live: true } } }).client(), write, deps)).status).toBe(200);
+    const liveWorld = world({ message: { role: "trigger", meta: { live: true, taskKeys: ["ghl:x"] } } });
+    liveWorld.seed("client_tasks", [{ id: "t1", tenant_id: T1, key: "ghl:x", owner: "ghl", state: "doing", mode: "live" }]);
+    expect((await callGhlOp(liveWorld.client(), write, deps)).status).toBe(200);
     expect(calls.some((c) => c.method === "PUT")).toBe(true);
+  });
+
+  it("checks Acts live again at the write: a task switched back, cut, deleted or another agent's stops it", async () => {
+    const write = { messageId: MSG, tenantId: T1, op: "write.customValue", args: { key: "winter page", value: "https://new" } };
+    const base = { id: "t1", tenant_id: T1, key: "ghl:x", owner: "ghl", state: "doing", mode: "live" };
+    for (const [why, rows] of [
+      ["switched to Needs your OK", [{ ...base, mode: "ask" }]],
+      ["cut", [{ ...base, state: "cut" }]],
+      ["deleted", []],
+      ["not a GHL task", [{ ...base, owner: "ads" }]],
+    ] as const) {
+      const calls = fakeGhl({ "GET /locations/LOC1/customValues": CV_LIST, "PUT /locations/LOC1/customValues/v1": {} });
+      const db = world({ message: { role: "trigger", meta: { live: true, taskKeys: ["ghl:x"] } } });
+      db.seed("client_tasks", [...rows]);
+      expect((await callGhlOp(db.client(), write, deps)).status, why).toBe(403);
+      expect(calls.some((c) => c.method === "PUT"), why).toBe(false);
+    }
   });
 
   it("writes on Jake's direct ask and logs it as agent:ghl first", async () => {

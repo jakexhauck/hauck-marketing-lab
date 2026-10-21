@@ -445,6 +445,22 @@ export async function callGhlOp(client: SupabaseClient, body: GhlCallBody, deps:
     if (!writeAllowed(message, chat, item)) {
       return out(403, { error: "GHL changes need Jake's ask in this chat or his Approve on a card" });
     }
+    // A trigger's live was set when it was queued; Jake may have switched a
+    // task back, cut or deleted it since. Every task it carries must still be
+    // a GHL task in Doing that acts live, read now, or nothing is written.
+    if (message.role === "trigger") {
+      const keys = ((mRow as Row).meta as Row | null)?.taskKeys;
+      const list = Array.isArray(keys) ? keys.filter((k): k is string => typeof k === "string") : [];
+      const { data: tRows, error: tErr } = list.length
+        ? await client.from("client_tasks").select("key, owner, state, mode").eq("tenant_id", tenantId).in("key", list)
+        : { data: [], error: null };
+      fail("tasks", tErr);
+      const rows = (tRows ?? []) as Row[];
+      const stillLive =
+        list.length > 0 &&
+        list.every((k) => rows.some((r) => r.key === k && r.owner === "ghl" && r.state === "doing" && r.mode === "live"));
+      if (!stillLive) return out(403, { error: "these tasks no longer act live, so GHL changes need a card" });
+    }
     // Under an approval, only what the card listed. Jake's direct ask in the
     // chat carries no grant and is not bound to a card (his call).
     if (message.grant && !opOnCard(item?.ops, op, parsed.args)) {

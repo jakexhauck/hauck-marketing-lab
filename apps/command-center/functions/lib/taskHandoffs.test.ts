@@ -129,6 +129,33 @@ describe("startReady", () => {
     expect(t[0].body).toContain("dataset_id: 9");
   });
 
+  it("puts a task back to do when its trigger could not be queued, and still starts the other agents", async () => {
+    const { db, parent, ghl } = await chain();
+    const research = (await ensureTasks(db.client(), T1)).find((t) => t.owner === "csm" && t.state === "todo")!;
+    await patchTask(db.client(), T1, research.id, { waitsOn: [parent.key] }, "jake");
+    db.rows("client_tasks").find((r) => r.id === parent.id)!.state = "done";
+    const real = db.client();
+    let failed = false;
+    const flaky = {
+      ...real,
+      from: (table: string) => {
+        if (table === "agent_messages" && !failed) {
+          failed = true;
+          return { insert: () => ({ select: () => ({ maybeSingle: async () => ({ data: null, error: { message: "boom" } }) }) }) };
+        }
+        return real.from(table);
+      },
+    } as unknown as typeof real;
+    const res = await startReady(flaky, T1, [parent.key]);
+    const state = (id: string) => db.rows("client_tasks").find((r) => r.id === id)!.state;
+    const groups = [ghl.map((g) => g.id), [research.id]];
+    const looks = groups.map((ids) => [...new Set(ids.map(state))]);
+    // One agent's trigger failed: its tasks are to do again. The other's went out.
+    expect(looks.map((l) => l.join()).sort()).toEqual(["doing", "todo"]);
+    expect(triggers(db)).toHaveLength(1);
+    expect(res.started).toHaveLength(looks[0][0] === "doing" ? ghl.length : 1);
+  });
+
   it("an untick or a doing starts nothing", async () => {
     const { db, parent } = await chain();
     await patchTask(db.client(), T1, parent.id, { state: "doing" }, "jake");

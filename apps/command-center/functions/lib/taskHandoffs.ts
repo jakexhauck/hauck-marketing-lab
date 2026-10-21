@@ -118,15 +118,26 @@ export async function startReady(client: SupabaseClient, tenantId: string, finis
     if (!mErr && ((moved ?? []) as Row[]).length) won.push({ ...t, state: "doing" });
   }
   const byKey = new Map(tasks.map((t) => [t.key, t]));
+  const started: string[] = [];
   for (const owner of [...new Set(won.map((t) => t.owner))]) {
     const children = won.filter((t) => t.owner === owner);
     const parents = [...new Set(children.flatMap((c) => c.waitsOn))].map((k) => byKey.get(k)!).filter(Boolean);
-    await queueTrigger(client, tenantId, owner as AgentId, triggerBody(children, parents), {
-      taskKeys: children.map((c) => c.key),
-      live: children.every((c) => c.mode === "live"),
-    });
+    try {
+      await queueTrigger(client, tenantId, owner as AgentId, triggerBody(children, parents), {
+        taskKeys: children.map((c) => c.key),
+        live: children.every((c) => c.mode === "live"),
+      });
+      started.push(...children.map((c) => c.key));
+    } catch (err) {
+      // No agent got the message, so the tasks must not sit in Doing: back to
+      // to do (only if still doing), where Jake sees them and can name them.
+      console.error(`handoffs: trigger for ${owner} not queued: ${(err as Error).message}`);
+      for (const c of children) {
+        await client.from("client_tasks").update({ state: "todo" }).eq("tenant_id", tenantId).eq("id", c.id).eq("state", "doing");
+      }
+    }
   }
-  return { started: won.map((t) => t.key) };
+  return { started };
 }
 
 /** startReady for the callers that must never fail on it: a finished task stays finished. */
