@@ -25,7 +25,7 @@ import type {
   GenerateResponse,
 } from "../lib/secretsApi";
 import type { CreateClientPayload } from "../lib/clientOnboarding";
-import type { ClientTask, TaskOwner, TaskState } from "../lib/clientTasks";
+import type { ClientTask, TaskOwner, TaskState, TaskMode } from "../lib/clientTasks";
 import {
   type AdsStatus,
   api,
@@ -3958,6 +3958,8 @@ export interface ClientTaskPatch {
   state?: TaskState;
   note?: string | null;
   evidence?: string | null;
+  waitsOn?: string[];
+  mode?: TaskMode;
 }
 
 const clientTasksKey = (tenantId: string) => ["admin", "client-tasks", tenantId];

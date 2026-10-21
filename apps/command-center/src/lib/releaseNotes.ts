@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-22-task-handoffs",
+    date: "22 October 2026",
+    title: "Tasks that start on their own",
+    items: [
+      "On the Director, a task can wait on other tasks. Open a task and use Waits on.",
+      "When everything a task waits on is done or cut, its agent starts it on its own, and is handed what those tasks produced (a dataset ID, a link).",
+      "A task of yours that others wait on is a gate: nothing after it starts until you tick it.",
+      "Each agent task has Writes: Needs your OK (the default, every change on a card) or Acts live (GHL changes without a card). Meta changes, credits and going live always need your OK.",
+      "A ring dot means waiting. A filled ring is a gate of yours that is ready.",
+      "Nothing waits on anything yet, so nothing starts on its own until you set it up.",
+    ],
+  },
+  {
     id: "2026-10-22-four-agents",
     date: "22 October 2026",
     title: "Leaner agents",

@@ -226,6 +226,8 @@ export function AgentStyle() {
       .ag button { font: inherit; cursor: pointer; border: 0; background: none; color: inherit; }
       .ag button:disabled { cursor: default; opacity: .55; }
       .ag svg { flex-shrink: 0; }
+      .ag-trig { border: 1px dashed color-mix(in srgb, var(--brand) 45%, var(--border)); border-radius: 14px; padding: 12px 14px; font-size: 13.5px; background: var(--brand-tint); }
+      .ag-trig-t { font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--brand-text); margin-bottom: 6px; }
       .ag-empty { padding: 16px 8px; font-size: 13px; color: var(--text-faint); text-align: center; }
       .ag-err { font-size: 12.5px; color: var(--danger); }
 

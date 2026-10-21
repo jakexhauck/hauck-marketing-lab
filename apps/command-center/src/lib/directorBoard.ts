@@ -44,3 +44,18 @@ export function cellSummary(cell: ClientTask[]): { dots: ClientTask[]; done: num
   const live = cell.filter((t) => t.state !== "cut");
   return { dots: cell, done: live.filter((t) => t.state === "done").length, total: live.length };
 }
+
+// How a task shows on the board (Build B, docs/build-plans/four-agents-and-handoffs.md):
+// a to-do that waits on anything still open (or on a task since deleted, which
+// the Director can never start it from) is "waiting"; a to-do of Jake's whose
+// waits are all done or cut is a gate ready for his go.
+export type TaskLook = "todo" | "waiting" | "ready-gate" | "doing" | "done" | "cut";
+
+const over = (t: ClientTask | undefined) => !!t && (t.state === "done" || t.state === "cut");
+
+export function taskLook(t: ClientTask, byKey: Map<string, ClientTask>): TaskLook {
+  if (t.state !== "todo") return t.state;
+  if (!t.waitsOn.length) return "todo";
+  if (!t.waitsOn.every((k) => over(byKey.get(k)))) return "waiting";
+  return t.owner === "jake" ? "ready-gate" : "todo";
+}

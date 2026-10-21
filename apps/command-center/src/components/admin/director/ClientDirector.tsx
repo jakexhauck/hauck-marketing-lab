@@ -1,8 +1,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { useClientTaskCreate, useClientTaskDelete, useClientTaskPatch, useClientTasksQuery } from "../../../hooks/useApi";
-import { ownerLabel, TASK_OWNERS, taskPhases, type ClientTask, type TaskOwner, type TaskState } from "../../../lib/clientTasks";
-import { blurSave, cellSummary, directorBoard } from "../../../lib/directorBoard";
+import { ownerLabel, TASK_OWNERS, taskPhases, type ClientTask, type TaskMode, type TaskOwner, type TaskState } from "../../../lib/clientTasks";
+import { blurSave, cellSummary, directorBoard, taskLook } from "../../../lib/directorBoard";
 
 // The per-client Director (Jake, 2026-10-20; docs/build-plans/client-fulfillment-and-director.md).
 // Owners down the side, Client Fulfillment phases across the top. Every task
@@ -10,9 +10,14 @@ import { blurSave, cellSummary, directorBoard } from "../../../lib/directorBoard
 // and clicking it lists its tasks in the side panel. Jake ticks, unticks,
 // renames, re-owns, moves and deletes from there; agents move only their own
 // tasks, and only forward, from their chats. A cut task stays, as a hollow dot.
+// Since Build B (docs/build-plans/four-agents-and-handoffs.md) a task can wait
+// on others: a ring dot while it waits, a filled ring for Jake's gate once it
+// is ready, and the panel sets what it waits on and Needs your OK / Acts live.
 
 const STATE_LABEL: Record<TaskState, string> = { todo: "To do", doing: "Doing", done: "Done", cut: "Cut" };
 const STATES: TaskState[] = ["todo", "doing", "done", "cut"];
+const MODE_LABEL: Record<TaskMode, string> = { ask: "Needs your OK", live: "Acts live" };
+const AGENT_OWNED = new Set<TaskOwner>(["csm", "research", "ads", "ghl"]);
 
 const who = (by: string | null) => {
   if (!by) return null;
@@ -28,6 +33,7 @@ export default function ClientDirector({ tenantId }: { tenantId: string }) {
   const q = useClientTasksQuery(tenantId);
   const tasks = useMemo(() => q.data?.tasks ?? [], [q.data]);
   const board = useMemo(() => directorBoard(tasks), [tasks]);
+  const byKey = useMemo(() => new Map(tasks.map((t) => [t.key, t])), [tasks]);
   const [open, setOpen] = useState<Open>(null);
   const task = open?.kind === "task" ? tasks.find((t) => t.id === open.id) ?? null : null;
 
@@ -77,7 +83,7 @@ export default function ClientDirector({ tenantId }: { tenantId: string }) {
                         >
                           <span className="dir-dots">
                             {s.dots.map((t) => (
-                              <i key={t.id} className={`dir-dot s-${t.state}`} title={t.name} />
+                              <i key={t.id} className={`dir-dot s-${taskLook(t, byKey)}`} title={t.name} />
                             ))}
                           </span>
                           <span className="dir-count">
@@ -96,6 +102,7 @@ export default function ClientDirector({ tenantId }: { tenantId: string }) {
       {open?.kind === "new" && <NewPanel tenantId={tenantId} onClose={() => setOpen(null)} />}
       {open?.kind === "cell" && (
         <CellPanel
+          byKey={byKey}
           tasks={tasks.filter((t) => t.owner === open.owner && t.phase === open.phase).sort((x, y) => x.position - y.position || x.name.localeCompare(y.name))}
           title={`${ownerLabel(open.owner)} · ${board.phases.find((p) => p.id === open.phase)?.name ?? open.phase}`}
           onPick={(id) => setOpen({ kind: "task", id, from: { owner: open.owner, phase: open.phase } })}
@@ -103,13 +110,25 @@ export default function ClientDirector({ tenantId }: { tenantId: string }) {
         />
       )}
       {task && open?.kind === "task" && (
-        <TaskPanel key={task.id} tenantId={tenantId} task={task} onClose={() => setOpen(open.from ? { kind: "cell", ...open.from } : null)} />
+        <TaskPanel key={task.id} tenantId={tenantId} task={task} all={tasks} onClose={() => setOpen(open.from ? { kind: "cell", ...open.from } : null)} />
       )}
     </div>
   );
 }
 
-function CellPanel({ title, tasks, onPick, onClose }: { title: string; tasks: ClientTask[]; onPick: (id: string) => void; onClose: () => void }) {
+function CellPanel({
+  title,
+  tasks,
+  byKey,
+  onPick,
+  onClose,
+}: {
+  title: string;
+  tasks: ClientTask[];
+  byKey: Map<string, ClientTask>;
+  onPick: (id: string) => void;
+  onClose: () => void;
+}) {
   return (
     <aside className="dir-panel" aria-label={title}>
       <div className="dir-ph">
@@ -121,7 +140,7 @@ function CellPanel({ title, tasks, onPick, onClose }: { title: string; tasks: Cl
       <div className="dir-rows">
         {tasks.map((t) => (
           <button key={t.id} type="button" className={`dir-row s-${t.state}`} onClick={() => onPick(t.id)}>
-            <i className={`dir-dot s-${t.state}`} />
+            <i className={`dir-dot s-${taskLook(t, byKey)}`} />
             <span className="dir-name">{t.name}</span>
             <span className={`dir-chip s-${t.state}`}>{STATE_LABEL[t.state]}</span>
           </button>
@@ -155,7 +174,7 @@ function OwnerSelect({ value, onChange }: { value: TaskOwner; onChange: (v: Task
   );
 }
 
-function TaskPanel({ tenantId, task, onClose }: { tenantId: string; task: ClientTask; onClose: () => void }) {
+function TaskPanel({ tenantId, task, all, onClose }: { tenantId: string; task: ClientTask; all: ClientTask[]; onClose: () => void }) {
   const patch = useClientTaskPatch(tenantId);
   const del = useClientTaskDelete(tenantId);
   const [name, setName] = useState(task.name);
@@ -212,6 +231,29 @@ function TaskPanel({ tenantId, task, onClose }: { tenantId: string; task: Client
         <span>Phase</span>
         <PhaseSelect value={task.phase} onChange={(p) => save({ phase: p })} />
       </label>
+      <WaitsOn task={task} all={all} onChange={(waitsOn) => save({ waitsOn })} />
+      {AGENT_OWNED.has(task.owner) && (
+        <div className="dir-field">
+          <span>Writes</span>
+          <div className="dir-states">
+            {(["ask", "live"] as TaskMode[]).map((m) => (
+              <button key={m} type="button" className={`dir-state${task.mode === m ? " on" : ""}`} onClick={() => task.mode !== m && save({ mode: m })}>
+                {MODE_LABEL[m]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {Object.keys(task.outputs).length > 0 && (
+        <div className="dir-field">
+          <span>Outputs</span>
+          {Object.entries(task.outputs).map(([k, v]) => (
+            <p key={k}>
+              {k}: {v}
+            </p>
+          ))}
+        </div>
+      )}
       {task.reason && (
         <div className="dir-field">
           <span>Reason</span>
@@ -266,6 +308,36 @@ function TaskPanel({ tenantId, task, onClose }: { tenantId: string; task: Client
       </button>
       {del.isError && <div className="dir-err">Not deleted: {(del.error as Error).message}</div>}
     </aside>
+  );
+}
+
+function WaitsOn({ task, all, onChange }: { task: ClientTask; all: ClientTask[]; onChange: (waitsOn: string[]) => void }) {
+  const byKey = new Map(all.map((t) => [t.key, t]));
+  const options = all.filter((t) => t.key !== task.key && !task.waitsOn.includes(t.key) && t.state !== "cut");
+  return (
+    <div className="dir-field">
+      <span>Waits on</span>
+      {task.waitsOn.map((k) => {
+        const p = byKey.get(k);
+        return (
+          <div key={k} className="dir-wait">
+            <span className="dir-name">{p ? `${p.name} (${ownerLabel(p.owner)})` : `${k} (deleted)`}</span>
+            {p && <span className={`dir-chip s-${p.state}`}>{STATE_LABEL[p.state]}</span>}
+            <button type="button" className="dir-x" aria-label={`Stop waiting on ${p?.name ?? k}`} onClick={() => onChange(task.waitsOn.filter((x) => x !== k))}>
+              <X size={14} />
+            </button>
+          </div>
+        );
+      })}
+      <select className="dir-input" aria-label="Add a task it waits on" value="" onChange={(e) => e.target.value && onChange([...task.waitsOn, e.target.value])}>
+        <option value="">Add</option>
+        {options.map((t) => (
+          <option key={t.key} value={t.key}>
+            {ownerLabel(t.owner)}: {t.name}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 
@@ -332,6 +404,10 @@ function DirectorStyle() {
       .dir-dot.s-doing { background: #d97706; }
       .dir-dot.s-done { background: #16a34a; }
       .dir-dot.s-cut { background: transparent; border: 1.5px dashed color-mix(in srgb, var(--text-muted) 60%, transparent); }
+      .dir-dot.s-waiting { background: transparent; border: 1.5px solid color-mix(in srgb, var(--text-muted) 70%, transparent); }
+      .dir-dot.s-ready-gate { background: var(--brand); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 30%, transparent); }
+      .dir-wait { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+      .dir-wait .dir-name { flex: 1; min-width: 0; }
       .dir-count { font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
       .dir-rows { display: flex; flex-direction: column; gap: 4px; }
       .dir-row { display: flex; align-items: center; gap: 8px; text-align: left; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }

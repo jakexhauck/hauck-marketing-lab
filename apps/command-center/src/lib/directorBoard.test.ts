@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blurSave, cellSummary, directorBoard } from "./directorBoard";
+import { blurSave, cellSummary, directorBoard, taskLook } from "./directorBoard";
 import type { ClientTask } from "./clientTasks";
 
 const task = (o: Partial<ClientTask>): ClientTask => ({
@@ -65,5 +65,30 @@ describe("cellSummary", () => {
 
   it("an empty cell has no dots and no count", () => {
     expect(cellSummary([])).toEqual({ dots: [], done: 0, total: 0 });
+  });
+});
+
+describe("taskLook", () => {
+  const a = task({ key: "a", owner: "ads" });
+  const done = { ...a, state: "done" as const };
+  const at = (...ts: ReturnType<typeof task>[]) => new Map(ts.map((t) => [t.key, t]));
+
+  it("waits while anything it waits on is open", () => {
+    const b = task({ key: "b", waitsOn: ["a"] });
+    expect(taskLook(b, at(a, b))).toBe("waiting");
+    expect(taskLook(b, at(done, b))).toBe("todo");
+  });
+
+  it("shows Jake's gate as ready once what it waits on is done or cut", () => {
+    const gate = task({ key: "g", owner: "jake", waitsOn: ["a"] });
+    expect(taskLook(gate, at(a, gate))).toBe("waiting");
+    expect(taskLook(gate, at(done, gate))).toBe("ready-gate");
+    expect(taskLook(gate, at({ ...a, state: "cut" }, gate))).toBe("ready-gate");
+  });
+
+  it("is its own state otherwise, and a Jake task that waits on nothing is a plain to do", () => {
+    expect(taskLook(task({ key: "j", owner: "jake" }), at())).toBe("todo");
+    expect(taskLook(task({ key: "d", state: "doing", waitsOn: ["a"] }), at(a))).toBe("doing");
+    expect(taskLook(task({ key: "x", state: "done" }), at())).toBe("done");
   });
 });

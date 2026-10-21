@@ -88,6 +88,7 @@ export default function ChatThread({
               );
             }
             if (m.role === "me") return <MeMessage key={m.id} msg={m} />;
+            if (m.role === "trigger") return <TriggerMessage key={m.id} msg={m} />;
             return <AiMessage key={m.id} msg={m} />;
           })
         )}
@@ -127,6 +128,17 @@ function MeMessage({ msg }: { msg: AgentMessage }) {
   return (
     <div className="ag-me-wrap">
       <div className="ag-m me">{msg.body}</div>
+      {msg.status === "queued" && <div className="ag-queued">Queued</div>}
+    </div>
+  );
+}
+
+// A Director start (functions/lib/taskHandoffs.ts): not Jake, not the agent.
+function TriggerMessage({ msg }: { msg: AgentMessage }) {
+  return (
+    <div className="ag-trig">
+      <div className="ag-trig-t">Director{msg.live ? ", acts live" : ""}</div>
+      <Markdown text={msg.body} />
       {msg.status === "queued" && <div className="ag-queued">Queued</div>}
     </div>
   );
