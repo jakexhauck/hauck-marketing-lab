@@ -3,7 +3,7 @@
 #   /opt/hermes/.venv/bin/python profiles.py <tokens env file> <agents dir>
 #
 # Idempotent. For each profile it sets the tools Hermes may give it over the
-# API (no terminal, no code execution, no browser for anyone), points its
+# API (no terminal, no file tools, no code execution, no browser), points its
 # "hauck" MCP server at the runner with that profile's own token, and writes a
 # short SOUL.md. Each turn's full instructions come from the runner as the
 # system message; SOUL.md is who the agent is when nothing else says (a text
@@ -19,13 +19,16 @@ import hermes_yaml as yaml  # noqa: E402
 
 HOME = "/opt/data/profiles"
 BRAIN = ["memory", "session_search", "skills", "todo"]
+# Never Hermes's own "file" toolset: it reads anything the hermes user can,
+# every profile's keys and tokens included. Files come from the hauck MCP
+# tools instead, locked to the turn's work and Drive folders (mcpBridge.ts).
 TOOLSETS = {
-    "manager": BRAIN + ["file", "mcp-hauck"],
-    "csm": BRAIN + ["file", "mcp-hauck"],
-    "research": BRAIN + ["file", "web"],
+    "manager": BRAIN + ["mcp-hauck"],
+    "csm": BRAIN + ["mcp-hauck"],
+    "research": BRAIN + ["web", "mcp-hauck"],
     "ghl": BRAIN + ["mcp-hauck"],
     # Not answered on Hermes until Phase 2; set up now so its brain can start.
-    "ads": BRAIN + ["file", "web", "mcp-hauck"],
+    "ads": BRAIN + ["web", "mcp-hauck"],
 }
 NAMES = {
     "manager": "Manager Agent",
@@ -63,10 +66,7 @@ def main():
             cfg = yaml.safe_load(f) or {}
         cfg.setdefault("platform_toolsets", {})["api_server"] = toolsets
         servers = cfg.setdefault("mcp_servers", {})
-        if "mcp-hauck" in toolsets:
-            servers["hauck"] = {"url": MCP_URL, "headers": {"Authorization": f"Bearer {token}"}}
-        else:
-            servers.pop("hauck", None)
+        servers["hauck"] = {"url": MCP_URL, "headers": {"Authorization": f"Bearer {token}"}}
         with open(cfg_path, "w") as f:
             # A wide line so a token is never folded across two lines.
             yaml.safe_dump(cfg, f, sort_keys=False, allow_unicode=True, width=2**31 - 1)

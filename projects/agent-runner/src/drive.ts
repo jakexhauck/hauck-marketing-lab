@@ -8,12 +8,12 @@
 //
 // Going back up is narrower on purpose. A mirrored Doc is a .txt export, and
 // copying the folder back would litter Drive with text copies of every Doc.
-// So the runner notes the client folder's files before a turn and uploads
-// only what the agent created or changed during it.
+// So only the files the agent wrote during the turn go up: the MCP bridge's
+// write_file records each one (mcpBridge.ts). The pull passes --update, so a
+// file the agent wrote here is never replaced by an older one from Drive.
 
 import { execFile } from "node:child_process";
-import { readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { relative } from "node:path";
 import type { AgentId } from "./wire.ts";
 
 export type Exec = (cmd: string, args: string[]) => Promise<string>;
@@ -40,35 +40,7 @@ export function driveAgent(agent: AgentId): boolean {
 }
 
 export async function pullDrive(d: DriveSync): Promise<void> {
-  await d.exec("rclone", ["copy", d.remote, d.localRoot, "--max-size", "20M", "--drive-export-formats", "txt,csv"]);
-}
-
-// Every file under dir by its path relative to dir (forward slashes), with its
-// modified time. Dot files are rclone's and the OS's, never an agent's work.
-export function snapshotFiles(dir: string): Map<string, number> {
-  const out = new Map<string, number>();
-  const walk = (d: string) => {
-    let names: string[];
-    try {
-      names = readdirSync(d);
-    } catch {
-      return;
-    }
-    for (const name of names) {
-      if (name.startsWith(".")) continue;
-      const full = join(d, name);
-      const st = statSync(full);
-      if (st.isDirectory()) walk(full);
-      else out.set(relative(dir, full).split("\\").join("/"), st.mtimeMs);
-    }
-  };
-  walk(dir);
-  return out;
-}
-
-export function changedSince(dir: string, before: Map<string, number>): string[] {
-  const now = snapshotFiles(dir);
-  return [...now].filter(([p, t]) => before.get(p) !== t).map(([p]) => p);
+  await d.exec("rclone", ["copy", d.remote, d.localRoot, "--max-size", "20M", "--drive-export-formats", "txt,csv", "--update"]);
 }
 
 // Uploads the given files of one client folder to the same place on Drive.

@@ -1,7 +1,10 @@
+import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { startBridge, type AppTools, type Bridge } from "../src/mcpBridge.ts";
 
-const TOKENS = { manager: "t-manager", csm: "t-csm", ghl: "t-ghl" };
+const TOKENS = { manager: "t-manager", csm: "t-csm", ghl: "t-ghl", research: "t-research" };
 
 function fakeTools() {
   const calls: { tool: string; body: Record<string, unknown> }[] = [];
@@ -44,6 +47,9 @@ async function rpc(token: string | null, method: string, params: unknown = {}) {
   return { status: res.status, body: text ? JSON.parse(text) : null };
 }
 
+const call = async (token: string, name: string, args: Record<string, unknown>) =>
+  (await rpc(token, "tools/call", { name, arguments: args })).body.result as { content: { text: string }[]; isError?: boolean };
+
 const toolNames = (r: { body: any }) => r.body.result.tools.map((t: { name: string }) => t.name);
 
 describe("startBridge", () => {
@@ -61,35 +67,43 @@ describe("startBridge", () => {
 
   it("lists each agent's own tools only", async () => {
     await start();
-    expect(toolNames(await rpc("t-csm", "tools/list"))).toEqual(["meta_insights"]);
-    expect(toolNames(await rpc("t-manager", "tools/list"))).toEqual(["meta_insights"]);
+    const files = ["list_files", "read_file", "write_file"];
+    expect(toolNames(await rpc("t-csm", "tools/list"))).toEqual(["meta_insights", ...files]);
+    expect(toolNames(await rpc("t-manager", "tools/list"))).toEqual(["meta_insights", ...files]);
+    expect(toolNames(await rpc("t-research", "tools/list"))).toEqual(files);
     expect(toolNames(await rpc("t-ghl", "tools/list"))).toEqual(["ghl"]);
   });
 
   it("refuses a call while that agent has no turn running", async () => {
     const f = await start();
-    const r = await rpc("t-ghl", "tools/call", { name: "ghl", arguments: { op: "read.pipelines" } });
-    expect(r.body.result.isError).toBe(true);
-    expect(r.body.result.content[0].text).toMatch(/no turn is running/i);
+    const r = await call("t-ghl", "ghl", { turn: "M1", op: "read.pipelines" });
+    expect(r.isError).toBe(true);
+    expect(r.content[0].text).toMatch(/no turn is running/i);
     expect(f.calls).toEqual([]);
   });
 
   it("takes the client and turn from the running turn, never from the arguments", async () => {
     const f = await start();
     bridge!.setTurn("ghl", { tenantId: "T1", messageId: "M1" });
-    const r = await rpc("t-ghl", "tools/call", {
-      name: "ghl",
-      arguments: { op: "write.tag", args: { tag: "hot" }, tenantId: "T2", messageId: "M2" },
-    });
-    expect(r.body.result).toEqual({ content: [{ type: "text", text: '{"ok":true}' }] });
+    const r = await call("t-ghl", "ghl", { turn: "M1", op: "write.tag", args: { tag: "hot" }, tenantId: "T2", messageId: "M2" });
+    expect(r).toEqual({ content: [{ type: "text", text: '{"ok":true}' }] });
     expect(f.calls).toEqual([{ tool: "ghl", body: { messageId: "M1", tenantId: "T1", op: "write.tag", args: { tag: "hot" } } }]);
+  });
+
+  // Hermes may still be running a turn the runner gave up on. Its late call
+  // must not act under the next turn's client.
+  it("refuses a call from an earlier turn, or one that names no turn", async () => {
+    const f = await start();
+    bridge!.setTurn("ghl", { tenantId: "T-B", messageId: "M-B" });
+    expect((await call("t-ghl", "ghl", { turn: "M-A", op: "write.tag" })).content[0].text).toMatch(/not the one running now/);
+    expect((await call("t-ghl", "ghl", { op: "write.tag" })).isError).toBe(true);
+    expect(f.calls).toEqual([]);
   });
 
   it("refuses a tool that is not this agent's", async () => {
     const f = await start();
     bridge!.setTurn("csm", { tenantId: "T1", messageId: "M1" });
-    const r = await rpc("t-csm", "tools/call", { name: "ghl", arguments: { op: "write.tag" } });
-    expect(r.body.result.isError).toBe(true);
+    expect((await call("t-csm", "ghl", { turn: "M1", op: "write.tag" })).isError).toBe(true);
     expect(f.calls).toEqual([]);
   });
 
@@ -97,19 +111,25 @@ describe("startBridge", () => {
     const f = await start();
     bridge!.setTurn("manager", { tenantId: null, messageId: "M1" });
     bridge!.setTurn("csm", { tenantId: "T1", messageId: "M2" });
-    await rpc("t-manager", "tools/call", { name: "meta_insights", arguments: { tenant: "T9", level: "campaign", days: 30 } });
-    await rpc("t-csm", "tools/call", { name: "meta_insights", arguments: { tenant: "T9" } });
+    await call("t-manager", "meta_insights", { turn: "M1", tenant: "T9", level: "campaign", days: 30 });
+    await call("t-csm", "meta_insights", { turn: "M2", tenant: "T9" });
     expect(f.calls).toEqual([
       { tool: "meta", body: { tenant: "T9", level: "campaign", days: 30 } },
       { tool: "meta", body: { tenant: "T1", level: "account", days: 7 } },
     ]);
   });
 
+  it("does not let a CSM in an agency chat pick a client", async () => {
+    const f = await start();
+    bridge!.setTurn("csm", { tenantId: null, messageId: "M1" });
+    expect((await call("t-csm", "meta_insights", { turn: "M1", tenant: "T9" })).isError).toBe(true);
+    expect(f.calls).toEqual([]);
+  });
+
   it("refuses a GHL call with no client", async () => {
     const f = await start();
     bridge!.setTurn("ghl", { tenantId: null, messageId: "M1" });
-    const r = await rpc("t-ghl", "tools/call", { name: "ghl", arguments: { op: "read.pipelines" } });
-    expect(r.body.result.isError).toBe(true);
+    expect((await call("t-ghl", "ghl", { turn: "M1", op: "read.pipelines" })).isError).toBe(true);
     expect(f.calls).toEqual([]);
   });
 
@@ -117,8 +137,7 @@ describe("startBridge", () => {
     const f = await start();
     bridge!.setTurn("ghl", { tenantId: "T1", messageId: "M1" });
     bridge!.setTurn("ghl", null);
-    const r = await rpc("t-ghl", "tools/call", { name: "ghl", arguments: { op: "read.pipelines" } });
-    expect(r.body.result.isError).toBe(true);
+    expect((await call("t-ghl", "ghl", { turn: "M1", op: "read.pipelines" })).isError).toBe(true);
     expect(f.calls).toEqual([]);
   });
 
@@ -130,5 +149,71 @@ describe("startBridge", () => {
       body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }),
     });
     expect(res.status).toBe(202);
+  });
+});
+
+describe("file tools", () => {
+  function folders() {
+    const root = mkdtempSync(join(tmpdir(), "bridge-"));
+    const work = join(root, "work", "csm-willis");
+    const drive = join(root, "drive", "Willis Windows");
+    const secret = join(root, "profiles", "ghl");
+    for (const d of [work, drive, secret]) mkdirSync(d, { recursive: true });
+    writeFileSync(join(drive, "Notes.txt"), "client notes");
+    writeFileSync(join(secret, ".env"), "API_SERVER_KEY=secret");
+    return { root, work, drive, secret };
+  }
+
+  it("reads, lists and writes inside the turn's folders, and records what it wrote", async () => {
+    await start();
+    const f = folders();
+    bridge!.setTurn("csm", { tenantId: "T1", messageId: "M1", roots: [{ dir: f.work, write: true }, { dir: f.drive, write: true }] });
+    expect((await call("t-csm", "read_file", { turn: "M1", path: join(f.drive, "Notes.txt") })).content[0].text).toBe("client notes");
+    expect((await call("t-csm", "list_files", { turn: "M1", path: f.drive })).content[0].text).toBe("Notes.txt");
+    const w = await call("t-csm", "write_file", { turn: "M1", path: join(f.drive, "Reports", "October.md"), content: "# October" });
+    expect(w.isError).toBeUndefined();
+    expect(readFileSync(join(f.drive, "Reports", "October.md"), "utf8")).toBe("# October");
+    await call("t-csm", "write_file", { turn: "M1", path: "draft.md", content: "x" });
+    expect(bridge!.written("csm").sort()).toEqual([join(f.drive, "Reports", "October.md"), join(f.work, "draft.md")].sort());
+  });
+
+  it("refuses anything outside the turn's folders, by path or by climbing", async () => {
+    await start();
+    const f = folders();
+    bridge!.setTurn("csm", { tenantId: "T1", messageId: "M1", roots: [{ dir: f.work, write: true }] });
+    for (const path of [join(f.secret, ".env"), "../../profiles/ghl/.env", "/etc/passwd"]) {
+      const r = await call("t-csm", "read_file", { turn: "M1", path });
+      expect(r.isError).toBe(true);
+      expect(r.content[0].text).toMatch(/outside your folders/);
+    }
+  });
+
+  it("does not follow a link out of a folder", async () => {
+    await start();
+    const f = folders();
+    try {
+      symlinkSync(f.secret, join(f.work, "escape"), "junction");
+    } catch {
+      return; // no symlink rights on this machine; the VPS is Linux
+    }
+    bridge!.setTurn("csm", { tenantId: "T1", messageId: "M1", roots: [{ dir: f.work, write: true }] });
+    expect((await call("t-csm", "read_file", { turn: "M1", path: join(f.work, "escape", ".env") })).isError).toBe(true);
+  });
+
+  it("refuses a write in a read-only folder", async () => {
+    await start();
+    const f = folders();
+    bridge!.setTurn("manager", { tenantId: null, messageId: "M1", roots: [{ dir: f.work, write: false }] });
+    const r = await call("t-manager", "write_file", { turn: "M1", path: "x.md", content: "x" });
+    expect(r.content[0].text).toMatch(/cannot write/);
+  });
+
+  it("starts each turn with nothing written", async () => {
+    await start();
+    const f = folders();
+    bridge!.setTurn("csm", { tenantId: "T1", messageId: "M1", roots: [{ dir: f.work, write: true }] });
+    await call("t-csm", "write_file", { turn: "M1", path: "a.md", content: "x" });
+    bridge!.setTurn("csm", { tenantId: "T1", messageId: "M2", roots: [{ dir: f.work, write: true }] });
+    expect(bridge!.written("csm")).toEqual([]);
   });
 });

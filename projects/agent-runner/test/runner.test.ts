@@ -61,7 +61,7 @@ function claim(over: Partial<ClaimResponse["chat"]> = {}, body = "What did CPL d
   };
 }
 
-function deps(env: ReturnType<typeof world>["env"], reply: string, commits: string[][] = []) {
+function deps(env: ReturnType<typeof world>["env"] & { appTools?: "scripts" | "mcp" }, reply: string, commits: string[][] = []) {
   const api = fakeApi();
   const runs: { sessionId: string; resume: boolean; prompt: string }[] = [];
   const d: RunnerDeps = {
@@ -271,6 +271,16 @@ ${F}`);
     await handleClaim(claim(), d);
     expect(seen).toEqual([{ tenant: "t-willis", messageId: "m1" }]);
     expect(childEnv?.AGENT_MESSAGE_ID).toBe("m1");
+  });
+
+  it("tells a Hermes agent its turn id for the hauck tools, and claude nothing of it", async () => {
+    const { env } = world();
+    const hermes = deps({ ...env, appTools: "mcp" as const }, "Fine.");
+    await handleClaim(claim(), hermes.d);
+    expect(hermes.runs[0].prompt).toContain("Turn id for every hauck tool call: m1");
+    const claude = deps(env, "Fine.");
+    await handleClaim(claim(), claude.d);
+    expect(claude.runs[0].prompt).not.toContain("Turn id");
   });
 
   it("gives a fresh session the earlier messages", async () => {

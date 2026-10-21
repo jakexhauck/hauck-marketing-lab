@@ -25,7 +25,7 @@ import { existsSync } from "node:fs";
 import { hostname } from "node:os";
 import { join } from "node:path";
 import { createApi } from "./api.ts";
-import { defaultBundleEnv } from "./bundle.ts";
+import { defaultBundleEnv, workDirFor } from "./bundle.ts";
 import { runClaude, type RunOptions } from "./claude.ts";
 import { AGENT_IDS } from "./agents.ts";
 import { hermesRunner } from "./hermes.ts";
@@ -34,7 +34,7 @@ import { startBridge, type Bridge } from "./mcpBridge.ts";
 import { API_BASE, CLAIM_AGENTS, DATA_DIR, DRIVE_MODE, DRIVE_REMOTE, DRIVE_ROOT, ENGINE, GIT_PUSH, HERMES_API, HEARTBEAT_MS, PAGES_CWD, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
 import { createCreativeApi } from "./creativeApi.ts";
 import { commitBrains, pullRepo } from "./git.ts";
-import { changedSince, defaultExec, driveAgent, pullDrive, pushChanged, snapshotFiles, type DriveSync } from "./drive.ts";
+import { defaultExec, driveAgent, pullDrive, pushChanged, type DriveSync } from "./drive.ts";
 import { findDriveFolder } from "./clients.ts";
 import { deployDraft, promote } from "./pages.ts";
 import { runMonitorIfDue } from "./monitor.ts";
@@ -192,24 +192,29 @@ async function main(): Promise<void> {
     const claim = await api.claim(host, CLAIM_AGENTS);
     if (!claim) return false;
     log(`claimed ${claim.message.id} (${claim.chat.agent}, ${claim.tenant?.name ?? "agency"})`);
-    // The bridge answers this agent's tool calls for this turn only.
-    bridge?.setTurn(claim.chat.agent, { tenantId: claim.tenant?.id ?? null, messageId: claim.message.id });
-    // On the VPS, what the CSM or Research wrote into the client's Drive
-    // folder goes back up after the turn, and only that (drive.ts).
-    const folder = drive && claim.tenant && driveAgent(claim.chat.agent) ? findDriveFolder(DRIVE_ROOT, claim.tenant) : null;
-    const before = folder ? snapshotFiles(folder) : null;
+    // The bridge answers this agent's tool calls for this turn only, in this
+    // turn's folders: its work folder, and its client's Drive folder (not for
+    // the GHL Agent, which never had one). Only the CSM and Research write.
+    const agent = claim.chat.agent;
+    const writes = driveAgent(agent);
+    const folder = claim.tenant && agent !== "ghl" ? findDriveFolder(DRIVE_ROOT, claim.tenant) : null;
+    const roots = agent === "ghl" ? [] : [{ dir: workDirFor(deps.env, agent, claim.tenant), write: writes }];
+    if (folder) roots.push({ dir: folder, write: writes });
+    bridge?.setTurn(agent, { tenantId: claim.tenant?.id ?? null, messageId: claim.message.id, roots });
+    let written: string[] = [];
     try {
       await handleClaim(claim, deps);
     } finally {
-      bridge?.setTurn(claim.chat.agent, null);
+      written = bridge?.written(agent) ?? [];
+      bridge?.setTurn(agent, null);
     }
-    if (drive && folder && before) {
-      const changed = changedSince(folder, before);
-      if (changed.length) {
-        await pushChanged(drive, folder, changed)
-          .then((sent) => log(`drive: uploaded ${sent.join(", ")}`))
-          .catch((e) => log(`drive push failed: ${(e as Error).message}`));
-      }
+    // On the VPS, what the agent wrote into the client's Drive folder goes up
+    // after the turn, and only that (drive.ts).
+    const toDrive = folder ? written.filter((p) => p.startsWith(folder + "/")).map((p) => p.slice(folder.length + 1)) : [];
+    if (drive && folder && toDrive.length) {
+      await pushChanged(drive, folder, toDrive)
+        .then((sent) => log(`drive: uploaded ${sent.join(", ")}`))
+        .catch((e) => log(`drive push failed: ${(e as Error).message}`));
     }
     log(`finished ${claim.message.id}`);
     return true;

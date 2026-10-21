@@ -7,18 +7,32 @@
 // commands as MCP tools served from here, over HTTP on the VPS's Docker
 // network. The secret never leaves this process.
 //
+// Files too. Hermes's own file tools read anything its user can, and that
+// includes every profile's keys and tokens, so no profile gets them. The
+// read_file, write_file and list_files here reach only the turn's folders:
+// its work folder and its client's Drive folder, written to only by the
+// agents whose job is writing. What an agent writes is recorded, so the
+// runner uploads exactly that to Drive after the turn (drive.ts).
+//
 // Each profile's MCP entry carries its own bearer token, so the token says
 // which agent is calling. The client and the turn come from the turn this
 // runner is working for that agent (setTurn), never from the tool's
 // arguments, exactly as the scripts take them from the environment only. With
-// no turn running for that agent, every call is refused. The app still makes
-// every decision that matters (lib/agentGhlOps.ts): this is a messenger.
+// no turn running for that agent, every call is refused.
+//
+// Every call also names its turn (the message id the runner put in the
+// prompt). Hermes may still be running a turn the runner gave up on (a
+// timeout, a dropped stream); a late call from it carries the old id and is
+// refused, so it can never act under the next turn's client. The app still
+// makes every decision that matters (lib/agentGhlOps.ts): this is a messenger.
 //
 // Streamable HTTP, JSON answers only: initialize, tools/list, tools/call and
 // ping, which is all Hermes's MCP client sends a tool server.
 
+import { mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import type { AgentId } from "./wire.ts";
 
 export interface AppTools {
@@ -28,14 +42,24 @@ export interface AppTools {
   meta(q: { tenant: string; level: string; days: number }): Promise<string>;
 }
 
+export interface Root {
+  dir: string;
+  write: boolean;
+}
+
 export interface Turn {
   tenantId: string | null;
   messageId: string;
+  // The folders this turn's file tools reach. The first is where a relative
+  // path lands.
+  roots?: Root[];
 }
 
 export interface Bridge {
   port: number;
   setTurn(agent: AgentId, turn: Turn | null): void;
+  // The files this agent wrote during its current turn, absolute paths.
+  written(agent: AgentId): string[];
   close(): Promise<void>;
 }
 
@@ -43,6 +67,8 @@ export interface Bridge {
 // them, GHL for the GHL Agent. The Ads Agent's Ads Manager changes are not
 // here: Ads stays on the PC engine until Phase 2.
 const META_AGENTS: AgentId[] = ["manager", "csm", "ads"];
+// The GHL Agent works in GHL only; it never had file tools.
+const FILE_AGENTS: AgentId[] = ["manager", "csm", "research", "ads"];
 
 // Mirrors GHL_OPS in apps/command-center/functions/lib/agentGhlOps.ts, as
 // bin/ghl.mjs does. The app's list is the one that counts.
@@ -57,6 +83,11 @@ const GHL_OPS = [
   "write.moveOpportunity",
 ];
 
+const MAX_READ = 1_000_000;
+const MAX_WRITE = 2_000_000;
+
+const TURN = { type: "string", description: "The turn id given in this turn's message. Required on every call." };
+
 const META_TOOL = {
   name: "meta_insights",
   description:
@@ -64,10 +95,12 @@ const META_TOOL = {
   inputSchema: {
     type: "object",
     properties: {
+      turn: TURN,
       level: { type: "string", enum: ["account", "campaign", "ad"] },
       days: { type: "integer", minimum: 1, maximum: 90 },
       tenant: { type: "string" },
     },
+    required: ["turn"],
   },
 };
 
@@ -77,39 +110,124 @@ const GHL_TOOL = {
     "An allowlisted op in this client's sub-account. Reads always work; a write goes through only when Jake asked for it in this chat, approved a card, or the Director task acts live. The app decides and says why when it refuses.",
   inputSchema: {
     type: "object",
-    properties: {
-      op: { type: "string", enum: GHL_OPS },
-      args: { type: "object" },
-    },
-    required: ["op"],
+    properties: { turn: TURN, op: { type: "string", enum: GHL_OPS }, args: { type: "object" } },
+    required: ["turn", "op"],
   },
 };
 
+const FILE_TOOLS = [
+  {
+    name: "list_files",
+    description: "List a folder in your work folder or the client's Drive folder. No path lists your work folder.",
+    inputSchema: { type: "object", properties: { turn: TURN, path: { type: "string" } }, required: ["turn"] },
+  },
+  {
+    name: "read_file",
+    description: "Read a text file from your work folder or the client's Drive folder.",
+    inputSchema: { type: "object", properties: { turn: TURN, path: { type: "string" } }, required: ["turn", "path"] },
+  },
+  {
+    name: "write_file",
+    description: "Write a text file (whole content) in your work folder or the client's Drive folder, if your job writes files.",
+    inputSchema: {
+      type: "object",
+      properties: { turn: TURN, path: { type: "string" }, content: { type: "string" } },
+      required: ["turn", "path", "content"],
+    },
+  },
+];
+
 function toolsFor(agent: AgentId) {
-  return [...(META_AGENTS.includes(agent) ? [META_TOOL] : []), ...(agent === "ghl" ? [GHL_TOOL] : [])];
+  return [
+    ...(META_AGENTS.includes(agent) ? [META_TOOL] : []),
+    ...(agent === "ghl" ? [GHL_TOOL] : []),
+    ...(FILE_AGENTS.includes(agent) ? FILE_TOOLS : []),
+  ];
 }
 
 const text = (t: string, isError = false) => ({ content: [{ type: "text", text: t }], ...(isError ? { isError: true } : {}) });
 
-async function callTool(agent: AgentId, turn: Turn | null, name: string, a: Record<string, unknown>, tools: AppTools) {
+// The deepest existing folder at or above p, resolved through any symlink, so
+// a link inside a root cannot lead out of it.
+function realOrParent(p: string): string {
+  let cur = p;
+  for (;;) {
+    try {
+      return resolve(realpathSync(cur), relative(cur, p));
+    } catch {
+      const up = dirname(cur);
+      if (up === cur) return p;
+      cur = up;
+    }
+  }
+}
+
+const inside = (dir: string, p: string) => p === dir || p.startsWith(dir.endsWith(sep) ? dir : dir + sep);
+
+// Which root a path is in, or null. Relative paths are from the first root.
+export function placePath(roots: Root[], raw: string): { path: string; root: Root } | null {
+  if (!roots.length) return null;
+  const want = realOrParent(isAbsolute(raw) ? resolve(raw) : resolve(roots[0].dir, raw));
+  for (const root of roots) {
+    if (inside(realOrParent(resolve(root.dir)), want)) return { path: want, root };
+  }
+  return null;
+}
+
+async function callTool(
+  agent: AgentId,
+  turn: Turn | null,
+  name: string,
+  a: Record<string, unknown>,
+  tools: AppTools,
+  written: Set<string>,
+) {
   if (!toolsFor(agent).some((t) => t.name === name)) return text(`${name} is not one of your tools`, true);
   if (!turn) return text("No turn is running for you right now, so this call was not made.", true);
+  if (a.turn !== turn.messageId) return text("This call names a turn that is not the one running now, so it was not made.", true);
   try {
     if (name === "meta_insights") {
       const level = typeof a.level === "string" ? a.level : "account";
       const days = typeof a.days === "number" ? a.days : 7;
       if (!["account", "campaign", "ad"].includes(level)) return text("level must be account, campaign or ad", true);
       if (!Number.isInteger(days) || days < 1 || days > 90) return text("days must be a whole number from 1 to 90", true);
-      // At a client the chat decides; only the agency Manager (no client) picks.
-      const tenant = turn.tenantId ?? (typeof a.tenant === "string" ? a.tenant : "");
-      if (!tenant) return text("no client: pass tenant with a client's tenant id", true);
+      // At a client the chat decides; only the agency Manager picks one.
+      const tenant = turn.tenantId ?? (agent === "manager" && typeof a.tenant === "string" ? a.tenant : "");
+      if (!tenant) return text("no client: only the agency Manager passes tenant", true);
       return text(await tools.meta({ tenant, level, days }));
     }
-    const op = typeof a.op === "string" ? a.op : "";
-    if (!GHL_OPS.includes(op)) return text(`op must be one of: ${GHL_OPS.join(", ")}`, true);
-    if (!turn.tenantId) return text("no client: the GHL Agent only works inside a client's chat", true);
-    const args = a.args && typeof a.args === "object" && !Array.isArray(a.args) ? (a.args as Record<string, unknown>) : {};
-    return text(await tools.ghl({ messageId: turn.messageId, tenantId: turn.tenantId, op, args }));
+    if (name === "ghl") {
+      const op = typeof a.op === "string" ? a.op : "";
+      if (!GHL_OPS.includes(op)) return text(`op must be one of: ${GHL_OPS.join(", ")}`, true);
+      if (!turn.tenantId) return text("no client: the GHL Agent only works inside a client's chat", true);
+      const args = a.args && typeof a.args === "object" && !Array.isArray(a.args) ? (a.args as Record<string, unknown>) : {};
+      return text(await tools.ghl({ messageId: turn.messageId, tenantId: turn.tenantId, op, args }));
+    }
+
+    const roots = turn.roots ?? [];
+    const raw = typeof a.path === "string" && a.path.trim() ? a.path.trim() : name === "list_files" ? "." : "";
+    if (!raw) return text("path is required", true);
+    const at = placePath(roots, raw);
+    if (!at) return text(`${raw} is outside your folders: ${roots.map((r) => r.dir).join(", ") || "none this turn"}`, true);
+    if (name === "list_files") {
+      const names = readdirSync(at.path, { withFileTypes: true })
+        .filter((e) => !e.name.startsWith("."))
+        .map((e) => (e.isDirectory() ? `${e.name}/` : e.name))
+        .sort();
+      return text(names.join("\n") || "(empty)");
+    }
+    if (name === "read_file") {
+      if (statSync(at.path).size > MAX_READ) return text("file is over 1 MB; not read", true);
+      return text(readFileSync(at.path, "utf8"));
+    }
+    if (!at.root.write) return text(`you cannot write in ${at.root.dir}`, true);
+    const content = typeof a.content === "string" ? a.content : null;
+    if (content === null) return text("content is required", true);
+    if (content.length > MAX_WRITE) return text("content is over 2 MB; not written", true);
+    mkdirSync(dirname(at.path), { recursive: true });
+    writeFileSync(at.path, content);
+    written.add(at.path);
+    return text(`wrote ${at.path}`);
   } catch (e) {
     return text((e as Error).message, true);
   }
@@ -119,7 +237,7 @@ async function readBody(req: IncomingMessage): Promise<string> {
   let s = "";
   for await (const chunk of req) {
     s += chunk;
-    if (s.length > 1_000_000) throw new Error("body too large");
+    if (s.length > 4_000_000) throw new Error("body too large");
   }
   return s;
 }
@@ -132,6 +250,7 @@ function send(res: ServerResponse, status: number, body?: unknown): void {
 export function startBridge(o: { port: number; host?: string; tokens: Partial<Record<AgentId, string>>; tools: AppTools }): Promise<Bridge> {
   const byToken = new Map(Object.entries(o.tokens).filter(([, t]) => t).map(([a, t]) => [t as string, a as AgentId]));
   const turns = new Map<AgentId, Turn>();
+  const writes = new Map<AgentId, Set<string>>();
 
   const server = createServer(async (req, res) => {
     try {
@@ -164,7 +283,8 @@ export function startBridge(o: { port: number; host?: string; tokens: Partial<Re
           return ok({ tools: toolsFor(agent) });
         case "tools/call": {
           const args = msg.params?.arguments && typeof msg.params.arguments === "object" ? msg.params.arguments : {};
-          return ok(await callTool(agent, turns.get(agent) ?? null, String(msg.params?.name ?? ""), args, o.tools));
+          if (!writes.has(agent)) writes.set(agent, new Set());
+          return ok(await callTool(agent, turns.get(agent) ?? null, String(msg.params?.name ?? ""), args, o.tools, writes.get(agent)!));
         }
         default:
           return send(res, 200, { jsonrpc: "2.0", id: msg.id, error: { code: -32601, message: `unknown method ${msg.method}` } });
@@ -174,15 +294,22 @@ export function startBridge(o: { port: number; host?: string; tokens: Partial<Re
     }
   });
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolvePromise, reject) => {
     server.once("error", reject);
     server.listen(o.port, o.host ?? "0.0.0.0", () => {
-      resolve({
+      resolvePromise({
         port: (server.address() as AddressInfo).port,
         setTurn(agent, turn) {
-          if (turn) turns.set(agent, turn);
-          else turns.delete(agent);
+          // A new turn starts with nothing written; the last one's list is
+          // the caller's to read before it ends the turn.
+          if (turn) {
+            turns.set(agent, turn);
+            writes.set(agent, new Set());
+          } else {
+            turns.delete(agent);
+          }
         },
+        written: (agent) => [...(writes.get(agent) ?? [])],
         close: () => new Promise<void>((r) => server.close(() => r())),
       });
     });

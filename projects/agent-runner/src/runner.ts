@@ -203,7 +203,10 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
     // can say where. See landing.ts.
     const liveNote = d.landing ? await goLive(claim, { api: d.api, landing: d.landing }) : null;
     const briefNote = d.briefNotes?.get(chat.id) ?? null;
-    const withNote = (p: string) => [p, liveNote, briefNote].filter(Boolean).join("\n\n");
+    // A Hermes agent names its turn on every hauck tool call (mcpBridge.ts), so a
+    // late call from a turn the runner gave up on is refused.
+    const turnNote = d.env.appTools === "mcp" ? `Turn id for every hauck tool call: ${messageId}` : null;
+    const withNote = (p: string) => [p, liveNote, briefNote, turnNote].filter(Boolean).join("\n\n");
     const base = {
       agent,
       sessionId: chat.claudeSessionId,

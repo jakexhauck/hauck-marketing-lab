@@ -127,6 +127,11 @@ function adsGrantSection(grant: Grant | null): string | null {
   return `## Approved this turn\nJake approved card ${grant.itemId}. Make exactly the changes in that card's ops, one metaops call per op, with the same args, and report what Meta answered for each. Nothing else.`;
 }
 
+/** One agent and client's work folder. Stable: claude keys its saved sessions by it. */
+export function workDirFor(env: Pick<BundleEnv, "workRoot">, agent: AgentId, tenant: Pick<ClaimTenant, "slug"> | null): string {
+  return join(env.workRoot, `${agent}-${tenant?.slug ?? "agency"}`);
+}
+
 /** The runner-only folder for one agent and client: beside the work folders, not in one. */
 export function stateDirFor(env: BundleEnv, agent: AgentId, tenant: ClaimTenant | null): string {
   return join(env.stateRoot ?? join(dirname(env.workRoot), "state"), `${agent}-${tenant?.slug ?? "agency"}`);
@@ -342,11 +347,13 @@ export function buildBundle(
   if (taskText) sections.push(taskText);
   // A stable folder per agent and client: claude keys its saved sessions by
   // the folder it runs in, so --resume only finds a chat from the same one.
-  const workDir = join(env.workRoot, `${agent}-${tenant?.slug ?? "agency"}`);
+  const workDir = workDirFor(env, agent, tenant);
   if (agent === "ads" && tenant) sections.push(landingSection(workDir, grant));
   // claude runs inside its work folder; a Hermes turn does not, so it is told.
   if (env.appTools === "mcp") {
-    sections.push(`## Your work folder\n\`${workDir}\`. Write your files here (or in the client's Drive folder above, when your job puts them there). The copy playbooks are in \`${join(workDir, COPY_DIR_NAME)}\`.`);
+    sections.push(
+      `## Your files\nUse the hauck file tools (list_files, read_file, write_file). Your work folder is \`${workDir}\` (a relative path lands here); the client's Drive folder is above. The copy playbooks are in \`${join(workDir, COPY_DIR_NAME)}\`.`,
+    );
   }
   if (agent === "manager") {
     sections.push(brainSection("Mega Brain", megaBrain(env.vaultDir)));
