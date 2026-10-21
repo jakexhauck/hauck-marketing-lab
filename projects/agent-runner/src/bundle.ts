@@ -50,6 +50,10 @@ export interface BundleEnv {
   // The Ads Agent's Ads Manager script, same rules. Unset means the real
   // bin/metaops.mjs.
   metaOpsScript?: string;
+  // How the agent reaches the app: "scripts" (claude runs bin/*.mjs) or "mcp"
+  // (a Hermes profile calls the runner's MCP tools, mcpBridge.ts). Only the
+  // lines that tell the agent how change; the app's gates are the same.
+  appTools?: "scripts" | "mcp";
 }
 
 export const defaultBundleEnv = (): BundleEnv => ({
@@ -62,6 +66,7 @@ export const defaultBundleEnv = (): BundleEnv => ({
   metaScript: META_SCRIPT,
   ghlScript: GHL_SCRIPT,
   metaOpsScript: METAOPS_SCRIPT,
+  appTools: ENGINE === "hermes" ? "mcp" : "scripts",
 });
 
 // The one shell command any agent can run. By absolute path, from a folder the
@@ -99,6 +104,7 @@ function ghlTools(agent: AgentId, tenant: ClaimTenant | null, env: BundleEnv): s
 
 function ghlLine(env: BundleEnv, agent: AgentId): string | null {
   if (agent !== "ghl") return null;
+  if (env.appTools === "mcp") return "- GHL: your `ghl` tool (op, args), one of the hauck tools";
   return `- GHL (the only command you can run): \`node ${env.ghlScript ?? GHL_SCRIPT} <op> '<json args>'\``;
 }
 
@@ -170,6 +176,10 @@ function megaBrain(vaultDir: string): string {
 
 function metaLine(env: BundleEnv, agent: AgentId, agency: boolean): string | null {
   if (!META_AGENTS.includes(agent)) return null;
+  if (env.appTools === "mcp") {
+    const tenant = agency ? ", tenant <client tenant id>" : "";
+    return `- Meta numbers (read-only): your \`meta_insights\` tool (level account|campaign|ad, days N${tenant}), one of the hauck tools`;
+  }
   const tenantArg = agency ? " --tenant <client tenant id>" : "";
   // The Ads Agent at a client also has the metaops command (metaOpsLine).
   const only = agent === "ads" && !agency ? "" : ", the only command you can run";

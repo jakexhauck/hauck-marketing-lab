@@ -221,6 +221,18 @@ describe("buildBundle", () => {
     expect(ghl).not.toContain(env.metaScript);
   });
 
+  it("on Hermes names the hauck tools instead of the scripts", () => {
+    const env = { ...world(), appTools: "mcp" as const };
+    const csm = readFileSync(buildBundle("csm", willis, env).systemPromptFile, "utf8");
+    expect(csm).toContain("`meta_insights` tool");
+    expect(csm).not.toContain(env.metaScript);
+    const ghl = readFileSync(buildBundle("ghl", willis, env).systemPromptFile, "utf8");
+    expect(ghl).toContain("`ghl` tool");
+    expect(ghl).not.toContain(env.ghlScript);
+    const manager = readFileSync(buildBundle("manager", null, env).systemPromptFile, "utf8");
+    expect(manager).toContain("tenant <client tenant id>");
+  });
+
   it("puts the client's Profile and Memory notes into the prompt", () => {
     const env = world();
     writeFileSync(join(env.vaultDir, "Clients", "Willis Windows", "Profile.md"), "Owner is Bob\n");

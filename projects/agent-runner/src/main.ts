@@ -29,6 +29,8 @@ import { defaultBundleEnv } from "./bundle.ts";
 import { runClaude, type RunOptions } from "./claude.ts";
 import { AGENT_IDS } from "./agents.ts";
 import { hermesRunner } from "./hermes.ts";
+import { appTools } from "./appOps.ts";
+import { startBridge, type Bridge } from "./mcpBridge.ts";
 import { API_BASE, CLAIM_AGENTS, DATA_DIR, ENGINE, HERMES_API, HEARTBEAT_MS, PAGES_CWD, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
 import { createCreativeApi } from "./creativeApi.ts";
 import { commitBrains } from "./git.ts";
@@ -115,6 +117,18 @@ async function main(): Promise<void> {
     briefNotes: fileBriefNotes(join(DATA_DIR, "brief-notes")),
   };
 
+  // The Hermes agents' way to the app (mcpBridge.ts). Each profile's MCP
+  // entry carries its HERMES_MCP_TOKEN_<AGENT>; the port is the one
+  // deploy/vps/profiles.sh points them at.
+  let bridge: Bridge | null = null;
+  if (ENGINE === "hermes") {
+    const tokens = Object.fromEntries(
+      AGENT_IDS.map((a) => [a, process.env[`HERMES_MCP_TOKEN_${a.toUpperCase()}`] ?? ""]).filter(([, t]) => t),
+    );
+    bridge = await startBridge({ port: Number(process.env.HERMES_MCP_PORT ?? 8700), tokens, tools: appTools({ base: API_BASE, secret }) });
+    log(`app tools for Hermes on port ${bridge.port} (${Object.keys(tokens).join(", ") || "no tokens set"})`);
+  }
+
   let tenants: ClaimTenant[] = [];
   let tenantsAt = 0;
   async function refreshTenants(force = false): Promise<void> {
@@ -160,7 +174,13 @@ async function main(): Promise<void> {
     const claim = await api.claim(host, CLAIM_AGENTS);
     if (!claim) return false;
     log(`claimed ${claim.message.id} (${claim.chat.agent}, ${claim.tenant?.name ?? "agency"})`);
-    await handleClaim(claim, deps);
+    // The bridge answers this agent's tool calls for this turn only.
+    bridge?.setTurn(claim.chat.agent, { tenantId: claim.tenant?.id ?? null, messageId: claim.message.id });
+    try {
+      await handleClaim(claim, deps);
+    } finally {
+      bridge?.setTurn(claim.chat.agent, null);
+    }
     log(`finished ${claim.message.id}`);
     return true;
   }
