@@ -8,6 +8,9 @@ services:
   hauck-agent-runner:
     build: .
     container_name: hauck-agent-runner
+    # The app puts a dead runner's half-done messages back by host name, so it
+    # must outlive a rebuild (the default is the container's random id).
+    hostname: hauck-vps
     restart: unless-stopped
     mem_limit: 512m
     env_file:
