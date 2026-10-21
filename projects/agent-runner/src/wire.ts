@@ -6,7 +6,7 @@
 //
 // Field names are camelCase on the wire; the tables (0166) are snake_case.
 
-export type AgentId = "manager" | "research" | "ads" | "creative" | "landing" | "ghl" | "reporting";
+export type AgentId = "manager" | "csm" | "research" | "ads" | "ghl";
 
 export type MessageRole = "me" | "ai" | "request";
 export type MessageStatus = "queued" | "running" | "done" | "error";
@@ -256,8 +256,8 @@ export interface FileCreativeBody {
 
 // The Client Brief (Phase 6). One section per agent; version 0 is unwritten.
 // Brief v2 adds Client and the two call checklists, which no agent writes.
-export type BriefAuthor = "jake" | AgentId;
-export type BriefSectionId = AgentId | "client" | "onboarding-call" | "launch-call";
+export type BriefAuthor = "jake" | Exclude<AgentId, "manager">;
+export type BriefSectionId = Exclude<AgentId, "manager"> | "client" | "onboarding-call" | "launch-call";
 
 export interface BriefSection {
   section: BriefSectionId;

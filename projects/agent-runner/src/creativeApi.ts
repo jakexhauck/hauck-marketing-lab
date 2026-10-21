@@ -1,4 +1,4 @@
-// The Creative Agent's three app calls (Phase 3), beside the shared RunnerApi
+// The Ads Agent's three creative app calls (Phase 3), beside the shared RunnerApi
 // rather than inside it so each lane's additions stay in its own file. Same
 // header, same base, same secret as src/api.ts.
 //

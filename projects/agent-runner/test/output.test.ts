@@ -78,10 +78,18 @@ describe("parseAgentOutput", () => {
   it("accepts an array of items and fills a missing plan", () => {
     const text =
       `ok\n${F}item\n[{"kind":"a","title":"One"},{"title":"no kind"}]\n${F}\n` +
-      `${F}request\n{"toAgent":"landing","title":"t","body":"b"}\n${F}`;
+      `${F}request\n{"toAgent":"ads","title":"t","body":"b"}\n${F}`;
     const out = parseAgentOutput(text);
     expect(out.items).toEqual([{ kind: "a", title: "One" }]);
-    expect(out.requests).toEqual([{ toAgent: "landing", title: "t", body: "b", plan: [] }]);
+    expect(out.requests).toEqual([{ toAgent: "ads", title: "t", body: "b", plan: [] }]);
+  });
+
+  it("drops a request to the agency Manager or a retired agent: neither works inside a client", () => {
+    for (const to of ["manager", "creative", "landing", "reporting"]) {
+      expect(parseAgentOutput(`${F}request
+{"toAgent":"${to}","title":"t","body":"b"}
+${F}`).requests, to).toEqual([]);
+    }
   });
 
   it("strips em dashes from the reply and the lessons", () => {

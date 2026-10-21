@@ -16,7 +16,7 @@ function world() {
   const root = mkdtempSync(join(tmpdir(), "landing-"));
   const agentsDir = join(root, "agents");
   mkdirSync(agentsDir, { recursive: true });
-  for (const f of ["landing", "_rules", "_protocol"]) writeFileSync(join(agentsDir, `${f}.md`), `# ${f}\n`);
+  for (const f of ["ads", "_rules", "_protocol"]) writeFileSync(join(agentsDir, `${f}.md`), `# ${f}\n`);
   return {
     root,
     env: {
@@ -50,7 +50,7 @@ function claim(body: string, grant: Grant | null = null): ClaimResponse {
       error: null,
       createdAt: "2026-10-17T10:00:00Z",
     },
-    chat: { id: "c1", tenantId: "t-cc", agent: "landing", title: "Winter page", claudeSessionId: "s1", started: true },
+    chat: { id: "c1", tenantId: "t-cc", agent: "ads", title: "Winter page", claudeSessionId: "s1", started: true },
     history: [],
     tenant: cc,
   };
@@ -205,8 +205,8 @@ describe("landing go live", () => {
     const w = await drafted();
     const { api, d, promotes, prompts } = deps(w, "It is live.", { writeSite: false });
     // The agent rewrote its folder after Jake looked: the snapshot still wins.
-    mkdirSync(join(w.env.workRoot, "landing-clear-choice-windows", "site", "winter"), { recursive: true });
-    writeFileSync(join(w.env.workRoot, "landing-clear-choice-windows", "site", "winter", "index.html"), "<h1>Swapped</h1>");
+    mkdirSync(join(w.env.workRoot, "ads-clear-choice-windows", "site", "winter"), { recursive: true });
+    writeFileSync(join(w.env.workRoot, "ads-clear-choice-windows", "site", "winter", "index.html"), "<h1>Swapped</h1>");
 
     await handleClaim(claim("Approved: Winter offer page", grant), d);
 

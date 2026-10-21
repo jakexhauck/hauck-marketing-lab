@@ -147,6 +147,8 @@ export async function agentSaveBrief(client: SupabaseClient, body: RunnerBriefBo
   const who = await turnChat(client, body.messageId);
   if ("error" in who) return who;
   const { agent, tenantId } = who;
+  // The agency Manager has no section (and no client chat, by migration 0174).
+  if (agent === "manager") return { error: 403, reason: "the Manager has no brief section" };
 
   const res = await saveBriefSection(
     client,

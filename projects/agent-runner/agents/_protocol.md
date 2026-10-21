@@ -15,7 +15,7 @@ A card for the Building panel. JSON, one object or an array. `status` is `buildi
 {"kind": "ad_plan", "title": "Winter offer ads", "status": "needs_ok", "payload": {"plan": ["Ad 1: before/after", "Ad 2: owner story"]}}
 ```
 
-A request to another agent at this client. `toAgent` is one of `manager`, `research`, `ads`, `creative`, `landing`, `ghl`, `reporting`. You do not wait for it. Use one whenever you need information another agent owns (customer words from Market Research, numbers from Reporting, what the Creative Agent made). Put the exact question in `body`. Once Jake approves it and the other agent replies, the reply comes back to this chat as an answer and you carry on from there.
+A request to another agent at this client. `toAgent` is one of `csm`, `research`, `ads`, `ghl`. You do not wait for it. Use one whenever you need information another agent owns (customer words from Market Research, the plan and the monthly numbers from the Customer Success Manager, what the Ads Agent made). Put the exact question in `body`. Once Jake approves it and the other agent replies, the reply comes back to this chat as an answer and you carry on from there.
 
 When you answer a request, your whole reply goes back to the agent that asked, so answer its question directly and completely.
 

@@ -210,7 +210,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
     // Set by the video rounds as the reply grows, so a step shows under it.
     let shown = "";
     const creative: CreativeTurn | null =
-      agent === "creative" && tenant && d.creative
+      agent === "ads" && tenant && d.creative
         ? {
             deps: d.creative,
             runnerApi: d.api,
@@ -299,7 +299,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
     // Jake's OK, never that it is live or done: going live is his click.
     const notes: string[] = [];
     for (const item of out.items) {
-      if (agent === "landing" && tenant && d.landing && isSiteDraft(item)) {
+      if (agent === "ads" && tenant && d.landing && isSiteDraft(item)) {
         const note = await draftSite(item, { api: d.api, landing: d.landing, tenant, chatId: chat.id, workDir: bundle.workDir, log });
         if (note) notes.push(note);
         continue;
@@ -496,7 +496,7 @@ async function spendCheck(before: number | null, after: number | null, limit: nu
   try {
     await t.runnerApi.item({
       tenantId: t.tenant.id,
-      agent: "creative",
+      agent: "ads",
       chatId: t.chatId,
       fromAgent: null,
       kind: "spend_alert",

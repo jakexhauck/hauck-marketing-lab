@@ -277,7 +277,7 @@ ${F}`);
     const { env } = world();
     const { runs, d } = deps(env, "ok");
     const c = claim();
-    c.history = [{ ...c.message, id: "r0", role: "request", body: "Landing Page Agent asks: add the page", fromAgent: "landing" }];
+    c.history = [{ ...c.message, id: "r0", role: "request", body: "Landing Page Agent asks: add the page", fromAgent: "ads" }];
     await handleClaim(c, d);
     expect(runs[0].prompt).toContain("Landing Page Agent asks: add the page");
     expect(runs[0].prompt).toContain("What did CPL do?");
@@ -420,7 +420,7 @@ describe("handleClaim: Creative Agent", () => {
       commit: async () => true,
       creative: { api: c.api, exec: e.x, balance: async () => (balances.length ? balances.shift()! : 100) },
     };
-    const cl = claim({ agent: "creative", tenantId: "t-aag" }, "Make an ad");
+    const cl = claim({ agent: "ads", tenantId: "t-aag" }, "Make an ad");
     cl.tenant = aag;
     return { w, api, c, e, runs, d, cl };
   }
@@ -442,7 +442,7 @@ describe("handleClaim: Creative Agent", () => {
     expect(last.status).toBe("error");
     expect(last.error).toBe("This turn spent 20 credits; 10 were approved.");
     expect(last.aiBody).toBe("Made it.");
-    expect(s.api.items[0]).toMatchObject({ kind: "spend_alert", status: "needs_ok", origin: "runner" });
+    expect(s.api.items[0]).toMatchObject({ agent: "ads", kind: "spend_alert", status: "needs_ok", origin: "runner" });
   });
 
   it("flags a spend turn whose balance could not be read", async () => {
@@ -464,7 +464,7 @@ describe("handleClaim: Creative Agent", () => {
   it("files an approved card before the agent's turn and tells it", async () => {
     const s = creativeSetup(["Filed."]);
     // The runner's state lives outside every agent's work folder.
-    const stateDir = join(s.w.env.workRoot, "..", "state", "creative-above-all-garage-doors");
+    const stateDir = join(s.w.env.workRoot, "..", "state", "ads-above-all-garage-doors");
     mkdirSync(stateDir, { recursive: true });
     writeFileSync(
       join(stateDir, "creative-state.json"),
@@ -478,7 +478,7 @@ describe("handleClaim: Creative Agent", () => {
 
   it("ignores a state file the agent wrote in its own work folder", async () => {
     const s = creativeSetup(["Filed?"]);
-    const workDir = join(s.w.env.workRoot, "creative-above-all-garage-doors");
+    const workDir = join(s.w.env.workRoot, "ads-above-all-garage-doors");
     mkdirSync(workDir, { recursive: true });
     writeFileSync(
       join(workDir, "creative-state.json"),

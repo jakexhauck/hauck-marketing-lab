@@ -78,7 +78,7 @@ export function planMonitor(
         );
       }
       if (was.accountsRed !== now.accountsRed) mgr.push(`Account checks red ${was.accountsRed} to ${now.accountsRed}`);
-      if (mgr.length) rows.push({ tenantId: t.id, agent: "manager", reason: mgr.join("; ") });
+      if (mgr.length) rows.push({ tenantId: t.id, agent: "csm", reason: mgr.join("; ") });
     }
   }
   return rows;

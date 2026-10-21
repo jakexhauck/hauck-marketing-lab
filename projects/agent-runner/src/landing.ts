@@ -1,4 +1,4 @@
-// The Landing Page Agent's two runner steps (docs/build-plans/agents.md,
+// The Ads Agent's two landing page runner steps (docs/build-plans/agents.md,
 // Phase 2). The agent only writes files; everything that reaches the outside
 // world happens here.
 //
@@ -99,7 +99,7 @@ export async function draftSite(item: ItemDraft, c: DraftContext): Promise<strin
     c.api.item({
       ...(id ? { id } : {}),
       tenantId: c.tenant.id,
-      agent: "landing",
+      agent: "ads",
       chatId: c.chatId,
       fromAgent: null,
       kind: item.kind,
@@ -145,7 +145,7 @@ export async function goLive(
   c: { api: RunnerApi; landing: LandingDeps },
 ): Promise<string | null> {
   const grant = claim.message.grant;
-  if (!grant || grant.kind !== "deploy" || claim.chat.agent !== "landing") return null;
+  if (!grant || grant.kind !== "deploy" || claim.chat.agent !== "ads") return null;
   const tenant = claim.tenant;
   if (!tenant) throw new Error("a page can only go live for a client");
   const snap = snapshotDir(c.landing.sitesRoot, tenant.slug, grant.itemId);

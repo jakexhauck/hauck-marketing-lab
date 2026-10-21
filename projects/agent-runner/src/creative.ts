@@ -1,4 +1,4 @@
-// The runner's half of the Creative Agent (Phase 3). The agent has no shell
+// The runner's half of the Ads Agent's creatives (Phase 3; the Creative Agent folded into Ads 2026-10-20). The agent has no shell
 // and no upload rights; it asks with a fenced ```video block and the runner
 // does the work, then tells it what happened:
 //
@@ -167,7 +167,7 @@ async function upload(t: CreativeTurn, file: string, type: string, preview: bool
 async function fileCard(t: CreativeTurn, state: CreativeState, title: string, staged: Staged, url: string, video: boolean): Promise<void> {
   const res = await t.runnerApi.item({
     tenantId: t.tenant.id,
-    agent: "creative",
+    agent: "ads",
     chatId: t.chatId,
     fromAgent: null,
     kind: "creative",
@@ -252,7 +252,7 @@ async function renderOne(t: CreativeTurn, state: CreativeState, b: { config: str
   if (mode === "preview") {
     const card = {
       tenantId: t.tenant.id,
-      agent: "creative" as const,
+      agent: "ads" as const,
       chatId: t.chatId,
       fromAgent: null,
       kind: "video",

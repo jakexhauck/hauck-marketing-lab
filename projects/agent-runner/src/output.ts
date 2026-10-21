@@ -77,7 +77,7 @@ function toItem(v: unknown): ItemDraft | null {
 }
 
 function toRequest(v: unknown): RequestDraft | null {
-  if (!isObj(v) || !isAgentId(v.toAgent) || typeof v.title !== "string" || typeof v.body !== "string") return null;
+  if (!isObj(v) || !isAgentId(v.toAgent) || v.toAgent === "manager" || typeof v.title !== "string" || typeof v.body !== "string") return null;
   const plan = Array.isArray(v.plan) ? v.plan.filter((p): p is string => typeof p === "string") : [];
   return { toAgent: v.toAgent, title: v.title, body: v.body, plan };
 }

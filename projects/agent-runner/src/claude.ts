@@ -27,7 +27,7 @@ export interface Bundle {
   // Where claude runs. Its own folder per agent and client, outside the
   // runner's code, so the file tools cannot reach src/, bin/ or agents/.
   workDir: string;
-  // Refused even if an allow rule would match. The Creative Agent's paid
+  // Refused even if an allow rule would match. The Ads Agent's paid
   // Higgsfield tools sit here unless the turn carries an approved spend grant.
   disallowedTools?: string[];
   // An MCP config file holding only the servers this agent may use. Loaded

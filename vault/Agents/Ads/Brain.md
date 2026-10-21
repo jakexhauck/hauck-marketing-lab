@@ -7,3 +7,5 @@ agent: ads
 
 ## Lessons
 - [2026-10-18] (ads, Above All Garage Doors, chat 4c7b63fa) On CBO lead campaigns, cheap-CPM video ads can take most of the early budget for video views while image ads that make leads get no delivery; check spend split in the first days ^l-b1e7a847
+- [2026-10-17] (ads, Clear Choice Windows, chat b8657bad) Seedance 2.0 std needs a Plus plan or higher. On a Starter account, use Kling 3.0 std with sound off for b-roll. ^l-20fe7e86
+- [2026-10-17] (ads, Clear Choice Windows, chat b8657bad) models_explore does not show per-clip credit prices. The exact cost comes only from get_cost on the generate call. ^l-be7ec9e2

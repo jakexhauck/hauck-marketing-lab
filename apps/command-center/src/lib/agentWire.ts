@@ -288,8 +288,8 @@ export interface FileCreativeBody {
 // Brief v2 (2026-10-17, migration 0169) adds three sections no agent writes:
 // Client (the onboarding answers, Jake's) and the Onboarding Call and Launch
 // Call checklists.
-export type BriefAuthor = "jake" | AgentId;
-export type BriefSectionId = AgentId | "client" | "onboarding-call" | "launch-call";
+export type BriefAuthor = "jake" | Exclude<AgentId, "manager">;
+export type BriefSectionId = Exclude<AgentId, "manager"> | "client" | "onboarding-call" | "launch-call";
 
 
 export interface BriefSection {

@@ -67,7 +67,7 @@ export const defaultBundleEnv = (): BundleEnv => ({
 // The one shell command any agent can run. By absolute path, from a folder the
 // agent cannot write to, so it cannot be swapped for something else.
 export const metaTool = (script: string) => `Bash(node ${script}:*)`;
-const META_AGENTS: AgentId[] = ["manager", "ads", "reporting"];
+const META_AGENTS: AgentId[] = ["manager", "csm", "ads"];
 
 // Read, search and the web for everyone; writing only where the job is to
 // produce files (Drive docs, drafts). The GHL Agent writes no files: its
@@ -76,14 +76,14 @@ const READ = ["Read", "Glob", "Grep"];
 const WEB = ["WebSearch", "WebFetch"];
 const WRITE = ["Write", "Edit"];
 
+// The CSM writes the monthly report into the client's Drive (it took the
+// Reporting Agent's job). The agency Manager only reads.
 const TOOLS: Record<AgentId, string[]> = {
   manager: [...READ],
+  csm: [...READ, ...WRITE],
   research: [...READ, ...WEB, ...WRITE],
   ads: [...READ, ...WEB, ...WRITE],
-  creative: [...READ, ...WEB, ...WRITE],
-  landing: [...READ, ...WEB, ...WRITE],
   ghl: [...READ],
-  reporting: [...READ, ...WRITE],
 };
 
 export function allowedToolsFor(agent: AgentId, metaScript: string = META_SCRIPT): string[] {
@@ -200,7 +200,7 @@ function clientSection(env: BundleEnv, agent: AgentId, tenant: ClaimTenant | nul
   ].join("\n");
 }
 
-// The Landing Page Agent writes its pages here and nowhere else; the runner
+// The Ads Agent writes its ad funnel pages here and nowhere else; the runner
 // deploys them (landing.ts). wrangler is never in its tools, with or without a
 // grant: an approved deploy is the runner's job, so the grant only changes what
 // the agent is told.
@@ -219,15 +219,12 @@ function landingSection(workDir: string, grant: Grant | null): string {
 // The Client Brief's section titles, as the app shows them (src/lib/clientBrief.ts).
 const BRIEF_LABELS: Record<BriefSectionId, string> = {
   client: "Client",
-  manager: "Status",
+  csm: "Status",
   "onboarding-call": "Onboarding Call",
   "launch-call": "Launch Call",
   research: "Market Research",
   ads: "Ads",
-  creative: "Creative",
-  landing: "Landing Page",
   ghl: "GHL",
-  reporting: "Reporting",
 };
 
 // The whole brief, every section, so each agent builds on the others' work and
@@ -237,9 +234,9 @@ const BRIEF_LABELS: Record<BriefSectionId, string> = {
 //
 // The GHL Agent is the exception. Jake's direct asks let it write to GHL with
 // no card, so text planted in another agent's section could steer a write. It
-// reads only its own section and the Manager's Status.
+// reads only its own section and the CSM's Status.
 function briefSection(agent: AgentId, brief: BriefSection[]): string {
-  const shown = agent === "ghl" ? brief.filter((s) => s.section === "ghl" || s.section === "manager") : brief;
+  const shown = agent === "ghl" ? brief.filter((s) => s.section === "ghl" || s.section === "csm") : brief;
   const parts = shown.map((s) => {
     const who = !s.updatedBy ? null : s.updatedBy === "jake" ? "Jake" : agentDef(s.updatedBy).name;
     const tags = [s.section === agent ? "yours" : null, `version ${s.version}`, who ? `last edited by ${who}` : "empty"];
@@ -292,7 +289,7 @@ const taskLine = (t: WireTask) => `- [${t.state}] ${t.key}: ${t.name}${t.state =
 
 export function tasksSection(agent: AgentId, tasks: WireTask[]): string | null {
   if (!tasks.length) return null;
-  if (agent === "manager") {
+  if (agent === "csm") {
     const owners = [...new Set(tasks.map((t) => t.owner))];
     return [
       "## The client's tasks",
@@ -333,7 +330,10 @@ export function buildBundle(
   if (tenant && brief.length) sections.push(briefSection(agent, brief));
   const taskText = tenant ? tasksSection(agent, tasks) : null;
   if (taskText) sections.push(taskText);
-  if (agent === "landing") sections.push(landingSection(join(env.workRoot, `landing-${tenant?.slug ?? "agency"}`), grant));
+  // A stable folder per agent and client: claude keys its saved sessions by
+  // the folder it runs in, so --resume only finds a chat from the same one.
+  const workDir = join(env.workRoot, `${agent}-${tenant?.slug ?? "agency"}`);
+  if (agent === "ads" && tenant) sections.push(landingSection(workDir, grant));
   if (agent === "manager") {
     sections.push(brainSection("Mega Brain", megaBrain(env.vaultDir)));
   } else {
@@ -341,7 +341,7 @@ export function buildBundle(
     sections.push(brainSection(`Your brain (${def.name})`, lessonLines(agentBrainPath(env.vaultDir, agent))));
   }
 
-  if (agent === "creative") sections.push(creativeSpendSection(grant));
+  if (agent === "ads" && tenant) sections.push(creativeSpendSection(grant));
   const adsGrant = agent === "ads" && tenant ? adsGrantSection(grant) : null;
   if (adsGrant) sections.push(adsGrant);
 
@@ -355,12 +355,9 @@ export function buildBundle(
   // must stay the only writer of a Brain.md (lessons come back through the
   // ```lessons block). What an agent needs from the vault is in the prompt.
   const addDirs = drive ? [drive] : [];
-  // A stable folder per agent and client: claude keys its saved sessions by
-  // the folder it runs in, so --resume only finds a chat from the same one.
-  const workDir = join(env.workRoot, `${agent}-${tenant?.slug ?? "agency"}`);
   mkdirSync(workDir, { recursive: true });
   copySkillsInto(env.agentsDir, workDir);
-  // grant is read by the Landing and Creative branches. The GHL and Ads
+  // grant is read by the Ads branches (site deploys and Higgsfield credits). The GHL and Ads
   // Manager tools need none: their gates are on the server (the GHL one also
   // has to allow Jake's direct asks, which carry no grant).
   const allowedTools = [
@@ -369,7 +366,7 @@ export function buildBundle(
     ...metaOpsTools(agent, tenant, env),
   ];
   const bundle: Bundle = { systemPromptFile, allowedTools, addDirs, workDir };
-  if (agent === "creative") {
+  if (agent === "ads" && tenant) {
     // Higgsfield, and only Higgsfield, with the credit gate (src/spend.ts).
     const hf = creativeHiggsfieldTools(grant);
     bundle.allowedTools.push(...hf.allowed);

@@ -1,7 +1,7 @@
-// The seven agents, in rail order, the same list as
-// apps/command-center/src/lib/agents.ts. `folder` is the agent's brain folder
-// under vault/Agents/: the rail name without " Agent", so the Manager's brain is
-// vault/Agents/Manager/Brain.md exactly as the plan names it.
+// The agents, in rail order, the same list as apps/command-center/src/lib/agents.ts
+// (docs/build-plans/four-agents-and-handoffs.md). `folder` is the agent's brain
+// folder under vault/Agents/. The Manager is agency only; the Customer Success
+// Manager does its old work inside each client.
 
 import type { AgentId } from "./wire.ts";
 
@@ -12,13 +12,11 @@ export interface AgentDef {
 }
 
 export const AGENTS: AgentDef[] = [
-  { id: "manager", name: "Manager Agent", folder: "Manager" },
+  { id: "csm", name: "Customer Success Manager", folder: "Customer Success Manager" },
   { id: "research", name: "Market Research Agent", folder: "Market Research" },
   { id: "ads", name: "Ads Agent", folder: "Ads" },
-  { id: "creative", name: "Creative Agent", folder: "Creative" },
-  { id: "landing", name: "Landing Page Agent", folder: "Landing Page" },
   { id: "ghl", name: "GHL Agent", folder: "GHL" },
-  { id: "reporting", name: "Reporting Agent", folder: "Reporting" },
+  { id: "manager", name: "Manager Agent", folder: "Manager" },
 ];
 
 export const AGENT_IDS: AgentId[] = AGENTS.map((a) => a.id);

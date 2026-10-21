@@ -14,7 +14,7 @@ const aag = { id: "t-aag", name: "Above All Garage Doors", slug: "above-all-gara
 
 function turn(over: Partial<CreativeDeps> = {}, buildErrors: string[] = []) {
   const root = mkdtempSync(join(tmpdir(), "creative-"));
-  const workDir = join(root, "work", "creative-above-all-garage-doors");
+  const workDir = join(root, "work", "ads-above-all-garage-doors");
   const driveDir = join(root, "drive", "AAG");
   mkdirSync(workDir, { recursive: true });
   mkdirSync(driveDir, { recursive: true });
@@ -29,7 +29,7 @@ function turn(over: Partial<CreativeDeps> = {}, buildErrors: string[] = []) {
     chatId: "c1",
     tenant: aag,
     workDir,
-    stateDir: join(root, "state", "creative-above-all-garage-doors"),
+    stateDir: join(root, "state", "ads-above-all-garage-doors"),
     driveDir,
     vaultFolder: null,
     say: (s) => steps.push(s),
@@ -40,7 +40,7 @@ function turn(over: Partial<CreativeDeps> = {}, buildErrors: string[] = []) {
 
 // A prepared clip (the runner's own copies, in its state folder) and a
 // config, as the agent leaves it.
-function readyToBuild(workDir: string, stateDir = join(workDir, "..", "..", "state", "creative-above-all-garage-doors")) {
+function readyToBuild(workDir: string, stateDir = join(workDir, "..", "..", "state", "ads-above-all-garage-doors")) {
   for (const f of ["proxies/hey.mp4", "tx/hey.json"]) {
     mkdirSync(dirname(join(stateDir, "prepared", f)), { recursive: true });
     writeFileSync(join(stateDir, "prepared", f), "[]");
