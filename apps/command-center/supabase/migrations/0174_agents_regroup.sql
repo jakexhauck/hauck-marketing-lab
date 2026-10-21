@@ -32,6 +32,16 @@ update public.agent_items set from_agent = 'csm' where from_agent = 'reporting' 
 update public.agent_lessons set agent = 'ads' where agent in ('creative', 'landing');
 update public.agent_lessons set agent = 'csm' where agent = 'reporting' or (agent = 'manager' and tenant_id is not null);
 
+-- Four Mega Brain lessons were about one client each, or the CSM's craft;
+-- they moved in the vault with this migration, and their mirror rows follow.
+update public.agent_lessons set scope = 'client', agent = 'csm',
+       tenant_id = (select id from public.tenants where slug = 'willis-windows')
+ where id = 'l-defe1e1e' and exists (select 1 from public.tenants where slug = 'willis-windows');
+update public.agent_lessons set scope = 'client', agent = 'csm',
+       tenant_id = (select id from public.tenants where slug = 'comfort-wizards-llc')
+ where id in ('l-376bd552', 'l-202cb56a') and exists (select 1 from public.tenants where slug = 'comfort-wizards-llc');
+update public.agent_lessons set scope = 'agent', agent = 'csm', tenant_id = null where id = 'l-3fb7005d';
+
 -- Request messages name the agent that asked.
 update public.agent_messages m
    set meta = jsonb_set(m.meta, '{fromAgent}', to_jsonb(

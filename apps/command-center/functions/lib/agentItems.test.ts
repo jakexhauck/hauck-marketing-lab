@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { FakeDb } from "./agentFakeDb";
 import {
+  agentPlaceError,
   chatSummaries,
+  createChat,
+  ItemInputError,
   createAutoChat,
   decideItem,
   parseTenantParam,
@@ -444,6 +447,24 @@ describe("createAutoChat", () => {
     const id = await createAutoChat(db.client(), { tenantId: T1, agent: "ads", title: "Startup check", prompt: "Startup check: CPL up 25%" });
     expect(db.rows("agent_chats")[0]).toMatchObject({ id, auto: true, title: "Startup check", agent: "ads" });
     expect(db.rows("agent_messages")[0]).toMatchObject({ chat_id: id, role: "me", status: "queued", body: "Startup check: CPL up 25%" });
+  });
+});
+
+describe("where an agent works", () => {
+  it("keeps the agency to the Manager and the Manager to the agency", () => {
+    expect(agentPlaceError(null, "manager")).toBeNull();
+    expect(agentPlaceError(T1, "csm")).toBeNull();
+    expect(agentPlaceError(null, "csm")).toBe("only the Manager works at the agency");
+    expect(agentPlaceError(T1, "manager")).toBe("the Manager works at the agency only");
+  });
+
+  it("refuses a client Manager chat or card before the database does", async () => {
+    await expect(createChat(new FakeDb().client(), { tenantId: T1, agent: "manager" })).rejects.toThrow(ItemInputError);
+    await expect(createAutoChat(new FakeDb().client(), { tenantId: null, agent: "csm", title: "x", prompt: "y" })).rejects.toThrow("only the Manager works at the agency");
+    await expect(createAutoChat(new FakeDb().client(), { tenantId: T1, agent: "manager", title: "x", prompt: "y" })).rejects.toThrow("the Manager works at the agency only");
+    await expect(
+      upsertItem(new FakeDb().client(), { tenantId: T1, agent: "manager", kind: "k", title: "t", status: "needs_ok", payload: {} }),
+    ).rejects.toThrow(ItemInputError);
   });
 });
 

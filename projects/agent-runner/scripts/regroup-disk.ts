@@ -5,10 +5,11 @@
 //
 // Usage: npx tsx scripts/regroup-disk.ts [--dry-run] [--data <runner data folder>]
 // (run with the runner stopped; --data defaults to this checkout's data/)
-// Nothing is deleted: an entry already in the new folder is kept, and the old
-// one moves beside it as "<name>.from-<old folder>".
+// Nothing is deleted but the old copy-skills folder (rebuilt every turn): an
+// entry already in the new folder is kept, and the old one moves beside it as
+// "<name>.from-<old folder>".
 
-import { existsSync, mkdirSync, readdirSync, renameSync, rmdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, rmdirSync } from "node:fs";
 import { join } from "node:path";
 import { DATA_DIR } from "../src/config.ts";
 
@@ -34,6 +35,13 @@ function regroup(root: string): void {
     console.log(`${dry ? "would move" : "moving"} ${from} -> ${dest}`);
     if (!dry) mkdirSync(dest, { recursive: true });
     for (const entry of readdirSync(from)) {
+      // The bundle copies the skills into every work folder each turn, so the
+      // old copy is never needed.
+      if (entry === "copy-skills") {
+        console.log(`  ${entry} (dropped, rebuilt every turn)`);
+        if (!dry) rmSync(join(from, entry), { recursive: true, force: true });
+        continue;
+      }
       const clash = existsSync(join(dest, entry));
       const name = clash ? `${entry}.from-${folder}` : entry;
       console.log(`  ${entry}${clash ? ` (kept beside as ${name})` : ""}`);

@@ -179,10 +179,21 @@ export async function chatMessages(client: SupabaseClient, chatId: string): Prom
   return ((data ?? []) as Row[]).map(messageFromRow);
 }
 
+// Who works where (docs/build-plans/four-agents-and-handoffs.md): the agency
+// has the Manager and nobody else, and the Manager has no client. Migration
+// 0174 checks the second; this says so before the database does, as a 400.
+export function agentPlaceError(tenantId: string | null, agent: AgentId): string | null {
+  if (tenantId === null && agent !== "manager") return "only the Manager works at the agency";
+  if (tenantId !== null && agent === "manager") return "the Manager works at the agency only";
+  return null;
+}
+
 export async function createChat(
   client: SupabaseClient,
   opts: { tenantId: string | null; agent: AgentId; title?: string; auto?: boolean; userId?: string | null },
 ): Promise<Row> {
+  const place = agentPlaceError(opts.tenantId, opts.agent);
+  if (place) throw new ItemInputError(place);
   const { data, error } = await client
     .from("agent_chats")
     .insert({
@@ -280,6 +291,7 @@ export async function upsertItem(client: SupabaseClient, body: ItemBody): Promis
   if (body.fromAgent != null && !isAgentId(body.fromAgent)) throw new ItemInputError("unknown fromAgent");
   if (!ITEM_STATUSES.includes(body.status)) throw new ItemInputError("unknown status");
   if (body.tenantId !== null && !isUuid(body.tenantId)) throw new ItemInputError("bad tenantId");
+  if (body.tenantId !== null && body.agent === "manager") throw new ItemInputError("the Manager works at the agency only");
   const title = stripEmDash((body.title ?? "").trim()).slice(0, 200);
   if (!title) throw new ItemInputError("title required");
   // runnerOwned is the server's to set, from origin, never the payload's.
@@ -526,7 +538,8 @@ export async function decideItem(
 export async function createAutoChat(client: SupabaseClient, body: AutoChatBody): Promise<string> {
   if (!isAgentId(body.agent)) throw new ItemInputError("unknown agent");
   if (body.tenantId !== null && !isUuid(body.tenantId)) throw new ItemInputError("bad tenantId");
-  if (body.tenantId === null && body.agent !== "manager") throw new ItemInputError("only the Manager works at the agency");
+  const place = agentPlaceError(body.tenantId, body.agent);
+  if (place) throw new ItemInputError(place);
   const prompt = (body.prompt ?? "").trim();
   if (!prompt) throw new ItemInputError("prompt required");
   const chat = await createChat(client, { tenantId: body.tenantId, agent: body.agent, title: body.title, auto: true });
