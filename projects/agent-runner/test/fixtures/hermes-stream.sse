@@ -1,0 +1,14 @@
+data: {"id": "chatcmpl-9112b96673fd4bc5aa40029de0d34", "object": "chat.completion.chunk", "created": 1792619345, "model": "hermes-agent", "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": null}]}
+
+event: hermes.tool.progress
+data: {"tool": "search_files", "emoji": "\ud83d\udd0e", "label": "*", "toolCallId": "toolu_018UjYdJKCvAZweXcuBE38s9", "status": "running"}
+
+event: hermes.tool.progress
+data: {"tool": "search_files", "toolCallId": "toolu_018UjYdJKCvAZweXcuBE38s9", "status": "completed"}
+
+data: {"id": "chatcmpl-9112b96673fd4bc5aa40029de0d34", "object": "chat.completion.chunk", "created": 1792619345, "model": "hermes-agent", "choices": [{"index": 0, "delta": {"content": "The search found at least 506 entries in /tmp, counting subfolders, but that's a minimum because the tool cut the list off; almost all of them are Node's compile cache in /tmp/node-compile-cache, and the top level has only about 10 items."}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-9112b96673fd4bc5aa40029de0d34", "object": "chat.completion.chunk", "created": 1792619345, "model": "hermes-agent", "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 58008, "completion_tokens": 277, "total_tokens": 58285}}
+
+data: [DONE]
+

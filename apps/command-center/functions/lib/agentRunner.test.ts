@@ -193,6 +193,35 @@ describe("claimNext", () => {
     expect(res?.message.id).toBe("m3");
     expect(res?.history.map((m) => m.id)).toEqual(["a1", "a2"]);
   });
+
+  // Two runners (the VPS for the Hermes agents, the PC for Ads) each claim
+  // only their own agents, so a message is never run by the wrong machine.
+  function twoAgents() {
+    return new FakeDb()
+      .seed("agent_chats", [chat("c-ads", { agent: "ads" }), chat("c-csm", { agent: "csm" })])
+      .seed("agent_messages", [
+        msg("m-ads", { chat_id: "c-ads", created_at: "2026-10-17T09:00:00.000Z" }),
+        msg("m-csm", { chat_id: "c-csm", created_at: "2026-10-17T10:00:00.000Z" }),
+      ]);
+  }
+
+  it("claims only the listed agents and leaves the rest queued", async () => {
+    const db = twoAgents();
+    const res = await claimNext(db.client(), "VPS", now, ["csm"]);
+    expect(res?.message.id).toBe("m-csm");
+    const status = Object.fromEntries(db.rows("agent_messages").map((r) => [r.id, r.status]));
+    expect(status).toEqual({ "m-ads": "queued", "m-csm": "running" });
+    expect(await claimNext(db.client(), "VPS", now, ["csm"])).toBeNull();
+  });
+
+  it("claims every agent when no list is given", async () => {
+    const res = await claimNext(twoAgents().client(), "PC", now);
+    expect(res?.message.id).toBe("m-ads");
+  });
+
+  it("claims nothing for an empty list", async () => {
+    expect(await claimNext(twoAgents().client(), "PC", now, [])).toBeNull();
+  });
 });
 
 describe("applyReply", () => {

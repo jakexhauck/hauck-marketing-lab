@@ -240,21 +240,31 @@ function runnable(r: Row): boolean {
  * queued, the update matches nothing, and this claim returns null rather than
  * running the same message twice. Nothing here looks at heartbeats, so a
  * message sent while the PC was off is claimed like any other.
+ *
+ * `agents` limits the claim to those agents' chats. The VPS runner answers the
+ * agents that live on Hermes and the PC runner the rest, so neither ever takes
+ * the other's message. Unset means every agent (a lone runner).
  */
 export async function claimNext(
   client: SupabaseClient,
   host: string,
   now: Date = new Date(),
+  agents?: AgentId[],
 ): Promise<ClaimCore | null> {
   await reclaimStale(client, host, STALE_SECONDS, now);
 
-  const { data: queued, error: qErr } = await client
-    .from("agent_messages")
-    .select("*")
-    .in("role", RUNNABLE_ROLES)
-    .eq("status", "queued")
-    .order("created_at", { ascending: true })
-    .limit(1);
+  let chatIds: string[] | null = null;
+  if (agents) {
+    if (agents.length === 0) return null;
+    const { data: chats, error: chsErr } = await client.from("agent_chats").select("id").in("agent", agents);
+    fail("agent chats", chsErr);
+    chatIds = ((chats ?? []) as Row[]).map((c) => c.id as string);
+    if (chatIds.length === 0) return null;
+  }
+
+  let q = client.from("agent_messages").select("*").in("role", RUNNABLE_ROLES).eq("status", "queued");
+  if (chatIds) q = q.in("chat_id", chatIds);
+  const { data: queued, error: qErr } = await q.order("created_at", { ascending: true }).limit(1);
   fail("queued", qErr);
   const next = (queued ?? [])[0] as Row | undefined;
   if (!next) return null;

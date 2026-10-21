@@ -30,3 +30,14 @@ export function agentDef(id: AgentId): AgentDef {
   if (!def) throw new Error(`unknown agent ${id}`);
   return def;
 }
+
+// AGENT_AGENTS, the agents this runner answers ("manager,csm"). Unset or blank
+// means every agent. A name it does not know stops the runner at start: a typo
+// would otherwise leave that agent's messages queued with nobody to claim them.
+export function parseAgentList(raw: string | undefined): AgentId[] | undefined {
+  if (!raw?.trim()) return undefined;
+  const names = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  const bad = names.filter((n) => !isAgentId(n));
+  if (bad.length) throw new Error(`AGENT_AGENTS has unknown agents: ${bad.join(", ")}`);
+  return [...new Set(names)] as AgentId[];
+}

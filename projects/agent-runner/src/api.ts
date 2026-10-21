@@ -10,6 +10,7 @@
 // instead of the network.
 
 import type {
+  AgentId,
   AnswerBody,
   AutoChatBody,
   ClaimResponse,
@@ -28,7 +29,8 @@ import type {
 } from "./wire.ts";
 
 export interface RunnerApi {
-  claim(host: string): Promise<ClaimResponse | null>;
+  // agents: only these agents' messages (see AGENT_AGENTS in config.ts).
+  claim(host: string, agents?: AgentId[]): Promise<ClaimResponse | null>;
   reply(body: ReplyBody): Promise<void>;
   item(body: ItemBody): Promise<unknown>;
   lessons(body: LessonsBody): Promise<void>;
@@ -84,7 +86,7 @@ export function createApi(opts: ApiOptions): RunnerApi {
     (await send<T>(method, path, body)).data;
 
   return {
-    claim: (host) => call<ClaimResponse | null>("POST", "claim", { host }),
+    claim: (host, agents) => call<ClaimResponse | null>("POST", "claim", agents ? { host, agents } : { host }),
     reply: async (b) => void (await call("POST", "reply", b)),
     item: (b) => call("POST", "item", b),
     lessons: async (b) => void (await call("POST", "lessons", b)),

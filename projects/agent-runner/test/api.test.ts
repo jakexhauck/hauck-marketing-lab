@@ -46,6 +46,13 @@ describe("createApi", () => {
     expect(calls[0].body).toEqual({ host: "PC" });
   });
 
+  it("sends the agent list with the claim only when one is set", async () => {
+    const { calls, fetchImpl } = recorder([{ body: null }]);
+    const api = createApi({ base: "https://a", secret: "s", fetch: fetchImpl });
+    await api.claim("VPS", ["manager", "csm"]);
+    expect(calls[0].body).toEqual({ host: "VPS", agents: ["manager", "csm"] });
+  });
+
   it("treats an empty body or 204 from claim as nothing queued", async () => {
     const { fetchImpl } = recorder([{ status: 204, text: "" }]);
     const api = createApi({ base: "https://a", secret: "s", fetch: fetchImpl });

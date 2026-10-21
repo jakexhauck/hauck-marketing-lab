@@ -27,7 +27,7 @@ import { join } from "node:path";
 import { createApi } from "./api.ts";
 import { defaultBundleEnv } from "./bundle.ts";
 import { runClaude } from "./claude.ts";
-import { API_BASE, DATA_DIR, HEARTBEAT_MS, PAGES_CWD, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
+import { API_BASE, CLAIM_AGENTS, DATA_DIR, HEARTBEAT_MS, PAGES_CWD, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
 import { createCreativeApi } from "./creativeApi.ts";
 import { commitBrains } from "./git.ts";
 import { deployDraft, promote } from "./pages.ts";
@@ -143,7 +143,7 @@ async function main(): Promise<void> {
   }
 
   async function claimOne(): Promise<boolean> {
-    const claim = await api.claim(host);
+    const claim = await api.claim(host, CLAIM_AGENTS);
     if (!claim) return false;
     log(`claimed ${claim.message.id} (${claim.chat.agent}, ${claim.tenant?.name ?? "agency"})`);
     await handleClaim(claim, deps);
@@ -174,7 +174,7 @@ async function main(): Promise<void> {
     if (!existsSync(STOP_FILE)) void beat();
   }, HEARTBEAT_MS);
 
-  log(`watching for agent messages on ${API_BASE} as ${host}`);
+  log(`watching for ${CLAIM_AGENTS?.join(", ") ?? "all"} agent messages on ${API_BASE} as ${host}`);
   let failures = 0;
   for (;;) {
     if (existsSync(STOP_FILE)) {

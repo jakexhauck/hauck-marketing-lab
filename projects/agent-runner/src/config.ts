@@ -4,6 +4,7 @@
 
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseAgentList } from "./agents.ts";
 
 export const RUNNER_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const REPO_DIR = resolve(RUNNER_DIR, "..", "..");
@@ -42,3 +43,7 @@ export const POLL_MS = 3_000;
 // The page calls the runner online while the newest heartbeat is under 90s
 // old. Every 30s leaves room for two to go missing before the footer flips.
 export const HEARTBEAT_MS = 30_000;
+
+// The agents this runner claims. The VPS runner answers the Hermes agents and
+// the PC runner the rest; unset means all of them (one runner, as before).
+export const CLAIM_AGENTS = parseAgentList(process.env.AGENT_AGENTS);
