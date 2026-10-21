@@ -12,7 +12,10 @@
 import os
 import sys
 
-import yaml
+# Hermes's venv has ruamel, not PyYAML; hermes_yaml wraps it with the same
+# safe_load/safe_dump and is what Hermes itself writes its config with.
+sys.path.insert(0, "/opt/hermes")
+import hermes_yaml as yaml  # noqa: E402
 
 HOME = "/opt/data/profiles"
 BRAIN = ["memory", "session_search", "skills", "todo"]
@@ -65,7 +68,8 @@ def main():
         else:
             servers.pop("hauck", None)
         with open(cfg_path, "w") as f:
-            yaml.safe_dump(cfg, f, sort_keys=False, allow_unicode=True)
+            # A wide line so a token is never folded across two lines.
+            yaml.safe_dump(cfg, f, sort_keys=False, allow_unicode=True, width=2**31 - 1)
 
         role = ""
         role_file = os.path.join(agents_dir, f"{agent}.md")
