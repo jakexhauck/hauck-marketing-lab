@@ -382,6 +382,15 @@ describe("answers between agents", () => {
     expect(db.rows("agent_messages").find((r) => r.role === "ai")).toMatchObject({ body: "Drafting", status: "done" });
   });
 
+  it("claims a Director trigger and takes its reply, never as Jake", async () => {
+    const db = new FakeDb()
+      .seed("agent_chats", [chat("c1", { started: true })])
+      .seed("agent_messages", [msg("trg", { role: "trigger", body: "The Director started these tasks", meta: { taskKeys: ["ghl:a"], live: false } })]);
+    const res = await claimNext(db.client(), "PC", now);
+    expect(res?.message).toMatchObject({ id: "trg", role: "trigger" });
+    expect(await applyReply(db.client(), { messageId: "trg", status: "done", aiBody: "On it" })).toEqual({ ok: true });
+  });
+
   it("never claims or takes a reply for a request card message", async () => {
     const db = new FakeDb()
       .seed("agent_chats", [chat("c1")])

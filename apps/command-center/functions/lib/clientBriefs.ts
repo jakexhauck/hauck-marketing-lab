@@ -117,7 +117,10 @@ export async function turnChat(client: SupabaseClient, messageId: unknown): Prom
   if (!isUuid(messageId)) return { error: 400, reason: "messageId required" };
   const { data: msgRow, error: mErr } = await client.from("agent_messages").select("*").eq("id", messageId).maybeSingle();
   fail("message", mErr);
-  if (!msgRow || (msgRow as Row).role !== "me") return { error: 404, reason: "message not found" };
+  // Jake's turn, or a Director trigger turn (lib/taskHandoffs.ts): both may
+  // write the agent's own brief section and tasks.
+  const role = (msgRow as Row | null)?.role;
+  if (!msgRow || (role !== "me" && role !== "trigger")) return { error: 404, reason: "message not found" };
   const message = messageFromRow(msgRow as Row);
   if (message.status !== "running") return { error: 409, reason: "message is not running" };
 

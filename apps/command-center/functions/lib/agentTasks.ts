@@ -3,6 +3,7 @@ import type { ClaimResponse, RunnerTaskBody, RunnerTaskResult, WireTask } from "
 import { turnChat } from "./clientBriefs";
 import { ensureTasks, toTask } from "./clientTasks";
 import { stripEmDash } from "./agentRunner";
+import { startReadyQuietly } from "./taskHandoffs";
 
 // Agents and the per-client Director (docs/build-plans/client-fulfillment-and-director.md).
 //
@@ -112,5 +113,8 @@ export async function agentTaskUpdate(
     byKey.set(key, { ...t, state: u.state });
     out.updated.push(key);
   }
+  // Finishing a task in a turn (a Director trigger turn too) starts what waited on it.
+  const done = out.updated.filter((k) => byKey.get(k)?.state === "done");
+  await startReadyQuietly(client, turn.tenantId, done);
   return out;
 }

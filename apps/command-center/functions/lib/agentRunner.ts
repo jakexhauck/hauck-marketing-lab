@@ -223,10 +223,12 @@ export type ClaimCore = Omit<ClaimResponse, "brief">;
 // What the runner works: Jake's messages, and another agent's answer to a
 // request (postAnswer). A request card's own message is written done, so it
 // is never queued and never claimed.
-const RUNNABLE_ROLES = ["me", "request"];
+// A Director trigger (lib/taskHandoffs.ts) is runnable too: it is how a task
+// whose wait is over starts on its own. It is never role "me".
+const RUNNABLE_ROLES = ["me", "request", "trigger"];
 
 function runnable(r: Row): boolean {
-  return r.role === "me" || (r.role === "request" && !!str((r.meta as Row | null)?.answerOf));
+  return r.role === "me" || r.role === "trigger" || (r.role === "request" && !!str((r.meta as Row | null)?.answerOf));
 }
 
 /**

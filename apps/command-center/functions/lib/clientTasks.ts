@@ -15,6 +15,7 @@ import {
   type TaskState,
   type TickRow,
 } from "../../src/lib/clientTasks";
+import { startReadyQuietly } from "./taskHandoffs";
 
 // The client_tasks store (0173): the per-client Director. Jake edits through
 // /api/admin/client-tasks, agents move their own tasks through
@@ -223,7 +224,10 @@ export async function patchTask(client: SupabaseClient, tenantId: string, id: st
   const { data, error } = await client.from("client_tasks").update(update).eq("tenant_id", tenantId).eq("id", id).select("*").maybeSingle();
   if (error) throw new Error(`client_tasks update: ${error.message}`);
   if (!data) return { error: 404, reason: "no such task" };
-  return toTask(data as Row);
+  const task = toTask(data as Row);
+  // Whatever waited on this task may start now (lib/taskHandoffs.ts).
+  if (patch.state === "done" || patch.state === "cut") await startReadyQuietly(client, tenantId, [task.key]);
+  return task;
 }
 
 export async function deleteTask(client: SupabaseClient, tenantId: string, id: string): Promise<boolean> {
@@ -248,6 +252,7 @@ export async function applyTaskOps(
   const tasks = await ensureTasks(client, tenantId);
   const byKey = new Map(tasks.map((t) => [t.key, t]));
   const skipped: { op: TaskOp; reason: string }[] = [];
+  const cutKeys: string[] = [];
   let applied = 0;
   for (const op of ops) {
     if (op.op === "add") {
@@ -300,8 +305,11 @@ export async function applyTaskOps(
     if (error) skipped.push({ op, reason: error.message });
     else {
       applied++;
+      if (op.op === "cut") cutKeys.push(t.key);
       if (op.op === "change" && op.waitsOn !== undefined) t.waitsOn = op.waitsOn;
     }
   }
+  // A cut task counts as finished for what waited on it.
+  await startReadyQuietly(client, tenantId, cutKeys);
   return { applied, skipped };
 }

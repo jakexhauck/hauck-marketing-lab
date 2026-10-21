@@ -7,7 +7,7 @@
 
 import type { AgentId } from "./agents";
 
-export type MessageRole = "me" | "ai" | "request";
+export type MessageRole = "me" | "ai" | "request" | "trigger";
 export type MessageStatus = "queued" | "running" | "done" | "error";
 export type ItemStatus = "building" | "needs_ok" | "live" | "done" | "declined";
 export type LessonScope = "client" | "agent" | "manager";
