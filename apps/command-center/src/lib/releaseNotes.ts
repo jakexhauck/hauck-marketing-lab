@@ -34,6 +34,8 @@ export const RELEASES: Release[] = [
       "Pipeline is the client's GHL Sales Pipeline. Call rings your phone, then connects the lead from the client's number (their App Call workflow).",
       "After a Call, Outcome opens on that lead: the same page as the Outcome Link, with booking and stage moves.",
       "Script is the client's setter script.",
+      "Book (on Outcome, or the calendar icon on a Pipeline card) opens the Cold SMS style booking wizard on the client's Estimate or Job calendar.",
+      "The client's Google Calendar (linked in their app) shows in blue, and times that clash with it are never offered, in the wizard or on the outcome page.",
     ],
   },
   {

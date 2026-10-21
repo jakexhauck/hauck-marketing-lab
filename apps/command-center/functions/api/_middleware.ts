@@ -110,6 +110,8 @@ const PUBLIC_PATHS = new Set([
   // by /api/admin/clients/:id/setting/outcome-link. See api/setter-outcome/.
   "/api/setter-outcome",
   "/api/setter-outcome/slots",
+  "/api/setter-outcome/week",
+  "/api/setter-outcome/lead",
   // The owner's new-lead link (book an estimate, call back, not interested).
   "/api/lead-outcome",
   "/api/lead-outcome/slots",

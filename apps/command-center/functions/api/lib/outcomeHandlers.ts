@@ -2,7 +2,7 @@ import type { Env } from "../../lib/env";
 import { fetchContact, type GhlContext } from "../../lib/ghl";
 import { logErrorBestEffort } from "../../lib/errorLog";
 import { dateStringInZone, zonedTimeToUtcMs } from "../../lib/tz";
-import { cancelAppointment, createAppointment, getCalendar, getFreeSlots, rescheduleAppointment } from "./appointments";
+import { cancelAppointment, createAppointment, getCalendar, getFreeSlots, listCalendarEvents, rescheduleAppointment } from "./appointments";
 import { outcomeMessagePage, slotDate, slotEnd } from "../../lib/estimateOutcome";
 import { fetchContactAppointments, reportSaleToMeta } from "../../lib/estimateOutcomeGhl";
 import { formatWhen, resolveOutcomeLink, type OutcomeLink } from "../../lib/estimateOutcomeLink";
@@ -29,6 +29,7 @@ import { sendPushForActivity } from "../../lib/push";
 import { answersFromContact, contactFieldNames, formFieldIds, saveAnswers } from "../../lib/outcomeFields";
 import { CALL_NOW_TAG } from "../../lib/callNow";
 import { fireCallTag } from "../../lib/callNowHandler";
+import { clientGoogleBusy, dropBusySlots } from "../../lib/clientGoogleBusy";
 
 // GET / POST / slots for the universal outcome page (lib/outcome.ts), shared by
 // every route that opens it: /api/outcome (Outcome Link) and the older
@@ -193,7 +194,14 @@ function clock(ms: number, zone: string): string {
 // (rings the owner); the Setting tab's copy enrols App Call (rings Jake).
 type CallStarter = (gctx: OutcomeLink["gctx"], contactId: string) => Promise<{ ok: true } | { ok: false; message: string }>;
 
-export function outcomeHandlers(purpose: string, opts: { call?: CallStarter } = {}) {
+// `google` drops open times that collide with the client's linked Google
+// Calendar (Client > Setting). Owner links leave it off.
+function slotMinutes(meta: { slotDuration?: number; slotDurationUnit?: string } | null): number {
+  const n = meta?.slotDuration ?? 30;
+  return /hour/i.test(meta?.slotDurationUnit ?? "") ? n * 60 : n;
+}
+
+export function outcomeHandlers(purpose: string, opts: { call?: CallStarter; google?: boolean } = {}) {
   const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const url = new URL(ctx.request.url);
     const link = await resolveOutcomeLink(ctx.env, url, purpose);
@@ -490,12 +498,82 @@ export function outcomeHandlers(purpose: string, opts: { call?: CallStarter } = 
     const calendar = which === "job" ? link.calendars.job : link.calendars.estimate;
     if (!calendar) return Response.json({ days: [] });
     const now = Date.now();
-    const result = await getFreeSlots(link.gctx as GhlContext, calendar.id, now, now + DAYS_AHEAD * 86_400_000, link.zone);
+    const end = now + DAYS_AHEAD * 86_400_000;
+    const result = await getFreeSlots(link.gctx as GhlContext, calendar.id, now, end, link.zone);
     if (!result.ok) return Response.json({ days: [], error: "Could not load times." }, { status: 502 });
-    return Response.json({ days: result.days }, { headers: { "cache-control": "no-store" } });
+    let days = result.days;
+    if (opts.google) {
+      const [google, meta] = await Promise.all([
+        clientGoogleBusy(ctx.env, link.client, link.tenantId, now, end, link.zone),
+        getCalendar(link.gctx, calendar.id),
+      ]);
+      const minutes = slotMinutes(meta);
+      days = days
+        .map((d) => ({ ...d, slots: dropBusySlots(d.slots, google.events, minutes) }))
+        .filter((d) => d.slots.length > 0);
+    }
+    return Response.json({ days }, { headers: { "cache-control": "no-store" } });
   };
 
-  return { onRequestGet, onRequestPost, onSlotsGet };
+  // GET .../week?start=&end=&cal=estimate|job : one week for the Setting booking
+  // wizard, the Cold SMS wizard's shape (open slots, booked appointments on that
+  // calendar, the client's Google Calendar drawn and subtracted).
+  const onWeekGet: PagesFunction<Env> = async (ctx) => {
+    const url = new URL(ctx.request.url);
+    const link = await resolveOutcomeLink(ctx.env, url, purpose);
+    if ("message" in link) return Response.json({ error: link.message }, { status: link.status });
+    const start = Number(url.searchParams.get("start"));
+    const end = Number(url.searchParams.get("end"));
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start || end - start > 8 * 86_400_000) {
+      return Response.json({ error: "bad_range" }, { status: 400 });
+    }
+    const calendar = url.searchParams.get("cal") === "job" ? link.calendars.job : link.calendars.estimate;
+    const google = await clientGoogleBusy(ctx.env, link.client, link.tenantId, start, end, link.zone);
+    if (!calendar) return Response.json({ timezone: link.zone, calendar: null, slotsFailed: false, slots: [], demos: [], google });
+
+    const from = Math.max(start, Date.now());
+    const [meta, free, booked] = await Promise.all([
+      getCalendar(link.gctx, calendar.id),
+      end > from ? getFreeSlots(link.gctx as GhlContext, calendar.id, from, end, link.zone) : Promise.resolve(null),
+      listCalendarEvents(link.gctx, start, end, [calendar.id]).catch(() => ({ events: [], failedCalendarIds: [] })),
+    ]);
+    const minutes = slotMinutes(meta);
+    const open = (free && free.ok ? free.days.flatMap((d) => d.slots) : []).filter((s) => +new Date(s) > Date.now());
+    return Response.json(
+      {
+        timezone: link.zone,
+        calendar: { id: calendar.id, name: calendar.name ?? "", minutes },
+        slotsFailed: Boolean(free && !free.ok),
+        slots: dropBusySlots(open, google.events, minutes).sort(),
+        demos: booked.events
+          .filter((e) => e.startTime && e.endTime && !/cancel|invalid|noshow/i.test(e.status))
+          .map((e) => ({ id: e.id, contactId: e.contactId, title: e.contactName || e.title, start: e.startTime, end: e.endTime })),
+        google,
+      },
+      { headers: { "cache-control": "no-store" } },
+    );
+  };
+
+  // GET .../lead : who the wizard is booking, and the booking form as saved.
+  const onLeadGet: PagesFunction<Env> = async (ctx) => {
+    const link = await resolveOutcomeLink(ctx.env, new URL(ctx.request.url), purpose);
+    if ("message" in link) return Response.json({ error: link.message }, { status: link.status });
+    const [contact, ids] = await Promise.all([
+      fetchContact(link.gctx, link.contactId),
+      formFieldIds(link.gctx).catch(() => new Map<string, string>()),
+    ]);
+    if (!contact) return Response.json({ error: "This lead is not in the account any more." }, { status: 404 });
+    return Response.json({
+      name: contactName(contact),
+      phone: (contact as { phone?: string }).phone ?? "",
+      email: (contact as { email?: string }).email ?? "",
+      form: answersFromContact(contact as never, ids),
+      hasJobCalendar: link.calendars.job !== null,
+      timezone: link.zone,
+    });
+  };
+
+  return { onRequestGet, onRequestPost, onSlotsGet, onWeekGet, onLeadGet };
 }
 
 // Sample answers for the admin preview.

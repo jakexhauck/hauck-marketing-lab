@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ClipboardList, Phone } from "lucide-react";
+import { CalendarPlus, ClipboardList, Phone } from "lucide-react";
 import { ErrorNote, Spinner } from "../../../routes/paid-ads/trackerShared";
 import {
   useSaveSetterScriptMutation,
@@ -12,13 +12,15 @@ import {
 import { clientPath } from "../../../lib/clientNav";
 import type { BoardLead, BoardPayload, BoardStage } from "../../../lib/leadBoard";
 import ScriptEditor from "../script/ScriptEditor";
+import SettingBookingWizard from "./SettingBookingWizard";
 
 // Client > Setting (Jake, 2026-10-21). Jake sets appointments for the client:
 // their GHL Sales Pipeline with a Call on every lead, the setter script, and the
 // universal outcome page for the lead he just called. Call enrols the lead in
 // the sub-account's App Call workflow, which rings Jake and bridges the lead
 // from the client's number. The chosen lead rides in ?c= so Call on the
-// Pipeline lands on that lead's Outcome.
+// Pipeline lands on that lead's Outcome; ?book=1 opens the booking wizard
+// (SettingBookingWizard, the Cold SMS wizard over the client's calendar).
 
 type Sub = "pipeline" | "script" | "outcome";
 
@@ -50,7 +52,8 @@ function PipelinePage({ tenantId }: { tenantId: string }) {
   const board = useSettingBoardQuery(tenantId);
   const { ring, busy, state } = useCallLead(tenantId);
 
-  const open = (contactId: string) => navigate(`${clientPath(tenantId, "setting", "outcome")}?c=${encodeURIComponent(contactId)}`);
+  const open = (contactId: string, book = false) =>
+    navigate(`${clientPath(tenantId, "setting", "outcome")}?c=${encodeURIComponent(contactId)}${book ? "&book=1" : ""}`);
 
   if (board.isLoading) return <Spinner />;
   if (board.isError) return <ErrorNote message={(board.error as Error).message} />;
@@ -75,6 +78,7 @@ function PipelinePage({ tenantId }: { tenantId: string }) {
             calledId={state && !state.error && !busy ? state.id : null}
             onCall={(id) => void ring(id).then((ok) => ok && open(id))}
             onOutcome={open}
+            onBook={(id) => open(id, true)}
           />
         ))}
       </div>
@@ -89,6 +93,7 @@ function Column({
   calledId,
   onCall,
   onOutcome,
+  onBook,
 }: {
   stage: BoardStage;
   leads: BoardLead[];
@@ -96,6 +101,7 @@ function Column({
   calledId: string | null;
   onCall: (contactId: string) => void;
   onOutcome: (contactId: string) => void;
+  onBook: (contactId: string) => void;
 }) {
   return (
     <section className="flex w-[260px] shrink-0 flex-col rounded-[var(--radius-lg)] border border-border bg-[var(--surface-2)]">
@@ -130,6 +136,15 @@ function Column({
                 >
                   <ClipboardList size={13} /> Outcome
                 </button>
+                <button
+                  type="button"
+                  aria-label="Book"
+                  title="Book"
+                  onClick={() => onBook(lead.contactId!)}
+                  className="inline-flex items-center justify-center rounded-[var(--radius)] border border-border px-2 py-1.5 text-text hover:border-brand"
+                >
+                  <CalendarPlus size={13} />
+                </button>
               </div>
             )}
           </li>
@@ -161,6 +176,10 @@ function OutcomePage({ tenantId }: { tenantId: string }) {
   const contactId = params.get("c");
   const board = useSettingBoardQuery(tenantId);
   const link = useSettingOutcomeLinkQuery(tenantId, contactId);
+  const [booking, setBooking] = useState(params.get("book") === "1");
+  const [booked, setBooked] = useState<string | null>(null);
+  // Bumped after a wizard booking so the framed page reloads with it.
+  const [frame, setFrame] = useState(0);
 
   // Every lead with a contact, newest first, for the picker.
   const leads = useMemo(
@@ -178,7 +197,10 @@ function OutcomePage({ tenantId }: { tenantId: string }) {
         <h1 className="font-display text-[22px] font-semibold text-text">Outcome</h1>
         <select
           value={contactId ?? ""}
-          onChange={(e) => setParams(e.target.value ? { c: e.target.value } : {})}
+          onChange={(e) => {
+            setBooked(null);
+            setParams(e.target.value ? { c: e.target.value } : {});
+          }}
           className="ml-auto min-w-[260px] rounded-[var(--radius)] border border-border bg-surface px-3 py-2 text-[13px] text-text"
         >
           <option value="">Pick a lead</option>
@@ -190,7 +212,31 @@ function OutcomePage({ tenantId }: { tenantId: string }) {
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          disabled={!link.data}
+          onClick={() => setBooking(true)}
+          className="inline-flex items-center gap-1.5 rounded-[var(--radius)] bg-brand px-3.5 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+        >
+          <CalendarPlus size={15} /> Book
+        </button>
       </div>
+      {booked && (
+        <div className="rounded-[var(--radius)] border border-[var(--positive)]/30 bg-[var(--positive-tint)] px-4 py-2.5 text-[13px] font-semibold text-[var(--positive)]">
+          {booked}
+        </div>
+      )}
+      {booking && link.data && (
+        <SettingBookingWizard
+          outcomeUrl={link.data.url}
+          onClose={() => setBooking(false)}
+          onBooked={(message) => {
+            setBooking(false);
+            setBooked(message);
+            setFrame((n) => n + 1);
+          }}
+        />
+      )}
       {!contactId ? (
         <Empty text="No lead picked." />
       ) : link.isLoading ? (
@@ -199,7 +245,7 @@ function OutcomePage({ tenantId }: { tenantId: string }) {
         <ErrorNote message={(link.error as Error | null)?.message} />
       ) : (
         <iframe
-          key={link.data.url}
+          key={`${link.data.url}#${frame}`}
           src={link.data.url}
           title="Outcome"
           className="h-[80vh] w-full max-w-[560px] self-center rounded-[var(--radius-lg)] border border-border bg-white"

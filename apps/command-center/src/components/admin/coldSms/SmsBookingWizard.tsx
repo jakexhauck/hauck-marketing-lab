@@ -343,12 +343,16 @@ export function GoogleBar({
   failed,
   onConnect,
   onDisconnect,
+  bookedLabel = "Booked demos",
 }: {
   connected: boolean;
   busy: boolean;
   failed: boolean;
-  onConnect: () => void;
-  onDisconnect: () => void;
+  // Left out (Client > Setting): the calendar is the client's, linked in their
+  // own app, so the bar only says whether it is linked.
+  onConnect?: () => void;
+  onDisconnect?: () => void;
+  bookedLabel?: string;
 }) {
   return (
     <div className="mx-5 mb-2.5 flex items-center gap-2.5 rounded-xl border border-[var(--border)] px-3.5 py-2 text-[13px] font-semibold text-text">
@@ -358,10 +362,14 @@ export function GoogleBar({
       <span className="flex-1" />
       <span className="flex items-center gap-3 text-[11.5px] font-medium text-muted">
         <Legend color="#4f8cff" label="Google" />
-        <Legend color="#a66cff" label="Booked demos" />
+        <Legend color="#a66cff" label={bookedLabel} />
         <Legend color="var(--positive)" label="Open" dashed />
       </span>
-      {connected ? (
+      {!onConnect || !onDisconnect ? (
+        <span className={`text-[12.5px] font-semibold ${connected ? "text-[var(--positive)]" : "text-faint"}`}>
+          {connected ? "Linked" : "Not linked"}
+        </span>
+      ) : connected ? (
         <button
           type="button"
           disabled={busy}
