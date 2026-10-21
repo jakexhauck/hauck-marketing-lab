@@ -15,6 +15,11 @@ import { SOP_LISTS, sopTaskKey } from "./sopChecklists";
 // The agency Manager owns no client task; the CSM does that work.
 export type TaskOwner = "client" | "jake" | Exclude<AgentId, "manager">;
 export type TaskState = "todo" | "doing" | "done" | "cut";
+// Needs your OK (every write on a card) or Acts live (Jake, 2026-10-20;
+// docs/build-plans/four-agents-and-handoffs.md). Every task starts on ask.
+export type TaskMode = "ask" | "live";
+export const TASK_MODES: TaskMode[] = ["ask", "live"];
+export const MAX_WAITS = 20;
 
 export interface SeedTask {
   key: string;
@@ -37,6 +42,11 @@ export interface ClientTask extends Omit<SeedTask, "sourceNode"> {
   note: string | null;
   doneBy: string | null;
   doneAt: string | null;
+  // Keys of the tasks this one waits on; empty = it starts when Jake names it.
+  waitsOn: string[];
+  mode: TaskMode;
+  // Named values the task produced (a dataset id), handed to what waits on it.
+  outputs: Record<string, string>;
 }
 
 // Row order on the Director.
@@ -123,10 +133,41 @@ export function seedWithTicks(seed: SeedTask[], ticks: TickRow[]): (SeedTask & {
   });
 }
 
+type Wiring = { waitsOn?: string[]; mode?: TaskMode };
 export type TaskOp =
-  | { op: "add"; phase: string; owner: TaskOwner; name: string; reason: string }
-  | { op: "change"; key: string; name?: string; owner?: TaskOwner; phase?: string; reason: string }
+  | ({ op: "add"; phase: string; owner: TaskOwner; name: string; reason: string } & Wiring)
+  | ({ op: "change"; key: string; name?: string; owner?: TaskOwner; phase?: string; reason: string } & Wiring)
   | { op: "cut"; key: string; reason: string };
+
+export function isTaskMode(v: unknown): v is TaskMode {
+  return typeof v === "string" && (TASK_MODES as string[]).includes(v);
+}
+
+// A list of task keys, or null when it is anything else.
+export function waitsList(v: unknown): string[] | null {
+  if (!Array.isArray(v) || v.length > MAX_WAITS) return null;
+  if (v.some((k) => typeof k !== "string" || !k.trim() || k.length > 200)) return null;
+  return [...new Set((v as string[]).map((k) => k.trim()))];
+}
+
+/**
+ * Would `key` waiting on `waitsOn` make a loop? Walks what each named task
+ * already waits on; reaching `key` again is a loop.
+ */
+export function waitsCycle(tasks: Pick<ClientTask, "key" | "waitsOn">[], key: string, waitsOn: string[]): boolean {
+  const next = new Map(tasks.map((t) => [t.key, t.key === key ? waitsOn : t.waitsOn ?? []]));
+  next.set(key, waitsOn);
+  const seen = new Set<string>();
+  const stack = [...waitsOn];
+  while (stack.length) {
+    const k = stack.pop()!;
+    if (k === key) return true;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    stack.push(...(next.get(k) ?? []));
+  }
+  return false;
+}
 
 const MAX_OPS = 200;
 const str = (v: unknown, max: number): string | null => (typeof v === "string" && v.trim() && v.trim().length <= max ? v.trim() : null);
@@ -149,9 +190,13 @@ export function parseTaskOps(v: unknown): { ok: true; ops: TaskOp[] } | { ok: fa
     if (o.phase !== undefined && !phases.has(o.phase as string)) return bad("unknown phase");
     if (o.owner !== undefined && !isTaskOwner(o.owner)) return bad("unknown owner");
     if (o.name !== undefined && !str(o.name, 120)) return bad("name must be 1 to 120 characters");
+    if (o.mode !== undefined && !isTaskMode(o.mode)) return bad("mode must be ask or live");
+    const waits = o.waitsOn === undefined ? undefined : waitsList(o.waitsOn);
+    if (waits === null) return bad(`waitsOn must be a list of at most ${MAX_WAITS} task keys`);
+    const wiring = { ...(waits !== undefined ? { waitsOn: waits } : {}), ...(o.mode !== undefined ? { mode: o.mode as TaskMode } : {}) };
     if (o.op === "add") {
       if (o.phase === undefined || o.owner === undefined || o.name === undefined) return bad("add needs phase, owner and name");
-      ops.push({ op: "add", phase: o.phase as string, owner: o.owner as TaskOwner, name: str(o.name, 120)!, reason });
+      ops.push({ op: "add", phase: o.phase as string, owner: o.owner as TaskOwner, name: str(o.name, 120)!, reason, ...wiring });
     } else if (o.op === "change" || o.op === "cut") {
       const key = str(o.key, 200);
       if (!key) return bad(`${o.op} needs a key`);
@@ -164,6 +209,7 @@ export function parseTaskOps(v: unknown): { ok: true; ops: TaskOp[] } | { ok: fa
           ...(o.name !== undefined ? { name: str(o.name, 120)! } : {}),
           ...(o.owner !== undefined ? { owner: o.owner as TaskOwner } : {}),
           ...(o.phase !== undefined ? { phase: o.phase as string } : {}),
+          ...wiring,
         });
     } else return bad("op must be add, change or cut");
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getAgentSop } from "./agentSops";
-import { parseTaskOps, seedTasks, seedWithTicks, taskPhases, TASK_OWNERS } from "./clientTasks";
+import { parseTaskOps, seedTasks, seedWithTicks, taskPhases, TASK_OWNERS, waitsCycle, type ClientTask } from "./clientTasks";
 import { mainLine } from "./sopPrompt";
 import { SOP_LISTS, sopTaskKey } from "./sopChecklists";
 
@@ -91,7 +91,38 @@ describe("parseTaskOps", () => {
     ["long name", [{ ...ok, name: "x".repeat(121) }]],
     ["change without key", [{ op: "change", reason: "x" }]],
     ["too many", Array.from({ length: 201 }, () => ok)],
+    ["a mode that is not ask or live", [{ ...ok, mode: "auto" }]],
+    ["waitsOn that is not a list of keys", [{ ...ok, waitsOn: "ghl:x" }]],
+    ["waitsOn over 20 keys", [{ ...ok, waitsOn: Array.from({ length: 21 }, (_, i) => `ghl:k${i}`) }]],
   ])("rejects %s", (_, v) => {
     expect(parseTaskOps(v).ok).toBe(false);
+  });
+
+  it("carries waitsOn and mode on an add or a change", () => {
+    const r = parseTaskOps([
+      { ...ok, waitsOn: ["adsbuild:campaign-setup"], mode: "live" },
+      { op: "change", key: "ghl:a2p-submitted", waitsOn: [], mode: "ask", reason: "x" },
+    ]);
+    expect(r.ok && r.ops[0]).toMatchObject({ op: "add", waitsOn: ["adsbuild:campaign-setup"], mode: "live" });
+    expect(r.ok && r.ops[1]).toMatchObject({ op: "change", waitsOn: [], mode: "ask" });
+  });
+});
+
+describe("waitsCycle", () => {
+  const t = (key: string, waitsOn: string[] = []) => ({ key, waitsOn }) as unknown as ClientTask;
+  const tasks = [t("a"), t("b", ["a"]), t("c", ["b"])];
+
+  it("finds a task waiting on itself", () => {
+    expect(waitsCycle(tasks, "a", ["a"])).toBe(true);
+  });
+
+  it("finds a loop through other tasks", () => {
+    expect(waitsCycle(tasks, "a", ["c"])).toBe(true);
+    expect(waitsCycle([t("a", ["b"]), t("b")], "b", ["a"])).toBe(true);
+  });
+
+  it("lets a straight chain through", () => {
+    expect(waitsCycle(tasks, "c", ["a", "b"])).toBe(false);
+    expect(waitsCycle(tasks, "d", ["c"])).toBe(false);
   });
 });

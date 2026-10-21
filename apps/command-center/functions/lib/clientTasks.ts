@@ -1,11 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  isTaskMode,
   isTaskOwner,
+  waitsCycle,
+  waitsList,
   seedTasks,
   seedWithTicks,
   slug,
   taskPhases,
   type ClientTask,
+  type TaskMode,
   type TaskOp,
   type TaskOwner,
   type TaskState,
@@ -41,6 +45,9 @@ export function toTask(r: Row): ClientTask {
     note: (r.note as string | null) ?? null,
     doneBy: (r.done_by as string | null) ?? null,
     doneAt: (r.done_at as string | null) ?? null,
+    waitsOn: Array.isArray(r.waits_on) ? (r.waits_on as string[]) : [],
+    mode: isTaskMode(r.mode) ? r.mode : "ask",
+    outputs: r.outputs && typeof r.outputs === "object" && !Array.isArray(r.outputs) ? (r.outputs as Record<string, string>) : {},
   };
 }
 
@@ -102,7 +109,7 @@ async function freeKey(client: SupabaseClient, tenantId: string, name: string): 
 async function insertAdded(
   client: SupabaseClient,
   tenantId: string,
-  body: { phase: string; owner: TaskOwner; name: string; steps?: string[]; reason?: string | null },
+  body: { phase: string; owner: TaskOwner; name: string; steps?: string[]; reason?: string | null; waitsOn?: string[]; mode?: TaskMode },
   by: string,
 ): Promise<ClientTask> {
   const { data, error } = await client
@@ -117,6 +124,8 @@ async function insertAdded(
       position: 1000,
       change: "added",
       reason: body.reason ?? null,
+      waits_on: body.waitsOn ?? [],
+      mode: body.mode ?? "ask",
       created_by: by,
     })
     .select("*")
@@ -148,6 +157,18 @@ export interface TaskPatch {
   note?: string | null;
   evidence?: string | null;
   reason?: string | null;
+  waitsOn?: string[];
+  mode?: TaskMode;
+}
+
+// What a task may wait on: tasks of this client, and never a loop. The reason
+// is what Jake or the CSM's card is told.
+function wiringError(tasks: ClientTask[], key: string, waitsOn: string[]): string | null {
+  const known = new Set(tasks.map((t) => t.key));
+  const missing = waitsOn.filter((k) => !known.has(k));
+  if (missing.length) return `waits on a task that is not here: ${missing.join(", ")}`;
+  if (waitsCycle(tasks, key, waitsOn)) return "that would loop";
+  return null;
 }
 
 export async function patchTask(client: SupabaseClient, tenantId: string, id: string, patch: TaskPatch, by: string): Promise<ClientTask | Fail> {
@@ -177,6 +198,20 @@ export async function patchTask(client: SupabaseClient, tenantId: string, id: st
       if (patch[k] !== null && typeof patch[k] !== "string") return { error: 400, reason: `${k} must be text` };
       update[k] = patch[k] ? (patch[k] as string).slice(0, 2000) : null;
     }
+  }
+  if (patch.mode !== undefined) {
+    if (!isTaskMode(patch.mode)) return { error: 400, reason: "mode must be ask or live" };
+    update.mode = patch.mode;
+  }
+  if (patch.waitsOn !== undefined) {
+    const waits = waitsList(patch.waitsOn);
+    if (!waits) return { error: 400, reason: "waitsOn must be a list of task keys" };
+    const all = await readTasks(client, tenantId);
+    const self = all.find((t) => t.id === id);
+    if (!self) return { error: 404, reason: "no such task" };
+    const why = wiringError(all, self.key, waits);
+    if (why) return { error: 400, reason: why };
+    update.waits_on = waits;
   }
   if (patch.state !== undefined) {
     if (!STATES.includes(patch.state)) return { error: 400, reason: "unknown state" };
@@ -208,14 +243,29 @@ export async function applyTaskOps(
   ops: TaskOp[],
   by: string,
 ): Promise<{ applied: number; skipped: { op: TaskOp; reason: string }[] }> {
+  // Kept current as ops apply, so a later op can wait on a task an earlier
+  // one added, and a loop is caught against what is really there.
   const tasks = await ensureTasks(client, tenantId);
   const byKey = new Map(tasks.map((t) => [t.key, t]));
   const skipped: { op: TaskOp; reason: string }[] = [];
   let applied = 0;
   for (const op of ops) {
     if (op.op === "add") {
+      // Nothing waits on a task that does not exist yet, so only its keys are checked.
+      const missing = (op.waitsOn ?? []).filter((k) => !byKey.has(k));
+      if (missing.length) {
+        skipped.push({ op, reason: `waits on a task that is not here: ${missing.join(", ")}` });
+        continue;
+      }
       try {
-        await insertAdded(client, tenantId, { phase: op.phase, owner: op.owner, name: op.name, reason: op.reason }, by);
+        const made = await insertAdded(
+          client,
+          tenantId,
+          { phase: op.phase, owner: op.owner, name: op.name, reason: op.reason, waitsOn: op.waitsOn, mode: op.mode },
+          by,
+        );
+        tasks.push(made);
+        byKey.set(made.key, made);
         applied++;
       } catch (err) {
         skipped.push({ op, reason: (err as Error).message });
@@ -227,6 +277,13 @@ export async function applyTaskOps(
       skipped.push({ op, reason: "no task with that key" });
       continue;
     }
+    if (op.op === "change" && op.waitsOn !== undefined) {
+      const why = wiringError(tasks, t.key, op.waitsOn);
+      if (why) {
+        skipped.push({ op, reason: why });
+        continue;
+      }
+    }
     const update: Row =
       op.op === "cut"
         ? { state: "cut", reason: op.reason, done_by: null, done_at: null }
@@ -236,10 +293,15 @@ export async function applyTaskOps(
             ...(op.name !== undefined ? { name: op.name } : {}),
             ...(op.owner !== undefined ? { owner: op.owner } : {}),
             ...(op.phase !== undefined ? { phase: op.phase } : {}),
+            ...(op.waitsOn !== undefined ? { waits_on: op.waitsOn } : {}),
+            ...(op.mode !== undefined ? { mode: op.mode } : {}),
           };
     const { error } = await client.from("client_tasks").update(update).eq("tenant_id", tenantId).eq("id", t.id);
     if (error) skipped.push({ op, reason: error.message });
-    else applied++;
+    else {
+      applied++;
+      if (op.op === "change" && op.waitsOn !== undefined) t.waitsOn = op.waitsOn;
+    }
   }
   return { applied, skipped };
 }

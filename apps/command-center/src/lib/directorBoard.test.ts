@@ -4,7 +4,8 @@ import type { ClientTask } from "./clientTasks";
 
 const task = (o: Partial<ClientTask>): ClientTask => ({
   id: o.key ?? "x", key: "x", phase: "ghl", owner: "ghl", name: "x", position: 0, sourceNode: null, sopKey: null,
-  steps: [], state: "todo", change: "kept", reason: null, evidence: null, note: null, doneBy: null, doneAt: null, ...o,
+  steps: [], state: "todo", change: "kept", reason: null, evidence: null, note: null, doneBy: null, doneAt: null,
+  waitsOn: [], mode: "ask", outputs: {}, ...o,
 });
 
 describe("directorBoard", () => {

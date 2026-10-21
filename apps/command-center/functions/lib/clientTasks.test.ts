@@ -102,3 +102,63 @@ describe("applyTaskOps", () => {
     expect(db.rows("client_tasks")).toHaveLength(seedTasks().length);
   });
 });
+
+describe("waits on and mode", () => {
+  it("a new task waits on nothing and needs Jake's OK", async () => {
+    const db = new FakeDb();
+    const t = (await ensureTasks(db.client(), T1))[0];
+    expect(t.waitsOn).toEqual([]);
+    expect(t.mode).toBe("ask");
+    expect(t.outputs).toEqual({});
+  });
+
+  it("patchTask sets what a task waits on and its mode", async () => {
+    const db = new FakeDb();
+    const [a, b] = await ensureTasks(db.client(), T1);
+    const res = await patchTask(db.client(), T1, b.id, { waitsOn: [a.key], mode: "live" }, "jake");
+    expect(res).toMatchObject({ waitsOn: [a.key], mode: "live" });
+  });
+
+  it("patchTask refuses an unknown key, a loop and a bad mode", async () => {
+    const db = new FakeDb();
+    const [a, b] = await ensureTasks(db.client(), T1);
+    expect(await patchTask(db.client(), T1, b.id, { waitsOn: ["nope:gone"] }, "jake")).toMatchObject({ error: 400 });
+    await patchTask(db.client(), T1, b.id, { waitsOn: [a.key] }, "jake");
+    expect(await patchTask(db.client(), T1, a.id, { waitsOn: [b.key] }, "jake")).toEqual({ error: 400, reason: "that would loop" });
+    expect(await patchTask(db.client(), T1, a.id, { mode: "auto" as never }, "jake")).toMatchObject({ error: 400 });
+  });
+
+  it("a kickoff card can wire a task it adds to one it adds before it", async () => {
+    const db = new FakeDb();
+    await ensureTasks(db.client(), T1);
+    const res = await applyTaskOps(
+      db.client(),
+      T1,
+      [
+        { op: "add", phase: "adsbuild", owner: "ads", name: "Dataset made", reason: "x" },
+        { op: "add", phase: "follow", owner: "ghl", name: "CAPI wired", reason: "x", waitsOn: ["added:dataset-made"], mode: "live" },
+      ],
+      "jake",
+    );
+    expect(res.skipped).toEqual([]);
+    const capi = db.rows("client_tasks").find((r) => r.name === "CAPI wired")!;
+    expect(capi).toMatchObject({ waits_on: ["added:dataset-made"], mode: "live" });
+  });
+
+  it("a kickoff card that would loop or names a missing key skips that op", async () => {
+    const db = new FakeDb();
+    const [a, b] = await ensureTasks(db.client(), T1);
+    const res = await applyTaskOps(
+      db.client(),
+      T1,
+      [
+        { op: "change", key: b.key, waitsOn: [a.key], reason: "x" },
+        { op: "change", key: a.key, waitsOn: [b.key], reason: "x" },
+        { op: "change", key: a.key, waitsOn: ["nope:gone"], reason: "x" },
+      ],
+      "jake",
+    );
+    expect(res.applied).toBe(1);
+    expect(res.skipped.map((s) => s.reason)).toEqual(["that would loop", "waits on a task that is not here: nope:gone"]);
+  });
+});
