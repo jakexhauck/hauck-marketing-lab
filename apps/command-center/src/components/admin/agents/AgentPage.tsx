@@ -204,7 +204,7 @@ function AgentView({ tenantId, agent }: { tenantId: string | null; agent: AgentI
 // The page's styles, lifted from agents-v3.html and scoped to .ag. Colours
 // are the admin tokens; the brand family is rebuilt from --brand on .ag itself
 // so a client's colour carries through the gradient, tint and text.
-function AgentStyle() {
+export function AgentStyle() {
   return (
     <style>{`
       .ag {

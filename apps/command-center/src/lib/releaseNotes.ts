@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-22-four-agents",
+    date: "22 October 2026",
+    title: "Leaner agents",
+    items: [
+      "The Manager is now a chat in the bottom right of every admin page, for questions about the whole agency.",
+      "Inside each client the Customer Success Manager takes over: kickoff, the plan, tracking and the monthly report.",
+      "Each client has four agents: Customer Success Manager, Market Research, Ads and GHL. Ads now makes the creatives and the ad funnel pages.",
+      "Creative, Landing Page and Reporting are gone. Their tasks, Brief notes, chats and lessons moved to Ads or the Customer Success Manager.",
+      "Conversion Assets are gone. The GHL row opens on Custom Values, and the Accounts calendar check wants Home Estimate and Job only.",
+    ],
+  },
+  {
     id: "2026-10-21-client-director",
     date: "21 October 2026",
     title: "Director inside each client",

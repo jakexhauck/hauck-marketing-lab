@@ -36,6 +36,7 @@ import { effectiveAdminRole, type AdminRole } from "../../lib/adminRoles";
 import UpdateDialog from "../../components/admin/UpdateDialog";
 import ClientMark from "../../components/ClientMark";
 import { useAgentItems, useRunnerStatus } from "../../components/admin/agents/agentApi";
+import ManagerBubble from "../../components/admin/agents/ManagerBubble";
 import { needsOkCounts, onlineLabel } from "../../lib/agentView";
 import { isAgentId, type AgentId } from "../../lib/agents";
 
@@ -750,6 +751,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      {/* The agency Manager's chat, on every admin page (Jake, 2026-10-20). */}
+      {isOwnerAdmin && <ManagerBubble />}
 
       {/* Phone bottom tab bar (below lg). For an owner: four pages split
           around the raised Command hub button, in the same order as the desktop
