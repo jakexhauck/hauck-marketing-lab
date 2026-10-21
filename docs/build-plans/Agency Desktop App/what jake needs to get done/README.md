@@ -775,5 +775,16 @@ Then in the app:
 8. Open Willis > Agents and check the four agents are there, then send the Customer Success Manager one message.
 
 Still parked:
-- Task handoffs (tasks that start on their own, your gates, Needs your OK / Acts live): Build B, next.
 - The bubble's New chat and Close icons are a shade too dark; Esc closes the bubble even from another dialog.
+
+## Tasks that start on their own (2026-10-22)
+
+What's in the app now: on each client's Director a task can wait on other tasks (open a task, Waits on). When everything it waits on is done or cut, its agent starts it on its own in a "Tasks" chat, handed what those tasks produced. A task of yours that others wait on is your gate: nothing after it starts until you tick it. Each agent task has Writes: Needs your OK (default) or Acts live (GHL changes with no card). Meta changes, credits and going live always need your OK. Nothing waits on anything yet.
+
+Your action items:
+1. When you are ready, go over the tasks and processes with me and we set the first chain and its gates (your call: "after the infrastructure for the agents is built out we can go over tasks and specific processes").
+2. Try it once on a harmless pair: open Made Better > Director, make one task wait on another, tick the first, and watch the second's agent start in its Tasks chat.
+
+Still parked:
+- Setting a task to wait on tasks that are already finished does not start it; tick or name it yourself.
+- Two people wiring tasks at the same instant could make two tasks wait on each other (both just stay waiting).
