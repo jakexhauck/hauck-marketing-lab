@@ -12,8 +12,8 @@
 //   Live     Jake's Approve queues a follow-up carrying that grant. Before the
 //            agent's turn the runner copies that snapshot once to
 //            approved/<itemId>/ and promotes that copy to main, then
-//            calls file-asset, which checks the grant on the server, files the
-//            page into Conversion Assets and marks the card live. The agent is
+//            calls file-asset, which checks the grant on the server and marks
+//            the card live. The agent is
 //            then told the live URL, so it can say so and hand off to GHL.
 //
 // The snapshot is the point: the agent cannot write to data/sites, so the page
@@ -160,5 +160,5 @@ export async function goLive(
   const { title } = JSON.parse(readFileSync(rec, "utf8")) as { title: string };
   const { liveUrl } = await c.landing.promote(tenant.slug, dir);
   await c.api.fileAsset({ messageId: claim.message.id, tenantId: tenant.id, title, liveUrl });
-  return `(Runner: "${title}" is live at ${liveUrl} and filed into Conversion Assets. Do not rebuild it.)`;
+  return `(Runner: "${title}" is live at ${liveUrl}. Do not rebuild it.)`;
 }

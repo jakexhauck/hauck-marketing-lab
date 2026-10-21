@@ -1,6 +1,5 @@
 import { resolveBoardPipeline } from "./leadBoard";
 import { pickEstimateCalendars } from "./estimateTracking";
-import { CONVERSION_ASSET_CALENDAR } from "./conversionAssets";
 
 // Client > Accounts: one row per thing a client needs connected, each green or
 // red. Pure, so every rule is tested without GHL or Supabase; the endpoint in
@@ -58,16 +57,14 @@ interface RawCalendar {
   teamMembers?: unknown[];
 }
 
-// Home Estimate and Job are found the way booking finds them; Conversion Asset
-// Calendar by its exact name, the way the conversion assets embed it.
+// Home Estimate and Job, found the way booking finds them. (The Conversion
+// Asset Calendar went with conversion assets, 2026-10-20.)
 export function calendarsCheck(calendars: RawCalendar[]): AccountCheck {
   const picked = pickEstimateCalendars(calendars);
   const byId = new Map(calendars.map((c) => [c.id, c]));
-  const asset = calendars.find((c) => c.isActive !== false && norm(c.name) === norm(CONVERSION_ASSET_CALENDAR));
   const wanted: [string, RawCalendar | null | undefined][] = [
     ["Home Estimate", picked ? byId.get(picked.estimate.id) : null],
     ["Job", picked?.job ? byId.get(picked.job.id) : null],
-    [CONVERSION_ASSET_CALENDAR, asset],
   ];
   const absent = wanted.filter(([, c]) => !c).map(([n]) => n);
   if (absent.length) return missing("calendars", `Missing: ${absent.join(", ")}`);

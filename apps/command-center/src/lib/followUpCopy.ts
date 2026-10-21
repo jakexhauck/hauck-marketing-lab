@@ -4,9 +4,10 @@
 //
 // Long Term Nurture: all four per client.
 // Lead form: only the first text, SMS 3 and the Hail Mary are per client (Jake,
-// 2026-10-06). The enquiry confirmation, outside-hours text and the Recent Work
-// and Owner Story texts are universal and live in the GHL snapshot, so they are
-// not here. The new-lead alerts left this page 2026-10-10 (Jake: not needed).
+// 2026-10-06). The enquiry confirmation and outside-hours text are universal and
+// live in the GHL snapshot, so they are not here (the Recent Work and Owner
+// Story texts went with conversion assets, 2026-10-20). The new-lead alerts
+// left this page 2026-10-10 (Jake: not needed).
 
 export type CopyKind = "ltn" | "lead_fu";
 
@@ -34,7 +35,7 @@ export const COPY_ITEMS: Record<CopyKind, CopyItemDef[]> = {
   ],
   lead_fu: [
     { key: "first", label: "First text", when: "2 minutes after the form, inside working hours", ai: true },
-    { key: "sms3", label: "SMS 3", when: "24 hours after the Owner Story text", ai: true },
+    { key: "sms3", label: "SMS 3", when: "A few days after the first text, if no reply", ai: true },
     { key: "sms3Photo", label: "SMS 3 photo", when: "Sent with SMS 3", ai: true, note: true },
     { key: "hailMary", label: "Hail Mary", when: "2 days after SMS 3", ai: true },
   ],

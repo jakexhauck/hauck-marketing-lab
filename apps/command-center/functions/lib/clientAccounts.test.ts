@@ -36,21 +36,15 @@ describe("calendarsCheck", () => {
     teamMembers: Array.from({ length: members }, () => ({ userId: "u" })),
   });
   it("names the missing calendars", () => {
-    expect(calendarsCheck([cal("1", "Home Estimate")]).detail).toBe("Missing: Job, Conversion Asset Calendar");
+    expect(calendarsCheck([cal("1", "Home Estimate")]).detail).toBe("Missing: Job");
   });
   it("names calendars with nobody on them", () => {
     expect(
-      calendarsCheck([cal("1", "Home Estimate"), cal("2", "Job", 0), cal("3", "Conversion Asset Calendar")]).detail,
+      calendarsCheck([cal("1", "Home Estimate"), cal("2", "Job", 0)]).detail,
     ).toBe("No team member: Job");
   });
-  it("ignores a switched-off calendar", () => {
-    const off = { ...cal("3", "Conversion Asset Calendar"), isActive: false };
-    expect(calendarsCheck([cal("1", "Home Estimate"), cal("2", "Job"), off]).state).toBe("missing");
-  });
-  it("is green when all three have a team member", () => {
-    expect(
-      calendarsCheck([cal("1", "Home Estimate"), cal("2", "Jobs"), cal("3", "conversion asset  calendar")]).state,
-    ).toBe("ok");
+  it("is green when Home Estimate and Job have a team member, with no Conversion Asset Calendar", () => {
+    expect(calendarsCheck([cal("1", "Home Estimate"), cal("2", "Jobs")]).state).toBe("ok");
   });
 });
 

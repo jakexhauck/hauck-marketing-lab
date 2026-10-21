@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { FakeDb } from "./agentFakeDb";
-import { fileLandingAsset, liveUrlMatches } from "./agentFileAsset";
+import { markPageLive, liveUrlMatches } from "./agentFileAsset";
 
 const T1 = "11111111-1111-4111-8111-111111111111";
 const T2 = "22222222-2222-4222-8222-222222222222";
@@ -63,70 +63,69 @@ function world(over: { agent?: string; status?: string; grant?: unknown; itemSta
 
 const body = { messageId: M1, tenantId: T1, title: "Winter offer page", liveUrl: LIVE };
 
-describe("fileLandingAsset", () => {
-  it("files the live page as a Conversion Asset and marks the card live", async () => {
+describe("markPageLive", () => {
+  it("marks the card live with its live URL, and files nothing anywhere else", async () => {
     const db = world();
-    const res = await fileLandingAsset(db.client(), body);
-    expect("assetId" in res).toBe(true);
-    const pages = db.rows("followup_pages");
-    expect(pages).toHaveLength(1);
-    expect(pages[0]).toMatchObject({ tenant_id: T1, external_url: LIVE, title: "Winter offer page", status: "live", asset_kind: "", slug: "" });
+    const res = await markPageLive(db.client(), body);
+    expect(res).toMatchObject({ itemId: I1, liveUrl: LIVE });
+    expect(db.rows("followup_pages")).toHaveLength(0);
     expect(db.rows("agent_items")[0]).toMatchObject({ status: "live", payload: { liveUrl: LIVE, previewUrl: PREVIEW } });
   });
 
-  it("files a re-run once", async () => {
+  it("is the same answer on a re-run", async () => {
     const db = world();
-    const a = await fileLandingAsset(db.client(), body);
-    const b = await fileLandingAsset(db.client(), body);
-    expect(db.rows("followup_pages")).toHaveLength(1);
-    expect("assetId" in a && "assetId" in b && a.assetId === b.assetId).toBe(true);
+    const a = await markPageLive(db.client(), body);
+    const b = await markPageLive(db.client(), body);
+    expect(a).toMatchObject({ itemId: I1, liveUrl: LIVE });
+    expect(b).toMatchObject({ itemId: I1, liveUrl: LIVE });
+    expect(db.rows("agent_items")[0].status).toBe("live");
   });
 
   it("409 when the message carries no deploy grant", async () => {
-    expect(await fileLandingAsset(world({ grant: null }).client(), body)).toMatchObject({ error: 409 });
-    expect(await fileLandingAsset(world({ grant: { itemId: I1, kind: "spend", limit: 5 } }).client(), body)).toMatchObject({ error: 409 });
-    expect(await fileLandingAsset(world({ grant: { itemId: "nope", kind: "deploy" } }).client(), body)).toMatchObject({ error: 409 });
+    expect(await markPageLive(world({ grant: null }).client(), body)).toMatchObject({ error: 409 });
+    expect(await markPageLive(world({ grant: { itemId: I1, kind: "spend", limit: 5 } }).client(), body)).toMatchObject({ error: 409 });
+    expect(await markPageLive(world({ grant: { itemId: "nope", kind: "deploy" } }).client(), body)).toMatchObject({ error: 409 });
   });
 
   it("409 when the runner did not make the card", async () => {
-    expect(await fileLandingAsset(world({ runnerOwned: false }).client(), body)).toMatchObject({ error: 409 });
+    expect(await markPageLive(world({ runnerOwned: false }).client(), body)).toMatchObject({ error: 409 });
   });
 
   it("409 when the message is not running", async () => {
     for (const status of ["queued", "done", "error"]) {
-      expect(await fileLandingAsset(world({ status }).client(), body), status).toMatchObject({ error: 409 });
+      expect(await markPageLive(world({ status }).client(), body), status).toMatchObject({ error: 409 });
     }
   });
 
   it("409 when the card was never approved", async () => {
     for (const itemStatus of ["building", "needs_ok", "declined"]) {
-      expect(await fileLandingAsset(world({ itemStatus }).client(), body), itemStatus).toMatchObject({ error: 409 });
+      expect(await markPageLive(world({ itemStatus }).client(), body), itemStatus).toMatchObject({ error: 409 });
     }
   });
 
   it("403 for a message from another agent's chat", async () => {
     const db = world({ agent: "ghl" });
-    expect(await fileLandingAsset(db.client(), body)).toMatchObject({ error: 403 });
+    expect(await markPageLive(db.client(), body)).toMatchObject({ error: 403 });
     expect(db.rows("followup_pages")).toHaveLength(0);
   });
 
   it("403 for another client", async () => {
-    expect(await fileLandingAsset(world().client(), { ...body, tenantId: T2 })).toMatchObject({ error: 403 });
-    expect(await fileLandingAsset(world({ itemTenant: T2 }).client(), body)).toMatchObject({ error: 403 });
-    expect(await fileLandingAsset(world({ itemAgent: "ghl" }).client(), body)).toMatchObject({ error: 403 });
+    expect(await markPageLive(world().client(), { ...body, tenantId: T2 })).toMatchObject({ error: 403 });
+    expect(await markPageLive(world({ itemTenant: T2 }).client(), body)).toMatchObject({ error: 403 });
+    expect(await markPageLive(world({ itemAgent: "ghl" }).client(), body)).toMatchObject({ error: 403 });
   });
 
   it("400 for a live URL that is not the approved preview's project", async () => {
     const db = world();
-    expect(await fileLandingAsset(db.client(), { ...body, liveUrl: "https://hm-other.pages.dev" })).toMatchObject({ error: 400 });
+    expect(await markPageLive(db.client(), { ...body, liveUrl: "https://hm-other.pages.dev" })).toMatchObject({ error: 400 });
     expect(db.rows("followup_pages")).toHaveLength(0);
     expect(db.rows("agent_items")[0].status).toBe("done");
   });
 
   it("400 for a bad body and 404 for an unknown message", async () => {
-    expect(await fileLandingAsset(world().client(), { ...body, messageId: "x" })).toMatchObject({ error: 400 });
-    expect(await fileLandingAsset(world().client(), { ...body, tenantId: "agency" })).toMatchObject({ error: 400 });
-    expect(await fileLandingAsset(world().client(), { ...body, messageId: I1 })).toMatchObject({ error: 404 });
-    expect(await fileLandingAsset(world({ role: "ai" }).client(), body)).toMatchObject({ error: 404 });
+    expect(await markPageLive(world().client(), { ...body, messageId: "x" })).toMatchObject({ error: 400 });
+    expect(await markPageLive(world().client(), { ...body, tenantId: "agency" })).toMatchObject({ error: 400 });
+    expect(await markPageLive(world().client(), { ...body, messageId: I1 })).toMatchObject({ error: 404 });
+    expect(await markPageLive(world({ role: "ai" }).client(), body)).toMatchObject({ error: 404 });
   });
 });

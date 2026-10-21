@@ -228,8 +228,8 @@ export interface AutoChatBody {
   prompt: string;
 }
 
-// Runner-only: a landing page Jake approved is live; file it into Conversion
-// Assets and mark its card live. POST /api/agent-runner/file-asset. The card is
+// Runner-only: a landing page Jake approved is live; mark its card live.
+// POST /api/agent-runner/file-asset. The card is
 // the one named by the message's deploy grant, read on the server, never sent.
 export interface FileAssetBody {
   messageId: string;

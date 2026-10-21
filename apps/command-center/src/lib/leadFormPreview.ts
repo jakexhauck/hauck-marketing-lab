@@ -6,7 +6,7 @@
 // moment somebody taps through. So the rules live here, pure and tested, and
 // the component only draws what these functions decide.
 //
-// Browser-only, like conversionAssetPreview.ts. The server never runs this: it
+// Browser-only. The server never runs this: it
 // stores a draft, it does not simulate one.
 
 import {

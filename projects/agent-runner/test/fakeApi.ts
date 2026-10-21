@@ -96,7 +96,7 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     },
     async fileAsset(b) {
       api.fileAssets.push(b);
-      return { assetId: `asset-${api.fileAssets.length}` };
+      return { itemId: `item-${api.fileAssets.length}`, liveUrl: b.liveUrl };
     },
     async brief(b) {
       api.briefs.push(b);

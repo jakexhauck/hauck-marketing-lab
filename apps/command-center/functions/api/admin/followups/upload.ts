@@ -1,12 +1,12 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { UPLOAD_FOLDERS, type UploadFolder } from "../../../lib/conversionAssets";
+import { UPLOAD_FOLDERS, type UploadFolder } from "../../../lib/assetUploads";
 
 // POST /api/admin/followups/upload  (multipart/form-data: tenantId, slot, file)
 //   -> { url }
 //
-// Files for a conversion asset: the logo, a design kit, the owner's photo and
-// the before/after photos of each job. Bytes go to the public `followup-assets`
+// Images for admin pages (the Lead Form editor; once the conversion assets: the
+// logo, owner and before/after photos). Bytes go to the public `followup-assets`
 // bucket (0095) and the caller gets a plain URL back.
 //
 // PUBLIC, deliberately. The built page is served on the CLIENT'S domain by

@@ -1,5 +1,4 @@
 import CalendarPanel from "./CalendarPanel";
-import ConversionAssetPanel from "./ConversionAssetPanel";
 import GhlSetupWizard from "./GhlSetupWizard";
 import CustomValuesPanel from "../../sop/CustomValuesPanel";
 import { GHL_SETUP_SUB, placeholderCopy, subTabsFor } from "../../../../lib/fulfillmentPages";
@@ -7,8 +6,8 @@ import { GHL_SETUP_SUB, placeholderCopy, subTabsFor } from "../../../../lib/fulf
 // Fulfillment > GHL. Everything the operator builds to be pasted INTO a
 // client's GoHighLevel account.
 //
-// One sub-tab today (Conversion Assets). The switch is here rather than
-// inlined in FulfillmentPage so the second one is a case, not a refactor.
+// Custom Values and Calendars (Conversion Assets went 2026-10-20). The switch
+// is here rather than inlined in FulfillmentPage so a new one is a case.
 
 export default function GhlTab({
   tenantId,
@@ -39,14 +38,6 @@ export default function GhlTab({
     case GHL_SETUP_SUB:
       return (
         <GhlSetupWizard tenantId={tenantId} clientName={clientName} onFinished={onSelectSub} />
-      );
-    case "conversion-assets":
-      return (
-        <ConversionAssetPanel
-          tenantId={tenantId}
-          clientName={clientName}
-          clientSlug={clientSlug}
-        />
       );
     case "custom-values":
       return <CustomValuesPanel tenantId={tenantId} />;

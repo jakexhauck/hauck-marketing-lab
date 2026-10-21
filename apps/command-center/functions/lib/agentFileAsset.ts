@@ -1,28 +1,29 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AgentItem, FileAssetBody } from "../../src/lib/agentWire";
 import { grantFrom, isUuid, itemFromRow } from "./agentItems";
-import { messageFromRow, stripEmDash } from "./agentRunner";
+import { messageFromRow } from "./agentRunner";
 
 // POST /api/agent-runner/file-asset: a landing page Jake approved is live, so
-// file it into Conversion Assets and mark its card live (docs/build-plans/
-// agents.md, Phase 2).
+// mark its card live with the live URL (docs/build-plans/agents.md, Phase 2).
+// Until 2026-10-20 it was also filed into Conversion Assets, which are gone
+// (docs/build-plans/four-agents-and-handoffs.md); the route keeps its name.
 //
 // The runner holds a secret, not Jake's session, so nothing it says is taken
 // on trust. Every fact this needs is read back from the database:
 //
 //   - the message is a `me` message that is running right now,
-//   - its chat is the Landing Page Agent's, at the client named,
+//   - its chat is the Ads Agent's (which builds the pages), at the client named,
 //   - it carries a deploy grant, which only an Approve click puts there
 //     (decideItem), and the card that grant names is that agent's, at that
 //     client, in that chat, approved, and asked for a deploy itself,
 //   - the live URL is the approved preview's own Pages project.
 //
-// So a stolen runner secret can, at worst, re-file a page Jake already
+// So a stolen runner secret can, at worst, re-mark a page Jake already
 // approved at the address it was approved for.
 
 type Row = Record<string, unknown>;
 
-export type FileAssetResult = { assetId: string; item: AgentItem } | { error: 400 | 403 | 404 | 409; reason: string };
+export type FileAssetResult = { itemId: string; liveUrl: string; item: AgentItem } | { error: 400 | 403 | 404 | 409; reason: string };
 
 const no = (error: 400 | 403 | 404 | 409, reason: string) => ({ error, reason });
 
@@ -41,7 +42,7 @@ export function liveUrlMatches(previewUrl: unknown, liveUrl: unknown): boolean {
   return !!p && !!l && p[1].toLowerCase() === l[1].toLowerCase();
 }
 
-export async function fileLandingAsset(client: SupabaseClient, body: FileAssetBody): Promise<FileAssetResult> {
+export async function markPageLive(client: SupabaseClient, body: FileAssetBody): Promise<FileAssetResult> {
   if (!isUuid(body?.messageId) || !isUuid(body?.tenantId) || typeof body.liveUrl !== "string") {
     return no(400, "messageId, tenantId and liveUrl are required");
   }
@@ -77,27 +78,6 @@ export async function fileLandingAsset(client: SupabaseClient, body: FileAssetBo
   if (!liveUrlMatches(item.payload.previewUrl, body.liveUrl)) return no(400, "liveUrl is not the approved preview's project");
 
   const liveUrl = body.liveUrl.replace(/\/$/, "");
-  const title = stripEmDash((item.title || body.title || "").trim()).slice(0, 200) || "Landing page";
-
-  // Looked up first so a re-run after a reclaim files the page once.
-  const { data: existing, error: eErr } = await client
-    .from("followup_pages")
-    .select("id")
-    .eq("tenant_id", body.tenantId)
-    .eq("external_url", liveUrl)
-    .limit(1);
-  fail("asset lookup", eErr);
-  let assetId = ((existing ?? [])[0] as Row | undefined)?.id as string | undefined;
-  if (!assetId) {
-    const { data: made, error: aErr } = await client
-      .from("followup_pages")
-      .insert({ tenant_id: body.tenantId, asset_kind: "", slug: "", status: "live", external_url: liveUrl, title })
-      .select("id")
-      .maybeSingle();
-    fail("asset insert", aErr);
-    assetId = (made as Row | null)?.id as string | undefined;
-    if (!assetId) throw new Error("asset insert: no row");
-  }
 
   const { data: moved, error: uErr } = await client
     .from("agent_items")
@@ -107,5 +87,5 @@ export async function fileLandingAsset(client: SupabaseClient, body: FileAssetBo
     .select("*");
   fail("item live", uErr);
   const after = ((moved ?? []) as Row[])[0];
-  return { assetId, item: after ? itemFromRow(after) : item };
+  return { itemId: item.id, liveUrl, item: after ? itemFromRow(after) : item };
 }

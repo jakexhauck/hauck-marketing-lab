@@ -36,7 +36,7 @@ export interface RunnerApi {
   snapshot(tenantId: string): Promise<Snapshot>;
   tenants(): Promise<TenantsResponse>;
   autoChat(body: AutoChatBody): Promise<{ chatId: string }>;
-  fileAsset(body: FileAssetBody): Promise<{ assetId: string }>;
+  fileAsset(body: FileAssetBody): Promise<{ itemId: string; liveUrl: string }>;
   // The agent's own Client Brief section. A stale version is an answer (Jake
   // edited it), not an error, so it comes back as saved: false.
   brief(body: RunnerBriefBody): Promise<RunnerBriefResult>;
@@ -92,7 +92,7 @@ export function createApi(opts: ApiOptions): RunnerApi {
     snapshot: (id) => call<Snapshot>("GET", `snapshot?tenant=${encodeURIComponent(id)}`),
     tenants: async () => (await call<TenantsResponse | null>("GET", "tenants")) ?? [],
     autoChat: (b) => call<{ chatId: string }>("POST", "auto-chat", b),
-    fileAsset: (b) => call<{ assetId: string }>("POST", "file-asset", b),
+    fileAsset: (b) => call<{ itemId: string; liveUrl: string }>("POST", "file-asset", b),
     brief: async (b) => {
       const { status, data } = await send<{ section: RunnerBriefResult["section"] }>("POST", "brief", b, [409]);
       return { saved: status !== 409, section: data.section };

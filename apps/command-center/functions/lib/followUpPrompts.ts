@@ -38,7 +38,7 @@ ${LTN_EXAMPLES}`;
 const LEAD_FU_SYSTEM = `You write three follow-up texts for a local home-service business. A lead just filled in a Facebook lead form (name and phone only).
 
 first: sent 2 minutes after the form, inside working hours, from the owner. It thanks them, asks one easy question about timing, and has a P.S. about the attached photo. Example (brick paving): "Hey {{contact.first_name}},\n\nIt's {{custom_values.user_first_name}} here from {{custom_values.company_name}}, thanks for your inquiry!\n\nHow soon were you looking to get this done?\n\nP.S. attached is a pic of myself and the crew! (The best brick paving company in Metro Detroit) lol"
-sms3: sent a few days later if they have not replied, after two texts with links to recent work and the owner's story. A fresh, specific reason to reply, tied to the trade.
+sms3: sent a few days later if they have not replied. A fresh, specific reason to reply, tied to the trade.
 sms3Photo: one short line (not a text) describing a photo to send with sms3 that backs it up, e.g. "A finished patio with the crew standing on it".
 hailMary: the last try, 2 days after sms3. Short, warm, easy to say yes or no to.
 

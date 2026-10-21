@@ -37,7 +37,7 @@ import type {
 //     nothing else; it is not an admin and cannot become one.
 //
 // What a holder of the secret can do, in full: read and write the agents'
-// own tables (0166), file an approved landing page into Conversion Assets
+// own tables (0166), mark an approved landing page live
 // (file-asset, which re-checks the approval itself), read the client list,
 // read each client's numbers for a startup check, READ Meta insights, and run
 // the GHL Agent's allowlisted ops (writes only on Jake's ask or Approve,

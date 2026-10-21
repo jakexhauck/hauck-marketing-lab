@@ -23,7 +23,7 @@ describe("clientNavGroups", () => {
       [null, ["Brief", "Director"]],
       ["Agents", AGENT_NAMES],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
-      ["GHL", ["Conversion Assets", "Custom Values", "Calendars"]],
+      ["GHL", ["Custom Values", "Calendars"]],
       [null, ["Management", "Image Converter"]],
     ]);
   });
@@ -33,7 +33,7 @@ describe("clientNavGroups", () => {
       [null, ["Brief", "Director"]],
       ["Agents", AGENT_NAMES],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
-      ["GHL", ["Connect GHL", "Conversion Assets"]],
+      ["GHL", ["Connect GHL"]],
       [null, ["Management", "Image Converter"]],
     ]);
   });
@@ -117,7 +117,8 @@ describe("resolveClientPage", () => {
 
   it("fills in the first sub-page when none is given", () => {
     expect(resolveClientPage(linked, "paid-ads", null)).toEqual({ page: "paid-ads", sub: "dashboard" });
-    expect(resolveClientPage(linked, "ghl", null)).toEqual({ page: "ghl", sub: "conversion-assets" });
+    expect(resolveClientPage(linked, "ghl", null)).toEqual({ page: "ghl", sub: "custom-values" });
+    expect(resolveClientPage(linked, "ghl", "conversion-assets")).toEqual({ page: "ghl", sub: "custom-values" });
   });
 
   it("sends a gated sub-page to the connect step", () => {

@@ -5,7 +5,7 @@ import { Button } from "../../../ui/Button";
 import { useAdminGhlConnectionQuery, useSaveGhlCreds } from "../../../../hooks/useApi";
 
 // Fulfillment > GHL > Connect. Where the page opens for a client whose
-// GoHighLevel sub-account is not wired yet, and the only thing on offer besides
+// it is.
 // Conversion Assets until it is.
 //
 // The same shell and the same shape as the Meta connect screen, because it is

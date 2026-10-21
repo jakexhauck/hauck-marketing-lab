@@ -13,7 +13,6 @@ import type { AccountCheck } from "../../functions/lib/clientAccounts";
 // The lead form's shape, from the module the endpoints validate with (0090).
 import type { LeadForm, LeadFormPatch } from "../../functions/lib/adLeadForms";
 // The follow-up page's shape, from the module the endpoints validate with (0093).
-import type { ConversionAsset, ConversionAssetPatch } from "../../functions/lib/conversionAssets";
 // The ad-account picker's shape, from the module the endpoint builds it with.
 import type { AdAccountsResponse } from "../../functions/lib/metaAdAccounts";
 import type { LibraryItem } from "../../functions/lib/metaUpload";
@@ -3683,89 +3682,9 @@ export function useDeleteLeadForm(tenantId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Conversion assets (0093, 0096). Fulfillment > GHL > Conversion Assets.
-//
-// An asset here is a published artefact at a real URL, not the current state of
-// some work, so unlike the ad workspace these are created, listed and deleted
-// rather than upserted. Three exist at once per client, one per slot.
-//
-// The route and the `pages` key are historical: these were follow-up pages
-// before the SMS went universal.
-//
-// Agency-only. Nothing in the client app calls these.
-
-export function useConversionAssetsQuery(tenantId: string) {
-  return useQuery({
-    queryKey: ["admin", "followup-pages", tenantId],
-    enabled: !!tenantId,
-    queryFn: () =>
-      api<{ pages: ConversionAsset[] }>(
-        `/api/admin/followups?tenantId=${encodeURIComponent(tenantId)}`,
-      ),
-  });
-}
-
-export function useCreateConversionAsset(tenantId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    retry: false,
-    mutationFn: (patch: ConversionAssetPatch) =>
-      api<{ page: ConversionAsset }>(
-        `/api/admin/followups?tenantId=${encodeURIComponent(tenantId)}`,
-        { method: "POST", body: JSON.stringify(patch) },
-      ),
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "followup-pages", tenantId] });
-    },
-  });
-}
-
-// Saves one wizard step as it is left, so these land one at a time and often.
-// Never retried: a retry of a stale step would put back what was just typed
-// over it.
-//
-// Not invalidated on success. The wizard holds the authoritative draft and
-// refetching under a live cursor is how a half-typed note loses its last
-// keystroke. The list cache is patched in place instead, so the slots behind
-// the wizard update without a request.
-export function useUpdateConversionAsset(tenantId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    retry: false,
-    mutationFn: (input: { id: string; patch: ConversionAssetPatch }) =>
-      api<{ page: ConversionAsset }>(
-        `/api/admin/followups?tenantId=${encodeURIComponent(tenantId)}&id=${encodeURIComponent(input.id)}`,
-        { method: "PATCH", body: JSON.stringify(input.patch) },
-      ),
-    onSuccess: (data) => {
-      qc.setQueryData<{ pages: ConversionAsset[] }>(
-        ["admin", "followup-pages", tenantId],
-        (prev) =>
-          prev
-            ? { pages: prev.pages.map((p) => (p.id === data.page.id ? data.page : p)) }
-            : prev,
-      );
-    },
-  });
-}
-
-export function useDeleteConversionAsset(tenantId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    retry: false,
-    mutationFn: (input: { id: string }) =>
-      api<{ ok: true }>(
-        `/api/admin/followups?tenantId=${encodeURIComponent(tenantId)}&id=${encodeURIComponent(input.id)}`,
-        { method: "DELETE" },
-      ),
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "followup-pages", tenantId] });
-    },
-  });
-}
-
-// Upload one file for a conversion asset: the logo, the design kit, the owner's
-// photo, or one half of a before/after pair.
+// Upload one image to the followup-assets bucket (functions/lib/assetUploads.ts),
+// for the Lead Form editor. The route is named for the conversion assets it
+// first served (gone 2026-10-20).
 //
 // Deliberately NOT routed through api(): that helper stamps a JSON
 // content-type on any request with a body, and a multipart upload must let the
@@ -3789,27 +3708,6 @@ export async function uploadAssetPhoto(input: {
   const body = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
   if (!res.ok || !body?.url) throw new Error(body?.error ?? "Upload failed.");
   return body.url;
-}
-
-// Upload the owner's video. Two hops: the Worker signs a one-time upload URL,
-// then the browser PUTs the file straight to storage, so a phone video never
-// sits in Worker memory. See api/admin/followups/upload-url.ts.
-export async function uploadAssetVideo(input: { tenantId: string; file: File }): Promise<string> {
-  const signed = await api<{ uploadUrl: string; url: string }>("/api/admin/followups/upload-url", {
-    method: "POST",
-    body: JSON.stringify({ tenantId: input.tenantId, type: input.file.type, size: input.file.size }),
-  });
-
-  const res = await fetch(signed.uploadUrl, {
-    method: "PUT",
-    body: input.file,
-    headers: { "content-type": input.file.type, "x-upsert": "false" },
-  });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
-    throw new Error(body?.message ?? body?.error ?? "Upload failed.");
-  }
-  return signed.url;
 }
 
 // Fulfillment > GHL > Calendars.
