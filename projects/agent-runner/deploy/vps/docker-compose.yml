@@ -1,0 +1,42 @@
+# /srv/hauck/runner/docker-compose.yml on the VPS. Its own compose project, so
+# Hostinger rewriting the Hermes template's compose file cannot drop it. It
+# joins Hermes's network as external: the runner calls Hermes at
+# hermes-agent:8642 and Hermes calls the runner's MCP tools at
+# hauck-agent-runner:8700. No port is published to the internet.
+
+services:
+  hauck-agent-runner:
+    build: .
+    container_name: hauck-agent-runner
+    restart: unless-stopped
+    mem_limit: 512m
+    env_file:
+      # HERMES_KEY_<AGENT> and HERMES_MCP_TOKEN_<AGENT> (setup.sh writes it)
+      - /root/hauck-runner/profile-keys.env
+      # DOPPLER_TOKEN, a read-only service token for hauck-command-center/prd
+      - /root/hauck-runner/doppler.env
+    environment:
+      AGENT_ENGINE: hermes
+      AGENT_AGENTS: manager,csm,research,ghl
+      HERMES_API: http://hermes-agent:8642
+      HERMES_MCP_PORT: "8700"
+      AGENT_REPO_DIR: /repo
+      AGENT_WORK_DIR: /opt/data/work
+      AGENT_GIT_PUSH: "1"
+      AGENT_DRIVE: rclone
+      AGENT_DRIVE_ROOT: /opt/data/drive
+      RCLONE_CONFIG: /config/rclone.conf
+      HOME: /home/runner
+    volumes:
+      - /srv/hauck/repo:/repo
+      - /srv/hauck/config:/config
+      - /srv/hauck/ssh:/home/runner/.ssh:ro
+      - /docker/hermes-agent-jz7z/data/work:/opt/data/work
+      - /docker/hermes-agent-jz7z/data/drive:/opt/data/drive
+    networks:
+      - hermes
+
+networks:
+  hermes:
+    name: hermes-agent-jz7z_default
+    external: true

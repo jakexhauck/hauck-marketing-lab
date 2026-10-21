@@ -1,0 +1,21 @@
+# The agent runner on the VPS (docs/build-plans/hermes-agents.md, Task 6).
+#
+# Only the tools: the runner's code is the repo clone mounted at /repo, so an
+# update is a git pull and a restart, never a rebuild. Runs as uid 10000, the
+# Hermes container's user, because both write the shared work and Drive folders.
+
+FROM node:24-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git openssh-client ca-certificates curl gnupg rclone \
+ && curl -Ls --tlsv1.2 --proto "=https" https://cli.doppler.com/install.sh | sh \
+ && apt-get purge -y gnupg && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -g 10000 runner && useradd -u 10000 -g 10000 -m -d /home/runner runner
+USER runner
+WORKDIR /repo/projects/agent-runner
+
+# npm ci on every start: the clone's lockfile may have moved with a pull.
+# doppler run puts this project's prd secrets (AGENT_RUNNER_SECRET among them)
+# into the runner's environment. No agent runs in this container.
+CMD ["sh", "-c", "npm ci --no-audit --no-fund --loglevel=error && exec doppler run -- npx tsx src/main.ts"]
