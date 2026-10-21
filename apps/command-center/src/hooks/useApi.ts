@@ -4012,3 +4012,39 @@ export function useClientTaskDelete(tenantId: string) {
     onSettled: () => void qc.invalidateQueries({ queryKey: clientTasksKey(tenantId) }),
   });
 }
+
+// Admin: Client > Setting (Jake setting appointments for a client). The
+// client's Sales Pipeline, the same read as their own Leads board.
+export function useSettingBoardQuery(tenantId: string) {
+  return useQuery({
+    queryKey: ["admin", "setting", "board", tenantId],
+    enabled: !!tenantId,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<import("../lib/leadBoard").BoardPayload>(`/api/admin/clients/${encodeURIComponent(tenantId)}/setting/board`),
+  });
+}
+
+// Rings Jake, then bridges the lead (App Call workflow in the sub-account).
+export function useSettingCall(tenantId: string) {
+  return useMutation({
+    mutationFn: (contactId: string) =>
+      api<{ ok: boolean; error?: string }>(`/api/admin/clients/${encodeURIComponent(tenantId)}/setting/call`, {
+        method: "POST",
+        body: JSON.stringify({ contactId }),
+      }),
+  });
+}
+
+// The signed outcome page address for one lead, to frame.
+export function useSettingOutcomeLinkQuery(tenantId: string, contactId: string | null) {
+  return useQuery({
+    queryKey: ["admin", "setting", "outcome-link", tenantId, contactId],
+    enabled: !!tenantId && !!contactId,
+    staleTime: Infinity,
+    queryFn: () =>
+      api<{ url: string }>(
+        `/api/admin/clients/${encodeURIComponent(tenantId)}/setting/outcome-link?contactId=${encodeURIComponent(contactId ?? "")}`,
+      ),
+  });
+}

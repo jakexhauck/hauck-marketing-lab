@@ -34,6 +34,7 @@ export type ClientPageId =
   | "ghl"
   | "management"
   | "image-converter"
+  | "setting"
   | "agent";
 
 // What the gates read off a client. AdminClient satisfies it.
@@ -89,6 +90,10 @@ const PAGE_LABELS: Record<ClientPageId, string> = {
   // Jake, 2026-10-15: photos from the client's Drive folder as JPGs under
   // 750 KB, for GHL texts (components/admin/cockpit/ImageConverterTab.tsx).
   "image-converter": "Image Converter",
+  // Jake, 2026-10-21: Jake setting appointments for the client. Their GHL Sales
+  // Pipeline with Call (App Call workflow), the setter script, and the outcome
+  // page for the lead (components/admin/setting).
+  setting: "Setting",
   // Jake, 2026-10-17: one page for all the client's agents, the agent is the sub-page
   // (lib/agents.ts). Never shown as a row of its own; the Agents group lists
   // the agents themselves.
@@ -109,8 +114,15 @@ function offeredSubs(c: ClientGateInfo, page: ClientPageId): SubTabDef[] {
   if (page === "agent") return CLIENT_AGENTS.map((a) => ({ id: a.id, label: a.name, ready: true }));
   if (page === "paid-ads") return paidAdsSubTabs(subTabsFor("paid-ads"), adsLinked(c));
   if (page === "ghl") return ghlSubTabs(subTabsFor("ghl"), c.ghlConnected);
+  if (page === "setting") return SETTING_SUBS;
   return [];
 }
+
+export const SETTING_SUBS: SubTabDef[] = [
+  { id: "pipeline", label: "Pipeline", ready: true },
+  { id: "script", label: "Script", ready: true },
+  { id: "outcome", label: "Outcome", ready: true },
+];
 
 const single = (page: ClientPageId): ClientNavRow => ({ page, sub: null, label: PAGE_LABELS[page] });
 const subRows = (c: ClientGateInfo, page: ClientPageId): ClientNavRow[] =>
@@ -122,6 +134,7 @@ export function clientNavGroups(c: ClientGateInfo): ClientNavGroup[] {
     { caption: "Agents", rows: subRows(c, "agent") },
     { caption: "Paid Ads", rows: subRows(c, "paid-ads") },
     { caption: "GHL", rows: subRows(c, "ghl") },
+    { caption: "Setting", rows: subRows(c, "setting") },
     { caption: null, rule: true, rows: [single("management"), single("image-converter")] },
   ];
 }

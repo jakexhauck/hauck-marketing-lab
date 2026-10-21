@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-22-client-setting",
+    date: "22 October 2026",
+    title: "Setting tab in every client",
+    items: [
+      "Each client has a Setting group: Pipeline, Script and Outcome.",
+      "Pipeline is the client's GHL Sales Pipeline. Call rings your phone, then connects the lead from the client's number (their App Call workflow).",
+      "After a Call, Outcome opens on that lead: the same page as the Outcome Link, with booking and stage moves.",
+      "Script is the client's setter script.",
+    ],
+  },
+  {
     id: "2026-10-22-task-handoffs",
     date: "22 October 2026",
     title: "Tasks that start on their own",

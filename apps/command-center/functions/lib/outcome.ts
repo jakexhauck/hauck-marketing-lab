@@ -38,6 +38,9 @@ import { MAX_AMOUNT, SLOT_PICKER_JS, escapeHtml, pageShell } from "./estimateOut
 import type { LostReason, StageKey } from "./leadBoard";
 
 export const OUTCOME_LINK_PURPOSE = "outcome";
+// The Setting tab's copy (/api/setter-outcome). Its own key, minted only by an
+// admin endpoint, so nothing texted to an owner opens it.
+export const SETTER_OUTCOME_PURPOSE = "setter-outcome";
 
 export type Outcome =
   | "estimate_booked"

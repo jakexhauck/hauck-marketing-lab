@@ -4,6 +4,7 @@ import { Eye } from "lucide-react";
 import GhlTab from "../../components/admin/cockpit/ghl/GhlTab";
 import ManagementTab from "../../components/admin/cockpit/ManagementTab";
 import ImageConverterTab from "../../components/admin/cockpit/ImageConverterTab";
+import SettingTab from "../../components/admin/setting/SettingTab";
 import AgentPage from "../../components/admin/agents/AgentPage";
 import { BriefPage } from "../../components/admin/agents/BriefPanel";
 import ClientDirector from "../../components/admin/director/ClientDirector";
@@ -145,6 +146,8 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
       );
     case "image-converter":
       return <ImageConverterTab tenantId={client.id} />;
+    case "setting":
+      return <SettingTab tenantId={client.id} sub={sub} />;
     case "agent":
       return <AgentPage tenantId={client.id} agent={isAgentId(sub) && sub !== "manager" ? sub : "csm"} />;
   }

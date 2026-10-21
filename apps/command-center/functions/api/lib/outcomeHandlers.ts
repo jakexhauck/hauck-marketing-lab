@@ -189,7 +189,11 @@ function clock(ms: number, zone: string): string {
   return new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "numeric", minute: "2-digit" }).format(ms);
 }
 
-export function outcomeHandlers(purpose: string) {
+// `call` swaps what the page's Call button does. Left out, it tags `call now`
+// (rings the owner); the Setting tab's copy enrols App Call (rings Jake).
+type CallStarter = (gctx: OutcomeLink["gctx"], contactId: string) => Promise<{ ok: true } | { ok: false; message: string }>;
+
+export function outcomeHandlers(purpose: string, opts: { call?: CallStarter } = {}) {
   const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const url = new URL(ctx.request.url);
     const link = await resolveOutcomeLink(ctx.env, url, purpose);
@@ -245,6 +249,11 @@ export function outcomeHandlers(purpose: string) {
     }
     // The page's Call button: same call now tag as the Call Now link.
     if ((raw as { action?: unknown } | null)?.action === "call") {
+      if (opts.call) {
+        const res = await opts.call(link.gctx, link.contactId);
+        if (!res.ok) logErrorBestEffort(ctx.env, "outcome-call", res.message, { contactId: link.contactId });
+        return res.ok ? Response.json({ ok: true }) : fail(res.message, 502);
+      }
       try {
         await fireCallTag(link.gctx, link.contactId, CALL_NOW_TAG);
       } catch (err) {

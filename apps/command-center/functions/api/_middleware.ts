@@ -106,6 +106,10 @@ const PUBLIC_PATHS = new Set([
   // The universal owner outcome page (Outcome Link). See api/outcome/.
   "/api/outcome",
   "/api/outcome/slots",
+  // Its Client > Setting copy, framed in the admin app. Its own key, minted only
+  // by /api/admin/clients/:id/setting/outcome-link. See api/setter-outcome/.
+  "/api/setter-outcome",
+  "/api/setter-outcome/slots",
   // The owner's new-lead link (book an estimate, call back, not interested).
   "/api/lead-outcome",
   "/api/lead-outcome/slots",

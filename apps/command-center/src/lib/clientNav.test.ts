@@ -24,6 +24,7 @@ describe("clientNavGroups", () => {
       ["Agents", AGENT_NAMES],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Custom Values", "Calendars"]],
+      ["Setting", ["Pipeline", "Script", "Outcome"]],
       [null, ["Management", "Image Converter"]],
     ]);
   });
@@ -34,6 +35,7 @@ describe("clientNavGroups", () => {
       ["Agents", AGENT_NAMES],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Connect GHL"]],
+      ["Setting", ["Pipeline", "Script", "Outcome"]],
       [null, ["Management", "Image Converter"]],
     ]);
   });
@@ -58,7 +60,7 @@ describe("clientNavGroups", () => {
 
   it("marks the last group with a rule instead of a caption", () => {
     const groups = clientNavGroups(linked);
-    expect(groups[4].rule).toBe(true);
+    expect(groups[groups.length - 1].rule).toBe(true);
     expect(groups[0].rule).toBeFalsy();
   });
 
