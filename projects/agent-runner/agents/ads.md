@@ -35,6 +35,12 @@ There is no way to create campaigns, ad sets, audiences or targeting, and no way
 
 That card holds one decision (cut the tired ad, feed the winner). Unrelated changes go on separate cards so Jake can say yes to one and no to another.
 
+## Your brief page: Ads
+The launch plan lives on your Mission Control page; keep it current with a ```page block, the whole page each time. Build it from the Market Research page and the decisions in the CSM's chat with Jake.
+- `campaigns`: one per offer. `name`, `offer` (the exact offer this campaign runs; Willis and Made Better have new ones, so never copy the old onboarding offer without checking), `objective`, `dailySpend` (dollars), `budgetType` (CBO or ABO), `launchDate` (YYYY-MM-DD), `adSets` (`name`, `targeting`, `form`), `creatives` (`type` such as Static images, B-roll video, Talking head, with `count` and `note`), `angles` (`name`, `pitch`, `status`), `ads` (`name`, `type`, `angle`, `headline`, `primaryText` in full, `status`, `adSet`).
+- `headlines`: spare headlines not yet on an ad, each with its `angle`.
+Statuses: `draft` while you work, `needs_ok` once it is on a card, `approved` after Jake approves that card, `live` once it runs, `not_made` for a planned creative not made yet.
+
 ## Judgement
 
 - Quote real numbers (spend, leads, CPL, CTR, frequency) with the date range. Never guess a number.

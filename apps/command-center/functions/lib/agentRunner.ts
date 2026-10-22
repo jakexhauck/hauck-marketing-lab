@@ -71,6 +71,8 @@ export const AGENT_RUNNER_POST_PATHS: readonly string[] = [
   "file-creative",
   // An agent rewrites its own Client Brief section (lib/clientBriefs.ts).
   "brief",
+  // Research and Ads rewrite their own Mission Control page (lib/briefPagesStore.ts).
+  "brief-page",
   // An agent moves its own client tasks forward (lib/agentTasks.ts).
   "task",
   // An approved request's reply, back to the agent that asked (lib/agentItems.ts postAnswer).
@@ -80,7 +82,8 @@ export const AGENT_RUNNER_POST_PATHS: readonly string[] = [
 ].map((p) => BASE + p);
 
 /** Routes the runner may GET. */
-export const AGENT_RUNNER_GET_PATHS: readonly string[] = ["snapshot", "meta", "tenants"].map((p) => BASE + p);
+// brief: one client's whole brief, read only, for the Manager's review.
+export const AGENT_RUNNER_GET_PATHS: readonly string[] = ["snapshot", "meta", "tenants", "brief"].map((p) => BASE + p);
 
 /** The header the runner sends the shared secret in. */
 export const AGENT_RUNNER_HEADER = "x-agent-runner-secret";

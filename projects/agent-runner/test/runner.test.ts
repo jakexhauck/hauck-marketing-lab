@@ -161,6 +161,35 @@ describe("handleClaim", () => {
     expect(done.tools).toContain("Updated the brief");
   });
 
+  it("posts a page block at the page version it read", async () => {
+    const { env } = world();
+    const { api, d } = deps(env, `Planned.
+${F}page
+{"campaigns":[]}
+${F}`);
+    const c = claim();
+    c.pages = [
+      { page: "research", data: {}, version: 2, updatedBy: "research", updatedAt: null },
+      { page: "ads", data: {}, version: 5, updatedBy: "ads", updatedAt: null },
+    ];
+    await handleClaim(c, d);
+    expect(api.pagePosts).toEqual([{ messageId: "m1", data: { campaigns: [] }, version: 5 }]);
+    const done = api.replies.at(-1)!;
+    expect(done.aiBody).toBe("Planned.");
+    expect(done.tools).toContain("Updated the brief page");
+  });
+
+  it("tells Jake when the app refuses a page", async () => {
+    const { env } = world();
+    const { api, d } = deps(env, `ok
+${F}page
+{}
+${F}`);
+    api.pageAnswer = () => ({ saved: false, error: "this agent has no brief page" });
+    await handleClaim(claim(), d);
+    expect(api.replies.at(-1)!.aiBody).toContain("Brief page not saved: this agent has no brief page");
+  });
+
   it("posts version 0 for a section nobody wrote, and nothing without a brief block", async () => {
     const { env } = world();
     const first = deps(env, `ok\n${F}brief\nNew\n${F}`);

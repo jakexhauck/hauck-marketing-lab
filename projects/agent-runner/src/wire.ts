@@ -117,6 +117,9 @@ export interface ClaimResponse {
   // The client's setup tasks from its Director: all of them for the Manager,
   // its own for any other agent. Absent at the agency.
   tasks?: WireTask[];
+  // The Mission Control pages (research, ads) with versions. Absent at the
+  // agency, and from an app that predates them.
+  pages?: BriefPageRow[];
 }
 
 export interface WireTask {
@@ -322,6 +325,28 @@ export interface RunnerBriefBody {
   body: string;
   version: number;
 }
+
+// A Mission Control page (apps/command-center/src/lib/briefPages.ts). The
+// runner never looks inside data; it shows it to the owning agent and sends the
+// agent's new page back, and the app cleans it.
+export type BriefPageId = "research" | "ads";
+export interface BriefPageRow {
+  page: BriefPageId;
+  data: Record<string, unknown>;
+  version: number;
+  updatedBy: string | null;
+  updatedAt: string | null;
+}
+
+// POST /api/agent-runner/brief-page. The page is the chat's agent, on the server.
+export interface RunnerPageBody {
+  messageId: string;
+  data: unknown;
+  version: number;
+}
+
+// 200 saved, 409 stale with the page as it now stands, 400 refused with why.
+export type RunnerPageResult = { saved: true; page: BriefPageRow } | { saved: false; page: BriefPageRow } | { saved: false; error: string };
 
 // 200 saved, or 409 stale with the section as it now stands.
 export type RunnerBriefResult = { saved: true; section: BriefSection } | { saved: false; section: BriefSection };

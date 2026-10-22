@@ -45,6 +45,9 @@ export interface AppTools {
   // POST /api/agent-runner/meta-ops: the Ads Agent's Ads Manager ops. A change
   // goes through only under Jake's Approve of a card listing it (the app's call).
   metaOps(body: { messageId: string; tenantId: string; op: string; args: Record<string, unknown> }): Promise<string>;
+  // GET /api/agent-runner/brief: one client's whole brief (notes, pages,
+  // tasks), read only. The Manager's weekly review. Unset: no tool.
+  brief?(tenant: string): Promise<string>;
   // The runner's own Higgsfield login (higgsfield.ts). Unset or not signed in:
   // the Ads Agent has no Higgsfield tools.
   higgsfield?: Higgsfield;
@@ -125,6 +128,12 @@ const GHL_TOOL = {
   },
 };
 
+const BRIEF_TOOL = {
+  name: "client_brief",
+  description: "One client's whole Mission Control brief, read only: the notes, the Market Research and Ads pages, and the setup tasks. tenant is the client's tenant id from your client list.",
+  inputSchema: { type: "object", properties: { turn: TURN, tenant: { type: "string" } }, required: ["turn", "tenant"] },
+};
+
 // Mirrors META_OPS in apps/command-center/functions/lib/agentMetaOps.ts. The
 // app's list is the one that counts.
 const META_OPS = ["read.structure", "read.creatives", "read.library", "read.destination", "pause", "resume", "dailyBudget", "createAd"];
@@ -184,6 +193,7 @@ function toolsFor(agent: AgentId) {
   return [
     ...(META_AGENTS.includes(agent) ? [META_TOOL] : []),
     ...(agent === "ghl" ? [GHL_TOOL] : []),
+    ...(agent === "manager" ? [BRIEF_TOOL] : []),
     ...(agent === "ads" ? [META_OPS_TOOL] : []),
     ...(FILE_AGENTS.includes(agent) ? FILE_TOOLS : []),
   ];
@@ -310,6 +320,12 @@ async function callTool(
       const tenant = turn.tenantId ?? (agent === "manager" && typeof a.tenant === "string" ? a.tenant : "");
       if (!tenant) return text("no client: only the agency Manager passes tenant", true);
       return text(await tools.meta({ tenant, level, days }));
+    }
+    if (name === "client_brief") {
+      const tenant = typeof a.tenant === "string" ? a.tenant.trim() : "";
+      if (!tenant) return text("tenant is required", true);
+      if (!tools.brief) return text("The brief cannot be read from this runner.", true);
+      return text(await tools.brief(tenant));
     }
     if (name === "ghl") {
       const op = typeof a.op === "string" ? a.op : "";

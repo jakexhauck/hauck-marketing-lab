@@ -2,9 +2,9 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildBundle, sopSection, tasksSection } from "../src/bundle.ts";
+import { buildBundle, pagesSection, sopSection, tasksSection } from "../src/bundle.ts";
 import { HF_GENERATE_TOOLS, HF_QUOTE_TOOLS } from "../src/spend.ts";
-import type { ClaimTenant, SopStage, WireTask } from "../src/wire.ts";
+import type { BriefPageRow, ClaimTenant, SopStage, WireTask } from "../src/wire.ts";
 
 const EM = "\u2014";
 
@@ -416,5 +416,25 @@ describe("the SOP rule once tasks exist", () => {
     const text = sopSection("ghl", [{ name: "Account", tasks: [{ name: "Create", owner: "agent", steps: [] }] }])!;
     expect(text).not.toContain("Start stage");
     expect(text).toContain("Your map is how you work. Do only the tasks Jake names in this chat, or the tasks a Director turn hands you; never start any other one on your own.");
+  });
+});
+
+describe("pagesSection", () => {
+  const pages: BriefPageRow[] = [
+    { page: "research", data: { zips: [{ zip: "48084" }] }, version: 3, updatedBy: "research", updatedAt: null },
+    { page: "ads", data: { campaigns: [] }, version: 1, updatedBy: "ads", updatedAt: null },
+  ];
+
+  it("shows the owner its page to rewrite, and Research to the Ads Agent read only", () => {
+    const ads = pagesSection("ads", pages)!;
+    expect(ads).toContain("Your brief page: Ads (version 1)");
+    expect(ads).toContain("Market Research page (read only, version 3)");
+    expect(ads).toContain('"zip": "48084"');
+    expect(pagesSection("research", pages)).toContain("Your brief page: Market Research (version 3)");
+  });
+
+  it("shows the GHL Agent and the Manager nothing", () => {
+    expect(pagesSection("ghl", pages)).toBeNull();
+    expect(pagesSection("manager", pages)).toBeNull();
   });
 });

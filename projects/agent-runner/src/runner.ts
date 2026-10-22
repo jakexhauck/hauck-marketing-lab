@@ -69,6 +69,10 @@ export interface BriefNotes {
   clear(chatId: string): void;
 }
 
+export function stalePageNote(version: number): string {
+  return `Note from the runner: your last page block was not saved. Your brief page changed (now version ${version}) after you read it. Build on the version in this prompt; send a new page block only if it still needs a change.`;
+}
+
 export function staleBriefNote(version: number): string {
   return `Note from the runner: your last brief block was not saved. Jake edited your section (now version ${version}) after you read it, and his text is in the Client brief above. Build on his version; send a new brief block only if it still needs a change.`;
 }
@@ -124,7 +128,7 @@ function allLessons(vaultDir: string): Map<string, AgentLesson> {
 // While the answer streams, the protocol blocks are not for Jake to read: show
 // the prose up to the first block and nothing of a half-written one.
 function preview(text: string): string {
-  const cut = text.split(/```(?:lessons|item|request|video|brief|tick|task)/)[0];
+  const cut = text.split(/```(?:lessons|item|request|video|brief|tick|task|page)/)[0];
   return extractCitations(stripEmDashes(cut)).reply.trim();
 }
 
@@ -218,7 +222,8 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
   try {
     await d.api.reply({ messageId, status: "running" });
     const brief = claim.brief ?? [];
-    const bundle = buildBundle(agent, tenant, d.env, message.grant, brief, claim.sop ?? [], claim.tasks ?? [], d.clients?.() ?? []);
+    const pages = claim.pages ?? [];
+    const bundle = buildBundle(agent, tenant, d.env, message.grant, brief, claim.sop ?? [], claim.tasks ?? [], d.clients?.() ?? [], pages);
     // An approved landing page goes live before the agent's turn, so the turn
     // can say where. See landing.ts.
     const liveNote = d.landing ? await goLive(claim, { api: d.api, landing: d.landing }) : null;
@@ -392,6 +397,24 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
       } catch (e) {
         log(`brief post failed: ${(e as Error).message}`);
         notes.push("Brief not saved: the app did not take it. Ask me again to retry.");
+      }
+    }
+    // The agent's Mission Control page (research and ads only; the app takes
+    // the page from this chat). The version is the one this turn was shown.
+    if (out.page && !tenant) log("page block dropped: the agency has no brief");
+    if (out.page && tenant) {
+      const version = pages.find((p) => p.page === agent)?.version ?? 0;
+      try {
+        const res = await d.api.page({ messageId, data: out.page, version });
+        if (res.saved) tools.push("Updated the brief page");
+        else if ("error" in res) notes.push(`Brief page not saved: ${res.error}`);
+        else {
+          d.briefNotes?.set(chat.id, stalePageNote(res.page.version));
+          notes.push("Brief page not saved: it changed after I read it. I will build on the newer one next turn.");
+        }
+      } catch (e) {
+        log(`page post failed: ${(e as Error).message}`);
+        notes.push("Brief page not saved: the app did not take it. Ask me again to retry.");
       }
     }
     // Client tasks the agent moved. The app checks each is the agent's own,

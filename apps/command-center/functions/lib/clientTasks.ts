@@ -61,7 +61,7 @@ function sortTasks(tasks: ClientTask[]): ClientTask[] {
   );
 }
 
-async function readTasks(client: SupabaseClient, tenantId: string): Promise<ClientTask[]> {
+export async function readTasks(client: SupabaseClient, tenantId: string): Promise<ClientTask[]> {
   const { data, error } = await client.from("client_tasks").select("*").eq("tenant_id", tenantId);
   if (error) throw new Error(`client_tasks read: ${error.message}`);
   return sortTasks(((data ?? []) as Row[]).map(toTask));

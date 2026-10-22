@@ -45,6 +45,10 @@ function fakeTools(signedIn = true) {
       calls.push({ tool: "meta", body: q });
       return '{"cpl":12}';
     },
+    async brief(tenant) {
+      calls.push({ tool: "brief", body: { tenant } });
+      return '{"pages":[]}';
+    },
   };
   return { calls, tools };
 }
@@ -97,7 +101,7 @@ describe("startBridge", () => {
     await start();
     const files = ["list_files", "read_file", "write_file"];
     expect(toolNames(await rpc("t-csm", "tools/list"))).toEqual(["meta_insights", ...files]);
-    expect(toolNames(await rpc("t-manager", "tools/list"))).toEqual(["meta_insights", ...files]);
+    expect(toolNames(await rpc("t-manager", "tools/list"))).toEqual(["meta_insights", "client_brief", ...files]);
     expect(toolNames(await rpc("t-research", "tools/list"))).toEqual(files);
     expect(toolNames(await rpc("t-ghl", "tools/list"))).toEqual(["ghl"]);
   });
@@ -231,6 +235,15 @@ describe("startBridge", () => {
       { tool: "meta", body: { tenant: "T9", level: "campaign", days: 30 } },
       { tool: "meta", body: { tenant: "T1", level: "account", days: 7 } },
     ]);
+  });
+
+  it("gives only the Manager a client's brief to read", async () => {
+    const f = await start();
+    bridge!.setTurn("manager", { tenantId: null, messageId: "M1" });
+    bridge!.setTurn("csm", { tenantId: "T1", messageId: "M2" });
+    expect((await call("t-manager", "client_brief", { turn: "M1", tenant: "T9" })).isError).toBeFalsy();
+    expect((await call("t-csm", "client_brief", { turn: "M2", tenant: "T9" })).isError).toBe(true);
+    expect(f.calls).toEqual([{ tool: "brief", body: { tenant: "T9" } }]);
   });
 
   it("does not let a CSM in an agency chat pick a client", async () => {

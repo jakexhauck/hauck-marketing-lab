@@ -35,6 +35,13 @@ export function appTools(o: { base: string; secret: string; fetch?: typeof fetch
       });
       return answer("meta-ops", res);
     },
+    async brief(tenant) {
+      const res = await f(`${base}/api/agent-runner/brief?${new URLSearchParams({ tenant })}`, {
+        headers: { "x-agent-runner-secret": o.secret },
+        signal: AbortSignal.timeout(60_000),
+      });
+      return answer("brief", res);
+    },
     async meta(q) {
       const qs = new URLSearchParams({ tenant: q.tenant, level: q.level, days: String(q.days) });
       const res = await f(`${base}/api/agent-runner/meta?${qs}`, {

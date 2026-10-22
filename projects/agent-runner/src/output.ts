@@ -10,6 +10,8 @@
 //   ```brief     the agent's whole new Client Brief section, markdown
 //   ```task      the agent's own client tasks moved: key | doing, or
 //                key | done | proof
+//   ```page      JSON: the agent's whole Mission Control page (research and
+//                ads only), cleaned again by the app
 //
 // Everything here is forgiving on purpose. A model that writes a broken JSON
 // block has still answered Jake, so a bad block is dropped and the reply kept.
@@ -43,6 +45,8 @@ export interface AgentOutput {
   brief: string | null;
   // Client tasks the agent moved this turn. The app checks they are its own.
   tasks: RunnerTaskUpdate[];
+  // The agent's whole new Mission Control page (one JSON object), or null.
+  page: Record<string, unknown> | null;
 }
 
 // The house rule is no em dashes anywhere. The agents are told; this is the
@@ -52,7 +56,7 @@ export function stripEmDashes(s: string): string {
   return s.replace(/\s*\u2014\s*/g, ", ");
 }
 
-const BLOCK = /```(lessons|item|request|brief|task)[^\n]*\n([\s\S]*?)```/g;
+const BLOCK = /```(lessons|item|request|brief|task|page)[^\n]*\n([\s\S]*?)```/g;
 
 function parseJson(body: string): unknown[] {
   try {
@@ -98,7 +102,7 @@ function toRequest(v: unknown): RequestDraft | null {
 }
 
 export function parseAgentOutput(text: string): AgentOutput {
-  const out: AgentOutput = { reply: "", lessons: [], items: [], requests: [], brief: null, tasks: [] };
+  const out: AgentOutput = { reply: "", lessons: [], items: [], requests: [], brief: null, tasks: [], page: null };
   for (const [, kind, body] of text.matchAll(BLOCK)) {
     if (kind === "lessons") {
       for (const raw of body.split("\n")) {
@@ -121,6 +125,14 @@ export function parseAgentOutput(text: string): AgentOutput {
       // The last one wins: it is the agent's final word on its section.
       const brief = stripEmDashes(body).trim();
       out.brief = brief || null;
+    } else if (kind === "page") {
+      // The last good one wins. A broken one is dropped, as any bad block is.
+      try {
+        const v: unknown = JSON.parse(stripEmDashes(body));
+        if (isObj(v)) out.page = v;
+      } catch {
+        // keep the reply
+      }
     } else if (kind === "item") {
       for (const v of parseJson(body)) {
         const item = toItem(v);

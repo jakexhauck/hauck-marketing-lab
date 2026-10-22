@@ -42,6 +42,26 @@ describe("parseAgentOutput", () => {
     expect(out.brief).toBe("- Top pain: door fails in the cold\n- Angles: before/after, proof");
   });
 
+  it("takes a page block as one JSON object and leaves it out of the reply", () => {
+    const out = parseAgentOutput(`Planned.
+${F}page
+{"campaigns":[{"name":"Fall ${EM} offer"}]}
+${F}`);
+    expect(out.reply).toBe("Planned.");
+    expect(out.page).toEqual({ campaigns: [{ name: "Fall, offer" }] });
+  });
+
+  it("drops a broken or non-object page block and keeps the reply", () => {
+    expect(parseAgentOutput(`ok
+${F}page
+{"campaigns": [
+${F}`)).toMatchObject({ reply: "ok", page: null });
+    expect(parseAgentOutput(`ok
+${F}page
+[1, 2]
+${F}`).page).toBeNull();
+  });
+
   it("keeps the last brief block when there are two, and an empty one means no change", () => {
     expect(parseAgentOutput(`${F}brief\nfirst\n${F}\n${F}brief\nsecond\n${F}`).brief).toBe("second");
     expect(parseAgentOutput(`${F}brief\n\n${F}`).brief).toBeNull();
@@ -79,7 +99,7 @@ describe("parseAgentOutput", () => {
 
   it("returns the text as the reply when there are no blocks", () => {
     const out = parseAgentOutput("Just an answer.\n");
-    expect(out).toEqual({ reply: "Just an answer.", lessons: [], items: [], requests: [], brief: null, tasks: [] });
+    expect(out).toEqual({ reply: "Just an answer.", lessons: [], items: [], requests: [], brief: null, tasks: [], page: null });
   });
 
   it("drops malformed JSON and keeps the reply", () => {

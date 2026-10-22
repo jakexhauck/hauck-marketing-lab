@@ -20,8 +20,11 @@ import type {
   ItemBody,
   LessonsBody,
   ReplyBody,
+  BriefPageRow,
   RunnerBriefBody,
   RunnerBriefResult,
+  RunnerPageBody,
+  RunnerPageResult,
   RunnerTaskBody,
   RunnerTaskResult,
   Snapshot,
@@ -42,6 +45,9 @@ export interface RunnerApi {
   // The agent's own Client Brief section. A stale version is an answer (Jake
   // edited it), not an error, so it comes back as saved: false.
   brief(body: RunnerBriefBody): Promise<RunnerBriefResult>;
+  // The agent's own Mission Control page. Stale (409) and refused (400) are
+  // answers the agent is told about next turn, not errors.
+  page(body: RunnerPageBody): Promise<RunnerPageResult>;
   // Boxes in the agent's own section(s). The app refuses any other label.
   // An agent moves its own client tasks forward; the app checks owner and proof.
   task(body: RunnerTaskBody): Promise<RunnerTaskResult>;
@@ -98,6 +104,11 @@ export function createApi(opts: ApiOptions): RunnerApi {
     brief: async (b) => {
       const { status, data } = await send<{ section: RunnerBriefResult["section"] }>("POST", "brief", b, [409]);
       return { saved: status !== 409, section: data.section };
+    },
+    page: async (b) => {
+      const { status, data } = await send<{ page?: BriefPageRow; error?: string }>("POST", "brief-page", b, [400, 409]);
+      if (status === 400) return { saved: false, error: data?.error ?? "refused" };
+      return status === 409 ? { saved: false, page: data.page! } : { saved: true, page: data.page! };
     },
     task: (b) => call<RunnerTaskResult>("POST", "task", b),
     answer: (b) => call<{ posted: boolean }>("POST", "answer", b),

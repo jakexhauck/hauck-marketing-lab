@@ -14,6 +14,8 @@ import type {
   ReplyBody,
   RunnerBriefBody,
   RunnerBriefResult,
+  RunnerPageBody,
+  RunnerPageResult,
   RunnerTaskBody,
   RunnerTaskResult,
   Snapshot,
@@ -37,6 +39,9 @@ export interface FakeApi extends RunnerApi {
   briefs: RunnerBriefBody[];
   // What the next brief post answers; saved at the version sent + 1 if unset.
   briefAnswer: ((b: RunnerBriefBody) => RunnerBriefResult) | null;
+  pagePosts: RunnerPageBody[];
+  // What the next page post answers; saved at the version sent + 1 if unset.
+  pageAnswer: ((b: RunnerPageBody) => RunnerPageResult) | null;
   tasks: RunnerTaskBody[];
   // What the next task post answers; every update taken if unset.
   taskAnswer: ((b: RunnerTaskBody) => RunnerTaskResult) | null;
@@ -60,6 +65,8 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
     heartbeatReply: init.heartbeatReply ?? { lastMonitorAt: null, queuedEdits: [] },
     refused: new Set(),
     briefs: [],
+    pagePosts: [],
+    pageAnswer: null,
     briefAnswer: null,
     tasks: [],
     taskAnswer: null,
@@ -102,6 +109,11 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
       api.briefs.push(b);
       if (api.briefAnswer) return api.briefAnswer(b);
       return { saved: true, section: { section: "ads", body: b.body, version: b.version + 1, updatedBy: "ads", updatedAt: null } };
+    },
+    async page(b) {
+      api.pagePosts.push(b);
+      if (api.pageAnswer) return api.pageAnswer(b);
+      return { saved: true, page: { page: "ads", data: (b.data ?? {}) as Record<string, unknown>, version: b.version + 1, updatedBy: "ads", updatedAt: null } };
     },
     async task(b) {
       api.tasks.push(b);

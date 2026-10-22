@@ -55,4 +55,10 @@ When a finished task produced something another task needs (an id, a link, a num
 adsbuild:meta-dataset | done | Dataset made in Events Manager | dataset_id=1234567890
 ```
 
+Your Mission Control page, rewritten in full (Market Research and Ads only; it is shown to you under "Your brief page" with its version). One JSON object with the page's keys, the whole page every time: it replaces the old one. Unlike your brief section, drafts belong here: give each angle and ad a status (`draft`, `needs_ok`, `approved`, `live`, `not_made`) and Jake sees it as it stands. Approval still happens on a card, and you set `approved` only after Jake approved that card. Numbers you do not know stay `null`; never invent one.
+
+```page
+{"campaigns": [{"name": "Winter Leads", "offer": "Free in-home quote", "dailySpend": 40, "ads": [{"name": "Bay window", "angle": "Energy bills", "headline": "Cut your heating bill", "primaryText": "...", "status": "needs_ok"}]}]}
+```
+
 Malformed JSON is dropped, so keep it valid. No block is fine when there is nothing to file.

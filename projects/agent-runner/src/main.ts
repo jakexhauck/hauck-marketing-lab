@@ -38,6 +38,7 @@ import { defaultExec, driveAgent, pullDrive, pushChanged, type DriveSync } from 
 import { findDriveFolder } from "./clients.ts";
 import { deployDraft, promote } from "./pages.ts";
 import { runMonitorIfDue } from "./monitor.ts";
+import { runBriefReviewIfDue } from "./briefReview.ts";
 import { fileBriefNotes } from "./notes.ts";
 import { applyQueuedEdits, handleClaim, syncAllBrains, type RunnerDeps } from "./runner.ts";
 import { fileStore, higgsfieldClient } from "./higgsfield.ts";
@@ -289,6 +290,17 @@ async function main(): Promise<void> {
   }
 
   if (!args.has("--no-monitor")) await monitor(lastMonitorAt);
+
+  // The Manager's weekly brief review, from the runner that answers it. Checked
+  // hourly: the VPS runner stays up for weeks, so startup alone is not enough.
+  if (CLAIM_AGENTS === undefined || CLAIM_AGENTS.includes("manager")) {
+    const review = () =>
+      void runBriefReviewIfDue({ api, file: join(DATA_DIR, "state", "brief-review.json"), now: new Date(), log }).catch((e) =>
+        log(`brief review failed: ${(e as Error).message}`),
+      );
+    review();
+    setInterval(review, 60 * 60 * 1000);
+  }
 
   // The heartbeat runs on its own clock, so a ten minute agent turn does not
   // read as the PC going offline.
