@@ -3,7 +3,7 @@
 import unittest
 
 from pipeline.db import connect
-from pipeline.scrape import pending_queries, plan_queries
+from pipeline.scrape import keywords_for, pending_queries, plan_queries
 
 TRADE = {"keywords": ["hvac contractor"], "states": ["MI", "OH"]}
 CITIES = [{"city": "Troy", "state": "MI"}, {"city": "Toledo", "state": "OH"},
@@ -28,6 +28,19 @@ class Pending(unittest.TestCase):
     def test_never_queues_a_state_outside_the_trade(self):
         self.assertEqual(plan_queries(self.con, TRADE, CITIES, {"PA"}), 0)
         self.assertNotIn("PA", [q["state"] for q in pending_queries(self.con)])
+
+
+class DeepKeywords(unittest.TestCase):
+    TRADE = {"keywords": ["hvac contractor"], "states": ["MI", "PA"],
+             "deep": {"states": ["PA"], "extra_keywords": ["heating contractor"], "extra_keywords_min_population": 20000}}
+
+    def test_big_city_in_a_deep_state_gets_the_extra_keywords(self):
+        self.assertEqual(keywords_for(self.TRADE, {"city": "Erie", "state": "PA", "population": 94000}),
+                         ["hvac contractor", "heating contractor"])
+
+    def test_small_town_and_other_states_keep_the_base_keywords(self):
+        self.assertEqual(keywords_for(self.TRADE, {"city": "Lititz", "state": "PA", "population": 9800}), ["hvac contractor"])
+        self.assertEqual(keywords_for(self.TRADE, {"city": "Troy", "state": "MI", "population": 87000}), ["hvac contractor"])
 
 
 if __name__ == "__main__":

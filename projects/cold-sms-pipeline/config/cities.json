@@ -2050,11 +2050,6 @@
   "population": 26305
  },
  {
-  "city": "Montgomery Township",
-  "state": "PA",
-  "population": 26280
- },
- {
   "city": "Greenfield",
   "state": "IN",
   "population": 26268
@@ -2180,11 +2175,6 @@
   "population": 25240
  },
  {
-  "city": "Springfield Township",
-  "state": "PA",
-  "population": 25206
- },
- {
   "city": "Derry Township",
   "state": "PA",
   "population": 25181
@@ -2193,11 +2183,6 @@
   "city": "Inkster",
   "state": "MI",
   "population": 25108
- },
- {
-  "city": "Upper Providence Township",
-  "state": "PA",
-  "population": 25092
  },
  {
   "city": "Norton Shores",
@@ -2815,11 +2800,6 @@
   "population": 20700
  },
  {
-  "city": "Penn Township",
-  "state": "PA",
-  "population": 20698
- },
- {
   "city": "Dolton",
   "state": "IL",
   "population": 20697
@@ -2943,5 +2923,2920 @@
   "city": "Oconomowoc",
   "state": "WI",
   "population": 20002
+ },
+ {
+  "city": "Sartell",
+  "state": "MN",
+  "population": 19979
+ },
+ {
+  "city": "Manchester Township",
+  "state": "PA",
+  "population": 19979
+ },
+ {
+  "city": "Newtown Township",
+  "state": "PA",
+  "population": 19898
+ },
+ {
+  "city": "Uwchlan Township",
+  "state": "PA",
+  "population": 19772
+ },
+ {
+  "city": "Stroud Township",
+  "state": "PA",
+  "population": 19600
+ },
+ {
+  "city": "Clive",
+  "state": "IA",
+  "population": 19508
+ },
+ {
+  "city": "Hatfield Township",
+  "state": "PA",
+  "population": 19494
+ },
+ {
+  "city": "Hopkins",
+  "state": "MN",
+  "population": 19462
+ },
+ {
+  "city": "Stillwater",
+  "state": "MN",
+  "population": 19386
+ },
+ {
+  "city": "West Manchester Township",
+  "state": "PA",
+  "population": 19372
+ },
+ {
+  "city": "Lansdale",
+  "state": "PA",
+  "population": 19154
+ },
+ {
+  "city": "Ferguson Township",
+  "state": "PA",
+  "population": 19139
+ },
+ {
+  "city": "West Mifflin",
+  "state": "PA",
+  "population": 18902
+ },
+ {
+  "city": "East Lampeter Township",
+  "state": "PA",
+  "population": 18830
+ },
+ {
+  "city": "Lancaster Township",
+  "state": "PA",
+  "population": 18685
+ },
+ {
+  "city": "Plymouth Township",
+  "state": "PA",
+  "population": 18663
+ },
+ {
+  "city": "Greene Township",
+  "state": "PA",
+  "population": 18635
+ },
+ {
+  "city": "South Fayette Township",
+  "state": "PA",
+  "population": 18586
+ },
+ {
+  "city": "East Goshen Township",
+  "state": "PA",
+  "population": 18509
+ },
+ {
+  "city": "Concord Township",
+  "state": "PA",
+  "population": 18450
+ },
+ {
+  "city": "Upper Saucon Township",
+  "state": "PA",
+  "population": 18233
+ },
+ {
+  "city": "Albert Lea",
+  "state": "MN",
+  "population": 18159
+ },
+ {
+  "city": "Windsor Township",
+  "state": "PA",
+  "population": 18155
+ },
+ {
+  "city": "Doylestown Township",
+  "state": "PA",
+  "population": 18141
+ },
+ {
+  "city": "Towamencin Township",
+  "state": "PA",
+  "population": 18095
+ },
+ {
+  "city": "Anoka",
+  "state": "MN",
+  "population": 18068
+ },
+ {
+  "city": "Hampton Township",
+  "state": "PA",
+  "population": 17960
+ },
+ {
+  "city": "Johnstown",
+  "state": "PA",
+  "population": 17853
+ },
+ {
+  "city": "South Middleton Township",
+  "state": "PA",
+  "population": 17562
+ },
+ {
+  "city": "Upper Gwynedd Township",
+  "state": "PA",
+  "population": 17407
+ },
+ {
+  "city": "West Lampeter Township",
+  "state": "PA",
+  "population": 17345
+ },
+ {
+  "city": "Grimes",
+  "state": "IA",
+  "population": 17266
+ },
+ {
+  "city": "West Hempfield Township",
+  "state": "PA",
+  "population": 17207
+ },
+ {
+  "city": "McKeesport",
+  "state": "PA",
+  "population": 17119
+ },
+ {
+  "city": "North Strabane Township",
+  "state": "PA",
+  "population": 17093
+ },
+ {
+  "city": "Scott Township",
+  "state": "PA",
+  "population": 17011
+ },
+ {
+  "city": "Upper Chichester Township",
+  "state": "PA",
+  "population": 17003
+ },
+ {
+  "city": "Butler Township",
+  "state": "PA",
+  "population": 16953
+ },
+ {
+  "city": "Hilltown Township",
+  "state": "PA",
+  "population": 16950
+ },
+ {
+  "city": "Ham Lake",
+  "state": "MN",
+  "population": 16905
+ },
+ {
+  "city": "Aston Township",
+  "state": "PA",
+  "population": 16838
+ },
+ {
+  "city": "Red Wing",
+  "state": "MN",
+  "population": 16788
+ },
+ {
+  "city": "Hugo",
+  "state": "MN",
+  "population": 16765
+ },
+ {
+  "city": "Buffalo",
+  "state": "MN",
+  "population": 16736
+ },
+ {
+  "city": "Hanover",
+  "state": "PA",
+  "population": 16728
+ },
+ {
+  "city": "Harborcreek Township",
+  "state": "PA",
+  "population": 16695
+ },
+ {
+  "city": "Forks Township",
+  "state": "PA",
+  "population": 16663
+ },
+ {
+  "city": "Chestnuthill Township",
+  "state": "PA",
+  "population": 16512
+ },
+ {
+  "city": "Lower Salford Township",
+  "state": "PA",
+  "population": 16425
+ },
+ {
+  "city": "West Norriton Township",
+  "state": "PA",
+  "population": 16417
+ },
+ {
+  "city": "Antrim Township",
+  "state": "PA",
+  "population": 16298
+ },
+ {
+  "city": "Indianola",
+  "state": "IA",
+  "population": 16297
+ },
+ {
+  "city": "Newberry Township",
+  "state": "PA",
+  "population": 16251
+ },
+ {
+  "city": "North Whitehall Township",
+  "state": "PA",
+  "population": 16057
+ },
+ {
+  "city": "North Fayette Township",
+  "state": "PA",
+  "population": 16024
+ },
+ {
+  "city": "Hibbing",
+  "state": "MN",
+  "population": 15940
+ },
+ {
+  "city": "Middle Smithfield Township",
+  "state": "PA",
+  "population": 15922
+ },
+ {
+  "city": "Patton Township",
+  "state": "PA",
+  "population": 15887
+ },
+ {
+  "city": "Cumru Township",
+  "state": "PA",
+  "population": 15879
+ },
+ {
+  "city": "Hermitage",
+  "state": "PA",
+  "population": 15839
+ },
+ {
+  "city": "Bemidji",
+  "state": "MN",
+  "population": 15733
+ },
+ {
+  "city": "Newton",
+  "state": "IA",
+  "population": 15709
+ },
+ {
+  "city": "Adams Township",
+  "state": "PA",
+  "population": 15705
+ },
+ {
+  "city": "Robinson Township",
+  "state": "PA",
+  "population": 15665
+ },
+ {
+  "city": "Pine Township",
+  "state": "PA",
+  "population": 15537
+ },
+ {
+  "city": "Monticello",
+  "state": "MN",
+  "population": 15482
+ },
+ {
+  "city": "Washington Township",
+  "state": "PA",
+  "population": 15411
+ },
+ {
+  "city": "Norwalk",
+  "state": "IA",
+  "population": 15396
+ },
+ {
+  "city": "Caln Township",
+  "state": "PA",
+  "population": 15203
+ },
+ {
+  "city": "Upper Southampton Township",
+  "state": "PA",
+  "population": 15169
+ },
+ {
+  "city": "Cecil Township",
+  "state": "PA",
+  "population": 15118
+ },
+ {
+  "city": "Franklin Park",
+  "state": "PA",
+  "population": 15079
+ },
+ {
+  "city": "East Whiteland Township",
+  "state": "PA",
+  "population": 15069
+ },
+ {
+  "city": "Guilford Township",
+  "state": "PA",
+  "population": 15055
+ },
+ {
+  "city": "White Township",
+  "state": "PA",
+  "population": 14988
+ },
+ {
+  "city": "Alexandria",
+  "state": "MN",
+  "population": 14914
+ },
+ {
+  "city": "West Bradford Township",
+  "state": "PA",
+  "population": 14857
+ },
+ {
+  "city": "Warwick Township",
+  "state": "PA",
+  "population": 14810
+ },
+ {
+  "city": "Hutchinson",
+  "state": "MN",
+  "population": 14708
+ },
+ {
+  "city": "Whitehall",
+  "state": "PA",
+  "population": 14678
+ },
+ {
+  "city": "Greensburg",
+  "state": "PA",
+  "population": 14586
+ },
+ {
+  "city": "Skippack Township",
+  "state": "PA",
+  "population": 14581
+ },
+ {
+  "city": "Nether Providence Township",
+  "state": "PA",
+  "population": 14559
+ },
+ {
+  "city": "Rogers",
+  "state": "MN",
+  "population": 14493
+ },
+ {
+  "city": "Brainerd",
+  "state": "MN",
+  "population": 14400
+ },
+ {
+  "city": "East Norriton Township",
+  "state": "PA",
+  "population": 14366
+ },
+ {
+  "city": "Plumstead Township",
+  "state": "PA",
+  "population": 14363
+ },
+ {
+  "city": "Indiana",
+  "state": "PA",
+  "population": 14294
+ },
+ {
+  "city": "Fergus Falls",
+  "state": "MN",
+  "population": 14258
+ },
+ {
+  "city": "Dunmore",
+  "state": "PA",
+  "population": 14249
+ },
+ {
+  "city": "Lower Moreland Township",
+  "state": "PA",
+  "population": 14182
+ },
+ {
+  "city": "Lake Elmo",
+  "state": "MN",
+  "population": 14161
+ },
+ {
+  "city": "North Mankato",
+  "state": "MN",
+  "population": 14142
+ },
+ {
+  "city": "Marshall",
+  "state": "MN",
+  "population": 13996
+ },
+ {
+  "city": "Robbinsdale",
+  "state": "MN",
+  "population": 13993
+ },
+ {
+  "city": "New Ulm",
+  "state": "MN",
+  "population": 13970
+ },
+ {
+  "city": "Sauk Rapids",
+  "state": "MN",
+  "population": 13832
+ },
+ {
+  "city": "Waconia",
+  "state": "MN",
+  "population": 13831
+ },
+ {
+  "city": "Wilkinsburg",
+  "state": "PA",
+  "population": 13800
+ },
+ {
+  "city": "Franconia Township",
+  "state": "PA",
+  "population": 13790
+ },
+ {
+  "city": "Worthington",
+  "state": "MN",
+  "population": 13754
+ },
+ {
+  "city": "Ephrata",
+  "state": "PA",
+  "population": 13719
+ },
+ {
+  "city": "South Park Township",
+  "state": "PA",
+  "population": 13706
+ },
+ {
+  "city": "New Hanover Township",
+  "state": "PA",
+  "population": 13650
+ },
+ {
+  "city": "Spring Garden Township",
+  "state": "PA",
+  "population": 13633
+ },
+ {
+  "city": "Upper Uwchlan Township",
+  "state": "PA",
+  "population": 13612
+ },
+ {
+  "city": "Amity Township",
+  "state": "PA",
+  "population": 13567
+ },
+ {
+  "city": "Kingston",
+  "state": "PA",
+  "population": 13476
+ },
+ {
+  "city": "Pottsville",
+  "state": "PA",
+  "population": 13404
+ },
+ {
+  "city": "Coatesville",
+  "state": "PA",
+  "population": 13390
+ },
+ {
+  "city": "Washington",
+  "state": "PA",
+  "population": 13334
+ },
+ {
+  "city": "Dingman Township",
+  "state": "PA",
+  "population": 13321
+ },
+ {
+  "city": "Bloomsburg",
+  "state": "PA",
+  "population": 13286
+ },
+ {
+  "city": "Hopewell Township",
+  "state": "PA",
+  "population": 13268
+ },
+ {
+  "city": "Vadnais Heights",
+  "state": "MN",
+  "population": 13108
+ },
+ {
+  "city": "Butler",
+  "state": "PA",
+  "population": 13010
+ },
+ {
+  "city": "Lower Pottsgrove Township",
+  "state": "PA",
+  "population": 12978
+ },
+ {
+  "city": "Big Lake",
+  "state": "MN",
+  "population": 12855
+ },
+ {
+  "city": "North Middleton Township",
+  "state": "PA",
+  "population": 12843
+ },
+ {
+  "city": "Mounds View",
+  "state": "MN",
+  "population": 12841
+ },
+ {
+  "city": "Sharon",
+  "state": "PA",
+  "population": 12744
+ },
+ {
+  "city": "North St. Paul",
+  "state": "MN",
+  "population": 12644
+ },
+ {
+  "city": "Elizabeth Township",
+  "state": "PA",
+  "population": 12515
+ },
+ {
+  "city": "Cloquet",
+  "state": "MN",
+  "population": 12475
+ },
+ {
+  "city": "Boone",
+  "state": "IA",
+  "population": 12461
+ },
+ {
+  "city": "St. Peter",
+  "state": "MN",
+  "population": 12456
+ },
+ {
+  "city": "Yeadon",
+  "state": "PA",
+  "population": 12405
+ },
+ {
+  "city": "St. Marys",
+  "state": "PA",
+  "population": 12361
+ },
+ {
+  "city": "New Britain Township",
+  "state": "PA",
+  "population": 12354
+ },
+ {
+  "city": "Meadville",
+  "state": "PA",
+  "population": 12347
+ },
+ {
+  "city": "Lower Gwynedd Township",
+  "state": "PA",
+  "population": 12336
+ },
+ {
+  "city": "Emmaus",
+  "state": "PA",
+  "population": 12314
+ },
+ {
+  "city": "Jefferson Hills",
+  "state": "PA",
+  "population": 12291
+ },
+ {
+  "city": "East Bethel",
+  "state": "MN",
+  "population": 12288
+ },
+ {
+  "city": "North Branch",
+  "state": "MN",
+  "population": 12258
+ },
+ {
+  "city": "Rapho Township",
+  "state": "PA",
+  "population": 12256
+ },
+ {
+  "city": "West Deer Township",
+  "state": "PA",
+  "population": 12242
+ },
+ {
+  "city": "North Lebanon Township",
+  "state": "PA",
+  "population": 12224
+ },
+ {
+  "city": "Logan Township",
+  "state": "PA",
+  "population": 12167
+ },
+ {
+  "city": "Elizabethtown",
+  "state": "PA",
+  "population": 11993
+ },
+ {
+  "city": "Pleasant Hill",
+  "state": "IA",
+  "population": 11942
+ },
+ {
+  "city": "Victoria",
+  "state": "MN",
+  "population": 11937
+ },
+ {
+  "city": "New Kensington",
+  "state": "PA",
+  "population": 11877
+ },
+ {
+  "city": "Richland Township",
+  "state": "PA",
+  "population": 11836
+ },
+ {
+  "city": "Center Township",
+  "state": "PA",
+  "population": 11765
+ },
+ {
+  "city": "Hanover Township",
+  "state": "PA",
+  "population": 11704
+ },
+ {
+  "city": "Storm Lake",
+  "state": "IA",
+  "population": 11627
+ },
+ {
+  "city": "Sandy Township",
+  "state": "PA",
+  "population": 11618
+ },
+ {
+  "city": "Hamilton Township",
+  "state": "PA",
+  "population": 11600
+ },
+ {
+  "city": "Somerset Township",
+  "state": "PA",
+  "population": 11586
+ },
+ {
+  "city": "Oskaloosa",
+  "state": "IA",
+  "population": 11575
+ },
+ {
+  "city": "Salisbury Township",
+  "state": "PA",
+  "population": 11560
+ },
+ {
+  "city": "Mendota Heights",
+  "state": "MN",
+  "population": 11542
+ },
+ {
+  "city": "Lower Burrell",
+  "state": "PA",
+  "population": 11542
+ },
+ {
+  "city": "New Garden Township",
+  "state": "PA",
+  "population": 11506
+ },
+ {
+  "city": "Willistown Township",
+  "state": "PA",
+  "population": 11486
+ },
+ {
+  "city": "Loyalsock Township",
+  "state": "PA",
+  "population": 11445
+ },
+ {
+  "city": "Rostraver Township",
+  "state": "PA",
+  "population": 11445
+ },
+ {
+  "city": "Fairview Township",
+  "state": "PA",
+  "population": 11439
+ },
+ {
+  "city": "North Union Township",
+  "state": "PA",
+  "population": 11429
+ },
+ {
+  "city": "Spencer",
+  "state": "IA",
+  "population": 11418
+ },
+ {
+  "city": "West Hanover Township",
+  "state": "PA",
+  "population": 11366
+ },
+ {
+  "city": "Westtown Township",
+  "state": "PA",
+  "population": 11362
+ },
+ {
+  "city": "Lehman Township",
+  "state": "PA",
+  "population": 11300
+ },
+ {
+  "city": "Wyomissing",
+  "state": "PA",
+  "population": 11292
+ },
+ {
+  "city": "Worcester Township",
+  "state": "PA",
+  "population": 11258
+ },
+ {
+  "city": "Grand Rapids",
+  "state": "MN",
+  "population": 11244
+ },
+ {
+  "city": "Lansdowne",
+  "state": "PA",
+  "population": 11225
+ },
+ {
+  "city": "Easttown Township",
+  "state": "PA",
+  "population": 11164
+ },
+ {
+  "city": "Douglass Township",
+  "state": "PA",
+  "population": 11139
+ },
+ {
+  "city": "Waynesboro",
+  "state": "PA",
+  "population": 11101
+ },
+ {
+  "city": "East Cocalico Township",
+  "state": "PA",
+  "population": 11097
+ },
+ {
+  "city": "Lower Saucon Township",
+  "state": "PA",
+  "population": 11089
+ },
+ {
+  "city": "East Bradford Township",
+  "state": "PA",
+  "population": 11025
+ },
+ {
+  "city": "Cambridge",
+  "state": "MN",
+  "population": 10974
+ },
+ {
+  "city": "Pella",
+  "state": "IA",
+  "population": 10965
+ },
+ {
+  "city": "Upper Providence Township",
+  "state": "PA",
+  "population": 10937
+ },
+ {
+  "city": "West Manheim Township",
+  "state": "PA",
+  "population": 10934
+ },
+ {
+  "city": "Mount Joy Township",
+  "state": "PA",
+  "population": 10836
+ },
+ {
+  "city": "Lehigh Township",
+  "state": "PA",
+  "population": 10815
+ },
+ {
+  "city": "Pocono Township",
+  "state": "PA",
+  "population": 10772
+ },
+ {
+  "city": "Darby",
+  "state": "PA",
+  "population": 10749
+ },
+ {
+  "city": "Dayton",
+  "state": "MN",
+  "population": 10744
+ },
+ {
+  "city": "Nanticoke",
+  "state": "PA",
+  "population": 10730
+ },
+ {
+  "city": "Ephrata Township",
+  "state": "PA",
+  "population": 10693
+ },
+ {
+  "city": "Le Mars",
+  "state": "IA",
+  "population": 10674
+ },
+ {
+  "city": "South Lebanon Township",
+  "state": "PA",
+  "population": 10634
+ },
+ {
+  "city": "Little Canada",
+  "state": "MN",
+  "population": 10590
+ },
+ {
+  "city": "Northampton",
+  "state": "PA",
+  "population": 10587
+ },
+ {
+  "city": "Waverly",
+  "state": "IA",
+  "population": 10576
+ },
+ {
+  "city": "College Township",
+  "state": "PA",
+  "population": 10564
+ },
+ {
+  "city": "East Brandywine Township",
+  "state": "PA",
+  "population": 10454
+ },
+ {
+  "city": "South Union Township",
+  "state": "PA",
+  "population": 10420
+ },
+ {
+  "city": "Columbia",
+  "state": "PA",
+  "population": 10399
+ },
+ {
+  "city": "Hazle Township",
+  "state": "PA",
+  "population": 10399
+ },
+ {
+  "city": "Marshall Township",
+  "state": "PA",
+  "population": 10388
+ },
+ {
+  "city": "Munhall",
+  "state": "PA",
+  "population": 10371
+ },
+ {
+  "city": "Penn Forest Township",
+  "state": "PA",
+  "population": 10344
+ },
+ {
+  "city": "Berwick",
+  "state": "PA",
+  "population": 10332
+ },
+ {
+  "city": "Hermantown",
+  "state": "MN",
+  "population": 10265
+ },
+ {
+  "city": "Milford Township",
+  "state": "PA",
+  "population": 10246
+ },
+ {
+  "city": "Fairmont",
+  "state": "MN",
+  "population": 10176
+ },
+ {
+  "city": "Carroll",
+  "state": "IA",
+  "population": 10125
+ },
+ {
+  "city": "Mechanicsburg",
+  "state": "PA",
+  "population": 10085
+ },
+ {
+  "city": "Detroit Lakes",
+  "state": "MN",
+  "population": 10033
+ },
+ {
+  "city": "Lower Swatara Township",
+  "state": "PA",
+  "population": 10008
+ },
+ {
+  "city": "Plains Township",
+  "state": "PA",
+  "population": 9999
+ },
+ {
+  "city": "St. Anthony",
+  "state": "MN",
+  "population": 9993
+ },
+ {
+  "city": "Fort Madison",
+  "state": "IA",
+  "population": 9983
+ },
+ {
+  "city": "Bristol",
+  "state": "PA",
+  "population": 9982
+ },
+ {
+  "city": "Mount Pleasant Township",
+  "state": "PA",
+  "population": 9982
+ },
+ {
+  "city": "Bethel Township",
+  "state": "PA",
+  "population": 9791
+ },
+ {
+  "city": "Harrison Township",
+  "state": "PA",
+  "population": 9786
+ },
+ {
+  "city": "Middletown",
+  "state": "PA",
+  "population": 9748
+ },
+ {
+  "city": "Morrisville",
+  "state": "PA",
+  "population": 9745
+ },
+ {
+  "city": "Lititz",
+  "state": "PA",
+  "population": 9733
+ },
+ {
+  "city": "Brentwood",
+  "state": "PA",
+  "population": 9704
+ },
+ {
+  "city": "North Versailles Township",
+  "state": "PA",
+  "population": 9694
+ },
+ {
+  "city": "Coal Township",
+  "state": "PA",
+  "population": 9665
+ },
+ {
+  "city": "Neshannock Township",
+  "state": "PA",
+  "population": 9644
+ },
+ {
+  "city": "South Abington Township",
+  "state": "PA",
+  "population": 9623
+ },
+ {
+  "city": "South Strabane Township",
+  "state": "PA",
+  "population": 9610
+ },
+ {
+  "city": "Canonsburg",
+  "state": "PA",
+  "population": 9601
+ },
+ {
+  "city": "Uniontown",
+  "state": "PA",
+  "population": 9554
+ },
+ {
+  "city": "Sunbury",
+  "state": "PA",
+  "population": 9549
+ },
+ {
+  "city": "Bondurant",
+  "state": "IA",
+  "population": 9511
+ },
+ {
+  "city": "Fairfield",
+  "state": "IA",
+  "population": 9511
+ },
+ {
+  "city": "Grinnell",
+  "state": "IA",
+  "population": 9495
+ },
+ {
+  "city": "Arden Hills",
+  "state": "MN",
+  "population": 9490
+ },
+ {
+  "city": "North Cornwall Township",
+  "state": "PA",
+  "population": 9465
+ },
+ {
+  "city": "Keokuk",
+  "state": "IA",
+  "population": 9462
+ },
+ {
+  "city": "East Stroudsburg",
+  "state": "PA",
+  "population": 9445
+ },
+ {
+  "city": "Moore Township",
+  "state": "PA",
+  "population": 9435
+ },
+ {
+  "city": "Benner Township",
+  "state": "PA",
+  "population": 9406
+ },
+ {
+  "city": "Oil City",
+  "state": "PA",
+  "population": 9368
+ },
+ {
+  "city": "Dallas Township",
+  "state": "PA",
+  "population": 9350
+ },
+ {
+  "city": "North Codorus Township",
+  "state": "PA",
+  "population": 9349
+ },
+ {
+  "city": "Conshohocken",
+  "state": "PA",
+  "population": 9342
+ },
+ {
+  "city": "Perkasie",
+  "state": "PA",
+  "population": 9338
+ },
+ {
+  "city": "Oak Grove",
+  "state": "MN",
+  "population": 9327
+ },
+ {
+  "city": "Maidencreek Township",
+  "state": "PA",
+  "population": 9321
+ },
+ {
+  "city": "Quakertown",
+  "state": "PA",
+  "population": 9302
+ },
+ {
+  "city": "Millersville",
+  "state": "PA",
+  "population": 9290
+ },
+ {
+  "city": "Kennett Township",
+  "state": "PA",
+  "population": 9285
+ },
+ {
+  "city": "Darby Township",
+  "state": "PA",
+  "population": 9261
+ },
+ {
+  "city": "Chartiers Township",
+  "state": "PA",
+  "population": 9235
+ },
+ {
+  "city": "Little Falls",
+  "state": "MN",
+  "population": 9206
+ },
+ {
+  "city": "East Nottingham Township",
+  "state": "PA",
+  "population": 9188
+ },
+ {
+  "city": "Baxter",
+  "state": "MN",
+  "population": 9186
+ },
+ {
+  "city": "West Donegal Township",
+  "state": "PA",
+  "population": 9152
+ },
+ {
+  "city": "Warren",
+  "state": "PA",
+  "population": 9125
+ },
+ {
+  "city": "London Grove Township",
+  "state": "PA",
+  "population": 9100
+ },
+ {
+  "city": "Minnetrista",
+  "state": "MN",
+  "population": 9091
+ },
+ {
+  "city": "West Caln Township",
+  "state": "PA",
+  "population": 9074
+ },
+ {
+  "city": "Waseca",
+  "state": "MN",
+  "population": 9067
+ },
+ {
+  "city": "North Londonderry Township",
+  "state": "PA",
+  "population": 9033
+ },
+ {
+  "city": "Mound",
+  "state": "MN",
+  "population": 9031
+ },
+ {
+  "city": "Perkiomen Township",
+  "state": "PA",
+  "population": 9026
+ },
+ {
+  "city": "Collier Township",
+  "state": "PA",
+  "population": 9014
+ },
+ {
+  "city": "Aliquippa",
+  "state": "PA",
+  "population": 9003
+ },
+ {
+  "city": "Economy",
+  "state": "PA",
+  "population": 8990
+ },
+ {
+  "city": "O'Hara Township",
+  "state": "PA",
+  "population": 8987
+ },
+ {
+  "city": "Schuylkill Township",
+  "state": "PA",
+  "population": 8959
+ },
+ {
+  "city": "Collingdale",
+  "state": "PA",
+  "population": 8956
+ },
+ {
+  "city": "Upper Leacock Township",
+  "state": "PA",
+  "population": 8953
+ },
+ {
+  "city": "South Londonderry Township",
+  "state": "PA",
+  "population": 8921
+ },
+ {
+  "city": "East Grand Forks",
+  "state": "MN",
+  "population": 8915
+ },
+ {
+  "city": "Upper Makefield Township",
+  "state": "PA",
+  "population": 8888
+ },
+ {
+  "city": "Carbondale",
+  "state": "PA",
+  "population": 8805
+ },
+ {
+  "city": "Upper Hanover Township",
+  "state": "PA",
+  "population": 8782
+ },
+ {
+  "city": "Thief River Falls",
+  "state": "MN",
+  "population": 8779
+ },
+ {
+  "city": "Brighton Township",
+  "state": "PA",
+  "population": 8770
+ },
+ {
+  "city": "Beaver Falls",
+  "state": "PA",
+  "population": 8757
+ },
+ {
+  "city": "East Donegal Township",
+  "state": "PA",
+  "population": 8743
+ },
+ {
+  "city": "East Pikeland Township",
+  "state": "PA",
+  "population": 8718
+ },
+ {
+  "city": "Bushkill Township",
+  "state": "PA",
+  "population": 8714
+ },
+ {
+  "city": "East Manchester Township",
+  "state": "PA",
+  "population": 8703
+ },
+ {
+  "city": "Solebury Township",
+  "state": "PA",
+  "population": 8685
+ },
+ {
+  "city": "Sioux Center",
+  "state": "IA",
+  "population": 8675
+ },
+ {
+  "city": "Old Forge",
+  "state": "PA",
+  "population": 8654
+ },
+ {
+  "city": "Gettysburg",
+  "state": "PA",
+  "population": 8647
+ },
+ {
+  "city": "Honey Brook Township",
+  "state": "PA",
+  "population": 8597
+ },
+ {
+  "city": "Jeannette",
+  "state": "PA",
+  "population": 8566
+ },
+ {
+  "city": "Albertville",
+  "state": "MN",
+  "population": 8555
+ },
+ {
+  "city": "Lock Haven",
+  "state": "PA",
+  "population": 8531
+ },
+ {
+  "city": "St. Francis",
+  "state": "MN",
+  "population": 8523
+ },
+ {
+  "city": "Mount Pleasant",
+  "state": "IA",
+  "population": 8509
+ },
+ {
+  "city": "Waite Park",
+  "state": "MN",
+  "population": 8504
+ },
+ {
+  "city": "North Coventry Township",
+  "state": "PA",
+  "population": 8484
+ },
+ {
+  "city": "Downingtown",
+  "state": "PA",
+  "population": 8463
+ },
+ {
+  "city": "Upper Nazareth Township",
+  "state": "PA",
+  "population": 8453
+ },
+ {
+  "city": "Kennedy Township",
+  "state": "PA",
+  "population": 8439
+ },
+ {
+  "city": "West Earl Township",
+  "state": "PA",
+  "population": 8420
+ },
+ {
+  "city": "Brookhaven",
+  "state": "PA",
+  "population": 8407
+ },
+ {
+  "city": "Slippery Rock Township",
+  "state": "PA",
+  "population": 8396
+ },
+ {
+  "city": "Lewistown",
+  "state": "PA",
+  "population": 8394
+ },
+ {
+  "city": "Maxatawny Township",
+  "state": "PA",
+  "population": 8393
+ },
+ {
+  "city": "Doylestown",
+  "state": "PA",
+  "population": 8382
+ },
+ {
+  "city": "Corcoran",
+  "state": "MN",
+  "population": 8378
+ },
+ {
+  "city": "Mount Joy",
+  "state": "PA",
+  "population": 8364
+ },
+ {
+  "city": "Hatboro",
+  "state": "PA",
+  "population": 8341
+ },
+ {
+  "city": "Southampton Township",
+  "state": "PA",
+  "population": 8341
+ },
+ {
+  "city": "Tobyhanna Township",
+  "state": "PA",
+  "population": 8326
+ },
+ {
+  "city": "Pleasant Hills",
+  "state": "PA",
+  "population": 8318
+ },
+ {
+  "city": "Upper Milford Township",
+  "state": "PA",
+  "population": 8304
+ },
+ {
+  "city": "Denison",
+  "state": "IA",
+  "population": 8302
+ },
+ {
+  "city": "Swissvale",
+  "state": "PA",
+  "population": 8280
+ },
+ {
+  "city": "Virginia",
+  "state": "MN",
+  "population": 8267
+ },
+ {
+  "city": "Canton Township",
+  "state": "PA",
+  "population": 8266
+ },
+ {
+  "city": "New Prague",
+  "state": "MN",
+  "population": 8235
+ },
+ {
+  "city": "Camp Hill",
+  "state": "PA",
+  "population": 8231
+ },
+ {
+  "city": "Orono",
+  "state": "MN",
+  "population": 8228
+ },
+ {
+  "city": "Mahtomedi",
+  "state": "MN",
+  "population": 8199
+ },
+ {
+  "city": "Buffalo Township",
+  "state": "PA",
+  "population": 8185
+ },
+ {
+  "city": "Wyoming",
+  "state": "MN",
+  "population": 8173
+ },
+ {
+  "city": "Wilson",
+  "state": "PA",
+  "population": 8169
+ },
+ {
+  "city": "Castle Shannon",
+  "state": "PA",
+  "population": 8094
+ },
+ {
+  "city": "Conewago Township",
+  "state": "PA",
+  "population": 8085
+ },
+ {
+  "city": "Chippewa Township",
+  "state": "PA",
+  "population": 8073
+ },
+ {
+  "city": "Valley Township",
+  "state": "PA",
+  "population": 8052
+ },
+ {
+  "city": "Perry",
+  "state": "IA",
+  "population": 8046
+ },
+ {
+  "city": "Bellevue",
+  "state": "PA",
+  "population": 7996
+ },
+ {
+  "city": "East Marlborough Township",
+  "state": "PA",
+  "population": 7993
+ },
+ {
+  "city": "East Fallowfield Township",
+  "state": "PA",
+  "population": 7948
+ },
+ {
+  "city": "West Brandywine Township",
+  "state": "PA",
+  "population": 7946
+ },
+ {
+  "city": "Dormont",
+  "state": "PA",
+  "population": 7922
+ },
+ {
+  "city": "Latrobe",
+  "state": "PA",
+  "population": 7906
+ },
+ {
+  "city": "South Heidelberg Township",
+  "state": "PA",
+  "population": 7905
+ },
+ {
+  "city": "Smithfield Township",
+  "state": "PA",
+  "population": 7868
+ },
+ {
+  "city": "Carnegie",
+  "state": "PA",
+  "population": 7855
+ },
+ {
+  "city": "East Vincent Township",
+  "state": "PA",
+  "population": 7796
+ },
+ {
+  "city": "Delaware Township",
+  "state": "PA",
+  "population": 7786
+ },
+ {
+  "city": "Robeson Township",
+  "state": "PA",
+  "population": 7774
+ },
+ {
+  "city": "Webster City",
+  "state": "IA",
+  "population": 7763
+ },
+ {
+  "city": "Grove City",
+  "state": "PA",
+  "population": 7749
+ },
+ {
+  "city": "Brecknock Township",
+  "state": "PA",
+  "population": 7747
+ },
+ {
+  "city": "Pittston",
+  "state": "PA",
+  "population": 7743
+ },
+ {
+  "city": "Lower Windsor Township",
+  "state": "PA",
+  "population": 7738
+ },
+ {
+  "city": "Palmyra",
+  "state": "PA",
+  "population": 7735
+ },
+ {
+  "city": "New Cumberland",
+  "state": "PA",
+  "population": 7625
+ },
+ {
+  "city": "Clear Lake",
+  "state": "IA",
+  "population": 7602
+ },
+ {
+  "city": "West Cocalico Township",
+  "state": "PA",
+  "population": 7600
+ },
+ {
+  "city": "East Huntingdon Township",
+  "state": "PA",
+  "population": 7576
+ },
+ {
+  "city": "Shorewood",
+  "state": "MN",
+  "population": 7557
+ },
+ {
+  "city": "Bradford",
+  "state": "PA",
+  "population": 7538
+ },
+ {
+  "city": "Bedminster Township",
+  "state": "PA",
+  "population": 7516
+ },
+ {
+  "city": "Delano",
+  "state": "MN",
+  "population": 7513
+ },
+ {
+  "city": "Archbald",
+  "state": "PA",
+  "population": 7508
+ },
+ {
+  "city": "Isanti",
+  "state": "MN",
+  "population": 7493
+ },
+ {
+  "city": "Findlay Township",
+  "state": "PA",
+  "population": 7478
+ },
+ {
+  "city": "Frankstown Township",
+  "state": "PA",
+  "population": 7468
+ },
+ {
+  "city": "East Buffalo Township",
+  "state": "PA",
+  "population": 7465
+ },
+ {
+  "city": "Decorah",
+  "state": "IA",
+  "population": 7454
+ },
+ {
+  "city": "Belle Plaine",
+  "state": "MN",
+  "population": 7444
+ },
+ {
+  "city": "Knoxville",
+  "state": "IA",
+  "population": 7440
+ },
+ {
+  "city": "Middlesex Township",
+  "state": "PA",
+  "population": 7438
+ },
+ {
+  "city": "Creston",
+  "state": "IA",
+  "population": 7421
+ },
+ {
+  "city": "Ellwood City",
+  "state": "PA",
+  "population": 7416
+ },
+ {
+  "city": "Polk Township",
+  "state": "PA",
+  "population": 7386
+ },
+ {
+  "city": "Indiana Township",
+  "state": "PA",
+  "population": 7370
+ },
+ {
+  "city": "South Hanover Township",
+  "state": "PA",
+  "population": 7368
+ },
+ {
+  "city": "East Coventry Township",
+  "state": "PA",
+  "population": 7365
+ },
+ {
+  "city": "White Oak",
+  "state": "PA",
+  "population": 7352
+ },
+ {
+  "city": "Hiawatha",
+  "state": "IA",
+  "population": 7347
+ },
+ {
+  "city": "Ohio Township",
+  "state": "PA",
+  "population": 7330
+ },
+ {
+  "city": "Lawrence Township",
+  "state": "PA",
+  "population": 7324
+ },
+ {
+  "city": "Ridley Park",
+  "state": "PA",
+  "population": 7310
+ },
+ {
+  "city": "Providence Township",
+  "state": "PA",
+  "population": 7305
+ },
+ {
+  "city": "DuBois",
+  "state": "PA",
+  "population": 7302
+ },
+ {
+  "city": "Summit Township",
+  "state": "PA",
+  "population": 7282
+ },
+ {
+  "city": "Washington",
+  "state": "IA",
+  "population": 7281
+ },
+ {
+  "city": "Souderton",
+  "state": "PA",
+  "population": 7274
+ },
+ {
+  "city": "Crookston",
+  "state": "MN",
+  "population": 7269
+ },
+ {
+  "city": "Glenolden",
+  "state": "PA",
+  "population": 7266
+ },
+ {
+  "city": "Cumberland Township",
+  "state": "PA",
+  "population": 7214
+ },
+ {
+  "city": "Kingston Township",
+  "state": "PA",
+  "population": 7211
+ },
+ {
+  "city": "Medina",
+  "state": "MN",
+  "population": 7209
+ },
+ {
+  "city": "Kasson",
+  "state": "MN",
+  "population": 7207
+ },
+ {
+  "city": "Earl Township",
+  "state": "PA",
+  "population": 7179
+ },
+ {
+  "city": "Lower Nazareth Township",
+  "state": "PA",
+  "population": 7175
+ },
+ {
+  "city": "Shrewsbury Township",
+  "state": "PA",
+  "population": 7144
+ },
+ {
+  "city": "Spring Lake Park",
+  "state": "MN",
+  "population": 7083
+ },
+ {
+  "city": "Nevada",
+  "state": "IA",
+  "population": 7082
+ },
+ {
+  "city": "Charles City",
+  "state": "IA",
+  "population": 7081
+ },
+ {
+  "city": "Clay Township",
+  "state": "PA",
+  "population": 7036
+ },
+ {
+  "city": "New Sewickley Township",
+  "state": "PA",
+  "population": 7003
+ },
+ {
+  "city": "Shenango Township",
+  "state": "PA",
+  "population": 6998
+ },
+ {
+  "city": "Thornbury Township",
+  "state": "PA",
+  "population": 6993
+ },
+ {
+  "city": "St. Joseph",
+  "state": "MN",
+  "population": 6992
+ },
+ {
+  "city": "Eldridge",
+  "state": "IA",
+  "population": 6967
+ },
+ {
+  "city": "Tamaqua",
+  "state": "PA",
+  "population": 6944
+ },
+ {
+  "city": "West Vincent Township",
+  "state": "PA",
+  "population": 6930
+ },
+ {
+  "city": "Tunkhannock Township",
+  "state": "PA",
+  "population": 6920
+ },
+ {
+  "city": "Stewartville",
+  "state": "MN",
+  "population": 6919
+ },
+ {
+  "city": "Ambler",
+  "state": "PA",
+  "population": 6900
+ },
+ {
+  "city": "Ambridge",
+  "state": "PA",
+  "population": 6886
+ },
+ {
+  "city": "Clifton Heights",
+  "state": "PA",
+  "population": 6880
+ },
+ {
+  "city": "Huntingdon",
+  "state": "PA",
+  "population": 6857
+ },
+ {
+  "city": "Jordan",
+  "state": "MN",
+  "population": 6831
+ },
+ {
+  "city": "Lower Heidelberg Township",
+  "state": "PA",
+  "population": 6829
+ },
+ {
+  "city": "Folcroft",
+  "state": "PA",
+  "population": 6827
+ },
+ {
+  "city": "Carver",
+  "state": "MN",
+  "population": 6810
+ },
+ {
+  "city": "Byron",
+  "state": "MN",
+  "population": 6809
+ },
+ {
+  "city": "East Earl Township",
+  "state": "PA",
+  "population": 6803
+ },
+ {
+  "city": "Shamokin",
+  "state": "PA",
+  "population": 6787
+ },
+ {
+  "city": "Bern Township",
+  "state": "PA",
+  "population": 6787
+ },
+ {
+  "city": "Zimmerman",
+  "state": "MN",
+  "population": 6772
+ },
+ {
+  "city": "Adel",
+  "state": "IA",
+  "population": 6763
+ },
+ {
+  "city": "Monroe Township",
+  "state": "PA",
+  "population": 6752
+ },
+ {
+  "city": "Atlantic",
+  "state": "IA",
+  "population": 6717
+ },
+ {
+  "city": "Kennett Square",
+  "state": "PA",
+  "population": 6713
+ },
+ {
+  "city": "Monessen",
+  "state": "PA",
+  "population": 6704
+ },
+ {
+  "city": "Tiffin",
+  "state": "IA",
+  "population": 6695
+ },
+ {
+  "city": "Connellsville",
+  "state": "PA",
+  "population": 6682
+ },
+ {
+  "city": "Williams Township",
+  "state": "PA",
+  "population": 6670
+ },
+ {
+  "city": "Blakely",
+  "state": "PA",
+  "population": 6659
+ },
+ {
+  "city": "Oakmont",
+  "state": "PA",
+  "population": 6628
+ },
+ {
+  "city": "Catasauqua",
+  "state": "PA",
+  "population": 6625
+ },
+ {
+  "city": "Franklin Township",
+  "state": "PA",
+  "population": 6624
+ },
+ {
+  "city": "Charlestown Township",
+  "state": "PA",
+  "population": 6608
+ },
+ {
+  "city": "Swarthmore",
+  "state": "PA",
+  "population": 6596
+ },
+ {
+  "city": "Conemaugh Township",
+  "state": "PA",
+  "population": 6591
+ },
+ {
+  "city": "Allegheny Township",
+  "state": "PA",
+  "population": 6588
+ },
+ {
+  "city": "Red Lion",
+  "state": "PA",
+  "population": 6552
+ },
+ {
+  "city": "Orange City",
+  "state": "IA",
+  "population": 6547
+ },
+ {
+  "city": "Litchfield",
+  "state": "MN",
+  "population": 6515
+ },
+ {
+  "city": "Bullskin Township",
+  "state": "PA",
+  "population": 6489
+ },
+ {
+  "city": "Milton",
+  "state": "PA",
+  "population": 6483
+ },
+ {
+  "city": "Prospect Park",
+  "state": "PA",
+  "population": 6452
+ },
+ {
+  "city": "North East Township",
+  "state": "PA",
+  "population": 6451
+ },
+ {
+  "city": "Upper Mount Bethel Township",
+  "state": "PA",
+  "population": 6434
+ },
+ {
+  "city": "Polk City",
+  "state": "IA",
+  "population": 6430
+ },
+ {
+  "city": "West View",
+  "state": "PA",
+  "population": 6426
+ },
+ {
+  "city": "Dunbar Township",
+  "state": "PA",
+  "population": 6418
+ },
+ {
+  "city": "Antis Township",
+  "state": "PA",
+  "population": 6361
+ },
+ {
+  "city": "Steelton",
+  "state": "PA",
+  "population": 6358
+ },
+ {
+  "city": "Pequea Township",
+  "state": "PA",
+  "population": 6324
+ },
+ {
+  "city": "Upper Pottsgrove Township",
+  "state": "PA",
+  "population": 6306
+ },
+ {
+  "city": "Independence",
+  "state": "IA",
+  "population": 6266
+ },
+ {
+  "city": "Plainfield Township",
+  "state": "PA",
+  "population": 6257
+ },
+ {
+  "city": "Taylor",
+  "state": "PA",
+  "population": 6252
+ },
+ {
+  "city": "Stowe Township",
+  "state": "PA",
+  "population": 6187
+ },
+ {
+  "city": "Forest Hills",
+  "state": "PA",
+  "population": 6186
+ },
+ {
+  "city": "South Williamsport",
+  "state": "PA",
+  "population": 6176
+ },
+ {
+  "city": "Hellertown",
+  "state": "PA",
+  "population": 6145
+ },
+ {
+  "city": "Wilkins Township",
+  "state": "PA",
+  "population": 6117
+ },
+ {
+  "city": "Georges Township",
+  "state": "PA",
+  "population": 6100
+ },
+ {
+  "city": "Nazareth",
+  "state": "PA",
+  "population": 6088
+ },
+ {
+  "city": "Oxford Township",
+  "state": "PA",
+  "population": 6082
+ },
+ {
+  "city": "Jackson Township",
+  "state": "PA",
+  "population": 6079
+ },
+ {
+  "city": "Corry",
+  "state": "PA",
+  "population": 6065
+ },
+ {
+  "city": "Maquoketa",
+  "state": "IA",
+  "population": 6064
+ },
+ {
+  "city": "Penn Township",
+  "state": "PA",
+  "population": 6063
+ },
+ {
+  "city": "East Hanover Township",
+  "state": "PA",
+  "population": 6061
+ },
+ {
+  "city": "Asbury",
+  "state": "IA",
+  "population": 6051
+ },
+ {
+  "city": "Sharon Hill",
+  "state": "PA",
+  "population": 6039
+ },
+ {
+  "city": "Moosic",
+  "state": "PA",
+  "population": 6018
+ },
+ {
+  "city": "Chanceford Township",
+  "state": "PA",
+  "population": 6015
+ },
+ {
+  "city": "Dickson City",
+  "state": "PA",
+  "population": 6010
+ },
+ {
+  "city": "St. Thomas Township",
+  "state": "PA",
+  "population": 5994
+ },
+ {
+  "city": "Bellefonte",
+  "state": "PA",
+  "population": 5986
+ },
+ {
+  "city": "Salem Township",
+  "state": "PA",
+  "population": 5985
+ },
+ {
+  "city": "Harris Township",
+  "state": "PA",
+  "population": 5984
+ },
+ {
+  "city": "Hellam Township",
+  "state": "PA",
+  "population": 5981
+ },
+ {
+  "city": "Norwood",
+  "state": "PA",
+  "population": 5969
+ },
+ {
+  "city": "Ligonier Township",
+  "state": "PA",
+  "population": 5969
+ },
+ {
+  "city": "Reading Township",
+  "state": "PA",
+  "population": 5960
+ },
+ {
+  "city": "Chisago City",
+  "state": "MN",
+  "population": 5953
+ },
+ {
+  "city": "Clairton",
+  "state": "PA",
+  "population": 5945
+ },
+ {
+  "city": "Media",
+  "state": "PA",
+  "population": 5938
+ },
+ {
+  "city": "Franklin",
+  "state": "PA",
+  "population": 5933
+ },
+ {
+  "city": "East Caln Township",
+  "state": "PA",
+  "population": 5924
+ },
+ {
+  "city": "Oxford",
+  "state": "PA",
+  "population": 5909
+ },
+ {
+  "city": "Lower Oxford Township",
+  "state": "PA",
+  "population": 5906
+ },
+ {
+  "city": "New London Township",
+  "state": "PA",
+  "population": 5901
+ },
+ {
+  "city": "Somerset",
+  "state": "PA",
+  "population": 5870
+ },
+ {
+  "city": "Crafton",
+  "state": "PA",
+  "population": 5863
+ },
+ {
+  "city": "Wright Township",
+  "state": "PA",
+  "population": 5847
+ },
+ {
+  "city": "Anamosa",
+  "state": "IA",
+  "population": 5845
+ },
+ {
+  "city": "Stroudsburg",
+  "state": "PA",
+  "population": 5819
+ },
+ {
+  "city": "Edinboro",
+  "state": "PA",
+  "population": 5814
+ },
+ {
+  "city": "East Rockhill Township",
+  "state": "PA",
+  "population": 5812
+ },
+ {
+  "city": "Plymouth",
+  "state": "PA",
+  "population": 5810
+ },
+ {
+  "city": "New Holland",
+  "state": "PA",
+  "population": 5800
+ },
+ {
+  "city": "Estherville",
+  "state": "IA",
+  "population": 5796
+ },
+ {
+  "city": "Clearfield",
+  "state": "PA",
+  "population": 5794
+ },
+ {
+  "city": "Montgomery Township",
+  "state": "PA",
+  "population": 5791
+ },
+ {
+  "city": "Oelwein",
+  "state": "IA",
+  "population": 5788
+ },
+ {
+  "city": "Paradise Township",
+  "state": "PA",
+  "population": 5784
+ },
+ {
+  "city": "Blooming Grove Township",
+  "state": "PA",
+  "population": 5750
+ },
+ {
+  "city": "Cambria Township",
+  "state": "PA",
+  "population": 5726
+ },
+ {
+  "city": "West Pennsboro Township",
+  "state": "PA",
+  "population": 5707
+ },
+ {
+  "city": "Longswamp Township",
+  "state": "PA",
+  "population": 5695
+ },
+ {
+  "city": "McKees Rocks",
+  "state": "PA",
+  "population": 5694
+ },
+ {
+  "city": "Leacock Township",
+  "state": "PA",
+  "population": 5686
+ },
+ {
+  "city": "Glencoe",
+  "state": "MN",
+  "population": 5659
+ },
+ {
+  "city": "Shippensburg",
+  "state": "PA",
+  "population": 5638
+ },
+ {
+  "city": "Palmerton",
+  "state": "PA",
+  "population": 5634
+ },
+ {
+  "city": "Mount Carmel",
+  "state": "PA",
+  "population": 5626
+ },
+ {
+  "city": "DeWitt",
+  "state": "IA",
+  "population": 5620
+ },
+ {
+  "city": "Allen Township",
+  "state": "PA",
+  "population": 5594
+ },
+ {
+  "city": "Exeter",
+  "state": "PA",
+  "population": 5590
+ },
+ {
+  "city": "Credit River",
+  "state": "MN",
+  "population": 5589
+ },
+ {
+  "city": "Punxsutawney",
+  "state": "PA",
+  "population": 5587
+ },
+ {
+  "city": "Osceola",
+  "state": "IA",
+  "population": 5585
+ },
+ {
+  "city": "Sheldon",
+  "state": "IA",
+  "population": 5584
+ },
+ {
+  "city": "Sewickley Township",
+  "state": "PA",
+  "population": 5553
+ },
+ {
+  "city": "Spirit Lake",
+  "state": "IA",
+  "population": 5548
+ },
+ {
+  "city": "Hollidaysburg",
+  "state": "PA",
+  "population": 5537
+ },
+ {
+  "city": "Shillington",
+  "state": "PA",
+  "population": 5533
+ },
+ {
+  "city": "New Brighton",
+  "state": "PA",
+  "population": 5517
+ },
+ {
+  "city": "Selinsgrove",
+  "state": "PA",
+  "population": 5501
+ },
+ {
+  "city": "International Falls",
+  "state": "MN",
+  "population": 5498
+ },
+ {
+  "city": "Union Township",
+  "state": "PA",
+  "population": 5492
+ },
+ {
+  "city": "West Rockhill Township",
+  "state": "PA",
+  "population": 5475
+ },
+ {
+  "city": "Dickinson Township",
+  "state": "PA",
+  "population": 5470
+ },
+ {
+  "city": "Monaca",
+  "state": "PA",
+  "population": 5466
+ },
+ {
+  "city": "Greenville",
+  "state": "PA",
+  "population": 5459
+ },
+ {
+  "city": "North Sewickley Township",
+  "state": "PA",
+  "population": 5428
+ },
+ {
+  "city": "Winterset",
+  "state": "IA",
+  "population": 5421
+ },
+ {
+  "city": "Red Oak",
+  "state": "IA",
+  "population": 5420
+ },
+ {
+  "city": "Newport",
+  "state": "MN",
+  "population": 5415
+ },
+ {
+  "city": "Lackawaxen Township",
+  "state": "PA",
+  "population": 5407
+ },
+ {
+  "city": "Bridgeport",
+  "state": "PA",
+  "population": 5401
+ },
+ {
+  "city": "Olyphant",
+  "state": "PA",
+  "population": 5397
+ },
+ {
+  "city": "Sayre",
+  "state": "PA",
+  "population": 5394
+ },
+ {
+  "city": "East Allen Township",
+  "state": "PA",
+  "population": 5391
+ },
+ {
+  "city": "Luzerne Township",
+  "state": "PA",
+  "population": 5384
+ },
+ {
+  "city": "St. Paul Park",
+  "state": "MN",
+  "population": 5381
+ },
+ {
+  "city": "Wayne Township",
+  "state": "PA",
+  "population": 5360
+ },
+ {
+  "city": "Carroll Township",
+  "state": "PA",
+  "population": 5349
+ },
+ {
+  "city": "Centerville",
+  "state": "IA",
+  "population": 5345
+ },
+ {
+  "city": "Algona",
+  "state": "IA",
+  "population": 5341
+ },
+ {
+  "city": "Coraopolis",
+  "state": "PA",
+  "population": 5340
+ },
+ {
+  "city": "Sergeant Bluff",
+  "state": "IA",
+  "population": 5335
+ },
+ {
+  "city": "Clarinda",
+  "state": "IA",
+  "population": 5334
+ },
+ {
+  "city": "Princeton",
+  "state": "MN",
+  "population": 5329
+ },
+ {
+  "city": "South Huntingdon Township",
+  "state": "PA",
+  "population": 5318
+ },
+ {
+  "city": "Tyrone",
+  "state": "PA",
+  "population": 5312
+ },
+ {
+  "city": "Collegeville",
+  "state": "PA",
+  "population": 5308
+ },
+ {
+  "city": "Quincy Township",
+  "state": "PA",
+  "population": 5307
+ },
+ {
+  "city": "Lake City",
+  "state": "MN",
+  "population": 5306
+ },
+ {
+  "city": "Montevideo",
+  "state": "MN",
+  "population": 5300
+ },
+ {
+  "city": "Manchester",
+  "state": "IA",
+  "population": 5283
+ },
+ {
+  "city": "Schuylkill Haven",
+  "state": "PA",
+  "population": 5273
+ },
+ {
+  "city": "Lehighton",
+  "state": "PA",
+  "population": 5262
+ },
+ {
+  "city": "La Crescent",
+  "state": "MN",
+  "population": 5257
+ },
+ {
+  "city": "Lewisburg",
+  "state": "PA",
+  "population": 5253
+ },
+ {
+  "city": "Becker",
+  "state": "MN",
+  "population": 5252
+ },
+ {
+  "city": "Glenwood",
+  "state": "IA",
+  "population": 5250
+ },
+ {
+  "city": "Vernon Township",
+  "state": "PA",
+  "population": 5243
+ },
+ {
+  "city": "Springfield Township",
+  "state": "PA",
+  "population": 5235
+ },
+ {
+  "city": "North Oaks",
+  "state": "MN",
+  "population": 5232
+ },
+ {
+  "city": "West Hazleton",
+  "state": "PA",
+  "population": 5231
+ },
+ {
+  "city": "Elko New Market",
+  "state": "MN",
+  "population": 5193
+ },
+ {
+  "city": "Morris",
+  "state": "MN",
+  "population": 5192
+ },
+ {
+  "city": "Cherokee",
+  "state": "IA",
+  "population": 5186
+ },
+ {
+  "city": "Fox Chapel",
+  "state": "PA",
+  "population": 5185
+ },
+ {
+  "city": "Colebrookdale Township",
+  "state": "PA",
+  "population": 5185
+ },
+ {
+  "city": "Bangor",
+  "state": "PA",
+  "population": 5171
+ },
+ {
+  "city": "Martic Township",
+  "state": "PA",
+  "population": 5171
+ },
+ {
+  "city": "Birdsboro",
+  "state": "PA",
+  "population": 5163
+ },
+ {
+  "city": "Titusville",
+  "state": "PA",
+  "population": 5155
+ },
+ {
+  "city": "Duryea",
+  "state": "PA",
+  "population": 5142
+ },
+ {
+  "city": "New Freedom",
+  "state": "PA",
+  "population": 5131
+ },
+ {
+  "city": "West York",
+  "state": "PA",
+  "population": 5127
+ },
+ {
+  "city": "Middle Paxton Township",
+  "state": "PA",
+  "population": 5125
+ },
+ {
+  "city": "Athens Township",
+  "state": "PA",
+  "population": 5117
+ },
+ {
+  "city": "Weisenberg Township",
+  "state": "PA",
+  "population": 5114
+ },
+ {
+  "city": "Windsor Heights",
+  "state": "IA",
+  "population": 5106
+ },
+ {
+  "city": "Bedford Township",
+  "state": "PA",
+  "population": 5099
+ },
+ {
+  "city": "Swoyersville",
+  "state": "PA",
+  "population": 5092
+ },
+ {
+  "city": "Clarks Summit",
+  "state": "PA",
+  "population": 5089
+ },
+ {
+  "city": "Peach Bottom Township",
+  "state": "PA",
+  "population": 5088
+ },
+ {
+  "city": "Duquesne",
+  "state": "PA",
+  "population": 5074
+ },
+ {
+  "city": "Lonsdale",
+  "state": "MN",
+  "population": 5066
+ },
+ {
+  "city": "Jefferson Township",
+  "state": "PA",
+  "population": 5064
+ },
+ {
+  "city": "Redwood Falls",
+  "state": "MN",
+  "population": 5038
+ },
+ {
+  "city": "Lindstrom",
+  "state": "MN",
+  "population": 5026
+ },
+ {
+  "city": "Upper Yoder Township",
+  "state": "PA",
+  "population": 5023
+ },
+ {
+  "city": "Annville Township",
+  "state": "PA",
+  "population": 5020
+ },
+ {
+  "city": "Manheim",
+  "state": "PA",
+  "population": 5011
+ },
+ {
+  "city": "Falcon Heights",
+  "state": "MN",
+  "population": 5002
  }
 ]

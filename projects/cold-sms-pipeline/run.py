@@ -68,8 +68,11 @@ def main(argv=None):
     con = connect(db_path(trade["trade"]))
 
     if args.cmd == "cities":
-        cities = build_cities(args.min_population, set(trade["states"]))
-        print(f"{len(cities)} cities over {args.min_population:,} written to config/cities.json")
+        deep = trade.get("deep", {})
+        floors = {st: deep["min_population"] for st in deep.get("states", []) if "min_population" in deep}
+        cities = build_cities(args.min_population, set(trade["states"]), floors)
+        print(f"{len(cities)} cities over {args.min_population:,} written to config/cities.json"
+              + (f", {deep['min_population']:,} in {', '.join(floors)}" if floors else ""))
 
     elif args.cmd == "scrape":
         states = set(args.state) if args.state else None

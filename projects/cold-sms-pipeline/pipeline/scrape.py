@@ -28,6 +28,15 @@ def query_id(query):
     return hashlib.sha1(query.lower().encode()).hexdigest()[:16]
 
 
+def keywords_for(trade, city):
+    """The trade's keywords, plus the deep ones in a deep state's bigger cities, where
+    Google's ~120 results a search runs out before the shops do."""
+    deep = trade.get("deep", {})
+    if city["state"] in deep.get("states", []) and city.get("population", 0) >= deep.get("extra_keywords_min_population", 0):
+        return trade["keywords"] + deep.get("extra_keywords", [])
+    return trade["keywords"]
+
+
 def plan_queries(con, trade, cities, states=None):
     """Queue every city x keyword not already queued. Returns how many were added."""
     # cities.json is shared by every trade, so a trade only ever queues its own states.
@@ -37,7 +46,7 @@ def plan_queries(con, trade, cities, states=None):
         for c in cities:
             if c["state"] not in states:
                 continue
-            for kw in trade["keywords"]:
+            for kw in keywords_for(trade, c):
                 q = f"{kw} in {c['city']}, {c['state']}"
                 cur = con.execute("insert or ignore into queries (id, query, city, state) values (?,?,?,?)",
                                   (query_id(q), q, c["city"], c["state"]))

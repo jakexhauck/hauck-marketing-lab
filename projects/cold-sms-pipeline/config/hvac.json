@@ -9,6 +9,14 @@
   "states": ["MI", "OH", "IN", "WI", "IL", "PA", "MN", "IA"],
   "depth": 15,
 
+  "_deep": "Deep states search towns down to min_population, and add extra_keywords in places of extra_keywords_min_population or more.",
+  "deep": {
+    "states": ["PA", "MN", "IA"],
+    "min_population": 5000,
+    "extra_keywords": ["air conditioning repair", "heating contractor"],
+    "extra_keywords_min_population": 20000
+  },
+
   "_core": "Google's PRIMARY category says this is an HVAC shop. Any of these keeps the lead.",
   "core_categories": [
     "hvac contractor",

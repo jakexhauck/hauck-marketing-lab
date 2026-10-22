@@ -26,7 +26,9 @@ def search_name(census_name):
     return re.sub(r"\s+(city|village|town|borough|municipality)$", "", name, flags=re.I)
 
 
-def build(min_population, states):
+def build(min_population, states, state_min_population=None):
+    """state_min_population: {"PA": 5000} digs deeper than min_population in those states."""
+    state_min_population = state_min_population or {}
     with urllib.request.urlopen(CENSUS_URL, timeout=60) as resp:
         text = resp.read().decode("latin-1")
     seen, out = set(), []
@@ -35,7 +37,7 @@ def build(min_population, states):
         if state not in states:
             continue
         pop = int(row["POPESTIMATE2024"] or 0)
-        if pop < min_population:
+        if pop < state_min_population.get(state, min_population):
             continue
         is_place = row["SUMLEV"] == "162"
         is_township = (row["SUMLEV"] == "061" and state in TOWNSHIP_STATES
