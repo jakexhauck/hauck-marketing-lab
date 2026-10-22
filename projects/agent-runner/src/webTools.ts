@@ -24,7 +24,9 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-export const MAX_PAGE = 200_000;
+// Hermes cuts a long tool answer off and parks the rest in a file the agents
+// cannot open (no file tools), so a page comes back in parts this size.
+export const MAX_PAGE = 30_000;
 const MAX_BODY = 5_000_000;
 const TIMEOUT_MS = 20_000;
 const MAX_REDIRECTS = 5;
@@ -141,19 +143,29 @@ export async function safeGet(raw: string, d: FetchDeps = {}, accept = "text/htm
   throw new Error("too many redirects");
 }
 
-const cap = (s: string) => (s.length > MAX_PAGE ? `${s.slice(0, MAX_PAGE)}\n\n[cut at ${MAX_PAGE} characters]` : s);
+const cap = (s: string) => (s.length > MAX_PAGE ? `${s.slice(0, MAX_PAGE)}
+
+[cut at ${MAX_PAGE} characters]` : s);
+
+// One part of a long text, with a footer saying how to get the next.
+export function partOf(text: string, part = 1): string {
+  const parts = Math.max(1, Math.ceil(text.length / MAX_PAGE));
+  const n = Math.min(Math.max(1, Math.floor(part) || 1), parts);
+  const body = text.slice((n - 1) * MAX_PAGE, n * MAX_PAGE);
+  return parts === 1 ? body : `${body}\n\n[part ${n} of ${parts}${n < parts ? `; read_page with part ${n + 1} for more` : ""}]`;
+}
 
 // A page as clean Markdown with its title on top. Plain text and JSON come
-// back as they are.
-export async function readPage(raw: string, d: FetchDeps = {}): Promise<string> {
+// back as they are. A long page comes in parts.
+export async function readPage(raw: string, d: FetchDeps = {}, part = 1): Promise<string> {
   const page = await safeGet(raw, d);
-  if (!/html|xml/i.test(page.type) && !/^\s*</.test(page.body)) return cap(page.body);
+  if (!/html|xml/i.test(page.type) && !/^\s*</.test(page.body)) return partOf(page.body, part);
   const { parseHTML } = await import("linkedom");
   const { Defuddle } = await import("defuddle/node");
   const { document } = parseHTML(page.body);
   const out = await Defuddle(document as unknown as Document, page.url, { markdown: true });
   const head = [out.title && `# ${out.title}`, [out.author, out.published, out.domain].filter(Boolean).join(" | ")].filter(Boolean).join("\n");
-  return cap(`${head}\n\n${out.content ?? ""}`.trim());
+  return partOf(`${head}\n\n${out.content ?? ""}`.trim(), part);
 }
 
 // --- reach -----------------------------------------------------------------

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { checkUrl, feedToText, isPrivateIp, pinnedRequest, reach, readPage, safeGet, vttToText, type Requester } from "../src/webTools.ts";
+import { MAX_PAGE, checkUrl, feedToText, isPrivateIp, partOf, pinnedRequest, reach, readPage, safeGet, vttToText, type Requester } from "../src/webTools.ts";
 
 const publicDns = async () => ["93.184.216.34"];
 
@@ -146,5 +146,17 @@ describe("reach", () => {
     const out = await reach("github_repo", "https://github.com/kepano/defuddle", { request: f, resolve: publicDns });
     expect(out).toContain("kepano/defuddle");
     expect(out).toContain("# Readme");
+  });
+});
+
+describe("partOf", () => {
+  it("gives a long page in parts under Hermes's cut-off, and says how to get the next", () => {
+    const text = "a".repeat(MAX_PAGE * 2 + 10);
+    const one = partOf(text, 1);
+    expect(one.length).toBeLessThan(MAX_PAGE + 100);
+    expect(one).toContain("[part 1 of 3; read_page with part 2 for more]");
+    expect(partOf(text, 3)).toContain("[part 3 of 3]");
+    expect(partOf(text, 9)).toContain("[part 3 of 3]");
+    expect(partOf("short")).toBe("short");
   });
 });

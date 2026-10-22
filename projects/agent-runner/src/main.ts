@@ -154,7 +154,7 @@ async function main(): Promise<void> {
     const composioKey = process.env.COMPOSIO_API_KEY ?? "";
     const tools = {
       ...appTools({ base: API_BASE, secret, higgsfield: hf ?? undefined }),
-      readPage: (url: string) => readPage(url),
+      readPage: (url: string, part?: number) => readPage(url, {}, part),
       reach: (channel: string, target: string) => reach(channel, target),
       ...(composioKey ? { composio: (agent: AgentId, slug: string, a: Record<string, unknown>) => runComposio(agent, slug, a, { apiKey: composioKey }) } : {}),
     };

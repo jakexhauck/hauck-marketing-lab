@@ -54,7 +54,7 @@ export interface AppTools {
   higgsfield?: Higgsfield;
   // The web for the agents (webTools.ts): a page as clean Markdown, and the
   // Agent Reach channels that need no login. Unset: no web tools.
-  readPage?(url: string): Promise<string>;
+  readPage?(url: string, part?: number): Promise<string>;
   reach?(channel: string, target: string): Promise<string>;
   // A Composio tool from the agent's allowlist (composioTools.ts). Unset (no
   // COMPOSIO_API_KEY): no Composio tool.
@@ -183,7 +183,11 @@ const PAGE_TOOL = {
   name: "read_page",
   description:
     "Read a web page as clean Markdown (Defuddle): the article only, no menus, ads or footers. Use it instead of any other way of reading a page. Public http(s) pages only.",
-  inputSchema: { type: "object", properties: { turn: TURN, url: { type: "string" } }, required: ["turn", "url"] },
+  inputSchema: {
+    type: "object",
+    properties: { turn: TURN, url: { type: "string" }, part: { type: "integer", minimum: 1, description: "A long page comes in parts; 1 is the start." } },
+    required: ["turn", "url"],
+  },
 };
 
 const REACH_TOOL = {
@@ -359,7 +363,7 @@ async function callTool(
     if (name === "read_page") {
       const url = typeof a.url === "string" ? a.url.trim() : "";
       if (!url) return text("url is required", true);
-      return text(await tools.readPage!(url));
+      return text(await tools.readPage!(url, typeof a.part === "number" ? a.part : 1));
     }
     if (name === "reach") {
       return text(await tools.reach!(typeof a.channel === "string" ? a.channel : "", typeof a.target === "string" ? a.target : ""));
