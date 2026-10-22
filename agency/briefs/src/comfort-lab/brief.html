@@ -1,0 +1,226 @@
+<title>Comfort Lab Market Brief</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: a printed-style agency brief. White page, deep green ink, statement headings, one idea per section. Single light look on purpose (made for screen-share). */
+:root {
+  --paper: #FFFFFF;
+  --ink: #0A1D19;
+  --ink-2: #4A5D58;
+  --rule: #DCE5E1;
+  --wash: #F1F6F4;
+  --green: #4DBB83;
+  --green-ink: #23794F;
+  --red: #C0392B;
+  --display: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.55; }
+.page { max-width: 1040px; margin: 0 auto; padding-block: 56px 80px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); display: grid; gap: 88px; }
+h1, h2 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -.015em; }
+h1 { font-size: clamp(2.1rem, 5.2vw, 3.6rem); line-height: 1.06; max-width: 15ch; }
+h2 { font-size: clamp(1.5rem, 3.2vw, 2.25rem); line-height: 1.15; max-width: 24ch; }
+h2 em { font-style: normal; color: var(--green-ink); }
+p { margin: 0; }
+section { display: grid; gap: 32px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Cover */
+.cover { display: grid; gap: 28px; border-bottom: 3px solid var(--ink); padding-bottom: 36px; }
+.byline { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 24px; font-size: .9rem; color: var(--ink-2); }
+.byline b { color: var(--ink); font-weight: 600; }
+
+/* Big numbers */
+.figures { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 0; border-top: 1px solid var(--rule); }
+.fig { padding: 22px 24px 0 0; display: grid; gap: 4px; align-content: start; }
+.fig + .fig { padding-left: 24px; border-left: 1px solid var(--rule); }
+.fig .v { font-family: var(--display); font-weight: 600; font-size: clamp(2rem, 4.4vw, 3.2rem); line-height: 1; }
+.fig:first-child .v { color: var(--green-ink); font-size: clamp(2.6rem, 6vw, 4.4rem); }
+.fig .k { color: var(--ink-2); font-size: .95rem; }
+
+/* Competitor table */
+.tbl { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 620px; font-size: .95rem; }
+th { text-align: left; font-weight: 600; font-size: .8rem; color: var(--ink-2); padding: 0 14px 10px 0; border-bottom: 2px solid var(--ink); }
+td { padding: 12px 14px 12px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+td.r, th.r { text-align: right; }
+.fb { font-weight: 600; white-space: nowrap; }
+.fb.yes { color: var(--green-ink); }
+.fb.no { color: var(--ink-2); font-weight: 400; }
+tr.you td { background: var(--wash); font-weight: 600; }
+tr.you td:first-child { padding-left: 10px; }
+.count { display: flex; flex-wrap: wrap; gap: 6px 28px; font-family: var(--display); }
+.count .n { font-size: clamp(2.6rem, 6vw, 4rem); font-weight: 600; line-height: 1; }
+.count .n.on { color: var(--green-ink); }
+.count div { display: grid; gap: 4px; }
+.count span:last-child { color: var(--ink-2); font-family: var(--body); font-size: .95rem; }
+
+/* Ads */
+.ads { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; align-items: start; }
+.ad { display: grid; gap: 14px; min-width: 0; }
+.ad .who { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-weight: 600; }
+.ad .who small { font-weight: 400; color: var(--ink-2); font-size: .85rem; }
+.shot { position: relative; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--wash); }
+.shot img { display: block; width: 100%; height: auto; }
+.shot .play { position: absolute; left: 12px; bottom: 12px; background: rgba(10,29,25,.82); color: #fff; font-size: .78rem; font-weight: 600; padding: 4px 10px; border-radius: 3px; }
+.copy { font-size: .9rem; color: var(--ink); white-space: pre-line; border-left: 3px solid var(--rule); padding-left: 14px; max-height: 15.5em; overflow: auto; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: .78rem; border: 1px solid var(--rule); padding: 3px 9px; border-radius: 3px; color: var(--ink-2); }
+
+/* Improvements */
+.fixes { list-style: none; margin: 0; padding: 0; counter-reset: fx; border-top: 2px solid var(--ink); }
+.fixes li { counter-increment: fx; display: grid; grid-template-columns: 44px 1fr; column-gap: 12px; row-gap: 2px; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+.fixes li::before { content: counter(fx); grid-row: span 2; font-family: var(--display); font-weight: 600; font-size: 1.5rem; color: var(--green-ink); line-height: 1.2; }
+.fixes b { font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
+.fixes span { color: var(--ink-2); font-size: .95rem; }
+
+/* Season chart */
+.chart { overflow-x: auto; }
+.chart svg { display: block; width: 100%; min-width: 620px; height: auto; }
+
+footer { border-top: 1px solid var(--rule); padding-top: 18px; font-size: .78rem; color: var(--ink-2); display: grid; gap: 4px; }
+
+@media (max-width: 720px) {
+  .figures { grid-template-columns: 1fr; }
+  .fig + .fig { padding-left: 0; border-left: 0; border-top: 1px solid var(--rule); }
+  .fig { padding-bottom: 18px; }
+}
+</style>
+
+<div class="page">
+
+  <header class="cover">
+    <div class="byline"><span>Prepared for <b>Ryan, Comfort Lab Heating &amp; Cooling</b></span><span>Hauck Marketing · October 22, 2026</span></div>
+    <h1>Madison is wide open on Facebook.</h1>
+  </header>
+
+  <section>
+    <h2>There are <em>141,000+ homeowners</em> in your backyard.</h2>
+    <div class="figures">
+      <div class="fig"><span class="v num">141,000+</span><span class="k">Homeowners in Dane County</span></div>
+      <div class="fig"><span class="v num">$394,800</span><span class="k">Median home value</span></div>
+      <div class="fig"><span class="v num">$89,975</span><span class="k">Median household income</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Most of Madison's big HVAC shops <em>aren't on Facebook.</em></h2>
+    <div class="count">
+      <div><span class="n on num">2</span><span>running ads for homeowners</span></div>
+      <div><span class="n num">10</span><span>not running any</span></div>
+    </div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Company</th><th class="r">Google reviews</th><th>In business</th><th>Facebook ads today</th></tr></thead>
+        <tbody>
+          <tr><td>Cardinal Heating, Cooling, Plumbing &amp; Electric</td><td class="r num">5,400</td><td>42+ yrs, private equity backed</td><td class="fb no">None</td></tr>
+          <tr><td>All Comfort Services</td><td class="r num">3,800</td><td>50+ yrs</td><td class="fb no">None found</td></tr>
+          <tr><td>24HR Home Comfort Services</td><td class="r num">3,000</td><td>64+ yrs</td><td class="fb no">None</td></tr>
+          <tr><td>Midwest Heating &amp; Cooling</td><td class="r num">2,700</td><td>8+ yrs</td><td class="fb no">None</td></tr>
+          <tr><td>Harker Heating &amp; Cooling</td><td class="r num">2,100</td><td>75+ yrs</td><td class="fb yes">Running</td></tr>
+          <tr><td>RG Heating, Cooling &amp; Plumbing</td><td class="r num">2,000</td><td>51+ yrs</td><td class="fb yes">Running</td></tr>
+          <tr><td>Aire Serv of Madison</td><td class="r num">553</td><td>National franchise</td><td class="fb no">None</td></tr>
+          <tr><td>Southport Plumbing, Heating &amp; Cooling</td><td class="r num">255</td><td>26+ yrs</td><td class="fb no">None</td></tr>
+          <tr><td>Brothers HVAC</td><td class="r num">251</td><td>7+ yrs</td><td class="fb no">None</td></tr>
+          <tr><td>Pharo Heating &amp; Cooling</td><td class="r num">234</td><td>40+ yrs</td><td class="fb no">Hiring ad only</td></tr>
+          <tr><td>BETHKE Heating &amp; AC</td><td class="r num">214</td><td>Since 1989</td><td class="fb no">None</td></tr>
+          <tr><td>Action Plumbing, Heating, AC &amp; Electric</td><td class="r num">n/a</td><td>2 locations</td><td class="fb no">Hiring ads only</td></tr>
+          <tr class="you"><td>Comfort Lab Heating &amp; Cooling</td><td class="r num">2</td><td>Owner-operated</td><td class="fb no">None</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>And the ones who are <em>look like this.</em></h2>
+    <div class="ads">
+      <article class="ad">
+        <div class="who">Harker Heating &amp; Cooling <small>Live since Oct 1</small></div>
+        <div class="shot"><img src="{{IMG:creatives/harker-25-off-repair.jpg}}" alt="Harker ad: red $25 off any repair coupon over a service van" width="599" height="478"></div>
+        <div class="copy">🛠️ 😅 Don't let a sudden breakdown disrupt your day! Right now, get $25 OFF any heating or cooling repair from our team of experts at Harker. We're here to bring fast, reliable comfort back to your home. 🏡
+
+👉 Tap to save on your next repair and book online.</div>
+        <div class="tags"><span class="tag">Coupon</span><span class="tag">$25 off repair</span><span class="tag">Image</span></div>
+      </article>
+      <article class="ad">
+        <div class="who">Harker Heating &amp; Cooling <small>Live since Oct 1</small></div>
+        <div class="shot"><img src="{{IMG:creatives/harker-fall-tune-up-video.jpg}}" alt="Harker video ad: spokesperson seated at an office desk" width="600" height="335"><span class="play">▶ 0:15 video</span></div>
+        <div class="copy">🛠️ 💸 Small maintenance today saves big money tomorrow! A Fall Tune-Up from our team of professionals at Harker catches minor issues before they turn into major repairs. Keep your home warm and your energy bills low all season long. 🏡
+
+Is your system ready for the cold? Tap learn more and book your Fall Tune-Up today. 📲</div>
+        <div class="tags"><span class="tag">Tune-up</span><span class="tag">Office spokesperson</span><span class="tag">Video</span></div>
+      </article>
+      <article class="ad">
+        <div class="who">RG Heating, Cooling &amp; Plumbing <small>Live since Oct 1</small></div>
+        <div class="shot"><img src="{{IMG:creatives/rg-144-tune-up-video.jpg}}" alt="RG ad: logo, membership line and phone number on white" width="558" height="699"><span class="play">▶ Video</span></div>
+        <div class="copy">Rest easy this winter for only $144 with a Furnace Tune-Up. This will ensure your home stays comfortably warm all winter long. Comfort Protection Program™ members save even more! Inquire when scheduling. Call (608) 849-6728 or visit RGnow.com.
+
+Your 22-Point Tune-Up Service includes:
+• Review Return/Supply Air Temp
+• Inspect Safety Controls
+• Test Limit Switches
+• Check for Leaks
+• Assess Capacitor &amp; Motors
+• Look Over Condensate Pump
+• Clean Flame Sensor
+• Test Ignitor
+• Inspect Intake/Exhaust Pipes
+• Flush Humidifier Drain Hose
+• Replace Humidifier Pad
+• Replace Thermostat Batteries
+• Replace Filter
+• Clean Inside/Outside of Furnace
+• Test-Run Furnace and Humidifier
+• Check Carbon Monoxide PPM
+• And More!
+
+You can rest assured knowing that RG is a Trane Comfort Specialist.
+
+RG Heating, Cooling &amp; Plumbing. Turning Discomfort Into Comfort™ Since 1974.</div>
+        <div class="tags"><span class="tag">Tune-up</span><span class="tag">$144</span><span class="tag">Logo + phone number</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <h2>Improvements Comfort Lab could make.</h2>
+    <ol class="fixes">
+      <li><b>Get more Google reviews</b><span>2 reviews today. The shops around you have 200 to 5,400.</span></li>
+      <li><b>Use one phone number everywhere</b><span>Website says 770-6403. Google and Facebook say 770-6402.</span></li>
+      <li><b>Fix the Facebook link on the website</b><span>It goes to a Squarespace placeholder, not your page.</span></li>
+      <li><b>Add HVAC categories on Google</b><span>Listed only as "Air conditioning repair service". Furnace work isn't on there.</span></li>
+      <li><b>Start running Facebook ads</b><span>No ads running today, while most local shops aren't either.</span></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Right now is the quiet stretch. <em>That's why you start now.</em></h2>
+    <div class="chart">
+      <svg viewBox="0 0 1000 340" role="img" aria-label="Ad performance rising from October into the winter busy season">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4DBB83" stop-opacity=".35"/><stop offset="1" stop-color="#4DBB83" stop-opacity="0"/></linearGradient></defs>
+        <line x1="60" y1="280" x2="940" y2="280" stroke="var(--rule)"/>
+        <line x1="60" y1="170" x2="940" y2="170" stroke="var(--rule)" stroke-dasharray="3 5"/>
+        <line x1="60" y1="60" x2="940" y2="60" stroke="var(--rule)" stroke-dasharray="3 5"/>
+        <path d="M100,200 C220,190 300,165 360,140 C440,105 520,82 620,72 C720,62 820,58 900,56 L900,280 L100,280 Z" fill="url(#g)"/>
+        <path d="M100,200 C220,190 300,165 360,140 C440,105 520,82 620,72 C720,62 820,58 900,56" fill="none" stroke="var(--green-ink)" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="100" cy="200" r="8" fill="var(--paper)" stroke="var(--green-ink)" stroke-width="4"/>
+        <circle cx="900" cy="56" r="8" fill="var(--green-ink)"/>
+        <g font-family="Poppins, system-ui, sans-serif" font-weight="600" font-size="20">
+          <text x="100" y="236" fill="var(--ink)">Now: ads perform well</text>
+          <text x="900" y="34" text-anchor="end" fill="var(--green-ink)">Busy season: even better</text>
+        </g>
+        <g font-family="Inter, system-ui, sans-serif" font-size="15" fill="var(--ink-2)" text-anchor="middle">
+          <text x="100" y="306">Oct</text><text x="300" y="306">Nov</text><text x="500" y="306">Dec</text><text x="700" y="306">Jan</text><text x="900" y="306">Feb</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <footer>
+    <span>Sources: U.S. Census QuickFacts and DataUSA (Dane County); Meta Ad Library, active US ads, checked Oct 22, 2026; Google Business listings, Oct 22, 2026.</span>
+  </footer>
+
+</div>
