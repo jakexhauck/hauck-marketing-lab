@@ -82,6 +82,10 @@ class Query implements PromiseLike<{ data: unknown; error: null; count?: number 
     this.filters.push((r) => String(read(r, column) ?? "") < value);
     return this;
   }
+  gte(column: string, value: string) {
+    this.filters.push((r) => String(read(r, column) ?? "") >= value);
+    return this;
+  }
   in(column: string, values: unknown[]) {
     this.filters.push((r) => values.includes(read(r, column)));
     return this;
@@ -187,6 +191,7 @@ export class FakeDb {
     }
     if (table === "agent_items") return { payload: {}, status: "building", approved_at: null, chat_id: null, from_agent: null };
     if (table === "agent_lesson_edits") return { status: "queued", text: null };
+    if (table === "agent_ops_commands") return { status: "queued", result: null, done_at: null, created_at: this.clock };
     if (table === "client_tasks") {
       return { steps: [], position: 0, source_node: null, sop_key: null, state: "todo", change: "kept", reason: null, evidence: null, note: null, done_by: null, done_at: null, created_by: null };
     }

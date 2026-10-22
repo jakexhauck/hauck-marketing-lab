@@ -514,6 +514,9 @@ export async function replaceLessons(
       text: stripEmDash(l.text ?? ""),
       source: l.source ?? "",
       learned_on: l.learnedOn ?? null,
+      // Older runners send neither; a plain lesson that nothing replaced.
+      kind: l.kind === "decision" || l.kind === "fact" ? l.kind : "lesson",
+      replaced_by: typeof l.replacedBy === "string" && /^l-[0-9a-f]{8}$/.test(l.replacedBy) ? l.replacedBy : null,
       synced_at: now.toISOString(),
     }));
     const { error } = await client.from("agent_lessons").upsert(rows, { onConflict: "id" });

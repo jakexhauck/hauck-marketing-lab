@@ -11,6 +11,8 @@
 
 import type {
   AgentId,
+  AgentOpsBody,
+  AgentOpsResponse,
   AnswerBody,
   AutoChatBody,
   ClaimResponse,
@@ -54,6 +56,9 @@ export interface RunnerApi {
   // An approved request's reply, back to the asking agent's chat. posted is
   // false when there is nothing to answer (not approved, or already answered).
   answer(body: AnswerBody): Promise<{ posted: boolean }>;
+  // Each Hermes agent's health, usage, jobs and skills (agentOps.ts). The
+  // answer carries the job commands Jake queued.
+  agentOps(body: AgentOpsBody): Promise<AgentOpsResponse>;
 }
 
 export interface ApiOptions {
@@ -113,5 +118,6 @@ export function createApi(opts: ApiOptions): RunnerApi {
     },
     task: (b) => call<RunnerTaskResult>("POST", "task", b),
     answer: (b) => call<{ posted: boolean }>("POST", "answer", b),
+    agentOps: async (b) => (await call<AgentOpsResponse | null>("POST", "agent-ops", b)) ?? { commands: [] },
   };
 }

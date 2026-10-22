@@ -8,6 +8,7 @@ import { AGENT_ICONS } from "../clientRowIcons";
 import ChatList from "./ChatList";
 import ChatThread from "./ChatThread";
 import BrainTab from "./BrainTab";
+import AgentSettings from "./AgentSettings";
 import { AgentBuilding, ClientsBoard, ManagerBuilding } from "./BuildPanel";
 import { BriefTab } from "./BriefPanel";
 import { AgentBriefPage } from "../brief/AgentBriefPage";
@@ -98,7 +99,7 @@ function AgentView({ tenantId, agent }: { tenantId: string | null; agent: AgentI
   // Research and Ads curate their own Mission Control page from the chat
   // (brief cards), so their Brief tab is that page. The rest keep the sections.
   const missionPage = tenantId ? pageForAgent(agent) : null;
-  const [tab, setTab] = useState<"brief" | "building" | "brain">(split ? "brief" : "building");
+  const [tab, setTab] = useState<"brief" | "building" | "brain" | "settings">(split ? "brief" : "building");
   // The Manager reads and writes the Mega Brain only.
   const [scope, setScope] = useState<BrainScope>(isManager ? "mega" : "client");
   const lessons = useAgentLessons(tk, agent, scope);
@@ -181,12 +182,23 @@ function AgentView({ tenantId, agent }: { tenantId: string | null; agent: AgentI
             {isManager ? "Mega Brain" : "Brain"}
             {lessons.data && <span className="ct">{lessonList.length}</span>}
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "settings"}
+            className={`ag-tab${tab === "settings" ? " on" : ""}`}
+            onClick={() => setTab("settings")}
+          >
+            Settings
+          </button>
         </div>
         <div className="ag-bbody">
           {tab === "brief" && tenantId && missionPage ? (
             <AgentBriefPage tenantId={tenantId} page={missionPage} />
           ) : tab === "brief" && tenantId ? (
             <BriefTab tenantId={tenantId} agent={agent} />
+          ) : tab === "settings" ? (
+            <AgentSettings agent={agent} />
           ) : tab === "brain" ? (
             <BrainTab
               tenantId={tenantId}
@@ -407,6 +419,11 @@ export function AgentStyle() {
       .ag-agentdots i.s { background: var(--warning); }
 
       .ag-chatcard { max-width: 640px; width: 100%; }
+      .ag-skills { display: flex; flex-wrap: wrap; gap: 6px; }
+      .ag-skill { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--brand-tint); color: var(--brand-text); }
+      .ag-kind { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--brand-text); margin-right: 6px; }
+      .ag-lesson.old { opacity: .55; }
+      .ag-lesson.old .tx { text-decoration: line-through; text-decoration-color: var(--text-faint); }
       .ag-handoff { max-width: 640px; border: 1px solid color-mix(in srgb, var(--warning) 40%, var(--border)); background: color-mix(in srgb, var(--warning) 6%, var(--surface)); border-radius: 14px; padding: 12px 14px; }
       .ag-ho-top { display: flex; align-items: center; gap: 8px; font-size: 13px; }
       .ag-ho-ic { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: #fff; flex-shrink: 0; }

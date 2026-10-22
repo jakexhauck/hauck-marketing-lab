@@ -30,6 +30,7 @@ import { runClaude, type RunOptions } from "./claude.ts";
 import { AGENT_IDS } from "./agents.ts";
 import { hermesRunner } from "./hermes.ts";
 import { appTools } from "./appOps.ts";
+import { manifestSkills, opsLoop } from "./agentOps.ts";
 import { runComposio } from "./composioTools.ts";
 import { reach, readPage } from "./webTools.ts";
 import { startBridge, type Bridge } from "./mcpBridge.ts";
@@ -174,9 +175,22 @@ async function main(): Promise<void> {
       .finally(() => (pulling = false));
   }
 
+  // Each Hermes agent's settings (agentOps.ts), on the same ten-minute beat as
+  // the client list. Only where the agents run on Hermes.
+  const hermesKeys = Object.fromEntries(AGENT_IDS.map((a) => [a, process.env[`HERMES_KEY_${a.toUpperCase()}`] ?? ""]).filter(([, k]) => k));
+  const opsRound =
+    ENGINE === "hermes"
+      ? opsLoop(CLAIM_AGENTS ?? AGENT_IDS, { base: HERMES_API, keys: hermesKeys, skills: manifestSkills(join(RUNNER_DIR, "deploy", "vps", "skills.json")) }, (b) => api.agentOps(b))
+      : null;
+
   let tenantsAt = 0;
   async function refreshTenants(force = false): Promise<void> {
     if (!force && Date.now() - tenantsAt < TENANTS_EVERY_MS) return;
+    if (opsRound) {
+      opsRound()
+        .then((n) => log(`agent settings read for ${n} agents`))
+        .catch((e) => log(`agent settings read failed: ${(e as Error).message}`));
+    }
     try {
       // The VPS clone picks up Jake's vault edits before they are mirrored.
       if (GIT_PUSH) await pullRepo({ cwd: REPO_DIR }).catch((e) => log(`git pull failed: ${(e as Error).message}`));

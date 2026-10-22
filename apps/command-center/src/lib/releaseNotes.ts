@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-22-agent-settings",
+    date: "22 October 2026",
+    title: "Agent settings and skills",
+    items: [
+      "Every agent has a Settings tab: health, cost today, this week and this month, its skills, and its scheduled jobs with Pause and Run now.",
+      "The agents gained skills: ads, ad creative, copywriting, offers, customer and competitor research, planning and checking their own work.",
+      "They read web pages as clean text, pull YouTube transcripts, GitHub and RSS feeds, and use Gmail drafts, the agency calendar and Drive search.",
+      "Editing a lesson in the Brain now keeps the old one, struck through, under the new one. Decisions and facts are labelled.",
+    ],
+  },
+  {
     id: "2026-10-22-manager-telegram",
     date: "22 October 2026",
     title: "The Manager on Telegram",

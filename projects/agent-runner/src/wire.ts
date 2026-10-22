@@ -354,3 +354,59 @@ export type RunnerPageResult = { saved: true; page: BriefPageRow } | { saved: fa
 
 // 200 saved, or 409 stale with the section as it now stands.
 export type RunnerBriefResult = { saved: true; section: BriefSection } | { saved: false; section: BriefSection };
+
+// Each agent's settings (docs/build-plans/hermes-agent-ops.md, Phase 4). The
+// runner reads every Hermes profile's own API and posts this every ten
+// minutes; the answer carries the job commands Jake queued.
+export interface AgentUsageDay {
+  day: string; // YYYY-MM-DD, UTC
+  sessions: number;
+  apiCalls: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  estCostUsd: number;
+}
+
+export interface AgentHealth {
+  status: string; // "ok" or Hermes's own word for what is wrong
+  gateway: string | null;
+  error: string | null;
+}
+
+export interface AgentJob {
+  id: string;
+  name: string;
+  schedule: string;
+  enabled: boolean;
+  nextRunAt: string | null;
+  lastRunAt: string | null;
+  lastStatus: string | null;
+}
+
+export interface AgentOpsReport {
+  agent: AgentId;
+  health: AgentHealth;
+  jobs: AgentJob[];
+  skills: string[];
+  usage: AgentUsageDay[];
+}
+
+export type JobAction = "pause" | "resume" | "run";
+
+export interface AgentOpsCommand {
+  id: string;
+  agent: AgentId;
+  jobId: string;
+  action: JobAction;
+}
+
+export interface AgentOpsBody {
+  agents: AgentOpsReport[];
+  done: { id: string; ok: boolean; result: string }[];
+}
+
+export interface AgentOpsResponse {
+  commands: AgentOpsCommand[];
+}

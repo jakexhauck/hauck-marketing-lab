@@ -120,6 +120,9 @@ export function fakeApi(init: Partial<Pick<FakeApi, "claims" | "snapshots" | "te
       if (api.taskAnswer) return api.taskAnswer(b);
       return { updated: b.updates.map((u) => u.key), refused: [] };
     },
+    async agentOps() {
+      return { commands: [] };
+    },
     async answer(b) {
       api.answers.push(b);
       return { posted: true };

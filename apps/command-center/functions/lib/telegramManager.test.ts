@@ -197,6 +197,14 @@ describe("alerts", () => {
     expect(api.sent).toHaveLength(1);
   });
 
+  it("watches the VPS runner: the PC being up does not hide the VPS down", async () => {
+    db.seed("agent_runner_state", [
+      { host: "hauck-vps", last_seen_at: "2026-10-22T12:00:00.000Z" },
+      { host: "JAKE-PC", last_seen_at: "2026-10-22T12:19:50.000Z" },
+    ]);
+    expect(await checkRunnerOffline(env, client(), { api, now: new Date("2026-10-22T12:20:00.000Z") })).toBe("alerted");
+  });
+
   it("two failed turns in a row for one agent alert once; a good turn resets", async () => {
     db.seed("agent_messages", ["m1", "m2", "m3", "m4"].map((id) => ({ id, chat_id: "c1", role: "me" })));
     const turn = (messageId: string, status: "done" | "error") => trackTurn(env, client(), { messageId, status, error: "Hermes 500" }, { api });

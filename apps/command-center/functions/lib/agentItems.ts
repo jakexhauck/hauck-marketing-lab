@@ -583,6 +583,8 @@ export function lessonFromRow(r: Row): AgentLesson {
     text: (r.text as string) ?? "",
     source: (r.source as string) ?? "",
     learnedOn: (r.learned_on as string | null) ?? null,
+    kind: r.kind === "decision" || r.kind === "fact" ? r.kind : "lesson",
+    replacedBy: (r.replaced_by as string | null) ?? null,
   };
 }
 

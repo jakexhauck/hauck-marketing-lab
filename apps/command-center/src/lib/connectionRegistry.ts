@@ -495,6 +495,37 @@ export const CONNECTIONS: ConnectionDef[] = [
       "Set the same value in this app's Cloudflare env and in Doppler for the runner. A mismatch answers 401 on every poll: the rail footer reads offline and messages stay queued until it is fixed.",
   },
   {
+    id: "telegram-manager",
+    label: "Manager on Telegram",
+    vendor: "Telegram",
+    scope: "agency",
+    purpose:
+      "Lets the Manager message Jake on Telegram when an agent card or request waits on his OK, or when the agents go offline, and takes his Approve or Change back from there. Without it nothing pings him and cards wait until he opens the app.",
+    credentials: [
+      {
+        name: "TELEGRAM_BOT_TOKEN",
+        home: "cloudflare",
+        inDoppler: true,
+        note: "From @BotFather (/newbot). Never logged: errors from the Bot API are reported without the URL that carries it.",
+      },
+      {
+        name: "TELEGRAM_WEBHOOK_SECRET",
+        home: "cloudflare",
+        inDoppler: true,
+        note: "Letters, digits, _ and - only (Telegram's rule). Given to setWebhook by scripts/telegram-set-webhook.mjs; every update must carry it in X-Telegram-Bot-Api-Secret-Token.",
+      },
+      {
+        name: "TELEGRAM_CHAT_ID",
+        home: "cloudflare",
+        inDoppler: true,
+        note: "Jake's own chat with the bot. Unset, /start answers with the id to paste here and nothing else works. Every other chat is ignored.",
+      },
+    ],
+    surfaces: [{ label: "Agents", audience: "admin" }],
+    remediation:
+      "Set all three in Doppler and Cloudflare, redeploy, then run scripts/telegram-set-webhook.mjs under doppler run. A wrong secret answers 401 to Telegram and no taps arrive; a wrong chat id means messages go nowhere and replies are ignored.",
+  },
+  {
     id: "calendar-sync",
     label: "Google Calendar sync",
     vendor: "Composio",

@@ -296,6 +296,9 @@ async function saveAlert(client: SupabaseClient, row: Row, now: Date): Promise<v
  * host), so a PC switched off for the night is not an incident while the VPS
  * runner is up. Once per incident; a fresh heartbeat clears it silently.
  */
+// The VPS runner's host name (deploy/vps/docker-compose.yml, hostname).
+export const VPS_HOST = "hauck-vps";
+
 export async function checkRunnerOffline(
   env: Env,
   client: SupabaseClient,
@@ -304,9 +307,14 @@ export async function checkRunnerOffline(
   const cfg = telegramConfig(env);
   if (!cfg) return "skipped";
   const now = deps.now ?? new Date();
-  const { data, error } = await client.from("agent_runner_state").select("last_seen_at");
+  const { data, error } = await client.from("agent_runner_state").select("host, last_seen_at");
   if (error) throw new Error(`runner state: ${error.message}`);
-  const { lastSeenAt } = runnerStatus((data ?? []) as { last_seen_at: string | null }[], now);
+  // Every Hermes agent answers from the VPS runner, so that is the one watched
+  // when it exists. The PC runner is off whenever the PC is, which is normal
+  // and not worth a message; but the PC being up must not hide the VPS down.
+  const rows = (data ?? []) as { host: string; last_seen_at: string | null }[];
+  const vps = rows.filter((r) => r.host === VPS_HOST);
+  const { lastSeenAt } = runnerStatus(vps.length ? vps : rows, now);
   // No heartbeat ever is a runner never installed, not one that went down.
   if (!lastSeenAt) return "ok";
   const minutes = Math.floor((now.getTime() - Date.parse(lastSeenAt)) / 60000);

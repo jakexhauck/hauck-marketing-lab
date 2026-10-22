@@ -6,7 +6,9 @@ import type {
   AgentItem,
   AgentLesson,
   AgentMessage,
+  AgentOpsView,
   BriefLive,
+  JobAction,
   BriefResponse,
   BriefSection,
   ChatSummary,
@@ -49,6 +51,9 @@ export const agentApi = {
   editLesson: (lessonId: string, action: LessonAction, text?: string) =>
     api<unknown>(`${BASE}/lessons`, { method: "POST", body: JSON.stringify({ lessonId, action, text }) }),
   status: () => api<RunnerStatus>(`${BASE}/status`),
+  ops: (agent: AgentId) => api<AgentOpsView>(`${BASE}/ops?${qs({ agent })}`),
+  jobAction: (agent: AgentId, jobId: string, action: JobAction) =>
+    api<{ id: string }>(`${BASE}/ops`, { method: "POST", body: JSON.stringify({ agent, jobId, action }) }),
   brief: (tenantId: string) => api<BriefResponse>(`${BASE}/brief?${qs({ tenant: tenantId })}`),
   briefLive: (tenantId: string) => api<BriefLive>(`${BASE}/brief-live?${qs({ tenant: tenantId })}`),
   saveBrief: (tenantId: string, section: BriefSection["section"], body: string, version: number) =>
@@ -67,6 +72,7 @@ const keys = {
   lessons: (tenant: TenantKey, agent: AgentId, scope: BrainScope) =>
     ["admin", "agents", "lessons", tenant, agent, scope] as const,
   status: ["admin", "agents", "status"] as const,
+  ops: (agent: AgentId) => ["admin", "agents", "ops", agent] as const,
   brief: (tenantId: string) => ["admin", "agents", "brief", tenantId] as const,
   briefLive: (tenantId: string) => ["admin", "agents", "brief-live", tenantId] as const,
 };
@@ -233,4 +239,23 @@ export function useSaveBriefSection(tenantId: string) {
     },
     [qc, tenantId],
   );
+}
+
+// The Settings tab. The runner refreshes it every ten minutes, so a minute's
+// poll is plenty; faster while a job command waits for the runner.
+export function useAgentOps(agent: AgentId) {
+  return useQuery({
+    queryKey: keys.ops(agent),
+    queryFn: () => agentApi.ops(agent),
+    staleTime: 30_000,
+    refetchInterval: (q) => ((q.state.data?.queued.length ?? 0) > 0 ? 15_000 : 60_000),
+  });
+}
+
+export function useJobAction(agent: AgentId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ jobId, action }: { jobId: string; action: JobAction }) => agentApi.jobAction(agent, jobId, action),
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.ops(agent) }),
+  });
 }
