@@ -36,7 +36,7 @@ const AUTOSAVE_MS = 1_000;
 export function useBrief(tenantId: string) {
   const q = useClientBrief(tenantId);
   const sections = useMemo(() => fullBrief(q.data?.sections ?? []), [q.data]);
-  return { q, sections, drive: q.data?.drive ?? null };
+  return { q, sections, drive: q.data?.drive ?? null, pages: q.data?.pages ?? [] };
 }
 
 // pages: the Mission Control pages, which the Doc carries too (briefDrive.ts).
@@ -183,7 +183,7 @@ export function SectionBlock({
 
 // The Brief tab beside the chat on a client agent page.
 export function BriefTab({ tenantId, agent }: { tenantId: string; agent: AgentId }) {
-  const { q, sections, drive } = useBrief(tenantId);
+  const { q, sections, drive, pages } = useBrief(tenantId);
   const [editor, setEditor] = useState<Editor | null>(null);
   const mineRef = useRef<HTMLDivElement>(null);
   const loaded = !!q.data;
@@ -198,7 +198,7 @@ export function BriefTab({ tenantId, agent }: { tenantId: string; agent: AgentId
       <BriefStyle />
       <div className="brf-bar">
         <div className="brf-head">
-          <DriveChip drive={drive} sections={sections} />
+          <DriveChip drive={drive} sections={sections} pages={pages} />
           <span className="brf-grow" />
           <OpenDoc drive={drive} />
         </div>
@@ -220,7 +220,7 @@ type TabId = "all" | BriefSectionId;
 // The client's Brief page: Google Docs style, a tab list on the left with All
 // and one tab per section, the chosen tab as a page on the right.
 export function BriefPage({ tenantId, brandColor }: { tenantId: string; brandColor?: string }) {
-  const { q, sections, drive } = useBrief(tenantId);
+  const { q, sections, drive, pages } = useBrief(tenantId);
   const [tab, setTab] = useState<TabId>("all");
   const [editor, setEditor] = useState<Editor | null>(null);
   const style = brandColor ? ({ "--brand": brandColor } as CSSProperties) : undefined;
@@ -236,7 +236,7 @@ export function BriefPage({ tenantId, brandColor }: { tenantId: string; brandCol
       <BriefStyle />
       <div className="brf-page-head">
         <h2 className="brf-title">Brief</h2>
-        {q.data && <DriveChip drive={drive} sections={sections} />}
+        {q.data && <DriveChip drive={drive} sections={sections} pages={pages} />}
         <span className="brf-grow" />
         <OpenDoc drive={drive} />
       </div>

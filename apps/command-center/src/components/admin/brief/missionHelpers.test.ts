@@ -35,6 +35,15 @@ describe("areaGroups and checklistStats", () => {
     expect(checklistStats(tasks)).toEqual({ done: 1, total: 3, agentsWorking: 1, waitingOnJake: 1 });
   });
 
+  it("keeps the client's journey order inside an area", () => {
+    const tasks = [
+      task({ key: "f", phase: "follow", owner: "ghl", name: "Estimate Reminders" }),
+      task({ key: "g", phase: "ghl", owner: "ghl", name: "Custom Values Set", position: 3 }),
+      task({ key: "o", phase: "onboard", owner: "ghl", name: "Setup Sub Account" }),
+    ];
+    expect(areaGroups(tasks)[0].tasks.map((t) => t.key)).toEqual(["o", "g", "f"]);
+  });
+
   it("is empty for no tasks", () => {
     expect(areaGroups([])).toEqual([]);
     expect(checklistStats([])).toEqual({ done: 0, total: 0, agentsWorking: 0, waitingOnJake: 0 });

@@ -1,7 +1,7 @@
 // Pure helpers for the Mission Control brief (docs/build-plans/mission-control-brief.md).
 
 import { CHECKLIST_AREAS, taskArea, type AdsPage, type ChecklistArea, type ItemStatus } from "../../../lib/briefPages";
-import type { ClientTask } from "../../../lib/clientTasks";
+import { taskPhases, type ClientTask } from "../../../lib/clientTasks";
 
 export type MissionPageId = "client" | "checklist" | "research" | "ads" | "ghl";
 
@@ -29,10 +29,13 @@ export interface AreaGroup {
 /** The checklist by area, page order, cut tasks left out, empty areas dropped. */
 export function areaGroups(tasks: ClientTask[]): AreaGroup[] {
   const live = tasks.filter((t) => t.state !== "cut");
+  // The client's journey order (the SOP's phases), then each task's place.
+  const order = new Map(taskPhases().map((p, i) => [p.id, i]));
+  const rank = (t: ClientTask) => order.get(t.phase) ?? order.size;
   return CHECKLIST_AREAS.map(({ id, label }) => {
     const mine = live
       .filter((t) => taskArea(t) === id)
-      .sort((a, b) => a.phase.localeCompare(b.phase) || a.position - b.position);
+      .sort((a, b) => rank(a) - rank(b) || a.position - b.position);
     return { area: id, label, tasks: mine, done: mine.filter((t) => t.state === "done").length, total: mine.length };
   }).filter((g) => g.total > 0);
 }

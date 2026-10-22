@@ -122,8 +122,8 @@ describe("Mission Control pages render", () => {
     expect(html(<ResearchPage tenantId={T} page={emptyPage("research")} sections={[]} />)).toContain("No research yet");
     expect(html(<ClientInfoPage tenantId={T} live={undefined} liveLoading={false} sections={[]} />)).toContain("No onboarding form yet");
     expect(html(<ChecklistPage tenantId={T} tasks={[]} loading={false} launchDate="" sections={[]} />)).toContain("No setup tasks yet");
-    expect(html(<GhlPage tenantId={T} live={{ ...live, ghl: null, ghlError: "ghl_not_connected" }} liveLoading={false} tasks={[]} sections={[]} />)).toContain(
-      "Not connected: ghl_not_connected",
-    );
+    const noGhl = html(<GhlPage tenantId={T} live={{ ...live, ghl: null, ghlError: "ghl_not_connected" }} liveLoading={false} tasks={[]} sections={[]} />);
+    expect(noGhl).toContain("Not connected: ghl_not_connected");
+    expect(noGhl).not.toContain(">Connected<");
   });
 });

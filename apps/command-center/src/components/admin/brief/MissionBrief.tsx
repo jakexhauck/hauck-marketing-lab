@@ -21,11 +21,10 @@ import { ResearchPage } from "./ResearchPage";
 export function MissionBrief({ tenantId, brandColor, sub }: { tenantId: string; brandColor?: string; sub: string | null }) {
   const navigate = useNavigate();
   const page = resolveMissionPage(sub);
-  const { q, sections, drive } = useBrief(tenantId);
+  const { q, sections, drive, pages } = useBrief(tenantId);
   const live = useBriefLive(tenantId);
   const tasksQ = useClientTasksQuery(tenantId);
   const tasks = tasksQ.data?.tasks ?? [];
-  const pages = q.data?.pages ?? [];
   const research = (pages.find((p) => p.page === "research")?.data as Research | undefined) ?? emptyPage("research");
   const ads = (pages.find((p) => p.page === "ads")?.data as Ads | undefined) ?? emptyPage("ads");
   const style = brandColor ? ({ "--brand": brandColor } as CSSProperties) : undefined;

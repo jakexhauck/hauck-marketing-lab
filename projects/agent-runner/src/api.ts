@@ -106,9 +106,10 @@ export function createApi(opts: ApiOptions): RunnerApi {
       return { saved: status !== 409, section: data.section };
     },
     page: async (b) => {
-      const { status, data } = await send<{ page?: BriefPageRow; error?: string }>("POST", "brief-page", b, [400, 409]);
-      if (status === 400) return { saved: false, error: data?.error ?? "refused" };
-      return status === 409 ? { saved: false, page: data.page! } : { saved: true, page: data.page! };
+      const { status, data } = await send<{ page?: BriefPageRow; error?: string }>("POST", "brief-page", b, [400, 403, 404, 409]);
+      // A 409 without a page is the message no longer running, not a stale page.
+      if (!data?.page) return { saved: false, error: data?.error ?? `refused (${status})` };
+      return status === 409 ? { saved: false, page: data.page } : { saved: true, page: data.page };
     },
     task: (b) => call<RunnerTaskResult>("POST", "task", b),
     answer: (b) => call<{ posted: boolean }>("POST", "answer", b),

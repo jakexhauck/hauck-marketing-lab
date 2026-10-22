@@ -5,7 +5,7 @@ import { NotesBlock } from "./NotesBlock";
 
 const stars = (r: number | null) => {
   if (r === null) return "";
-  const full = Math.round(r);
+  const full = Math.max(0, Math.min(5, Math.round(r)));
   return "★".repeat(full) + "☆".repeat(Math.max(0, 5 - full));
 };
 const pct = (n: number | null) => (n === null ? "" : `${n}%`);

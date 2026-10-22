@@ -65,6 +65,23 @@ describe("createApi", () => {
     await expect(api.reply({ messageId: "m", status: "done" })).rejects.toThrow(/401.*unauthorized/);
   });
 
+  it("reads a page post: saved, stale, and refusals without a page as errors", async () => {
+    const page = { page: "ads", data: {}, version: 4, updatedBy: "ads", updatedAt: null };
+    const { calls, fetchImpl } = recorder([
+      { body: { page } },
+      { status: 409, body: { page } },
+      { status: 409, body: { error: "message is not running" } },
+      { status: 403, body: { error: "this agent has no brief page" } },
+    ]);
+    const api = createApi({ base: "https://app.example.com", secret: "s", fetch: fetchImpl });
+    const b = { messageId: "m1", data: {}, version: 3 };
+    expect(await api.page(b)).toEqual({ saved: true, page });
+    expect(await api.page(b)).toEqual({ saved: false, page });
+    expect(await api.page(b)).toEqual({ saved: false, error: "message is not running" });
+    expect(await api.page(b)).toEqual({ saved: false, error: "this agent has no brief page" });
+    expect(calls[0].url).toBe("https://app.example.com/api/agent-runner/brief-page");
+  });
+
   it("posts a brief section and reads a 409 as stale, not as a failure", async () => {
     const section = { section: "ads", body: "Jake's text", version: 4, updatedBy: "jake", updatedAt: "2026-10-17T10:00:00Z" };
     const { calls, fetchImpl } = recorder([

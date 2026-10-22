@@ -29,7 +29,7 @@ export function GhlPage({
     <div className="mcb-page">
       <div className="mcb-sum">
         <div className="mcb-card">
-          <span className="mcb-tag ok">Connected</span>
+          {ghl ? <span className="mcb-tag ok">Connected</span> : <span className="mcb-tag bad">Not connected</span>}
           <b>{area.filter((t) => t.state === "done").length}</b>
           {ghl && (
             <>
@@ -83,7 +83,7 @@ export function GhlPage({
                 </thead>
                 <tbody>
                   {ghl.customValues.map((v) => (
-                    <tr key={v.key + v.name}>
+                    <tr key={`${v.key}-${v.name}`}>
                       <td>{v.name}</td>
                       <td className="mono">{v.key}</td>
                       <td style={{ overflowWrap: "anywhere" }}>{v.value}</td>
@@ -98,8 +98,8 @@ export function GhlPage({
 
           <section className="mcb-sec">
             <h3 className="mcb-h">Pipelines</h3>
-            {ghl.pipelines.map((p) => (
-              <div key={p.name} className="mcb-card" style={{ marginBottom: 10 }}>
+            {ghl.pipelines.map((p, pi) => (
+              <div key={`${p.name}-${pi}`} className="mcb-card" style={{ marginBottom: 10 }}>
                 <div className="mcb-ch">{p.name}</div>
                 <div className="mcb-stages">
                   {p.stages.map((s, i) => (
@@ -117,8 +117,8 @@ export function GhlPage({
           <section className="mcb-sec">
             <h3 className="mcb-h">Calendars</h3>
             <div className="mcb-card">
-              {ghl.calendars.map((c) => (
-                <div key={c.name} className="mcb-kv">
+              {ghl.calendars.map((c, ci) => (
+                <div key={`${c.name}-${ci}`} className="mcb-kv">
                   <span style={{ width: "auto", flex: 1, color: "var(--text)" }}>{c.name}</span>
                   <span style={{ flex: "none" }}>{c.active ? <span className="mcb-tag ok">Live</span> : <span className="mcb-tag plain">Off</span>}</span>
                 </div>
@@ -130,8 +130,8 @@ export function GhlPage({
           <section className="mcb-sec">
             <h3 className="mcb-h">Automations</h3>
             <div className="mcb-card">
-              {ghl.workflows.map((w) => (
-                <div key={w.name} className="mcb-kv">
+              {ghl.workflows.map((w, wi) => (
+                <div key={`${w.name}-${wi}`} className="mcb-kv">
                   <span style={{ width: "auto", flex: 1, color: "var(--text)" }}>{w.name}</span>
                   <span style={{ flex: "none" }}>{isLive(w.status) ? <span className="mcb-tag ok">Live</span> : <span className="mcb-tag plain">Draft</span>}</span>
                 </div>

@@ -409,7 +409,9 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
         if (res.saved) tools.push("Updated the brief page");
         else if ("error" in res) notes.push(`Brief page not saved: ${res.error}`);
         else {
-          d.briefNotes?.set(chat.id, stalePageNote(res.page.version));
+          const earlier = d.briefNotes?.get(chat.id);
+          const fresh = stalePageNote(res.page.version);
+          d.briefNotes?.set(chat.id, earlier && earlier !== briefNote ? `${earlier}\n\n${fresh}` : fresh);
           notes.push("Brief page not saved: it changed after I read it. I will build on the newer one next turn.");
         }
       } catch (e) {

@@ -94,6 +94,12 @@ const obj = (v: unknown): Obj => (isObj(v) ? v : {});
 const text = (v: unknown, max = MAX_TEXT): string =>
   typeof v === "string" ? v.replace(EM_DASH, ", ").trim().slice(0, max) : typeof v === "number" ? String(v) : "";
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+// A number that only makes sense in a range (a star rating, a percentage):
+// anything outside it is unknown rather than drawn wrong.
+const inRange = (v: unknown, min: number, max: number): number | null => {
+  const n = num(v);
+  return n !== null && n >= min && n <= max ? n : null;
+};
 const bool = (v: unknown): boolean => v === true;
 const status = (v: unknown): ItemStatus => (ITEM_STATUSES.includes(v as ItemStatus) ? (v as ItemStatus) : "draft");
 const rows = <T>(v: unknown, f: (o: Obj) => T): T[] => (Array.isArray(v) ? v.slice(0, MAX_ROWS).map((x) => f(obj(x))) : []);
@@ -105,7 +111,7 @@ function research(o: Obj): ResearchPage {
   return {
     stats: {
       population: num(s.population),
-      olderHomesPct: num(s.olderHomesPct),
+      olderHomesPct: inRange(s.olderHomesPct, 0, 100),
       competitorsOnMeta: num(s.competitorsOnMeta),
       competition: comp === "low" || comp === "medium" || comp === "high" ? comp : null,
     },
@@ -114,13 +120,13 @@ function research(o: Obj): ResearchPage {
       area: text(z.area),
       population: num(z.population),
       medianHomeValue: num(z.medianHomeValue),
-      ownerOccupiedPct: num(z.ownerOccupiedPct),
+      ownerOccupiedPct: inRange(z.ownerOccupiedPct, 0, 100),
       competitors: num(z.competitors),
     })),
     competitors: rows(o.competitors, (c) => ({
       name: text(c.name),
       isClient: bool(c.isClient),
-      googleRating: num(c.googleRating),
+      googleRating: inRange(c.googleRating, 0, 5),
       googleReviews: num(c.googleReviews),
       metaAdsLive: num(c.metaAdsLive),
       runningSince: text(c.runningSince),
@@ -139,7 +145,7 @@ function research(o: Obj): ResearchPage {
     painPoints: rows(o.painPoints, (p) => ({
       title: text(p.title),
       detail: text(p.detail),
-      sharePct: num(p.sharePct),
+      sharePct: inRange(p.sharePct, 0, 100),
       quote: text(p.quote),
       sources: num(p.sources),
     })),
@@ -204,8 +210,8 @@ export const CHECKLIST_AREAS: { id: ChecklistArea; label: string }[] = [
 // The SOP's phases are the client's journey; Jake reads the checklist by area
 // (Jake, 2026-10-22: "sectioned off for ads, GHL, launch call, onboarding
 // call"). An agent's own work goes under its area whatever the phase.
-export function taskArea(t: { phase: string; owner: string }): ChecklistArea {
-  if (t.owner === "research") return "research";
+export function taskArea(t: { phase: string; owner: string; key?: string }): ChecklistArea {
+  if (t.owner === "research" || t.key === "adsbuild:research-approved") return "research";
   if (t.owner === "ads") return "ads";
   if (t.owner === "ghl") return "ghl";
   switch (t.phase) {

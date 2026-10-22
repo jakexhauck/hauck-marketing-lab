@@ -67,6 +67,16 @@ describe("parsePage", () => {
   });
 });
 
+describe("ranges", () => {
+  it("a rating outside 0 to 5 or a share outside 0 to 100 is unknown", () => {
+    const res = parsePage("research", { competitors: [{ googleRating: -1 }, { googleRating: 1e9 }, { googleRating: 4.5 }], painPoints: [{ sharePct: 140 }] });
+    if (!res.ok) throw new Error("not ok");
+    const page = res.data as { competitors: { googleRating: number | null }[]; painPoints: { sharePct: number | null }[] };
+    expect(page.competitors.map((c) => c.googleRating)).toEqual([null, null, 4.5]);
+    expect(page.painPoints[0].sharePct).toBeNull();
+  });
+});
+
 describe("emptyPage", () => {
   it("is empty and complete", () => {
     expect((emptyPage("research") as { zips: unknown[] }).zips).toEqual([]);
@@ -93,6 +103,8 @@ describe("taskArea", () => {
     expect(taskArea({ phase: "paid", owner: "client" })).toBe("onboarding");
     expect(taskArea({ phase: "launch", owner: "jake" })).toBe("launch-call");
     expect(taskArea({ phase: "nope", owner: "jake" })).toBe("onboarding");
+    expect(taskArea({ phase: "adsbuild", owner: "jake", key: "adsbuild:research-approved" })).toBe("research");
+    expect(taskArea({ phase: "adsbuild", owner: "jake", key: "adsbuild:link-ad-account" })).toBe("ads");
   });
 
   it("lists the areas in page order", () => {
