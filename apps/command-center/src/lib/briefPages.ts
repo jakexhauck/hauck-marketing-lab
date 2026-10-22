@@ -11,6 +11,11 @@
 import type { ClientTask } from "./clientTasks";
 
 export type BriefPageId = "research" | "ads";
+
+// The Mission Control's five pages, in tab order. The page rides in the URL's
+// sub segment (/admin/client/:id/brief/:page), which clientNav keeps.
+export const MISSION_PAGE_IDS = ["client", "checklist", "research", "ads", "ghl"] as const;
+export type MissionPageId = (typeof MISSION_PAGE_IDS)[number];
 export const BRIEF_PAGE_IDS: BriefPageId[] = ["research", "ads"];
 
 export type ItemStatus = "draft" | "needs_ok" | "approved" | "live" | "not_made";

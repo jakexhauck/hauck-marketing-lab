@@ -26,6 +26,7 @@ import {
   type SubTabDef,
 } from "./fulfillmentPages";
 import { CLIENT_AGENTS } from "./agents";
+import { MISSION_PAGE_IDS } from "./briefPages";
 
 export type ClientPageId =
   | "brief"
@@ -185,6 +186,8 @@ export function resolveClientPage(
 ): { page: ClientPageId; sub: string | null } | null {
   if (RETIRED_SETUP.includes(page)) return { page: "brief", sub: null };
   if (!isClientPage(page)) return null;
+  // The Brief's tabs are its own pages, not rail rows, so they are kept here.
+  if (page === "brief") return { page, sub: sub && (MISSION_PAGE_IDS as readonly string[]).includes(sub) ? sub : null };
   const subs = offeredSubs(c, page);
   if (subs.length === 0) return { page, sub: null };
   if (sub && subs.some((s) => s.id === sub)) return { page, sub };

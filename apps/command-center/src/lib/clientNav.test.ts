@@ -58,6 +58,12 @@ describe("clientNavGroups", () => {
     expect(resolveClientPage(bare, "brief", "x")).toEqual({ page: "brief", sub: null });
   });
 
+  it("keeps the Brief's own page in the address, so its tabs open", () => {
+    for (const p of ["client", "checklist", "research", "ads", "ghl"]) {
+      expect(resolveClientPage(bare, "brief", p)).toEqual({ page: "brief", sub: p });
+    }
+  });
+
   it("marks the last group with a rule instead of a caption", () => {
     const groups = clientNavGroups(linked);
     expect(groups[groups.length - 1].rule).toBe(true);

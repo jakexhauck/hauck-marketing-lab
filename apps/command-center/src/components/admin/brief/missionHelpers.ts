@@ -1,9 +1,9 @@
 // Pure helpers for the Mission Control brief (docs/build-plans/mission-control-brief.md).
 
-import { CHECKLIST_AREAS, taskArea, type AdsPage, type ChecklistArea, type ItemStatus } from "../../../lib/briefPages";
+import { CHECKLIST_AREAS, taskArea, type AdsPage, type ChecklistArea, type ItemStatus, type MissionPageId } from "../../../lib/briefPages";
 import { taskPhases, type ClientTask } from "../../../lib/clientTasks";
 
-export type MissionPageId = "client" | "checklist" | "research" | "ads" | "ghl";
+export type { MissionPageId };
 
 export const MISSION_PAGES: { id: MissionPageId; label: string }[] = [
   { id: "client", label: "Client Information" },
