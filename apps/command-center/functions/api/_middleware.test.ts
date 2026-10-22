@@ -251,3 +251,17 @@ describe("api middleware: the agent runner gate", () => {
     expect(reached).toBe(false);
   });
 });
+
+describe("api middleware: the Telegram webhook", () => {
+  it("reaches its handler with no session (the handler checks its own secret)", async () => {
+    const res = await call("/api/telegram/webhook", { method: "POST", header: null, secret: null });
+    expect(res.status).toBe(200);
+    expect(reached).toBe(true);
+  });
+
+  it("opens only that exact path", async () => {
+    const res = await call("/api/telegram/webhook/x", { method: "POST", header: null, secret: null });
+    expect(res.status).toBe(401);
+    expect(reached).toBe(false);
+  });
+});

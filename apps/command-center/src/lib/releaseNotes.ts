@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-22-manager-telegram",
+    date: "22 October 2026",
+    title: "The Manager on Telegram",
+    items: [
+      "The Manager messages you on Telegram only when something needs you: a card or a request waiting on your OK.",
+      "Approve and Change work right in Telegram; Open takes you to the agent's chat.",
+      "Decide a card in the app and its Telegram message updates to say so.",
+      "You also hear about it if the agents go offline for over 10 minutes or an agent fails twice in a row.",
+    ],
+  },
+  {
     id: "2026-10-22-mission-control-brief",
     date: "22 October 2026",
     title: "The Brief is now Mission Control",

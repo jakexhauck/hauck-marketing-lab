@@ -198,6 +198,14 @@ export interface Env {
   // means the runner is shut out and messages simply wait. Min 32 chars. See
   // functions/lib/agentRunner.ts.
   AGENT_RUNNER_SECRET?: string;
+  // The Manager on Telegram (functions/lib/telegram.ts): the bot's token from
+  // BotFather, Jake's own chat id (the only chat the bot answers), and the
+  // secret Telegram echoes in a header on every webhook call. All three set or
+  // the bot stays silent; the webhook answers /start with the chat id while
+  // only TELEGRAM_CHAT_ID is missing, which is how Jake finds it.
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CHAT_ID?: string;
+  TELEGRAM_WEBHOOK_SECRET?: string;
   KV_CACHE?: KVNamespace;
 }
 

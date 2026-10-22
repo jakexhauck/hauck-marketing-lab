@@ -2,6 +2,7 @@ import type { Env, ApiData } from "../../../../lib/env";
 import { getServiceClient } from "../../../../lib/supabase";
 import { logAdminAction } from "../../../../lib/adminAuth";
 import { decideItem, isUuid, type ItemAction } from "../../../../lib/agentItems";
+import { syncDecision } from "../../../../lib/telegramManager";
 
 // PATCH /api/admin/agents/items/:itemId  body { action: "approve" | "decline" | "change", note?, payloadHash? }
 //   payloadHash: the hash the card was listed with; Approve needs it to match.
@@ -10,6 +11,8 @@ import { decideItem, isUuid, type ItemAction } from "../../../../lib/agentItems"
 // Jake's Approve / Change it / Decline on a card. The rules are
 // transitionItem in lib/agentItems.ts; a second click on a card already
 // decided is a 409 and sends the agent nothing. Owner only, checked here.
+// A decision here also edits the card's Telegram message, after the response,
+// so the phone never offers an Approve the app already answered.
 
 const ACTIONS: ItemAction[] = ["approve", "decline", "change"];
 
@@ -39,5 +42,10 @@ export const onRequestPatch: PagesFunction<Env, "itemId", ApiData> = async (ctx)
     return Response.json({ error }, { status: res.error });
   }
   await logAdminAction(client, admin.id, `agent_item.${action}`, res.item.tenantId, { itemId });
+  ctx.waitUntil(
+    syncDecision(ctx.env, client, res.item, action, note).catch((err) =>
+      console.error("[telegram] sync failed:", (err as Error).message),
+    ),
+  );
   return Response.json(res);
 };
