@@ -94,3 +94,16 @@ describe("opsLoop", () => {
     expect(posts[1].done).toEqual([{ id: "c1", ok: true, result: "pause done" }]);
   });
 });
+
+describe("readAgent with a full page of sessions", () => {
+  it("drops the oldest day, which is only partly counted", async () => {
+    const data = Array.from({ length: 500 }, (_, i) => ({ started_at: sec(i < 5 ? "2026-10-20T10:00:00Z" : "2026-10-22T10:00:00Z"), estimated_cost_usd: 0.01 }));
+    const f = hermes({
+      "/p/ads/health/detailed": { status: "ok" },
+      "/p/ads/api/sessions?limit=500": { data },
+      "/p/ads/api/jobs": { jobs: [] },
+    });
+    const r = await readAgent("ads", { base: "http://h", keys: { ads: "k" }, skills: {}, fetchImpl: f, now: () => NOW });
+    expect(r?.usage.map((u) => u.day)).toEqual(["2026-10-22"]);
+  });
+});

@@ -64,6 +64,22 @@ describe("approvalMessage", () => {
     });
   });
 
+  it("shows a brief card's page changes, not the agent's prose", () => {
+    const { text } = approvalMessage(
+      card({
+        kind: "brief",
+        payload: {
+          plan: ["Adds two ZIPs"],
+          pageOps: [{ op: "set", campaign: "Winter Leads", field: "offer", value: "Free inspection" }],
+        },
+      }),
+      { hash: HASH },
+    );
+    expect(text).not.toContain("Adds two ZIPs");
+    expect(text).toMatch(/offer/i);
+    expect(text).toContain("Free inspection");
+  });
+
   it("says a request is one, with the ask", () => {
     const { text } = approvalMessage(
       card({ kind: "request", fromAgent: "research", payload: { body: "Pull the top 3 competitors", plan: [] } }),

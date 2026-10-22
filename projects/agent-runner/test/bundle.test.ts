@@ -438,3 +438,21 @@ describe("pagesSection", () => {
     expect(pagesSection("manager", pages)).toBeNull();
   });
 });
+
+describe("brain lessons in the prompt", () => {
+  it("leaves out a lesson Jake replaced and labels a decision", () => {
+    const env = world();
+    writeFileSync(
+      join(env.vaultDir, "Clients", "Willis Windows", "Brain.md"),
+      [
+        "## Lessons",
+        "- [2026-10-01] (csm, chat a) [decision] Budget is $50/day (replaced by l-eeeeeeee) ^l-aaaaaaaa",
+        "- [2026-10-22] (csm, Jake) [decision] Budget is $80/day ^l-eeeeeeee",
+        "",
+      ].join("\n"),
+    );
+    const prompt = readFileSync(buildBundle("csm", willis, env).systemPromptFile, "utf8");
+    expect(prompt).toContain("[decision] Budget is $80/day ^l-eeeeeeee");
+    expect(prompt).not.toContain("$50/day");
+  });
+});

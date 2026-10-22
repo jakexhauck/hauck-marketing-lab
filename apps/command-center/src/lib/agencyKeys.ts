@@ -304,6 +304,27 @@ export const AGENCY_KEYS: AgencyKeyDef[] = [
     help: "Lets the agent runner on Jake's PC answer agent chats and read Meta insights.",
     warning: "The runner reads it from Doppler. Set in only one place and every agent message waits unanswered.",
   },
+  {
+    name: "TELEGRAM_BOT_TOKEN",
+    group: "crons",
+    entry: "paste",
+    help: "The Manager's Telegram bot, from @BotFather (/newbot).",
+    warning: "A new token means running scripts/telegram-set-webhook.mjs again, or no taps reach the app.",
+  },
+  {
+    name: "TELEGRAM_WEBHOOK_SECRET",
+    group: "crons",
+    entry: "generate",
+    generator: "hex32",
+    help: "Proves an update really came from Telegram.",
+    warning: "Run scripts/telegram-set-webhook.mjs after changing it, or every Approve from Telegram is refused.",
+  },
+  {
+    name: "TELEGRAM_CHAT_ID",
+    group: "crons",
+    entry: "paste",
+    help: "Your chat with the bot. Send it /start and it replies with the number.",
+  },
 
   // --- Build Lab ------------------------------------------------------------
   {

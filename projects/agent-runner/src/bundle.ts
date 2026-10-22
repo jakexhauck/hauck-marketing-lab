@@ -157,8 +157,13 @@ function readOr(file: string, fallback = ""): string {
   return existsSync(file) ? readFileSync(file, "utf8").trim() : fallback;
 }
 
+// Only what is believed now: a lesson Jake corrected stays in the file as
+// history but never reaches the prompt, or the agent would see both the old
+// and the new number side by side. Decisions and facts keep their label.
 function lessonLines(file: string): string {
-  const lines = readLessons(file).map((l) => `- [${l.learnedOn}] (${l.agent}, ${l.source}) ${l.text} ^${l.id}`);
+  const lines = readLessons(file)
+    .filter((l) => !l.replacedBy)
+    .map((l) => `- [${l.learnedOn}] (${l.agent}, ${l.source}) ${l.kind && l.kind !== "lesson" ? `[${l.kind}] ` : ""}${l.text} ^${l.id}`);
   return lines.length ? lines.join("\n") : "(none yet)";
 }
 

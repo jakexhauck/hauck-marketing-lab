@@ -13,6 +13,7 @@ import { readFileSync } from "node:fs";
 import type { AgentHealth, AgentId, AgentJob, AgentOpsBody, AgentOpsCommand, AgentOpsReport, AgentUsageDay } from "./wire.ts";
 
 const DAYS = 30;
+const SESSION_LIMIT = 500;
 const TIMEOUT_MS = 20_000;
 
 type Obj = Record<string, unknown>;
@@ -108,15 +109,15 @@ export async function readAgent(agent: AgentId, d: OpsDeps): Promise<AgentOpsRep
     // Down: report that alone. Sessions and jobs would only fail the same way.
     return { agent, health: healthFrom(null, `health check failed: ${(e as Error).message}`), jobs: [], skills: d.skills[agent] ?? [], usage: [] };
   }
-  const sessions = await getJson(f, `${p}/api/sessions?limit=500`, key).catch(() => ({ data: [] }) as Obj);
+  const sessions = await getJson(f, `${p}/api/sessions?limit=${SESSION_LIMIT}`, key).catch(() => ({ data: [] }) as Obj);
   const jobs = await getJson(f, `${p}/api/jobs`, key).catch(() => ({ jobs: [] }) as Obj);
-  return {
-    agent,
-    health,
-    jobs: jobsFrom(jobs),
-    skills: d.skills[agent] ?? [],
-    usage: usageByDay(Array.isArray(sessions.data) ? (sessions.data as Obj[]) : [], (d.now ?? (() => new Date()))()),
-  };
+  const list = Array.isArray(sessions.data) ? (sessions.data as Obj[]) : [];
+  let usage = usageByDay(list, (d.now ?? (() => new Date()))());
+  // A full page means older sessions were left out, so the oldest day it
+  // reaches is only part of that day. The app rewrites a day whole, so a part
+  // would overwrite a right total with a smaller one: send whole days only.
+  if (list.length >= SESSION_LIMIT) usage = usage.slice(1);
+  return { agent, health, jobs: jobsFrom(jobs), skills: d.skills[agent] ?? [], usage };
 }
 
 // Jake's queued pause, resume or run, carried out on the profile's own API.

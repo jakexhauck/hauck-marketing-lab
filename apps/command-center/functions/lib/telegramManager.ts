@@ -207,14 +207,25 @@ export async function handleUpdate(
     }
 
     if (parsed.action === "approve") {
-      // The hash in the button is the version this message showed. A card
-      // rewritten since gets a newer message; this one's Approve is refused.
-      const hash = await payloadHash(item.payload);
-      if (!hash.startsWith(parsed.hashPrefix)) {
+      // The version this message showed is the full hash stored when it was
+      // sent, found by this very message, not the short prefix in the button.
+      // decideItem then checks the card still has exactly that payload, so a
+      // rewrite since (even one sharing the prefix) is refused.
+      const { data: sentRow, error: sErr } = await client
+        .from("telegram_messages")
+        .select("*")
+        .eq("chat_id", chatId)
+        .eq("message_id", cb.message?.message_id ?? -1)
+        .eq("item_id", item.id)
+        .eq("kind", "approval")
+        .maybeSingle();
+      if (sErr) throw new Error(`telegram message: ${sErr.message}`);
+      const shownHash = typeof (sentRow as Record<string, unknown> | null)?.payload_hash === "string" ? ((sentRow as Record<string, unknown>).payload_hash as string) : null;
+      if (!shownHash || !shownHash.startsWith(parsed.hashPrefix) || (sentRow as Record<string, unknown>).state !== "open") {
         await api.answerCallbackQuery(cb.id, "Card changed, open the app.", true);
         return "stale";
       }
-      const res = await decideItem(client, item.id, "approve", "", now, hash);
+      const res = await decideItem(client, item.id, "approve", "", now, shownHash);
       if ("error" in res) {
         await api.answerCallbackQuery(cb.id, refusal(res), true);
         // Decided elsewhere and the edit missed it: take the buttons off now.

@@ -156,9 +156,13 @@ export function applyEdits(file: string, edits: LessonEdit[], today: string = ne
       const old = lessonParts(m[4]);
       const text = cleanText(edit.text ?? "");
       if (!text) continue;
-      // Editing a line already replaced edits the history, which is not what a
-      // correction is: the app only offers edit on current lessons, so skip.
-      if (old.replacedBy) continue;
+      // Editing a line already replaced would edit the history, which is not
+      // what a correction is. Two quick edits to one lesson land here: the
+      // first won, and the second is reported done so it does not wait forever.
+      if (old.replacedBy) {
+        applied.push(edit.id);
+        continue;
+      }
       const id = newLessonId();
       const tagged = KIND_TAG.test(text) || old.kind === "lesson" ? text : `[${old.kind}] ${text}`;
       lines[at] = `- [${m[1]}] (${m[2]}, ${m[3]}) ${m[4]} (replaced by ${id}) ^${m[5]}`;

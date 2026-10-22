@@ -39,7 +39,7 @@ describe("agent runner gate", () => {
 
   it("is exactly the paths the runner calls", () => {
     expect([...AGENT_RUNNER_POST_PATHS].sort()).toEqual(
-      ["answer", "auto-chat", "brief", "brief-page", "claim", "file-asset", "file-creative", "ghl", "heartbeat", "item", "lessons", "meta-ops", "pc-job", "read-url", "reply", "task", "upload-url"].map((p) => `/api/agent-runner/${p}`),
+      ["agent-ops", "answer", "auto-chat", "brief", "brief-page", "claim", "file-asset", "file-creative", "ghl", "heartbeat", "item", "lessons", "meta-ops", "pc-job", "read-url", "reply", "task", "upload-url"].map((p) => `/api/agent-runner/${p}`),
     );
     expect([...AGENT_RUNNER_GET_PATHS].sort()).toEqual(
       ["brief", "meta", "snapshot", "tenants"].map((p) => `/api/agent-runner/${p}`),

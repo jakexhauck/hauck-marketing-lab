@@ -90,11 +90,12 @@ describe("brain files", () => {
     expect(now).toMatchObject({ kind: "decision", text: "Willis runs $600 off" });
   });
 
-  it("does not edit a line that was already replaced", () => {
+  it("does not edit a line that was already replaced, and says so", () => {
     const file = tempFile(HEAD);
     const [a] = appendLessons(file, "ads", "chat a", ["One"], "2026-10-16");
     applyEdits(file, [{ id: "e1", lessonId: a.id, action: "edit", text: "Two" }], "2026-10-17");
-    expect(applyEdits(file, [{ id: "e2", lessonId: a.id, action: "edit", text: "Three" }])).toEqual([]);
+    // Reported done (so it never waits forever), but the history is untouched.
+    expect(applyEdits(file, [{ id: "e2", lessonId: a.id, action: "edit", text: "Three" }])).toEqual(["e2"]);
     expect(readLessons(file)).toHaveLength(2);
   });
 

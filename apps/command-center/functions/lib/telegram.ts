@@ -2,6 +2,8 @@ import type { Env } from "./env";
 import type { AgentItem } from "../../src/lib/agentWire";
 import { AGENTS, agentPath, type AgentId } from "../../src/lib/agents";
 import { itemPayload } from "../../src/lib/agentView";
+import { pageForAgent } from "../../src/lib/briefPages";
+import { briefOpLines } from "../../src/lib/briefPageOps";
 import { stripEmDash } from "./agentRunner";
 
 // The Manager on Telegram (docs/build-plans/hermes-agent-ops.md, Phase 3).
@@ -190,8 +192,11 @@ export function approvalMessage(
 
   const body: string[] = [];
   if (item.fromAgent && typeof item.payload.body === "string" && item.payload.body.trim()) body.push(line(item.payload.body));
+  // A brief card shows what Approve writes to the page, exactly as the card in
+  // the app does, never the agent's own prose about it.
+  const briefLines = item.kind === "brief" ? briefOpLines(pageForAgent(item.agent), item.payload.pageOps) : [];
   const bullets = [
-    ...p.plan,
+    ...(briefLines.length ? briefLines : p.plan),
     ...p.changes.map((c) => c.text),
     ...p.taskChanges.map((t) => `${t.kind}: ${t.text}`),
   ].map(line).filter(Boolean);

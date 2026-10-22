@@ -129,6 +129,25 @@ describe("handleUpdate", () => {
     expect(db.rows("agent_messages").some((m) => m.body === "Approved: Spring offer ad")).toBe(true);
   });
 
+  it("checks the full hash this message was sent with, not only the button's prefix", async () => {
+    seedItem();
+    await notifyItem(env, client(), item(), { api });
+    const shown = await payloadHash(item().payload);
+    // The card is rewritten with no new message, and the stored hash is made to
+    // share the button's prefix: only the full hash can tell them apart.
+    db.rows("agent_items")[0].payload = { plan: ["Something else"] };
+    db.rows("telegram_messages")[0].payload_hash = shown.slice(0, 8) + "0".repeat(shown.length - 8);
+    expect(await handleUpdate(env, client(), tap(approveData(ID, shown)), api)).toBe("refused");
+    expect(item().status).toBe("needs_ok");
+  });
+
+  it("refuses an Approve on a message it never sent", async () => {
+    seedItem();
+    const hash = await payloadHash(item().payload);
+    expect(await handleUpdate(env, client(), tap(approveData(ID, hash)), api)).toBe("stale");
+    expect(item().status).toBe("needs_ok");
+  });
+
   it("refuses a stale hash and leaves the card waiting", async () => {
     seedItem();
     const old = await payloadHash(item().payload);

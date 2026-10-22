@@ -10,11 +10,14 @@
 // GitHub and RSS. Reddit and X need accounts and wait for Jake's burner ones.
 //
 // Every fetch here is aimed by a model, so it is treated as untrusted: http(s)
-// only, every host (and every redirect's host) resolved and refused when it
-// points inside (loopback, the Docker network, link-local metadata). Without
-// that, "read http://hermes-agent:8642/..." would read Hermes's own API.
+// only, public IPv4 only, every host (and every redirect's host) resolved and
+// refused when it points inside (loopback, the Docker network, link-local
+// metadata), and the connection made to the very address that was checked.
+// Without that, "read http://hermes-agent:8642/..." would read Hermes's own API.
 
 import { execFile } from "node:child_process";
+import http from "node:http";
+import https from "node:https";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
@@ -26,34 +29,34 @@ const MAX_BODY = 5_000_000;
 const TIMEOUT_MS = 20_000;
 const MAX_REDIRECTS = 5;
 
-// IPv4 and IPv6 ranges that are not the public internet.
+// The only addresses read are public IPv4. Every IPv6 address is refused: its
+// literal forms (mapped, compatible, NAT64, hex) are too many to fence one by
+// one, and a name with an IPv4 address is still read over that.
 export function isPrivateIp(ip: string): boolean {
-  if (isIP(ip) === 4) {
-    const [a, b] = ip.split(".").map(Number);
-    return (
-      a === 0 ||
-      a === 10 ||
-      a === 127 ||
-      (a === 100 && b >= 64 && b <= 127) ||
-      (a === 169 && b === 254) ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) ||
-      (a === 198 && (b === 18 || b === 19)) ||
-      a >= 224
-    );
-  }
-  const v6 = ip.toLowerCase();
-  if (v6.startsWith("::ffff:")) return isPrivateIp(v6.slice(7));
-  return v6 === "::" || v6 === "::1" || v6.startsWith("fc") || v6.startsWith("fd") || v6.startsWith("fe8") || v6.startsWith("fe9") || v6.startsWith("fea") || v6.startsWith("feb");
+  if (isIP(ip) !== 4) return true;
+  const [a, b] = ip.split(".").map(Number);
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 192 && b === 0) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    a >= 224
+  );
 }
 
 export type Resolve = (host: string) => Promise<string[]>;
 
 const dnsResolve: Resolve = async (host) => (await lookup(host, { all: true })).map((a) => a.address);
 
-// Throws unless the URL is http(s) to a host that resolves only to public
-// addresses. A name resolving to any inside address is refused whole.
-export async function checkUrl(raw: string, resolve: Resolve = dnsResolve): Promise<URL> {
+// Throws unless the URL is http(s) to a host with public IPv4 addresses only.
+// Returns the address to connect to, so the request goes to exactly the one
+// checked here and a second DNS answer (rebinding) never gets a say.
+export async function checkUrl(raw: string, resolve: Resolve = dnsResolve): Promise<{ url: URL; ip: string }> {
   let url: URL;
   try {
     url = new URL(raw);
@@ -63,39 +66,77 @@ export async function checkUrl(raw: string, resolve: Resolve = dnsResolve): Prom
   if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("only http and https URLs can be read");
   if (url.username || url.password) throw new Error("URLs with a login in them are not read");
   const host = url.hostname.replace(/^\[|\]$/g, "");
-  const ips = isIP(host) ? [host] : await resolve(host).catch(() => []);
-  if (!ips.length) throw new Error(`could not find ${host}`);
-  if (ips.some(isPrivateIp)) throw new Error(`${host} is not on the public internet`);
-  return url;
+  if (isIP(host) === 6) throw new Error(`${host} is not on the public internet`);
+  const found = isIP(host) ? [host] : await resolve(host).catch(() => []);
+  const v4 = found.filter((ip) => isIP(ip) === 4);
+  if (!found.length) throw new Error(`could not find ${host}`);
+  if (!v4.length || v4.some(isPrivateIp)) throw new Error(`${host} is not on the public internet`);
+  return { url, ip: v4[0] };
 }
 
+export interface Answer {
+  status: number;
+  location: string | null;
+  type: string;
+  body: string;
+}
+
+// One GET to url, connected to ip whatever DNS would say now, reading at most
+// MAX_BODY bytes before it gives up (a huge file never sits in memory).
+export type Requester = (url: URL, ip: string, headers: Record<string, string>) => Promise<Answer>;
+
+export const pinnedRequest: Requester = (url, ip, headers) =>
+  new Promise((ok, fail) => {
+    const mod = url.protocol === "https:" ? https : http;
+    const req = mod.request(
+      url,
+      {
+        method: "GET",
+        headers,
+        lookup: (_host, opts, cb) => ((opts as { all?: boolean }).all ? (cb as any)(null, [{ address: ip, family: 4 }]) : (cb as any)(null, ip, 4)),
+      },
+      (res) => {
+        const status = res.statusCode ?? 0;
+        if (status >= 300 && status < 400) {
+          res.resume();
+          return ok({ status, location: typeof res.headers.location === "string" ? res.headers.location : null, type: "", body: "" });
+        }
+        const chunks: Buffer[] = [];
+        let size = 0;
+        res.on("data", (c: Buffer) => {
+          size += c.length;
+          if (size > MAX_BODY) req.destroy(new Error("page is over 5 MB; not read"));
+          else chunks.push(c);
+        });
+        res.on("end", () => ok({ status, location: null, type: String(res.headers["content-type"] ?? ""), body: Buffer.concat(chunks).toString("utf8") }));
+        res.on("error", fail);
+      },
+    );
+    const timer = setTimeout(() => req.destroy(new Error("timed out")), TIMEOUT_MS);
+    req.on("close", () => clearTimeout(timer));
+    req.on("error", fail);
+    req.end();
+  });
+
 export interface FetchDeps {
-  fetchImpl?: typeof fetch;
+  request?: Requester;
   resolve?: Resolve;
 }
 
 // GET with every redirect checked like the first URL. Returns the final URL
 // and the body as text, capped.
 export async function safeGet(raw: string, d: FetchDeps = {}, accept = "text/html,application/xhtml+xml,*/*;q=0.8"): Promise<{ url: string; type: string; body: string }> {
-  const f = d.fetchImpl ?? fetch;
-  let url = await checkUrl(raw, d.resolve);
+  const request = d.request ?? pinnedRequest;
+  let at = await checkUrl(raw, d.resolve);
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    const res = await f(url, {
-      redirect: "manual",
-      headers: { accept, "user-agent": "Mozilla/5.0 (compatible; HauckAgent/1.0)" },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
+    const res = await request(at.url, at.ip, { accept, "user-agent": "Mozilla/5.0 (compatible; HauckAgent/1.0)" });
     if (res.status >= 300 && res.status < 400) {
-      const next = res.headers.get("location");
-      if (!next) throw new Error(`redirect with no location from ${url.host}`);
-      url = await checkUrl(new URL(next, url).toString(), d.resolve);
+      if (!res.location) throw new Error(`redirect with no location from ${at.url.host}`);
+      at = await checkUrl(new URL(res.location, at.url).toString(), d.resolve);
       continue;
     }
-    if (!res.ok) throw new Error(`${url.host} answered ${res.status}`);
-    const type = res.headers.get("content-type") ?? "";
-    const body = await res.text();
-    if (body.length > MAX_BODY) throw new Error("page is over 5 MB; not read");
-    return { url: url.toString(), type, body };
+    if (res.status < 200 || res.status >= 300) throw new Error(`${at.url.host} answered ${res.status}`);
+    return { url: at.url.toString(), type: res.type, body: res.body };
   }
   throw new Error("too many redirects");
 }
@@ -143,7 +184,7 @@ export function vttToText(vtt: string): string {
 }
 
 async function youtubeTranscript(url: string, d: ReachDeps): Promise<string> {
-  const u = await checkUrl(url, d.resolve);
+  const { url: u } = await checkUrl(url, d.resolve);
   if (!/(^|\.)youtube\.com$|(^|\.)youtu\.be$/.test(u.hostname)) throw new Error("youtube_transcript takes a youtube.com or youtu.be link");
   const dir = mkdtempSync(join(tmpdir(), "yt-"));
   try {

@@ -79,6 +79,8 @@ export const AGENT_RUNNER_POST_PATHS: readonly string[] = [
   "answer",
   // Clip video work the VPS Ads turn hands to the PC (lib/agentPcJobs.ts).
   "pc-job",
+  // Each Hermes agent's health, usage and jobs; Jake's job commands back (lib/agentOps.ts).
+  "agent-ops",
 ].map((p) => BASE + p);
 
 /** Routes the runner may GET. */
