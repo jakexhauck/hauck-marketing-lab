@@ -98,18 +98,16 @@ export const ADMIN_PILLARS: PillarDef[] = [
     // PillarPage: nothing renders them now, and putting a row back here is the
     // whole of restoring one.
     //
-    // Tasks leads, then Inbox (Hauck Marketing's own GoHighLevel sub-account,
-    // the one the cold call texts from), then Clients (the Client Tracker
-    // sheet: who each client is, what they pay, where they stand). This order is the rail's
-    // order, so the tab strip and the rail cannot disagree.
+    // Clients leads (the Client Tracker sheet: who each client is, what they
+    // pay, where they stand), so it is the default tab. Tasks and Inbox were
+    // removed 2026-10-22 (Jake). This order is the rail's order, so the tab
+    // strip and the rail cannot disagree.
     tabs: [
-      { id: "tasks", label: "Tasks", ready: true },
-      { id: "inbox", label: "Inbox", ready: true },
-      // The agency's GHL Onboarding pipeline as a board, the Sales board's twin
-      // (Jake, 2026-10-15). Sits before Clients: a close lands here first.
-      { id: "onboarding", label: "Onboarding", ready: true },
       // The Client Tracker sheet as a page (back 2026-10-07, Jake).
       { id: "clients", label: "Clients", ready: true },
+      // The agency's GHL Onboarding pipeline as a board, the Sales board's twin
+      // (Jake, 2026-10-15).
+      { id: "onboarding", label: "Onboarding", ready: true },
       // The owner outcome page, previewed, and what each answer does (Jake, 2026-10-10).
       { id: "outcome-page", label: "Outcome Page", ready: true },
       // What the agency spent each month, typed in line by line (Jake, 2026-10-06).

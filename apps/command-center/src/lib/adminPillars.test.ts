@@ -40,10 +40,8 @@ describe("adminPillars config", () => {
       "pipeline",
       "sales-data",
       "calendar",
-      "tasks",
-      "inbox",
-      "onboarding",
       "clients",
+      "onboarding",
       "outcome-page",
       "budget",
     ]);
@@ -59,15 +57,13 @@ describe("adminPillars config", () => {
     // Data (the month read back). Sales Calls and Playbook are out of the
     // chrome; the labels are short because each is a rail row on its own.
     expect(tabsFor("sales").map((t) => t.id)).toEqual(["pipeline", "sales-data", "calendar"]);
-    // Operations is no longer a rail group: Tasks, Inbox, Clients and Budget are
-    // top-level rows and this pillar is only the route that hosts them. Business
+    // Operations is no longer a rail group: Clients, Onboarding, Outcome Page and
+    // Budget are top-level rows (Tasks and Inbox removed 2026-10-22) and this pillar is only the route that hosts them. Business
     // Health, Calculator, Time Audit and SOPs came out of the nav with it.
     // The order is the rail's order, so the two cannot disagree.
     expect(tabsFor("operations").map((t) => t.id)).toEqual([
-      "tasks",
-      "inbox",
-      "onboarding",
       "clients",
+      "onboarding",
       "outcome-page",
       "budget",
     ]);
@@ -95,7 +91,7 @@ describe("isPillarId / getPillar", () => {
 describe("resolvePillarTab", () => {
   it("returns the matching tab when the param is a known tab of the pillar", () => {
     expect(resolvePillarTab("acquisition", "cold-call")).toBe("cold-call");
-    expect(resolvePillarTab("operations", "tasks")).toBe("tasks");
+    expect(resolvePillarTab("operations", "budget")).toBe("budget");
   });
 
   it("falls back to the first tab when the param is missing", () => {
@@ -106,7 +102,7 @@ describe("resolvePillarTab", () => {
 
   it("falls back to the first tab when the param is unknown or from another pillar", () => {
     expect(resolvePillarTab("acquisition", "bogus")).toBe("leads");
-    // 'tasks' is an operations tab, not an acquisition tab -> default.
+    // 'tasks' is not an acquisition tab -> default.
     expect(resolvePillarTab("acquisition", "tasks")).toBe("leads");
     expect(resolvePillarTab("sales", "leads")).toBe("pipeline");
     // A link written before Sales Calls existed still lands on Sales Data.

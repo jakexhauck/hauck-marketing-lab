@@ -2,8 +2,6 @@ import { Fragment, createContext, useContext, useEffect, useState, type CSSPrope
 import { NavLink, useLocation, useSearchParams } from "react-router-dom";
 import {
   LayoutGrid,
-  ClipboardList,
-  MessageSquare,
   PhoneCall,
   Settings,
   LogOut,
@@ -14,7 +12,6 @@ import {
   PanelLeftOpen,
   Target,
   SquareKanban,
-  Gauge,
   Layers,
   type LucideIcon,
   MessagesSquare,
@@ -114,15 +111,17 @@ interface RailGroup {
 }
 
 const PILLAR_GROUPS: RailGroup[] = [
-  // Top to bottom follows a lead's path (Jake, 2026-10-17): the daily pages,
-  // then Acquisition, Sales, the clients a close becomes, the agents working
-  // them, and the agency's own money last. Captions only: every row is still
-  // an Operations tab, so no route moved.
+  // Clients on top (Jake, 2026-10-22), then a lead's path: Acquisition, Sales,
+  // and the agency's own pages last. Tasks and Inbox are gone from the rail and
+  // the Manager Agent lives only in the bottom-right bubble.
   {
-    caption: "Today",
+    // Clients first, then where a close lands (Onboarding), then the Outcome
+    // Page every client's owner gets.
+    caption: "Clients",
     rows: [
-      pillarRow("Tasks", "operations", "tasks", ClipboardList),
-      pillarRow("Inbox", "operations", "inbox", MessageSquare),
+      pillarRow("Clients", "operations", "clients", Users),
+      pillarRow("Onboarding", "operations", "onboarding", Rocket),
+      pillarRow("Outcome Page", "operations", "outcome-page", ListChecks),
     ],
   },
   {
@@ -142,29 +141,13 @@ const PILLAR_GROUPS: RailGroup[] = [
     rows: [{ to: "/admin/pillar/sales", label: "Sales", icon: SquareKanban }],
   },
   {
-    // Clients: a close lands on Onboarding first, then lives on Clients. The
-    // Outcome Page is the link every client's owner gets.
-    caption: "Clients",
-    rows: [
-      pillarRow("Onboarding", "operations", "onboarding", Rocket),
-      pillarRow("Clients", "operations", "clients", Users),
-      pillarRow("Outcome Page", "operations", "outcome-page", ListChecks),
-    ],
-  },
-  {
-    // Agents (Jake, 2026-10-17): the Manager Agent overlooks every client from
-    // here. The other six agents only live inside a client (lib/agents.ts).
     // SOPs holds the process: Client Fulfillment plus one flow map per agent
     // (lib/agentSops.ts), the same maps the agents follow.
-    caption: "Agents",
-    rows: [
-      { to: "/admin/agents/manager", label: "Manager Agent", icon: Gauge },
-      { to: "/admin/sops", label: "SOPs", icon: Workflow },
-    ],
-  },
-  {
     caption: "Agency",
-    rows: [pillarRow("Budget", "operations", "budget", Wallet)],
+    rows: [
+      { to: "/admin/sops", label: "SOPs", icon: Workflow },
+      pillarRow("Budget", "operations", "budget", Wallet),
+    ],
   },
 ];
 
@@ -188,9 +171,8 @@ interface RoleNav {
 }
 
 const ROLE_NAV: Record<AdminRole, RoleNav> = {
-  // Home follows the rail: Command is no longer a row, so landing an owner on it
-  // would open a page the chrome does not show. Tasks is the new top row.
-  owner: { pillars: PILLAR_NAV, client: [], home: "/admin/pillar/operations?tab=tasks" },
+  // Home follows the rail: its top row, Clients.
+  owner: { pillars: PILLAR_NAV, client: [], home: "/admin/pillar/operations?tab=clients" },
   cold_caller: {
     // One item, pointed at the real section rather than a landing page of its
     // own: what he needs IS Cold Call, and a second front door would only be a
@@ -218,13 +200,13 @@ export function adminHomeFor(role: AdminRole): string {
 // (Command). The center button is not a page: it opens the Command hub (the
 // app launcher at /admin/apps), which is where everything else lives. Settings
 // moves to the header gear rather than taking a bottom slot.
-// Tasks and Inbox sit left because they are the two opened without thinking
-// about it; Budget right, then Accounts, the phone's client strip (a sheet,
-// not a page, so it is a button rather than a row here). Everything else is one tap away through the hub launcher, so
-// the bar stays four tabs no matter how long the rail grows.
+// Clients and Sales sit left (Tasks and Inbox are gone, 2026-10-22); Budget
+// right, then Accounts, the phone's client strip (a sheet, not a page, so it is
+// a button rather than a row here). Everything else is one tap away through the
+// hub launcher, so the bar stays four tabs no matter how long the rail grows.
 const BOTTOM_LEFT: NavRow[] = [
-  pillarRow("Tasks", "operations", "tasks", ClipboardList),
-  pillarRow("Inbox", "operations", "inbox", MessageSquare),
+  pillarRow("Clients", "operations", "clients", Users),
+  { to: "/admin/pillar/sales", label: "Sales", icon: SquareKanban },
 ];
 const BOTTOM_RIGHT: NavRow[] = [pillarRow("Budget", "operations", "budget", Wallet)];
 

@@ -70,7 +70,6 @@ import AdminCommand from "./routes/admin/AdminCommand";
 import AdminApps from "./routes/admin/AdminApps";
 import AdminOnboarding from "./routes/admin/AdminOnboarding";
 import ClientPage from "./routes/admin/ClientPage";
-import AgencyAgentPage from "./routes/admin/AgencyAgentPage";
 import AgentSopsPage from "./routes/admin/AgentSopsPage";
 import LegacyClientRedirect from "./routes/admin/LegacyClientRedirect";
 import SetterSuite from "./routes/admin/SetterSuite";
@@ -590,8 +589,6 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              {/* The agency Manager Agent (Jake, 2026-10-17): the one agent
-                  that overlooks every client, so it has an agency address. */}
               {/* The agency Director was retired 2026-10-20; old links open the
                   SOPs tab. A Director inside each client replaces it. */}
               <Route path="/admin/director/:agent?" element={<Navigate to="/admin/sops" replace />} />
@@ -605,14 +602,9 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              <Route
-                path="/admin/agents/:agent"
-                element={
-                  <AdminRoute roles={["owner"]}>
-                    <AgencyAgentPage />
-                  </AdminRoute>
-                }
-              />
+              {/* The Manager Agent page was removed 2026-10-22 (Jake): the
+                  bottom-right bubble is its only home. Old links open Clients. */}
+              <Route path="/admin/agents/:agent" element={<Navigate to="/admin/pillar/operations?tab=clients" replace />} />
               <Route
                 path="/admin/client/:tenantId"
                 element={
@@ -743,8 +735,8 @@ export default function App() {
               <Route path="/admin/pillar/service" element={<Navigate to="/admin/delivery" replace />} />
               <Route path="/admin/pillar/retention" element={<Navigate to="/admin/delivery" replace />} />
               <Route path="/admin/pillar/delivery" element={<Navigate to="/admin/delivery" replace />} />
-              {/* The standalone Tasks page folded into the Operations pillar. */}
-              <Route path="/admin/tasks" element={<Navigate to="/admin/pillar/operations?tab=tasks" replace />} />
+              {/* Tasks is gone (2026-10-22); old links open Clients. */}
+              <Route path="/admin/tasks" element={<Navigate to="/admin/pillar/operations?tab=clients" replace />} />
               {/* Old lane/tab deep links drop back to the pillar page. */}
               <Route path="/admin/pillar/:pillarId/lane/:laneId" element={<PillarRedirect />} />
               <Route path="/admin/pillar/:pillarId/:tabId" element={<PillarRedirect />} />

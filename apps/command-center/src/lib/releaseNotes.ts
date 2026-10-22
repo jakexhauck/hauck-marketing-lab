@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-22-rail-and-agent-voice",
+    date: "22 October 2026",
+    title: "Simpler sidebar, shorter agents",
+    items: [
+      "Clients is now the top of the sidebar and where the console opens.",
+      "Tasks and Inbox are gone from the sidebar.",
+      "SOPs and Budget sit together under Agency.",
+      "The Manager Agent lives only in the bottom-right chat; its page is gone.",
+      "Every agent now replies like a quick text: a few short sentences, longer work on a card.",
+    ],
+  },
+  {
     id: "2026-10-22-hermes-ads",
     date: "22 October 2026",
     title: "Ads Agent on Hermes",
