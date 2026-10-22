@@ -50,7 +50,7 @@ export function DriveChip({ drive, sections }: { drive: BriefDrive | null; secti
   );
 }
 
-function OpenDoc({ drive }: { drive: BriefDrive | null }) {
+export function OpenDoc({ drive }: { drive: BriefDrive | null }) {
   if (!drive?.docUrl) return null;
   return (
     <a
@@ -282,7 +282,7 @@ export function BriefPage({ tenantId, brandColor }: { tenantId: string; brandCol
 // Scoped to .brf, on the admin tokens, so it reads in light and dark. The
 // brand family is rebuilt from --brand here as on the agent page (AgentStyle),
 // so the client's colour carries through on the Brief page too.
-function BriefStyle() {
+export function BriefStyle() {
   return (
     <style>{`
       .brf {

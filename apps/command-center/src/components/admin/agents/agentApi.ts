@@ -6,6 +6,7 @@ import type {
   AgentItem,
   AgentLesson,
   AgentMessage,
+  BriefLive,
   BriefResponse,
   BriefSection,
   ChatSummary,
@@ -49,6 +50,7 @@ export const agentApi = {
     api<unknown>(`${BASE}/lessons`, { method: "POST", body: JSON.stringify({ lessonId, action, text }) }),
   status: () => api<RunnerStatus>(`${BASE}/status`),
   brief: (tenantId: string) => api<BriefResponse>(`${BASE}/brief?${qs({ tenant: tenantId })}`),
+  briefLive: (tenantId: string) => api<BriefLive>(`${BASE}/brief-live?${qs({ tenant: tenantId })}`),
   saveBrief: (tenantId: string, section: BriefSection["section"], body: string, version: number) =>
     api<{ section: BriefSection }>(`${BASE}/brief?${qs({ tenant: tenantId })}`, {
       method: "PUT",
@@ -66,6 +68,7 @@ const keys = {
     ["admin", "agents", "lessons", tenant, agent, scope] as const,
   status: ["admin", "agents", "status"] as const,
   brief: (tenantId: string) => ["admin", "agents", "brief", tenantId] as const,
+  briefLive: (tenantId: string) => ["admin", "agents", "brief-live", tenantId] as const,
 };
 
 export function useAgentChats(tenant: TenantKey, agent: AgentId) {
@@ -183,6 +186,16 @@ export function useClientBrief(tenantId: string) {
     queryFn: () => agentApi.brief(tenantId),
     refetchInterval: 15_000,
     staleTime: 5_000,
+  });
+}
+
+// The Mission Control's live parts (links, answers, Drive images, GHL). Each
+// open reads GHL and Drive afresh, so it is not polled; a minute is fresh enough.
+export function useBriefLive(tenantId: string) {
+  return useQuery({
+    queryKey: keys.briefLive(tenantId),
+    queryFn: () => agentApi.briefLive(tenantId),
+    staleTime: 60_000,
   });
 }
 

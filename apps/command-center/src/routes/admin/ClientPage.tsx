@@ -6,7 +6,7 @@ import ManagementTab from "../../components/admin/cockpit/ManagementTab";
 import ImageConverterTab from "../../components/admin/cockpit/ImageConverterTab";
 import SettingTab from "../../components/admin/setting/SettingTab";
 import AgentPage from "../../components/admin/agents/AgentPage";
-import { BriefPage } from "../../components/admin/agents/BriefPanel";
+import { MissionBrief } from "../../components/admin/brief/MissionBrief";
 import ClientDirector from "../../components/admin/director/ClientDirector";
 import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
 import { adminHomeFor } from "./AdminLayout";
@@ -112,7 +112,7 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
 
   switch (page) {
     case "brief":
-      return <BriefPage tenantId={client.id} brandColor={client.brandColor} />;
+      return <MissionBrief tenantId={client.id} brandColor={client.brandColor} sub={sub} />;
     case "director":
       return <ClientDirector tenantId={client.id} />;
     case "paid-ads":
