@@ -16,3 +16,4 @@ agent: all
 - [2026-10-18] (research, chat 15032b3c) In the Owensboro/Evansville window market the top complaints about competitors are months-long waits, mis-measured windows and no callbacks after the sale, more than price or product. ^l-a649d412
 - [2026-10-18] (research, chat 15032b3c) Champion (Buy 2 Get 2, ends 10/31/26) and Renewal by Andersen (BOGO 40% off on 4+, ends 10/31/26) both run October deadline offers in Owensboro. ^l-15875456
 - [2026-10-18] (research, chat 15032b3c) Local bill triggers to verify before use: OMU energy cost adjustment up about $8.50/mo (7%), CenterPoint Evansville final rate phase March 2026. ^l-9aa05531
+- [2026-10-22] (ads, chat 4e60f8a6) Free Triple Pane campaign launched 2026-10-20 at $50/day CBO with 7 ads; day 1 spent $28.07 for 2 leads, day 2 spent $14.84 for 0, Billboard - Local Trust took 63% of early spend ^l-018d8163
