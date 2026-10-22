@@ -17,6 +17,20 @@ describe("ensureTasks", () => {
     expect(db.rows("client_tasks")).toHaveLength(seedTasks().length);
   });
 
+  it("seeds the Market Research tasks under ads + creatives", async () => {
+    const db = new FakeDb();
+    const tasks = await ensureTasks(db.client(), T1);
+    const research = tasks.filter((t) => t.owner === "research").map((t) => t.key);
+    expect(research).toEqual([
+      "adsbuild:market-size-and-zip-population",
+      "adsbuild:competitors-on-meta",
+      "adsbuild:client-and-competitor-websites",
+      "adsbuild:google-reviews-pulled",
+      "adsbuild:pain-points-extracted",
+    ]);
+    expect(tasks.find((t) => t.key === "adsbuild:research-approved")).toMatchObject({ owner: "jake", phase: "adsbuild" });
+  });
+
   it("two first reads at once still seed one set", async () => {
     const db = new FakeDb();
     await Promise.all([ensureTasks(db.client(), T1), ensureTasks(db.client(), T1)]);

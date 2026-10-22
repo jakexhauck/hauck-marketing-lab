@@ -131,6 +131,14 @@ export const AGENT_SOPS: AgentSop[] = [
           "Ads: Lead Form Setup",
           "Ads: Creatives Done/Added To Media Library",
           "Ads: Campaign Setup",
+          // Market Research on the Mission Control checklist (Jake, 2026-10-22).
+          // Clients seeded before this got them from migration 0178.
+          "Market Research: Market Size And ZIP Population",
+          "Market Research: Competitors On Meta",
+          "Market Research: Client And Competitor Websites",
+          "Market Research: Google Reviews Pulled",
+          "Market Research: Pain Points Extracted",
+          "Jake: Research Approved",
         ] },
       { id: "check", c: 1, r: 2, k: "review", t: "pre-launch check", d: ["account fully done", "Accounts page all green"], src: "Launch Call > Before The Call",
         steps: [
