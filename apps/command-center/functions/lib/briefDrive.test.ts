@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { FakeDb } from "./agentFakeDb";
-import { briefDocText, docRewriteRequests, syncBriefToDrive, type BriefDriveOps, type DocText } from "./briefDrive";
+import { briefDocText, docRewriteRequests, pageLines, syncBriefToDrive, type BriefDriveOps, type DocText } from "./briefDrive";
+import { emptyPage, parsePage, type BriefPageRow } from "../../src/lib/briefPages";
 import { fullBrief } from "../../src/lib/clientBrief";
 
 const T1 = "11111111-1111-4111-8111-111111111111";
@@ -158,3 +159,26 @@ describe("syncBriefToDrive", () => {
     expect(db.rows("client_brief_drive")[0]).toMatchObject({ error: "This client has no Drive folder." });
   });
 });
+
+describe("pageLines", () => {
+  const row = (page: "ads" | "research", raw: unknown): BriefPageRow => {
+    const r = parsePage(page, raw);
+    if (!r.ok) throw new Error(r.reason);
+    return { page, data: r.data, version: 1, updatedBy: page, updatedAt: null };
+  };
+
+  it("an empty page adds nothing to the Doc", () => {
+    expect(pageLines({ page: "ads", data: emptyPage("ads"), version: 0, updatedBy: null, updatedAt: null })).toEqual([]);
+    const doc = briefDocText("Clear Choice", [], [{ page: "research", data: emptyPage("research"), version: 0, updatedBy: null, updatedAt: null }]);
+    expect(doc.text).toBe("Brief: Clear Choice\n");
+  });
+
+  it("writes every ad's copy in full, one line per paragraph", () => {
+    const lines = pageLines(row("ads", { campaigns: [{ name: "Fall", offer: "Free quote", ads: [{ name: "Bay", headline: "Cut your bill", primaryText: "Line one.\n\nLine two." }] }] }));
+    expect(lines.map((l) => l.text)).toEqual(["Fall", "Offer: Free quote", "• Ad: Bay · draft", "Headline: Cut your bill", "Line one.", "Line two."]);
+    const doc = briefDocText("CC", [], [row("ads", { campaigns: [{ name: "Fall" }] })]);
+    expect(doc.text).toContain("Ads page\nFall\n");
+    expect(doc.headings.map((h) => h.style)).toEqual(["TITLE", "HEADING_2", "HEADING_3"]);
+  });
+});
+

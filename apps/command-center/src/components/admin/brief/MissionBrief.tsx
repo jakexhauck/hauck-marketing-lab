@@ -35,7 +35,7 @@ export function MissionBrief({ tenantId, brandColor, sub }: { tenantId: string; 
       <MissionStyle />
       <div className="mcb-head">
         <h2 className="mcb-title">Brief</h2>
-        {q.data && <DriveChip drive={drive} sections={sections} />}
+        {q.data && <DriveChip drive={drive} sections={sections} pages={pages} />}
         <span className="mcb-grow" />
         <OpenDoc drive={drive} />
       </div>

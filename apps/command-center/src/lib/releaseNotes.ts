@@ -26,6 +26,20 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-22-mission-control-brief",
+    date: "22 October 2026",
+    title: "The Brief is now Mission Control",
+    items: [
+      "Each client's Brief has five pages: Client Information, Full Setup Checklist, Market Research, Ads and GHL.",
+      "Client Information fills itself from the onboarding form, with links and the images in the client's Drive folder.",
+      "The Full Setup Checklist is the Director's task list by area, with a live feed of agents ticking things off.",
+      "Market Research and Ads are filled by their agents: market by ZIP, competitors, pain points, then offer, campaign structure, angles and every ad with its full copy.",
+      "GHL shows the sub-account live: custom values, pipelines, calendars and automations.",
+      "Every client got six Market Research tasks on their checklist.",
+      "The Manager reviews every brief weekly and asks you before suggesting anything new.",
+    ],
+  },
+  {
     id: "2026-10-22-rail-and-agent-voice",
     date: "22 October 2026",
     title: "Simpler sidebar, shorter agents",

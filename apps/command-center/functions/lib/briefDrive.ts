@@ -4,6 +4,8 @@ import type { BriefSection } from "../../src/lib/agentWire";
 import { BRIEF_SECTIONS, briefRevision } from "../../src/lib/clientBrief";
 import { markdownToLines } from "../../src/lib/briefMarkdown";
 import { readBrief } from "./clientBriefs";
+import { readPages } from "./briefPagesStore";
+import type { AdsPage, BriefPageRow, ResearchPage } from "../../src/lib/briefPages";
 import { createGoogleDoc, findDocInFolder, resolveDriveAccount, rewriteDoc } from "./driveComposio";
 
 // The Client Brief in Google Drive (docs/build-plans/agents.md, Phase 6): one
@@ -40,7 +42,7 @@ export interface DocText {
  * become bullet characters, and a section's own headings become smaller Doc
  * headings under the section's.
  */
-export function briefDocText(clientName: string, sections: BriefSection[]): DocText {
+export function briefDocText(clientName: string, sections: BriefSection[], pages: BriefPageRow[] = []): DocText {
   let text = "";
   const headings: DocHeading[] = [];
   const add = (s: string, style?: DocHeading["style"]) => {
@@ -57,7 +59,62 @@ export function briefDocText(clientName: string, sections: BriefSection[]): DocT
       add(`${line.text}\n`, line.heading === 0 ? undefined : line.heading === 1 ? "HEADING_3" : "HEADING_4");
     }
   }
+  // The Mission Control pages, as plain lines under their own headings.
+  for (const page of pages) {
+    const lines = pageLines(page);
+    if (!lines.length) continue;
+    add(`${page.page === "research" ? "Market Research page" : "Ads page"}\n`, "HEADING_2");
+    for (const l of lines) add(`${l.text}\n`, l.heading ? "HEADING_3" : undefined);
+  }
   return { text, headings };
+}
+
+type Line = { text: string; heading?: boolean };
+const joinBits = (...bits: (string | number | null | undefined)[]) => bits.filter((b) => b !== null && b !== undefined && b !== "").join(" · ");
+
+/** A page as Doc lines: nothing for an empty page, ad copy in full. */
+export function pageLines(row: BriefPageRow): Line[] {
+  const out: Line[] = [];
+  if (row.page === "ads") {
+    const p = row.data as AdsPage;
+    for (const c of p.campaigns) {
+      out.push({ text: c.name || "Campaign", heading: true });
+      if (c.offer) out.push({ text: `Offer: ${c.offer}` });
+      const plan = joinBits(c.objective, c.dailySpend !== null ? `$${c.dailySpend}/day` : null, c.budgetType, c.launchDate ? `launch ${c.launchDate}` : null);
+      if (plan) out.push({ text: plan });
+      for (const s of c.adSets) out.push({ text: `• Ad set: ${joinBits(s.name, s.targeting, s.form)}` });
+      for (const a of c.angles) out.push({ text: `• Angle: ${joinBits(a.name, a.pitch, a.status)}` });
+      for (const a of c.ads) {
+        out.push({ text: `• Ad: ${joinBits(a.name, a.type, a.angle, a.status)}` });
+        if (a.headline) out.push({ text: `Headline: ${a.headline}` });
+        // Line breaks inside the copy become their own Doc lines.
+        for (const part of a.primaryText.split(/\r?\n/)) if (part.trim()) out.push({ text: part.trim() });
+      }
+    }
+    if (p.headlines.length) {
+      out.push({ text: "Headlines", heading: true });
+      for (const h of p.headlines) out.push({ text: `• ${joinBits(h.angle, h.text)}` });
+    }
+    return out;
+  }
+  const r = row.data as ResearchPage;
+  if (r.zips.length) {
+    out.push({ text: "Market", heading: true });
+    for (const z of r.zips)
+      out.push({ text: `• ${joinBits(z.zip, z.area, z.population !== null ? `pop ${z.population}` : null, z.medianHomeValue !== null ? `home $${z.medianHomeValue}` : null)}` });
+  }
+  if (r.competitors.length) {
+    out.push({ text: "Competitors", heading: true });
+    for (const c of r.competitors)
+      out.push({
+        text: `• ${joinBits(c.name, c.googleRating !== null ? `${c.googleRating} stars` : null, c.googleReviews !== null ? `${c.googleReviews} reviews` : null, c.metaAdsLive !== null ? `${c.metaAdsLive} Meta ads` : null, c.mainAngle)}`,
+      });
+  }
+  if (r.painPoints.length) {
+    out.push({ text: "Pain points", heading: true });
+    for (const p of r.painPoints) out.push({ text: `• ${joinBits(p.title, p.sharePct !== null ? `${p.sharePct}%` : null, p.quote ? `"${p.quote}"` : null)}` });
+  }
+  return out;
 }
 
 const style = (startIndex: number, endIndex: number, namedStyleType: string) => ({
@@ -148,10 +205,10 @@ export async function syncBriefToDrive(
 
     let revision = -1;
     for (let pass = 0; pass < MAX_PASSES; pass += 1) {
-      const sections = await readBrief(client, tenantId);
-      const rev = briefRevision(sections);
+      const [sections, pages] = await Promise.all([readBrief(client, tenantId), readPages(client, tenantId)]);
+      const rev = briefRevision([...sections, ...pages]);
       if (rev === revision) break;
-      const doc = briefDocText(name, sections);
+      const doc = briefDocText(name, sections, pages);
       try {
         await ops.writeDoc(accountId, docId as string, doc);
       } catch (e) {

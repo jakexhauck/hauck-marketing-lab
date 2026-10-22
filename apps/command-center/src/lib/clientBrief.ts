@@ -89,7 +89,7 @@ const SYNC_GRACE_MS = 2 * 60_000;
  */
 export function driveChip(
   drive: BriefDrive | null,
-  sections: BriefSection[],
+  sections: Pick<BriefSection, "version" | "updatedAt">[],
   now: Date,
 ): { tone: DriveChipTone; label: string; title: string | null } {
   const rev = briefRevision(sections);

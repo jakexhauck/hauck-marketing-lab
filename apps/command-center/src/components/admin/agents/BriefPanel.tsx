@@ -39,8 +39,17 @@ export function useBrief(tenantId: string) {
   return { q, sections, drive: q.data?.drive ?? null };
 }
 
-export function DriveChip({ drive, sections }: { drive: BriefDrive | null; sections: BriefSection[] }) {
-  const chip = driveChip(drive, sections, new Date());
+// pages: the Mission Control pages, which the Doc carries too (briefDrive.ts).
+export function DriveChip({
+  drive,
+  sections,
+  pages = [],
+}: {
+  drive: BriefDrive | null;
+  sections: BriefSection[];
+  pages?: Pick<BriefSection, "version" | "updatedAt">[];
+}) {
+  const chip = driveChip(drive, [...sections, ...pages], new Date());
   const Icon = chip.tone === "bad" ? CloudAlert : chip.tone === "busy" ? CloudUpload : CloudCheck;
   return (
     <span className={`brf-drive ${chip.tone}`} title={chip.title ?? undefined}>
