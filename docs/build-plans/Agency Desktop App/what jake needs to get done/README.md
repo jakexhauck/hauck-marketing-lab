@@ -804,3 +804,16 @@ Still parked:
 - The Manager on your text messages.
 - Agents working on their own on a schedule (Hermes cron).
 
+## Mission Control brief (2026-10-22)
+
+What's in the app now: each client's Brief is five pages: Client Information, Full Setup Checklist, Market Research, Ads, GHL. Client Information and GHL fill themselves live. Market Research and Ads are filled by their agents. Every client got six Market Research tasks. The Manager reviews every brief weekly and asks you before suggesting anything new.
+
+Calls Claude made while you were away (overrule any): one task list shared with the Director; Research Approved is yours and sits under Market Research; old brief text shows as Notes at the foot of each page; assets are the images in the client's Drive folder; research data sources (full Google reviews, Meta Ad Library counts) are still open.
+
+Your action items:
+1. Open Clear Choice > Brief and click through the five pages.
+2. Tell the CSM the new offers for Willis and Made Better.
+3. In each of Willis, Made Better, Clear Choice and Comfort Wizards, ask the Market Research Agent to fill its brief page.
+4. Then go through the research with the CSM and settle the launch plan; the CSM asks the Ads Agent to put it on the Ads page.
+5. Decide whether to pay for a review and Ad Library scraper (about $10 to $30 a month) so pain points and competitor ad counts are complete.
+
