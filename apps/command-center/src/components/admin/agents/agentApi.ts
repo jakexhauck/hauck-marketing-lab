@@ -145,6 +145,9 @@ export function useItemAction(tenant: TenantKey) {
       void qc.invalidateQueries({ queryKey: keys.items(tenant) });
       void qc.invalidateQueries({ queryKey: ["admin", "agents", "messages"] });
       void qc.invalidateQueries({ queryKey: ["admin", "agents", "chats", tenant] });
+      // An approved brief card has just written the client's Research or Ads
+      // page, which the panel beside the chat draws.
+      if (tenant !== "agency") void qc.invalidateQueries({ queryKey: keys.brief(tenant) });
     },
   });
 }

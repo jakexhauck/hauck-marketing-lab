@@ -19,6 +19,8 @@ import {
   postAnswer,
 } from "./agentItems";
 import { ensureTasks } from "./clientTasks";
+import { readPages, savePage } from "./briefPagesStore";
+import type { AdsPage } from "../../src/lib/briefPages";
 
 // What the page sends with an Approve: the hash of the payload it drew.
 const shown = (db: FakeDb, id = "i1") =>
@@ -314,6 +316,86 @@ describe("decideItem, the Manager's tasks card", () => {
     const db = card();
     await decideItem(db.client(), "i1", "decline");
     expect(db.rows("client_tasks")).toHaveLength(0);
+  });
+});
+
+describe("decideItem, a brief card", () => {
+  const ops = [
+    { op: "set", field: "offer", value: "Free inspection + $500 off" },
+    { op: "add", kind: "angle", fields: { name: "Drafty in winter", pitch: "The cold room" } },
+  ];
+  async function card(agent = "ads", pageOps: unknown = ops) {
+    const db = new FakeDb()
+      .seed("agent_chats", [chat("c1", T1, agent)])
+      .seed("agent_items", [{ id: "i1", tenant_id: T1, agent, chat_id: "c1", kind: "brief", title: "Offer and angle", status: "needs_ok", payload: { plan: ["Lead with the inspection"], pageOps }, approved_at: null }]);
+    await savePage(db.client(), { tenantId: T1, page: "ads", data: { campaigns: [{ name: "Winter Leads", offer: "Free quote" }] }, version: 0, by: "ads" });
+    return db;
+  }
+  const adsPage = async (db: FakeDb) => (await readPages(db.client(), T1))[1];
+
+  it("approve writes the ops to the agent's page and tells the agent what landed", async () => {
+    const db = await card();
+    const res = await decideItem(db.client(), "i1", "approve", undefined, undefined, await shown(db));
+    expect("item" in res && res.item.status).toBe("done");
+    const page = await adsPage(db);
+    expect(page).toMatchObject({ version: 2, updatedBy: "ads" });
+    expect((page.data as AdsPage).campaigns[0]).toMatchObject({ offer: "Free inspection + $500 off", angles: [{ name: "Drafty in winter", status: "approved" }] });
+    const follow = db.rows("agent_messages").find((r) => r.status === "queued")!;
+    expect(follow.body).toBe("Approved: Offer and angle\nBrief updated: Set offer: Free inspection + $500 off; Add angle: Drafty in winter.");
+  });
+
+  it("a page written in between is read again and the ops still land once", async () => {
+    const db = await card();
+    // Another writer bumps the page between the read and the first save.
+    const base = db.client();
+    let bumped = false;
+    const racing = {
+      from(table: string) {
+        const q = base.from(table) as unknown as Record<string, (...a: unknown[]) => unknown>;
+        if (table !== "client_brief_pages" || bumped) return q;
+        const update = q.update.bind(q);
+        q.update = (patch: unknown) => {
+          bumped = true;
+          const row = db.rows("client_brief_pages")[0];
+          row.version = 2;
+          row.data = { campaigns: [{ name: "Winter Leads", offer: "Free quote", objective: "Leads" }] };
+          return update(patch);
+        };
+        return q;
+      },
+    } as unknown as ReturnType<FakeDb["client"]>;
+    const res = await decideItem(racing, "i1", "approve", undefined, undefined, await shown(db));
+    expect("item" in res && res.item.status).toBe("done");
+    const page = await adsPage(db);
+    expect(page.version).toBe(3);
+    expect((page.data as AdsPage).campaigns[0]).toMatchObject({ objective: "Leads", offer: "Free inspection + $500 off" });
+    expect((page.data as AdsPage).campaigns[0].angles).toHaveLength(1);
+  });
+
+  it("ops that miss on the page leave it alone and the follow-up says why", async () => {
+    const db = await card("ads", [{ op: "set", campaign: "Summer", field: "offer", value: "x" }]);
+    const res = await decideItem(db.client(), "i1", "approve", undefined, undefined, await shown(db));
+    expect("item" in res && res.item.status).toBe("done");
+    expect((await adsPage(db)).version).toBe(1);
+    const follow = db.rows("agent_messages").find((r) => r.status === "queued")!;
+    expect(follow.body).toBe("Approved: Offer and angle\nBrief not updated: op 1: no campaign named Summer.");
+  });
+
+  it("a malformed card is refused and stays waiting", async () => {
+    const db = await card("ads", [{ op: "add", kind: "banner", fields: { name: "x" } }]);
+    const res = await decideItem(db.client(), "i1", "approve", undefined, undefined, await shown(db));
+    expect(res).toMatchObject({ error: 422 });
+    expect(db.rows("agent_items")[0].status).toBe("needs_ok");
+    expect(db.rows("agent_messages")).toHaveLength(0);
+  });
+
+  it("from an agent with no page, or on decline, the page is untouched", async () => {
+    const ghl = await card("ghl");
+    await decideItem(ghl.client(), "i1", "approve", undefined, undefined, await shown(ghl));
+    expect((await adsPage(ghl)).version).toBe(1);
+    const declined = await card();
+    await decideItem(declined.client(), "i1", "decline");
+    expect((await adsPage(declined)).version).toBe(1);
   });
 });
 

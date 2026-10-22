@@ -2,6 +2,8 @@ import { useState } from "react";
 import { ArrowRight, Circle, CircleCheck, ExternalLink, Loader } from "lucide-react";
 import type { AgentItem } from "../../../lib/agentWire";
 import { STATUS_PILL, itemPayload } from "../../../lib/agentView";
+import { pageForAgent } from "../../../lib/briefPages";
+import { briefOpLines } from "../../../lib/briefPageOps";
 import type { ItemAction } from "./agentApi";
 
 export function StatusPill({ status }: { status: AgentItem["status"] }) {
@@ -89,6 +91,9 @@ export default function ItemCard({
   const p = itemPayload(item.payload);
   // A landing page shows its live address once it has one, the draft before.
   const pageUrl = p.liveUrl ?? p.previewUrl;
+  // A brief card (Research or Ads): what its Approve writes to the page, one
+  // line per op, so Jake approves exactly what lands.
+  const briefLines = item.kind === "brief" ? briefOpLines(pageForAgent(item.agent), item.payload.pageOps) : [];
   return (
     <div className={`ag-card${active ? " active" : ""}`}>
       <div className="ag-card-top">
@@ -167,7 +172,17 @@ export default function ItemCard({
           ))}
         </div>
       )}
-      {p.changes.length === 0 && p.taskChanges.length === 0 && p.plan.length > 0 && (
+      {briefLines.length > 0 && (
+        <div className="ag-list">
+          {briefLines.map((line, i) => (
+            <div key={i}>
+              <ArrowRight />
+              {line}
+            </div>
+          ))}
+        </div>
+      )}
+      {p.changes.length === 0 && p.taskChanges.length === 0 && briefLines.length === 0 && p.plan.length > 0 && (
         <div className="ag-list">
           {p.plan.map((t, i) => (
             <div key={i}>

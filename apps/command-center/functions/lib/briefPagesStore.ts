@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { BRIEF_PAGE_IDS, emptyPage, isBriefPageId, pageForAgent, parsePage, type BriefPageId, type BriefPageRow } from "../../src/lib/briefPages";
+import { applyPageOps, type PageOp } from "../../src/lib/briefPageOps";
 import type { RunnerPageBody } from "../../src/lib/agentWire";
 import { isUuid } from "./agentItems";
 import { turnChat } from "./clientBriefs";
@@ -107,4 +108,28 @@ export async function agentSavePage(client: SupabaseClient, body: RunnerPageBody
   const res = await savePage(client, { tenantId: who.tenantId, page, data: body.data, version: body.version, by: page }, now);
   if ("error" in res) return res;
   return { tenantId: who.tenantId, ...res };
+}
+
+/**
+ * Jake approved a brief card: its ops go onto the page as it is now, saved
+ * under the version that was read. Another writer in between (the agent's own
+ * page block, a second Approve) is a conflict, and the ops are tried once more
+ * on the newer page. Returns the line for the agent's follow-up; never throws,
+ * because the card has already moved and the agent must still hear what landed.
+ */
+export async function applyBriefCard(client: SupabaseClient, tenantId: string, page: BriefPageId, ops: PageOp[]): Promise<string> {
+  try {
+    let current = await currentPage(client, tenantId, page);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = applyPageOps(page, current.data, ops);
+      if (!res.ok) return `Brief not updated: ${res.error}.`;
+      const saved = await savePage(client, { tenantId, page, data: res.data, version: current.version, by: page });
+      if ("saved" in saved) return `Brief updated: ${res.summary.join("; ")}.`;
+      if ("error" in saved) return `Brief not updated: ${saved.reason}.`;
+      current = saved.conflict;
+    }
+    return "Brief not updated: the page kept changing while it saved. Put the same change on a new card.";
+  } catch (err) {
+    return `Brief not updated: ${(err as Error).message}.`;
+  }
 }

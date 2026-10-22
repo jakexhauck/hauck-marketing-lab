@@ -1,6 +1,6 @@
 import type { BriefSection } from "../../../lib/agentWire";
 import type { ResearchPage as Research } from "../../../lib/briefPages";
-import { count, money } from "./missionHelpers";
+import { count, freshClass, money } from "./missionHelpers";
 import { NotesBlock } from "./NotesBlock";
 
 const stars = (r: number | null) => {
@@ -20,7 +20,9 @@ function ExtLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-export function ResearchPage({ tenantId, page, sections }: { tenantId: string; page: Research; sections: BriefSection[] }) {
+// fresh: what the last approve changed, tinted for a moment (AgentBriefPage).
+export function ResearchPage({ tenantId, page, sections, fresh }: { tenantId: string; page: Research; sections: BriefSection[]; fresh?: Set<string> }) {
+  const f = (...parts: string[]) => freshClass(fresh, ...parts);
   const empty = !page.zips.length && !page.competitors.length && !page.painPoints.length && !page.websites.clientUrl;
   const w = page.websites;
   return (
@@ -32,19 +34,19 @@ export function ResearchPage({ tenantId, page, sections }: { tenantId: string; p
       ) : (
         <>
           <div className="mcb-stats">
-            <div className="mcb-card mcb-stat">
+            <div className={`mcb-card mcb-stat${f("stats.population")}`}>
               <span>Population, target ZIPs</span>
               <b>{count(page.stats.population) || "·"}</b>
             </div>
-            <div className="mcb-card mcb-stat">
+            <div className={`mcb-card mcb-stat${f("stats.olderHomesPct")}`}>
               <span>Homes built before 1995</span>
               <b>{pct(page.stats.olderHomesPct) || "·"}</b>
             </div>
-            <div className="mcb-card mcb-stat">
+            <div className={`mcb-card mcb-stat${f("stats.competitorsOnMeta")}`}>
               <span>Competitors on Meta</span>
               <b>{count(page.stats.competitorsOnMeta) || "·"}</b>
             </div>
-            <div className="mcb-card mcb-stat">
+            <div className={`mcb-card mcb-stat${f("stats.competition")}`}>
               <span>Competition</span>
               <b>{page.stats.competition ? competition[page.stats.competition] : "·"}</b>
             </div>
@@ -67,7 +69,7 @@ export function ResearchPage({ tenantId, page, sections }: { tenantId: string; p
                   </thead>
                   <tbody>
                     {page.zips.map((z, i) => (
-                      <tr key={`${z.zip}-${i}`}>
+                      <tr key={`${z.zip}-${i}`} className={f("zip", z.zip).trim() || undefined}>
                         <td className="num">{z.zip}</td>
                         <td>{z.area}</td>
                         <td className="num">{count(z.population)}</td>
@@ -100,7 +102,7 @@ export function ResearchPage({ tenantId, page, sections }: { tenantId: string; p
                   </thead>
                   <tbody>
                     {page.competitors.map((c, i) => (
-                      <tr key={`${c.name}-${i}`} className={c.isClient ? "me" : undefined}>
+                      <tr key={`${c.name}-${i}`} className={`${c.isClient ? "me" : ""}${f("competitor", c.name)}`.trim() || undefined}>
                         <td>
                           <b>{c.name}</b> {c.isClient && <span className="mcb-tag">Client</span>}
                         </td>
@@ -128,7 +130,7 @@ export function ResearchPage({ tenantId, page, sections }: { tenantId: string; p
 
           {(w.clientUrl || w.strong || w.weak || w.commonOffer || w.commonPromise || w.gap) && (
             <div className="mcb-two mcb-sec">
-              <div className="mcb-card">
+              <div className={`mcb-card${f("websites.clientUrl") || f("websites.strong") || f("websites.weak")}`}>
                 <div className="mcb-ch">Client website</div>
                 <div className="mcb-kv">
                   <span>Site</span>
@@ -143,7 +145,7 @@ export function ResearchPage({ tenantId, page, sections }: { tenantId: string; p
                   <span>{w.weak}</span>
                 </div>
               </div>
-              <div className="mcb-card">
+              <div className={`mcb-card${f("websites.commonOffer") || f("websites.commonPromise") || f("websites.gap")}`}>
                 <div className="mcb-ch">Competitor websites</div>
                 <div className="mcb-kv">
                   <span>Common offer</span>
@@ -167,13 +169,13 @@ export function ResearchPage({ tenantId, page, sections }: { tenantId: string; p
                 Pain points
                 {page.sourcesNote && (
                   <span className="act">
-                    <span className="mcb-tag plain">{page.sourcesNote}</span>
+                    <span className={`mcb-tag plain${f("sourcesNote")}`}>{page.sourcesNote}</span>
                   </span>
                 )}
               </h3>
               <div className="mcb-card">
                 {page.painPoints.map((p, i) => (
-                  <div key={`${p.title}-${i}`} className="mcb-pain">
+                  <div key={`${p.title}-${i}`} className={`mcb-pain${f("painPoint", p.title)}`}>
                     <span className="n">{pct(p.sharePct)}</span>
                     <div>
                       <b>{p.title}</b>

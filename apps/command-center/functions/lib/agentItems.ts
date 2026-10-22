@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseTaskOps } from "../../src/lib/clientTasks";
 import { applyTaskOps } from "./clientTasks";
+import { pageForAgent } from "../../src/lib/briefPages";
+import { parsePageOps } from "../../src/lib/briefPageOps";
+import { applyBriefCard } from "./briefPagesStore";
 import { isAgentId } from "../../src/lib/agents";
 import type { AgentId } from "../../src/lib/agents";
 import type {
@@ -101,6 +104,7 @@ export function itemFromRow(r: Row): AgentItem {
     payload: (r.payload && typeof r.payload === "object" ? r.payload : {}) as Record<string, unknown>,
     approvedAt: (r.approved_at as string | null) ?? null,
     updatedAt: r.updated_at as string,
+    ...(typeof r.created_at === "string" ? { createdAt: r.created_at } : {}),
   };
 }
 
@@ -497,6 +501,12 @@ export async function decideItem(
   const taskCard = action === "approve" && item.kind === "tasks" && item.agent === "csm" && !!item.tenantId;
   const taskOps = taskCard ? parseTaskOps(item.payload.taskOps) : null;
   if (taskOps && !taskOps.ok) return { error: 422, reason: taskOps.error };
+  // A brief card from the Research or Ads Agent adds to that agent's Mission
+  // Control page on Approve, the same way: checked now, applied once the card
+  // has moved. Its ops sit under pageOps, so nothing else reads them.
+  const briefPage = action === "approve" && item.kind === "brief" && !!item.tenantId ? pageForAgent(item.agent) : null;
+  const pageOps = briefPage ? parsePageOps(briefPage, item.payload.pageOps) : null;
+  if (pageOps && !pageOps.ok) return { error: 422, reason: pageOps.error };
 
   const patch: Row = { status: t.next };
   if (action === "approve") patch.approved_at = now.toISOString();
@@ -521,6 +531,10 @@ export async function decideItem(
     } catch (err) {
       followUp += `\nTasks not applied: ${(err as Error).message}. Ask Jake to look at the Director.`;
     }
+  }
+
+  if (briefPage && pageOps?.ok && item.tenantId) {
+    followUp += `\n${await applyBriefCard(client, item.tenantId, briefPage, pageOps.ops)}`;
   }
 
   if (followUp) {

@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-22-brief-from-chat",
+    date: "22 October 2026",
+    title: "Approve the brief in the chat",
+    items: [
+      "Inside a client, the Ads and Market Research agents show their Mission Control page beside the chat.",
+      "They propose offers, angles, ads, competitors and the rest as a card in the chat, each line saying what will be added or changed.",
+      "Approve on the card puts it on the page straight away, with what changed lit up for a moment.",
+      "The page only ever shows what you approved.",
+    ],
+  },
+  {
     id: "2026-10-22-mission-control-brief",
     date: "22 October 2026",
     title: "The Brief is now Mission Control",

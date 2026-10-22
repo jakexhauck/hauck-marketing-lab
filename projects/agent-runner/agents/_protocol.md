@@ -9,6 +9,15 @@ Owner prefers before/after photos over quotes in ads
 agent: Lead forms with 3 questions beat 5 for home service clients
 ```
 
+## Before you post a card
+
+Read your card once more as Jake will see it, before it goes out:
+- It answers what was asked, and only that.
+- Every number has a source you read this turn (a tool result, the brief, a file). No number is guessed.
+- Names, ids and budgets match what you read, not what you remember.
+- It fits the client's brief and voice, and Jake's rules (no em dashes).
+Fix what fails, then post. A card that needs a second card to correct it costs Jake two looks.
+
 A card for the Building panel. JSON, one object or an array. `status` is `building` or `needs_ok` (anything else becomes `needs_ok`). Known payload keys: `steps` ([{ "label", "state": "done" | "now" | "todo" }]), `stats` ([{ "label", "value" }]), `quote`, `plan` (string[]), `previewUrl`, `thumbs` (string[]). Reuse an item's `id` to update it.
 
 ```item
@@ -55,10 +64,16 @@ When a finished task produced something another task needs (an id, a link, a num
 adsbuild:meta-dataset | done | Dataset made in Events Manager | dataset_id=1234567890
 ```
 
-Your Mission Control page, rewritten in full (Market Research and Ads only; it is shown to you under "Your brief page" with its version). One JSON object with the page's keys, the whole page every time: it replaces the old one. Unlike your brief section, drafts belong here: give each angle and ad a status (`draft`, `needs_ok`, `approved`, `live`, `not_made`) and Jake sees it as it stands. Approval still happens on a card, and you set `approved` only after Jake approved that card. Numbers you do not know stay `null`; never invent one.
+Your Mission Control page (Market Research and Ads only; it is shown to you under "Your brief page" with its version, and Jake sees it beside your chat). It holds only what Jake approved. To add or change something, post a `brief` card, one decision per card; his Approve writes its `pageOps` to the page and the follow-up says "Brief updated" or "Brief not updated" and why. Your agent notes list the ops.
+
+```item
+{"kind": "brief", "title": "Angle: Drafty in winter", "status": "needs_ok", "payload": {"plan": ["The cold room comes up in 1 of 3 reviews."], "pageOps": [{"op": "add", "kind": "angle", "campaign": "Winter Leads", "fields": {"name": "Drafty in winter", "pitch": "The cold room homeowners stop using"}}]}}
+```
+
+The ```page block is only for moving the status of something already approved: `live` once it runs, `not_made` for a planned creative that was not made. Send the whole page as it stands with just those statuses changed and nothing new in it; it replaces the old one. Numbers you do not know stay `null`; never invent one.
 
 ```page
-{"campaigns": [{"name": "Winter Leads", "offer": "Free in-home quote", "dailySpend": 40, "ads": [{"name": "Bay window", "angle": "Energy bills", "headline": "Cut your heating bill", "primaryText": "...", "status": "needs_ok"}]}]}
+{"campaigns": [{"name": "Winter Leads", "offer": "Free in-home quote", "dailySpend": 40, "angles": [{"name": "Drafty in winter", "pitch": "The cold room homeowners stop using", "status": "approved"}], "ads": [{"name": "Bay window", "angle": "Drafty in winter", "headline": "Cut your heating bill", "primaryText": "...", "status": "live"}]}]}
 ```
 
 Malformed JSON is dropped, so keep it valid. No block is fine when there is nothing to file.

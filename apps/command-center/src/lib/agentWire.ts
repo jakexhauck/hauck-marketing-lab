@@ -83,6 +83,8 @@ export interface AgentItem {
   payloadHash?: string;
   approvedAt: string | null;
   updatedAt: string;
+  // When the card was first posted: where a brief card sits in its chat.
+  createdAt?: string;
 }
 
 export interface AgentLesson {
@@ -94,6 +96,10 @@ export interface AgentLesson {
   text: string;
   source: string;
   learnedOn: string | null;
+  // "[decision]" / "[fact]" on the line, else a lesson (brain.ts).
+  kind?: "lesson" | "decision" | "fact";
+  // Set when an edit from the app replaced this line; the id of the new one.
+  replacedBy?: string | null;
 }
 
 export interface LessonEdit {

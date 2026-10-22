@@ -3,6 +3,7 @@ import { ArrowUp, Brain, BrainCircuit, CircleCheck, Loader, Sparkles } from "luc
 import type { AgentItem, AgentMessage } from "../../../lib/agentWire";
 import { messageView } from "../../../lib/agentView";
 import { parseChatMarkdown, type Inline } from "../../../lib/chatMarkdown";
+import ItemCard from "./ItemCard";
 import RequestCard from "./RequestCard";
 import { useAgentMessages, type ItemAction } from "./agentApi";
 
@@ -58,6 +59,18 @@ export default function ChatThread({
 
   const itemById = (id: string | null) => (id ? (items.find((i) => i.id === id) ?? null) : null);
 
+  // A brief card (Research or Ads) is approved in the chat it came from
+  // (hermes-agent-ops.md, Phase 2), so it sits among the messages, after the
+  // last one posted before it. Other cards stay on the Building tab.
+  const timeline = useMemo(() => {
+    const cards = chatId ? items.filter((i) => i.kind === "brief" && i.chatId === chatId) : [];
+    const entries: ({ at: number; msg: AgentMessage } | { at: number; card: AgentItem })[] = [
+      ...list.map((msg) => ({ at: Date.parse(msg.createdAt), msg })),
+      ...cards.map((card) => ({ at: Date.parse(card.createdAt ?? card.updatedAt), card })),
+    ];
+    return entries.sort((a, b) => a.at - b.at);
+  }, [list, items, chatId]);
+
   return (
     <section className="ag-chat">
       <div className="ag-chat-head">
@@ -71,7 +84,16 @@ export default function ChatThread({
         ) : list.length === 0 ? (
           <div className="ag-empty">No messages</div>
         ) : (
-          list.map((m) => {
+          timeline.map((e) => {
+            if ("card" in e) {
+              const c = e.card;
+              return (
+                <div key={c.id} className="ag-chatcard">
+                  <ItemCard item={c} busy={actionBusy} onAction={(action, note) => onAction(c.id, action, note)} />
+                </div>
+              );
+            }
+            const m = e.msg;
             if (m.role === "request") {
               const item = m.answerOf ? null : itemById(m.itemId);
               return (

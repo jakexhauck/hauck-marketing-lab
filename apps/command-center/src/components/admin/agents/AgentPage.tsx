@@ -10,6 +10,8 @@ import ChatThread from "./ChatThread";
 import BrainTab from "./BrainTab";
 import { AgentBuilding, ClientsBoard, ManagerBuilding } from "./BuildPanel";
 import { BriefTab } from "./BriefPanel";
+import { AgentBriefPage } from "../brief/AgentBriefPage";
+import { pageForAgent } from "../../../lib/briefPages";
 import {
   tenantKey,
   useAgentChats,
@@ -93,6 +95,9 @@ function AgentView({ tenantId, agent }: { tenantId: string | null; agent: AgentI
   };
 
   const split = tenantId !== null;
+  // Research and Ads curate their own Mission Control page from the chat
+  // (brief cards), so their Brief tab is that page. The rest keep the sections.
+  const missionPage = tenantId ? pageForAgent(agent) : null;
   const [tab, setTab] = useState<"brief" | "building" | "brain">(split ? "brief" : "building");
   // The Manager reads and writes the Mega Brain only.
   const [scope, setScope] = useState<BrainScope>(isManager ? "mega" : "client");
@@ -178,7 +183,9 @@ function AgentView({ tenantId, agent }: { tenantId: string | null; agent: AgentI
           </button>
         </div>
         <div className="ag-bbody">
-          {tab === "brief" && tenantId ? (
+          {tab === "brief" && tenantId && missionPage ? (
+            <AgentBriefPage tenantId={tenantId} page={missionPage} />
+          ) : tab === "brief" && tenantId ? (
             <BriefTab tenantId={tenantId} agent={agent} />
           ) : tab === "brain" ? (
             <BrainTab
@@ -399,6 +406,7 @@ export function AgentStyle() {
       .ag-agentdots i.w { background: var(--brand); }
       .ag-agentdots i.s { background: var(--warning); }
 
+      .ag-chatcard { max-width: 640px; width: 100%; }
       .ag-handoff { max-width: 640px; border: 1px solid color-mix(in srgb, var(--warning) 40%, var(--border)); background: color-mix(in srgb, var(--warning) 6%, var(--surface)); border-radius: 14px; padding: 12px 14px; }
       .ag-ho-top { display: flex; align-items: center; gap: 8px; font-size: 13px; }
       .ag-ho-ic { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: #fff; flex-shrink: 0; }

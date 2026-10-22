@@ -125,6 +125,19 @@ export function MissionStyle() {
 
       .mcb-notes { margin-top: 30px; }
 
+      /* What the last approve changed, beside the agent's chat. An inset shadow
+         rather than a background, so a card keeps its own surface as it fades.
+         Without motion the tint just sits there until the panel clears it. */
+      .mcb .mcb-fresh, .mcb tr.mcb-fresh > td { box-shadow: inset 0 0 0 999px var(--brand-tint); }
+      .mcb .mcb-card.mcb-fresh { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); }
+      @media (prefers-reduced-motion: no-preference) {
+        .mcb .mcb-fresh, .mcb tr.mcb-fresh > td { animation: mcbFresh 3.2s cubic-bezier(.23,1,.32,1) forwards; }
+      }
+      @keyframes mcbFresh {
+        0%, 35% { box-shadow: inset 0 0 0 999px var(--brand-tint); }
+        100% { box-shadow: inset 0 0 0 999px transparent; }
+      }
+
       @media (max-width: 1000px) {
         .mcb-setup, .mcb-two, .mcb-sum { grid-template-columns: 1fr; }
         .mcb-feed { position: static; }

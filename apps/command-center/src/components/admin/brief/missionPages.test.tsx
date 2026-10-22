@@ -117,6 +117,15 @@ describe("Mission Control pages render", () => {
     }
   });
 
+  it("what the last approve changed is tinted, and nothing else", () => {
+    const tinted = (out: string) => (out.match(/mcb-fresh/g) ?? []).length;
+    const adsOut = html(<AdsPage tenantId={T} page={ads} sections={[]} fresh={new Set(["ccw leads nov|angle|energy bills"])} />);
+    expect(tinted(adsOut)).toBe(1);
+    expect(tinted(html(<AdsPage tenantId={T} page={ads} sections={[]} />))).toBe(0);
+    const resOut = html(<ResearchPage tenantId={T} page={research} sections={[]} fresh={new Set(["competitor|window nation", "websites.gap"])} />);
+    expect(tinted(resOut)).toBe(2);
+  });
+
   it("every page survives having nothing", () => {
     expect(html(<AdsPage tenantId={T} page={emptyPage("ads")} sections={[]} />)).toContain("No ads planned yet");
     expect(html(<ResearchPage tenantId={T} page={emptyPage("research")} sections={[]} />)).toContain("No research yet");

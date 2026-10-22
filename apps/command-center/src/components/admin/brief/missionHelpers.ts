@@ -108,3 +108,9 @@ export function ago(iso: string | null, now: Date = new Date()): string {
 
 export const money = (n: number | null): string => (n === null ? "" : `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`);
 export const count = (n: number | null): string => (n === null ? "" : n.toLocaleString("en-US"));
+
+// The tint on whatever the last approve changed (briefPageOps.freshKeys). Keys
+// are lowercased parts joined by "|", the same way freshKeys builds them.
+export function freshClass(fresh: Set<string> | undefined, ...parts: string[]): string {
+  return fresh?.has(parts.map((p) => p.trim().toLowerCase()).join("|")) ? " mcb-fresh" : "";
+}
