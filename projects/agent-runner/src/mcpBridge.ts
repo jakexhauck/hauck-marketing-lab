@@ -33,6 +33,7 @@ import { mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFile
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { composioAllowed } from "./composioTools.ts";
 import type { Higgsfield, HfTool } from "./higgsfield.ts";
 import { HF_AFTER, HF_GENERATE, HF_QUOTE, parseBalance } from "./spend.ts";
 import type { AgentId } from "./wire.ts";
@@ -51,6 +52,13 @@ export interface AppTools {
   // The runner's own Higgsfield login (higgsfield.ts). Unset or not signed in:
   // the Ads Agent has no Higgsfield tools.
   higgsfield?: Higgsfield;
+  // The web for the agents (webTools.ts): a page as clean Markdown, and the
+  // Agent Reach channels that need no login. Unset: no web tools.
+  readPage?(url: string): Promise<string>;
+  reach?(channel: string, target: string): Promise<string>;
+  // A Composio tool from the agent's allowlist (composioTools.ts). Unset (no
+  // COMPOSIO_API_KEY): no Composio tool.
+  composio?(agent: AgentId, slug: string, args: Record<string, unknown>): Promise<{ text: string; isError: boolean }>;
 }
 
 export interface Root {
@@ -82,6 +90,10 @@ export interface Bridge {
 const META_AGENTS: AgentId[] = ["manager", "csm", "ads"];
 // The GHL Agent works in GHL only; it never had file tools.
 const FILE_AGENTS: AgentId[] = ["manager", "csm", "research", "ads"];
+// Reading the web: everyone who researches or writes. Agent Reach's channels
+// for the two whose job is finding things out.
+const PAGE_AGENTS: AgentId[] = ["manager", "csm", "research", "ads"];
+const REACH_AGENTS: AgentId[] = ["research", "ads"];
 
 // Mirrors GHL_OPS in apps/command-center/functions/lib/agentGhlOps.ts, as
 // bin/ghl.mjs does. The app's list is the one that counts.
@@ -167,6 +179,41 @@ function withTurn(t: HfTool) {
   };
 }
 
+const PAGE_TOOL = {
+  name: "read_page",
+  description:
+    "Read a web page as clean Markdown (Defuddle): the article only, no menus, ads or footers. Use it instead of any other way of reading a page. Public http(s) pages only.",
+  inputSchema: { type: "object", properties: { turn: TURN, url: { type: "string" } }, required: ["turn", "url"] },
+};
+
+const REACH_TOOL = {
+  name: "reach",
+  description:
+    "Agent Reach, no login: youtube_transcript (target = a YouTube link), github_repo (owner/repo or link: summary + README), github_search (search words), rss (a feed URL: latest entries). Reddit and X are not available yet.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      turn: TURN,
+      channel: { type: "string", enum: ["youtube_transcript", "github_repo", "github_search", "rss"] },
+      target: { type: "string" },
+    },
+    required: ["turn", "channel", "target"],
+  },
+};
+
+function composioTool(agent: AgentId) {
+  const slugs = composioAllowed(agent);
+  return {
+    name: "composio",
+    description: `A Composio app tool, read or draft only. tool is one of: ${slugs.join(", ")}. args is that tool's own arguments as Composio documents them. Nothing is sent: an email is a draft Jake sends himself.`,
+    inputSchema: {
+      type: "object",
+      properties: { turn: TURN, tool: { type: "string", enum: slugs }, args: { type: "object" } },
+      required: ["turn", "tool"],
+    },
+  };
+}
+
 const FILE_TOOLS = [
   {
     name: "list_files",
@@ -189,8 +236,13 @@ const FILE_TOOLS = [
   },
 ];
 
-function toolsFor(agent: AgentId) {
+// The web and Composio tools are listed only when this runner has them set up,
+// so an agent is never offered a tool that can only fail.
+function toolsFor(agent: AgentId, tools?: AppTools) {
   return [
+    ...(tools?.readPage && PAGE_AGENTS.includes(agent) ? [PAGE_TOOL] : []),
+    ...(tools?.reach && REACH_AGENTS.includes(agent) ? [REACH_TOOL] : []),
+    ...(tools?.composio && composioAllowed(agent).length ? [composioTool(agent)] : []),
     ...(META_AGENTS.includes(agent) ? [META_TOOL] : []),
     ...(agent === "ghl" ? [GHL_TOOL] : []),
     ...(agent === "manager" ? [BRIEF_TOOL] : []),
@@ -271,7 +323,7 @@ async function callTool(
   startBalance: Spent,
 ) {
   const hf = agent === "ads" && HF_SERVED.has(name) && !!tools.higgsfield;
-  if (!hf && !toolsFor(agent).some((t) => t.name === name)) return text(`${name} is not one of your tools`, true);
+  if (!hf && !toolsFor(agent, tools).some((t) => t.name === name)) return text(`${name} is not one of your tools`, true);
   if (!turn) return text("No turn is running for you right now, so this call was not made.", true);
   if (a.turn !== turn.messageId) return text("This call names a turn that is not the one running now, so it was not made.", true);
   try {
@@ -303,6 +355,20 @@ async function callTool(
         const r = await h.call(name, await withCeiling(h, name, args, left));
         return text(r.text, r.isError);
       });
+    }
+    if (name === "read_page") {
+      const url = typeof a.url === "string" ? a.url.trim() : "";
+      if (!url) return text("url is required", true);
+      return text(await tools.readPage!(url));
+    }
+    if (name === "reach") {
+      return text(await tools.reach!(typeof a.channel === "string" ? a.channel : "", typeof a.target === "string" ? a.target : ""));
+    }
+    if (name === "composio") {
+      const slug = typeof a.tool === "string" ? a.tool : "";
+      const args = a.args && typeof a.args === "object" && !Array.isArray(a.args) ? (a.args as Record<string, unknown>) : {};
+      const r = await tools.composio!(agent, slug, args);
+      return text(r.text, r.isError);
     }
     if (name === "meta_ops") {
       const op = typeof a.op === "string" ? a.op : "";
@@ -412,7 +478,7 @@ export function startBridge(o: { port: number; host?: string; tokens: Partial<Re
         case "ping":
           return ok({});
         case "tools/list":
-          return ok({ tools: [...toolsFor(agent), ...(await higgsfieldTools(agent, o.tools))] });
+          return ok({ tools: [...toolsFor(agent, o.tools), ...(await higgsfieldTools(agent, o.tools))] });
         case "tools/call": {
           const args = msg.params?.arguments && typeof msg.params.arguments === "object" ? msg.params.arguments : {};
           if (!writes.has(agent)) writes.set(agent, new Set());

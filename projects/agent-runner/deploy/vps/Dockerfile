@@ -11,6 +11,12 @@ RUN apt-get update \
  && curl -Ls --tlsv1.2 --proto "=https" https://cli.doppler.com/install.sh | sh \
  && apt-get purge -y gnupg && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
+# YouTube transcripts for the agents' reach tool (webTools.ts). The standalone
+# build needs no Python; pinned and checked against the release's own sums.
+RUN curl -Ls --tlsv1.2 --proto "=https" -o /usr/local/bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_linux \
+ && echo "58162f9bfdc27458ea47bfcb311cf47028f17d8154a8bf7d689861d46399230a  /usr/local/bin/yt-dlp" | sha256sum -c - \
+ && chmod 755 /usr/local/bin/yt-dlp
+
 # The Ads Agent's landing pages deploy from here (pages.ts). wrangler reads
 # CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID from the Doppler environment.
 RUN npm install -g wrangler@4.91.0 --no-audit --no-fund --loglevel=error

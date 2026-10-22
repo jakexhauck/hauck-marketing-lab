@@ -33,6 +33,8 @@ describe("brain files", () => {
         text: "Before/after beats quotes",
         source: "Willis Windows, chat 1a2b",
         learnedOn: "2026-10-17",
+        kind: "lesson",
+        replacedBy: null,
       },
     ]);
   });
@@ -61,15 +63,39 @@ describe("brain files", () => {
     expect(readLessons(file).map((l) => l.text)).toEqual(["Newer lesson"]);
   });
 
-  it("edits only the text, keeping date, agent, source and id", () => {
+  it("replaces on edit: the old line is kept and marked, the new wording is Jake's", () => {
     const file = tempFile(HEAD);
     const [a] = appendLessons(file, "ads", "chat a", ["Old text"], "2026-10-16");
-    const applied = applyEdits(file, [
-      { id: "e2", lessonId: a.id, action: "edit", text: "New text" },
-      { id: "e3", lessonId: "l-ffffffff", action: "delete", text: null },
-    ]);
+    const applied = applyEdits(
+      file,
+      [
+        { id: "e2", lessonId: a.id, action: "edit", text: "New text" },
+        { id: "e3", lessonId: "l-ffffffff", action: "delete", text: null },
+      ],
+      "2026-10-22",
+    );
     expect(applied).toEqual(["e2"]);
-    expect(readFileSync(file, "utf8")).toContain(`- [2026-10-16] (ads, chat a) New text ^${a.id}`);
+    const [old, now] = readLessons(file);
+    expect(old).toMatchObject({ id: a.id, text: "Old text", learnedOn: "2026-10-16", source: "chat a" });
+    expect(old.replacedBy).toBe(now.id);
+    expect(now).toMatchObject({ text: "New text", source: "Jake", learnedOn: "2026-10-22", replacedBy: null, kind: "lesson" });
+  });
+
+  it("reads a kind off the line and keeps it through an edit", () => {
+    const file = tempFile(HEAD);
+    const [a] = appendLessons(file, "csm", "chat a", ["[decision] Willis runs the $500 off offer"], "2026-10-16");
+    expect(a).toMatchObject({ kind: "decision", text: "Willis runs the $500 off offer" });
+    applyEdits(file, [{ id: "e1", lessonId: a.id, action: "edit", text: "Willis runs $600 off" }], "2026-10-22");
+    const now = readLessons(file).find((l) => !l.replacedBy)!;
+    expect(now).toMatchObject({ kind: "decision", text: "Willis runs $600 off" });
+  });
+
+  it("does not edit a line that was already replaced", () => {
+    const file = tempFile(HEAD);
+    const [a] = appendLessons(file, "ads", "chat a", ["One"], "2026-10-16");
+    applyEdits(file, [{ id: "e1", lessonId: a.id, action: "edit", text: "Two" }], "2026-10-17");
+    expect(applyEdits(file, [{ id: "e2", lessonId: a.id, action: "edit", text: "Three" }])).toEqual([]);
+    expect(readLessons(file)).toHaveLength(2);
   });
 
   it("ignores lines that only mention an id mid-text", () => {

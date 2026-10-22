@@ -30,6 +30,8 @@ import { runClaude, type RunOptions } from "./claude.ts";
 import { AGENT_IDS } from "./agents.ts";
 import { hermesRunner } from "./hermes.ts";
 import { appTools } from "./appOps.ts";
+import { runComposio } from "./composioTools.ts";
+import { reach, readPage } from "./webTools.ts";
 import { startBridge, type Bridge } from "./mcpBridge.ts";
 import { API_BASE, CLAIM_AGENTS, DATA_DIR, DRIVE_MODE, DRIVE_REMOTE, DRIVE_ROOT, ENGINE, GIT_PUSH, HERMES_API, HEARTBEAT_MS, HIGGSFIELD_LOGIN, PAGES_CWD, PC_JOBS, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
 import { createCreativeApi } from "./creativeApi.ts";
@@ -147,7 +149,15 @@ async function main(): Promise<void> {
     const tokens = Object.fromEntries(
       AGENT_IDS.map((a) => [a, process.env[`HERMES_MCP_TOKEN_${a.toUpperCase()}`] ?? ""]).filter(([, t]) => t),
     );
-    bridge = await startBridge({ port: Number(process.env.HERMES_MCP_PORT ?? 8700), tokens, tools: appTools({ base: API_BASE, secret, higgsfield: hf ?? undefined }) });
+    // COMPOSIO_API_KEY comes in with the rest of Doppler's prd secrets.
+    const composioKey = process.env.COMPOSIO_API_KEY ?? "";
+    const tools = {
+      ...appTools({ base: API_BASE, secret, higgsfield: hf ?? undefined }),
+      readPage: (url: string) => readPage(url),
+      reach: (channel: string, target: string) => reach(channel, target),
+      ...(composioKey ? { composio: (agent: AgentId, slug: string, a: Record<string, unknown>) => runComposio(agent, slug, a, { apiKey: composioKey }) } : {}),
+    };
+    bridge = await startBridge({ port: Number(process.env.HERMES_MCP_PORT ?? 8700), tokens, tools });
     log(`app tools for Hermes on port ${bridge.port} (${Object.keys(tokens).join(", ") || "no tokens set"}); Higgsfield ${hf?.ready() ? "signed in" : "not signed in"}`);
   }
 

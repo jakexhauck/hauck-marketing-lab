@@ -76,6 +76,10 @@ export interface AgentLesson {
   text: string;
   source: string;
   learnedOn: string | null;
+  // "[decision]" / "[fact]" on the line, else a lesson (brain.ts).
+  kind?: "lesson" | "decision" | "fact";
+  // Set when an edit from the app replaced this line; the id of the new one.
+  replacedBy?: string | null;
 }
 
 export interface LessonEdit {

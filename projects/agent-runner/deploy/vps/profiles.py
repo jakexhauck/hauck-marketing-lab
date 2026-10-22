@@ -1,6 +1,6 @@
 # Sets up the five agent profiles in Hermes. Run INSIDE the Hermes container
 # as the hermes user, by setup.sh:
-#   /opt/hermes/.venv/bin/python profiles.py <tokens env file> <agents dir>
+#   /opt/hermes/.venv/bin/python profiles.py <tokens env file> <agents dir> <skills.json> <skills dir>
 #
 # Idempotent. For each profile it sets the tools Hermes may give it over the
 # API (no terminal, no file tools, no code execution, no browser), points its
@@ -9,7 +9,9 @@
 # system message; SOUL.md is who the agent is when nothing else says (a text
 # message to the Manager, later).
 
+import json
 import os
+import shutil
 import sys
 
 # Hermes's venv has ruamel, not PyYAML; hermes_yaml wraps it with the same
@@ -38,6 +40,46 @@ NAMES = {
     "ads": "Ads Agent",
 }
 MCP_URL = "http://hauck-agent-runner:8700/mcp"
+# Our skills live in their own category folder, so a re-run replaces exactly
+# them and never touches what Hermes seeded or what an agent made itself.
+OURS = "hauck"
+# Caveman shortens the chat reply and nothing else. Its own rules already exempt
+# anything persisted; the line says so again in our words.
+CAVEMAN = (
+    "In chat replies use the caveman skill's voice: answer first, short, no ceremony. "
+    "Never for cards, the brief, lessons, requests to other agents, or anything a client will read."
+)
+
+
+def skill_name(skill_md):
+    with open(skill_md, encoding="utf-8") as f:
+        head = f.read(4000)
+    for line in head.splitlines()[1:]:
+        if line.strip() == "---":
+            break
+        if line.startswith("name:"):
+            return line.split(":", 1)[1].strip().strip("\"'")
+    return os.path.basename(os.path.dirname(skill_md))
+
+
+def install_skills(d, agent, manifest, staged):
+    """Copy this agent's pinned skills in, then switch off every other skill
+    except the keep list: an agent reads the name and description of every
+    enabled skill on every turn, so 53 it never uses cost on each one."""
+    ours = os.path.join(d, "skills", OURS)
+    shutil.rmtree(ours, ignore_errors=True)
+    mine = []
+    for src, path in manifest["install"].get(agent, []):
+        dest = os.path.join(ours, os.path.basename(path))
+        shutil.copytree(os.path.join(staged, src, path), dest)
+        mine.append(skill_name(os.path.join(dest, "SKILL.md")))
+    off = set()
+    for root, _dirs, files in os.walk(os.path.join(d, "skills")):
+        if "SKILL.md" in files and not root.startswith(ours):
+            name = skill_name(os.path.join(root, "SKILL.md"))
+            if name not in manifest["keep"]:
+                off.add(name)
+    return mine, sorted(off - set(mine))
 
 
 def read_env(path):
@@ -54,6 +96,9 @@ def read_env(path):
 def main():
     tokens = read_env(sys.argv[1])
     agents_dir = sys.argv[2]
+    with open(sys.argv[3]) as f:
+        manifest = json.load(f)
+    staged = sys.argv[4]
     for agent, toolsets in TOOLSETS.items():
         d = os.path.join(HOME, agent)
         if not os.path.isdir(d):
@@ -65,6 +110,8 @@ def main():
         with open(cfg_path) as f:
             cfg = yaml.safe_load(f) or {}
         cfg.setdefault("platform_toolsets", {})["api_server"] = toolsets
+        mine, off = install_skills(d, agent, manifest, staged)
+        cfg.setdefault("skills", {})["disabled"] = off
         servers = cfg.setdefault("mcp_servers", {})
         servers["hauck"] = {"url": MCP_URL, "headers": {"Authorization": f"Bearer {token}"}}
         with open(cfg_path, "w") as f:
@@ -84,9 +131,10 @@ def main():
                 "answer first, no headings, no preamble, long work goes on a card. "
                 "Never use em dashes. You keep your own memory across conversations: "
                 "save what you learn about each client under that client's name.\n\n"
-                f"{role}\n"
+                + (CAVEMAN + "\n\n" if "caveman" in mine else "")
+                + f"{role}\n"
             )
-        print(f"{agent}: {', '.join(toolsets)}")
+        print(f"{agent}: {', '.join(toolsets)}; skills {', '.join(mine) or 'none'}; {len(off)} others off")
 
 
 main()

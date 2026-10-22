@@ -447,10 +447,13 @@ describe("applyQueuedEdits", () => {
     );
     expect(applied.sort()).toEqual(["e1", "e2"]);
     expect(readFileSync(join(vaultDir, "Clients", "Willis Windows", "Brain.md"), "utf8")).toContain(
-      "Before/after beats quotes 3 to 1 ^l-aaaaaaaa",
+      "(replaced by l-",
     );
     expect(api.lessonPosts[0].appliedEditIds.sort()).toEqual(["e1", "e2"]);
-    expect(api.lessonPosts[0].lessons.map((l) => l.text)).toEqual(["Before/after beats quotes 3 to 1"]);
+    // The old wording stays, marked replaced; the new one is Jake's.
+    const posted = api.lessonPosts[0].lessons;
+    expect(posted.find((l) => l.id === "l-aaaaaaaa")?.replacedBy).toMatch(/^l-[0-9a-f]{8}$/);
+    expect(posted.find((l) => !l.replacedBy)).toMatchObject({ text: "Before/after beats quotes 3 to 1", source: "Jake" });
   });
 });
 

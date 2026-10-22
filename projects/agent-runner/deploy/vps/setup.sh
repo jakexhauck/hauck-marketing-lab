@@ -51,9 +51,33 @@ trap 'rm -rf "$TMP"' EXIT
 rm -rf "$TMP" && mkdir -p "$TMP"
 cp "$KEYS" "$TMP/tokens.env"
 cp -r "$HERE/../../agents" "$TMP/agents"
-cp "$HERE/profiles.py" "$TMP/profiles.py"
+cp "$HERE/profiles.py" "$HERE/skills.json" "$TMP/"
+
+# The skills from skills.json, each source repo at its pinned commit, only the
+# chosen folders (no evals). Hermes's own installer takes the registry's latest
+# with no way to pin, so the copy is made here and profiles.py puts it in place.
+mkdir -p "$TMP/skills"
+python3 - "$HERE/skills.json" "$TMP/skills" <<'PY'
+import json, os, shutil, subprocess, sys, tarfile, tempfile
+manifest, out = json.load(open(sys.argv[1])), sys.argv[2]
+wanted = {}
+for agent, rows in manifest["install"].items():
+    for src, path in rows:
+        wanted.setdefault(src, set()).add(path)
+for src, paths in wanted.items():
+    s = manifest["sources"][src]
+    with tempfile.TemporaryDirectory() as tmp:
+        tgz = os.path.join(tmp, "src.tgz")
+        subprocess.run(["curl", "-sfL", "--proto", "=https", "-o", tgz, f"https://codeload.github.com/{s['repo']}/tar.gz/{s['commit']}"], check=True)
+        with tarfile.open(tgz) as t:
+            t.extractall(tmp, filter="data")
+        root = next(os.path.join(tmp, d) for d in os.listdir(tmp) if os.path.isdir(os.path.join(tmp, d)))
+        for path in paths:
+            dest = os.path.join(out, src, path)
+            shutil.copytree(os.path.join(root, path), dest, ignore=shutil.ignore_patterns("evals"))
+PY
 chown -R 10000:10000 "$TMP"
-docker exec -u hermes $C /opt/hermes/.venv/bin/python /opt/data/.hauck-setup/profiles.py /opt/data/.hauck-setup/tokens.env /opt/data/.hauck-setup/agents
+docker exec -u hermes $C /opt/hermes/.venv/bin/python /opt/data/.hauck-setup/profiles.py /opt/data/.hauck-setup/tokens.env /opt/data/.hauck-setup/agents /opt/data/.hauck-setup/skills.json /opt/data/.hauck-setup/skills
 rm -rf "$TMP"
 
 # Shared folders, owned by the uid both containers run as.

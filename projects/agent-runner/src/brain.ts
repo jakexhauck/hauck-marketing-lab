@@ -14,6 +14,13 @@
 //
 // The runner is the only writer from the app's side. The page queues an edit;
 // the runner applies it here and reports it applied.
+//
+// Memory, not just a list (docs/build-plans/hermes-agent-ops.md, Phase 4). A
+// lesson may open with its kind, "[decision]" or "[fact]" (a plain line is a
+// lesson). An edit from the app does not overwrite: the old line is kept and
+// marked "(replaced by l-xxxxxxxx)", and the new wording is a new line whose
+// source is Jake. So the brain keeps what was believed before and when it
+// changed, and a wrong correction can be walked back.
 
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -22,6 +29,20 @@ import { stripEmDashes } from "./output.ts";
 import type { AgentId, AgentLesson, LessonEdit, LessonScope } from "./wire.ts";
 
 export const LESSON_LINE = /^- \[(\d{4}-\d{2}-\d{2})\] \(([a-z]+), (.*?)\) (.*) \^(l-[0-9a-f]{8})\s*$/;
+const KIND_TAG = /^\[(decision|fact|lesson)\]\s*/i;
+const REPLACED_TAG = /\s*\(replaced by (l-[0-9a-f]{8})\)\s*$/;
+
+export type LessonKind = "lesson" | "decision" | "fact";
+
+// The kind and the replacement read off a lesson's text. The text handed on
+// keeps neither tag, so the app shows the words and labels them itself.
+export function lessonParts(raw: string): { kind: LessonKind; replacedBy: string | null; text: string } {
+  const replaced = REPLACED_TAG.exec(raw);
+  let text = replaced ? raw.slice(0, replaced.index) : raw;
+  const kind = KIND_TAG.exec(text);
+  if (kind) text = text.slice(kind[0].length);
+  return { kind: ((kind?.[1].toLowerCase() as LessonKind) ?? "lesson"), replacedBy: replaced?.[1] ?? null, text: text.trim() };
+}
 
 export interface BrainContext {
   scope: LessonScope;
@@ -62,14 +83,17 @@ export function readLessons(file: string, ctx: BrainContext = { scope: "client",
   for (const line of read(file).split(/\r?\n/)) {
     const m = LESSON_LINE.exec(line);
     if (!m) continue;
+    const parts = lessonParts(m[4]);
     out.push({
       id: m[5],
       scope: ctx.scope,
       tenantId: ctx.tenantId,
       agent: m[2] as AgentId,
-      text: m[4],
+      text: parts.text,
       source: m[3],
       learnedOn: m[1],
+      kind: parts.kind,
+      replacedBy: parts.replacedBy,
     });
   }
   return out;
@@ -91,7 +115,8 @@ export function appendLessons(
     if (!text) continue;
     const id = newLessonId();
     rows.push(`- [${today}] (${agent}, ${src}) ${text} ^${id}`);
-    added.push({ id, scope: ctx.scope, tenantId: ctx.tenantId, agent, text, source: src, learnedOn: today });
+    const parts = lessonParts(text);
+    added.push({ id, scope: ctx.scope, tenantId: ctx.tenantId, agent, text: parts.text, source: src, learnedOn: today, kind: parts.kind, replacedBy: null });
   }
   if (rows.length === 0) return added;
 
@@ -108,7 +133,11 @@ export function appendLessons(
 // Returns the ids of the EDITS applied in this file (not the lesson ids): that
 // is what the app is waiting to hear back. An edit whose lesson is not in this
 // file is left for the caller, which tries the other brain files.
-export function applyEdits(file: string, edits: LessonEdit[]): string[] {
+//
+// A delete removes the line (a test fact, junk). An edit replaces: the old line
+// is marked and kept, the new wording goes in right under it as Jake's, with
+// the old line's kind unless the new text names its own.
+export function applyEdits(file: string, edits: LessonEdit[], today: string = new Date().toISOString().slice(0, 10)): string[] {
   const body = read(file);
   if (!body || edits.length === 0) return [];
   const applied: string[] = [];
@@ -124,9 +153,16 @@ export function applyEdits(file: string, edits: LessonEdit[]): string[] {
       lines = lines.filter((_, i) => i !== at);
     } else {
       const m = LESSON_LINE.exec(lines[at])!;
+      const old = lessonParts(m[4]);
       const text = cleanText(edit.text ?? "");
       if (!text) continue;
-      lines[at] = `- [${m[1]}] (${m[2]}, ${m[3]}) ${text} ^${m[5]}`;
+      // Editing a line already replaced edits the history, which is not what a
+      // correction is: the app only offers edit on current lessons, so skip.
+      if (old.replacedBy) continue;
+      const id = newLessonId();
+      const tagged = KIND_TAG.test(text) || old.kind === "lesson" ? text : `[${old.kind}] ${text}`;
+      lines[at] = `- [${m[1]}] (${m[2]}, ${m[3]}) ${m[4]} (replaced by ${id}) ^${m[5]}`;
+      lines.splice(at + 1, 0, `- [${today}] (${m[2]}, Jake) ${tagged} ^${id}`);
     }
     applied.push(edit.id);
   }

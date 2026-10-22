@@ -1,0 +1,41 @@
+{
+  "keep": ["grounded-citations", "competitor-news-monitor", "pdf", "xlsx"],
+  "sources": {
+    "caveman": { "repo": "juliusbrussee/caveman", "commit": "bad48a0e1df55e05e3f52249afa35ecc1909ee76", "license": "Apache-2.0" },
+    "marketing": { "repo": "coreyhaines31/marketingskills", "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b", "license": "MIT" },
+    "superpowers": { "repo": "obra/superpowers", "commit": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b", "license": "MIT" }
+  },
+  "install": {
+    "manager": [
+      ["caveman", "skills/caveman"],
+      ["superpowers", "skills/brainstorming"],
+      ["superpowers", "skills/writing-plans"],
+      ["superpowers", "skills/verification-before-completion"]
+    ],
+    "csm": [
+      ["caveman", "skills/caveman"],
+      ["marketing", "skills/offers"],
+      ["marketing", "skills/marketing-plan"],
+      ["marketing", "skills/marketing-psychology"]
+    ],
+    "research": [
+      ["caveman", "skills/caveman"],
+      ["marketing", "skills/customer-research"],
+      ["marketing", "skills/competitor-profiling"],
+      ["marketing", "skills/competitors"],
+      ["marketing", "skills/marketing-psychology"]
+    ],
+    "ghl": [
+      ["caveman", "skills/caveman"]
+    ],
+    "ads": [
+      ["marketing", "skills/ads"],
+      ["marketing", "skills/ad-creative"],
+      ["marketing", "skills/copywriting"],
+      ["marketing", "skills/copy-editing"],
+      ["marketing", "skills/marketing-psychology"],
+      ["marketing", "skills/offers"],
+      ["marketing", "skills/cro"]
+    ]
+  }
+}

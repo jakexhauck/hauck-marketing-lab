@@ -344,3 +344,49 @@ describe("file tools", () => {
     expect(bridge!.written("csm")).toEqual([]);
   });
 });
+
+describe("web and Composio tools", () => {
+  async function startWeb() {
+    const f = fakeTools();
+    const calls: string[] = [];
+    f.tools.readPage = async (url) => (calls.push(`page:${url}`), "# Page");
+    f.tools.reach = async (channel, target) => (calls.push(`reach:${channel}:${target}`), "reached");
+    f.tools.composio = async (agent, slug) => (calls.push(`composio:${agent}:${slug}`), { text: "{}", isError: false });
+    bridge = await startBridge({ port: 0, tokens: TOKENS, tools: f.tools });
+    return calls;
+  }
+  const names = async (token: string) => ((await rpc(token, "tools/list")).body.result.tools as { name: string }[]).map((t) => t.name);
+
+  it("lists each agent only its own", async () => {
+    await startWeb();
+    expect(await names("t-research")).toEqual(expect.arrayContaining(["read_page", "reach", "composio"]));
+    expect(await names("t-csm")).toEqual(expect.arrayContaining(["read_page", "composio"]));
+    expect(await names("t-csm")).not.toContain("reach");
+    const ghl = await names("t-ghl");
+    expect(ghl).not.toContain("read_page");
+    expect(ghl).not.toContain("composio");
+  });
+
+  it("offers no web tools when the runner has none set up", async () => {
+    await start();
+    expect(await names("t-research")).not.toContain("read_page");
+  });
+
+  it("needs the running turn, like every other tool", async () => {
+    const calls = await startWeb();
+    bridge!.setTurn("research", { tenantId: "t1", messageId: "m1" });
+    const stale = await rpc("t-research", "tools/call", { name: "read_page", arguments: { turn: "m0", url: "https://example.com" } });
+    expect(stale.body.result.isError).toBe(true);
+    const ok = await rpc("t-research", "tools/call", { name: "reach", arguments: { turn: "m1", channel: "rss", target: "https://x.com/feed" } });
+    expect(ok.body.result.content[0].text).toBe("reached");
+    expect(calls).toEqual(["reach:rss:https://x.com/feed"]);
+  });
+
+  it("refuses the GHL Agent a web call even with a good turn", async () => {
+    const calls = await startWeb();
+    bridge!.setTurn("ghl", { tenantId: "t1", messageId: "m1" });
+    const r = await rpc("t-ghl", "tools/call", { name: "read_page", arguments: { turn: "m1", url: "https://example.com" } });
+    expect(r.body.result.isError).toBe(true);
+    expect(calls).toEqual([]);
+  });
+});

@@ -45,3 +45,7 @@ GHL's API has no way to create pipelines, stages, funnels or funnel pages, and t
 Name the exact menu, button and field each time. Never guess a stage or funnel name: read the pipelines first and use the real names.
 
 Never put a token, key or password in a reply, an item or a lesson.
+
+## Skills and tools
+
+Skills: none beyond your own brain. Tools: the ghl command only.
