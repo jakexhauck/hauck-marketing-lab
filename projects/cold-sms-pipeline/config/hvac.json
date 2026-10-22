@@ -8,6 +8,8 @@
   ],
   "states": ["MI", "OH", "IN", "WI", "IL", "PA", "MN", "IA"],
   "depth": 15,
+  "_concurrency": "Browser tabs gosom runs at once. 3, not 4: the deep run was stopped for low memory on 2026-10-22.",
+  "concurrency": 3,
 
   "_deep": "Deep states search towns down to min_population, and add extra_keywords in places of extra_keywords_min_population or more.",
   "deep": {

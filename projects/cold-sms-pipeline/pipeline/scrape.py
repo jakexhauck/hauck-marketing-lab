@@ -73,7 +73,7 @@ def _read_results(path):
     return rows
 
 
-def run_batch(queries, depth, tag):
+def run_batch(queries, depth, tag, concurrency=4):
     """queries: (id, text) pairs. The id rides along as gosom's custom input id
     ('text #!#id') and comes back on every listing as input_id."""
     if not GOSOM.is_file():
@@ -84,7 +84,7 @@ def run_batch(queries, depth, tag):
     qfile.write_text("".join(f"{text} #!#{qid}\n" for qid, text in queries), encoding="utf-8")
     rfile.unlink(missing_ok=True)
     cmd = [str(GOSOM), "-input", str(qfile), "-results", str(rfile), "-json",
-           "-depth", str(depth), "-c", "4", "-exit-on-inactivity", "2m", "-lang", "en"]
+           "-depth", str(depth), "-c", str(concurrency), "-exit-on-inactivity", "2m", "-lang", "en"]
     try:
         subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
                        timeout=300 + len(queries) * 120)
@@ -106,7 +106,8 @@ def scrape(con, trade, states=None, batch_size=30, max_queries=None, log=print):
     empty_batches = 0
     for i in range(0, len(todo), batch_size):
         batch = todo[i:i + batch_size]
-        rows = run_batch([(q["id"], q["query"]) for q in batch], trade["depth"], f"batch_{batch[0]['id']}")
+        rows = run_batch([(q["id"], q["query"]) for q in batch], trade["depth"], f"batch_{batch[0]['id']}",
+                         trade.get("concurrency", 4))
         if not rows:
             empty_batches += 1
             log(f"  batch of {len(batch)} returned nothing ({empty_batches} in a row)")
