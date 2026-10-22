@@ -817,3 +817,22 @@ Your action items:
 4. Then go through the research with the CSM and settle the launch plan; the CSM asks the Ads Agent to put it on the Ads page.
 5. Decide whether to pay for a review and Ad Library scraper (about $10 to $30 a month) so pain points and competitor ad counts are complete.
 
+
+## Hermes agent ops: skills, brief from chat, Telegram, Settings (2026-10-22)
+
+What's in the app now: the five Hermes agents have their skills from the "10 Hermes Agent Skills" video (Caveman, Marketing Skills, Superpowers, Defuddle, Agent Reach without login, Composio); the Ads and Market Research chats show their brief page on the right and an Approve on a brief card writes it there; the Manager pings you on Telegram only when a card or request waits on you, or the agents go down; every agent has a Settings tab (health, cost, skills, schedules); an edited Brain lesson keeps the old one struck through.
+
+Calls Claude made (overrule any): Caveman only for chat replies of Manager, CSM, Research and GHL (never Ads, cards or the brief); about 7 Marketing Skills per agent, not all 49; every bundled Hermes skill switched off except grounded-citations, competitor-news-monitor, pdf and xlsx; Composio is read or draft only (Gmail drafts, the agency calendar, Drive search), nothing sends; OpenMontage and Humanizer and Nova left out; the Oh My Claude Code verify idea is a "check your card before posting" step, not a second agent.
+
+Your action items:
+1. In Telegram, message @BotFather, send /newbot, name it "Hauck Manager", copy the token.
+2. Paste it as TELEGRAM_BOT_TOKEN on the app's agency keys page, and press Generate on TELEGRAM_WEBHOOK_SECRET. Tell Claude when done; Claude runs the set-webhook script.
+3. Send /start to the bot. It answers with your chat id. Paste it as TELEGRAM_CHAT_ID.
+4. Reconnect Gmail in Composio (it expired), so the Manager and CSM can read mail and write drafts.
+5. Open Clear Choice > Agents > Ads, ask for this month's offer, and Approve the brief card. Check it lands on the right.
+6. Open any agent's Settings tab and check health, cost and skills read sensibly.
+7. Decide: burner Reddit and X accounts for Agent Reach, so Market Research can read what people say there.
+
+Still parked:
+- Codebase Memory for Claude Code on your PC: its installer edits many AI tools' settings and Defender sometimes flags its binary. Say go and Claude installs the binary only.
+- A runner restart in one exact second could run a scheduled job twice. Accepted.
