@@ -4,6 +4,7 @@ import type { BriefAuthor, BriefDrive, BriefSection, BriefSectionId, ClaimRespon
 import { fullBrief, isBriefAuthor, isBriefSectionId, MAX_SECTION_CHARS } from "../../src/lib/clientBrief";
 import { clientSeed } from "../../src/lib/briefClientSeed";
 import { isUuid } from "./agentItems";
+import { readPages } from "./briefPagesStore";
 import { messageFromRow, stripEmDash, type ClaimCore } from "./agentRunner";
 
 // The Client Brief's store (migration 0168; docs/build-plans/agents.md, Phase 6).
@@ -225,7 +226,7 @@ export async function withBrief(client: SupabaseClient, claim: ClaimCore | null)
   try {
     const tenantId = claim.tenant.id;
     const { sections } = await seedClientSection(client, tenantId, await readBrief(client, tenantId));
-    return { ...claim, brief: sections };
+    return { ...claim, brief: sections, pages: await readPages(client, tenantId) };
   } catch (err) {
     console.error(`claim: brief read failed for ${claim.tenant.id}: ${(err as Error).message}`);
     return { ...claim, brief: [] };

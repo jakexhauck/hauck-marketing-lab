@@ -6,6 +6,7 @@
 // Field names are camelCase on the wire; the tables (0166) are snake_case.
 
 import type { AgentId } from "./agents";
+import type { BriefPageRow } from "./briefPages";
 
 export type MessageRole = "me" | "ai" | "request" | "trigger";
 export type MessageStatus = "queued" | "running" | "done" | "error";
@@ -133,6 +134,8 @@ export interface ClaimResponse {
   // The client's whole brief with versions, every section in BRIEF_SECTIONS
   // order. [] for the agency Manager, which has no client.
   brief: BriefSection[];
+  // The Mission Control pages; absent for the agency Manager.
+  pages?: BriefPageRow[];
   // The agent's own SOP, read off its map on the SOPs tab (lib/sopPrompt.ts):
   // stages in order, each task with its owner and steps. Optional so the
   // runner still reads a claim from an app that sends none.
@@ -344,6 +347,8 @@ export interface BriefDrive {
 export interface BriefResponse {
   sections: BriefSection[];
   drive: BriefDrive | null;
+  // The Mission Control pages (research, ads), both always present.
+  pages: BriefPageRow[];
 }
 
 // PUT /api/admin/agents/brief?tenant=
@@ -358,6 +363,15 @@ export interface BriefSaveBody {
 export interface RunnerBriefBody {
   messageId: string;
   body: string;
+  version: number;
+}
+
+// Runner-only: an agent rewrites its own Mission Control page (research or
+// ads) with a ```page block. POST /api/agent-runner/brief-page. The page is
+// the chat's agent, on the server; data is cleaned there (lib/briefPages.ts).
+export interface RunnerPageBody {
+  messageId: string;
+  data: unknown;
   version: number;
 }
 

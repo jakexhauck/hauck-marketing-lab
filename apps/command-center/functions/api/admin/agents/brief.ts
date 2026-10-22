@@ -2,6 +2,7 @@ import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { isUuid } from "../../../lib/agentItems";
 import { readBrief, readBriefDrive, saveBriefSection, seedClientSection } from "../../../lib/clientBriefs";
+import { readPages } from "../../../lib/briefPagesStore";
 import { composioBriefOps, syncBriefToDrive } from "../../../lib/briefDrive";
 import { isBriefSectionId } from "../../../../src/lib/clientBrief";
 import type { BriefResponse } from "../../../../src/lib/agentWire";
@@ -26,7 +27,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // first time anyone opens the brief, then Drive is brought up to date.
   const { sections, seeded } = await seedClientSection(client, tenantId, await readBrief(client, tenantId));
   if (seeded) ctx.waitUntil(syncBriefToDrive(client, tenantId, composioBriefOps(ctx.env)));
-  const out: BriefResponse = { sections, drive: await readBriefDrive(client, tenantId) };
+  const [drive, pages] = await Promise.all([readBriefDrive(client, tenantId), readPages(client, tenantId)]);
+  const out: BriefResponse = { sections, drive, pages };
   return Response.json(out, { headers: { "Cache-Control": "no-store" } });
 };
 
