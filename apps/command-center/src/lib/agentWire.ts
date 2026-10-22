@@ -7,6 +7,7 @@
 
 import type { AgentId } from "./agents";
 import type { BriefPageRow } from "./briefPages";
+import type { AnswerGroup } from "./briefClientSeed";
 
 export type MessageRole = "me" | "ai" | "request" | "trigger";
 export type MessageStatus = "queued" | "running" | "done" | "error";
@@ -395,4 +396,30 @@ export interface RunnerTaskBody {
 export interface RunnerTaskResult {
   updated: string[];
   refused: { key: string; reason: string }[];
+}
+
+// GET /api/admin/agents/brief-live?tenant= : the Mission Control's live parts,
+// read fresh on every open (functions/lib/briefLive.ts). Each part fails on its
+// own: null with its error, the rest still there.
+export interface BriefLiveLink {
+  id: "drive" | "ads" | "ghl" | "website" | "outcome";
+  label: string;
+  url: string | null;
+}
+
+export interface BriefLiveGhl {
+  customValues: { name: string; key: string; value: string }[];
+  pipelines: { name: string; stages: string[] }[];
+  calendars: { name: string; active: boolean }[];
+  workflows: { name: string; status: string }[];
+}
+
+export interface BriefLive {
+  links: BriefLiveLink[];
+  answers: AnswerGroup[];
+  answersError: string | null;
+  assets: { name: string; url: string; thumbUrl: string | null; folder: string }[] | null;
+  assetsError: string | null;
+  ghl: BriefLiveGhl | null;
+  ghlError: string | null;
 }

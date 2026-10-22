@@ -95,9 +95,19 @@ function valueOf(key: string, raw: unknown): string | null {
   return shown ? oneLine(shown) || null : null;
 }
 
-export function clientSeed(answers: Record<string, unknown>, opts: { hasPassword: boolean }): string {
-  const lines = new Map<Heading, string[]>(HEADINGS.map((h) => [h, []]));
-  const add = (h: Heading, label: string, value: string) => lines.get(h)!.push(`- ${label}: ${value}`);
+export interface AnswerGroup {
+  heading: string;
+  rows: { label: string; value: string }[];
+}
+
+/**
+ * The onboarding answers grouped under the brief's headings, in order, empty
+ * headings left out. The Mission Control's Client Information page draws these
+ * as cards; clientSeed writes the same groups as markdown.
+ */
+export function clientAnswerGroups(answers: Record<string, unknown>, opts: { hasPassword: boolean }): AnswerGroup[] {
+  const lines = new Map<Heading, AnswerGroup["rows"]>(HEADINGS.map((h) => [h, []]));
+  const add = (h: Heading, label: string, value: string) => lines.get(h)!.push({ label, value });
 
   const addr = ADDRESS.map((k) => valueOf(k, answers[k]));
   if (addr.some(Boolean)) {
@@ -121,7 +131,11 @@ export function clientSeed(answers: Record<string, unknown>, opts: { hasPassword
     opts.hasPassword || [...PASSWORD_KEYS].some((k) => typeof answers[k] === "string" && (answers[k] as string).trim());
   if (hasPassword) add("Logins", "Password", "on file");
 
-  return HEADINGS.filter((h) => lines.get(h)!.length)
-    .map((h) => [`### ${h}`, ...lines.get(h)!].join("\n"))
+  return HEADINGS.filter((h) => lines.get(h)!.length).map((h) => ({ heading: h, rows: lines.get(h)! }));
+}
+
+export function clientSeed(answers: Record<string, unknown>, opts: { hasPassword: boolean }): string {
+  return clientAnswerGroups(answers, opts)
+    .map((g) => [`### ${g.heading}`, ...g.rows.map((r) => `- ${r.label}: ${r.value}`)].join("\n"))
     .join("\n\n");
 }
