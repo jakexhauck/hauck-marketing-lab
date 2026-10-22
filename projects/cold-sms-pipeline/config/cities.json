@@ -5,6 +5,11 @@
   "population": 2721308
  },
  {
+  "city": "Philadelphia",
+  "state": "PA",
+  "population": 1573916
+ },
+ {
   "city": "Columbus",
   "state": "OH",
   "population": 933263
@@ -25,6 +30,11 @@
   "population": 563531
  },
  {
+  "city": "Minneapolis",
+  "state": "MN",
+  "population": 428579
+ },
+ {
   "city": "Cleveland",
   "state": "OH",
   "population": 365379
@@ -33,6 +43,16 @@
   "city": "Cincinnati",
   "state": "OH",
   "population": 314915
+ },
+ {
+  "city": "Pittsburgh",
+  "state": "PA",
+  "population": 307668
+ },
+ {
+  "city": "St. Paul",
+  "state": "MN",
+  "population": 307465
  },
  {
   "city": "Madison",
@@ -48,6 +68,11 @@
   "city": "Toledo",
   "state": "OH",
   "population": 265638
+ },
+ {
+  "city": "Des Moines",
+  "state": "IA",
+  "population": 213096
  },
  {
   "city": "Grand Rapids",
@@ -80,6 +105,11 @@
   "population": 147486
  },
  {
+  "city": "Cedar Rapids",
+  "state": "IA",
+  "population": 137904
+ },
+ {
   "city": "Warren",
   "state": "MI",
   "population": 137686
@@ -93,6 +123,16 @@
   "city": "Sterling Heights",
   "state": "MI",
   "population": 134342
+ },
+ {
+  "city": "Allentown",
+  "state": "PA",
+  "population": 127138
+ },
+ {
+  "city": "Rochester",
+  "state": "MN",
+  "population": 123624
  },
  {
   "city": "Ann Arbor",
@@ -155,6 +195,11 @@
   "population": 101359
  },
  {
+  "city": "Davenport",
+  "state": "IA",
+  "population": 100938
+ },
+ {
   "city": "Canton Township",
   "state": "MI",
   "population": 99793
@@ -165,6 +210,11 @@
   "population": 99578
  },
  {
+  "city": "Reading",
+  "state": "PA",
+  "population": 96000
+ },
+ {
   "city": "Macomb Township",
   "state": "MI",
   "population": 94302
@@ -173,6 +223,11 @@
   "city": "Livonia",
   "state": "MI",
   "population": 93113
+ },
+ {
+  "city": "Erie",
+  "state": "PA",
+  "population": 92940
  },
  {
   "city": "Champaign",
@@ -190,9 +245,34 @@
   "population": 88570
  },
  {
+  "city": "Bloomington",
+  "state": "MN",
+  "population": 88344
+ },
+ {
+  "city": "Duluth",
+  "state": "MN",
+  "population": 87986
+ },
+ {
+  "city": "Sioux City",
+  "state": "IA",
+  "population": 86875
+ },
+ {
+  "city": "Upper Darby Township",
+  "state": "PA",
+  "population": 86045
+ },
+ {
   "city": "Farmington Hills",
   "state": "MI",
   "population": 84173
+ },
+ {
+  "city": "Brooklyn Park",
+  "state": "MN",
+  "population": 82893
  },
  {
   "city": "Westland",
@@ -203,6 +283,11 @@
   "city": "Cicero",
   "state": "IL",
   "population": 82090
+ },
+ {
+  "city": "Woodbury",
+  "state": "MN",
+  "population": 80596
  },
  {
   "city": "Shelby Township",
@@ -220,6 +305,11 @@
   "population": 79735
  },
  {
+  "city": "Bethlehem",
+  "state": "PA",
+  "population": 79453
+ },
+ {
   "city": "Parma",
   "state": "OH",
   "population": 79350
@@ -235,6 +325,11 @@
   "population": 78559
  },
  {
+  "city": "Plymouth",
+  "state": "MN",
+  "population": 78551
+ },
+ {
   "city": "Rochester Hills",
   "state": "MI",
   "population": 78330
@@ -243,6 +338,11 @@
   "city": "Racine",
   "state": "WI",
   "population": 78057
+ },
+ {
+  "city": "Lakeville",
+  "state": "MN",
+  "population": 77971
  },
  {
   "city": "Schaumburg",
@@ -255,6 +355,16 @@
   "population": 76874
  },
  {
+  "city": "Ankeny",
+  "state": "IA",
+  "population": 76727
+ },
+ {
+  "city": "Iowa City",
+  "state": "IA",
+  "population": 76710
+ },
+ {
   "city": "Hammond",
   "state": "IN",
   "population": 76030
@@ -263,6 +373,11 @@
   "city": "Evanston",
   "state": "IL",
   "population": 76006
+ },
+ {
+  "city": "Scranton",
+  "state": "PA",
+  "population": 75905
  },
  {
   "city": "Arlington Heights",
@@ -280,9 +395,19 @@
   "population": 75239
  },
  {
+  "city": "Blaine",
+  "state": "MN",
+  "population": 75172
+ },
+ {
   "city": "Bolingbrook",
   "state": "IL",
   "population": 74756
+ },
+ {
+  "city": "West Des Moines",
+  "state": "IA",
+  "population": 73664
  },
  {
   "city": "Kalamazoo",
@@ -290,9 +415,19 @@
   "population": 73290
  },
  {
+  "city": "Maple Grove",
+  "state": "MN",
+  "population": 72739
+ },
+ {
   "city": "Eau Claire",
   "state": "WI",
   "population": 72331
+ },
+ {
+  "city": "St. Cloud",
+  "state": "MN",
+  "population": 72145
  },
  {
   "city": "Lafayette",
@@ -315,6 +450,11 @@
   "population": 69211
  },
  {
+  "city": "Ames",
+  "state": "IA",
+  "population": 69026
+ },
+ {
   "city": "Decatur",
   "state": "IL",
   "population": 68763
@@ -335,9 +475,19 @@
   "population": 67555
  },
  {
+  "city": "Waterloo",
+  "state": "IA",
+  "population": 67477
+ },
+ {
   "city": "Oshkosh",
   "state": "WI",
   "population": 67242
+ },
+ {
+  "city": "Eagan",
+  "state": "MN",
+  "population": 67240
  },
  {
   "city": "West Bloomfield Township",
@@ -370,14 +520,44 @@
   "population": 65320
  },
  {
+  "city": "Burnsville",
+  "state": "MN",
+  "population": 64864
+ },
+ {
+  "city": "Lower Merion Township",
+  "state": "PA",
+  "population": 64702
+ },
+ {
   "city": "Hamilton",
   "state": "OH",
   "population": 63953
  },
  {
+  "city": "Coon Rapids",
+  "state": "MN",
+  "population": 63807
+ },
+ {
+  "city": "Bensalem Township",
+  "state": "PA",
+  "population": 63080
+ },
+ {
   "city": "Westfield",
   "state": "IN",
   "population": 62994
+ },
+ {
+  "city": "Eden Prairie",
+  "state": "MN",
+  "population": 62905
+ },
+ {
+  "city": "Council Bluffs",
+  "state": "IA",
+  "population": 62665
  },
  {
   "city": "Pontiac",
@@ -410,6 +590,16 @@
   "population": 59123
  },
  {
+  "city": "Abington Township",
+  "state": "PA",
+  "population": 59075
+ },
+ {
+  "city": "Dubuque",
+  "state": "IA",
+  "population": 58987
+ },
+ {
   "city": "Des Plaines",
   "state": "IL",
   "population": 58832
@@ -418,6 +608,11 @@
   "city": "Terre Haute",
   "state": "IN",
   "population": 58531
+ },
+ {
+  "city": "Lancaster",
+  "state": "PA",
+  "population": 58441
  },
  {
   "city": "Royal Oak",
@@ -460,9 +655,19 @@
   "population": 55552
  },
  {
+  "city": "Lower Paxton Township",
+  "state": "PA",
+  "population": 55465
+ },
+ {
   "city": "Mount Prospect",
   "state": "IL",
   "population": 55460
+ },
+ {
+  "city": "Apple Valley",
+  "state": "MN",
+  "population": 55272
  },
  {
   "city": "Berwyn",
@@ -485,6 +690,11 @@
   "population": 54760
  },
  {
+  "city": "Bristol Township",
+  "state": "PA",
+  "population": 54145
+ },
+ {
   "city": "Wheaton",
   "state": "IL",
   "population": 53741
@@ -500,9 +710,19 @@
   "population": 53604
  },
  {
+  "city": "Edina",
+  "state": "MN",
+  "population": 53564
+ },
+ {
   "city": "Normal",
   "state": "IL",
   "population": 53304
+ },
+ {
+  "city": "Millcreek Township",
+  "state": "PA",
+  "population": 53059
  },
  {
   "city": "Oak Park",
@@ -513,6 +733,11 @@
   "city": "Jeffersonville",
   "state": "IN",
   "population": 52912
+ },
+ {
+  "city": "Minnetonka",
+  "state": "MN",
+  "population": 52651
  },
  {
   "city": "Middletown",
@@ -535,6 +760,11 @@
   "population": 51424
  },
  {
+  "city": "Haverford Township",
+  "state": "PA",
+  "population": 51291
+ },
+ {
   "city": "La Crosse",
   "state": "WI",
   "population": 51049
@@ -555,6 +785,11 @@
   "population": 50920
  },
  {
+  "city": "Harrisburg",
+  "state": "PA",
+  "population": 50649
+ },
+ {
   "city": "Downers Grove",
   "state": "IL",
   "population": 50552
@@ -563,6 +798,11 @@
   "city": "Portage",
   "state": "MI",
   "population": 49975
+ },
+ {
+  "city": "St. Louis Park",
+  "state": "MN",
+  "population": 49899
  },
  {
   "city": "Lawrence",
@@ -605,6 +845,11 @@
   "population": 48421
  },
  {
+  "city": "Shakopee",
+  "state": "MN",
+  "population": 48401
+ },
+ {
   "city": "Beavercreek",
   "state": "OH",
   "population": 48012
@@ -613,6 +858,11 @@
   "city": "Redford Township",
   "state": "MI",
   "population": 47762
+ },
+ {
+  "city": "Urbandale",
+  "state": "IA",
+  "population": 47759
  },
  {
   "city": "Glenview",
@@ -645,6 +895,11 @@
   "population": 46521
  },
  {
+  "city": "Mankato",
+  "state": "MN",
+  "population": 46459
+ },
+ {
   "city": "West Lafayette",
   "state": "IN",
   "population": 46338
@@ -655,9 +910,24 @@
   "population": 46108
  },
  {
+  "city": "Middletown Township",
+  "state": "PA",
+  "population": 45847
+ },
+ {
   "city": "Strongsville",
   "state": "OH",
   "population": 45768
+ },
+ {
+  "city": "Moorhead",
+  "state": "MN",
+  "population": 45726
+ },
+ {
+  "city": "York",
+  "state": "PA",
+  "population": 45241
  },
  {
   "city": "Meridian Township",
@@ -668,6 +938,11 @@
   "city": "Fairfield",
   "state": "OH",
   "population": 45094
+ },
+ {
+  "city": "Wilkes-Barre",
+  "state": "PA",
+  "population": 44661
  },
  {
   "city": "Commerce Township",
@@ -683,6 +958,11 @@
   "city": "Fond du Lac",
   "state": "WI",
   "population": 44469
+ },
+ {
+  "city": "Manheim Township",
+  "state": "PA",
+  "population": 44443
  },
  {
   "city": "Bloomfield Township",
@@ -725,6 +1005,21 @@
   "population": 42780
  },
  {
+  "city": "Cottage Grove",
+  "state": "MN",
+  "population": 42760
+ },
+ {
+  "city": "Altoona",
+  "state": "PA",
+  "population": 42719
+ },
+ {
+  "city": "Marion",
+  "state": "IA",
+  "population": 42542
+ },
+ {
   "city": "Moline",
   "state": "IL",
   "population": 42442
@@ -735,14 +1030,29 @@
   "population": 41671
  },
  {
+  "city": "Hempfield Township",
+  "state": "PA",
+  "population": 41579
+ },
+ {
   "city": "Crystal Lake",
   "state": "IL",
   "population": 41513
  },
  {
+  "city": "Cedar Falls",
+  "state": "IA",
+  "population": 41417
+ },
+ {
   "city": "Brookfield",
   "state": "WI",
   "population": 41268
+ },
+ {
+  "city": "State College",
+  "state": "PA",
+  "population": 41228
  },
  {
   "city": "Romeoville",
@@ -795,9 +1105,24 @@
   "population": 40302
  },
  {
+  "city": "Bettendorf",
+  "state": "IA",
+  "population": 40281
+ },
+ {
   "city": "Wausau",
   "state": "WI",
   "population": 40262
+ },
+ {
+  "city": "Maplewood",
+  "state": "MN",
+  "population": 40142
+ },
+ {
+  "city": "Northampton Township",
+  "state": "PA",
+  "population": 40114
  },
  {
   "city": "Grand Blanc Township",
@@ -808,6 +1133,11 @@
   "city": "Urbana",
   "state": "IL",
   "population": 39831
+ },
+ {
+  "city": "Penn Hills Township",
+  "state": "PA",
+  "population": 39638
  },
  {
   "city": "Carol Stream",
@@ -823,6 +1153,11 @@
   "city": "Orion Township",
   "state": "MI",
   "population": 39119
+ },
+ {
+  "city": "Cheltenham Township",
+  "state": "PA",
+  "population": 38840
  },
  {
   "city": "Hilliard",
@@ -935,14 +1270,34 @@
   "population": 36591
  },
  {
+  "city": "Richfield",
+  "state": "MN",
+  "population": 36491
+ },
+ {
   "city": "Rock Island",
   "state": "IL",
   "population": 36434
  },
  {
+  "city": "Upper Merion Township",
+  "state": "PA",
+  "population": 36414
+ },
+ {
+  "city": "Inver Grove Heights",
+  "state": "MN",
+  "population": 36226
+ },
+ {
   "city": "Upper Arlington",
   "state": "OH",
   "population": 36140
+ },
+ {
+  "city": "Norristown",
+  "state": "PA",
+  "population": 36075
  },
  {
   "city": "Mason",
@@ -953,6 +1308,11 @@
   "city": "Addison",
   "state": "IL",
   "population": 35728
+ },
+ {
+  "city": "Roseville",
+  "state": "MN",
+  "population": 35637
  },
  {
   "city": "Marion",
@@ -968,6 +1328,11 @@
   "city": "Gahanna",
   "state": "OH",
   "population": 35544
+ },
+ {
+  "city": "Hampden Township",
+  "state": "PA",
+  "population": 35474
  },
  {
   "city": "Brunswick",
@@ -995,6 +1360,11 @@
   "population": 35023
  },
  {
+  "city": "Cranberry Township",
+  "state": "PA",
+  "population": 35004
+ },
+ {
   "city": "Calumet City",
   "state": "IL",
   "population": 34855
@@ -1020,9 +1390,19 @@
   "population": 34546
  },
  {
+  "city": "Falls Township",
+  "state": "PA",
+  "population": 34492
+ },
+ {
   "city": "Goshen",
   "state": "IN",
   "population": 34458
+ },
+ {
+  "city": "Waukee",
+  "state": "IA",
+  "population": 34420
  },
  {
   "city": "Fitchburg",
@@ -1035,6 +1415,16 @@
   "population": 34232
  },
  {
+  "city": "Lower Makefield Township",
+  "state": "PA",
+  "population": 34216
+ },
+ {
+  "city": "Radnor Township",
+  "state": "PA",
+  "population": 34130
+ },
+ {
   "city": "Woodridge",
   "state": "IL",
   "population": 34103
@@ -1043,6 +1433,11 @@
   "city": "Stow",
   "state": "OH",
   "population": 34101
+ },
+ {
+  "city": "Chester",
+  "state": "PA",
+  "population": 34052
  },
  {
   "city": "Eastpointe",
@@ -1055,9 +1450,24 @@
   "population": 33482
  },
  {
+  "city": "Warminster Township",
+  "state": "PA",
+  "population": 33474
+ },
+ {
   "city": "Brownsburg",
   "state": "IN",
   "population": 33430
+ },
+ {
+  "city": "Andover",
+  "state": "MN",
+  "population": 33426
+ },
+ {
+  "city": "Lower Macungie Township",
+  "state": "PA",
+  "population": 33246
  },
  {
   "city": "Delta Township",
@@ -1068,6 +1478,16 @@
   "city": "Zionsville",
   "state": "IN",
   "population": 33161
+ },
+ {
+  "city": "Mount Lebanon Township",
+  "state": "PA",
+  "population": 32917
+ },
+ {
+  "city": "Savage",
+  "state": "MN",
+  "population": 32896
  },
  {
   "city": "Glendale Heights",
@@ -1090,6 +1510,16 @@
   "population": 32641
  },
  {
+  "city": "Ross Township",
+  "state": "PA",
+  "population": 32457
+ },
+ {
+  "city": "Bethel Park",
+  "state": "PA",
+  "population": 32376
+ },
+ {
   "city": "O'Fallon",
   "state": "IL",
   "population": 32169
@@ -1105,14 +1535,29 @@
   "population": 32086
  },
  {
+  "city": "Tredyffrin Township",
+  "state": "PA",
+  "population": 32067
+ },
+ {
   "city": "Bedford Township",
   "state": "MI",
   "population": 31999
  },
  {
+  "city": "North Huntingdon Township",
+  "state": "PA",
+  "population": 31810
+ },
+ {
   "city": "Elk Grove Village",
   "state": "IL",
   "population": 31802
+ },
+ {
+  "city": "Brooklyn Center",
+  "state": "MN",
+  "population": 31755
  },
  {
   "city": "North Olmsted",
@@ -1140,6 +1585,16 @@
   "population": 31266
  },
  {
+  "city": "York Township",
+  "state": "PA",
+  "population": 31218
+ },
+ {
+  "city": "Ridley Township",
+  "state": "PA",
+  "population": 31139
+ },
+ {
   "city": "Flint Township",
   "state": "MI",
   "population": 30962
@@ -1160,9 +1615,19 @@
   "population": 30794
  },
  {
+  "city": "Fridley",
+  "state": "MN",
+  "population": 30679
+ },
+ {
   "city": "North Chicago",
   "state": "IL",
   "population": 30639
+ },
+ {
+  "city": "Rosemount",
+  "state": "MN",
+  "population": 30581
  },
  {
   "city": "Gurnee",
@@ -1180,9 +1645,29 @@
   "population": 30463
  },
  {
+  "city": "Oakdale",
+  "state": "MN",
+  "population": 30441
+ },
+ {
+  "city": "Easton",
+  "state": "PA",
+  "population": 30432
+ },
+ {
+  "city": "Hazleton",
+  "state": "PA",
+  "population": 30354
+ },
+ {
   "city": "Gaines Township",
   "state": "MI",
   "population": 30302
+ },
+ {
+  "city": "Chaska",
+  "state": "MN",
+  "population": 30167
  },
  {
   "city": "Niles",
@@ -1198,6 +1683,11 @@
   "city": "Schererville",
   "state": "IN",
   "population": 29780
+ },
+ {
+  "city": "Whitehall Township",
+  "state": "PA",
+  "population": 29656
  },
  {
   "city": "Burton",
@@ -1220,6 +1710,11 @@
   "population": 29289
  },
  {
+  "city": "Upper Macungie Township",
+  "state": "PA",
+  "population": 29284
+ },
+ {
   "city": "Marysville",
   "state": "OH",
   "population": 29276
@@ -1240,9 +1735,19 @@
   "population": 29014
  },
  {
+  "city": "Ramsey",
+  "state": "MN",
+  "population": 28999
+ },
+ {
   "city": "Glen Ellyn",
   "state": "IL",
   "population": 28872
+ },
+ {
+  "city": "Spring Township",
+  "state": "PA",
+  "population": 28859
  },
  {
   "city": "McHenry",
@@ -1258,6 +1763,11 @@
   "city": "Shaker Heights",
   "state": "OH",
   "population": 28689
+ },
+ {
+  "city": "McCandless Township",
+  "state": "PA",
+  "population": 28684
  },
  {
   "city": "Madison Heights",
@@ -1300,6 +1810,11 @@
   "population": 28216
  },
  {
+  "city": "Susquehanna Township",
+  "state": "PA",
+  "population": 28214
+ },
+ {
   "city": "Mount Pleasant",
   "state": "WI",
   "population": 28184
@@ -1310,14 +1825,54 @@
   "population": 28107
  },
  {
+  "city": "Prior Lake",
+  "state": "MN",
+  "population": 28018
+ },
+ {
+  "city": "Swatara Township",
+  "state": "PA",
+  "population": 28006
+ },
+ {
   "city": "Danville",
   "state": "IL",
   "population": 27981
  },
  {
+  "city": "Monroeville",
+  "state": "PA",
+  "population": 27966
+ },
+ {
+  "city": "Marshalltown",
+  "state": "IA",
+  "population": 27886
+ },
+ {
+  "city": "Horsham Township",
+  "state": "PA",
+  "population": 27735
+ },
+ {
   "city": "Kent",
   "state": "OH",
   "population": 27720
+ },
+ {
+  "city": "Springettsbury Township",
+  "state": "PA",
+  "population": 27711
+ },
+ {
+  "city": "Williamsport",
+  "state": "PA",
+  "population": 27628
+ },
+ {
+  "city": "Elk River",
+  "state": "MN",
+  "population": 27606
  },
  {
   "city": "Allen Park",
@@ -1328,6 +1883,11 @@
   "city": "Neenah",
   "state": "WI",
   "population": 27502
+ },
+ {
+  "city": "Upper Dublin Township",
+  "state": "PA",
+  "population": 27489
  },
  {
   "city": "Green",
@@ -1345,6 +1905,11 @@
   "population": 27424
  },
  {
+  "city": "East Hempfield Township",
+  "state": "PA",
+  "population": 27247
+ },
+ {
   "city": "Plymouth Township",
   "state": "MI",
   "population": 27191
@@ -1353,6 +1918,11 @@
   "city": "Troy",
   "state": "OH",
   "population": 27122
+ },
+ {
+  "city": "Shaler Township",
+  "state": "PA",
+  "population": 27109
  },
  {
   "city": "Round Lake Beach",
@@ -1370,9 +1940,19 @@
   "population": 26982
  },
  {
+  "city": "Mason City",
+  "state": "IA",
+  "population": 26948
+ },
+ {
   "city": "Allendale Township",
   "state": "MI",
   "population": 26941
+ },
+ {
+  "city": "Shoreview",
+  "state": "MN",
+  "population": 26939
  },
  {
   "city": "Lockport",
@@ -1390,9 +1970,29 @@
   "population": 26813
  },
  {
+  "city": "Moon Township",
+  "state": "PA",
+  "population": 26753
+ },
+ {
+  "city": "Bethlehem Township",
+  "state": "PA",
+  "population": 26723
+ },
+ {
   "city": "Edwardsville",
   "state": "IL",
   "population": 26715
+ },
+ {
+  "city": "Austin",
+  "state": "MN",
+  "population": 26690
+ },
+ {
+  "city": "Owatonna",
+  "state": "MN",
+  "population": 26626
  },
  {
   "city": "Superior",
@@ -1420,6 +2020,16 @@
   "population": 26465
  },
  {
+  "city": "Lebanon",
+  "state": "PA",
+  "population": 26456
+ },
+ {
+  "city": "Plum",
+  "state": "PA",
+  "population": 26420
+ },
+ {
   "city": "Garden City",
   "state": "MI",
   "population": 26410
@@ -1435,14 +2045,39 @@
   "population": 26311
  },
  {
+  "city": "Warrington Township",
+  "state": "PA",
+  "population": 26305
+ },
+ {
+  "city": "Montgomery Township",
+  "state": "PA",
+  "population": 26280
+ },
+ {
   "city": "Greenfield",
   "state": "IN",
   "population": 26268
  },
  {
+  "city": "Upper Moreland Township",
+  "state": "PA",
+  "population": 26253
+ },
+ {
+  "city": "Winona",
+  "state": "MN",
+  "population": 26173
+ },
+ {
   "city": "Franklin",
   "state": "IN",
   "population": 26158
+ },
+ {
+  "city": "Lower Providence Township",
+  "state": "PA",
+  "population": 26136
  },
  {
   "city": "Xenia",
@@ -1458,6 +2093,11 @@
   "city": "Yorkville",
   "state": "IL",
   "population": 25986
+ },
+ {
+  "city": "Exeter Township",
+  "state": "PA",
+  "population": 25981
  },
  {
   "city": "Walker",
@@ -1488,6 +2128,16 @@
   "city": "Medina",
   "state": "OH",
   "population": 25757
+ },
+ {
+  "city": "Chanhassen",
+  "state": "MN",
+  "population": 25746
+ },
+ {
+  "city": "Ottumwa",
+  "state": "IA",
+  "population": 25648
  },
  {
   "city": "Avon",
@@ -1530,14 +2180,39 @@
   "population": 25240
  },
  {
+  "city": "Springfield Township",
+  "state": "PA",
+  "population": 25206
+ },
+ {
+  "city": "Derry Township",
+  "state": "PA",
+  "population": 25181
+ },
+ {
   "city": "Inkster",
   "state": "MI",
   "population": 25108
  },
  {
+  "city": "Upper Providence Township",
+  "state": "PA",
+  "population": 25092
+ },
+ {
   "city": "Norton Shores",
   "state": "MI",
   "population": 25070
+ },
+ {
+  "city": "Johnston",
+  "state": "IA",
+  "population": 25022
+ },
+ {
+  "city": "Faribault",
+  "state": "MN",
+  "population": 24983
  },
  {
   "city": "Alton",
@@ -1553,6 +2228,11 @@
   "city": "Zanesville",
   "state": "OH",
   "population": 24916
+ },
+ {
+  "city": "Fort Dodge",
+  "state": "IA",
+  "population": 24886
  },
  {
   "city": "Homer Glen",
@@ -1590,6 +2270,11 @@
   "population": 24583
  },
  {
+  "city": "Upper Allen Township",
+  "state": "PA",
+  "population": 24474
+ },
+ {
   "city": "Riverside",
   "state": "OH",
   "population": 24472
@@ -1598,6 +2283,16 @@
   "city": "Morton Grove",
   "state": "IL",
   "population": 24467
+ },
+ {
+  "city": "Farmington",
+  "state": "MN",
+  "population": 24464
+ },
+ {
+  "city": "Marple Township",
+  "state": "PA",
+  "population": 24423
  },
  {
   "city": "Westmont",
@@ -1625,6 +2320,21 @@
   "population": 24174
  },
  {
+  "city": "West Goshen Township",
+  "state": "PA",
+  "population": 24139
+ },
+ {
+  "city": "Clinton",
+  "state": "IA",
+  "population": 24118
+ },
+ {
+  "city": "Dover Township",
+  "state": "PA",
+  "population": 24064
+ },
+ {
   "city": "Harrison Township",
   "state": "MI",
   "population": 24062
@@ -1638,6 +2348,16 @@
   "city": "Oshtemo Township",
   "state": "MI",
   "population": 23979
+ },
+ {
+  "city": "Coralville",
+  "state": "IA",
+  "population": 23959
+ },
+ {
+  "city": "Otsego",
+  "state": "MN",
+  "population": 23875
  },
  {
   "city": "Solon",
@@ -1660,6 +2380,11 @@
   "population": 23698
  },
  {
+  "city": "Burlington",
+  "state": "IA",
+  "population": 23637
+ },
+ {
   "city": "Loves Park",
   "state": "IL",
   "population": 23636
@@ -1668,6 +2393,11 @@
   "city": "Munster",
   "state": "IN",
   "population": 23634
+ },
+ {
+  "city": "Pottstown",
+  "state": "PA",
+  "population": 23553
  },
  {
   "city": "Lisle",
@@ -1685,9 +2415,24 @@
   "population": 23497
  },
  {
+  "city": "White Bear Lake",
+  "state": "MN",
+  "population": 23479
+ },
+ {
   "city": "Maywood",
   "state": "IL",
   "population": 23364
+ },
+ {
+  "city": "Muscatine",
+  "state": "IA",
+  "population": 23298
+ },
+ {
+  "city": "Peters Township",
+  "state": "PA",
+  "population": 23248
  },
  {
   "city": "Freeport",
@@ -1715,6 +2460,16 @@
   "population": 23073
  },
  {
+  "city": "Champlin",
+  "state": "MN",
+  "population": 23045
+ },
+ {
+  "city": "Chambersburg",
+  "state": "PA",
+  "population": 23041
+ },
+ {
   "city": "Roselle",
   "state": "IL",
   "population": 22871
@@ -1728,6 +2483,16 @@
   "city": "Summit Township",
   "state": "MI",
   "population": 22809
+ },
+ {
+  "city": "Lino Lakes",
+  "state": "MN",
+  "population": 22774
+ },
+ {
+  "city": "West Chester",
+  "state": "PA",
+  "population": 22758
  },
  {
   "city": "Bloomingdale",
@@ -1745,6 +2510,16 @@
   "population": 22617
  },
  {
+  "city": "Palmer Township",
+  "state": "PA",
+  "population": 22606
+ },
+ {
+  "city": "Altoona",
+  "state": "IA",
+  "population": 22598
+ },
+ {
   "city": "Oxford",
   "state": "OH",
   "population": 22585
@@ -1760,9 +2535,34 @@
   "population": 22524
  },
  {
+  "city": "Carlisle",
+  "state": "PA",
+  "population": 22517
+ },
+ {
+  "city": "Hastings",
+  "state": "MN",
+  "population": 22502
+ },
+ {
+  "city": "Muhlenberg Township",
+  "state": "PA",
+  "population": 22464
+ },
+ {
   "city": "La Porte",
   "state": "IN",
   "population": 22444
+ },
+ {
+  "city": "New Brighton",
+  "state": "MN",
+  "population": 22374
+ },
+ {
+  "city": "Columbia Heights",
+  "state": "MN",
+  "population": 22358
  },
  {
   "city": "Carbondale",
@@ -1773,6 +2573,16 @@
   "city": "Birmingham",
   "state": "MI",
   "population": 22198
+ },
+ {
+  "city": "Crystal",
+  "state": "MN",
+  "population": 22082
+ },
+ {
+  "city": "Manor Township",
+  "state": "PA",
+  "population": 22062
  },
  {
   "city": "Clarksville",
@@ -1810,9 +2620,29 @@
   "population": 21957
  },
  {
+  "city": "West St. Paul",
+  "state": "MN",
+  "population": 21920
+ },
+ {
+  "city": "North Liberty",
+  "state": "IA",
+  "population": 21904
+ },
+ {
+  "city": "Willmar",
+  "state": "MN",
+  "population": 21892
+ },
+ {
   "city": "Marquette",
   "state": "MI",
   "population": 21845
+ },
+ {
+  "city": "South Whitehall Township",
+  "state": "PA",
+  "population": 21818
  },
  {
   "city": "Blue Island",
@@ -1835,9 +2665,24 @@
   "population": 21732
  },
  {
+  "city": "St. Michael",
+  "state": "MN",
+  "population": 21681
+ },
+ {
+  "city": "Limerick Township",
+  "state": "PA",
+  "population": 21536
+ },
+ {
   "city": "Alliance",
   "state": "OH",
   "population": 21523
+ },
+ {
+  "city": "East Pennsboro Township",
+  "state": "PA",
+  "population": 21490
  },
  {
   "city": "Rocky River",
@@ -1845,9 +2690,34 @@
   "population": 21468
  },
  {
+  "city": "Silver Spring Township",
+  "state": "PA",
+  "population": 21465
+ },
+ {
   "city": "South Euclid",
   "state": "OH",
   "population": 21363
+ },
+ {
+  "city": "New Castle",
+  "state": "PA",
+  "population": 21332
+ },
+ {
+  "city": "Northfield",
+  "state": "MN",
+  "population": 21316
+ },
+ {
+  "city": "Unity Township",
+  "state": "PA",
+  "population": 21277
+ },
+ {
+  "city": "Golden Valley",
+  "state": "MN",
+  "population": 21263
  },
  {
   "city": "Grayslake",
@@ -1895,9 +2765,24 @@
   "population": 20940
  },
  {
+  "city": "West Whiteland Township",
+  "state": "PA",
+  "population": 20885
+ },
+ {
+  "city": "Lower Allen Township",
+  "state": "PA",
+  "population": 20873
+ },
+ {
   "city": "Shelbyville",
   "state": "IN",
   "population": 20845
+ },
+ {
+  "city": "Buckingham Township",
+  "state": "PA",
+  "population": 20844
  },
  {
   "city": "South Holland",
@@ -1905,9 +2790,34 @@
   "population": 20775
  },
  {
+  "city": "New Hope",
+  "state": "MN",
+  "population": 20745
+ },
+ {
+  "city": "Murrysville",
+  "state": "PA",
+  "population": 20729
+ },
+ {
   "city": "Oakland Township",
   "state": "MI",
   "population": 20719
+ },
+ {
+  "city": "Baldwin",
+  "state": "PA",
+  "population": 20712
+ },
+ {
+  "city": "Forest Lake",
+  "state": "MN",
+  "population": 20700
+ },
+ {
+  "city": "Penn Township",
+  "state": "PA",
+  "population": 20698
  },
  {
   "city": "Dolton",
@@ -1930,6 +2840,31 @@
   "population": 20636
  },
  {
+  "city": "Whitpain Township",
+  "state": "PA",
+  "population": 20626
+ },
+ {
+  "city": "Upper St. Clair Township",
+  "state": "PA",
+  "population": 20621
+ },
+ {
+  "city": "South St. Paul",
+  "state": "MN",
+  "population": 20590
+ },
+ {
+  "city": "Coolbaugh Township",
+  "state": "PA",
+  "population": 20577
+ },
+ {
+  "city": "Lower Southampton Township",
+  "state": "PA",
+  "population": 20525
+ },
+ {
   "city": "Parma Heights",
   "state": "OH",
   "population": 20524
@@ -1948,6 +2883,11 @@
   "city": "Highland Township",
   "state": "MI",
   "population": 20337
+ },
+ {
+  "city": "Phoenixville",
+  "state": "PA",
+  "population": 20286
  },
  {
   "city": "Genesee Township",
@@ -1983,6 +2923,11 @@
   "city": "Cascade Township",
   "state": "MI",
   "population": 20172
+ },
+ {
+  "city": "Whitemarsh Township",
+  "state": "PA",
+  "population": 20167
  },
  {
   "city": "Ypsilanti",

@@ -5,8 +5,9 @@ import unittest
 from pipeline.db import connect
 from pipeline.scrape import pending_queries, plan_queries
 
-TRADE = {"keywords": ["hvac contractor"]}
-CITIES = [{"city": "Troy", "state": "MI"}, {"city": "Toledo", "state": "OH"}]
+TRADE = {"keywords": ["hvac contractor"], "states": ["MI", "OH"]}
+CITIES = [{"city": "Troy", "state": "MI"}, {"city": "Toledo", "state": "OH"},
+          {"city": "Erie", "state": "PA"}]
 
 
 class Pending(unittest.TestCase):
@@ -23,6 +24,10 @@ class Pending(unittest.TestCase):
     def test_done_searches_never_rerun(self):
         self.con.execute("update queries set status='done' where state='MI'")
         self.assertEqual(pending_queries(self.con, {"MI"}), [])
+
+    def test_never_queues_a_state_outside_the_trade(self):
+        self.assertEqual(plan_queries(self.con, TRADE, CITIES, {"PA"}), 0)
+        self.assertNotIn("PA", [q["state"] for q in pending_queries(self.con)])
 
 
 if __name__ == "__main__":

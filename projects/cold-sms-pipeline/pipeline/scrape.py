@@ -30,10 +30,12 @@ def query_id(query):
 
 def plan_queries(con, trade, cities, states=None):
     """Queue every city x keyword not already queued. Returns how many were added."""
+    # cities.json is shared by every trade, so a trade only ever queues its own states.
+    states = set(states or trade["states"]) & set(trade["states"])
     added = 0
     with con:
         for c in cities:
-            if states and c["state"] not in states:
+            if c["state"] not in states:
                 continue
             for kw in trade["keywords"]:
                 q = f"{kw} in {c['city']}, {c['state']}"

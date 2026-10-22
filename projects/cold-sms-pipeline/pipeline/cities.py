@@ -1,7 +1,7 @@
 """Build config/cities.json from the Census Bureau's city population estimates.
 
-Incorporated places (cities, villages, towns) in every state, plus Michigan's
-townships: Canton, Clinton, Shelby and the rest are big suburbs that are not
+Incorporated places (cities, villages, towns) in every state, plus Michigan's and
+Pennsylvania's townships: Canton, Clinton, Lower Merion, Bensalem and the rest are big suburbs that are not
 incorporated places, and Google Maps searches them by name like any city.
 """
 
@@ -14,15 +14,16 @@ import urllib.request
 from .config import CONFIG
 
 CENSUS_URL = "https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/cities/totals/sub-est2024.csv"
-STATE_CODES = {"Michigan": "MI", "Ohio": "OH", "Indiana": "IN", "Wisconsin": "WI", "Illinois": "IL"}
-TOWNSHIP_STATES = {"MI"}
+STATE_CODES = {"Michigan": "MI", "Ohio": "OH", "Indiana": "IN", "Wisconsin": "WI", "Illinois": "IL",
+               "Pennsylvania": "PA", "Minnesota": "MN", "Iowa": "IA"}
+TOWNSHIP_STATES = {"MI", "PA"}
 
 
 def search_name(census_name):
     name = census_name.replace(" (balance)", "").strip()
     if re.search(r"\b(charter )?township$", name, re.I):
         return re.sub(r"\s+(charter )?township$", " Township", name, flags=re.I)
-    return re.sub(r"\s+(city|village|town|borough)$", "", name, flags=re.I)
+    return re.sub(r"\s+(city|village|town|borough|municipality)$", "", name, flags=re.I)
 
 
 def build(min_population, states):

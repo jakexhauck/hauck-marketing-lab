@@ -6,7 +6,7 @@
     "heating and cooling",
     "furnace replacement"
   ],
-  "states": ["MI", "OH", "IN", "WI", "IL"],
+  "states": ["MI", "OH", "IN", "WI", "IL", "PA", "MN", "IA"],
   "depth": 15,
 
   "_core": "Google's PRIMARY category says this is an HVAC shop. Any of these keeps the lead.",
