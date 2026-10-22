@@ -33,6 +33,8 @@ import { mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFile
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import type { Higgsfield, HfTool } from "./higgsfield.ts";
+import { HF_AFTER, HF_GENERATE, HF_QUOTE, parseBalance } from "./spend.ts";
 import type { AgentId } from "./wire.ts";
 
 export interface AppTools {
@@ -40,6 +42,12 @@ export interface AppTools {
   ghl(body: { messageId: string; tenantId: string; op: string; args: Record<string, unknown> }): Promise<string>;
   // GET /api/agent-runner/meta. Read-only by construction on the app's side.
   meta(q: { tenant: string; level: string; days: number }): Promise<string>;
+  // POST /api/agent-runner/meta-ops: the Ads Agent's Ads Manager ops. A change
+  // goes through only under Jake's Approve of a card listing it (the app's call).
+  metaOps(body: { messageId: string; tenantId: string; op: string; args: Record<string, unknown> }): Promise<string>;
+  // The runner's own Higgsfield login (higgsfield.ts). Unset or not signed in:
+  // the Ads Agent has no Higgsfield tools.
+  higgsfield?: Higgsfield;
 }
 
 export interface Root {
@@ -53,6 +61,9 @@ export interface Turn {
   // The folders this turn's file tools reach. The first is where a relative
   // path lands.
   roots?: Root[];
+  // The credits Jake approved for this turn (spend.ts spendLimit), or null.
+  // Higgsfield generate tools answer only when it is set.
+  spend?: number | null;
 }
 
 export interface Bridge {
@@ -64,8 +75,7 @@ export interface Bridge {
 }
 
 // The same agents as the scripts: Meta numbers for the three whose job needs
-// them, GHL for the GHL Agent. The Ads Agent's Ads Manager changes are not
-// here: Ads stays on the PC engine until Phase 2.
+// them, GHL for the GHL Agent, Ads Manager ops and Higgsfield for the Ads Agent.
 const META_AGENTS: AgentId[] = ["manager", "csm", "ads"];
 // The GHL Agent works in GHL only; it never had file tools.
 const FILE_AGENTS: AgentId[] = ["manager", "csm", "research", "ads"];
@@ -115,6 +125,39 @@ const GHL_TOOL = {
   },
 };
 
+// Mirrors META_OPS in apps/command-center/functions/lib/agentMetaOps.ts. The
+// app's list is the one that counts.
+const META_OPS = ["read.structure", "read.creatives", "read.library", "read.destination", "pause", "resume", "dailyBudget", "createAd"];
+
+const META_OPS_TOOL = {
+  name: "meta_ops",
+  description:
+    "An allowlisted op in this client's Meta ad account. Reads always work; a change goes through only when this turn answers Jake's Approve of a card listing exactly that change. The app decides and says why when it refuses.",
+  inputSchema: {
+    type: "object",
+    properties: { turn: TURN, op: { type: "string", enum: META_OPS }, args: { type: "object" } },
+    required: ["turn", "op"],
+  },
+};
+
+// The Higgsfield tools the bridge serves, by name: quotes always, generate
+// only under a spend grant. Everything else Higgsfield sells is never listed.
+const HF_SERVED = new Set([...HF_QUOTE, ...HF_GENERATE, ...HF_AFTER]);
+const HF_PAID = new Set([...HF_GENERATE, ...HF_AFTER]);
+const HF_SPENDS = new Set(HF_GENERATE);
+
+function withTurn(t: HfTool) {
+  const schema = (t.inputSchema && typeof t.inputSchema === "object" ? t.inputSchema : { type: "object" }) as Record<string, unknown>;
+  const props = (schema.properties && typeof schema.properties === "object" ? schema.properties : {}) as Record<string, unknown>;
+  const req = Array.isArray(schema.required) ? (schema.required as string[]) : [];
+  const paid = HF_PAID.has(t.name) ? " Paid: works only on the turn that answers Jake's Approve of a spend card." : "";
+  return {
+    name: t.name,
+    description: `Higgsfield: ${t.description ?? t.name}${paid}`,
+    inputSchema: { ...schema, type: "object", properties: { ...props, turn: TURN }, required: [...new Set([...req, "turn"])] },
+  };
+}
+
 const FILE_TOOLS = [
   {
     name: "list_files",
@@ -141,8 +184,21 @@ function toolsFor(agent: AgentId) {
   return [
     ...(META_AGENTS.includes(agent) ? [META_TOOL] : []),
     ...(agent === "ghl" ? [GHL_TOOL] : []),
+    ...(agent === "ads" ? [META_OPS_TOOL] : []),
     ...(FILE_AGENTS.includes(agent) ? FILE_TOOLS : []),
   ];
+}
+
+// The Ads Agent's Higgsfield tools, from Higgsfield's own list. A runner that
+// is not signed in, or a list that fails, leaves them out rather than failing
+// the agent's whole tool list.
+async function higgsfieldTools(agent: AgentId, tools: AppTools) {
+  if (agent !== "ads" || !tools.higgsfield?.ready()) return [];
+  try {
+    return (await tools.higgsfield.listTools()).filter((t) => HF_SERVED.has(t.name)).map(withTurn);
+  } catch {
+    return [];
+  }
 }
 
 const text = (t: string, isError = false) => ({ content: [{ type: "text", text: t }], ...(isError ? { isError: true } : {}) });
@@ -174,6 +230,27 @@ export function placePath(roots: Root[], raw: string): { path: string; root: Roo
   return null;
 }
 
+// The balance when the turn's first paid call was made, per agent.
+type Spent = Map<AgentId, number>;
+
+// One generate call at a time per agent, check and call together, so two
+// calls Hermes makes at once cannot both pass the same balance check.
+const paidLocks = new Map<AgentId, Promise<unknown>>();
+function oneAtATime<T>(agent: AgentId, fn: () => Promise<T>): Promise<T> {
+  const run = (paidLocks.get(agent) ?? Promise.resolve()).then(fn, fn);
+  paidLocks.set(agent, run.catch(() => null));
+  return run;
+}
+
+// A tool that takes a credit ceiling gets one: what is left of the grant.
+async function withCeiling(h: Higgsfield, name: string, args: Record<string, unknown>, left: number): Promise<Record<string, unknown>> {
+  const tool = (await h.listTools().catch(() => [])).find((t) => t.name === name);
+  const props = (tool?.inputSchema?.properties ?? {}) as Record<string, unknown>;
+  if (!("max_credits" in props)) return args;
+  const asked = typeof args.max_credits === "number" ? args.max_credits : left;
+  return { ...args, max_credits: Math.min(asked, left) };
+}
+
 async function callTool(
   agent: AgentId,
   turn: Turn | null,
@@ -181,11 +258,49 @@ async function callTool(
   a: Record<string, unknown>,
   tools: AppTools,
   written: Set<string>,
+  startBalance: Spent,
 ) {
-  if (!toolsFor(agent).some((t) => t.name === name)) return text(`${name} is not one of your tools`, true);
+  const hf = agent === "ads" && HF_SERVED.has(name) && !!tools.higgsfield;
+  if (!hf && !toolsFor(agent).some((t) => t.name === name)) return text(`${name} is not one of your tools`, true);
   if (!turn) return text("No turn is running for you right now, so this call was not made.", true);
   if (a.turn !== turn.messageId) return text("This call names a turn that is not the one running now, so it was not made.", true);
   try {
+    if (hf) {
+      if (!turn.tenantId) return text("Higgsfield works only inside a client's chat", true);
+      // Jake's rule (spend.ts): nothing that costs credits without his Approve
+      // of the price, and only on the turn that answers it.
+      if (HF_PAID.has(name) && !(typeof turn.spend === "number" && turn.spend > 0)) {
+        return text("No spend is approved on this turn, so nothing that costs credits can run. Quote it and file a spend card.", true);
+      }
+      const { turn: _t, ...args } = a;
+      const h = tools.higgsfield!;
+      if (!HF_SPENDS.has(name)) {
+        const r = await h.call(name, args);
+        return text(r.text, r.isError);
+      }
+      // And no more than Jake approved: the balance is read before every
+      // generate call and compared with where the turn started, and the call
+      // carries what is left as its ceiling where the tool takes one.
+      return oneAtATime(agent, async () => {
+        const now = parseBalance((await h.call("balance", {})).text);
+        if (now === null) return text("Could not read the Higgsfield balance, so nothing that costs credits was run.", true);
+        const start = startBalance.get(agent) ?? now;
+        startBalance.set(agent, start);
+        const left = turn.spend! - (start - now);
+        if (left <= 0) {
+          return text(`The ${turn.spend} credits Jake approved are used up (${start - now} spent this turn). Nothing more can be generated; tell Jake.`, true);
+        }
+        const r = await h.call(name, await withCeiling(h, name, args, left));
+        return text(r.text, r.isError);
+      });
+    }
+    if (name === "meta_ops") {
+      const op = typeof a.op === "string" ? a.op : "";
+      if (!META_OPS.includes(op)) return text(`op must be one of: ${META_OPS.join(", ")}`, true);
+      if (!turn.tenantId) return text("no client: Ads Manager ops only happen inside a client's chat", true);
+      const args = a.args && typeof a.args === "object" && !Array.isArray(a.args) ? (a.args as Record<string, unknown>) : {};
+      return text(await tools.metaOps({ messageId: turn.messageId, tenantId: turn.tenantId, op, args }));
+    }
     if (name === "meta_insights") {
       const level = typeof a.level === "string" ? a.level : "account";
       const days = typeof a.days === "number" ? a.days : 7;
@@ -251,6 +366,7 @@ export function startBridge(o: { port: number; host?: string; tokens: Partial<Re
   const byToken = new Map(Object.entries(o.tokens).filter(([, t]) => t).map(([a, t]) => [t as string, a as AgentId]));
   const turns = new Map<AgentId, Turn>();
   const writes = new Map<AgentId, Set<string>>();
+  const startBalance: Spent = new Map();
 
   const server = createServer(async (req, res) => {
     try {
@@ -280,11 +396,11 @@ export function startBridge(o: { port: number; host?: string; tokens: Partial<Re
         case "ping":
           return ok({});
         case "tools/list":
-          return ok({ tools: toolsFor(agent) });
+          return ok({ tools: [...toolsFor(agent), ...(await higgsfieldTools(agent, o.tools))] });
         case "tools/call": {
           const args = msg.params?.arguments && typeof msg.params.arguments === "object" ? msg.params.arguments : {};
           if (!writes.has(agent)) writes.set(agent, new Set());
-          return ok(await callTool(agent, turns.get(agent) ?? null, String(msg.params?.name ?? ""), args, o.tools, writes.get(agent)!));
+          return ok(await callTool(agent, turns.get(agent) ?? null, String(msg.params?.name ?? ""), args, o.tools, writes.get(agent)!, startBalance));
         }
         default:
           return send(res, 200, { jsonrpc: "2.0", id: msg.id, error: { code: -32601, message: `unknown method ${msg.method}` } });
@@ -302,6 +418,7 @@ export function startBridge(o: { port: number; host?: string; tokens: Partial<Re
         setTurn(agent, turn) {
           // A new turn starts with nothing written; the last one's list is
           // the caller's to read before it ends the turn.
+          startBalance.delete(agent);
           if (turn) {
             turns.set(agent, turn);
             writes.set(agent, new Set());

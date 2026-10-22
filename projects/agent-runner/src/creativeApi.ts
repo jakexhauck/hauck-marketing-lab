@@ -7,7 +7,7 @@
 
 import { readFileSync, statSync } from "node:fs";
 import type { ApiOptions } from "./api.ts";
-import type { FileCreativeBody, ReadUrlBody, ReadUrlResponse, UploadUrlBody, UploadUrlResponse } from "./wire.ts";
+import type { FileCreativeBody, PcJob, PcJobBody, ReadUrlBody, ReadUrlResponse, UploadUrlBody, UploadUrlResponse } from "./wire.ts";
 
 export interface CreativeApi {
   uploadUrl(body: UploadUrlBody): Promise<UploadUrlResponse>;
@@ -15,6 +15,8 @@ export interface CreativeApi {
   fileCreative(body: FileCreativeBody): Promise<void>;
   // PUT a local file to a signed upload URL.
   put(uploadUrl: string, file: string, type: string): Promise<void>;
+  // Clip video work between the VPS and the PC (pcJobs.ts).
+  pcJob(body: PcJobBody): Promise<PcJob | null>;
 }
 
 export function createCreativeApi(opts: ApiOptions): CreativeApi {
@@ -35,6 +37,7 @@ export function createCreativeApi(opts: ApiOptions): CreativeApi {
     uploadUrl: (b) => post<UploadUrlResponse>("upload-url", b),
     readUrl: (b) => post<ReadUrlResponse>("read-url", b),
     fileCreative: async (b) => void (await post("file-creative", b)),
+    pcJob: async (b) => (await post<{ job: PcJob | null }>("pc-job", b)).job,
     async put(uploadUrl, file, type) {
       const bytes = readFileSync(file);
       const res = await f(uploadUrl, {

@@ -26,6 +26,9 @@ export function fakeCreativeApi() {
     async put(url, file) {
       puts.push(`${url} ${file}`);
     },
+    async pcJob() {
+      return null;
+    },
   };
   return { api, uploads, filed, puts };
 }

@@ -257,6 +257,30 @@ export interface FileCreativeBody {
   size: number;
 }
 
+// PC jobs (migration 0177): the VPS Ads turn hands clip video work to the PC.
+export type PcJobStatus = "queued" | "running" | "done" | "error" | "cancelled";
+
+export interface PcJob {
+  id: string;
+  messageId: string;
+  tenantId: string;
+  kind: "video";
+  payload: Record<string, unknown>;
+  status: PcJobStatus;
+  host: string | null;
+  step: string | null;
+  result: Record<string, unknown> | null;
+  error: string | null;
+}
+
+export type PcJobBody =
+  | { action: "create"; messageId: string; tenantId: string; payload: Record<string, unknown> }
+  | { action: "get"; id: string }
+  | { action: "claim"; host: string }
+  | { action: "step"; id: string; host: string; step: string }
+  | { action: "finish"; id: string; host: string; result?: Record<string, unknown>; error?: string }
+  | { action: "cancel"; id: string; ifStatus?: "queued" };
+
 // The Client Brief (Phase 6). One section per agent; version 0 is unwritten.
 // Brief v2 adds Client and the two call checklists, which no agent writes.
 export type BriefAuthor = "jake" | Exclude<AgentId, "manager">;

@@ -31,7 +31,7 @@ import { AGENT_IDS } from "./agents.ts";
 import { hermesRunner } from "./hermes.ts";
 import { appTools } from "./appOps.ts";
 import { startBridge, type Bridge } from "./mcpBridge.ts";
-import { API_BASE, CLAIM_AGENTS, DATA_DIR, DRIVE_MODE, DRIVE_REMOTE, DRIVE_ROOT, ENGINE, GIT_PUSH, HERMES_API, HEARTBEAT_MS, PAGES_CWD, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
+import { API_BASE, CLAIM_AGENTS, DATA_DIR, DRIVE_MODE, DRIVE_REMOTE, DRIVE_ROOT, ENGINE, GIT_PUSH, HERMES_API, HEARTBEAT_MS, HIGGSFIELD_LOGIN, PAGES_CWD, PC_JOBS, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
 import { createCreativeApi } from "./creativeApi.ts";
 import { commitBrains, pullRepo } from "./git.ts";
 import { defaultExec, driveAgent, pullDrive, pushChanged, type DriveSync } from "./drive.ts";
@@ -40,9 +40,11 @@ import { deployDraft, promote } from "./pages.ts";
 import { runMonitorIfDue } from "./monitor.ts";
 import { fileBriefNotes } from "./notes.ts";
 import { applyQueuedEdits, handleClaim, syncAllBrains, type RunnerDeps } from "./runner.ts";
-import { balanceReader } from "./spend.ts";
+import { fileStore, higgsfieldClient } from "./higgsfield.ts";
+import { remoteVideoBlocks, workOnePcJob } from "./pcJobs.ts";
+import { balanceReader, parseBalance, spendLimit } from "./spend.ts";
 import { exec } from "./video.ts";
-import type { ClaimTenant } from "./wire.ts";
+import type { AgentId, ClaimResponse, ClaimTenant } from "./wire.ts";
 
 const args = new Set(process.argv.slice(2));
 const ONCE = args.has("--once");
@@ -87,6 +89,20 @@ async function main(): Promise<void> {
   if (secret.length < 32) throw new Error("AGENT_RUNNER_SECRET looks too short; check Doppler");
   const host = hostname();
   const api = createApi({ base: API_BASE, secret });
+  const creativeApi = createCreativeApi({ base: API_BASE, secret });
+  // On Hermes the runner holds its own Higgsfield login and serves the Ads
+  // Agent's Higgsfield tools itself (mcpBridge.ts); claude used Jake's.
+  const hf = ENGINE === "hermes" ? higgsfieldClient({ store: fileStore(HIGGSFIELD_LOGIN) }) : null;
+  const balance = hf
+    ? async () => {
+        try {
+          return parseBalance((await hf.call("balance", {})).text);
+        } catch {
+          return null;
+        }
+      }
+    : balanceReader(runClaude, join(DATA_DIR, "work", "balance"));
+  let tenants: ClaimTenant[] = [];
   const deps: RunnerDeps = {
     api,
     env: defaultBundleEnv(),
@@ -110,13 +126,16 @@ async function main(): Promise<void> {
       deployDraft: (slug, itemId, dir) => deployDraft(slug, itemId, dir, { cwd: PAGES_CWD }),
       promote: (slug, dir) => promote(slug, dir, { cwd: PAGES_CWD }),
     },
-    // The Creative Agent's video pipeline, uploads and Higgsfield balance.
+    // The Ads Agent's video pipeline, uploads and Higgsfield balance. On the
+    // VPS the clip work goes to the PC (pcJobs.ts).
     creative: {
-      api: createCreativeApi({ base: API_BASE, secret }),
+      api: creativeApi,
       exec,
-      balance: balanceReader(runClaude, join(DATA_DIR, "work", "balance")),
+      balance,
+      ...(ENGINE === "hermes" ? { runBlocks: remoteVideoBlocks({ api: creativeApi, driveRoot: DRIVE_ROOT }) } : {}),
     },
     briefNotes: fileBriefNotes(join(DATA_DIR, "brief-notes")),
+    clients: () => tenants,
   };
 
   // The Hermes agents' way to the app (mcpBridge.ts). Each profile's MCP
@@ -127,8 +146,8 @@ async function main(): Promise<void> {
     const tokens = Object.fromEntries(
       AGENT_IDS.map((a) => [a, process.env[`HERMES_MCP_TOKEN_${a.toUpperCase()}`] ?? ""]).filter(([, t]) => t),
     );
-    bridge = await startBridge({ port: Number(process.env.HERMES_MCP_PORT ?? 8700), tokens, tools: appTools({ base: API_BASE, secret }) });
-    log(`app tools for Hermes on port ${bridge.port} (${Object.keys(tokens).join(", ") || "no tokens set"})`);
+    bridge = await startBridge({ port: Number(process.env.HERMES_MCP_PORT ?? 8700), tokens, tools: appTools({ base: API_BASE, secret, higgsfield: hf ?? undefined }) });
+    log(`app tools for Hermes on port ${bridge.port} (${Object.keys(tokens).join(", ") || "no tokens set"}); Higgsfield ${hf?.ready() ? "signed in" : "not signed in"}`);
   }
 
   // The VPS's Drive mirror (drive.ts). The pull runs beside the claim loop, not
@@ -144,7 +163,6 @@ async function main(): Promise<void> {
       .finally(() => (pulling = false));
   }
 
-  let tenants: ClaimTenant[] = [];
   let tenantsAt = 0;
   async function refreshTenants(force = false): Promise<void> {
     if (!force && Date.now() - tenantsAt < TENANTS_EVERY_MS) return;
@@ -188,19 +206,48 @@ async function main(): Promise<void> {
     }
   }
 
+  // On the VPS each agent runs its own turn beside the others, one at a time
+  // per agent (the bridge keeps one turn per agent), so an Ads turn waiting
+  // on a PC render never holds up the Manager. The PC stays one turn at a time.
+  const PARALLEL = ENGINE === "hermes";
+  const busy = new Set<AgentId>();
+  const turns = new Set<Promise<void>>();
+
   async function claimOne(): Promise<boolean> {
-    const claim = await api.claim(host, CLAIM_AGENTS);
+    const free = PARALLEL ? (CLAIM_AGENTS ?? AGENT_IDS).filter((a) => !busy.has(a)) : CLAIM_AGENTS;
+    if (free && free.length === 0 && CLAIM_AGENTS?.length !== 0) return false;
+    const claim = await api.claim(host, free);
     if (!claim) return false;
+    if (!PARALLEL) {
+      await runClaim(claim);
+      return true;
+    }
+    const agent = claim.chat.agent;
+    busy.add(agent);
+    const turn = runClaim(claim)
+      .catch((e) => log(`turn ${claim.message.id} failed: ${(e as Error).message}`))
+      .finally(() => {
+        busy.delete(agent);
+        turns.delete(turn);
+      });
+    turns.add(turn);
+    return true;
+  }
+
+  async function runClaim(claim: ClaimResponse): Promise<void> {
     log(`claimed ${claim.message.id} (${claim.chat.agent}, ${claim.tenant?.name ?? "agency"})`);
     // The bridge answers this agent's tool calls for this turn only, in this
     // turn's folders: its work folder, and its client's Drive folder (not for
-    // the GHL Agent, which never had one). Only the CSM and Research write.
+    // the GHL Agent, which never had one). Only the CSM and Research write to
+    // Drive; the Ads Agent writes its configs and pages in its work folder.
+    // Higgsfield's paid tools answer only under this turn's spend grant.
     const agent = claim.chat.agent;
     const writes = driveAgent(agent);
     const folder = claim.tenant && agent !== "ghl" ? findDriveFolder(DRIVE_ROOT, claim.tenant) : null;
-    const roots = agent === "ghl" ? [] : [{ dir: workDirFor(deps.env, agent, claim.tenant), write: writes }];
+    const roots = agent === "ghl" ? [] : [{ dir: workDirFor(deps.env, agent, claim.tenant), write: writes || agent === "ads" }];
     if (folder) roots.push({ dir: folder, write: writes });
-    bridge?.setTurn(agent, { tenantId: claim.tenant?.id ?? null, messageId: claim.message.id, roots });
+    const spend = agent === "ads" ? spendLimit(claim.message.grant) : null;
+    bridge?.setTurn(agent, { tenantId: claim.tenant?.id ?? null, messageId: claim.message.id, roots, spend });
     let written: string[] = [];
     try {
       await handleClaim(claim, deps);
@@ -217,7 +264,12 @@ async function main(): Promise<void> {
         .catch((e) => log(`drive push failed: ${(e as Error).message}`));
     }
     log(`finished ${claim.message.id}`);
-    return true;
+  }
+
+  // The client a video job is for, from the app's own list; fresh when the
+  // job's client is not in it (one added since the last 10 minute refresh).
+  async function jobTenants(fresh = false): Promise<ClaimTenant[]> {
+    return tenants.length && !fresh ? tenants : (tenants = await api.tenants());
   }
 
   if (existsSync(STOP_FILE)) log("data/.stop is present: idling until it is deleted");
@@ -231,6 +283,7 @@ async function main(): Promise<void> {
   if (ONCE) {
     if (args.has("--monitor")) await monitor(lastMonitorAt);
     const did = await claimOne();
+    await Promise.all(turns);
     log(did ? "done" : "nothing queued");
     return;
   }
@@ -243,7 +296,8 @@ async function main(): Promise<void> {
     if (!existsSync(STOP_FILE)) void beat();
   }, HEARTBEAT_MS);
 
-  log(`watching for ${CLAIM_AGENTS?.join(", ") ?? "all"} agent messages on ${API_BASE} as ${host} (${ENGINE})`);
+  const watching = CLAIM_AGENTS === undefined ? "all" : CLAIM_AGENTS.join(", ") || "no";
+  log(`watching for ${watching} agent messages${PC_JOBS ? " and video jobs" : ""} on ${API_BASE} as ${host} (${ENGINE})`);
   let failures = 0;
   for (;;) {
     if (existsSync(STOP_FILE)) {
@@ -252,7 +306,10 @@ async function main(): Promise<void> {
     }
     try {
       await refreshTenants();
-      const did = await claimOne();
+      // The PC also takes the VPS's clip video work (pcJobs.ts).
+      const did =
+        (await claimOne()) ||
+        (PC_JOBS && (await workOnePcJob({ api: creativeApi, runnerApi: api, creative: deps.creative!, env: deps.env, host, log, tenants: jobTenants })));
       failures = 0;
       if (!did) await sleep(POLL_MS);
     } catch (e) {

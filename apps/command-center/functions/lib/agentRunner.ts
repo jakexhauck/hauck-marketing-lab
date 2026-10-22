@@ -75,6 +75,8 @@ export const AGENT_RUNNER_POST_PATHS: readonly string[] = [
   "task",
   // An approved request's reply, back to the agent that asked (lib/agentItems.ts postAnswer).
   "answer",
+  // Clip video work the VPS Ads turn hands to the PC (lib/agentPcJobs.ts).
+  "pc-job",
 ].map((p) => BASE + p);
 
 /** Routes the runner may GET. */

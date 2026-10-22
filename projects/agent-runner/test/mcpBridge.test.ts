@@ -2,13 +2,41 @@ import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import type { Higgsfield } from "../src/higgsfield.ts";
 import { startBridge, type AppTools, type Bridge } from "../src/mcpBridge.ts";
 
-const TOKENS = { manager: "t-manager", csm: "t-csm", ghl: "t-ghl", research: "t-research" };
+const TOKENS = { manager: "t-manager", csm: "t-csm", ghl: "t-ghl", research: "t-research", ads: "t-ads" };
 
-function fakeTools() {
+// Higgsfield's own list has more than the bridge serves (upscale_image here).
+const HF_LIST = ["balance", "ads_studio_quote", "generate_image", "generate_video", "jobs_wait", "upscale_image"].map((name) => ({
+  name,
+  description: name,
+  inputSchema: {
+    type: "object",
+    properties: { prompt: { type: "string" }, ...(name === "generate_video" ? { max_credits: { type: "number" } } : {}) },
+    required: name === "generate_image" ? ["prompt"] : [],
+  },
+}));
+
+function fakeTools(signedIn = true) {
   const calls: { tool: string; body: Record<string, unknown> }[] = [];
+  // Each generate costs 8 credits.
+  let credits = 100;
+  const higgsfield: Higgsfield = {
+    ready: () => signedIn,
+    listTools: async () => HF_LIST,
+    async call(name, args) {
+      calls.push({ tool: `hf:${name}`, body: args });
+      if (name.startsWith("generate")) credits -= 8;
+      return { text: `{"credits":${credits}}`, isError: false };
+    },
+  };
   const tools: AppTools = {
+    higgsfield,
+    async metaOps(body) {
+      calls.push({ tool: "metaOps", body });
+      return '{"ok":true}';
+    },
     async ghl(body) {
       calls.push({ tool: "ghl", body });
       return '{"ok":true}';
@@ -27,8 +55,8 @@ afterEach(async () => {
   bridge = null;
 });
 
-async function start() {
-  const f = fakeTools();
+async function start(signedIn = true) {
+  const f = fakeTools(signedIn);
   bridge = await startBridge({ port: 0, tokens: TOKENS, tools: f.tools });
   return f;
 }
@@ -72,6 +100,92 @@ describe("startBridge", () => {
     expect(toolNames(await rpc("t-manager", "tools/list"))).toEqual(["meta_insights", ...files]);
     expect(toolNames(await rpc("t-research", "tools/list"))).toEqual(files);
     expect(toolNames(await rpc("t-ghl", "tools/list"))).toEqual(["ghl"]);
+  });
+
+  it("gives the Ads Agent Ads Manager ops and the served Higgsfield tools, each naming its turn", async () => {
+    await start();
+    const r = await rpc("t-ads", "tools/list");
+    expect(toolNames(r)).toEqual(["meta_insights", "meta_ops", "list_files", "read_file", "write_file", "balance", "ads_studio_quote", "generate_image", "generate_video", "jobs_wait"]);
+    const gen = r.body.result.tools.find((t: { name: string }) => t.name === "generate_image");
+    expect(gen.inputSchema.required).toEqual(["prompt", "turn"]);
+    expect(gen.inputSchema.properties).toHaveProperty("prompt");
+    expect(gen.description).toMatch(/Paid/);
+  });
+
+  it("lists no Higgsfield tools while the runner is not signed in", async () => {
+    await start(false);
+    expect(toolNames(await rpc("t-ads", "tools/list"))).toEqual(["meta_insights", "meta_ops", "list_files", "read_file", "write_file"]);
+  });
+
+  it("sends Ads Manager ops with the running turn's client and message", async () => {
+    const f = await start();
+    bridge!.setTurn("ads", { tenantId: "T1", messageId: "M1" });
+    await call("t-ads", "meta_ops", { turn: "M1", op: "pause", args: { level: "ad", id: "1" }, tenantId: "T2" });
+    expect(f.calls).toEqual([{ tool: "metaOps", body: { messageId: "M1", tenantId: "T1", op: "pause", args: { level: "ad", id: "1" } } }]);
+    expect((await call("t-ads", "meta_ops", { turn: "M1", op: "delete" })).isError).toBe(true);
+    bridge!.setTurn("ads", { tenantId: null, messageId: "M2" });
+    expect((await call("t-ads", "meta_ops", { turn: "M2", op: "read.structure" })).isError).toBe(true);
+    expect(f.calls).toHaveLength(1);
+  });
+
+  // Jake's rule: nothing that costs credits without his Approve of the price.
+  it("runs Higgsfield quotes any turn and generate only under a spend grant", async () => {
+    const f = await start();
+    bridge!.setTurn("ads", { tenantId: "T1", messageId: "M1", spend: null });
+    expect((await call("t-ads", "balance", { turn: "M1" })).isError).toBeUndefined();
+    const no = await call("t-ads", "generate_image", { turn: "M1", prompt: "door" });
+    expect(no.isError).toBe(true);
+    expect(no.content[0].text).toMatch(/no spend is approved/i);
+    expect((await call("t-ads", "jobs_wait", { turn: "M1" })).isError).toBe(true);
+    expect((await call("t-ads", "upscale_image", { turn: "M1" })).isError).toBe(true);
+
+    bridge!.setTurn("ads", { tenantId: "T1", messageId: "M2", spend: 24 });
+    expect((await call("t-ads", "generate_image", { turn: "M2", prompt: "door" })).isError).toBeUndefined();
+    expect((await call("t-ads", "upscale_image", { turn: "M2" })).isError).toBe(true);
+    expect(f.calls).toEqual([
+      { tool: "hf:balance", body: {} },
+      { tool: "hf:balance", body: {} },
+      { tool: "hf:generate_image", body: { prompt: "door" } },
+    ]);
+  });
+
+  it("checks two generate calls made at once one after the other, and caps a tool that takes a ceiling", async () => {
+    const f = await start();
+    bridge!.setTurn("ads", { tenantId: "T1", messageId: "M1", spend: 10 });
+    const [a, b] = await Promise.all([
+      call("t-ads", "generate_image", { turn: "M1", prompt: "a" }),
+      call("t-ads", "generate_image", { turn: "M1", prompt: "b" }),
+    ]);
+    expect([a.isError, b.isError].filter(Boolean)).toHaveLength(0);
+    // Each check sees the balance after the call before it, never the same one twice.
+    expect(f.calls.map((x) => x.tool)).toEqual(["hf:balance", "hf:generate_image", "hf:balance", "hf:generate_image"]);
+    // 16 of 10 spent now (an image takes no ceiling), so nothing more runs.
+    const c = await call("t-ads", "generate_video", { turn: "M1", prompt: "v", max_credits: 50 });
+    expect(c.isError).toBe(true);
+    bridge!.setTurn("ads", { tenantId: "T1", messageId: "M2", spend: 30 });
+    await call("t-ads", "generate_video", { turn: "M2", prompt: "v", max_credits: 50 });
+    expect(f.calls.at(-1)).toEqual({ tool: "hf:generate_video", body: { prompt: "v", max_credits: 30 } });
+  });
+
+  it("stops generating once the approved credits are spent", async () => {
+    const f = await start();
+    bridge!.setTurn("ads", { tenantId: "T1", messageId: "M1", spend: 16 });
+    expect((await call("t-ads", "generate_image", { turn: "M1", prompt: "a" })).isError).toBeUndefined();
+    expect((await call("t-ads", "generate_image", { turn: "M1", prompt: "b" })).isError).toBeUndefined();
+    const third = await call("t-ads", "generate_image", { turn: "M1", prompt: "c" });
+    expect(third.content[0].text).toMatch(/16 credits Jake approved are used up \(16 spent/);
+    expect(f.calls.filter((c) => c.tool === "hf:generate_image")).toHaveLength(2);
+    // A new turn starts counting again.
+    bridge!.setTurn("ads", { tenantId: "T1", messageId: "M2", spend: 8 });
+    expect((await call("t-ads", "generate_image", { turn: "M2", prompt: "d" })).isError).toBeUndefined();
+  });
+
+  it("never lets another agent reach Higgsfield", async () => {
+    const f = await start();
+    bridge!.setTurn("csm", { tenantId: "T1", messageId: "M1", spend: 100 });
+    expect((await call("t-csm", "balance", { turn: "M1" })).isError).toBe(true);
+    expect((await call("t-csm", "meta_ops", { turn: "M1", op: "read.structure" })).isError).toBe(true);
+    expect(f.calls).toEqual([]);
   });
 
   it("refuses a call while that agent has no turn running", async () => {

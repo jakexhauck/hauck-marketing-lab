@@ -12,7 +12,8 @@ services:
     # must outlive a rebuild (the default is the container's random id).
     hostname: hauck-vps
     restart: unless-stopped
-    mem_limit: 512m
+    # wrangler deploys run in here too (the Ads Agent's landing pages).
+    mem_limit: 768m
     env_file:
       # HERMES_KEY_<AGENT> and HERMES_MCP_TOKEN_<AGENT> (setup.sh writes it)
       - /root/hauck-runner/profile-keys.env
@@ -20,7 +21,7 @@ services:
       - /root/hauck-runner/doppler.env
     environment:
       AGENT_ENGINE: hermes
-      AGENT_AGENTS: manager,csm,research,ghl
+      AGENT_AGENTS: manager,csm,research,ghl,ads
       HERMES_API: http://hermes-agent:8642
       HERMES_MCP_PORT: "8700"
       AGENT_REPO_DIR: /repo
@@ -29,6 +30,8 @@ services:
       AGENT_DRIVE: rclone
       AGENT_DRIVE_ROOT: /opt/data/drive
       RCLONE_CONFIG: /config/rclone.conf
+      # The runner's own Higgsfield login (src/higgsfieldLogin.ts writes it).
+      HIGGSFIELD_LOGIN: /config/higgsfield.json
       HOME: /home/runner
     volumes:
       - /srv/hauck/repo:/repo

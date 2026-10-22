@@ -283,6 +283,33 @@ export interface FileCreativeBody {
   size: number;
 }
 
+// PC jobs (migration 0177, docs/build-plans/hermes-ads.md): the VPS runner's
+// Ads turn hands clip video work to the PC and waits on it. payload and result
+// are the runner's own shapes; the app only stores them and keeps the job tied
+// to its running message.
+export type PcJobStatus = "queued" | "running" | "done" | "error" | "cancelled";
+
+export interface PcJob {
+  id: string;
+  messageId: string;
+  tenantId: string;
+  kind: "video";
+  payload: Record<string, unknown>;
+  status: PcJobStatus;
+  host: string | null;
+  step: string | null;
+  result: Record<string, unknown> | null;
+  error: string | null;
+}
+
+export type PcJobBody =
+  | { action: "create"; messageId: string; tenantId: string; payload: Record<string, unknown> }
+  | { action: "get"; id: string }
+  | { action: "claim"; host: string }
+  | { action: "step"; id: string; host: string; step: string }
+  | { action: "finish"; id: string; host: string; result?: Record<string, unknown>; error?: string }
+  | { action: "cancel"; id: string; ifStatus?: "queued" };
+
 // The Client Brief (Phase 6, migration 0168): one section per agent, the
 // Manager's being "Status". version 0 means nothing has been written yet; a
 // save names the version it read and a stale one gets 409 with the current

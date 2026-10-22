@@ -54,6 +54,9 @@ export interface RunnerDeps {
   // The Creative Agent's video pipeline, uploads and credit balance. Without
   // it a creative turn still answers; its ```video blocks are just not run.
   creative?: CreativeDeps;
+  // The live client list (main.ts refreshes it), for the agency Manager's
+  // prompt. Without it the Manager has no Clients section.
+  clients?: () => ClaimTenant[];
   // A note for a chat's next turn, kept across runner restarts (main.ts keeps
   // them in data/brief-notes). Without it a stale brief is still never
   // overwritten; the agent just is not told why on its next turn.
@@ -183,6 +186,8 @@ function promptFor(claim: ClaimResponse, fresh: boolean): string {
 }
 
 const AGENT_PREFIX = /^agent:\s*/i;
+// Under the app's 10 minute STALE_SECONDS with room for two misses.
+const KEEPALIVE_MS = 3 * 60_000;
 
 export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<void> {
   const log = d.log ?? (() => {});
@@ -195,10 +200,25 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
   // Progress posts go one after another, and the reply waits for the last of
   // them, so a slow progress post can never land after the finished reply.
   let progressPosts: Promise<unknown> = Promise.resolve();
+  // The latest progress, posted again every few minutes while nothing new
+  // comes: a long tool call (a PC render, a Higgsfield wait) must not read as
+  // a dead runner (the app's STALE_SECONDS). The same text, so nothing shown
+  // to Jake changes.
+  // Seeded empty, so a turn whose first output is ten minutes away is kept alive too.
+  let latest: { text: string; tools: string[] } = { text: "", tools: [] };
+  const onProgress = (text: string, tools: string[]) => {
+    latest = { text, tools };
+    progressPosts = progressPosts.then(() =>
+      d.api.reply({ messageId, status: "running", aiBody: preview(text), tools }).catch((e) => log(`progress post failed: ${e.message}`)),
+    );
+  };
+  const keepAlive = setInterval(() => {
+    onProgress(latest.text, latest.tools);
+  }, KEEPALIVE_MS);
   try {
     await d.api.reply({ messageId, status: "running" });
     const brief = claim.brief ?? [];
-    const bundle = buildBundle(agent, tenant, d.env, message.grant, brief, claim.sop ?? [], claim.tasks ?? []);
+    const bundle = buildBundle(agent, tenant, d.env, message.grant, brief, claim.sop ?? [], claim.tasks ?? [], d.clients?.() ?? []);
     // An approved landing page goes live before the agent's turn, so the turn
     // can say where. See landing.ts.
     const liveNote = d.landing ? await goLive(claim, { api: d.api, landing: d.landing }) : null;
@@ -213,11 +233,7 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
       bundle,
       cwd: bundle.workDir,
       env: d.childEnv?.(tenant, messageId),
-      onProgress: (text: string, tools: string[]) => {
-        progressPosts = progressPosts.then(() =>
-          d.api.reply({ messageId, status: "running", aiBody: preview(text), tools }).catch((e) => log(`progress post failed: ${e.message}`)),
-        );
-      },
+      onProgress,
     };
 
     // Set by the video rounds as the reply grows, so a step shows under it.
@@ -421,6 +437,8 @@ export async function handleClaim(claim: ClaimResponse, d: RunnerDeps): Promise<
     log(`message ${messageId} failed: ${error}`);
     await progressPosts;
     await d.api.reply({ messageId, status: "error", error }).catch((err) => log(`error post failed: ${err.message}`));
+  } finally {
+    clearInterval(keepAlive);
   }
 }
 
@@ -485,7 +503,7 @@ async function creativeRounds(
     texts.push(text);
     show(texts.join("\n\n"));
     if (!blocks.length) break;
-    const out = await runVideoBlocks(blocks, t, retried);
+    const out = await (t.deps.runBlocks ?? runVideoBlocks)(blocks, t, retried);
     if (!out.again || round >= VIDEO_ROUNDS) {
       texts.push(out.notes.join("\n"));
       break;

@@ -11,9 +11,18 @@
 // So only the files the agent wrote during the turn go up: the MCP bridge's
 // write_file records each one (mcpBridge.ts). The pull passes --update, so a
 // file the agent wrote here is never replaced by an older one from Drive.
+//
+// A client's raw video is far over the 20 MB cap, but the Ads Agent still has
+// to see it to ask the PC to prepare it (pcJobs.ts). So each big photo or
+// video gets an empty file of the same name here: the agent lists it and names
+// it, and the PC opens the real one on its own Drive. The copy never touches a
+// stand-in (it skips anything over the cap), and nothing uploads it (only the
+// bridge's writes go up).
 
 import { execFile } from "node:child_process";
-import { relative } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname, extname, relative } from "node:path";
+import { within } from "./paths.ts";
 import type { AgentId } from "./wire.ts";
 
 export type Exec = (cmd: string, args: string[]) => Promise<string>;
@@ -39,8 +48,23 @@ export function driveAgent(agent: AgentId): boolean {
   return agent === "csm" || agent === "research";
 }
 
+const MEDIA = new Set([".mov", ".mp4", ".m4v", ".avi", ".mkv", ".webm", ".jpg", ".jpeg", ".png", ".heic", ".webp"]);
+
 export async function pullDrive(d: DriveSync): Promise<void> {
   await d.exec("rclone", ["copy", d.remote, d.localRoot, "--max-size", "20M", "--drive-export-formats", "txt,csv", "--update"]);
+  const big = await d.exec("rclone", ["lsf", d.remote, "-R", "--files-only", "--min-size", "20M"]);
+  for (const rel of big.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)) {
+    if (!MEDIA.has(extname(rel).toLowerCase())) continue;
+    let file: string;
+    try {
+      file = within(d.localRoot, ...rel.split("/"));
+    } catch {
+      continue;
+    }
+    if (existsSync(file)) continue;
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, "");
+  }
 }
 
 // Uploads the given files of one client folder to the same place on Drive.

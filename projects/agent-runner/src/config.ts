@@ -65,3 +65,9 @@ export const GIT_PUSH = process.env.AGENT_GIT_PUSH === "1";
 // rclone remote and folder and AGENT_DRIVE_ROOT the local mirror.
 export const DRIVE_MODE: "mount" | "rclone" = process.env.AGENT_DRIVE === "rclone" ? "rclone" : "mount";
 export const DRIVE_REMOTE = process.env.AGENT_DRIVE_REMOTE ?? "gdrive:\u{1F31F} Hauck Marketing";
+
+// The PC takes clip video jobs from the VPS's Ads turns (pcJobs.ts).
+export const PC_JOBS = process.env.AGENT_PC_JOBS === "1";
+// The runner's own Higgsfield login (higgsfield.ts): /config/higgsfield.json on
+// the VPS, a file no agent can reach.
+export const HIGGSFIELD_LOGIN = process.env.HIGGSFIELD_LOGIN ?? join(DATA_DIR, "higgsfield.json");

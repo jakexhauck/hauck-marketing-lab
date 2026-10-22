@@ -231,6 +231,26 @@ describe("buildBundle", () => {
     expect(ghl).not.toContain(env.ghlScript);
     const manager = readFileSync(buildBundle("manager", null, env).systemPromptFile, "utf8");
     expect(manager).toContain("tenant <client tenant id>");
+    const ads = readFileSync(buildBundle("ads", willis, env).systemPromptFile, "utf8");
+    expect(ads).toContain("`meta_ops` tool");
+    expect(ads).not.toContain(env.metaOpsScript ?? "bin/metaops.mjs");
+    expect(ads).toContain("## Where video work runs");
+  });
+
+  it("keeps the PC video note out of a claude turn", () => {
+    const ads = readFileSync(buildBundle("ads", willis, world()).systemPromptFile, "utf8");
+    expect(ads).not.toContain("## Where video work runs");
+  });
+
+  it("gives the agency Manager the client list, and no one else", () => {
+    const env = world();
+    const aag: ClaimTenant = { id: "t-aag", name: "Above All Garage Doors", slug: "above-all-garage-doors", metaAdAccountId: null };
+    const manager = readFileSync(buildBundle("manager", null, env, null, [], [], [], [willis, aag]).systemPromptFile, "utf8");
+    expect(manager).toContain("## Clients\nEvery active client, 2 in all.");
+    expect(manager).toContain("- Willis Windows (tenant id t-willis, Meta ad account connected)");
+    expect(manager).toContain("- Above All Garage Doors (tenant id t-aag, Meta ad account none)");
+    const csm = readFileSync(buildBundle("csm", willis, env, null, [], [], [], [willis, aag]).systemPromptFile, "utf8");
+    expect(csm).not.toContain("## Clients");
   });
 
   it("puts the client's Profile and Memory notes into the prompt", () => {

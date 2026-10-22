@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-22-hermes-ads",
+    date: "22 October 2026",
+    title: "Ads Agent on Hermes",
+    items: [
+      "The Ads Agent now runs on Hermes on the server, with its own memory, like the other agents.",
+      "It answers, reads Meta and proposes changes with your PC off.",
+      "Landing page previews and go-live deploy from the server.",
+      "Higgsfield credits still need your Approve on a spend card, and only that turn can spend them.",
+      "Clip video edits still render on your PC. If it is off, Ads tells you instead of waiting.",
+      "The Manager now has the exact list of active clients.",
+    ],
+  },
+  {
     id: "2026-10-21-hermes-agents",
     date: "21 October 2026",
     title: "Agents with a brain of their own",

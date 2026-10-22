@@ -1,11 +1,14 @@
+import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync, mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { driveAgent, pullDrive, pushChanged } from "../src/drive.ts";
 
-function recorder() {
+function recorder(lsf = "") {
   const calls: string[][] = [];
   const exec = async (cmd: string, args: string[]) => {
     calls.push([cmd, ...args]);
-    return "";
+    return args[0] === "lsf" ? lsf : "";
   };
   return { calls, exec };
 }
@@ -25,8 +28,21 @@ describe("drive mirror", () => {
     await pullDrive({ remote: "gdrive:Hauck", localRoot: "/opt/data/drive", exec: r.exec });
     expect(r.calls).toEqual([
       ["rclone", "copy", "gdrive:Hauck", "/opt/data/drive", "--max-size", "20M", "--drive-export-formats", "txt,csv", "--update"],
+      ["rclone", "lsf", "gdrive:Hauck", "-R", "--files-only", "--min-size", "20M"],
     ]);
     noDelete(r.calls);
+  });
+
+  it("leaves an empty stand-in for each big photo or video, and never overwrites a real file", async () => {
+    const root = mkdtempSync(join(tmpdir(), "drive-"));
+    mkdirSync(join(root, "AAG"), { recursive: true });
+    writeFileSync(join(root, "AAG", "have.mp4"), "real");
+    const r = recorder("AAG/raw/clip one.MOV\nAAG/have.mp4\nAAG/big.zip\n../escape.mp4\n");
+    await pullDrive({ remote: "gdrive:Hauck", localRoot: root, exec: r.exec });
+    expect(statSync(join(root, "AAG", "raw", "clip one.MOV")).size).toBe(0);
+    expect(readFileSync(join(root, "AAG", "have.mp4"), "utf8")).toBe("real");
+    expect(existsSync(join(root, "AAG", "big.zip"))).toBe(false);
+    expect(existsSync(join(root, "..", "escape.mp4"))).toBe(false);
   });
 
   it("uploads each changed file one by one, never deleting", async () => {

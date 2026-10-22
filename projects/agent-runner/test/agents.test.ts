@@ -11,6 +11,11 @@ describe("parseAgentList", () => {
     expect(parseAgentList(" manager, csm ,csm")).toEqual(["manager", "csm"]);
   });
 
+  it("is no agent at all for none", () => {
+    expect(parseAgentList("none")).toEqual([]);
+    expect(parseAgentList(" None ")).toEqual([]);
+  });
+
   it("refuses a name it does not know", () => {
     expect(() => parseAgentList("csm,cms")).toThrow(/unknown agents: cms/);
   });

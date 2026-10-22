@@ -34,20 +34,25 @@ export const HF_MCP_URL = "https://mcp.higgsfield.ai/mcp";
 
 const hf = (name: string) => `mcp__${HF_SERVER}__${name}`;
 
-// Free reads: the balance and the price of a run.
-export const HF_QUOTE_TOOLS = ["balance", "ads_studio_quote", "models_explore"].map(hf);
+// Free reads: the balance and the price of a run. The bare names are what the
+// runner's MCP bridge serves the Hermes Ads Agent (mcpBridge.ts); the mcp__
+// names are claude's.
+export const HF_QUOTE = ["balance", "ads_studio_quote", "models_explore"];
+export const HF_QUOTE_TOOLS = HF_QUOTE.map(hf);
 
 // What an approved spend grant switches on. jobs_wait only reads the status of
 // a job already paid for; it is here because it is useless without one.
-export const HF_GENERATE_TOOLS = [
+export const HF_GENERATE = [
   "generate_image",
   "generate_video",
   "generate_image_batch",
   "generate_video_batch",
   "ads_studio_generate",
   "execute_preset",
-].map(hf);
-const HF_AFTER_GENERATE = ["jobs_wait"].map(hf);
+];
+export const HF_GENERATE_TOOLS = HF_GENERATE.map(hf);
+export const HF_AFTER = ["jobs_wait"];
+const HF_AFTER_GENERATE = HF_AFTER.map(hf);
 
 // Paid tools no card approves yet. Refused on every turn.
 export const HF_PAID_OTHER = [

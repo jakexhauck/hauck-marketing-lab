@@ -117,6 +117,7 @@ function metaOpsTools(agent: AgentId, tenant: ClaimTenant | null, env: BundleEnv
 
 function metaOpsLine(env: BundleEnv, agent: AgentId): string | null {
   if (agent !== "ads") return null;
+  if (env.appTools === "mcp") return "- Ads Manager (reads, and changes only after Jake approves a card): your `meta_ops` tool (op, args), one of the hauck tools";
   return `- Ads Manager (reads, and changes only after Jake approves a card): \`node ${env.metaOpsScript ?? METAOPS_SCRIPT} <op> '<json args>'\``;
 }
 
@@ -124,17 +125,24 @@ function metaOpsLine(env: BundleEnv, agent: AgentId): string | null {
 // knows; the app's meta-ops check is what holds it to that.
 function adsGrantSection(grant: Grant | null): string | null {
   if (grant?.kind !== "meta") return null;
-  return `## Approved this turn\nJake approved card ${grant.itemId}. Make exactly the changes in that card's ops, one metaops call per op, with the same args, and report what Meta answered for each. Nothing else.`;
+  return `## Approved this turn\nJake approved card ${grant.itemId}. Make exactly the changes in that card's ops, one Ads Manager call per op, with the same args, and report what Meta answered for each. Nothing else.`;
 }
+
+// A client slug names folders, so it is checked as one: never a path.
+const SLUG = /^[a-z0-9][a-z0-9-]*$/;
+const folderName = (agent: AgentId, tenant: Pick<ClaimTenant, "slug"> | null): string => {
+  if (tenant && !SLUG.test(tenant.slug)) throw new Error(`${tenant.slug} is not a client slug`);
+  return `${agent}-${tenant?.slug ?? "agency"}`;
+};
 
 /** One agent and client's work folder. Stable: claude keys its saved sessions by it. */
 export function workDirFor(env: Pick<BundleEnv, "workRoot">, agent: AgentId, tenant: Pick<ClaimTenant, "slug"> | null): string {
-  return join(env.workRoot, `${agent}-${tenant?.slug ?? "agency"}`);
+  return join(env.workRoot, folderName(agent, tenant));
 }
 
 /** The runner-only folder for one agent and client: beside the work folders, not in one. */
 export function stateDirFor(env: BundleEnv, agent: AgentId, tenant: ClaimTenant | null): string {
-  return join(env.stateRoot ?? join(dirname(env.workRoot), "state"), `${agent}-${tenant?.slug ?? "agency"}`);
+  return join(env.stateRoot ?? join(dirname(env.workRoot), "state"), folderName(agent, tenant));
 }
 
 export function clientBrainPath(vaultDir: string, t: Pick<ClaimTenant, "slug" | "name">): string {
@@ -242,6 +250,21 @@ const BRIEF_LABELS: Record<BriefSectionId, string> = {
   ghl: "GHL",
 };
 
+// The agency Manager's list of clients, so "how many clients" is a count, not
+// a guess from the brains. The app's own list (api/agent-runner/tenants):
+// retired accounts and Hauck's own sub-account are already left out.
+export function clientsSection(clients: ClaimTenant[]): string {
+  const lines = clients.map((c) => `- ${c.name} (tenant id ${c.id}, Meta ad account ${c.metaAdAccountId ? "connected" : "none"})`);
+  return [`## Clients\nEvery active client, ${clients.length} in all.`, lines.join("\n") || "(none)"].join("\n");
+}
+
+// On Hermes the clip work runs on Jake's PC, not beside the agent (pcJobs.ts).
+const PC_VIDEO_SECTION = [
+  "## Where video work runs",
+  "Higgsfield is your hauck tools (quotes always; generate only on an approved spend turn). The runner stages Higgsfield results here. Clip work (prepare, photo, preview, final) runs on Jake's PC: the runner sends it there and tells you how it went. If the PC is off you are told so; say that to Jake and stop.",
+  "Big photos and videos show in the Drive folder as empty files: name them in a prepare or photo block as usual, the PC opens the real one. Stills from a prepare stay on the PC and your file tools read text only, so set zones from the transcript and the client's usual framing.",
+].join("\n");
+
 // The whole brief, every section, so each agent builds on the others' work and
 // sees Jake's edits. Jake and other agents write it, and an agent's section can
 // carry what a web page told it, so it is framed exactly like the brains: notes,
@@ -328,6 +351,7 @@ export function buildBundle(
   brief: BriefSection[] = [],
   sop: SopStage[] = [],
   tasks: WireTask[] = [],
+  clients: ClaimTenant[] = [],
 ): Bundle {
   const def = agentDef(agent);
   // The GHL Agent works on GHL only. No Drive folder: less text in its turn
@@ -349,6 +373,8 @@ export function buildBundle(
   // the folder it runs in, so --resume only finds a chat from the same one.
   const workDir = workDirFor(env, agent, tenant);
   if (agent === "ads" && tenant) sections.push(landingSection(workDir, grant));
+  if (agent === "ads" && tenant && env.appTools === "mcp") sections.push(PC_VIDEO_SECTION);
+  if (agent === "manager" && !tenant && clients.length) sections.push(clientsSection(clients));
   // claude runs inside its work folder; a Hermes turn does not, so it is told.
   if (env.appTools === "mcp") {
     sections.push(

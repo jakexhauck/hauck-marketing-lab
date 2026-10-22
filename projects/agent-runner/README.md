@@ -18,10 +18,10 @@ The secret comes from Doppler (`AGENT_RUNNER_SECRET`, `hauck-command-center`/`pr
 
 `AGENT_ENGINE=hermes` answers with each agent's own Hermes profile instead of `claude -p` (`src/hermes.ts`, plan `docs/build-plans/hermes-agents.md`). `AGENT_AGENTS` is the list of agents a runner claims, so two runners never take the same message:
 
-- VPS (`deploy/vps/`): `manager,csm,research,ghl` on Hermes, in the `hauck-agent-runner` container beside Hermes.
-- PC (logon task below): `AGENT_AGENTS=ads` on claude, for the video and deploy work that needs this PC.
+- VPS (`deploy/vps/`): every agent on Hermes, in the `hauck-agent-runner` container beside Hermes.
+- PC (logon task below): `AGENT_AGENTS=none` and `AGENT_PC_JOBS=1`: no chats, only the clip video work the VPS's Ads turns send it (`src/pcJobs.ts`, plan `docs/build-plans/hermes-ads.md`).
 
-The Hermes profiles have no shell. Their GHL and Meta tools are MCP tools the runner serves on port 8700 (`src/mcpBridge.ts`), each profile with its own token.
+The Hermes profiles have no shell. Their GHL, Meta, Ads Manager, file and Higgsfield tools are MCP tools the runner serves on port 8700 (`src/mcpBridge.ts`), each profile with its own token. Higgsfield uses the runner's own login (`src/higgsfield.ts`); generate tools answer only on a turn carrying Jake's spend grant.
 
 ### VPS
 
@@ -31,8 +31,9 @@ Once, as root on the VPS:
 2. `/root/hauck-runner/doppler.env`: `DOPPLER_TOKEN=<read-only service token for hauck-command-center/prd>`.
 3. Drive: `docker run --rm -it -v /srv/hauck/config:/config -e RCLONE_CONFIG=/config/rclone.conf rclone/rclone config`, a remote named `gdrive` (Google Drive, Jake's account).
 4. `sh /srv/hauck/repo/projects/agent-runner/deploy/vps/setup.sh`
+5. Higgsfield: `docker exec -it hauck-agent-runner npx tsx src/higgsfieldLogin.ts`, then open the link it prints and approve. Then `docker restart hauck-agent-runner`.
 
-Logs: `docker logs -f hauck-agent-runner`. Update: `git -C /srv/hauck/repo pull && docker restart hauck-agent-runner`. Off: `docker stop hauck-agent-runner`.
+Logs: `docker logs -f hauck-agent-runner`. Update: `docker exec hauck-agent-runner git -C /repo pull && docker restart hauck-agent-runner` (the clone's git is set up for the container's key path). Off: `docker stop hauck-agent-runner`.
 
 ## Install as a logon task
 
@@ -52,6 +53,7 @@ Off switch: create `data\.stop`.
 - `src/claude.ts`: spawns `claude -p`, parses stream-json.
 - `src/hermes.ts`: the same turn on the agent's Hermes profile. `src/mcpBridge.ts` + `src/appOps.ts`: the app's tools for Hermes.
 - `src/drive.ts`: the VPS's rclone Drive mirror. `deploy/vps/`: the VPS container and profile setup.
+- `src/pcJobs.ts`: clip video work from the VPS to the PC. `src/higgsfield.ts`, `src/higgsfieldLogin.ts`: the runner's Higgsfield login and client.
 - `src/output.ts`: the lessons, item and request blocks.
 - `src/brain.ts`, `src/git.ts`: brain files and `brain:` commits (explicit pathspecs only).
 - `src/clients.ts`: tenant slug to vault folder and Drive folder.

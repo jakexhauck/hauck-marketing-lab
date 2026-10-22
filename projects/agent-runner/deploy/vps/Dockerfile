@@ -11,6 +11,10 @@ RUN apt-get update \
  && curl -Ls --tlsv1.2 --proto "=https" https://cli.doppler.com/install.sh | sh \
  && apt-get purge -y gnupg && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
+# The Ads Agent's landing pages deploy from here (pages.ts). wrangler reads
+# CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID from the Doppler environment.
+RUN npm install -g wrangler@4.91.0 --no-audit --no-fund --loglevel=error
+
 RUN groupadd -g 10000 runner && useradd -u 10000 -g 10000 -m -d /home/runner runner
 USER runner
 WORKDIR /repo/projects/agent-runner

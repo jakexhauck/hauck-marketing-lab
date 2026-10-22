@@ -35,6 +35,9 @@ export interface CreativeDeps {
   // The Higgsfield credit balance, or null when it could not be read.
   balance: () => Promise<number | null>;
   fetch?: typeof fetch;
+  // Where the blocks run. Unset: here (runVideoBlocks). The VPS sends the
+  // clip work to the PC instead (pcJobs.ts remoteVideoBlocks).
+  runBlocks?: (blocks: VideoBlock[], t: CreativeTurn, retried: Set<string>) => Promise<{ notes: string[]; again: boolean }>;
 }
 
 export interface CreativeTurn {
@@ -53,6 +56,10 @@ export interface CreativeTurn {
   // running message with no write for 10 minutes is taken for a dead runner.
   say: (step: string) => void;
   log: (line: string) => void;
+  // Throws when the work should stop before anything leaves this machine (a
+  // PC job the VPS cancelled, pcJobs.ts). Awaited before every upload, so no
+  // file and no card follows a cancel.
+  check?: () => Promise<void>;
 }
 
 export type VideoBlock =
@@ -62,6 +69,7 @@ export type VideoBlock =
   | { action: "stage"; url: string; name: string; title?: string };
 
 const BLOCK = /```video[^\n]*\n([\s\S]*?)```/g;
+const CONFIG = /^ads\/[a-z0-9][a-z0-9-]*\.json$/;
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const str = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 
@@ -75,7 +83,8 @@ function toBlock(v: unknown): VideoBlock | null {
       return str(v.source) && safeName(v.as) ? { action: "photo", source: v.source, as: v.as as string } : null;
     case "preview":
     case "final":
-      return str(v.config) ? { action: v.action, config: v.config, ...title } : null;
+      // Only an ad config by its usual name: on Hermes the file is sent to the PC (pcJobs.ts).
+      return str(v.config) && CONFIG.test(v.config) ? { action: v.action, config: v.config, ...title } : null;
     case "stage":
       return str(v.url) && safeName(v.name) ? { action: "stage", url: v.url, name: v.name as string, ...title } : null;
     default:
@@ -154,6 +163,7 @@ function idOf(res: unknown): string | null {
 }
 
 async function upload(t: CreativeTurn, file: string, type: string, preview: boolean): Promise<{ path: string; url: string; size: number }> {
+  await t.check?.();
   const size = statSync(file).size;
   if (size > MAX_BYTES) throw new Error(`${Math.round(size / 1048576)} MB is over the 50 MB Creatives limit`);
   const base = { messageId: t.messageId, tenantId: t.tenant.id };
