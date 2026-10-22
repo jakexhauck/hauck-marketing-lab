@@ -795,11 +795,10 @@ What's in the app now: Manager, CSM, Research and GHL are answered by their own 
 
 Your action items: none. Drive connected and all four checks passed on 2026-10-22 (done by Claude).
 
-Ads on Hermes (2026-10-22): Ads now runs on the VPS too. Your PC only renders clip videos when Ads asks; if the PC is off, Ads says so.
+Ads on Hermes (2026-10-22): Ads now runs on the VPS too. Your PC only renders clip videos when Ads asks; if the PC is off, Ads says so. Higgsfield signed in on the VPS 2026-10-22 (done).
 
 Your action items:
-1. Higgsfield sign-in for the VPS (once): approve the link and code Claude gives you, signed in to your Higgsfield account. Until then Ads cannot quote or make Higgsfield images and videos.
-2. One Ads chat at a client: ask for this week's numbers and one idea. Check it answers.
+1. One Ads chat at a client: ask for this week's numbers and one idea. Check it answers.
 
 Still parked:
 - The Manager on your text messages.
