@@ -118,6 +118,10 @@ const PUBLIC_PATHS = new Set([
   // The short form of the owner links (Open Lead today), a signed code that
   // redirects to the long link. See api/n.ts.
   "/api/n",
+  // The Manager's Telegram bot. Telegram's servers call it, so it can carry no
+  // session of ours. Guarded by TELEGRAM_WEBHOOK_SECRET in Telegram's own
+  // secret-token header and by Jake's chat id. See api/telegram/webhook.ts.
+  "/api/telegram/webhook",
 ]);
 
 // Public paths with a dynamic segment, matched by prefix. Kept separate from the

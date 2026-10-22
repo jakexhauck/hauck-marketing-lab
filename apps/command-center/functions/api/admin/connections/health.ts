@@ -21,6 +21,7 @@ import type {
   HealthResponse,
 } from "../../../../src/lib/connectionHealth";
 import { resolveMetaToken } from "../../../lib/metaToken";
+import { checkRunnerOffline } from "../../../lib/telegramManager";
 
 // GET /api/admin/connections/health  (admin-only, gated in _middleware.ts)
 //
@@ -397,6 +398,15 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   );
   if (scheduled) {
     const watch = await recordAndAlert(ctx.env, body, crypto.randomUUID());
+    // The agent runner's heartbeat rides the same schedule: gone quiet over
+    // ten minutes is a Telegram alert to Jake, once per incident. Its own
+    // failure must not cost the health run its answer.
+    const db = getServiceClient(ctx.env);
+    if (db) {
+      await checkRunnerOffline(ctx.env, db).catch((err) =>
+        console.error("[telegram] runner alert failed:", (err as Error).message),
+      );
+    }
     return Response.json({ ...body, watch }, { headers: { "Cache-Control": "no-store" } });
   }
 
