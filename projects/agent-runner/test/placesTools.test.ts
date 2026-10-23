@@ -24,6 +24,21 @@ describe("places", () => {
     await expect(placeReviews("../../x", { apiKey: "k", fetchImpl: f })).rejects.toThrow(/id from a search/);
   });
 
+  it("asks for the most relevant and the newest reviews and keeps each review once", async () => {
+    const both = { rating: 1, author_name: "Ann", time: 1, relative_time_description: "a week ago", text: "Never showed" };
+    const calls: string[] = [];
+    const f = (async (url: string) => {
+      calls.push(url);
+      const newest = url.includes("reviews_sort=newest");
+      const reviews = newest ? [both, { rating: 5, author_name: "Bo", time: 2, text: "Fast crew" }] : [both];
+      return new Response(JSON.stringify({ status: "OK", result: { name: "Glass Co", rating: 4.6, user_ratings_total: 88, reviews } }));
+    }) as unknown as typeof fetch;
+    const out = await placeReviews("ChIJabc1234567", { apiKey: "k", fetchImpl: f });
+    expect(calls.map((u) => new URL(u).searchParams.get("reviews_sort")).sort()).toEqual(["most_relevant", "newest"]);
+    expect(out.match(/Never showed/g)).toHaveLength(1);
+    expect(out).toContain("5 stars, : Fast crew");
+  });
+
   it("reports Google's status and message, never the URL with the key in it", async () => {
     const { f } = google({ status: "REQUEST_DENIED", error_message: "This API project is not authorized" });
     const err = await searchPlaces("x", { apiKey: "secret-key", fetchImpl: f }).catch((e: Error) => e);

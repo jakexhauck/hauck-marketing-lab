@@ -56,7 +56,9 @@ describe("parsePageOps", () => {
     expect(parsePageOps("ads", [{ op: "add", kind: "headline", campaign: "Winter Leads", fields: { text: "x" } }])).toMatchObject({ ok: false });
     expect(parsePageOps("ads", [])).toMatchObject({ ok: false });
     expect(parsePageOps("ads", "add an angle")).toMatchObject({ ok: false });
-    expect(parsePageOps("research", [{ op: "add", kind: "angle", fields: { name: "x" } }])).toMatchObject({ ok: false });
+    expect(parsePageOps("research", [{ op: "add", kind: "zip", fields: { zip: "48084" } }])).toMatchObject({ ok: false });
+    expect(parsePageOps("research", [{ op: "set", field: "stats.olderHomesPct", value: 58 }])).toMatchObject({ ok: false });
+    expect(parsePageOps("research", [{ op: "add", kind: "angle", fields: { name: "Mold", pitch: "x" } }])).toMatchObject({ ok: false, error: "op 1: unknown field pitch" });
   });
 });
 
@@ -121,29 +123,53 @@ describe("applyPageOps, Ads", () => {
 });
 
 describe("applyPageOps, Research", () => {
-  it("adds, updates and removes rows and sets the website fields", () => {
+  const mold = { text: "Black mold on the sills, gone since the install", stars: 5, from: "Lakeshore Window Co." };
+
+  it("adds, updates and removes every kind, quotes and all", () => {
     const start = parsePage("research", { competitors: [{ name: "Window Nation", googleRating: 4.1 }], painPoints: [{ title: "Drafts" }] });
     if (!start.ok) throw new Error();
     const r = applied("research", start.data, [
-      { op: "add", kind: "zip", fields: { zip: "63021", area: "Ballwin", population: 31000 } },
-      { op: "update", kind: "competitor", name: "window nation", fields: { metaAdsLive: 54, isClient: false } },
-      { op: "add", kind: "competitor", fields: { name: "Willis Windows", isClient: true } },
+      { op: "update", kind: "competitor", name: "window nation", fields: { offer: "Buy 1 get 1 40% off", isClient: false } },
+      { op: "add", kind: "competitor", fields: { name: "Clear Choice Windows", isClient: true, googleRating: 4.9, googleReviews: 212 } },
       { op: "remove", kind: "painPoint", name: "Drafts" },
-      { op: "set", field: "websites.gap", value: "Nobody shows a price" },
-      { op: "set", field: "stats.olderHomesPct", value: 58 },
-      { op: "set", field: "sourcesNote", value: "Census 2023, 212 Google reviews" },
+      { op: "add", kind: "painPoint", fields: { title: "Pushy pitch", reviews: 31, quotes: [{ text: "3 hour pitch", stars: 2, from: "Window Nation" }] } },
+      { op: "add", kind: "goal", fields: { title: "Warm house", reviews: 28, quotes: [] } },
+      { op: "add", kind: "benefit", fields: { benefit: "Lower bills", dimensionalized: "Gas bill down $90 a month", quotes: [] } },
+      { op: "add", kind: "angle", fields: { name: "Mold", reviews: 9, quotes: [mold] } },
+      { op: "add", kind: "offer", fields: { offer: "$500 off 5+ windows" } },
+      { op: "add", kind: "funnel", fields: { stage: "tof", name: "Mold", quote: "Black mold on the sills" } },
+      { op: "set", field: "sourcesNote", value: "212 Google reviews, 22 Oct" },
     ]);
     const page = r.data as ResearchPage;
-    expect(page.zips[0]).toMatchObject({ zip: "63021", area: "Ballwin", population: 31000 });
     expect(page.competitors).toMatchObject([
-      { name: "Window Nation", googleRating: 4.1, metaAdsLive: 54, isClient: false },
-      { name: "Willis Windows", isClient: true },
+      { name: "Window Nation", googleRating: 4.1, offer: "Buy 1 get 1 40% off" },
+      { name: "Clear Choice Windows", isClient: true },
     ]);
-    expect(page.painPoints).toEqual([]);
-    expect(page.websites.gap).toBe("Nobody shows a price");
-    expect(page.stats.olderHomesPct).toBe(58);
-    expect(r.summary).toContain("Add ZIP: 63021");
+    expect(page.painPoints).toEqual([{ title: "Pushy pitch", reviews: 31, quotes: [{ text: "3 hour pitch", stars: 2, from: "Window Nation" }] }]);
+    expect(page.angles).toEqual([{ name: "Mold", reviews: 9, quotes: [mold] }]);
+    expect(page.funnel).toEqual([{ stage: "tof", name: "Mold", quote: "Black mold on the sills" }]);
+    expect(page.sourcesNote).toBe("212 Google reviews, 22 Oct");
+    expect(r.summary).toContain("Add angle: Mold");
+    expect(r.summary).toContain("Add funnel angle: Mold");
     expect(parsePage("research", page)).toEqual({ ok: true, data: page });
+  });
+
+  it("refuses a quote with no words, a bad star count, too many quotes and a bad stage", () => {
+    const add = (fields: unknown) => parsePageOps("research", [{ op: "add", kind: "angle", fields }]);
+    expect(add({ name: "Mold", quotes: [{ text: " " }] })).toMatchObject({ ok: false, error: "op 1: each of quotes needs text, the review's own words" });
+    expect(add({ name: "Mold", quotes: [{ text: "x", stars: 7 }] })).toMatchObject({ ok: false, error: "op 1: stars must be 1 to 5" });
+    expect(add({ name: "Mold", quotes: [mold, mold, mold, mold] })).toMatchObject({ ok: false });
+    expect(add({ name: "Mold", quotes: "a review" })).toMatchObject({ ok: false });
+    expect(parsePageOps("research", [{ op: "add", kind: "funnel", fields: { name: "Mold", stage: "top" } }])).toMatchObject({ ok: false, error: "op 1: stage must be one of tof, mof, bof" });
+  });
+
+  it("tints a changed angle and a new funnel row", () => {
+    const before = emptyPage("research");
+    const after = applied("research", before, [
+      { op: "add", kind: "angle", fields: { name: "Mold", quotes: [mold] } },
+      { op: "add", kind: "funnel", fields: { stage: "tof", name: "Mold" } },
+    ]).data as ResearchPage;
+    expect([...freshKeys("research", before, after)].sort()).toEqual(["angle|mold", "funnel|mold"]);
   });
 });
 

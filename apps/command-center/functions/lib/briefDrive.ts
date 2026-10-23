@@ -5,7 +5,7 @@ import { BRIEF_SECTIONS, briefRevision } from "../../src/lib/clientBrief";
 import { markdownToLines } from "../../src/lib/briefMarkdown";
 import { readBrief } from "./clientBriefs";
 import { readPages } from "./briefPagesStore";
-import type { AdsPage, BriefPageRow, ResearchPage } from "../../src/lib/briefPages";
+import type { AdsPage, BriefPageRow, Quote, ResearchPage } from "../../src/lib/briefPages";
 import { createGoogleDoc, findDocInFolder, resolveDriveAccount, rewriteDoc } from "./driveComposio";
 
 // The Client Brief in Google Drive (docs/build-plans/agents.md, Phase 6): one
@@ -98,22 +98,24 @@ export function pageLines(row: BriefPageRow): Line[] {
     return out;
   }
   const r = row.data as ResearchPage;
-  if (r.zips.length) {
-    out.push({ text: "Market", heading: true });
-    for (const z of r.zips)
-      out.push({ text: `• ${joinBits(z.zip, z.area, z.population !== null ? `pop ${z.population}` : null, z.medianHomeValue !== null ? `home $${z.medianHomeValue}` : null)}` });
-  }
-  if (r.competitors.length) {
-    out.push({ text: "Competitors", heading: true });
-    for (const c of r.competitors)
-      out.push({
-        text: `• ${joinBits(c.name, c.googleRating !== null ? `${c.googleRating} stars` : null, c.googleReviews !== null ? `${c.googleReviews} reviews` : null, c.metaAdsLive !== null ? `${c.metaAdsLive} Meta ads` : null, c.mainAngle)}`,
-      });
-  }
-  if (r.painPoints.length) {
-    out.push({ text: "Pain points", heading: true });
-    for (const p of r.painPoints) out.push({ text: `• ${joinBits(p.title, p.sharePct !== null ? `${p.sharePct}%` : null, p.quote ? `"${p.quote}"` : null)}` });
-  }
+  const said = (q: Quote) => `"${q.text}"${q.from ? ` (${q.from})` : ""}`;
+  const section = (title: string, lines: string[]) => {
+    if (!lines.length) return;
+    out.push({ text: title, heading: true });
+    for (const l of lines) out.push({ text: `• ${l}` });
+  };
+  section(
+    "Competitors",
+    r.competitors.map((c) => joinBits(c.name, c.googleRating !== null ? `${c.googleRating} stars` : null, c.googleReviews !== null ? `${c.googleReviews} reviews` : null, c.offer)),
+  );
+  const voc = (rows: { title: string; reviews: number | null; quotes: Quote[] }[]) =>
+    rows.map((p) => joinBits(p.title, p.reviews !== null ? `${p.reviews} reviews` : null, ...p.quotes.map(said)));
+  section("Pain points", voc(r.painPoints));
+  section("Goals", voc(r.goals));
+  section("Benefits", r.benefits.map((b) => joinBits(`${b.benefit} → ${b.dimensionalized}`, ...b.quotes.map(said))));
+  section("Angles", voc(r.angles.map((a) => ({ title: a.name, reviews: a.reviews, quotes: a.quotes }))));
+  section("Offers to run", r.offers.map((o) => o.offer));
+  section("Ad angles by funnel", r.funnel.map((x) => joinBits(x.stage.toUpperCase(), x.name, x.quote ? `"${x.quote}"` : null)));
   return out;
 }
 

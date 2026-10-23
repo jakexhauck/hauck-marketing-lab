@@ -44,11 +44,12 @@ const ads = parsed<Ads>("ads", {
 });
 
 const research = parsed<Research>("research", {
-  stats: { population: 142300, olderHomesPct: 61, competitorsOnMeta: 6, competition: "high" },
-  zips: [{ zip: "48084", area: "Troy", population: 23400, medianHomeValue: 318000, ownerOccupiedPct: 71, competitors: 5 }],
-  competitors: [{ name: "Window Nation", googleRating: 4.1, googleReviews: 866, metaAdsLive: 54, adLibraryUrl: "https://facebook.com/ads/library" }, { name: "Clear Choice", isClient: true }],
-  websites: { clientUrl: "clearchoice.com", strong: "Real photos", gap: "One-day install" },
-  painPoints: [{ title: "Install dragged on", detail: "Weeks of open walls", sharePct: 31, quote: "Nine days", sources: 40 }],
+  competitors: [{ name: "Window Nation", googleRating: 4.1, googleReviews: 866, offer: "Buy 1 get 1 40% off" }, { name: "Clear Choice", isClient: true }],
+  painPoints: [{ title: "Install dragged on", reviews: 40, quotes: [{ text: "Nine days", stars: 2, from: "Window Nation" }] }],
+  goals: [{ title: "Warm house", reviews: 28, quotes: [{ text: "Front room usable", stars: 5, from: "Pella" }] }],
+  angles: [{ name: "Curb Appeal", reviews: 26, quotes: [{ text: "Looks brand new from the street", stars: 5, from: "Pella" }] }],
+  offers: [{ offer: "$500 off 5+ windows" }],
+  funnel: [{ stage: "bof", name: "$500 off 5+ windows" }, { stage: "tof", name: "Curb Appeal", quote: "Looks brand new" }],
   sourcesNote: "From 2,767 reviews",
 });
 
@@ -93,11 +94,19 @@ describe("Mission Control pages render", () => {
     expect(out).toContain("Drafty windows cost you every month.");
   });
 
-  it("Research: market, competitors with the client marked, pain points", () => {
+  it("Research: competitors with offers, angles with their reviews, pain points first, funnel TOF to BOF", () => {
     const out = html(<ResearchPage tenantId={T} page={research} sections={[]} />);
-    for (const s of ["142,300", "48084", "Window Nation", "Client", "Install dragged on", "31%", "From 2,767 reviews", "One-day install"]) {
+    for (const s of ["Window Nation", "Buy 1 get 1 40% off", "Client", "Curb Appeal", "26 reviews", "Looks brand new from the street", "Install dragged on", "Nine days", "$500 off 5+ windows", "From 2,767 reviews"]) {
       expect(out).toContain(s);
     }
+    // The tabs open on pain points; goals wait behind their tab.
+    expect(out).not.toContain("Front room usable");
+    expect(out.indexOf(">TOF<")).toBeLessThan(out.indexOf(">BOF<"));
+    for (const s of ["Homes built before", "Ad Library", "Nobody says"]) expect(out).not.toContain(s);
+  });
+
+  it("Research: the tabs open on the one the last approve touched", () => {
+    expect(html(<ResearchPage tenantId={T} page={research} sections={[]} fresh={new Set(["goal|warm house"])} />)).toContain("Front room usable");
   });
 
   it("Client Information: links, assets, answers, secrets on file", () => {
@@ -122,7 +131,7 @@ describe("Mission Control pages render", () => {
     const adsOut = html(<AdsPage tenantId={T} page={ads} sections={[]} fresh={new Set(["ccw leads nov|angle|energy bills"])} />);
     expect(tinted(adsOut)).toBe(1);
     expect(tinted(html(<AdsPage tenantId={T} page={ads} sections={[]} />))).toBe(0);
-    const resOut = html(<ResearchPage tenantId={T} page={research} sections={[]} fresh={new Set(["competitor|window nation", "websites.gap"])} />);
+    const resOut = html(<ResearchPage tenantId={T} page={research} sections={[]} fresh={new Set(["competitor|window nation", "angle|curb appeal"])} />);
     expect(tinted(resOut)).toBe(2);
   });
 

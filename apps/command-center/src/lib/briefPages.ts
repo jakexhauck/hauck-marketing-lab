@@ -21,31 +21,30 @@ export const BRIEF_PAGE_IDS: BriefPageId[] = ["research", "ads"];
 export type ItemStatus = "draft" | "needs_ok" | "approved" | "live" | "not_made";
 const ITEM_STATUSES: ItemStatus[] = ["draft", "needs_ok", "approved", "live", "not_made"];
 
-export type Competition = "low" | "medium" | "high";
+// Market Research v2 (Jake, 2026-10-22; docs/build-plans/market-research-v2.md):
+// built on competitor Google reviews. Every pain point, goal, benefit and angle
+// carries the real reviews that show it, so nothing on the page is a guess.
+export interface Quote {
+  text: string;
+  stars: number | null;
+  // The business whose Google reviews it came from.
+  from: string;
+}
+
+export type FunnelStage = "tof" | "mof" | "bof";
+export const FUNNEL_STAGES: FunnelStage[] = ["tof", "mof", "bof"];
 
 export interface ResearchPage {
-  stats: { population: number | null; olderHomesPct: number | null; competitorsOnMeta: number | null; competition: Competition | null };
-  zips: {
-    zip: string;
-    area: string;
-    population: number | null;
-    medianHomeValue: number | null;
-    ownerOccupiedPct: number | null;
-    competitors: number | null;
-  }[];
-  competitors: {
-    name: string;
-    isClient: boolean;
-    googleRating: number | null;
-    googleReviews: number | null;
-    metaAdsLive: number | null;
-    runningSince: string;
-    mainAngle: string;
-    adLibraryUrl: string;
-    websiteUrl: string;
-  }[];
-  websites: { clientUrl: string; strong: string; weak: string; commonOffer: string; commonPromise: string; gap: string };
-  painPoints: { title: string; detail: string; sharePct: number | null; quote: string; sources: number | null }[];
+  competitors: { name: string; isClient: boolean; googleRating: number | null; googleReviews: number | null; offer: string; websiteUrl: string }[];
+  // reviews: how many of the reviews read raise it.
+  painPoints: { title: string; reviews: number | null; quotes: Quote[] }[];
+  goals: { title: string; reviews: number | null; quotes: Quote[] }[];
+  benefits: { benefit: string; dimensionalized: string; quotes: Quote[] }[];
+  // name: one of the set angles in agents/research.md.
+  angles: { name: string; reviews: number | null; quotes: Quote[] }[];
+  offers: { offer: string }[];
+  // name: an angle or an offer; quote: the review line it plays.
+  funnel: { stage: FunnelStage; name: string; quote: string }[];
   sourcesNote: string;
 }
 
@@ -109,51 +108,35 @@ const bool = (v: unknown): boolean => v === true;
 const status = (v: unknown): ItemStatus => (ITEM_STATUSES.includes(v as ItemStatus) ? (v as ItemStatus) : "draft");
 const rows = <T>(v: unknown, f: (o: Obj) => T): T[] => (Array.isArray(v) ? v.slice(0, MAX_ROWS).map((x) => f(obj(x))) : []);
 
+const MAX_QUOTES = 3;
+
+function quotes(v: unknown, old?: unknown): Quote[] {
+  const list = rows(v, (q) => ({ text: text(q.text), stars: inRange(q.stars, 1, 5), from: text(q.from) })).filter((q) => q.text);
+  // A v1 pain point kept its one quote as a string.
+  if (!list.length && typeof old === "string" && old.trim()) return [{ text: text(old), stars: null, from: "" }];
+  return list.slice(0, MAX_QUOTES);
+}
+
+const stage = (v: unknown): FunnelStage => (FUNNEL_STAGES.includes(v as FunnelStage) ? (v as FunnelStage) : "tof");
+
+// A v1 page (zips, stats, websites, detail, sharePct) reads clean: what v2
+// still has carries over and the rest drops.
 function research(o: Obj): ResearchPage {
-  const s = obj(o.stats);
-  const w = obj(o.websites);
-  const comp = s.competition;
   return {
-    stats: {
-      population: num(s.population),
-      olderHomesPct: inRange(s.olderHomesPct, 0, 100),
-      competitorsOnMeta: num(s.competitorsOnMeta),
-      competition: comp === "low" || comp === "medium" || comp === "high" ? comp : null,
-    },
-    zips: rows(o.zips, (z) => ({
-      zip: text(z.zip),
-      area: text(z.area),
-      population: num(z.population),
-      medianHomeValue: num(z.medianHomeValue),
-      ownerOccupiedPct: inRange(z.ownerOccupiedPct, 0, 100),
-      competitors: num(z.competitors),
-    })),
     competitors: rows(o.competitors, (c) => ({
       name: text(c.name),
       isClient: bool(c.isClient),
       googleRating: inRange(c.googleRating, 0, 5),
       googleReviews: num(c.googleReviews),
-      metaAdsLive: num(c.metaAdsLive),
-      runningSince: text(c.runningSince),
-      mainAngle: text(c.mainAngle),
-      adLibraryUrl: text(c.adLibraryUrl),
+      offer: text(c.offer),
       websiteUrl: text(c.websiteUrl),
     })),
-    websites: {
-      clientUrl: text(w.clientUrl),
-      strong: text(w.strong),
-      weak: text(w.weak),
-      commonOffer: text(w.commonOffer),
-      commonPromise: text(w.commonPromise),
-      gap: text(w.gap),
-    },
-    painPoints: rows(o.painPoints, (p) => ({
-      title: text(p.title),
-      detail: text(p.detail),
-      sharePct: inRange(p.sharePct, 0, 100),
-      quote: text(p.quote),
-      sources: num(p.sources),
-    })),
+    painPoints: rows(o.painPoints, (p) => ({ title: text(p.title), reviews: num(p.reviews ?? p.sources), quotes: quotes(p.quotes, p.quote) })),
+    goals: rows(o.goals, (g) => ({ title: text(g.title), reviews: num(g.reviews), quotes: quotes(g.quotes) })),
+    benefits: rows(o.benefits, (b) => ({ benefit: text(b.benefit), dimensionalized: text(b.dimensionalized), quotes: quotes(b.quotes) })),
+    angles: rows(o.angles, (a) => ({ name: text(a.name), reviews: num(a.reviews), quotes: quotes(a.quotes) })),
+    offers: rows(o.offers, (f) => ({ offer: text(f.offer) })),
+    funnel: rows(o.funnel, (f) => ({ stage: stage(f.stage), name: text(f.name), quote: text(f.quote) })),
     sourcesNote: text(o.sourcesNote),
   };
 }

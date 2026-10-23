@@ -180,5 +180,26 @@ describe("pageLines", () => {
     expect(doc.text).toContain("Ads page\nFall\n");
     expect(doc.headings.map((h) => h.style)).toEqual(["TITLE", "HEADING_2", "HEADING_3"]);
   });
+
+  it("writes the research sections with each quote and where it came from", () => {
+    const lines = pageLines(
+      row("research", {
+        competitors: [{ name: "Window Nation", googleRating: 4.1, googleReviews: 866, offer: "Buy 1 get 1 40% off" }],
+        angles: [{ name: "Mold", reviews: 9, quotes: [{ text: "Mold on the sills", stars: 5, from: "Lakeshore" }] }],
+        benefits: [{ benefit: "Lower bills", dimensionalized: "Gas bill down $90 a month" }],
+        funnel: [{ stage: "tof", name: "Mold", quote: "Mold on the sills" }],
+      }),
+    ).map((l) => l.text);
+    expect(lines).toEqual([
+      "Competitors",
+      "• Window Nation · 4.1 stars · 866 reviews · Buy 1 get 1 40% off",
+      "Benefits",
+      "• Lower bills → Gas bill down $90 a month",
+      "Angles",
+      '• Mold · 9 reviews · "Mold on the sills" (Lakeshore)',
+      "Ad angles by funnel",
+      '• TOF · Mold · "Mold on the sills"',
+    ]);
+  });
 });
 

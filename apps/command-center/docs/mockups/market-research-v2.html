@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Market Research v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f7fb; --surface: #ffffff; --surface-2: #f1f3f9; --surface-3: #e9ebf3;
+    --text: #14161f; --text-muted: #555a6b; --text-faint: #8a90a3; --border: #e7e9f1;
+    --brand: #4f46e5; --brand-2: #7c73f0; --brand-tint: #eceaff; --brand-text: #4f46e5;
+    --grad-brand: linear-gradient(135deg, #4f46e5 0%, #7c73f0 100%);
+    --positive: #16a34a; --danger: #dc2626;
+    --font-display: "Poppins", "Inter", sans-serif; --font-body: "Inter", sans-serif; --font-mono: "JetBrains Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0c0d14; --surface: #15161f; --surface-2: #1c1d28; --surface-3: #232536;
+    --text: #f4f4fb; --text-muted: #a8adc0; --text-faint: #6b7088; --border: #262837;
+    --brand: #7c73f0; --brand-2: #a5b4fc; --brand-tint: rgba(124,115,240,0.18); --brand-text: #bcb6ff;
+    --grad-brand: linear-gradient(135deg, #7c73f0 0%, #a5b4fc 100%);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; line-height: 1.45; }
+  .switch { position: sticky; top: 0; z-index: 9; display: flex; gap: 8px; align-items: center; padding: 10px 26px; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); }
+  .switch b { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); }
+  .opt { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .grow { flex: 1; }
+  .content { padding: 22px 26px 80px; max-width: 1200px; margin: 0 auto; }
+  .pages { display: flex; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); width: fit-content; margin-bottom: 22px; flex-wrap: wrap; }
+  .pg { padding: 8px 16px; border-radius: 999px; font-weight: 500; font-size: 13.5px; color: var(--text-muted); }
+  .pg.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+  .h { font-family: var(--font-display); font-weight: 600; font-size: 16px; margin: 0 0 10px; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
+  .h .n { font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--text-faint); }
+  .sec { margin-bottom: 22px; }
+  .stars { color: #f5b301; letter-spacing: 1px; font-size: 12px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 999px; padding: 2px 8px; background: var(--brand-tint); color: var(--brand-text); }
+  .tag.tof { background: color-mix(in srgb, #38bdf8 16%, transparent); color: #0284c7; }
+  .tag.mof { background: color-mix(in srgb, #a78bfa 18%, transparent); color: #7c3aed; }
+  .tag.bof { background: color-mix(in srgb, #f59e0b 18%, transparent); color: #b45309; }
+  [data-theme="dark"] .tag.tof { color: #7dd3fc; }
+  [data-theme="dark"] .tag.mof { color: #c4b5fd; }
+  [data-theme="dark"] .tag.bof { color: #fcd34d; }
+  .offer { font-weight: 600; margin-top: 4px; }
+  .muted { color: var(--text-muted); }
+  .faint { color: var(--text-faint); font-size: 12.5px; }
+  .q { border-left: 2px solid var(--border); padding: 2px 0 2px 10px; margin: 6px 0 0; color: var(--text-muted); font-size: 13px; }
+  .q .who { display: block; color: var(--text-faint); font-size: 11.5px; margin-top: 2px; }
+  .q .who .stars { font-size: 10.5px; }
+  .item { padding: 13px 16px; border-bottom: 1px solid var(--border); }
+  .item:last-child { border-bottom: 0; }
+  .item-top { display: flex; align-items: baseline; gap: 8px; }
+  .item-top b { font-weight: 600; }
+  .arrow { color: var(--text-faint); padding: 0 2px; }
+  .line { padding: 11px 16px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+  .line:last-child { border-bottom: 0; }
+  .line .faint { display: block; margin-top: 3px; }
+  .tabs { display: flex; gap: 4px; padding: 4px; border-radius: 10px; background: var(--surface-2); width: fit-content; margin-bottom: 10px; }
+  .tabs span { padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; }
+  .tabs span.on { background: var(--surface); color: var(--text); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } .content { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="switch">
+  <b>Mockup</b>
+  <span class="grow"></span>
+  <button class="opt" id="theme">Light / dark</button>
+</div>
+
+<div class="content">
+  <div class="pages">
+    <span class="pg">Client Information</span><span class="pg">Full Setup Checklist</span><span class="pg on">Market Research</span><span class="pg">Ads</span><span class="pg">GHL</span>
+  </div>
+
+  <div class="cols">
+    <div>
+      <section class="sec">
+        <h3 class="h">Competitors <span class="n">5</span></h3>
+        <div class="card">
+          <div class="item"><div class="item-top"><b>Clear Choice Windows</b> <span class="tag">Client</span><span class="grow"></span><span class="stars">★★★★★</span><span class="faint">4.9 · 212</span></div><div class="offer">Free in-home quote</div></div>
+          <div class="item"><div class="item-top"><b>Window Nation</b><span class="grow"></span><span class="stars">★★★★☆</span><span class="faint">4.1 · 866</span></div><div class="offer">Buy 1 get 1 40% off</div></div>
+          <div class="item"><div class="item-top"><b>Renewal by Andersen</b><span class="grow"></span><span class="stars">★★★★☆</span><span class="faint">4.3 · 1,204</span></div><div class="offer">$0 down, 0% for 24 months</div></div>
+          <div class="item"><div class="item-top"><b>Pella Windows of Grand Rapids</b><span class="grow"></span><span class="stars">★★★★★</span><span class="faint">4.6 · 389</span></div><div class="offer">20% off installation</div></div>
+          <div class="item"><div class="item-top"><b>Lakeshore Window Co.</b><span class="grow"></span><span class="stars">★★★★☆</span><span class="faint">4.4 · 97</span></div><div class="offer">$500 off 5+ windows</div></div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <h3 class="h">Angles <span class="n">6</span></h3>
+        <div class="card">
+          <div class="item"><div class="item-top"><b>Curb Appeal</b><span class="grow"></span><span class="faint">26 reviews</span></div>
+            <p class="q">"Our house looks brand new from the street. Neighbors keep stopping to ask who did it."<span class="who"><span class="stars">★★★★★</span> Pella Windows of Grand Rapids</span></p></div>
+          <div class="item"><div class="item-top"><b>Mold</b><span class="grow"></span><span class="faint">9 reviews</span></div>
+            <p class="q">"Old windows were sweating every morning and we had black mold on the sills. Gone since the install."<span class="who"><span class="stars">★★★★★</span> Lakeshore Window Co.</span></p></div>
+          <div class="item"><div class="item-top"><b>Energy Bills</b><span class="grow"></span><span class="faint">22 reviews</span></div>
+            <p class="q">"Gas bill went down almost $90 a month."<span class="who"><span class="stars">★★★★★</span> Renewal by Andersen</span></p></div>
+          <div class="item"><div class="item-top"><b>Drafts</b><span class="grow"></span><span class="faint">28 reviews</span></div>
+            <p class="q">"First winter the front room is actually usable."<span class="who"><span class="stars">★★★★★</span> Pella Windows of Grand Rapids</span></p></div>
+          <div class="item"><div class="item-top"><b>Noise</b><span class="grow"></span><span class="faint">8 reviews</span></div>
+            <p class="q">"We live on 28th Street and can't hear the traffic anymore."<span class="who"><span class="stars">★★★★★</span> Clear Choice Windows</span></p></div>
+          <div class="item"><div class="item-top"><b>Honest Price</b><span class="grow"></span><span class="faint">19 reviews</span></div>
+            <p class="q">"One price, written down, no 'manager special'. That's why we picked them."<span class="who"><span class="stars">★★★★★</span> Clear Choice Windows</span></p></div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <h3 class="h">Offers to run <span class="n">3</span></h3>
+        <div class="card">
+          <div class="line"><b>Free quote, price in writing</b></div>
+          <div class="line"><b>$500 off 5+ windows, booked by Nov 15</b></div>
+          <div class="line"><b>0% for 24 months</b></div>
+        </div>
+      </section>
+    </div>
+
+    <div>
+      <section class="sec">
+        <div class="tabs" id="voc-tabs"><span class="on" data-t="pain">Pain points 4</span><span data-t="goal">Goals 4</span><span data-t="ben">Benefits 4</span></div>
+        <div class="card voc" id="t-pain">
+          <div class="item"><div class="item-top"><b>Pushy in-home sales pitch</b><span class="grow"></span><span class="faint">31 reviews</span></div>
+            <p class="q">"Sat through a 3 hour pitch and a 'today only' price. Felt like buying a used car."<span class="who"><span class="stars">★★☆☆☆</span> Window Nation</span></p>
+            <p class="q">"The salesman would not leave until we signed something."<span class="who"><span class="stars">★☆☆☆☆</span> Renewal by Andersen</span></p></div>
+          <div class="item"><div class="item-top"><b>Install dates keep slipping</b><span class="grow"></span><span class="faint">24 reviews</span></div>
+            <p class="q">"Told 6 weeks, it was 4 months. Nobody called back."<span class="who"><span class="stars">★☆☆☆☆</span> Renewal by Andersen</span></p></div>
+          <div class="item"><div class="item-top"><b>Quote doubled after measure</b><span class="grow"></span><span class="faint">17 reviews</span></div>
+            <p class="q">"Online price was half what they wanted once they showed up."<span class="who"><span class="stars">★★☆☆☆</span> Window Nation</span></p></div>
+          <div class="item"><div class="item-top"><b>Messy install, trim left undone</b><span class="grow"></span><span class="faint">11 reviews</span></div>
+            <p class="q">"Caulk everywhere and they never came back for the trim."<span class="who"><span class="stars">★★☆☆☆</span> Lakeshore Window Co.</span></p></div>
+        </div>
+        <div class="card voc" id="t-goal" hidden>
+          <div class="item"><div class="item-top"><b>A warm house in winter</b><span class="grow"></span><span class="faint">28 reviews</span></div>
+            <p class="q">"First winter the front room is actually usable."<span class="who"><span class="stars">★★★★★</span> Pella Windows of Grand Rapids</span></p></div>
+          <div class="item"><div class="item-top"><b>Lower energy bills</b><span class="grow"></span><span class="faint">22 reviews</span></div>
+            <p class="q">"Gas bill went down almost $90 a month."<span class="who"><span class="stars">★★★★★</span> Renewal by Andersen</span></p></div>
+          <div class="item"><div class="item-top"><b>Straight price, no games</b><span class="grow"></span><span class="faint">19 reviews</span></div>
+            <p class="q">"One price, written down, no 'manager special'."<span class="who"><span class="stars">★★★★★</span> Clear Choice Windows</span></p></div>
+          <div class="item"><div class="item-top"><b>Done fast, crew that cleans up</b><span class="grow"></span><span class="faint">14 reviews</span></div>
+            <p class="q">"In and out in one day, you'd never know they were here."<span class="who"><span class="stars">★★★★★</span> Lakeshore Window Co.</span></p></div>
+        </div>
+        <div class="card voc" id="t-ben" hidden>
+          <div class="item"><div class="item-top"><span class="muted">Lower energy bills</span><span class="arrow">→</span><b>Gas bill down $90 a month</b></div>
+            <p class="q">"Gas bill went down almost $90 a month."<span class="who"><span class="stars">★★★★★</span> Renewal by Andersen</span></p></div>
+          <div class="item"><div class="item-top"><span class="muted">Warmer house</span><span class="arrow">→</span><b>The front room is usable in winter</b></div>
+            <p class="q">"First winter the front room is actually usable."<span class="who"><span class="stars">★★★★★</span> Pella Windows of Grand Rapids</span></p></div>
+          <div class="item"><div class="item-top"><span class="muted">Quieter home</span><span class="arrow">→</span><b>Can't hear 28th Street traffic</b></div>
+            <p class="q">"We live on 28th Street and can't hear the traffic anymore."<span class="who"><span class="stars">★★★★★</span> Clear Choice Windows</span></p></div>
+          <div class="item"><div class="item-top"><span class="muted">Fast install</span><span class="arrow">→</span><b>In and out in one day</b></div>
+            <p class="q">"In and out in one day, you'd never know they were here."<span class="who"><span class="stars">★★★★★</span> Lakeshore Window Co.</span></p></div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <h3 class="h">Ad angles by funnel</h3>
+        <div class="card">
+          <div class="line"><span class="tag tof">TOF</span> <b>Mold</b><span class="faint">"Old windows were sweating every morning and we had black mold on the sills."</span></div>
+          <div class="line"><span class="tag tof">TOF</span> <b>Drafts</b><span class="faint">"First winter the front room is actually usable."</span></div>
+          <div class="line"><span class="tag tof">TOF</span> <b>Curb Appeal</b><span class="faint">"Neighbors keep stopping to ask who did it."</span></div>
+          <div class="line"><span class="tag mof">MOF</span> <b>Energy Bills</b><span class="faint">"Gas bill went down almost $90 a month."</span></div>
+          <div class="line"><span class="tag mof">MOF</span> <b>Honest Price</b><span class="faint">"One price, written down, no 'manager special'."</span></div>
+          <div class="line"><span class="tag bof">BOF</span> <b>$500 off 5+ windows, booked by Nov 15</b></div>
+          <div class="line"><span class="tag bof">BOF</span> <b>Free quote, price in writing</b></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById("voc-tabs").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-t]");
+    if (!t) return;
+    document.querySelectorAll("#voc-tabs span").forEach((x) => x.classList.toggle("on", x === t));
+    document.querySelectorAll(".voc").forEach((c) => (c.hidden = c.id !== "t-" + t.dataset.t));
+  });
+  document.getElementById("theme").addEventListener("click", () => {
+    const r = document.documentElement;
+    r.dataset.theme = r.dataset.theme === "dark" ? "light" : "dark";
+  });
+</script>
+</body>
+</html>

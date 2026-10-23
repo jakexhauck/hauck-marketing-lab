@@ -22,11 +22,10 @@ describe("ensureTasks", () => {
     const tasks = await ensureTasks(db.client(), T1);
     const research = tasks.filter((t) => t.owner === "research").map((t) => t.key);
     expect(research).toEqual([
-      "adsbuild:market-size-and-zip-population",
-      "adsbuild:competitors-on-meta",
-      "adsbuild:client-and-competitor-websites",
+      "adsbuild:competitors-and-offers",
       "adsbuild:google-reviews-pulled",
-      "adsbuild:pain-points-extracted",
+      "adsbuild:pain-points-goals-and-benefits",
+      "adsbuild:angles-offers-and-funnel",
     ]);
     expect(tasks.find((t) => t.key === "adsbuild:research-approved")).toMatchObject({ owner: "jake", phase: "adsbuild" });
   });

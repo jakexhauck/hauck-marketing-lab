@@ -1,6 +1,7 @@
+import { useState } from "react";
 import type { BriefSection } from "../../../lib/agentWire";
-import type { ResearchPage as Research } from "../../../lib/briefPages";
-import { count, freshClass, money } from "./missionHelpers";
+import type { Quote, ResearchPage as Research } from "../../../lib/briefPages";
+import { count, freshClass } from "./missionHelpers";
 import { NotesBlock } from "./NotesBlock";
 
 const stars = (r: number | null) => {
@@ -8,23 +9,43 @@ const stars = (r: number | null) => {
   const full = Math.max(0, Math.min(5, Math.round(r)));
   return "★".repeat(full) + "☆".repeat(Math.max(0, 5 - full));
 };
-const pct = (n: number | null) => (n === null ? "" : `${n}%`);
-const competition = { low: "Low", medium: "Medium", high: "High" } as const;
+const reviews = (n: number | null) => (n === null ? "" : `${count(n)} review${n === 1 ? "" : "s"}`);
+const STAGE = { tof: "TOF", mof: "MOF", bof: "BOF" } as const;
 
-function ExtLink({ href, label }: { href: string; label: string }) {
-  if (!href) return null;
+function Quotes({ quotes }: { quotes: Quote[] }) {
   return (
-    <a className="mcb-btn" href={/^https?:\/\//i.test(href) ? href : `https://${href}`} target="_blank" rel="noopener noreferrer">
-      {label}
-    </a>
+    <>
+      {quotes.map((q, i) => (
+        <p key={i} className="mcb-quote">
+          "{q.text}"
+          {(q.stars !== null || q.from) && (
+            <span className="who">
+              {q.stars !== null && <span className="mcb-stars">{stars(q.stars)}</span>} {q.from}
+            </span>
+          )}
+        </p>
+      ))}
+    </>
   );
 }
 
-// fresh: what the last approve changed, tinted for a moment (AgentBriefPage).
+type Tab = "pain" | "goal" | "benefit";
+
+// Market Research v2 (docs/build-plans/market-research-v2.md, mockup
+// docs/mockups/market-research-v2.html). fresh: what the last approve changed,
+// tinted for a moment (AgentBriefPage); the tabs open on the one it touched.
 export function ResearchPage({ tenantId, page, sections, fresh }: { tenantId: string; page: Research; sections: BriefSection[]; fresh?: Set<string> }) {
   const f = (...parts: string[]) => freshClass(fresh, ...parts);
-  const empty = !page.zips.length && !page.competitors.length && !page.painPoints.length && !page.websites.clientUrl;
-  const w = page.websites;
+  const touched = (kind: string) => [...(fresh ?? [])].some((k) => k.startsWith(`${kind.toLowerCase()}|`));
+  const [tab, setTab] = useState<Tab>(touched("goal") ? "goal" : touched("benefit") ? "benefit" : "pain");
+  const empty = (["competitors", "painPoints", "goals", "benefits", "angles", "offers", "funnel"] as const).every((k) => !page[k].length);
+  const tabs: { id: Tab; label: string; n: number }[] = [
+    { id: "pain", label: "Pain points", n: page.painPoints.length },
+    { id: "goal", label: "Goals", n: page.goals.length },
+    { id: "benefit", label: "Benefits", n: page.benefits.length },
+  ];
+  const stagesOrder = { tof: 0, mof: 1, bof: 2 };
+  const funnel = [...page.funnel].sort((a, b) => stagesOrder[a.stage] - stagesOrder[b.stage]);
   return (
     <div className="mcb-page">
       {empty ? (
@@ -32,162 +53,140 @@ export function ResearchPage({ tenantId, page, sections, fresh }: { tenantId: st
           <div className="mcb-empty">No research yet</div>
         </div>
       ) : (
-        <>
-          <div className="mcb-stats">
-            <div className={`mcb-card mcb-stat${f("stats.population")}`}>
-              <span>Population, target ZIPs</span>
-              <b>{count(page.stats.population) || "·"}</b>
-            </div>
-            <div className={`mcb-card mcb-stat${f("stats.olderHomesPct")}`}>
-              <span>Homes built before 1995</span>
-              <b>{pct(page.stats.olderHomesPct) || "·"}</b>
-            </div>
-            <div className={`mcb-card mcb-stat${f("stats.competitorsOnMeta")}`}>
-              <span>Competitors on Meta</span>
-              <b>{count(page.stats.competitorsOnMeta) || "·"}</b>
-            </div>
-            <div className={`mcb-card mcb-stat${f("stats.competition")}`}>
-              <span>Competition</span>
-              <b>{page.stats.competition ? competition[page.stats.competition] : "·"}</b>
-            </div>
+        <div className="mcb-cols">
+          <div>
+            {page.competitors.length > 0 && (
+              <section className="mcb-sec">
+                <h3 className="mcb-h">
+                  Competitors <span className="mcb-n">{page.competitors.length}</span>
+                  {page.sourcesNote && (
+                    <span className="act">
+                      <span className={`mcb-tag plain${f("sourcesNote")}`}>{page.sourcesNote}</span>
+                    </span>
+                  )}
+                </h3>
+                <div className="mcb-card mcb-list">
+                  {page.competitors.map((c, i) => (
+                    <div key={`${c.name}-${i}`} className={`mcb-row${c.isClient ? " me" : ""}${f("competitor", c.name)}`}>
+                      <div className="top">
+                        <b>{c.name}</b>
+                        {c.isClient && <span className="mcb-tag">Client</span>}
+                        <span className="grow" />
+                        {c.googleRating !== null && <span className="mcb-stars">{stars(c.googleRating)}</span>}
+                        <span className="faint">{[c.googleRating ?? "", count(c.googleReviews)].filter((x) => x !== "").join(" · ")}</span>
+                        {c.websiteUrl && (
+                          <a className="mcb-btn" href={/^https?:\/\//i.test(c.websiteUrl) ? c.websiteUrl : `https://${c.websiteUrl}`} target="_blank" rel="noopener noreferrer">
+                            Site
+                          </a>
+                        )}
+                      </div>
+                      {c.offer && <div className="offer">{c.offer}</div>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {page.angles.length > 0 && (
+              <section className="mcb-sec">
+                <h3 className="mcb-h">
+                  Angles <span className="mcb-n">{page.angles.length}</span>
+                </h3>
+                <div className="mcb-card mcb-list">
+                  {page.angles.map((a, i) => (
+                    <div key={`${a.name}-${i}`} className={`mcb-row${f("angle", a.name)}`}>
+                      <div className="top">
+                        <b>{a.name}</b>
+                        <span className="grow" />
+                        <span className="faint">{reviews(a.reviews)}</span>
+                      </div>
+                      <Quotes quotes={a.quotes} />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {page.offers.length > 0 && (
+              <section className="mcb-sec">
+                <h3 className="mcb-h">
+                  Offers to run <span className="mcb-n">{page.offers.length}</span>
+                </h3>
+                <div className="mcb-card mcb-list">
+                  {page.offers.map((o, i) => (
+                    <div key={`${o.offer}-${i}`} className={`mcb-row${f("offer", o.offer)}`}>
+                      <b>{o.offer}</b>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
 
-          {page.zips.length > 0 && (
-            <section className="mcb-sec">
-              <h3 className="mcb-h">Market</h3>
-              <div className="mcb-card flush">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ZIP</th>
-                      <th>Area</th>
-                      <th>Population</th>
-                      <th>Median home value</th>
-                      <th>Owner occupied</th>
-                      <th>Competitors serving</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {page.zips.map((z, i) => (
-                      <tr key={`${z.zip}-${i}`} className={f("zip", z.zip).trim() || undefined}>
-                        <td className="num">{z.zip}</td>
-                        <td>{z.area}</td>
-                        <td className="num">{count(z.population)}</td>
-                        <td className="num">{money(z.medianHomeValue)}</td>
-                        <td className="num">{pct(z.ownerOccupiedPct)}</td>
-                        <td className="num">{count(z.competitors)}</td>
-                      </tr>
+          <div>
+            {tabs.some((t) => t.n > 0) && (
+              <section className="mcb-sec">
+                <div className="mcb-tabs" role="tablist">
+                  {tabs.map((t) => (
+                    <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : undefined} onClick={() => setTab(t.id)}>
+                      {t.label} <span className="mcb-n">{t.n}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="mcb-card mcb-list">
+                  {tab === "pain" &&
+                    page.painPoints.map((p, i) => (
+                      <div key={`${p.title}-${i}`} className={`mcb-row${f("painPoint", p.title)}`}>
+                        <div className="top">
+                          <b>{p.title}</b>
+                          <span className="grow" />
+                          <span className="faint">{reviews(p.reviews)}</span>
+                        </div>
+                        <Quotes quotes={p.quotes} />
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
-
-          {page.competitors.length > 0 && (
-            <section className="mcb-sec">
-              <h3 className="mcb-h">Competitors</h3>
-              <div className="mcb-card flush">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Competitor</th>
-                      <th>Google</th>
-                      <th>Reviews</th>
-                      <th>Ads live on Meta</th>
-                      <th>Running since</th>
-                      <th>Main angle</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {page.competitors.map((c, i) => (
-                      <tr key={`${c.name}-${i}`} className={`${c.isClient ? "me" : ""}${f("competitor", c.name)}`.trim() || undefined}>
-                        <td>
-                          <b>{c.name}</b> {c.isClient && <span className="mcb-tag">Client</span>}
-                        </td>
-                        <td>
-                          {c.googleRating !== null && (
-                            <>
-                              <span className="mcb-stars">{stars(c.googleRating)}</span> {c.googleRating}
-                            </>
-                          )}
-                        </td>
-                        <td className="num">{count(c.googleReviews)}</td>
-                        <td className="num">{count(c.metaAdsLive)}</td>
-                        <td>{c.runningSince}</td>
-                        <td>{c.mainAngle}</td>
-                        <td style={{ whiteSpace: "nowrap" }}>
-                          <ExtLink href={c.adLibraryUrl} label="Ad Library" /> <ExtLink href={c.websiteUrl} label="Site" />
-                        </td>
-                      </tr>
+                  {tab === "goal" &&
+                    page.goals.map((g, i) => (
+                      <div key={`${g.title}-${i}`} className={`mcb-row${f("goal", g.title)}`}>
+                        <div className="top">
+                          <b>{g.title}</b>
+                          <span className="grow" />
+                          <span className="faint">{reviews(g.reviews)}</span>
+                        </div>
+                        <Quotes quotes={g.quotes} />
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
+                  {tab === "benefit" &&
+                    page.benefits.map((b, i) => (
+                      <div key={`${b.benefit}-${i}`} className={`mcb-row${f("benefit", b.benefit)}`}>
+                        <div className="top">
+                          <span className="muted">{b.benefit}</span>
+                          <span className="arrow">→</span>
+                          <b>{b.dimensionalized}</b>
+                        </div>
+                        <Quotes quotes={b.quotes} />
+                      </div>
+                    ))}
+                  {tabs.find((t) => t.id === tab)!.n === 0 && <div className="mcb-empty">None yet</div>}
+                </div>
+              </section>
+            )}
 
-          {(w.clientUrl || w.strong || w.weak || w.commonOffer || w.commonPromise || w.gap) && (
-            <div className="mcb-two mcb-sec">
-              <div className={`mcb-card${f("websites.clientUrl") || f("websites.strong") || f("websites.weak")}`}>
-                <div className="mcb-ch">Client website</div>
-                <div className="mcb-kv">
-                  <span>Site</span>
-                  <span>{w.clientUrl}</span>
-                </div>
-                <div className="mcb-kv">
-                  <span>Strong</span>
-                  <span>{w.strong}</span>
-                </div>
-                <div className="mcb-kv">
-                  <span>Weak</span>
-                  <span>{w.weak}</span>
-                </div>
-              </div>
-              <div className={`mcb-card${f("websites.commonOffer") || f("websites.commonPromise") || f("websites.gap")}`}>
-                <div className="mcb-ch">Competitor websites</div>
-                <div className="mcb-kv">
-                  <span>Common offer</span>
-                  <span>{w.commonOffer}</span>
-                </div>
-                <div className="mcb-kv">
-                  <span>Common promise</span>
-                  <span>{w.commonPromise}</span>
-                </div>
-                <div className="mcb-kv">
-                  <span>Nobody says</span>
-                  <span>{w.gap}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {page.painPoints.length > 0 && (
-            <section className="mcb-sec">
-              <h3 className="mcb-h">
-                Pain points
-                {page.sourcesNote && (
-                  <span className="act">
-                    <span className={`mcb-tag plain${f("sourcesNote")}`}>{page.sourcesNote}</span>
-                  </span>
-                )}
-              </h3>
-              <div className="mcb-card">
-                {page.painPoints.map((p, i) => (
-                  <div key={`${p.title}-${i}`} className={`mcb-pain${f("painPoint", p.title)}`}>
-                    <span className="n">{pct(p.sharePct)}</span>
-                    <div>
-                      <b>{p.title}</b>
-                      {p.detail}
-                      {p.quote && <q>{p.quote}</q>}
+            {funnel.length > 0 && (
+              <section className="mcb-sec">
+                <h3 className="mcb-h">Ad angles by funnel</h3>
+                <div className="mcb-card mcb-list">
+                  {funnel.map((x, i) => (
+                    <div key={`${x.name}-${i}`} className={`mcb-row${f("funnel", x.name)}`}>
+                      <span className={`mcb-fstage ${x.stage}`}>{STAGE[x.stage]}</span> <b>{x.name}</b>
+                      {x.quote && <span className="line">"{x.quote}"</span>}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
       )}
 
       <NotesBlock tenantId={tenantId} sections={sections} ids={["research"]} />

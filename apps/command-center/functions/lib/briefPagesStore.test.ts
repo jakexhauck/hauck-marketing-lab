@@ -45,10 +45,10 @@ describe("savePage", () => {
 describe("agentSavePage", () => {
   it("writes the chat agent's own page, cleaned", async () => {
     const db = world("research");
-    const res = await agentSavePage(db.client(), { messageId: M1, data: { zips: "bad", sourcesNote: "Census" }, version: 0 }, now);
+    const res = await agentSavePage(db.client(), { messageId: M1, data: { angles: "bad", sourcesNote: "Census" }, version: 0 }, now);
     expect(res).toMatchObject({ tenantId: T1, saved: { page: "research", version: 1 } });
     if (!("saved" in res)) throw new Error("not saved");
-    expect((res.saved.data as ResearchPage).zips).toEqual([]);
+    expect((res.saved.data as ResearchPage).angles).toEqual([]);
     expect((res.saved.data as ResearchPage).sourcesNote).toBe("Census");
   });
 

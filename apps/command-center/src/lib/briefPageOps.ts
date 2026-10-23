@@ -9,32 +9,22 @@
 // nothing: one op that misses (no such campaign, a name already there) and
 // nothing is written. Pure.
 
-import { parsePage, type AdsPage, type BriefPageId, type ResearchPage } from "./briefPages";
+import { FUNNEL_STAGES, parsePage, type AdsPage, type BriefPageId, type ResearchPage } from "./briefPages";
 
 export type AdsKind = "campaign" | "adSet" | "creative" | "angle" | "ad" | "headline";
-export type ResearchKind = "zip" | "competitor" | "painPoint";
+export type ResearchKind = "competitor" | "painPoint" | "goal" | "benefit" | "angle" | "offer" | "funnel";
 export type PageKind = AdsKind | ResearchKind;
 
 export const CAMPAIGN_FIELDS = ["offer", "objective", "dailySpend", "budgetType", "launchDate"] as const;
 export type CampaignField = (typeof CAMPAIGN_FIELDS)[number];
 
-export const RESEARCH_FIELDS = [
-  "sourcesNote",
-  "websites.clientUrl",
-  "websites.strong",
-  "websites.weak",
-  "websites.commonOffer",
-  "websites.commonPromise",
-  "websites.gap",
-  "stats.population",
-  "stats.olderHomesPct",
-  "stats.competitorsOnMeta",
-  "stats.competition",
-] as const;
+export const RESEARCH_FIELDS = ["sourcesNote"] as const;
 export type ResearchField = (typeof RESEARCH_FIELDS)[number];
 
 type Value = string | number | null;
-type Fields = Record<string, Value | boolean>;
+// A review quote as an op carries it; parsePage cleans it on the way in.
+type QuoteIn = { text: string; stars: number | null; from: string };
+type Fields = Record<string, Value | boolean | QuoteIn[]>;
 
 // campaign names the campaign for every Ads kind but campaign and headline.
 export type PageOp =
@@ -54,6 +44,10 @@ interface KindSpec {
   text: string[];
   num: string[];
   bool?: string[];
+  // Fields that hold a list of review quotes ({text, stars, from}).
+  quotes?: string[];
+  // Text fields that take one of a few values.
+  oneOf?: Record<string, readonly string[]>;
   label: string;
 }
 const ADS_KINDS: Record<AdsKind, KindSpec> = {
@@ -65,15 +59,22 @@ const ADS_KINDS: Record<AdsKind, KindSpec> = {
   headline: { key: "text", text: ["text", "angle"], num: [], label: "headline" },
 };
 const RESEARCH_KINDS: Record<ResearchKind, KindSpec> = {
-  zip: { key: "zip", text: ["zip", "area"], num: ["population", "medianHomeValue", "ownerOccupiedPct", "competitors"], label: "ZIP" },
-  competitor: {
-    key: "name",
-    text: ["name", "runningSince", "mainAngle", "adLibraryUrl", "websiteUrl"],
-    num: ["googleRating", "googleReviews", "metaAdsLive"],
-    bool: ["isClient"],
-    label: "competitor",
-  },
-  painPoint: { key: "title", text: ["title", "detail", "quote"], num: ["sharePct", "sources"], label: "pain point" },
+  competitor: { key: "name", text: ["name", "offer", "websiteUrl"], num: ["googleRating", "googleReviews"], bool: ["isClient"], label: "competitor" },
+  painPoint: { key: "title", text: ["title"], num: ["reviews"], quotes: ["quotes"], label: "pain point" },
+  goal: { key: "title", text: ["title"], num: ["reviews"], quotes: ["quotes"], label: "goal" },
+  benefit: { key: "benefit", text: ["benefit", "dimensionalized"], num: [], quotes: ["quotes"], label: "benefit" },
+  angle: { key: "name", text: ["name"], num: ["reviews"], quotes: ["quotes"], label: "angle" },
+  offer: { key: "offer", text: ["offer"], num: [], label: "offer" },
+  funnel: { key: "name", text: ["name", "stage", "quote"], num: [], oneOf: { stage: FUNNEL_STAGES }, label: "funnel angle" },
+};
+const RESEARCH_LISTS: Record<ResearchKind, keyof ResearchPage> = {
+  competitor: "competitors",
+  painPoint: "painPoints",
+  goal: "goals",
+  benefit: "benefits",
+  angle: "angles",
+  offer: "offers",
+  funnel: "funnel",
 };
 
 const kindsFor = (page: BriefPageId): Record<string, KindSpec> => (page === "ads" ? ADS_KINDS : RESEARCH_KINDS);
@@ -85,11 +86,31 @@ const isObj = (v: unknown): v is Obj => !!v && typeof v === "object" && !Array.i
 const str = (v: unknown, max = 200): string | null => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
+const MAX_QUOTES = 3;
+
+function cleanQuotes(k: string, v: unknown): QuoteIn[] | string {
+  if (!Array.isArray(v) || v.length > MAX_QUOTES) return `${k} must be a list of at most ${MAX_QUOTES} quotes`;
+  const out: QuoteIn[] = [];
+  for (const q of v) {
+    if (!isObj(q) || typeof q.text !== "string" || !q.text.trim()) return `each of ${k} needs text, the review's own words`;
+    if (q.stars !== undefined && q.stars !== null && !(typeof q.stars === "number" && q.stars >= 1 && q.stars <= 5)) return "stars must be 1 to 5";
+    out.push({ text: q.text.slice(0, MAX_TEXT), stars: typeof q.stars === "number" ? q.stars : null, from: typeof q.from === "string" ? q.from.slice(0, 200) : "" });
+  }
+  return out;
+}
+
 function cleanFields(spec: KindSpec, raw: unknown): Fields | string {
   if (!isObj(raw)) return "fields must be an object";
   const out: Fields = {};
   for (const [k, v] of Object.entries(raw)) {
-    if (spec.bool?.includes(k)) {
+    if (spec.quotes?.includes(k)) {
+      const q = cleanQuotes(k, v);
+      if (typeof q === "string") return q;
+      out[k] = q;
+    } else if (spec.oneOf?.[k]) {
+      if (typeof v !== "string" || !spec.oneOf[k].includes(v)) return `${k} must be one of ${spec.oneOf[k].join(", ")}`;
+      out[k] = v;
+    } else if (spec.bool?.includes(k)) {
       if (typeof v !== "boolean") return `${k} must be true or false`;
       out[k] = v;
     } else if (spec.text.includes(k)) {
@@ -122,11 +143,10 @@ export function parsePageOps(page: BriefPageId, raw: unknown): { ok: true; ops: 
       const allowed: readonly string[] = page === "ads" ? CAMPAIGN_FIELDS : RESEARCH_FIELDS;
       if (!allowed.includes(field)) return bad(`set field must be one of ${allowed.join(", ")}`);
       const v = o.value;
-      const numeric = field === "dailySpend" || (field.startsWith("stats.") && field !== "stats.competition");
+      const numeric = field === "dailySpend";
       if (numeric ? !(v === null || (typeof v === "number" && Number.isFinite(v))) : typeof v !== "string") {
         return bad(`${field} must be ${numeric ? "a number or null" : "text"}`);
       }
-      if (field === "stats.competition" && !["low", "medium", "high", ""].includes(v as string)) return bad("competition must be low, medium or high");
       ops.push({ op: "set", field, value: typeof v === "string" ? v.slice(0, MAX_TEXT) : (v as number | null), ...at });
       continue;
     }
@@ -164,16 +184,6 @@ const LABEL: Record<string, string> = {
   budgetType: "budget type",
   launchDate: "launch date",
   sourcesNote: "sources",
-  "websites.clientUrl": "client site",
-  "websites.strong": "site strong",
-  "websites.weak": "site weak",
-  "websites.commonOffer": "common offer",
-  "websites.commonPromise": "common promise",
-  "websites.gap": "gap",
-  "stats.population": "population",
-  "stats.olderHomesPct": "older homes %",
-  "stats.competitorsOnMeta": "competitors on Meta",
-  "stats.competition": "competition",
 };
 
 /** One short line per op, for the card and for the follow-up. */
@@ -204,10 +214,7 @@ export function briefOpLines(page: BriefPageId | null, raw: unknown): string[] {
 type RowList = Obj[];
 
 function listFor(page: BriefPageId, data: Obj, op: Exclude<PageOp, { op: "set" }>): RowList | string {
-  if (page === "research") {
-    const key = op.kind === "zip" ? "zips" : op.kind === "competitor" ? "competitors" : "painPoints";
-    return data[key] as RowList;
-  }
+  if (page === "research") return data[RESEARCH_LISTS[op.kind as ResearchKind]] as RowList;
   if (op.kind === "campaign") return data.campaigns as RowList;
   if (op.kind === "headline") return data.headlines as RowList;
   const camp = findCampaign(data, op.campaign);
@@ -247,11 +254,7 @@ export function applyPageOps(
         const camp = findCampaign(data, op.campaign);
         if (typeof camp === "string") return bad(camp);
         camp[op.field] = op.value;
-      } else {
-        const [a, b] = op.field.split(".");
-        if (b) (data[a] as Obj)[b] = op.value === "" && a === "stats" ? null : op.value;
-        else data[a] = op.value;
-      }
+      } else data[op.field] = op.value;
       continue;
     }
     const s = spec[op.kind];
@@ -264,7 +267,7 @@ export function applyPageOps(
       // A new campaign gets its empty lists now, so a later op in the same
       // card can add an ad set or an angle to it.
       const row: Obj = op.kind === "campaign" ? { ...(ads0(op.fields) as unknown as Obj) } : { ...op.fields };
-      if (op.kind === "angle" || op.kind === "ad") row.status = "approved";
+      if (page === "ads" && (op.kind === "angle" || op.kind === "ad")) row.status = "approved";
       list.push(row);
       continue;
     }
@@ -297,7 +300,7 @@ function diffRows(prefix: string, spec: KindSpec, before: RowList, after: RowLis
 /**
  * The parts of a page that are new or different between two reads, as keys
  * the page components look up: `campaign|field`, `campaign|kind|name`,
- * `headline|text`, `zip|48084`, `websites.gap` and so on. Lowercased.
+ * `headline|text`, `angle|mold`, `sourcesnote` and so on. Lowercased.
  */
 export function freshKeys(page: BriefPageId, before: AdsPage | ResearchPage, after: AdsPage | ResearchPage): Set<string> {
   const out = new Set<string>();
@@ -318,14 +321,8 @@ export function freshKeys(page: BriefPageId, before: AdsPage | ResearchPage, aft
   }
   const b = before as ResearchPage;
   const a = after as ResearchPage;
-  diffRows("zip|", RESEARCH_KINDS.zip, b.zips, a.zips, out);
-  diffRows("competitor|", RESEARCH_KINDS.competitor, b.competitors, a.competitors, out);
-  diffRows("painPoint|", RESEARCH_KINDS.painPoint, b.painPoints, a.painPoints, out);
-  for (const f of Object.keys(a.websites) as (keyof ResearchPage["websites"])[]) {
-    if (a.websites[f] !== b.websites[f]) out.add(`websites.${f}`.toLowerCase());
-  }
-  for (const f of Object.keys(a.stats) as (keyof ResearchPage["stats"])[]) {
-    if (a.stats[f] !== b.stats[f]) out.add(`stats.${f}`.toLowerCase());
+  for (const [kind, list] of Object.entries(RESEARCH_LISTS) as [ResearchKind, keyof ResearchPage][]) {
+    diffRows(`${kind}|`, RESEARCH_KINDS[kind], b[list] as unknown as RowList, a[list] as unknown as RowList, out);
   }
   if (a.sourcesNote !== b.sourcesNote) out.add("sourcesnote");
   return out;

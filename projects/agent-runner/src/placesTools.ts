@@ -42,17 +42,25 @@ export async function searchPlaces(query: string, d: PlacesDeps): Promise<string
 }
 
 // One business by the id searchPlaces gave: rating, count, website and reviews.
+// Google gives five reviews a call, so it is asked twice (most relevant and
+// newest) and the two merged: up to ten for the Market Research page, which
+// is built on them (docs/build-plans/market-research-v2.md).
 export async function placeReviews(placeId: string, d: PlacesDeps): Promise<string> {
   const id = placeId.trim();
   if (!/^[A-Za-z0-9_-]{10,200}$/.test(id)) throw new Error("place_id must be an id from a search");
-  const r = await call(d, "details/json", { place_id: id, fields: "name,rating,user_ratings_total,website,reviews", reviews_sort: "newest" });
-  const p = (r.result ?? {}) as Obj;
-  const reviews = ((p.reviews ?? []) as Obj[]).map(
-    (v) => `- ${v.rating ?? "?"} stars, ${v.relative_time_description ?? ""}: ${String(v.text ?? "").replace(/\s+/g, " ").trim()}`,
-  );
+  const ask = (reviews_sort: string) => call(d, "details/json", { place_id: id, fields: "name,rating,user_ratings_total,website,reviews", reviews_sort });
+  const [relevant, newest] = await Promise.all([ask("most_relevant"), ask("newest")]);
+  const p = (relevant.result ?? {}) as Obj;
+  const seen = new Set<string>();
+  const reviews = [...((p.reviews ?? []) as Obj[]), ...((newest.result?.reviews ?? []) as Obj[])]
+    .filter((v) => {
+      const k = `${v.author_name ?? ""}|${v.time ?? ""}`;
+      return seen.has(k) ? false : (seen.add(k), true);
+    })
+    .map((v) => `- ${v.rating ?? "?"} stars, ${v.relative_time_description ?? ""}: ${String(v.text ?? "").replace(/\s+/g, " ").trim()}`);
   return [
     `# ${p.name ?? id}`,
-    `${p.rating ?? "no"} stars from ${p.user_ratings_total ?? 0} reviews (Google shows at most 5 below)${p.website ? ` | ${p.website}` : ""}`,
+    `${p.rating ?? "no"} stars from ${p.user_ratings_total ?? 0} reviews (Google shows at most 10 below)${p.website ? ` | ${p.website}` : ""}`,
     ...reviews,
   ].join("\n");
 }

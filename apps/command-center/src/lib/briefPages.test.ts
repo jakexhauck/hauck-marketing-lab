@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activityFrom, CHECKLIST_AREAS, emptyPage, pageForAgent, parsePage, taskArea, type AdsPage } from "./briefPages";
+import { activityFrom, CHECKLIST_AREAS, emptyPage, pageForAgent, parsePage, taskArea, type AdsPage, type ResearchPage } from "./briefPages";
 import type { ClientTask } from "./clientTasks";
 
 const EM = String.fromCharCode(0x2014);
@@ -61,25 +61,60 @@ describe("parsePage", () => {
   });
 
   it("reads a research page with a wrong-typed list as empty", () => {
-    const res = parsePage("research", { zips: "bad", stats: { population: 12, competition: "high" } });
+    const res = parsePage("research", { angles: "bad", offers: [{ offer: "$500 off" }] });
     if (!res.ok) throw new Error("not ok");
-    expect(res.data).toMatchObject({ zips: [], stats: { population: 12, competition: "high", olderHomesPct: null } });
+    expect(res.data).toMatchObject({ angles: [], offers: [{ offer: "$500 off" }], goals: [] });
+  });
+
+  it("reads a v1 page: competitors and pain points carry over, the old quote becomes the first quote", () => {
+    const res = parsePage("research", {
+      zips: [{ zip: "48084" }],
+      stats: { olderHomesPct: 61 },
+      websites: { gap: "x" },
+      competitors: [{ name: "Window Nation", googleRating: 4.1, metaAdsLive: 54, mainAngle: "BOGO" }],
+      painPoints: [{ title: "Drafts", detail: "a paragraph", sharePct: 31, quote: "Cold all winter", sources: 40 }],
+    });
+    if (!res.ok) throw new Error("not ok");
+    expect(res.data).toEqual({
+      competitors: [{ name: "Window Nation", isClient: false, googleRating: 4.1, googleReviews: null, offer: "", websiteUrl: "" }],
+      painPoints: [{ title: "Drafts", reviews: 40, quotes: [{ text: "Cold all winter", stars: null, from: "" }] }],
+      goals: [],
+      benefits: [],
+      angles: [],
+      offers: [],
+      funnel: [],
+      sourcesNote: "",
+    });
+  });
+
+  it("keeps three quotes at most, drops empty ones, and reads a bad stage as TOF", () => {
+    const q = (text: string, stars?: number) => ({ text, stars, from: "Pella" });
+    const res = parsePage("research", {
+      angles: [{ name: "Mold", quotes: [q(""), q("a", 5), q("b", 9), q("c"), q("d")] }],
+      funnel: [{ stage: "top", name: "Mold" }, { stage: "bof", name: "$500 off" }],
+    });
+    if (!res.ok) throw new Error("not ok");
+    const page = res.data as ResearchPage;
+    expect(page.angles[0].quotes).toEqual([
+      { text: "a", stars: 5, from: "Pella" },
+      { text: "b", stars: null, from: "Pella" },
+      { text: "c", stars: null, from: "Pella" },
+    ]);
+    expect(page.funnel.map((f) => f.stage)).toEqual(["tof", "bof"]);
   });
 });
 
 describe("ranges", () => {
-  it("a rating outside 0 to 5 or a share outside 0 to 100 is unknown", () => {
-    const res = parsePage("research", { competitors: [{ googleRating: -1 }, { googleRating: 1e9 }, { googleRating: 4.5 }], painPoints: [{ sharePct: 140 }] });
+  it("a rating outside 0 to 5 is unknown", () => {
+    const res = parsePage("research", { competitors: [{ googleRating: -1 }, { googleRating: 1e9 }, { googleRating: 4.5 }] });
     if (!res.ok) throw new Error("not ok");
-    const page = res.data as { competitors: { googleRating: number | null }[]; painPoints: { sharePct: number | null }[] };
-    expect(page.competitors.map((c) => c.googleRating)).toEqual([null, null, 4.5]);
-    expect(page.painPoints[0].sharePct).toBeNull();
+    expect((res.data as ResearchPage).competitors.map((c) => c.googleRating)).toEqual([null, null, 4.5]);
   });
 });
 
 describe("emptyPage", () => {
   it("is empty and complete", () => {
-    expect((emptyPage("research") as { zips: unknown[] }).zips).toEqual([]);
+    expect(emptyPage("research").angles).toEqual([]);
     expect((emptyPage("ads") as AdsPage).campaigns).toEqual([]);
   });
 });

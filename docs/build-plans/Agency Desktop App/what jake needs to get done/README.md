@@ -836,3 +836,16 @@ Your action items:
 Still parked:
 - Codebase Memory for Claude Code on your PC: its installer edits many AI tools' settings and Defender sometimes flags its binary. Say go and Claude installs the binary only.
 - A runner restart in one exact second could run a scheduled job twice. Accepted.
+
+## Market Research v2 + Foreplay (2026-10-22)
+
+What's in the app now: Client > Brief > Market Research is two columns built on competitor Google reviews (competitors + offers, set angles, offers to run, pain points / goals / benefits, TOF/MOF/BOF). Research and Ads agents have a `foreplay` tool (10,000 free credits a month).
+
+Your action items:
+1. Restart the VPS runner when no agent is mid-reply: `docker exec hauck-agent-runner git -C /repo pull && docker restart hauck-agent-runner` (or allow Claude VPS commands).
+2. Open one client's Market Research chat and say "Redo the market research".
+3. Approve its cards and check the page matches the mockup.
+4. Cut or add names in the set angle lists (`projects/agent-runner/agents/research.md`, Set angles).
+
+Still parked:
+- Meta Ad Library / Foreplay on the research page, off until you want it.

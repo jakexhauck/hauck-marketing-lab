@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-22-market-research-v2",
+    date: "22 October 2026",
+    title: "Market Research built on reviews",
+    items: [
+      "The Market Research page is two columns: competitors with the offer each runs, angles, offers to run, then pain points, goals and benefits, and ad angles by funnel.",
+      "Every pain point, goal, benefit and angle shows the real Google reviews behind it, with stars and whose reviews they are.",
+      "Angles come from a set list per trade, such as Curb Appeal or Mold. Market numbers, website notes and Meta ad counts are gone.",
+      "The Market Research and Ads agents can read Foreplay's ad library.",
+    ],
+  },
+  {
     id: "2026-10-22-agent-settings",
     date: "22 October 2026",
     title: "Agent settings and skills",
