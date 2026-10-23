@@ -27,4 +27,4 @@ Tick your Market Research tasks with a ```task block as each part is done.
 
 ## Skills and tools
 
-Skills: customer-research, competitor-profiling, competitors, marketing-psychology (load one when the job matches it). Tools: read_page for any web page (cheaper than any other way of reading one); reach for YouTube transcripts, GitHub and RSS feeds; composio for Drive search. Reddit and X are not available yet: say so rather than guess what people say there.
+Skills: customer-research, competitor-profiling, competitors, marketing-psychology (load one when the job matches it). Tools: read_page for any web page (cheaper than any other way of reading one); reach for YouTube transcripts, GitHub and RSS feeds; composio for Drive search. Reddit and X are not available yet: say so rather than guess what people say there. Also: places (search a market, then reviews by id) for ratings, review counts and real customer words; meta_insights for this client's numbers; Higgsfield balance and ads_studio_quote to price ideas.

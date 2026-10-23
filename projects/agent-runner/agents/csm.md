@@ -37,4 +37,4 @@ You run this client for Jake: the kickoff that plans the setup, tracking it to l
 
 ## Skills and tools
 
-Skills: offers, marketing-plan, marketing-psychology (load one when the job matches it). Tools: read_page for any web page; composio for Gmail drafts (never send), free slots on the agency calendar, Drive search.
+Skills: offers, marketing-plan, marketing-psychology (load one when the job matches it). Tools: read_page for any web page; composio for Gmail drafts (never send), free slots on the agency calendar, Drive search. Also: ghl (read only) for this client's pipelines, custom values, fields and calendars; changes go to the GHL Agent as a request. Higgsfield balance and ads_studio_quote to price a creative plan; only the Ads Agent generates.

@@ -100,9 +100,11 @@ describe("startBridge", () => {
   it("lists each agent's own tools only", async () => {
     await start();
     const files = ["list_files", "read_file", "write_file"];
-    expect(toolNames(await rpc("t-csm", "tools/list"))).toEqual(["meta_insights", ...files]);
-    expect(toolNames(await rpc("t-manager", "tools/list"))).toEqual(["meta_insights", "client_brief", ...files]);
-    expect(toolNames(await rpc("t-research", "tools/list"))).toEqual(files);
+    // The CSM and Research also price Higgsfield (balance, quote); the CSM and
+    // Manager read GHL; Research reads Meta numbers.
+    expect(toolNames(await rpc("t-csm", "tools/list"))).toEqual(["meta_insights", "ghl", ...files, "balance", "ads_studio_quote"]);
+    expect(toolNames(await rpc("t-manager", "tools/list"))).toEqual(["meta_insights", "ghl", "client_brief", ...files]);
+    expect(toolNames(await rpc("t-research", "tools/list"))).toEqual(["meta_insights", ...files, "balance", "ads_studio_quote"]);
     expect(toolNames(await rpc("t-ghl", "tools/list"))).toEqual(["ghl"]);
   });
 
@@ -184,12 +186,15 @@ describe("startBridge", () => {
     expect((await call("t-ads", "generate_image", { turn: "M2", prompt: "d" })).isError).toBeUndefined();
   });
 
-  it("never lets another agent reach Higgsfield", async () => {
+  it("lets the CSM price Higgsfield but never generate, and keeps Ads Manager the Ads Agent's", async () => {
     const f = await start();
     bridge!.setTurn("csm", { tenantId: "T1", messageId: "M1", spend: 100 });
-    expect((await call("t-csm", "balance", { turn: "M1" })).isError).toBe(true);
+    expect((await call("t-csm", "balance", { turn: "M1" })).isError).toBeFalsy();
+    expect((await call("t-csm", "generate_image", { turn: "M1", prompt: "x" })).isError).toBe(true);
     expect((await call("t-csm", "meta_ops", { turn: "M1", op: "read.structure" })).isError).toBe(true);
-    expect(f.calls).toEqual([]);
+    expect(f.calls.map((c) => c.tool)).toEqual(["hf:balance"]);
+    bridge!.setTurn("ghl", { tenantId: "T1", messageId: "M2" });
+    expect((await call("t-ghl", "balance", { turn: "M2" })).isError).toBe(true);
   });
 
   it("refuses a call while that agent has no turn running", async () => {
@@ -388,5 +393,56 @@ describe("web and Composio tools", () => {
     const r = await rpc("t-ghl", "tools/call", { name: "read_page", arguments: { turn: "m1", url: "https://example.com" } });
     expect(r.body.result.isError).toBe(true);
     expect(calls).toEqual([]);
+  });
+});
+
+describe("wider access per agent", () => {
+  async function startAll() {
+    const f = fakeTools();
+    f.tools.places = async (action, target) => (f.calls.push({ tool: "places", body: { action, target } }), "found");
+    bridge = await startBridge({ port: 0, tokens: TOKENS, tools: f.tools });
+    return f;
+  }
+  const names = async (token: string) => ((await rpc(token, "tools/list")).body.result.tools as { name: string }[]).map((t) => t.name);
+
+  it("gives the CSM and Manager GHL reads, Research Meta numbers and Places, and prices Higgsfield for the CSM and Research", async () => {
+    await startAll();
+    const csm = await names("t-csm");
+    expect(csm).toEqual(expect.arrayContaining(["ghl", "meta_insights", "balance", "ads_studio_quote"]));
+    expect(csm).not.toContain("generate_image");
+    const research = await names("t-research");
+    expect(research).toEqual(expect.arrayContaining(["meta_insights", "places", "ads_studio_quote"]));
+    expect(research).not.toContain("generate_video");
+    expect(research).not.toContain("ghl");
+    expect(await names("t-manager")).toContain("ghl");
+    expect(await names("t-manager")).not.toContain("ads_studio_quote");
+    expect(await names("t-ads")).toContain("generate_image");
+  });
+
+  it("lists only read ops to the CSM and refuses it a write before the app is asked", async () => {
+    const f = await startAll();
+    const tools = (await rpc("t-csm", "tools/list")).body.result.tools as { name: string; inputSchema: any }[];
+    expect(tools.find((t) => t.name === "ghl")!.inputSchema.properties.op.enum.every((o: string) => o.startsWith("read."))).toBe(true);
+    bridge!.setTurn("csm", { tenantId: "t1", messageId: "m1" });
+    const r = await rpc("t-csm", "tools/call", { name: "ghl", arguments: { turn: "m1", op: "write.tag", args: {} } });
+    expect(r.body.result.isError).toBe(true);
+    expect(f.calls.filter((c) => c.tool === "ghl")).toEqual([]);
+  });
+
+  it("the agency Manager names the client for a GHL read", async () => {
+    const f = await startAll();
+    bridge!.setTurn("manager", { tenantId: null, messageId: "m1" });
+    const none = await rpc("t-manager", "tools/call", { name: "ghl", arguments: { turn: "m1", op: "read.pipelines" } });
+    expect(none.body.result.isError).toBe(true);
+    await rpc("t-manager", "tools/call", { name: "ghl", arguments: { turn: "m1", op: "read.pipelines", tenant: "t9" } });
+    expect(f.calls.find((c) => c.tool === "ghl")?.body).toMatchObject({ tenantId: "t9", op: "read.pipelines" });
+  });
+
+  it("refuses the CSM a paid Higgsfield tool even if it names one", async () => {
+    const f = await startAll();
+    bridge!.setTurn("csm", { tenantId: "t1", messageId: "m1", spend: 50 });
+    const r = await rpc("t-csm", "tools/call", { name: "generate_image", arguments: { turn: "m1", prompt: "x" } });
+    expect(r.body.result.isError).toBe(true);
+    expect(f.calls.some((c) => c.tool === "hf:generate_image")).toBe(false);
   });
 });

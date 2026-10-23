@@ -417,7 +417,14 @@ export async function callGhlOp(client: SupabaseClient, body: GhlCallBody, deps:
     ? { agent: c.agent as AgentId, tenantId: (c.tenant_id as string | null) ?? null, auto: c.auto === true }
     : null;
   // Jake's turn or a Director trigger turn; writeAllowed below decides writes.
-  if (!chat || chat.agent !== "ghl" || chat.tenantId !== tenantId || (message.role !== "me" && message.role !== "trigger") || message.status !== "running") {
+  // Reads also for the CSM at its own client and the agency Manager at any
+  // client (hermes-agent-ops follow-up, 2026-10-22: every agent on the
+  // platforms we use). Writes stay the GHL Agent's alone.
+  const ghlChat = !!chat && chat.agent === "ghl" && chat.tenantId === tenantId;
+  const readChat =
+    !!chat && !GHL_OPS[op].write && ((chat.agent === "csm" && chat.tenantId === tenantId) || (chat.agent === "manager" && chat.tenantId === null));
+  const roleOk = message.role === "me" || message.role === "trigger" || (readChat && message.role === "request");
+  if (!chat || !(ghlChat || readChat) || !roleOk || message.status !== "running") {
     return out(403, { error: "not a GHL Agent turn for this client" });
   }
 

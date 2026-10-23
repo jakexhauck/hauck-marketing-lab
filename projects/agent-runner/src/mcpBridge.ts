@@ -59,6 +59,9 @@ export interface AppTools {
   // A Composio tool from the agent's allowlist (composioTools.ts). Unset (no
   // COMPOSIO_API_KEY): no Composio tool.
   composio?(agent: AgentId, slug: string, args: Record<string, unknown>): Promise<{ text: string; isError: boolean }>;
+  // Google Places search and reviews (placesTools.ts). Unset (no
+  // GOOGLE_PLACES_API_KEY): no places tool.
+  places?(action: string, target: string): Promise<string>;
 }
 
 export interface Root {
@@ -87,7 +90,13 @@ export interface Bridge {
 
 // The same agents as the scripts: Meta numbers for the three whose job needs
 // them, GHL for the GHL Agent, Ads Manager ops and Higgsfield for the Ads Agent.
-const META_AGENTS: AgentId[] = ["manager", "csm", "ads"];
+const META_AGENTS: AgentId[] = ["manager", "csm", "ads", "research"];
+// GHL reads for the CSM (its client) and the agency Manager (any client, by
+// tenant); the app refuses them every write (agentGhlOps.ts).
+const GHL_READ_AGENTS: AgentId[] = ["csm", "manager"];
+// Higgsfield: the Ads Agent makes things; the CSM and Market Research only
+// price them and look at models, so a plan can carry a real cost.
+const HF_PRICE_AGENTS: AgentId[] = ["csm", "research"];
 // The GHL Agent works in GHL only; it never had file tools.
 const FILE_AGENTS: AgentId[] = ["manager", "csm", "research", "ads"];
 // Reading the web: everyone who researches or writes. Agent Reach's channels
@@ -137,6 +146,28 @@ const GHL_TOOL = {
     type: "object",
     properties: { turn: TURN, op: { type: "string", enum: GHL_OPS }, args: { type: "object" } },
     required: ["turn", "op"],
+  },
+};
+
+const GHL_READ_TOOL = {
+  name: "ghl",
+  description:
+    "Read the client's GHL sub-account: pipelines, custom values, custom fields, calendars. Read only; changes are the GHL Agent's (send it a request). The agency Manager passes tenant, a client's tenant id; everyone else gets their chat's client.",
+  inputSchema: {
+    type: "object",
+    properties: { turn: TURN, op: { type: "string", enum: GHL_OPS.filter((o) => o.startsWith("read.")) }, args: { type: "object" }, tenant: { type: "string" } },
+    required: ["turn", "op"],
+  },
+};
+
+const PLACES_TOOL = {
+  name: "places",
+  description:
+    "Google Places. action search: target is a search like 'window replacement Ann Arbor MI', gives up to 10 businesses with rating, review count, website and id. action reviews: target is an id from a search, gives the rating and the reviews Google shows (5 at most).",
+  inputSchema: {
+    type: "object",
+    properties: { turn: TURN, action: { type: "string", enum: ["search", "reviews"] }, target: { type: "string" } },
+    required: ["turn", "action", "target"],
   },
 };
 
@@ -249,6 +280,8 @@ function toolsFor(agent: AgentId, tools?: AppTools) {
     ...(tools?.composio && composioAllowed(agent).length ? [composioTool(agent)] : []),
     ...(META_AGENTS.includes(agent) ? [META_TOOL] : []),
     ...(agent === "ghl" ? [GHL_TOOL] : []),
+    ...(GHL_READ_AGENTS.includes(agent) ? [GHL_READ_TOOL] : []),
+    ...(tools?.places && agent === "research" ? [PLACES_TOOL] : []),
     ...(agent === "manager" ? [BRIEF_TOOL] : []),
     ...(agent === "ads" ? [META_OPS_TOOL] : []),
     ...(FILE_AGENTS.includes(agent) ? FILE_TOOLS : []),
@@ -258,10 +291,18 @@ function toolsFor(agent: AgentId, tools?: AppTools) {
 // The Ads Agent's Higgsfield tools, from Higgsfield's own list. A runner that
 // is not signed in, or a list that fails, leaves them out rather than failing
 // the agent's whole tool list.
+// The Higgsfield tools one agent is served: everything for Ads, prices only
+// for the CSM and Market Research, none for the rest.
+function hfServedFor(agent: AgentId): Set<string> {
+  if (agent === "ads") return HF_SERVED;
+  return HF_PRICE_AGENTS.includes(agent) ? new Set(HF_QUOTE) : new Set();
+}
+
 async function higgsfieldTools(agent: AgentId, tools: AppTools) {
-  if (agent !== "ads" || !tools.higgsfield?.ready()) return [];
+  const served = hfServedFor(agent);
+  if (!served.size || !tools.higgsfield?.ready()) return [];
   try {
-    return (await tools.higgsfield.listTools()).filter((t) => HF_SERVED.has(t.name)).map(withTurn);
+    return (await tools.higgsfield.listTools()).filter((t) => served.has(t.name)).map(withTurn);
   } catch {
     return [];
   }
@@ -326,7 +367,7 @@ async function callTool(
   written: Set<string>,
   startBalance: Spent,
 ) {
-  const hf = agent === "ads" && HF_SERVED.has(name) && !!tools.higgsfield;
+  const hf = hfServedFor(agent).has(name) && !!tools.higgsfield;
   if (!hf && !toolsFor(agent, tools).some((t) => t.name === name)) return text(`${name} is not one of your tools`, true);
   if (!turn) return text("No turn is running for you right now, so this call was not made.", true);
   if (a.turn !== turn.messageId) return text("This call names a turn that is not the one running now, so it was not made.", true);
@@ -359,6 +400,9 @@ async function callTool(
         const r = await h.call(name, await withCeiling(h, name, args, left));
         return text(r.text, r.isError);
       });
+    }
+    if (name === "places") {
+      return text(await tools.places!(typeof a.action === "string" ? a.action : "", typeof a.target === "string" ? a.target : ""));
     }
     if (name === "read_page") {
       const url = typeof a.url === "string" ? a.url.trim() : "";
@@ -400,9 +444,12 @@ async function callTool(
     if (name === "ghl") {
       const op = typeof a.op === "string" ? a.op : "";
       if (!GHL_OPS.includes(op)) return text(`op must be one of: ${GHL_OPS.join(", ")}`, true);
-      if (!turn.tenantId) return text("no client: the GHL Agent only works inside a client's chat", true);
+      // Only the GHL Agent changes anything; the app checks this too.
+      if (agent !== "ghl" && !op.startsWith("read.")) return text("Only the GHL Agent changes GHL. Send it a request.", true);
+      const tenant = turn.tenantId ?? (agent === "manager" && typeof a.tenant === "string" ? a.tenant.trim() : "");
+      if (!tenant) return text(agent === "manager" ? "tenant is required: a client's tenant id from your client list" : "no client: GHL only works inside a client's chat", true);
       const args = a.args && typeof a.args === "object" && !Array.isArray(a.args) ? (a.args as Record<string, unknown>) : {};
-      return text(await tools.ghl({ messageId: turn.messageId, tenantId: turn.tenantId, op, args }));
+      return text(await tools.ghl({ messageId: turn.messageId, tenantId: tenant, op, args }));
     }
 
     const roots = turn.roots ?? [];

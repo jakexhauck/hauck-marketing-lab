@@ -247,6 +247,20 @@ describe("callGhlOp", () => {
     expect((await callGhlOp(world().client(), { ...body, messageId: "55555555-5555-4555-8555-000000000000", tenantId: T1 }, deps)).status).toBe(403);
   });
 
+  it("lets the CSM read its own client and the Manager read any client, and neither write", async () => {
+    fakeGhl({ "GET /opportunities/pipelines": { pipelines: [] }, "GET /locations/LOC1/customValues": CV_LIST });
+    const read = { messageId: MSG, tenantId: T1, op: "read.pipelines" };
+    expect((await callGhlOp(world({ chat: { agent: "csm" } }).client(), read, deps)).status).toBe(200);
+    expect((await callGhlOp(world({ chat: { agent: "manager", tenant_id: null } }).client(), read, deps)).status).toBe(200);
+    expect((await callGhlOp(world({ chat: { agent: "csm" } }).client(), { ...read, tenantId: T2 }, deps)).status).toBe(403);
+    expect((await callGhlOp(world({ chat: { agent: "research" } }).client(), read, deps)).status).toBe(403);
+    const write = { messageId: MSG, tenantId: T1, op: "write.customValue", args: { key: "winter page", value: "https://new" } };
+    const calls = fakeGhl({ "GET /locations/LOC1/customValues": CV_LIST, "PUT /locations/LOC1/customValues/v1": {} });
+    expect((await callGhlOp(world({ chat: { agent: "csm" } }).client(), write, deps)).status).toBe(403);
+    expect((await callGhlOp(world({ chat: { agent: "manager", tenant_id: null } }).client(), write, deps)).status).toBe(403);
+    expect(calls.some((c) => c.method === "PUT")).toBe(false);
+  });
+
   it("lets a Director trigger read, and write only when its tasks act live", async () => {
     const write = { messageId: MSG, tenantId: T1, op: "write.customValue", args: { key: "winter page", value: "https://new" } };
     fakeGhl({ "GET /opportunities/pipelines": { pipelines: [] } });
