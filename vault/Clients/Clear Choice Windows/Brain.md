@@ -17,3 +17,4 @@ agent: all
 - [2026-10-18] (research, chat 15032b3c) Champion (Buy 2 Get 2, ends 10/31/26) and Renewal by Andersen (BOGO 40% off on 4+, ends 10/31/26) both run October deadline offers in Owensboro. ^l-15875456
 - [2026-10-18] (research, chat 15032b3c) Local bill triggers to verify before use: OMU energy cost adjustment up about $8.50/mo (7%), CenterPoint Evansville final rate phase March 2026. ^l-9aa05531
 - [2026-10-22] (ads, chat 4e60f8a6) Free Triple Pane campaign launched 2026-10-20 at $50/day CBO with 7 ads; day 1 spent $28.07 for 2 leads, day 2 spent $14.84 for 0, Billboard - Local Trust took 63% of early spend ^l-018d8163
+- [2026-10-23] (ads, chat be7e1fed) Free Triple Pane campaign, Oct 20 to 22: $62.76 spend, 2 leads. Billboard - Local Trust took 72% of spend for 1 lead, Script 2 - Free Upgrade got 1 lead on $8.44. The other 4 ads spent $9.36 with no leads. ^l-78994364
