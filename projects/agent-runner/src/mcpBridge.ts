@@ -34,6 +34,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import type { AddressInfo } from "node:net";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { composioAllowed } from "./composioTools.ts";
+import type { ForeplayOpts } from "./foreplayTools.ts";
 import type { Higgsfield, HfTool } from "./higgsfield.ts";
 import { HF_AFTER, HF_GENERATE, HF_QUOTE, parseBalance } from "./spend.ts";
 import type { AgentId } from "./wire.ts";
@@ -62,6 +63,9 @@ export interface AppTools {
   // Google Places search and reviews (placesTools.ts). Unset (no
   // GOOGLE_PLACES_API_KEY): no places tool.
   places?(action: string, target: string): Promise<string>;
+  // Foreplay brands, ads and credits (foreplayTools.ts), capped per turn by
+  // the turn id. Unset (no FOREPLAY_API_KEY): no foreplay tool.
+  foreplay?(turn: string, action: string, target: string, opts: ForeplayOpts): Promise<string>;
 }
 
 export interface Root {
@@ -168,6 +172,27 @@ const PLACES_TOOL = {
     type: "object",
     properties: { turn: TURN, action: { type: "string", enum: ["search", "reviews"] }, target: { type: "string" } },
     required: ["turn", "action", "target"],
+  },
+};
+
+const FOREPLAY_AGENTS: AgentId[] = ["research", "ads"];
+
+const FOREPLAY_TOOL = {
+  name: "foreplay",
+  description:
+    "Foreplay's ad library (Meta ads with copy, transcripts and run time). Costs credits from a 10,000 a month grant, 100 a turn at most: spend them on the ads you need. action brands: target is a brand name, gives up to 10 brands with id and live ad count (1 credit). action domain: target is a website like windownation.com, same answer (1 credit). action brand_ads: target is 1 to 5 brand ids, commas between, gives their ads (1 credit per ad). action search: target is words in the ad like 'window replacement', across every brand (1 credit per ad). action usage: credits left (free). limit is ads per call, 10 by default, 25 at most; order newest or longest_running (long runners are the ones that work); live false includes ads that stopped; cursor from a 'More:' line gives the next page.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      turn: TURN,
+      action: { type: "string", enum: ["brands", "domain", "brand_ads", "search", "usage"] },
+      target: { type: "string" },
+      limit: { type: "number" },
+      order: { type: "string", enum: ["newest", "longest_running"] },
+      live: { type: "boolean" },
+      cursor: { type: "string" },
+    },
+    required: ["turn", "action"],
   },
 };
 
@@ -282,6 +307,7 @@ function toolsFor(agent: AgentId, tools?: AppTools) {
     ...(agent === "ghl" ? [GHL_TOOL] : []),
     ...(GHL_READ_AGENTS.includes(agent) ? [GHL_READ_TOOL] : []),
     ...(tools?.places && agent === "research" ? [PLACES_TOOL] : []),
+    ...(tools?.foreplay && FOREPLAY_AGENTS.includes(agent) ? [FOREPLAY_TOOL] : []),
     ...(agent === "manager" ? [BRIEF_TOOL] : []),
     ...(agent === "ads" ? [META_OPS_TOOL] : []),
     ...(FILE_AGENTS.includes(agent) ? FILE_TOOLS : []),
@@ -403,6 +429,16 @@ async function callTool(
     }
     if (name === "places") {
       return text(await tools.places!(typeof a.action === "string" ? a.action : "", typeof a.target === "string" ? a.target : ""));
+    }
+    if (name === "foreplay") {
+      const str = (v: unknown) => (typeof v === "string" ? v : undefined);
+      const opts: ForeplayOpts = {
+        limit: typeof a.limit === "number" ? a.limit : undefined,
+        order: str(a.order),
+        live: typeof a.live === "boolean" ? a.live : undefined,
+        cursor: str(a.cursor),
+      };
+      return text(await tools.foreplay!(turn.messageId, str(a.action) ?? "", str(a.target) ?? "", opts));
     }
     if (name === "read_page") {
       const url = typeof a.url === "string" ? a.url.trim() : "";

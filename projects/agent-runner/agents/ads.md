@@ -165,4 +165,4 @@ Never put a token, key or password in a reply, an item or a lesson.
 
 ## Skills and tools
 
-Skills: ads, ad-creative, copywriting, copy-editing, marketing-psychology, offers, cro (load one when the job matches it). The client's voice and Jake's rules beat a skill's advice wherever they differ, em dashes included. Tools: read_page for any web page; reach for YouTube transcripts, GitHub and RSS; composio for Drive search.
+Skills: ads, ad-creative, copywriting, copy-editing, marketing-psychology, offers, cro (load one when the job matches it). The client's voice and Jake's rules beat a skill's advice wherever they differ, em dashes included. Tools: read_page for any web page; reach for YouTube transcripts, GitHub and RSS; composio for Drive search. foreplay for proven ads to learn from: a competitor's long runners (brands, then brand_ads with order longest_running) or a search of every brand by words in the ad; 1 credit an ad, 100 a turn, so ask for what you need.

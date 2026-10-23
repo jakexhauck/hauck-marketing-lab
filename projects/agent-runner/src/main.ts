@@ -33,6 +33,7 @@ import { appTools } from "./appOps.ts";
 import { manifestSkills, opsLoop } from "./agentOps.ts";
 import { runComposio } from "./composioTools.ts";
 import { reach, readPage } from "./webTools.ts";
+import { foreplay } from "./foreplayTools.ts";
 import { placeReviews, searchPlaces } from "./placesTools.ts";
 import { startBridge, type Bridge } from "./mcpBridge.ts";
 import { API_BASE, CLAIM_AGENTS, DATA_DIR, DRIVE_MODE, DRIVE_REMOTE, DRIVE_ROOT, ENGINE, GIT_PUSH, HERMES_API, HEARTBEAT_MS, HIGGSFIELD_LOGIN, PAGES_CWD, PC_JOBS, POLL_MS, REPO_DIR, RUNNER_DIR, SITES_DIR, SNAPSHOTS_FILE } from "./config.ts";
@@ -154,11 +155,13 @@ async function main(): Promise<void> {
     // COMPOSIO_API_KEY comes in with the rest of Doppler's prd secrets.
     const composioKey = process.env.COMPOSIO_API_KEY ?? "";
     const placesKey = process.env.GOOGLE_PLACES_API_KEY ?? "";
+    const foreplayKey = process.env.FOREPLAY_API_KEY ?? "";
     const tools = {
       ...appTools({ base: API_BASE, secret, higgsfield: hf ?? undefined }),
       readPage: (url: string, part?: number) => readPage(url, {}, part),
       reach: (channel: string, target: string) => reach(channel, target),
       ...(placesKey ? { places: (action: string, target: string) => (action === "reviews" ? placeReviews(target, { apiKey: placesKey }) : action === "search" ? searchPlaces(target, { apiKey: placesKey }) : Promise.reject(new Error("action must be search or reviews"))) } : {}),
+      ...(foreplayKey ? { foreplay: foreplay({ apiKey: foreplayKey }) } : {}),
       ...(composioKey ? { composio: (agent: AgentId, slug: string, a: Record<string, unknown>) => runComposio(agent, slug, a, { apiKey: composioKey }) } : {}),
     };
     bridge = await startBridge({ port: Number(process.env.HERMES_MCP_PORT ?? 8700), tokens, tools });

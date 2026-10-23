@@ -419,6 +419,19 @@ describe("wider access per agent", () => {
     expect(await names("t-ads")).toContain("generate_image");
   });
 
+  it("gives Foreplay to Research and Ads only, with the turn id for the cap", async () => {
+    const f = fakeTools();
+    f.tools.foreplay = async (turn, action, target, opts) => (f.calls.push({ tool: "foreplay", body: { turn, action, target, ...opts } }), "3 ads");
+    bridge = await startBridge({ port: 0, tokens: TOKENS, tools: f.tools });
+    expect(await names("t-research")).toContain("foreplay");
+    expect(await names("t-ads")).toContain("foreplay");
+    for (const t of ["t-csm", "t-manager", "t-ghl"]) expect(await names(t)).not.toContain("foreplay");
+    bridge!.setTurn("research", { tenantId: "t1", messageId: "m1" });
+    const r = await rpc("t-research", "tools/call", { name: "foreplay", arguments: { turn: "m1", action: "search", target: "windows", limit: 5, order: "longest_running" } });
+    expect(r.body.result.content[0].text).toBe("3 ads");
+    expect(f.calls.find((c) => c.tool === "foreplay")?.body).toEqual({ turn: "m1", action: "search", target: "windows", limit: 5, order: "longest_running", live: undefined, cursor: undefined });
+  });
+
   it("lists only read ops to the CSM and refuses it a write before the app is asked", async () => {
     const f = await startAll();
     const tools = (await rpc("t-csm", "tools/list")).body.result.tools as { name: string; inputSchema: any }[];
