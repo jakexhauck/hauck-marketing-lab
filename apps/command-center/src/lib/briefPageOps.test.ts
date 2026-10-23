@@ -154,6 +154,14 @@ describe("applyPageOps, Research", () => {
     expect(parsePage("research", page)).toEqual({ ok: true, data: page });
   });
 
+  it("takes null for a text field the agent has no value for", () => {
+    const r = applied("research", emptyPage("research"), [
+      { op: "add", kind: "competitor", fields: { name: "Schnell's", offer: null, websiteUrl: null, googleRating: null, googleReviews: null } },
+    ]);
+    expect((r.data as ResearchPage).competitors).toMatchObject([{ name: "Schnell's", offer: "", websiteUrl: "" }]);
+    expect(parsePageOps("research", [{ op: "add", kind: "competitor", fields: { name: null } }])).toMatchObject({ ok: false, error: "op 1: add competitor needs name" });
+  });
+
   it("refuses a quote with no words, a bad star count, too many quotes and a bad stage", () => {
     const add = (fields: unknown) => parsePageOps("research", [{ op: "add", kind: "angle", fields }]);
     expect(add({ name: "Mold", quotes: [{ text: " " }] })).toMatchObject({ ok: false, error: "op 1: each of quotes needs text, the review's own words" });

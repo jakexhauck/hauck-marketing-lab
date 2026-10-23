@@ -114,7 +114,10 @@ function cleanFields(spec: KindSpec, raw: unknown): Fields | string {
       if (typeof v !== "boolean") return `${k} must be true or false`;
       out[k] = v;
     } else if (spec.text.includes(k)) {
-      if (typeof v === "string") out[k] = v.slice(0, MAX_TEXT);
+      // null is how the agents say "none found" (a shop with no offer); the
+      // page keeps that as empty text. A null name still fails the add check.
+      if (v === null) out[k] = "";
+      else if (typeof v === "string") out[k] = v.slice(0, MAX_TEXT);
       else if (typeof v === "number" && Number.isFinite(v)) out[k] = String(v);
       else return `${k} must be text`;
     } else if (spec.num.includes(k)) {

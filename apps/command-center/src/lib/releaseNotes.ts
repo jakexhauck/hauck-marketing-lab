@@ -26,6 +26,12 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-23-brief-card-approve",
+    date: "23 October 2026",
+    title: "Competitor cards approve",
+    items: ["A Market Research card with a competitor that runs no offer or has no website can be approved."],
+  },
+  {
     id: "2026-10-22-market-research-v2",
     date: "22 October 2026",
     title: "Market Research built on reviews",
