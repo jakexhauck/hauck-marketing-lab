@@ -65,6 +65,13 @@ export function needsOkCounts(items: AgentItem[]): Partial<Record<AgentId, numbe
   return out;
 }
 
+// The cards approved in the chat they came from: Research and Ads brief cards,
+// and the Manager's kickoff card (its chat asks Jake to approve it). Other
+// cards stay on the Building tab.
+export function chatCards(items: AgentItem[], chatId: string | null): AgentItem[] {
+  return chatId ? items.filter((i) => (i.kind === "brief" || i.kind === "tasks") && i.chatId === chatId) : [];
+}
+
 // The working agents, in rail order, for the per-client dots.
 export const WORKING_AGENTS: AgentId[] = ["research", "ads", "ghl"];
 

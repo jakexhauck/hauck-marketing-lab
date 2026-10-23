@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { AgentItem, AgentMessage, ChatSummary } from "./agentWire";
-import { clientRowView, groupChats, itemPayload, messageView, needsOkCounts, onlineLabel, pollMs } from "./agentView";
+import { chatCards, clientRowView, groupChats, itemPayload, messageView, needsOkCounts, onlineLabel, pollMs } from "./agentView";
 
 const chat = (id: string, updatedAt: string): ChatSummary => ({
   id,
@@ -337,5 +337,18 @@ describe("itemPayload", () => {
     });
     expect(v).toMatchObject({ previewUrl: "https://d-1.hm-a.pages.dev", liveUrl: "https://hm-a.pages.dev", deploy: true });
     expect(itemPayload({ grant: { kind: "spend" }, liveUrl: "javascript:x" })).toMatchObject({ deploy: false, liveUrl: null });
+  });
+});
+
+describe("chatCards", () => {
+  it("puts brief and kickoff cards in the chat they came from, nothing else", () => {
+    const items = [
+      item({ id: "brief", kind: "brief", chatId: "c1" }),
+      item({ id: "kickoff", kind: "tasks", agent: "csm", chatId: "c1" }),
+      item({ id: "ghl", kind: "ghl", chatId: "c1" }),
+      item({ id: "other", kind: "brief", chatId: "c2" }),
+    ];
+    expect(chatCards(items, "c1").map((i) => i.id)).toEqual(["brief", "kickoff"]);
+    expect(chatCards(items, null)).toEqual([]);
   });
 });

@@ -29,7 +29,10 @@ export const RELEASES: Release[] = [
     id: "2026-10-23-brief-card-approve",
     date: "23 October 2026",
     title: "Competitor cards approve",
-    items: ["A Market Research card with a competitor that runs no offer or has no website can be approved."],
+    items: [
+      "A Market Research card with a competitor that runs no offer or has no website can be approved.",
+      "The Manager's kickoff task changes show in its chat, each change listed, with Approve.",
+    ],
   },
   {
     id: "2026-10-22-market-research-v2",

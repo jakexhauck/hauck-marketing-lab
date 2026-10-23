@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowUp, Brain, BrainCircuit, CircleCheck, Loader, Sparkles } from "lucide-react";
 import type { AgentItem, AgentMessage } from "../../../lib/agentWire";
-import { messageView } from "../../../lib/agentView";
+import { chatCards, messageView } from "../../../lib/agentView";
 import { parseChatMarkdown, type Inline } from "../../../lib/chatMarkdown";
 import ItemCard from "./ItemCard";
 import RequestCard from "./RequestCard";
@@ -59,11 +59,11 @@ export default function ChatThread({
 
   const itemById = (id: string | null) => (id ? (items.find((i) => i.id === id) ?? null) : null);
 
-  // A brief card (Research or Ads) is approved in the chat it came from
+  // A brief or kickoff card is approved in the chat it came from
   // (hermes-agent-ops.md, Phase 2), so it sits among the messages, after the
-  // last one posted before it. Other cards stay on the Building tab.
+  // last one posted before it.
   const timeline = useMemo(() => {
-    const cards = chatId ? items.filter((i) => i.kind === "brief" && i.chatId === chatId) : [];
+    const cards = chatCards(items, chatId);
     const entries: ({ at: number; msg: AgentMessage } | { at: number; card: AgentItem })[] = [
       ...list.map((msg) => ({ at: Date.parse(msg.createdAt), msg })),
       ...cards.map((card) => ({ at: Date.parse(card.createdAt ?? card.updatedAt), card })),
