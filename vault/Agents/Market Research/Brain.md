@@ -12,3 +12,4 @@ agent: research
 - [2026-10-18] (research, Clear Choice Windows, chat 15032b3c) For home service research, sort complaints into before-sale vs after-sale; after-sale fears (delays, ghosting, surprise bills) often make the stronger ad angle. ^l-e62185e1
 - [2026-10-22] (research, Comfort Wizards LLC, chat 43c65498) Thumbtack pro pages show review text in web search snippets even though read_page returns "JavaScript is disabled"; use search snippets for them. ^l-926bd1b8
 - [2026-10-22] (research, Comfort Wizards LLC, chat 43c65498) Jake wants Market Research brief page fields short, a few quick phrases he can take in at a glance, never paragraphs. ^l-7d8f9d7e
+- [2026-10-23] (research, Comfort Wizards LLC, chat 26ac17f6) Google Places gives only 5 reviews per business and no client listing for new shops; counts stay small, say so on the card ^l-71d3c280
