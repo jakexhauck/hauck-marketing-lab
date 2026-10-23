@@ -2,30 +2,37 @@ import { describe, expect, it } from "vitest";
 import { placeReviews, searchPlaces } from "../src/placesTools.ts";
 
 function google(answer: unknown, status = 200) {
-  const calls: { url: string; init: RequestInit }[] = [];
-  const f = (async (url: string, init: RequestInit) => {
-    calls.push({ url, init });
+  const calls: string[] = [];
+  const f = (async (url: string) => {
+    calls.push(url);
     return new Response(JSON.stringify(answer), { status });
   }) as unknown as typeof fetch;
   return { calls, f };
 }
 
 describe("places", () => {
-  it("searches with the key in a header, never the URL", async () => {
-    const { calls, f } = google({ places: [{ id: "ChIJabc1234567", displayName: { text: "Glass Co" }, rating: 4.6, userRatingCount: 88, formattedAddress: "Ann Arbor, MI" }] });
-    const out = await searchPlaces("windows Ann Arbor", { apiKey: "secret-key", fetchImpl: f });
-    expect(out).toContain("Glass Co | 4.6 stars, 88 reviews");
-    expect(out).toContain("id ChIJabc1234567");
-    expect(calls[0].url).not.toContain("secret-key");
-    expect((calls[0].init.headers as Record<string, string>)["x-goog-api-key"]).toBe("secret-key");
+  it("searches the classic text search and lists rating, count and id", async () => {
+    const { calls, f } = google({ status: "OK", results: [{ place_id: "ChIJabc1234567", name: "Glass Co", rating: 4.6, user_ratings_total: 88, formatted_address: "Ann Arbor, MI" }] });
+    const out = await searchPlaces("windows Ann Arbor", { apiKey: "k", fetchImpl: f });
+    expect(out).toBe("- Glass Co | 4.6 stars, 88 reviews | Ann Arbor, MI | id ChIJabc1234567");
+    expect(calls[0]).toMatch(/^https:\/\/maps\.googleapis\.com\/maps\/api\/place\/textsearch\/json\?query=windows/);
   });
+
   it("reads reviews by id and refuses anything that is not an id", async () => {
-    const { f } = google({ displayName: { text: "Glass Co" }, rating: 4.6, userRatingCount: 88, reviews: [{ rating: 2, relativePublishTimeDescription: "a month ago", text: { text: "Took three weeks to   call back" } }] });
+    const { f } = google({ status: "OK", result: { name: "Glass Co", rating: 4.6, user_ratings_total: 88, reviews: [{ rating: 2, relative_time_description: "a month ago", text: "Took three weeks to   call back" }] } });
     expect(await placeReviews("ChIJabc1234567", { apiKey: "k", fetchImpl: f })).toContain("2 stars, a month ago: Took three weeks to call back");
     await expect(placeReviews("../../x", { apiKey: "k", fetchImpl: f })).rejects.toThrow(/id from a search/);
   });
-  it("reports Google's message on an error", async () => {
-    const { f } = google({ error: { message: "API key not valid" } }, 400);
-    await expect(searchPlaces("x", { apiKey: "k", fetchImpl: f })).rejects.toThrow("Google Places 400: API key not valid");
+
+  it("reports Google's status and message, never the URL with the key in it", async () => {
+    const { f } = google({ status: "REQUEST_DENIED", error_message: "This API project is not authorized" });
+    const err = await searchPlaces("x", { apiKey: "secret-key", fetchImpl: f }).catch((e: Error) => e);
+    expect((err as Error).message).toBe("Google Places REQUEST_DENIED: This API project is not authorized");
+    expect((err as Error).message).not.toContain("secret-key");
+  });
+
+  it("treats no results as an answer, not an error", async () => {
+    const { f } = google({ status: "ZERO_RESULTS", results: [] });
+    expect(await searchPlaces("nothing here", { apiKey: "k", fetchImpl: f })).toBe("No businesses found.");
   });
 });
