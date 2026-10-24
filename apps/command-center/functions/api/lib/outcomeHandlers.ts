@@ -27,7 +27,7 @@ import {
 import { moveLeadByContact } from "../../lib/outcomeMove";
 import { sendPushForActivity } from "../../lib/push";
 import { answersFromContact, contactFieldNames, formFieldIds, saveAnswers } from "../../lib/outcomeFields";
-import { CALL_NOW_TAG } from "../../lib/callNow";
+import { ownerCallTag } from "../../lib/appCall";
 import { fireCallTag } from "../../lib/callNowHandler";
 import { clientGoogleBusy, dropBusySlots } from "../../lib/clientGoogleBusy";
 
@@ -190,7 +190,7 @@ function clock(ms: number, zone: string): string {
   return new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "numeric", minute: "2-digit" }).format(ms);
 }
 
-// `call` swaps what the page's Call button does. Left out, it tags `call now`
+// `call` swaps what the page's Call button does. Left out, it tags the owner call tag (ownerCallTag)
 // (rings the owner); the Setting tab's copy enrols App Call (rings Jake).
 type CallStarter = (gctx: OutcomeLink["gctx"], contactId: string) => Promise<{ ok: true } | { ok: false; message: string }>;
 
@@ -255,7 +255,7 @@ export function outcomeHandlers(purpose: string, opts: { call?: CallStarter; goo
     } catch {
       return fail("Could not read that. Try again.");
     }
-    // The page's Call button: same call now tag as the Call Now link.
+    // The page's Call button: the owner call tag, `call now` or `client app call`.
     if ((raw as { action?: unknown } | null)?.action === "call") {
       if (opts.call) {
         const res = await opts.call(link.gctx, link.contactId);
@@ -263,7 +263,7 @@ export function outcomeHandlers(purpose: string, opts: { call?: CallStarter; goo
         return res.ok ? Response.json({ ok: true }) : fail(res.message, 502);
       }
       try {
-        await fireCallTag(link.gctx, link.contactId, CALL_NOW_TAG);
+        await fireCallTag(link.gctx, link.contactId, await ownerCallTag(link.gctx));
       } catch (err) {
         logErrorBestEffort(ctx.env, "outcome-call", String(err), { contactId: link.contactId });
         return fail("Could not start the call. Try again.", 502);

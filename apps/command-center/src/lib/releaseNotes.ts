@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-24-tracking-calls",
+    date: "24 October 2026",
+    title: "Calls on the new snapshot",
+    items: [
+      "On clients from the new snapshot, Call in Client > Setting rings you through the Tracking workflow.",
+      "The owner's Call button rings the owner on every client, old snapshot or new.",
+    ],
+  },
+  {
     id: "2026-10-24-dialer-app-call",
     date: "24 October 2026",
     title: "Call works on new clients",

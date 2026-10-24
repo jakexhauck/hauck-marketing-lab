@@ -1,12 +1,13 @@
 import type { Env, ApiData } from "../../../lib/env";
-import { CALL_NOW_TAG } from "../../../lib/callNow";
+import { ownerCallTag } from "../../../lib/appCall";
 import { fireCallTag } from "../../../lib/callNowHandler";
 import { logErrorBestEffort } from "../../../lib/errorLog";
 
 // POST /api/contacts/<contactId>/call
 //
 // The in-app Call button. Same mechanism as the owner's texted Call Now link:
-// tag the contact `call now`, and the sub-account's Call Now workflow rings the
+// tag the contact (`call now`, or `client app call` on the restructured
+// snapshot, see ownerCallTag), and the sub-account's workflow rings the
 // owner, then dials the lead and bridges them on the business number.
 //
 // The tenant's own GHL credentials do the tagging, so a contact id from another
@@ -20,7 +21,8 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (ct
   }
 
   try {
-    await fireCallTag({ token: t.ghl_token, locationId: t.ghl_location_id }, contactId, CALL_NOW_TAG);
+    const gctx = { token: t.ghl_token, locationId: t.ghl_location_id };
+    await fireCallTag(gctx, contactId, await ownerCallTag(gctx));
   } catch (err) {
     logErrorBestEffort(ctx.env, "in-app-call", String(err), {
       locationId: t.ghl_location_id,

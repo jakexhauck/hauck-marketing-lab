@@ -2,13 +2,31 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const ghlJson = vi.fn();
 vi.mock("./ghl", () => ({ ghlJson: (...a: unknown[]) => ghlJson(...a) }));
+const fireCallTag = vi.fn();
+vi.mock("./callNowHandler", () => ({ fireCallTag: (...a: unknown[]) => fireCallTag(...a) }));
 
-import { startAppCall } from "./appCall";
+import { ownerCallTag, startAppCall } from "./appCall";
 
 const gctx = { token: "t", locationId: "loc12345" };
 
 describe("startAppCall", () => {
-  beforeEach(() => ghlJson.mockReset());
+  beforeEach(() => {
+    ghlJson.mockReset();
+    fireCallTag.mockReset();
+  });
+
+  it("tags dialer app call when calls run from the Tracking workflow", async () => {
+    ghlJson.mockResolvedValueOnce({ workflows: [{ id: "wfTrack01", name: "⚡ Tracking", status: "published" }] });
+    expect(await startAppCall(gctx, "contact001")).toEqual({ ok: true });
+    expect(fireCallTag).toHaveBeenCalledWith(gctx, "contact001", "dialer app call");
+    expect(ghlJson).toHaveBeenCalledTimes(1);
+  });
+
+  it("says so when Tracking is in draft", async () => {
+    ghlJson.mockResolvedValueOnce({ workflows: [{ id: "wfTrack01", name: "Tracking", status: "draft" }] });
+    expect(await startAppCall(gctx, "contact001")).toEqual({ ok: false, message: '"Tracking" is in draft in this sub-account. Publish it.' });
+    expect(fireCallTag).not.toHaveBeenCalled();
+  });
 
   it("enrols the lead in the published App Call workflow", async () => {
     ghlJson
@@ -58,5 +76,23 @@ describe("startAppCall", () => {
     const res = await startAppCall(gctx, "contact001");
     expect(res.ok).toBe(false);
     expect(ghlJson).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("ownerCallTag", () => {
+  beforeEach(() => ghlJson.mockReset());
+
+  it("is client app call where Tracking or Client App Call rings the owner", async () => {
+    ghlJson.mockResolvedValueOnce({ workflows: [{ id: "a", name: "\u26A1 Tracking", status: "published" }] });
+    expect(await ownerCallTag(gctx)).toBe("client app call");
+    ghlJson.mockResolvedValueOnce({ workflows: [{ id: "b", name: "\u{1F4BB} Client App Call", status: "published" }] });
+    expect(await ownerCallTag(gctx)).toBe("client app call");
+  });
+
+  it("stays call now on clients loaded before the restructure, or when the list fails", async () => {
+    ghlJson.mockResolvedValueOnce({ workflows: [{ id: "c", name: "\u{1F916} New Lead Auto Call", status: "published" }] });
+    expect(await ownerCallTag(gctx)).toBe("call now");
+    ghlJson.mockRejectedValueOnce(new Error("down"));
+    expect(await ownerCallTag(gctx)).toBe("call now");
   });
 });
