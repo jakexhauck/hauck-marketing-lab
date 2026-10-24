@@ -7,7 +7,12 @@ import { ghlEventStartTime, pickBridgeWorkflow, type GhlWorkflowSummary } from "
 // Jake and bridges the lead from the client's GHL number. Jake owns that
 // workflow and who it rings (the assigned user), so the app only enrols.
 
-export const APP_CALL_WORKFLOW = "App Call";
+// The snapshot split it in two (2026-10-24): "Dialer App Call" rings the
+// dialer, "Client App Call" rings the owner. Clients loaded earlier still have
+// the one "App Call", so it stays as the fallback. Client App Call is never a
+// match: it would ring the owner instead of Jake.
+export const APP_CALL_WORKFLOW = "Dialer App Call";
+const APP_CALL_FALLBACK = "App Call";
 
 // Names compared on letters and digits only. The snapshot puts an emoji in
 // front ("💻 App Call", AAG 2026-10-22), which an exact match missed.
@@ -29,10 +34,11 @@ export async function startAppCall(gctx: GhlContext, contactId: string): Promise
     return { ok: false, message: `Could not read the workflows: ${readableError(err)}` };
   }
 
-  const pick = pickBridgeWorkflow(
-    workflows.map((w) => ({ ...w, name: workflowKey(w.name ?? "") })),
-    workflowKey(APP_CALL_WORKFLOW),
-  );
+  const keyed = workflows.map((w) => ({ ...w, name: workflowKey(w.name ?? "") }));
+  let pick = pickBridgeWorkflow(keyed, workflowKey(APP_CALL_WORKFLOW));
+  if (!pick.ok && pick.error === "workflow_missing") {
+    pick = pickBridgeWorkflow(keyed, workflowKey(APP_CALL_FALLBACK));
+  }
   if (!pick.ok) {
     return {
       ok: false,

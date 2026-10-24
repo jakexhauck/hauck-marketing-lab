@@ -32,9 +32,28 @@ describe("startAppCall", () => {
     expect(ghlJson.mock.calls[1][1]).toBe("/contacts/contact001/workflow/wfEmoji01");
   });
 
+  it("prefers Dialer App Call, the snapshot's name since 2026-10-24", async () => {
+    ghlJson
+      .mockResolvedValueOnce({
+        workflows: [
+          { id: "wfClient01", name: "\u{1F4BB} Client App Call", status: "published" },
+          { id: "wfOld0001", name: "App Call", status: "published" },
+          { id: "wfDialer01", name: "\u{1F4BB} Dialer App Call", status: "published" },
+        ],
+      })
+      .mockResolvedValueOnce({});
+    expect(await startAppCall(gctx, "contact001")).toEqual({ ok: true });
+    expect(ghlJson.mock.calls[1][1]).toBe("/contacts/contact001/workflow/wfDialer01");
+  });
+
+  it("never rings the owner through Client App Call", async () => {
+    ghlJson.mockResolvedValueOnce({ workflows: [{ id: "wfClient01", name: "Client App Call", status: "published" }] });
+    expect(await startAppCall(gctx, "contact001")).toEqual({ ok: false, message: 'No "Dialer App Call" workflow in this sub-account.' });
+  });
+
   it("says so when the workflow is missing or in draft", async () => {
     ghlJson.mockResolvedValueOnce({ workflows: [] });
-    expect(await startAppCall(gctx, "contact001")).toEqual({ ok: false, message: 'No "App Call" workflow in this sub-account.' });
+    expect(await startAppCall(gctx, "contact001")).toEqual({ ok: false, message: 'No "Dialer App Call" workflow in this sub-account.' });
     ghlJson.mockResolvedValueOnce({ workflows: [{ id: "wfDraft01", name: "App Call", status: "draft" }] });
     const res = await startAppCall(gctx, "contact001");
     expect(res.ok).toBe(false);

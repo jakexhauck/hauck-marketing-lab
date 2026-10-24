@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-24-dialer-app-call",
+    date: "24 October 2026",
+    title: "Call works on new clients",
+    items: [
+      "Call in Client > Setting runs the client's Dialer App Call workflow, or App Call on older clients.",
+    ],
+  },
+  {
     id: "2026-10-23-brief-card-approve",
     date: "23 October 2026",
     title: "Competitor cards approve",
