@@ -53,4 +53,11 @@ Format: `- YYYY-MM-DD — fact (optional: source/tag)`
 - 2026-08-05, FIXED same day by Jake: `📝 Funnel FU's` and `📝 Lead Form FU's` used to branch on a tag named `survey completed` that did not exist. He deleted the condition outright (did not remap it to `funnel survey completed`), so that branch now tests only `phone appointment booked` and `phone appointment confirmed`. Verified live: Funnel FU's v11, Lead Form FU's v28.
 - 2026-08-05, `facebook ads` is now applied: both `📝 Funnel FU's` and `📝 Lead Form FU's` carry an add-tag step for it. This is the tag the Command Center's Paid Ads revenue/ROAS join counts against Meta spend, so those numbers should start populating for leads entering through either follow-up workflow.
 
+## 2026-10-26: moved onto the v13 client snapshot
+
+- GHL now runs the snapshot's 7 workflows (Appointments, Tracking, CAPI, Outcomes, LF/LP Follow Ups, Long Term Nurture), all published. The LF, LP and Long Term Nurture texts are Willis's own old texts and photos, carried over.
+- Set to draft (replaced): Lead Form FU's, Landing Page Follow Ups, old Long Term Nurture, both Conversions API, Phone Appointment, Phone Appointment Confirmed, Job Reminders, Track Appointment Outcomes, New Lead Auto Call, New Lead Alert. App feed workflows (1 to 14, Stage Changed, Customer Replied, etc.) and the stage routing ones are still on.
+- Ads quote page posts to the new LP Follow Ups webhook (`XkSMcOJ5T4ZFoZJbHI8Q`), commit `568e81ad`.
+- Custom values filled: Business Name, Business Owner First/Full Name, Business Phone. Recent Work and Owner Story are still blank, and LP texts 2 and 3 use them.
+
 <!-- Add new facts above this line. When this file exceeds ~100 lines, older entries get moved to Memory-Archive.md. -->

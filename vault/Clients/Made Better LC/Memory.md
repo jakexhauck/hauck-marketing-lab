@@ -37,3 +37,10 @@ Append-only facts about the client. Newest at the bottom.
   low overhead, owner on site, honest itemized pricing, and a lot of work that
   is fixing what an established crew rushed. Seamus's age is on-message for that
   framing rather than something to hide, but the exact wording is Jake's call.
+
+## 2026-10-26: v13 client snapshot loaded
+
+- The snapshot's 7 workflows are in GHL as DRAFTS. LF, LP and Long Term Nurture carry new landscaping texts (the old ones were AAG garage door and Willis window copies). Jake reads them before anything is published.
+- The "recent work" text offers photos rather than attaching one, since no Made Better job photo was on hand.
+- Facebook Access Token / Dataset ID custom values are still "[REPLACE HERE]", so CAPI will fail until filled.
+- Custom values filled: Business Name (Made Better LC), Owner First/Full Name (Seamus Geohagen), Business Phone (313) 506-9238.
