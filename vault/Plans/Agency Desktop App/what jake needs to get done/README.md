@@ -413,3 +413,16 @@ The niche playbook framework is live. Three starter playbooks ship: `dental`, `g
 - **Multi-niche clients.** One niche per client, by design.
 - **Auto-generating playbooks from past client folders.** Manual authoring only for v1.
 - **Per-niche benchmarks auto-applied to the Ads Manager.** Wiring playbook benchmarks into the dashboard as a fallback is a small follow-up.
+
+## Grok Bots + Hauck Brain connector (shipped 2026-10-26)
+
+Six Grok Bots replace the Hermes agents. They read the business through one custom connector, the Hauck Brain (`/api/grok/mcp/<GROK_MCP_KEY>`). Setup files: `agency/grok-bots/<bot>/bot.md`.
+
+### Your action items
+1. **Swap the connector.** Grok, Connectors: delete the test connector, add Custom "Hauck Brain" with the URL Claude gives you.
+2. **Create the six bots** from each `bot.md`: Name, Title, Description, Instructions, Routines.
+3. **Agent rules.** Settings > General > Agent: no bot logs into Meta, GHL, banks or payment sites.
+4. **Group chat "Hauck Team"** with all six.
+5. **Run each bot's test prompts** and tell Claude where they fall short.
+6. **Confirm routine times** (Ads Monday 8:00, EA Monday 7:30 plus weekday digest, Success Manager Friday 9:00).
+7. **Decide on Hermes teardown**: the app's Agents section and the VPS runner are still running.
