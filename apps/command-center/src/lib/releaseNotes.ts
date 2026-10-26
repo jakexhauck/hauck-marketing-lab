@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-26-mission-control-brief",
+    date: "26 October 2026",
+    title: "Brief is the client's Mission Control doc",
+    items: [
+      "Each client's Brief is now their Mission Control Google Doc, right in the page. Switch pages with the doc's own tabs.",
+      "No doc yet? Create Mission Control copies the template into the client's Drive folder. A doc a Grok Bot makes appears on its own.",
+      "Agents and Director are gone from every client.",
+      "A client folder named a little differently, like Made Better LC, is found and linked instead of made twice.",
+    ],
+  },
+  {
     id: "2026-10-26-client-folder",
     date: "26 October 2026",
     title: "Client Folder",

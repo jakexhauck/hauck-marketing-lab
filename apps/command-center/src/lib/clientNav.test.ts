@@ -12,16 +12,13 @@ import {
 const linked: ClientGateInfo = { metaAdAccountId: "act_1", ghlConnected: true, onboardingStatus: "live" };
 const bare: ClientGateInfo = { metaAdAccountId: null, ghlConnected: false, onboardingStatus: "setup" };
 
-const AGENT_NAMES = ["Customer Success Manager", "Market Research Agent", "Ads Agent", "GHL Agent"];
-
 const labels = (c: ClientGateInfo) =>
   clientNavGroups(c).map((g) => [g.caption, g.rows.map((r) => r.label)]);
 
 describe("clientNavGroups", () => {
   it("lists every page for a fully wired client, Brief on top", () => {
     expect(labels(linked)).toEqual([
-      [null, ["Brief", "Director", "Folder"]],
-      ["Agents", AGENT_NAMES],
+      [null, ["Brief", "Folder"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Business Profile", "Staff", "Custom Values", "Custom Fields", "Calendars", "Pipelines", "Media", "Workflows", "Phone Numbers"]],
       ["Setting", ["Pipeline", "Script", "Outcome"]],
@@ -31,8 +28,7 @@ describe("clientNavGroups", () => {
 
   it("gates Paid Ads and GHL until they are connected", () => {
     expect(labels(bare)).toEqual([
-      [null, ["Brief", "Director", "Folder"]],
-      ["Agents", AGENT_NAMES],
+      [null, ["Brief", "Folder"]],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Connect GHL"]],
       ["Setting", ["Pipeline", "Script", "Outcome"]],
@@ -41,14 +37,8 @@ describe("clientNavGroups", () => {
   });
 
   it("treats a blank ad account id as not linked", () => {
-    const rows = clientNavGroups({ ...linked, metaAdAccountId: "  " })[2].rows;
+    const rows = clientNavGroups({ ...linked, metaAdAccountId: "  " })[1].rows;
     expect(rows[0].sub).toBe("setup");
-  });
-
-  it("puts the Director right under the Brief, as its own page", () => {
-    expect(clientNavGroups(bare)[0].rows[1]).toEqual({ page: "director", sub: null, label: "Director" });
-    expect(clientPath("t1", "director")).toBe("/admin/client/t1/director");
-    expect(resolveClientPage(bare, "director", "x")).toEqual({ page: "director", sub: null });
   });
 
   it("puts the Client Brief at the top of the rail, as its own page", () => {
@@ -58,9 +48,9 @@ describe("clientNavGroups", () => {
     expect(resolveClientPage(bare, "brief", "x")).toEqual({ page: "brief", sub: null });
   });
 
-  it("keeps the Brief's own page in the address, so its tabs open", () => {
+  it("drops the old Brief pages from the address: the doc's tabs are the pages now", () => {
     for (const p of ["client", "checklist", "research", "ads", "ghl"]) {
-      expect(resolveClientPage(bare, "brief", p)).toEqual({ page: "brief", sub: p });
+      expect(resolveClientPage(bare, "brief", p)).toEqual({ page: "brief", sub: null });
     }
   });
 
@@ -70,26 +60,13 @@ describe("clientNavGroups", () => {
     expect(groups[0].rule).toBeFalsy();
   });
 
-  it("gives every agent a row on the agent page, keyed by its id", () => {
-    const rows = clientNavGroups(bare)[1].rows;
-    expect(rows.map((r) => [r.page, r.sub])).toEqual([
-      ["agent", "csm"],
-      ["agent", "research"],
-      ["agent", "ads"],
-      ["agent", "ghl"],
-    ]);
-  });
 });
 
-describe("resolveClientPage, agents", () => {
-  it("keeps a real agent", () => {
-    expect(resolveClientPage(linked, "agent", "ads")).toEqual({ page: "agent", sub: "ads" });
-  });
-
-  it("sends an unknown, missing or agency-only agent to the Customer Success Manager", () => {
-    expect(resolveClientPage(linked, "agent", "nope")).toEqual({ page: "agent", sub: "csm" });
-    expect(resolveClientPage(bare, "agent", null)).toEqual({ page: "agent", sub: "csm" });
-    expect(resolveClientPage(bare, "agent", "manager")).toEqual({ page: "agent", sub: "csm" });
+describe("resolveClientPage, retired Agents and Director", () => {
+  it("sends every agent and the Director to Brief", () => {
+    for (const [page, sub] of [["agent", "ads"], ["agent", null], ["director", null], ["director", "x"]] as const) {
+      expect(resolveClientPage(linked, page, sub)).toEqual({ page: "brief", sub: null });
+    }
   });
 });
 

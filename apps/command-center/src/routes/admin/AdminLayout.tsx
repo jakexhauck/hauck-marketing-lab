@@ -32,10 +32,9 @@ import { PillarStyle } from "../../components/pillars/PillarKit";
 import { effectiveAdminRole, type AdminRole } from "../../lib/adminRoles";
 import UpdateDialog from "../../components/admin/UpdateDialog";
 import ClientMark from "../../components/ClientMark";
-import { useAgentItems, useRunnerStatus } from "../../components/admin/agents/agentApi";
+import { useRunnerStatus } from "../../components/admin/agents/agentApi";
 import ManagerBubble from "../../components/admin/agents/ManagerBubble";
-import { needsOkCounts, onlineLabel } from "../../lib/agentView";
-import { isAgentId, type AgentId } from "../../lib/agents";
+import { onlineLabel } from "../../lib/agentView";
 
 // The admin console chrome: a sidebar (the same shape and row treatment as the
 // client app's rail, so the two consoles read as one product) plus each page's
@@ -506,10 +505,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const clients = clientsQuery.data?.clients ?? [];
   const activeClient = clientCtx ? (clients.find((c) => c.id === clientCtx.tenantId) ?? null) : null;
   const [sheetOpen, setSheetOpen] = useState(false);
-  // One items read for the open client feeds every agent row's badge.
-  const agentItems = useAgentItems(activeClient?.id ?? "", !!activeClient).data?.items;
-  const agentBadges = agentItems ? needsOkCounts(agentItems) : {};
-  const agentsBuilding = new Set<AgentId>((agentItems ?? []).filter((i) => i.status === "building").map((i) => i.agent));
 
   return (
     // Desktop (lg+): lock the frame to the available height (h-full resolves
@@ -599,8 +594,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     tenantId={activeClient.id}
                     row={row}
                     current={clientCtx}
-                    badge={row.page === "agent" && isAgentId(row.sub) ? agentBadges[row.sub] : undefined}
-                    active={row.page === "agent" && isAgentId(row.sub) && agentsBuilding.has(row.sub)}
                   />
                 ))}
               </Fragment>

@@ -2013,6 +2013,34 @@ export function useClientDriveActions(tenantId: string) {
   };
 }
 
+// The client's Mission Control doc in their Drive folder (functions/lib/missionControl.ts).
+export interface MissionControlResponse {
+  hasFolder: boolean;
+  doc: { id: string; url: string } | null;
+}
+
+const missionControlKey = (tenantId: string) => ["admin", "mission-control", tenantId];
+
+export function useMissionControlQuery(tenantId: string) {
+  return useQuery({
+    queryKey: missionControlKey(tenantId),
+    enabled: !!tenantId,
+    staleTime: 60_000,
+    // A Grok Bot makes the folder and the doc outside the app, so an open Brief
+    // keeps looking until the doc is there, then stops.
+    refetchInterval: (query) => (query.state.data && !query.state.data.doc ? 20_000 : false),
+    queryFn: () => api<MissionControlResponse>(`/api/admin/clients/${tenantId}/mission-control`),
+  });
+}
+
+export function useCreateMissionControl(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<MissionControlResponse>(`/api/admin/clients/${tenantId}/mission-control`, { method: "POST" }),
+    onSuccess: (data) => qc.setQueryData(missionControlKey(tenantId), data),
+  });
+}
+
 const adminCreativeFilesKey = (tenantId: string) => ["admin", "creative-files", tenantId];
 
 export function useAdminCreativeFilesQuery(tenantId: string) {

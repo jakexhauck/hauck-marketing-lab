@@ -182,6 +182,10 @@ describe("templateCopyName", () => {
     expect(templateCopyName("Video Scripts  |  template ", "WW")).toBe("WW | Video Scripts");
   });
 
+  it("keeps a // separator, so Mission Control copies read WW // Mission Control", () => {
+    expect(templateCopyName("Mission Control // TEMPLATE", "WW")).toBe("WW // Mission Control");
+  });
+
   it("prefixes a doc with no tag", () => {
     expect(templateCopyName("🛠️ Client Setup SOP", "WW")).toBe("WW | 🛠️ Client Setup SOP");
   });

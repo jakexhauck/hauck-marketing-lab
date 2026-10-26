@@ -8,7 +8,7 @@ import { getGhlContextForTenant } from "./tenantGhl";
 import { resolveMetaToken } from "./metaToken";
 import { patchTask, readTasks } from "./clientTasks";
 import { readPages, savePage } from "./briefPagesStore";
-import { CLIENT_FOLDER_PREFIX, clientDriveRoot, clientFolderName, ensureClientFolder } from "./clientDriveFolder";
+import { CLIENT_FOLDER_PREFIX, clientDriveRoot, clientFolderName, ensureClientFolder, matchClientFolder } from "./clientDriveFolder";
 import { composioDriveConfigured, listFolders, resolveDriveAccount } from "./driveComposio";
 import { parsePage, type AdsPage, type BriefPageId } from "../../src/lib/briefPages";
 import type { TaskOwner } from "../../src/lib/clientTasks";
@@ -297,7 +297,9 @@ const createClientFolderTool: ToolDef<GrokDeps> = {
     if (error) throw new Error(`folders: ${error.message}`);
     if (!linked && a.new_folder_ok !== true && composioDriveConfigured(d.env)) {
       const names = (await said("Drive", resolveDriveAccount(d.env).then((acct) => listFolders(d.env, acct, clientDriveRoot(d.env))))).map((f) => f.name);
-      if (!names.includes(clientFolderName(c.name))) {
+      // A tidy-name match ("Made Better LC") is the one ensureClientFolder links,
+      // so only a folder it would NOT link can turn into a twin.
+      if (!matchClientFolder(names.map((name) => ({ name })), c.name)) {
         const like = lookalikeFolders(c.name, names);
         if (like.length) {
           throw new Error(`${c.name} has no folder linked, and ${like.join(", ")} looks like it could be theirs. Ask Jake: link that one in the app, or say to make a new folder.`);

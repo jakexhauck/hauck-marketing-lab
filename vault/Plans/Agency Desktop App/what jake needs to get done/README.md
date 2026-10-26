@@ -432,3 +432,18 @@ The Ads bot builds the lead form, campaign, ad sets and ads in Meta, all paused.
 2. **Re-paste the Ads and GHL bots' Description and Instructions** from `ads/bot.md` and `ghl/bot.md`.
 3. **Build each lead form from the Ads bot's steps** (your call 2026-10-26). Once it is built, tell the bot; it builds the ads on it.
 4. **Hermes teardown matters more now**: a bot ticking a task no longer wakes Hermes, but your own ticks in the app still do.
+
+---
+
+## Mission Control Brief (shipped 2026-10-26)
+
+### What's in the app now
+- Client > Brief is the client's Mission Control Google Doc, embedded. The doc's tabs are its pages.
+- No doc yet: **Create Mission Control** copies the template into the client's Drive folder as "XX // Mission Control". A doc a Grok Bot makes appears on its own within 20 seconds.
+- Agents and Director are gone from every client's sidebar.
+
+### Your action items
+1. Open Comfort Wizards > Brief and check "CW // Mission Control" loads.
+2. Open Willis Windows > Brief, press **Create Mission Control**, and check the copy opens.
+3. Decide on Clear Choice: link it to the "🤝 | Clear Choice Owensboro" folder (ask Claude), or the Grok folder tool will stop and ask each time.
+4. TNT has no Drive folder: have the Success Manager bot run create_client_folder, then check its Brief.

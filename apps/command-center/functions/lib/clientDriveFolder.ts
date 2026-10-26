@@ -42,7 +42,7 @@ export function clientFolderName(businessName: string): string {
 export const FINISHED_CREATIVES_FOLDER = "Finished Creatives";
 
 // Endings that are paperwork, not name: "Made Better LC" is MB, not MBL.
-const COMPANY_ENDINGS = new Set(["LLC", "LC", "PLLC", "INC", "CO", "CORP", "LTD"]);
+export const COMPANY_ENDINGS = new Set(["LLC", "LC", "PLLC", "INC", "CO", "CORP", "LTD"]);
 
 /** "Willis Windows" -> "WW". The prefix on every copied doc. */
 export function clientInitials(businessName: string): string {
@@ -60,10 +60,45 @@ export function clientInitials(businessName: string): string {
   return words[0]?.[0]?.toUpperCase() ?? "X";
 }
 
-/** "Copy | TEMPLATE" -> "WW | Copy". A doc with no tag just gets the prefix. */
+/**
+ * "Copy | TEMPLATE" -> "WW | Copy", keeping the template's own separator:
+ * "Mission Control // TEMPLATE" -> "WW // Mission Control" (Jake, 2026-10-26).
+ * A doc with no tag just gets the prefix.
+ */
 export function templateCopyName(templateName: string, initials: string): string {
-  const base = templateName.replace(/\s*\|\s*template\s*$/i, "").trim();
-  return `${initials} | ${base}`;
+  const m = /^(.*?)\s*(\||\/\/)\s*template\s*$/i.exec(templateName);
+  if (!m) return `${initials} | ${templateName.trim()}`;
+  return `${initials} ${m[2]} ${m[1].trim()}`;
+}
+
+// "🤝 | Made Better LC" -> "made better". Lower case, letters and digits only,
+// the paperwork endings dropped, so a folder a bot or Jake named a little
+// differently from the app's client name still lines up.
+function folderKey(name: string): string {
+  return name
+    .replace(CLIENT_FOLDER_PREFIX.trim(), "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w && !COMPANY_ENDINGS.has(w.toUpperCase()))
+    .join(" ");
+}
+
+/**
+ * Which "🤝 | ..." folder is this client's: the same name once tidied, else the
+ * one folder whose name contains the client's or sits inside it ("Made Better
+ * LC" for "Made Better Landscaping Co"). Two candidates is a guess, so null.
+ */
+export function matchClientFolder<T extends { name: string }>(folders: T[], clientName: string): T | null {
+  const want = folderKey(clientName);
+  if (!want) return null;
+  const clients = folders.filter((f) => f.name.trim().startsWith(CLIENT_FOLDER_PREFIX.trim()));
+  const exact = clients.find((f) => folderKey(f.name) === want);
+  if (exact) return exact;
+  const near = clients.filter((f) => {
+    const k = folderKey(f.name);
+    return !!k && (k.includes(want) || want.includes(k));
+  });
+  return near.length === 1 ? near[0] : null;
 }
 
 export interface ClientFolder {
@@ -241,8 +276,8 @@ export async function ensureClientFolder(
   if (composioDriveConfigured(env) && isValidFileId(root)) {
     try {
       const accountId = await resolveDriveAccount(env);
-      const wanted = clientFolderName(businessName);
-      const found = (await listFolders(env, accountId, root)).find((f) => f.name.trim() === wanted);
+      // Tidy-name match, so "Made Better LC" is linked rather than duplicated.
+      const found = matchClientFolder(await listFolders(env, accountId, root), businessName);
       if (found) {
         const folder = { folderId: found.id, name: found.name, webViewLink: folderUrl(found.id) };
         const { error } = await supabase.from("client_folders").insert({

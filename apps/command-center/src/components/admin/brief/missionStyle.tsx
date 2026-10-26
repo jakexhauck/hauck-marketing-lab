@@ -19,6 +19,7 @@ export function MissionStyle() {
       .mcb-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
       .mcb-title { font-family: var(--font-display); font-weight: 600; font-size: 22px; letter-spacing: -.01em; margin: 0; }
       .mcb-grow { flex: 1; }
+      .mcb-doc { display: block; width: 100%; height: calc(100vh - 150px); min-height: 560px; border: 1px solid var(--border); border-radius: 14px; background: #fff; }
       .mcb-pages { display: flex; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); width: fit-content; max-width: 100%; overflow-x: auto; margin-bottom: 22px; scrollbar-width: none; }
       .mcb-pg { padding: 8px 16px; border-radius: 999px; font-weight: 500; font-size: 13.5px; color: var(--text-muted); white-space: nowrap; transition: color .15s, background .15s; }
       .mcb-pg:hover { color: var(--text); }

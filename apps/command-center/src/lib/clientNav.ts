@@ -25,19 +25,15 @@ import {
   subTabsFor,
   type SubTabDef,
 } from "./fulfillmentPages";
-import { CLIENT_AGENTS } from "./agents";
-import { MISSION_PAGE_IDS } from "./briefPages";
 
 export type ClientPageId =
   | "brief"
   | "folder"
-  | "director"
   | "paid-ads"
   | "ghl"
   | "management"
   | "image-converter"
-  | "setting"
-  | "agent";
+  | "setting";
 
 // What the gates read off a client. AdminClient satisfies it.
 export interface ClientGateInfo {
@@ -79,16 +75,12 @@ export interface ClientNavGroup {
 // now (lib/briefChecklist.ts). Brief sits at the top of the rail, and every
 // retired address lands on it.
 const PAGE_LABELS: Record<ClientPageId, string> = {
-  // Jake, 2026-10-17: the Client Brief, one living summary per client with a
-  // section per agent, Google Docs style (components/admin/agents/BriefPanel).
-  // The same document sits beside the chat on every agent page.
+  // Jake, 2026-10-26: the client's Mission Control Google Doc, embedded
+  // (components/admin/brief/MissionBrief.tsx). The doc's tabs are its pages.
   brief: "Brief",
   // Jake, 2026-10-26: the client's whole Drive folder, files opening in the page
   // (components/admin/folder/ClientFolder.tsx).
   folder: "Folder",
-  // Jake, 2026-10-20: the client's setup tasks in swimlanes, owners by phase,
-  // seeded from the Client Fulfillment map (components/admin/director).
-  director: "Director",
   "paid-ads": "Paid Ads",
   ghl: "GHL",
   management: "Management",
@@ -99,10 +91,6 @@ const PAGE_LABELS: Record<ClientPageId, string> = {
   // Pipeline with Call (App Call workflow), the setter script, and the outcome
   // page for the lead (components/admin/setting).
   setting: "Setting",
-  // Jake, 2026-10-17: one page for all the client's agents, the agent is the sub-page
-  // (lib/agents.ts). Never shown as a row of its own; the Agents group lists
-  // the agents themselves.
-  agent: "Agents",
 };
 
 const CLIENT_PAGES = Object.keys(PAGE_LABELS) as ClientPageId[];
@@ -116,7 +104,6 @@ const adsLinked = (c: ClientGateInfo) => Boolean((c.metaAdAccountId ?? "").trim(
 // The sub-pages a client is offered on a page, after the gates. [] for a page
 // with no second level.
 function offeredSubs(c: ClientGateInfo, page: ClientPageId): SubTabDef[] {
-  if (page === "agent") return CLIENT_AGENTS.map((a) => ({ id: a.id, label: a.name, ready: true }));
   if (page === "paid-ads") return paidAdsSubTabs(subTabsFor("paid-ads"), adsLinked(c));
   if (page === "ghl") return ghlSubTabs(subTabsFor("ghl"), c.ghlConnected);
   if (page === "setting") return SETTING_SUBS;
@@ -135,8 +122,7 @@ const subRows = (c: ClientGateInfo, page: ClientPageId): ClientNavRow[] =>
 
 export function clientNavGroups(c: ClientGateInfo): ClientNavGroup[] {
   return [
-    { caption: null, rows: [single("brief"), single("director"), single("folder")] },
-    { caption: "Agents", rows: subRows(c, "agent") },
+    { caption: null, rows: [single("brief"), single("folder")] },
     { caption: "Paid Ads", rows: subRows(c, "paid-ads") },
     { caption: "GHL", rows: subRows(c, "ghl") },
     { caption: "Setting", rows: subRows(c, "setting") },
@@ -172,7 +158,12 @@ export function parseClientPath(pathname: string): ParsedClientPath | null {
 // The address a client page should really be on. Null for a page that does not
 // exist. A missing, gated or stale sub-page becomes the first one on offer, so
 // AAG's Dashboard with no ad account lands on Connect ads.
+//
+// Jake, 2026-10-26: the Agents pages and Director left every client; their
+// addresses land on Brief with the rest.
 const RETIRED_SETUP = [
+  "agent",
+  "director",
   "onboarding",
   "setter",
   "full-setup",
@@ -190,8 +181,8 @@ export function resolveClientPage(
 ): { page: ClientPageId; sub: string | null } | null {
   if (RETIRED_SETUP.includes(page)) return { page: "brief", sub: null };
   if (!isClientPage(page)) return null;
-  // The Brief's tabs are its own pages, not rail rows, so they are kept here.
-  if (page === "brief") return { page, sub: sub && (MISSION_PAGE_IDS as readonly string[]).includes(sub) ? sub : null };
+  // The Brief's pages are the embedded doc's tabs, so it has no sub-pages.
+  if (page === "brief") return { page, sub: null };
   const subs = offeredSubs(c, page);
   if (subs.length === 0) return { page, sub: null };
   if (sub && subs.some((s) => s.id === sub)) return { page, sub };

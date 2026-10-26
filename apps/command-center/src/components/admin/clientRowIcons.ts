@@ -65,6 +65,5 @@ export const BRIEF_SECTION_ICONS: Record<string, LucideIcon> = {
 };
 
 export function clientRowIcon(row: ClientNavRow): LucideIcon {
-  if (row.page === "agent") return AGENT_ICONS[row.sub ?? ""] ?? Gauge;
   return ICONS[row.sub ?? row.page] ?? ICONS[row.page] ?? AppWindow;
 }

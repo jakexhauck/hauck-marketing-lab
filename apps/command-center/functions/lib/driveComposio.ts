@@ -652,6 +652,28 @@ export async function findDocInFolder(
   return f ? { id: f.id, url: f.webViewLink ?? docUrl(f.id) } : null;
 }
 
+/** The oldest Google Doc directly inside `parentId` whose name contains `part`, or null. */
+export async function findDocNameContains(
+  env: Env,
+  accountId: string,
+  parentId: string,
+  part: string,
+): Promise<{ id: string; url: string } | null> {
+  if (!isValidFileId(parentId)) throw new Error(`invalid parent folder id: ${parentId}`);
+  const escaped = part.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  const params = new URLSearchParams({
+    q: `'${parentId}' in parents and name contains '${escaped}' and mimeType = '${DOC_MIME}' and trashed = false`,
+    fields: "files(id,webViewLink)",
+    orderBy: "createdTime",
+    pageSize: "1",
+    supportsAllDrives: "true",
+    includeItemsFromAllDrives: "true",
+  });
+  const data = asObject(await proxyGet(env, accountId, `/files?${params}`), "find doc");
+  const f = ((data as { files?: { id: string; webViewLink?: string }[] }).files ?? [])[0];
+  return f ? { id: f.id, url: f.webViewLink ?? docUrl(f.id) } : null;
+}
+
 /**
  * An empty Google Doc inside `parentId`. A metadata-only create, the same call
  * as a folder with a different mimeType, so it works through Composio.

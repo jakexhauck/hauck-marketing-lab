@@ -5,10 +5,8 @@ import GhlTab from "../../components/admin/cockpit/ghl/GhlTab";
 import ManagementTab from "../../components/admin/cockpit/ManagementTab";
 import ImageConverterTab from "../../components/admin/cockpit/ImageConverterTab";
 import SettingTab from "../../components/admin/setting/SettingTab";
-import AgentPage from "../../components/admin/agents/AgentPage";
 import { MissionBrief } from "../../components/admin/brief/MissionBrief";
 import { ClientFolder } from "../../components/admin/folder/ClientFolder";
-import ClientDirector from "../../components/admin/director/ClientDirector";
 import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
 import { adminHomeFor } from "./AdminLayout";
 import { useAuth } from "../../context/AuthContext";
@@ -18,7 +16,6 @@ import { clientPath, resolveClientPage, type ClientPageId } from "../../lib/clie
 import { ADS_SETUP_SUB, GHL_SETUP_SUB } from "../../lib/fulfillmentPages";
 import { writeStoredClient } from "../../lib/selectedClient";
 import type { AdminClient } from "../../lib/api";
-import { isAgentId } from "../../lib/agents";
 
 // One page of a client's sub-account (/admin/client/:tenantId/:page/:sub?).
 //
@@ -52,13 +49,6 @@ export default function ClientPage() {
   if (!resolved) return <Navigate to={clientPath(client.id, "brief")} replace />;
   if (resolved.page !== page || resolved.sub !== (sub ?? null)) {
     return <Navigate to={clientPath(client.id, resolved.page, resolved.sub)} replace />;
-  }
-
-  // An agent page is a full-height three-column frame (chats | chat | panel),
-  // edge to edge like the mockup, so it skips the padded page and the live
-  // app button.
-  if (resolved.page === "agent") {
-    return <AgentPage tenantId={client.id} agent={isAgentId(resolved.sub) && resolved.sub !== "manager" ? resolved.sub : "csm"} />;
   }
 
   return (
@@ -113,11 +103,9 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
 
   switch (page) {
     case "brief":
-      return <MissionBrief tenantId={client.id} brandColor={client.brandColor} sub={sub} />;
+      return <MissionBrief tenantId={client.id} brandColor={client.brandColor} />;
     case "folder":
       return <ClientFolder tenantId={client.id} brandColor={client.brandColor} />;
-    case "director":
-      return <ClientDirector tenantId={client.id} />;
     case "paid-ads":
       return (
         <PaidAdsTab
@@ -151,7 +139,5 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
       return <ImageConverterTab tenantId={client.id} />;
     case "setting":
       return <SettingTab tenantId={client.id} sub={sub} />;
-    case "agent":
-      return <AgentPage tenantId={client.id} agent={isAgentId(sub) && sub !== "manager" ? sub : "csm"} />;
   }
 }
