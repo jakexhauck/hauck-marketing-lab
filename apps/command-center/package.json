@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.18.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "node ../../agency/grok-bots/build.mjs && tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p functions/tsconfig.json",
     "db:migrate": "node scripts/db-migrate.mjs",

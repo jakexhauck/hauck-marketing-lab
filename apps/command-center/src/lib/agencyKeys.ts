@@ -83,6 +83,7 @@ export const LOCK_REASON: Record<string, string> = {
   SUPABASE_URL: "Set once. A new client needs nothing here.",
   SUPABASE_SERVICE_ROLE_KEY: "Set once. A new client needs nothing here.",
   SUPABASE_ANON_KEY: "Set once. A new client needs nothing here.",
+  GROK_MCP_KEY: "The last part of the Grok Bots connector link. A new value here cuts every bot off until the link is swapped in Grok.",
 };
 
 export const AGENCY_KEYS: AgencyKeyDef[] = [
@@ -349,11 +350,12 @@ export const AGENCY_KEYS: AgencyKeyDef[] = [
   { name: "SUPABASE_URL", group: "platform", entry: "locked", help: "The database. Set once." },
   { name: "SUPABASE_SERVICE_ROLE_KEY", group: "platform", entry: "locked", help: "Server-only. Never reaches the browser." },
   { name: "SUPABASE_ANON_KEY", group: "platform", entry: "locked", help: "Browser-safe, for the Realtime chat socket." },
+  { name: "GROK_MCP_KEY", group: "platform", entry: "locked", help: "Lets the Grok Bots into the Hauck Brain connector." },
 
   // --- Not in use -----------------------------------------------------------
   { name: "GA4_SA_JSON", group: "unused", entry: "paste", help: "Website analytics. You do not do this work." },
   { name: "GA4_PROPERTY_ID", group: "unused", entry: "paste", help: "Website analytics." },
-  { name: "GOOGLE_PLACES_API_KEY", group: "unused", entry: "paste", help: "The review rating hero. You do not do this work." },
+  { name: "GOOGLE_PLACES_API_KEY", group: "ads", entry: "paste", help: "Google Maps search and reviews for the Market Research bot." },
   { name: "GOOGLE_PLACE_ID", group: "unused", entry: "paste", help: "The business listing reviews are pulled from." },
 ];
 

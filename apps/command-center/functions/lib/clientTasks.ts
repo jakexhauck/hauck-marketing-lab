@@ -172,7 +172,16 @@ function wiringError(tasks: ClientTask[], key: string, waitsOn: string[]): strin
   return null;
 }
 
-export async function patchTask(client: SupabaseClient, tenantId: string, id: string, patch: TaskPatch, by: string): Promise<ClientTask | Fail> {
+// opts.handoffs false: finishing the task does not start what waits on it. The
+// Grok Bots tick tasks without waking the Hermes agents (grok-build-tools).
+export async function patchTask(
+  client: SupabaseClient,
+  tenantId: string,
+  id: string,
+  patch: TaskPatch,
+  by: string,
+  opts: { handoffs?: boolean } = {},
+): Promise<ClientTask | Fail> {
   const update: Row = {};
   if (patch.name !== undefined) {
     if (!nameOk(patch.name)) return { error: 400, reason: "name must be 1 to 120 characters" };
@@ -226,7 +235,7 @@ export async function patchTask(client: SupabaseClient, tenantId: string, id: st
   if (!data) return { error: 404, reason: "no such task" };
   const task = toTask(data as Row);
   // Whatever waited on this task may start now (lib/taskHandoffs.ts).
-  if (patch.state === "done" || patch.state === "cut") await startReadyQuietly(client, tenantId, [task.key]);
+  if ((patch.state === "done" || patch.state === "cut") && opts.handoffs !== false) await startReadyQuietly(client, tenantId, [task.key]);
   return task;
 }
 

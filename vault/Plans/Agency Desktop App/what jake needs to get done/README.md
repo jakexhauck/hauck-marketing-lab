@@ -413,3 +413,22 @@ The niche playbook framework is live. Three starter playbooks ship: `dental`, `g
 - **Multi-niche clients.** One niche per client, by design.
 - **Auto-generating playbooks from past client folders.** Manual authoring only for v1.
 - **Per-niche benchmarks auto-applied to the Ads Manager.** Wiring playbook benchmarks into the dashboard as a fallback is a small follow-up.
+
+## Grok Bots + Hauck Brain connector (shipped 2026-10-26)
+
+Six Grok Bots replace the Hermes agents. They read the business through one custom connector, the Hauck Brain (`/api/grok/mcp/<GROK_MCP_KEY>`). Setup files: `agency/grok-bots/<bot>/bot.md`.
+
+### Your action items
+1. **Swap the connector.** Grok, Connectors: delete the test connector, add Custom "Hauck Brain" with the URL Claude gives you.
+2. **Create the six bots** from each `bot.md`: Name, Title, Description, Instructions, Routines.
+3. **Agent rules.** Settings > General > Agent: no bot logs into Meta, GHL, banks or payment sites.
+4. **Group chat "Hauck Team"** with all six.
+5. **Run each bot's test prompts** and tell Claude where they fall short.
+6. **Confirm routine times** (Ads Monday 8:00, EA Monday 7:30 plus weekday digest, Success Manager Friday 9:00).
+7. **Decide on Hermes teardown**: the app's Agents section and the VPS runner are still running.
+### Build tools (shipped 2026-10-26)
+The Ads bot builds the lead form, campaign, ad sets and ads in Meta, all paused. The GHL bot follows the Mission Control GHL map and sets custom values, custom fields and calendar hours. Bots tick their own Mission Control tasks.
+1. **Switch the Meta app to Live.** developers.facebook.com > Hauck Marketing Lab (app 1498131278774943) > App Mode: Live. Meta refuses ad creatives from an app in Development mode, so ads cannot be built until this is done.
+2. **Re-paste the Ads and GHL bots' Description and Instructions** from `ads/bot.md` and `ghl/bot.md`.
+3. **Build each lead form from the Ads bot's steps** (your call 2026-10-26). Once it is built, tell the bot; it builds the ads on it.
+4. **Hermes teardown matters more now**: a bot ticking a task no longer wakes Hermes, but your own ticks in the app still do.

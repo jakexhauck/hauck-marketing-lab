@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-26-client-folder",
+    date: "26 October 2026",
+    title: "Client Folder",
+    items: [
+      "Each client has a Folder page at the top of their rail: their whole Google Drive folder, inside the app.",
+      "Docs, Sheets and Slides open and edit right in the page. Photos, videos and PDFs open in place too.",
+      "New folder, Doc, Sheet or Slides, rename, delete, and upload by button or by dragging files onto the page.",
+    ],
+  },
+  {
     id: "2026-10-26-ghl-setup-pages",
     date: "26 October 2026",
     title: "GHL setup pages",
@@ -38,13 +48,25 @@ export const RELEASES: Release[] = [
     ],
   },
   {
-    id: "2026-10-26-client-folder",
+    id: "2026-10-26-grok-build-tools",
     date: "26 October 2026",
-    title: "Client Folder",
+    title: "Grok Bots build campaigns and GHL setup",
     items: [
-      "Each client has a Folder page at the top of their rail: their whole Google Drive folder, inside the app.",
-      "Docs, Sheets and Slides open and edit right in the page. Photos, videos and PDFs open in place too.",
-      "New folder, Doc, Sheet or Slides, rename, delete, and upload by button or by dragging files onto the page.",
+      "The Ads bot builds the campaign, ad sets and ads in Meta, paused until you publish. It writes the lead form as steps for you to build.",
+      "The GHL bot follows the Mission Control GHL map: it sets custom values, custom fields and calendar hours, and gives you steps for the rest.",
+      "Bots tick their own Mission Control tasks with proof, and write the Research and Ads plan pages. Every change they make is logged, capped at 60 a day.",
+      "The Ads map in Mission Control now shows the build step as the agent's, paused, with your publish after.",
+      "Bots can make a client's Drive folder with the Client Setup docs. If a folder under another name looks like the client's, they stop and ask you.",
+    ],
+  },
+  {
+    id: "2026-10-26-grok-bots",
+    date: "26 October 2026",
+    title: "Grok Bots connect to the app",
+    items: [
+      "Six Grok Bots (Executive Assistant, Success Manager, Ads, Creative, Market Research, GHL) read clients, tasks, research, ad results and CRM setup through one connector, the Hauck Brain.",
+      "Bots can save a fact about a client, and every bot sees it next time.",
+      "Connections lists the Hauck Brain key.",
     ],
   },
   {

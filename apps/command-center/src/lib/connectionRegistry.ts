@@ -495,6 +495,25 @@ export const CONNECTIONS: ConnectionDef[] = [
       "Set the same value in this app's Cloudflare env and in Doppler for the runner. A mismatch answers 401 on every poll: the rail footer reads offline and messages stay queued until it is fixed.",
   },
   {
+    id: "grok-mcp",
+    label: "Hauck Brain (Grok Bot connector)",
+    vendor: "self-hosted",
+    scope: "agency",
+    purpose:
+      "Lets the Grok Bots read each client's facts, tasks, research, Meta results, lead results and CRM setup, and save notes, through one custom connector at /api/grok/mcp/<key>. Without it every bot works blind.",
+    credentials: [
+      {
+        name: "GROK_MCP_KEY",
+        home: "cloudflare",
+        inDoppler: true,
+        note: "The last segment of the connector URL pasted into Grok (Grok sends no auth header). At least 32 chars or the gate refuses it. Opens only that one route: reads, plus inserts into grok_notes.",
+      },
+    ],
+    surfaces: [{ label: "Grok Bot > Connectors > Hauck Brain", audience: "admin" }],
+    remediation:
+      "Rotate in Doppler, push with cf-rebind --from-doppler, redeploy, then edit the connector URL in Grok. The old URL answers 401 from the moment the deploy lands.",
+  },
+  {
     id: "telegram-manager",
     label: "Manager on Telegram",
     vendor: "Telegram",
