@@ -21,12 +21,15 @@ const bots = {
 };
 
 // House rule: no em dashes reach Grok, plus vault-only noise (lesson ids, chat ids, comments).
+// The dashes are built from char codes so this file holds none itself.
+const EM = String.fromCharCode(0x2014);
+const EN = String.fromCharCode(0x2013);
 const clean = (text) =>
   text
     .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/^(#+ .*?)\s*—\s*/gm, "$1: ")
-    .replace(/\s*—\s*/g, ", ")
-    .replace(/–/g, "-")
+    .replace(new RegExp(`^(#+ .*?)\\s*${EM}\\s*`, "gm"), "$1: ")
+    .replace(new RegExp(`\\s*${EM}\\s*`, "g"), ", ")
+    .replaceAll(EN, "-")
     .replace(/ \^l-[0-9a-f]+/g, "")
     .replace(/, chat [0-9a-f]+\)/g, ")")
     .replace(/\n{3,}/g, "\n\n");
@@ -67,7 +70,7 @@ for (const [bot, files] of Object.entries(bots)) {
   const knowledge = join(here, bot, "knowledge");
   if (existsSync(knowledge)) {
     for (const f of readdirSync(knowledge)) {
-      writeFileSync(join(out, basename(f)), clean(readFileSync(join(knowledge, f), "utf8")));
+      writeFileSync(join(out, basename(f)), clean(readFileSync(join(knowledge, f), "utf8").replace(/\r\n/g, "\n")));
     }
   }
   console.log(`${bot}: ${readdirSync(out).length} files -> ${out}`);
