@@ -1,13 +1,9 @@
 import type { Env, ApiData } from "../../../../../lib/env";
 import { getServiceClient } from "../../../../../lib/supabase";
 import { getTenantById, logAdminAction } from "../../../../../lib/adminAuth";
-import { hashPassword } from "../../../../../lib/password";
-import {
-  loadEnabledCapabilities,
-  sanitizeGrants,
-  type GrantInput,
-} from "../../../../../lib/permissions";
+import type { GrantInput } from "../../../../../lib/permissions";
 import { normalizeEmail, type StaffRole } from "../../../../../lib/staff";
+import { createStaffLogin } from "../../../../../lib/staffCreate";
 
 interface CreateBody {
   name?: string;
@@ -53,47 +49,15 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     return Response.json({ error: "password must be at least 8 characters" }, { status: 400 });
   }
 
-  const { data: existing } = await client
-    .from("staff_accounts")
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .eq("email", email)
-    .maybeSingle();
-  if (existing) {
-    return Response.json({ error: "a staff member with that email already exists" }, { status: 409 });
-  }
-
-  const enabled = await loadEnabledCapabilities(client, tenantId);
-  const permRows = sanitizeGrants(body.permissions, enabled);
-  const password_hash = await hashPassword(password);
-
-  const { data: inserted, error } = await client
-    .from("staff_accounts")
-    .insert({
-      tenant_id: tenantId,
-      ghl_user_id: null,
-      email,
-      name,
-      role,
-      password_hash,
-      status: "active",
-    })
-    .select("id")
-    .single();
-  if (error || !inserted) {
-    return Response.json({ error: error?.message ?? "could not create staff" }, { status: 500 });
-  }
-
-  const staffId = (inserted as { id: string }).id;
-  if (permRows.length) {
-    const { error: permErr } = await client
-      .from("staff_permissions")
-      .insert(permRows.map((r) => ({ staff_account_id: staffId, ...r })));
-    if (permErr) {
-      await client.from("staff_accounts").delete().eq("id", staffId);
-      return Response.json({ error: permErr.message }, { status: 500 });
-    }
-  }
+  const created = await createStaffLogin(client, tenantId, {
+    name,
+    email,
+    role,
+    password,
+    permissions: body.permissions,
+  });
+  if (!created.ok) return Response.json({ error: created.error }, { status: created.status });
+  const staffId = created.id;
 
   await logAdminAction(client, ctx.data.admin!.id, "staff.create", tenantId, {
     staffId,

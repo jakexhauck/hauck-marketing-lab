@@ -421,9 +421,10 @@ Hauck Brain is gone. Bots get one connector per system Grok cannot connect itsel
 ### Your action items
 1. **Add the two connectors in Grok.** Custom, "Hauck GHL" and "Hauck Meta", URLs in `agency/grok-bots/README.md`. Delete Hauck Brain and the old test connector.
 2. **Write each bot's instructions** in Grok.
+2a. **Add Hauck Software** (2026-10-26): Custom connector "Hauck Software", URL `https://app.hauckmarketing.com/api/grok/software/<GROK_MCP_KEY>`. It creates clients (held at setup), adds logins, links GHL, reads health, re-runs setup values. Write the Software bot's instructions, including how often it checks health and who it tells.
 3. **Switch the Meta app to Live.** developers.facebook.com > Hauck Marketing Lab (app 1498131278774943) > App Mode: Live. Meta refuses ad creatives from an app in Development mode.
 4. **Build each lead form yourself** (your call 2026-10-26). Meta's API cannot set close-form answers.
-5. **Rotate GROK_MCP_KEY** (it was printed in a log once), then swap both URLs in Grok.
+5. **Rotate GROK_MCP_KEY** (it was printed in a log once), then swap all three URLs in Grok.
 6. **Decide on Hermes teardown**: the app's Agents section and the VPS runner are still running, and your own task ticks in the app still wake it.
 
 ---

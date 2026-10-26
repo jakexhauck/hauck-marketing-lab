@@ -4,16 +4,18 @@ import routeSource from "../api/grok/[connector]/[key].ts?raw";
 import ghlSource from "./grokGhl.ts?raw";
 import metaSource from "./grokMeta.ts?raw";
 import buildSource from "./grokMetaBuild.ts?raw";
+import softwareSource from "./grokSoftware.ts?raw";
 import { audited, botName, connectorOf, handleBody, handleRpc, isGrokMcpRequest, loggablePath, matchClient, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
 import { CONNECTORS } from "./grokConnectors";
 import { ghlMethod, ghlUrl, GHL_ORIGIN } from "./grokGhl";
 import { leadsFrom } from "./grokMeta";
+import { LOGIN_PAGES, loginEmail, loginRole, pageGrants, problemsOnly } from "./grokSoftware";
 
 const KEY = "k".repeat(40);
 
 describe("isGrokMcpRequest", () => {
   it("opens only a known connector's exact path with the key", () => {
-    for (const name of ["ghl", "meta"]) {
+    for (const name of ["ghl", "meta", "software"]) {
       expect(isGrokMcpRequest("POST", `/api/grok/${name}/${KEY}`, KEY)).toBe(true);
       expect(isGrokMcpRequest("GET", `/api/grok/${name}/${KEY}`, KEY)).toBe(true);
       expect(isGrokMcpRequest("DELETE", `/api/grok/${name}/${KEY}`, KEY)).toBe(true);
@@ -37,6 +39,7 @@ describe("isGrokMcpRequest", () => {
   it("names the connector, and the key never reaches a log", () => {
     expect(connectorOf(`/api/grok/ghl/${KEY}`)).toBe("ghl");
     expect(connectorOf(`/api/grok/meta/${KEY}`)).toBe("meta");
+    expect(connectorOf(`/api/grok/software/${KEY}`)).toBe("software");
     expect(connectorOf(`/api/grok/mcp/${KEY}`)).toBeNull();
     expect(loggablePath(`/api/grok/ghl/${KEY}`)).toBe("/api/grok/ghl/<key>");
     expect(loggablePath(`/api/grok/anything/${KEY}`)).not.toContain(KEY);
@@ -226,9 +229,62 @@ describe("the Meta connector", () => {
   });
 });
 
+describe("the Software connector", () => {
+  it("logs every change before making it, and makes each password inside the change", () => {
+    for (const tool of ["software_create_client", "software_link_ghl", "software_add_login", "software_fix"]) {
+      const run = softwareSource.slice(softwareSource.indexOf(`name: "${tool}"`));
+      const body = run.slice(0, run.search(/\r?\n\};\r?\n/));
+      const auditedAt = body.indexOf(`return audited(d.client, "${tool}",`);
+      expect(auditedAt).toBeGreaterThan(0);
+      // Nothing is written before the log row: every write call sits after it.
+      for (const write of ["createTenantWithOwner(", "linkSubaccount(", "createStaffLogin(", "writeCustomValues(", "provisionOwnerLinks("]) {
+        const at = body.indexOf(write);
+        if (at >= 0) expect(at).toBeGreaterThan(auditedAt);
+      }
+      const pw = body.indexOf("newPassword()");
+      if (pw >= 0) expect(pw).toBeGreaterThan(auditedAt);
+    }
+    // No delete, no Go Live, no reset: those stay with Jake.
+    expect(softwareSource).not.toMatch(/\.delete\(|go-live|onboarding_status: "live"|password_hash:/);
+  });
+
+  it("roles: owner, manager or rep, rep by default", () => {
+    expect(loginRole(undefined)).toBe("rep");
+    expect(loginRole("Manager")).toBe("manager");
+    expect(loginRole("owner")).toBe("owner");
+    expect(() => loginRole("admin")).toThrow(/role is one of/);
+  });
+
+  it("pages: none named is every live page; an unknown one is an error, never dropped", () => {
+    expect(pageGrants(undefined).map((g) => g.capability)).toEqual(LOGIN_PAGES);
+    expect(LOGIN_PAGES).not.toContain("billing");
+    expect(pageGrants(["inbox", "calendar"])).toEqual([
+      { capability: "inbox", view: true, edit: true },
+      { capability: "calendar", view: true, edit: true },
+    ]);
+    expect(() => pageGrants(["inbox", "billing"])).toThrow(/Unknown page billing/);
+    expect(() => pageGrants("inbox")).toThrow(/pages is a list/);
+  });
+
+  it("emails are normalized and must look like one", () => {
+    expect(loginEmail("  Bob@Willis.COM ")).toBe("bob@willis.com");
+    for (const bad of ["", "bob", "bob@", "@x.com", "bob@x", "a b@x.com", 5]) expect(() => loginEmail(bad)).toThrow(/valid email/);
+  });
+
+  it("health lists problems and counts the green", () => {
+    const r = problemsOnly([{ state: "ok" }, { state: "missing" }, { state: "unknown" }, { state: "ok" }]);
+    expect(r.ok).toBe(2);
+    expect(r.problems.map((p) => p.state)).toEqual(["missing", "unknown"]);
+  });
+});
+
 describe("the connectors", () => {
   it("serve exactly these tools", () => {
-    expect(Object.keys(CONNECTORS).sort()).toEqual(["ghl", "meta"]);
+    expect(Object.keys(CONNECTORS).sort()).toEqual(["ghl", "meta", "software"]);
+    expect(CONNECTORS.software.tools.map((t) => t.name)).toEqual([
+      "software_clients", "software_create_client", "software_link_ghl", "software_add_login",
+      "software_client_health", "software_system_health", "software_fix",
+    ]);
     expect(CONNECTORS.ghl.tools.map((t) => t.name)).toEqual(["ghl_clients", "ghl_request", "ghl_agency_request"]);
     expect(CONNECTORS.meta.tools.map((t) => t.name)).toEqual([
       "get_ad_results", "get_ad_structure", "get_ad_assets", "meta_create_campaign", "meta_create_adset", "meta_create_ad",

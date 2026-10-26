@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-26-grok-software-connector",
+    date: "26 October 2026",
+    title: "Grok Bots get a Software connector",
+    items: [
+      "A third connector, Hauck Software, lets a bot create a new client (held at setup), add logins, and link a client to their GHL sub-account.",
+      "It can read each client's Accounts checks and the app's own health, and re-run a client's setup values into GHL.",
+      "It cannot delete a client, press Go Live, or reset a password. Every change is logged before it is made.",
+    ],
+  },
+  {
     id: "2026-10-26-grok-connectors",
     date: "26 October 2026",
     title: "Grok Bots get a GHL and a Meta connector",

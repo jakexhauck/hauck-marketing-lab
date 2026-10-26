@@ -236,10 +236,10 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
     return await runNext(ctx, origin, url);
   }
 
-  // The Grok Bot connectors. Sixth sibling: exact paths /api/grok/<ghl|meta>/
-  // whose last segment is the key (Grok sends no auth header), no
-  // ctx.data.admin, and a miss falls through to 401. What each can touch is
-  // listed in lib/grokGhl.ts and lib/grokMeta.ts.
+  // The Grok Bot connectors. Sixth sibling: exact paths
+  // /api/grok/<ghl|meta|software>/ whose last segment is the key (Grok sends no
+  // auth header), no ctx.data.admin, and a miss falls through to 401. What each
+  // can touch is listed in lib/grokGhl.ts, lib/grokMeta.ts and lib/grokSoftware.ts.
   if (isGrokMcpRequest(ctx.request.method, url.pathname, ctx.env.GROK_MCP_KEY)) {
     return await runNext(ctx, origin, url);
   }

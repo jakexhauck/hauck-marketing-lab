@@ -23,7 +23,7 @@ import { isNotAClient } from "./retiredTenant";
 // the shape Grok accepted in the spike: initialize, tools/list, tools/call.
 
 export const GROK_BASE = "/api/grok/";
-export const GROK_CONNECTORS = ["ghl", "meta"] as const;
+export const GROK_CONNECTORS = ["ghl", "meta", "software"] as const;
 export type GrokConnector = (typeof GROK_CONNECTORS)[number];
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -63,6 +63,8 @@ export function loggablePath(pathname: string): string {
 export interface GrokDeps {
   client: SupabaseClient;
   env: Env;
+  /** The app's own origin, for the owner links a health check compares against. */
+  origin: string;
 }
 
 export interface ToolDef<D> {
