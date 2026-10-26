@@ -121,7 +121,7 @@ describe("ghlSubTabs", () => {
   // The wiring screen is a setup step, not a tab you can go back to. A wired
   // client has two sub-tabs and nowhere to read event health, by design.
   it("offers no wiring screen once the client is connected", () => {
-    expect(ghlSubTabs(subs, true).map((s) => s.id)).toEqual(["custom-values", "calendars"]);
+    expect(ghlSubTabs(subs, true).map((s) => s.id)).toEqual(["business-profile", "staff", "custom-values", "custom-fields", "calendars", "pipelines", "media", "workflows", "phone-numbers"]);
   });
 
   it("opens on the wizard and hides Calendars while unwired", () => {

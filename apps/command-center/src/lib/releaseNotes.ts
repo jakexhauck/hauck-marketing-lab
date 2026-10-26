@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-26-ghl-setup-pages",
+    date: "26 October 2026",
+    title: "GHL setup pages",
+    items: [
+      "Client > GHL has a page for each GHL setup screen: Business Profile, Staff, Custom Values, Custom Fields, Calendars, Pipelines, Media, Workflows and Phone Numbers.",
+      "Each one looks like the GHL screen and saves straight into the client's sub-account.",
+      "Fill from form buttons copy the onboarding form's name, address, timezone, phone and hours into GHL.",
+      "Add Jake, add the owner, buy the client's number and import job photos from Drive without leaving the app.",
+      "Reinstall the GHL app once (Management > Install app, then Proceed) so the new permissions take effect.",
+    ],
+  },
+  {
     id: "2026-10-26-app-texting",
     date: "26 October 2026",
     title: "Texting on app-linked clients",

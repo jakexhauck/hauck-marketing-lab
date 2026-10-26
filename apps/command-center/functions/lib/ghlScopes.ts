@@ -39,6 +39,14 @@ export const APP_SCOPES = [
   "socialplanner/post.write",
   "socialplanner/account.readonly",
   "phonenumbers.read",
+  // Client > GHL setup pages (2026-10-26): Business Profile saves (agency
+  // token), Staff adds and edits users, Media uploads the logo and job photos,
+  // Phone Numbers buys the client's number.
+  "locations.write",
+  "users.write",
+  "medias.readonly",
+  "medias.write",
+  "phonenumbers.write",
   // The two that make the agency-installs-once model work at all.
   "oauth.readonly",
   "oauth.write",
@@ -63,16 +71,18 @@ export const GHL_AREA_SCOPES: Record<string, readonly (typeof APP_SCOPES)[number
   invoices: ["invoices.readonly"],
   locations: [
     "locations.readonly",
+    "locations.write",
     "locations/customValues.readonly",
     "locations/customValues.write",
     "locations/customFields.readonly",
     "locations/customFields.write",
     "locations/tags.write",
   ],
-  users: ["users.readonly"],
+  users: ["users.readonly", "users.write"],
+  medias: ["medias.readonly", "medias.write"],
   workflows: ["workflows.readonly"],
   payments: ["payments/transactions.readonly"],
   "social-media-posting": ["socialplanner/post.readonly", "socialplanner/post.write", "socialplanner/account.readonly"],
-  "phone-system": ["phonenumbers.read"],
+  "phone-system": ["phonenumbers.read", "phonenumbers.write"],
   oauth: ["oauth.readonly", "oauth.write"],
 };

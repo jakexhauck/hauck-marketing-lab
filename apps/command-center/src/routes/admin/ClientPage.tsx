@@ -130,7 +130,7 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
         <GhlTab
           tenantId={client.id}
           clientName={client.name}
-          clientSlug={client.slug}
+          locationId={client.ghlLocationId}
           activeSub={sub ?? GHL_SETUP_SUB}
           ghlConnected={client.ghlConnected}
           onSelectSub={go("ghl")}

@@ -79,10 +79,20 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
     // Custom Values went 2026-10-10, Follow-up Texts and CAPI 2026-10-14
     // (Jake: not needed). Outcome Wiring went 2026-10-14 too: Open Lead is
     // written into GHL automatically (provisionOwnerLinks).
+    // Jake, 2026-10-26: one page per GHL setup screen, in the Mission Control
+    // GHL Setup order, laid out like the native GHL page and writing the real
+    // sub-account (components/admin/cockpit/ghl/setup).
     subTabs: [
+      { id: "business-profile", label: "Business Profile", ready: true },
+      { id: "staff", label: "Staff", ready: true },
       // A live mirror of the sub-account's Custom Values page (2026-10-14).
       { id: "custom-values", label: "Custom Values", ready: true },
+      { id: "custom-fields", label: "Custom Fields", ready: true },
       { id: "calendars", label: "Calendars", ready: true },
+      { id: "pipelines", label: "Pipelines", ready: true },
+      { id: "media", label: "Media", ready: true },
+      { id: "workflows", label: "Workflows", ready: true },
+      { id: "phone-numbers", label: "Phone Numbers", ready: true },
     ],
   },
   // Management is the client's paperwork in one place: the commercial record
@@ -153,20 +163,15 @@ export const GHL_SETUP_SUB = "connect";
 
 // GHL before the sub-account is wired.
 //
-// Same rule as Paid Ads. Calendars and Custom Values read the client's own
-// GHL: without credentials they are empty screens that look like a quiet
-// account rather than an unfinished setup, so an unwired client sees only
-// Connect GHL.
+// Same rule as Paid Ads. Every GHL page reads the client's own sub-account:
+// without credentials they are empty screens that look like a quiet account
+// rather than an unfinished setup, so an unwired client sees only Connect GHL.
 //
 // Once the pair is stored the Connect screen goes too. A wired client has
-// nothing to connect, so the row is Custom Values and Calendars and no wiring
-// screen at all.
+// nothing to connect, so the rows are the setup pages and no wiring screen.
 export function ghlSubTabs(subs: SubTabDef[], ghlConnected: boolean): SubTabDef[] {
   if (ghlConnected) return subs;
-  // Calendars and Custom Values read the sub-account. Everything else is
-  // written here first.
-  const kept = subs.filter((s) => s.id !== "calendars" && s.id !== "custom-values");
-  return [{ id: GHL_SETUP_SUB, label: "Connect GHL", ready: true }, ...kept];
+  return [{ id: GHL_SETUP_SUB, label: "Connect GHL", ready: true }];
 }
 
 // The "coming soon" copy for a not-yet-built surface.
