@@ -47,6 +47,17 @@ describe("calendarsCheck", () => {
   it("is green when Home Estimate and Job have a team member, with no Conversion Asset Calendar", () => {
     expect(calendarsCheck([cal("1", "Home Estimate"), cal("2", "Jobs")]).state).toBe("ok");
   });
+  it("asks nothing of an event calendar, which GHL keeps unassigned", () => {
+    // GHL's API takes team members only on round robin, collective, class,
+    // service and personal calendars; on an event calendar it drops them
+    // without an error (tried live 2026-10-26). Every client's snapshot
+    // Home Estimate and Job are event calendars.
+    const event = (id: string, name: string) => ({ id, name, calendarType: "event", teamMembers: [] });
+    expect(calendarsCheck([event("1", "Home Estimate"), event("2", "Job")]).state).toBe("ok");
+    expect(
+      calendarsCheck([event("1", "Home Estimate"), { ...cal("2", "Job", 0), calendarType: "round_robin" }]).detail,
+    ).toBe("No team member: Job");
+  });
 });
 
 describe("ownerLinksCheck", () => {

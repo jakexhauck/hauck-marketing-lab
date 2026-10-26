@@ -20,6 +20,11 @@ export const onRequestPut: PagesFunction<Env, string, ApiData> = async (ctx) => 
     const current = ((await ghlJson<Row>(s.g, `/calendars/${id}`)).calendar ?? {}) as Row;
     // A calendar id from another sub-account must not be writable through this one.
     if (current.locationId !== s.g.locationId) return Response.json({ error: "That calendar is not on this account." }, { status: 404 });
+    // GHL drops team members from an event calendar without an error (lib/clientAccounts.ts
+    // calendarsCheck), so a save that would look done is refused instead.
+    if (patch.team && current.calendarType === "event") {
+      return Response.json({ error: "GHL keeps event calendars unassigned." }, { status: 400 });
+    }
     if (patch.team) {
       const users = new Set(((await ghlJson<{ users?: Row[] }>(s.g, `/users/?locationId=${loc(s.g)}`)).users ?? []).map((u) => u.id));
       if (patch.team.some((u) => !users.has(u))) return Response.json({ error: "Every team member must be a user on this account." }, { status: 400 });

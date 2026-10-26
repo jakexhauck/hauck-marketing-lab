@@ -194,7 +194,8 @@ describe("calendars", () => {
 
   it("keeps the calendar's own slot settings on every write", () => {
     const body = buildCalendarUpdate(homeEstimate, { autoConfirm: false });
-    expect(body).toMatchObject({ slotDuration: 45, slotInterval: 1, slotIntervalUnit: "hours", slotBuffer: 30, allowBookingAfter: 24, autoConfirm: false });
+    // The 1 hour interval goes as 60 minutes: GHL reads it as minutes (ghlCalendarWrite.ts).
+    expect(body).toMatchObject({ slotDuration: 45, slotInterval: 60, slotIntervalUnit: "mins", slotBuffer: 30, allowBookingAfter: 24, autoConfirm: false });
     expect(body.openHours).toEqual(homeEstimate.openHours);
     // GHL rejects these when echoed back (ghlCalendarWrite.ts).
     expect("formSubmitRedirectUrl" in body).toBe(false);

@@ -55,11 +55,19 @@ interface RawCalendar {
   id: string;
   name?: string;
   isActive?: boolean;
+  calendarType?: string;
   teamMembers?: unknown[];
 }
 
 // Home Estimate and Job, found the way booking finds them. (The Conversion
 // Asset Calendar went with conversion assets, 2026-10-20.)
+//
+// A team member is asked of every calendar type but "event". GHL keeps event
+// calendars unassigned: its API takes team members only on round robin,
+// collective, class, service and personal calendars, and drops them from an
+// event calendar without an error (tried live 2026-10-26). Every client's
+// snapshot Home Estimate and Job are event calendars, so demanding one there
+// was a red row nothing could turn green.
 export function calendarsCheck(calendars: RawCalendar[]): AccountCheck {
   const picked = pickEstimateCalendars(calendars);
   const byId = new Map(calendars.map((c) => [c.id, c]));
@@ -69,7 +77,9 @@ export function calendarsCheck(calendars: RawCalendar[]): AccountCheck {
   ];
   const absent = wanted.filter(([, c]) => !c).map(([n]) => n);
   if (absent.length) return missing("calendars", `Missing: ${absent.join(", ")}`);
-  const empty = wanted.filter(([, c]) => !(c?.teamMembers?.length)).map(([n]) => n);
+  const empty = wanted
+    .filter(([, c]) => c?.calendarType !== "event" && !(c?.teamMembers?.length))
+    .map(([n]) => n);
   if (empty.length) return missing("calendars", `No team member: ${empty.join(", ")}`);
   return ok("calendars");
 }

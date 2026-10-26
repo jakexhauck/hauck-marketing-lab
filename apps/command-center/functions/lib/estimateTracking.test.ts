@@ -31,6 +31,23 @@ describe("pickEstimateCalendars", () => {
     expect(got?.estimate.id).toBe("4");
     expect(got?.job?.id).toBe("1");
   });
+
+  it("takes Home Estimate over the snapshot's Conversion Asset Estimate, whatever order GHL lists them", () => {
+    // Willis Windows' live calendars, 2026-10-26, in GHL's own order (by id).
+    // The asset calendar sorts first, and was being taken for the estimate one.
+    const got = pickEstimateCalendars([
+      { id: "3SRNaLzUBxNYnEJt0SKG", name: "Conversion Asset Estimate", isActive: true },
+      { id: "530GrGptIPhOmkd8vPC6", name: "Phone Appointment", isActive: true },
+      { id: "QhdCBDkrE9L11VLoInyc", name: "Job", isActive: true },
+      { id: "mZjLAh0fWmohR7NNx4LJ", name: "Home Estimate", isActive: true },
+    ]);
+    expect(got?.estimate.id).toBe("mZjLAh0fWmohR7NNx4LJ");
+    expect(got?.job?.id).toBe("QhdCBDkrE9L11VLoInyc");
+  });
+
+  it("never takes a Conversion Asset calendar for the estimate one", () => {
+    expect(pickEstimateCalendars([{ id: "a", name: "Conversion Asset Estimate" }, { id: "1", name: "Job" }])).toBeNull();
+  });
 });
 
 describe("toEstimateEvents", () => {

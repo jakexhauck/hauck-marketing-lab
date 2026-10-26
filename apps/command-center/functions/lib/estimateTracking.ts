@@ -29,9 +29,16 @@ function norm(s: string | undefined): string {
 // "Home Estimate" is the estimate calendar; "Job" (or "Jobs") the job calendar.
 // The job match is a whole word so "Window Cleaning Service" or a phone
 // calendar can never be taken for it.
+//
+// The snapshot also carries a "Conversion Asset Estimate" calendar, and GHL
+// lists calendars by id, so on some clients it came first and was taken for
+// the estimate calendar (Willis, Above All, Clear Choice, 2026-10-26). Home
+// Estimate by name wins; an asset calendar is never the estimate one.
 export function pickEstimateCalendars(calendars: NamedCalendar[]): EstimateCalendars | null {
   const live = calendars.filter((c) => c.id && c.isActive !== false);
-  const estimate = live.find((c) => norm(c.name).includes("estimate"));
+  const estimate =
+    live.find((c) => norm(c.name) === "home estimate") ??
+    live.find((c) => norm(c.name).includes("estimate") && !norm(c.name).includes("conversion asset"));
   if (!estimate) return null;
   const job =
     live.find((c) => c.id !== estimate.id && /\bjobs?\b/.test(norm(c.name)) && !norm(c.name).includes("estimate")) ??

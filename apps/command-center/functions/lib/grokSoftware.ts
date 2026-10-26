@@ -71,6 +71,21 @@ export function problemsOnly<T extends { state: string }>(checks: T[]): { ok: nu
   return { ok: checks.length - problems.length, problems };
 }
 
+/**
+ * The control room's connections in two piles: failing is a credential the
+ * vendor refused just now; not set up is a feature whose keys were never added
+ * (Telegram, in-app deploys), which is a decision, not an outage.
+ */
+export function splitConnections<T extends { id: string; configured: boolean; missing: string[]; probe: { state: string; detail: string } }>(connections: T[]) {
+  const failing = connections.filter((c) => c.probe.state === "failed");
+  const notSetUp = connections.filter((c) => c.probe.state !== "failed" && !c.configured);
+  return {
+    ok: connections.length - failing.length - notSetUp.length,
+    failing: failing.map((c) => ({ id: c.id, detail: c.probe.detail })),
+    notSetUp: notSetUp.map((c) => ({ id: c.id, missing: c.missing })),
+  };
+}
+
 function linkSummary(r: LinkResult) {
   const failed = [
     ...r.provision.filter((p) => p.outcome.startsWith("failed")).map((p) => `${p.name}: ${p.outcome}`),
@@ -241,7 +256,7 @@ const softwareAddLogin: ToolDef<GrokDeps> = {
 const softwareClientHealth: ToolDef<GrokDeps> = {
   name: "software_client_health",
   description:
-    "The Client > Accounts checks: GHL app, texting, pipeline, calendars, owner links, owner phone, Meta ad account, Facebook Page, client login, phone notifications. One client lists every check; leave client out for every client's problems only.",
+    "The Client > Accounts checks: GHL app, texting, pipeline, calendars, owner links, owner phone, Meta ad account, Facebook Page, client login, phone notifications. One client lists every check; leave client out for every client's problems only. status setup means onboarding is not finished, so red there is expected.",
   inputSchema: { type: "object", properties: { client: clientArg }, required: [] },
   run: async (d, a) => {
     const one = async (id: string) => {
@@ -249,10 +264,14 @@ const softwareClientHealth: ToolDef<GrokDeps> = {
       if ("error" in r) throw new Error(r.error);
       return r.body.checks;
     };
+    const { data: rows, error } = await d.client.from("tenants").select("id, onboarding_status");
+    if (error) throw new Error(`clients: ${error.message}`);
+    const setup = new Set(((rows ?? []) as Row[]).filter((t) => t.onboarding_status === "setup").map((t) => String(t.id)));
+    const status = (id: string) => (setup.has(id) ? "setup" : "live");
     if (text(a.client)) {
       const c = await findClient(d.client, a.client);
       const checks = await one(c.id);
-      return json({ client: c.name, red: problemsOnly(checks).problems.length, checks });
+      return json({ client: c.name, status: status(c.id), red: problemsOnly(checks).problems.length, checks });
     }
     // A few at a time: each client is a handful of GHL reads.
     const clients = await listClients(d.client);
@@ -263,9 +282,9 @@ const softwareClientHealth: ToolDef<GrokDeps> = {
         ...(await Promise.all(
           batch.map(async (c) => {
             try {
-              return { client: c.name, ...problemsOnly(await one(c.id)) };
+              return { client: c.name, status: status(c.id), ...problemsOnly(await one(c.id)) };
             } catch (err) {
-              return { client: c.name, error: (err as Error).message };
+              return { client: c.name, status: status(c.id), error: (err as Error).message };
             }
           }),
         )),
@@ -278,21 +297,17 @@ const softwareClientHealth: ToolDef<GrokDeps> = {
 const softwareSystemHealth: ToolDef<GrokDeps> = {
   name: "software_system_health",
   description:
-    "Is the software itself up: the app answering, the database, Meta token, Drive, GitHub, the scheduled jobs, the background error rate, and each client's GHL key. Problems listed, green counted.",
+    "Is the software itself up: the app answering, the database, Meta token, Drive, GitHub, the scheduled jobs, the background error rate, and each client's GHL key. failing is broken now; notSetUp is a feature never switched on; green is counted.",
   inputSchema: { type: "object", properties: {}, required: [] },
   run: async (d) => {
     const site = fetch(`${d.origin}/`, { signal: AbortSignal.timeout(6000) })
       .then((r) => ({ state: r.ok ? "ok" : "failed", detail: `Returned ${r.status}` }))
       .catch((e: Error) => ({ state: "failed", detail: e.message }));
     const [app, connections, clients] = await Promise.all([site, agencyHealth(d.env), clientHealth(d.env)]);
-    const broken = connections.filter((c) => !c.configured || c.probe.state === "failed");
     return json({
       checkedAt: new Date().toISOString(),
       app,
-      connections: {
-        ok: connections.length - broken.length,
-        problems: broken.map((c) => ({ id: c.id, missing: c.missing, probe: c.probe })),
-      },
+      connections: splitConnections(connections),
       clientGhl: clients
         .filter((c) => !isNotAClient({ name: c.name, slug: c.slug }))
         .map((c) => ({ client: c.name, state: c.ghlProbe.state, detail: c.ghlProbe.detail })),

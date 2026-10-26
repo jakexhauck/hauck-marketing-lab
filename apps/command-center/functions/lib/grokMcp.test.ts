@@ -9,7 +9,7 @@ import { audited, botName, connectorOf, handleBody, handleRpc, isGrokMcpRequest,
 import { CONNECTORS } from "./grokConnectors";
 import { ghlMethod, ghlUrl, GHL_ORIGIN } from "./grokGhl";
 import { leadsFrom } from "./grokMeta";
-import { LOGIN_PAGES, loginEmail, loginRole, pageGrants, problemsOnly } from "./grokSoftware";
+import { LOGIN_PAGES, loginEmail, loginRole, pageGrants, problemsOnly, splitConnections } from "./grokSoftware";
 
 const KEY = "k".repeat(40);
 
@@ -269,6 +269,19 @@ describe("the Software connector", () => {
   it("emails are normalized and must look like one", () => {
     expect(loginEmail("  Bob@Willis.COM ")).toBe("bob@willis.com");
     for (const bad of ["", "bob", "bob@", "@x.com", "bob@x", "a b@x.com", 5]) expect(() => loginEmail(bad)).toThrow(/valid email/);
+  });
+
+  it("system health keeps what is failing apart from what was never switched on", () => {
+    const probe = (state: string, detail = "") => ({ state, detail });
+    const r = splitConnections([
+      { id: "supabase", configured: true, missing: [], probe: probe("ok") },
+      { id: "google-drive", configured: true, missing: [], probe: probe("failed", "No refresh token stored. Never consented.") },
+      { id: "telegram-manager", configured: false, missing: ["TELEGRAM_BOT_TOKEN"], probe: probe("skipped") },
+      { id: "meta-ads", configured: false, missing: ["META_X"], probe: probe("failed", "Meta returned 401") },
+    ]);
+    expect(r.ok).toBe(1);
+    expect(r.failing.map((c) => c.id)).toEqual(["google-drive", "meta-ads"]);
+    expect(r.notSetUp).toEqual([{ id: "telegram-manager", missing: ["TELEGRAM_BOT_TOKEN"] }]);
   });
 
   it("health lists problems and counts the green", () => {

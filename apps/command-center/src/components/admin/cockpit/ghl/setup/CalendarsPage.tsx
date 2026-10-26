@@ -36,10 +36,15 @@ function ownerOf(users: StaffUser[], facts: FormFacts | null): StaffUser | null 
   return users.find((u) => (!!facts.email && u.email.toLowerCase() === facts.email.toLowerCase()) || samePhone(u.phone, facts.phone)) ?? null;
 }
 
+// GHL keeps event calendars unassigned and drops any team member sent to one
+// (functions/lib/clientAccounts.ts calendarsCheck), so only other types are
+// asked for one.
+const takesTeam = (c: SetupCalendar) => c.calendarType !== "event";
+
 function problems(c: SetupCalendar, facts: FormFacts | null): string[] {
   if (!c.active) return [];
   const out: string[] = [];
-  if (!c.team.length) out.push("No team member");
+  if (takesTeam(c) && !c.team.length) out.push("No team member");
   const fh = formHours(facts);
   if (fh && hoursKey(fh) !== hoursKey(c.hours)) out.push("Hours differ from the form");
   if (c.autoConfirm !== wantsConfirm(c)) out.push(wantsConfirm(c) ? "Auto-confirm must be on" : "Auto-confirm must be off");
@@ -94,7 +99,7 @@ export default function CalendarsPage({ tenantId, locationId }: { tenantId: stri
       for (const c of calendars) {
         if (!problems(c, facts).length) continue;
         const patch: CalendarPatch = {};
-        if (!c.team.length && owner) patch.team = [owner.id];
+        if (takesTeam(c) && !c.team.length && owner) patch.team = [owner.id];
         const fh = formHours(facts);
         if (fh && hoursKey(fh) !== hoursKey(c.hours)) patch.hours = fh;
         if (c.autoConfirm !== wantsConfirm(c)) patch.autoConfirm = wantsConfirm(c);
@@ -161,8 +166,10 @@ export default function CalendarsPage({ tenantId, locationId }: { tenantId: stri
                       <Chip key={id}>{nameOf(id)}</Chip>
                     ))}
                   </span>
-                ) : (
+                ) : takesTeam(c) ? (
                   <Chip tone="warn">No one</Chip>
+                ) : (
+                  <Chip>Unassigned</Chip>
                 )}
               </td>
               <td className={`${TD} text-[12.5px] text-muted`}>{openDays.length ? openDays.join(", ") : "Closed"}</td>
@@ -272,36 +279,38 @@ function CalendarEditor({
           <Panel title="Meeting Details">
             <div className="flex flex-col gap-4">
               <Field label="Calendar Name" value={d.name} onChange={(name) => setD((x) => ({ ...x, name }))} />
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[12.5px] font-semibold text-muted">Team Members</span>
-                <div className="flex flex-wrap items-center gap-2">
-                  {d.team.map((id) => (
-                    <span key={id} className="inline-flex items-center gap-2 rounded-full border border-border py-1 pl-1 pr-2.5 text-[12.5px] font-semibold capitalize text-text">
-                      <Avatar name={nameOf(id)} /> {nameOf(id)}
-                      {d.team.length > 1 && (
-                        <button type="button" aria-label={`Remove ${nameOf(id)}`} onClick={() => setD((x) => ({ ...x, team: x.team.filter((t) => t !== id) }))} className="text-faint hover:text-danger">
-                          <X size={12} aria-hidden />
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                  {users
-                    .filter((u) => !d.team.includes(u.id))
-                    .map((u) => (
-                      <button
-                        key={u.id}
-                        type="button"
-                        onClick={() => setD((x) => ({ ...x, team: [...x.team, u.id] }))}
-                        className={cn(
-                          "rounded-full border border-dashed px-3 py-1.5 text-[12.5px] font-semibold capitalize",
-                          owner?.id === u.id && !d.team.length ? "border-warning text-warning hover:bg-warning-tint" : "border-border-strong text-muted hover:border-brand hover:text-text",
+              {takesTeam(cal) && (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[12.5px] font-semibold text-muted">Team Members</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {d.team.map((id) => (
+                      <span key={id} className="inline-flex items-center gap-2 rounded-full border border-border py-1 pl-1 pr-2.5 text-[12.5px] font-semibold capitalize text-text">
+                        <Avatar name={nameOf(id)} /> {nameOf(id)}
+                        {d.team.length > 1 && (
+                          <button type="button" aria-label={`Remove ${nameOf(id)}`} onClick={() => setD((x) => ({ ...x, team: x.team.filter((t) => t !== id) }))} className="text-faint hover:text-danger">
+                            <X size={12} aria-hidden />
+                          </button>
                         )}
-                      >
-                        + {u.firstName} {u.lastName}
-                      </button>
+                      </span>
                     ))}
+                    {users
+                      .filter((u) => !d.team.includes(u.id))
+                      .map((u) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => setD((x) => ({ ...x, team: [...x.team, u.id] }))}
+                          className={cn(
+                            "rounded-full border border-dashed px-3 py-1.5 text-[12.5px] font-semibold capitalize",
+                            owner?.id === u.id && !d.team.length ? "border-warning text-warning hover:bg-warning-tint" : "border-border-strong text-muted hover:border-brand hover:text-text",
+                          )}
+                        >
+                          + {u.firstName} {u.lastName}
+                        </button>
+                      ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </Panel>
         )}

@@ -1,4 +1,4 @@
-import { PRESERVED_FIELDS } from "./ghlCalendarWrite";
+import { carriedSettings } from "./ghlCalendarWrite";
 
 // Client > GHL setup pages (Jake, 2026-10-26): Business Profile, Staff, Custom
 // Fields, Calendars, Pipelines, Media, Workflows and Phone Numbers, each a copy
@@ -477,10 +477,7 @@ const toGhlHours = (hours: (DayRange[] | null)[]) =>
  * priority); new ones join as primary-priority members.
  */
 export function buildCalendarUpdate(current: Row, patch: CalendarPatch): Row {
-  const body: Row = {};
-  for (const key of PRESERVED_FIELDS) {
-    if (current[key] !== undefined && current[key] !== null && current[key] !== "") body[key] = current[key];
-  }
+  const body: Row = carriedSettings(current);
   if (Array.isArray(current.openHours)) body.openHours = current.openHours;
   const members = rows(current.teamMembers, "");
   if (members.length) body.teamMembers = members;
