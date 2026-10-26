@@ -104,6 +104,7 @@ describe("intake", () => {
       "login",
       "targeting",
       "services",
+      "numbers",
       "story",
       "assets",
     ]);

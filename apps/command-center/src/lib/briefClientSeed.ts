@@ -10,7 +10,7 @@
 // client's chosen password is never in the answers at all (the funnel strips
 // it); `hasPassword` says only that one is saved.
 
-import { INTAKE_FIELDS, type IntakeField } from "./intake";
+import { INTAKE_FIELDS, JOB_SLOTS, type IntakeField } from "./intake";
 import { displayAnswer } from "./onboardingSheet";
 
 const HEADINGS = [
@@ -19,6 +19,7 @@ const HEADINGS = [
   "Services & pricing",
   "Service area",
   "Offer",
+  "Market",
   "Branding",
   "Logins",
   "Other",
@@ -52,6 +53,9 @@ const PLACE: Record<string, [Heading, string]> = {
   targetZips: ["Service area", "Target ZIP codes"],
   areaCallout: ["Service area", "Area call-out"],
   usp: ["Offer", "Unique selling point"],
+  pastOffers: ["Offer", "Offers run before"],
+  bestCustomer: ["Market", "Best customer"],
+  competitors: ["Market", "Top local competitors"],
   logoUrl: ["Branding", "Logo"],
   headshotUrl: ["Branding", "Headshot"],
   pastWorkUrl: ["Branding", "Past work photos"],
@@ -60,6 +64,11 @@ const PLACE: Record<string, [Heading, string]> = {
 };
 
 const ADDRESS = ["addressStreet", "addressUnit", "addressCity", "addressState", "addressZip"];
+// Each job is three answers on the form and one line here ("Roof repair, $900
+// average ticket, 40% margin"), followed by the close rate. Both are written
+// after the services they price.
+const jobKeys = (n: number) => [`jobType${n}`, `jobTicket${n}`, `jobMargin${n}`];
+const NUMBERS = [...Array.from({ length: JOB_SLOTS }, (_, i) => jobKeys(i + 1)).flat(), "closeRate"];
 // The funnel's own password boxes: never shown, even as "on file" twice.
 const PASSWORD_KEYS = new Set(["password", "passwordConfirm"]);
 
@@ -119,7 +128,9 @@ export function clientAnswerGroups(answers: Record<string, unknown>, opts: { has
   // Known questions first, in the brief's order; then whatever else was saved.
   const keys = [
     ...Object.keys(PLACE).filter((k) => k in answers),
-    ...Object.keys(answers).filter((k) => !(k in PLACE) && !ADDRESS.includes(k) && !PASSWORD_KEYS.has(k)),
+    ...Object.keys(answers).filter(
+      (k) => !(k in PLACE) && !ADDRESS.includes(k) && !NUMBERS.includes(k) && !PASSWORD_KEYS.has(k),
+    ),
   ];
   for (const key of keys) {
     const [heading, label] = PLACE[key] ?? ["Other", humanize(key)];
@@ -127,6 +138,14 @@ export function clientAnswerGroups(answers: Record<string, unknown>, opts: { has
     if (!value) continue;
     add(heading, label, isSecretField(key, FIELDS.get(key)?.label ?? label) ? "on file" : value);
   }
+
+  for (let n = 1; n <= JOB_SLOTS; n++) {
+    const [job, ticket, margin] = jobKeys(n).map((k) => valueOf(k, answers[k]));
+    const line = [job, ticket && `${ticket} average ticket`, margin && `${margin} margin`].filter(Boolean).join(", ");
+    if (line) add("Services & pricing", `Job ${n}`, line);
+  }
+  const closeRate = valueOf("closeRate", answers.closeRate);
+  if (closeRate) add("Services & pricing", "Close rate", closeRate);
   const hasPassword =
     opts.hasPassword || [...PASSWORD_KEYS].some((k) => typeof answers[k] === "string" && (answers[k] as string).trim());
   if (hasPassword) add("Logins", "Password", "on file");

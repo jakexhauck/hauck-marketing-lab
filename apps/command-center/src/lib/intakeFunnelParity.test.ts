@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { INTAKE_FIELDS, INTAKE_STEPS, MIN_PASSWORD_LEN, PASSWORD_RULES, passwordProblems } from "./intake";
+import {
+  INTAKE_FIELDS,
+  INTAKE_STEPS,
+  JOB_SLOTS,
+  MIN_PASSWORD_LEN,
+  PASSWORD_RULES,
+  passwordProblems,
+} from "./intake";
 // ?raw pulls both files in as source text. Vite resolves them, so this needs no
 // node:fs and no @types/node, which this project's tsconfig does not carry.
 import FUNNEL from "../../public/funnel/intake.js?raw";
-import STUB from "../../../../Client Onboarding Funnel/01-intake-form.html?raw";
+import STUB from "../../../../agency/funnels/client-onboarding/01-intake-form.html?raw";
 
 // The funnel and the server must describe the same form.
 //
@@ -53,7 +60,8 @@ describe("the funnel script and the shared schema", () => {
   it("names and describes every input step the same way", () => {
     const steps = block("STEPS");
     const labels = matchAll(steps, /label: "([^"]+)"/g);
-    const blurbs = matchAll(steps, /blurb: "([^"]+)"/g);
+    // A step may have no blurb at all ("Your numbers"), so empty must match too.
+    const blurbs = matchAll(steps, /blurb: "([^"]*)"/g);
 
     expect(labels.slice(0, INTAKE_STEPS.length)).toEqual(
       INTAKE_STEPS.map((s) => s.label),
@@ -78,6 +86,13 @@ describe("the funnel script and the shared schema", () => {
       .map((e) => e.key);
     const schemaRequired = INTAKE_FIELDS.filter((f) => f.required).map((f) => f.key);
     expect(funnelRequired).toEqual(schemaRequired);
+  });
+
+  // The funnel opens job rows one at a time up to its own cap. A cap lower than
+  // the schema's hides rows the server accepts; a higher one opens a row the
+  // server drops.
+  it("opens as many job rows as the schema has", () => {
+    expect(FUNNEL).toContain(`var JOB_SLOTS = ${JOB_SLOTS};`);
   });
 
   // The password rule is stated in the funnel's own words and enforced by the

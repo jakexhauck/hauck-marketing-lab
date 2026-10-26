@@ -95,14 +95,22 @@ export const INTAKE_STEPS: IntakeStep[] = [
     label: "Your services",
     blurb: "One service per box, in the words your customers use for them.",
   },
+  // No blurb: new screens carry a heading and the questions, nothing under the
+  // heading (Jake's rule).
   {
     n: 6,
+    key: "numbers",
+    label: "Your numbers",
+    blurb: "",
+  },
+  {
+    n: 7,
     key: "story",
     label: "Your story",
     blurb: "What makes you different. This is the raw material for your ads.",
   },
   {
-    n: 7,
+    n: 8,
     key: "assets",
     label: "Assets",
     blurb: "Photos and a logo we can use in your marketing. All three are optional.",
@@ -119,6 +127,46 @@ export const REVIEW_STEP = LAST_INPUT_STEP + 1;
 
 const ASSET_HELP =
   "Optional. Paste a Google Drive, Dropbox or iCloud link, and set it so anyone with the link can view it. If you are not sure how, leave it blank and message Jake, who will sort it out with you.";
+
+// --- Jobs and their numbers ---------------------------------------------------
+//
+// A contractor's jobs do not share a price: a roof replacement and a roof repair
+// are different tickets with different margins, so one "average ticket" box
+// averages two things that should never be averaged. Each job type gets its own
+// row of three instead. The first row is required, because the KPI targets in
+// Mission Control are built from it; the funnel opens the rest one at a time
+// ("Add another job type"), up to JOB_SLOTS. The funnel's own JOB_SLOTS must
+// match (intakeFunnelParity.test.ts).
+//
+// Text rather than number fields: clients type "$15,000", "15k" or "about 12
+// to 18 thousand", and every one of those is an answer worth keeping as given.
+
+export const JOB_SLOTS = 5;
+
+const JOB_PLACEHOLDERS: [string, string][] = [
+  ["Roof replacement", "$15,000"],
+  ["Roof repair", "$900"],
+  ["Gutters", "$2,500"],
+  ["Siding", "$18,000"],
+  ["Windows", "$9,000"],
+];
+
+function jobFields(n: number): IntakeField[] {
+  const [job, ticket] = JOB_PLACEHOLDERS[n - 1];
+  const required = n === 1;
+  return [
+    { key: `jobType${n}`, label: `Job type ${n}`, type: "text", step: 6, required, wide: true, placeholder: job },
+    { key: `jobTicket${n}`, label: `Job ${n} average ticket`, type: "text", step: 6, required, placeholder: ticket },
+    { key: `jobMargin${n}`, label: `Job ${n} margin`, type: "text", step: 6, required, placeholder: "35%" },
+  ];
+}
+
+// Out of ten rather than a percentage: "4 out of 10" is how an owner counts,
+// and a free-typed percentage comes back as "pretty good".
+const CLOSE_RATES: IntakeOption[] = Array.from({ length: 11 }, (_, n) => ({
+  value: String(n),
+  label: `${n} out of 10`,
+}));
 
 // --- The password rule -------------------------------------------------------
 //
@@ -355,12 +403,52 @@ export const INTAKE_FIELDS: IntakeField[] = [
   { key: "service5", label: "Service 5", type: "text", step: 5, placeholder: "Drainage" },
   { key: "service6", label: "Service 6", type: "text", step: 5, placeholder: "Snow removal" },
 
-  // 6 - Your story (source form Q12, Q15, Q16)
+  // 6 - Your numbers (Mission Control's Target KPIs and Market Research)
+  ...Array.from({ length: JOB_SLOTS }, (_, i) => jobFields(i + 1)).flat(),
+  {
+    key: "closeRate",
+    label: "Out of 10 estimates, how many do you close?",
+    type: "select",
+    step: 6,
+    required: true,
+    wide: true,
+    options: CLOSE_RATES,
+  },
+
+  // 7 - Your story (source form Q12, Q15, Q16, plus Mission Control's Main ICP,
+  // Local Competitors and Offer). Only the best customer is required: every
+  // business has one, but not every business has run an offer or can name its
+  // competitors.
+  {
+    key: "bestCustomer",
+    label: "Who is your best customer?",
+    type: "textarea",
+    step: 7,
+    required: true,
+    wide: true,
+    placeholder: "Homeowners 45 to 65 with older homes in Livonia and Northville who want it done right, not cheap",
+  },
+  {
+    key: "competitors",
+    label: "Who are your top local competitors?",
+    type: "textarea",
+    step: 7,
+    wide: true,
+    placeholder: "Renewal by Andersen, Detroit Roofing Co, Smith & Sons",
+  },
+  {
+    key: "pastOffers",
+    label: "What offers have you run before?",
+    type: "textarea",
+    step: 7,
+    wide: true,
+    placeholder: "Free gutter guards with a new roof, $500 off in the spring, 0% financing for 12 months",
+  },
   {
     key: "usp",
     label: "Do you have a unique selling proposition?",
     type: "textarea",
-    step: 6,
+    step: 7,
     wide: true,
     placeholder: "We guarantee a home sale in 30 days or pay the seller $10k",
   },
@@ -368,18 +456,18 @@ export const INTAKE_FIELDS: IntakeField[] = [
     key: "whySignedUp",
     label: "What made you want to work with Hauck Marketing?",
     type: "textarea",
-    step: 6,
+    step: 7,
     wide: true,
   },
   {
     key: "notes",
     label: "Anything else we should know?",
     type: "textarea",
-    step: 6,
+    step: 7,
     wide: true,
   },
 
-  // 7 - Assets (source form Q13-Q14, plus a logo)
+  // 8 - Assets (source form Q13-Q14, plus a logo)
   // Links rather than uploads in v1: a public unauthenticated upload endpoint is
   // a storage-bombing target, and the app has no storage bucket yet.
   //
@@ -388,12 +476,12 @@ export const INTAKE_FIELDS: IntakeField[] = [
   // they cannot fill abandons the form rather than asking. The funnel's copy of
   // ASSET_HELP renders the "anyone with the link" sentence as HTML so it can be
   // emphasised; this one is plain text, for the admin record.
-  { key: "logoUrl", label: "Your logo", type: "url", step: 7, wide: true, help: ASSET_HELP },
+  { key: "logoUrl", label: "Your logo", type: "url", step: 8, wide: true, help: ASSET_HELP },
   {
     key: "headshotUrl",
     label: "A clear headshot of yourself",
     type: "url",
-    step: 7,
+    step: 8,
     wide: true,
     help: ASSET_HELP,
   },
@@ -401,7 +489,7 @@ export const INTAKE_FIELDS: IntakeField[] = [
     key: "pastWorkUrl",
     label: "Photos of your past work",
     type: "url",
-    step: 7,
+    step: 8,
     wide: true,
     help: ASSET_HELP,
   },

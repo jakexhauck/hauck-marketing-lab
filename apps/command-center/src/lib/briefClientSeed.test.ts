@@ -20,6 +20,15 @@ const full = {
   hoursMonday: "9am - 5pm",
   service1: "Windows",
   service2: "Doors",
+  jobType1: "Full window replacement",
+  jobTicket1: "$14,000",
+  jobMargin1: "35%",
+  jobType2: "Entry door",
+  jobTicket2: "$3,500",
+  closeRate: "4",
+  bestCustomer: "Retirees in older Troy homes",
+  competitors: "Renewal by Andersen, Window Nation",
+  pastOffers: "Free storm door with 8+ windows",
   usp: "Lifetime warranty",
   whySignedUp: "Referral",
   notes: "Busy in spring",
@@ -40,10 +49,21 @@ describe("clientSeed", () => {
       "### Services & pricing",
       "### Service area",
       "### Offer",
+      "### Market",
       "### Branding",
       "### Logins",
       "### Other",
     ]);
+    expect(md).toContain("- Job 1: Full window replacement, $14,000 average ticket, 35% margin");
+    expect(md).toContain("- Job 2: Entry door, $3,500 average ticket");
+    expect(md).toContain("- Close rate: 4 out of 10");
+    expect(md).toContain("- Offers run before: Free storm door with 8+ windows");
+    expect(md).toContain("- Best customer: Retirees in older Troy homes");
+    expect(md).toContain("- Top local competitors: Renewal by Andersen, Window Nation");
+    // The numbers follow the services they price, in the order the form asks them.
+    const at = (line: string) => md.indexOf(line);
+    expect(at("- Service 2:")).toBeLessThan(at("- Job 1:"));
+    expect(at("- Job 2:")).toBeLessThan(at("- Close rate:"));
     expect(md).toContain("- Business name: Willis Windows");
     expect(md).toContain("- Address: 1 Main St, Troy, MI 48083");
     expect(md).toContain("- Monday: 9am - 5pm");

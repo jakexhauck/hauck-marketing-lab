@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   INTAKE_FIELDS,
   INTAKE_STEPS,
+  JOB_SLOTS,
   LAST_INPUT_STEP,
   REVIEW_STEP,
   clientAnswerable,
@@ -68,9 +69,17 @@ function step5(overrides: IntakeAnswers = {}): IntakeAnswers {
   return { service1: "Paver patios", service2: "Retaining walls", ...overrides };
 }
 
+function step6(overrides: IntakeAnswers = {}): IntakeAnswers {
+  return { jobType1: "Paver patio", jobTicket1: "$18,000", jobMargin1: "35%", closeRate: "4", ...overrides };
+}
+
+function step7(overrides: IntakeAnswers = {}): IntakeAnswers {
+  return { bestCustomer: "Homeowners 45 to 65 with older homes in Livonia", ...overrides };
+}
+
 // Everything required, across every input step. The baseline for completeness.
 function fullAnswers(): IntakeAnswers {
-  return { ...step1(), ...step2(), ...step3(), ...step4(), ...step5() };
+  return { ...step1(), ...step2(), ...step3(), ...step4(), ...step5(), ...step6(), ...step7() };
 }
 
 describe("the schema itself", () => {
@@ -201,6 +210,40 @@ describe("the schema itself", () => {
     }
     // Two required: every business has at least a couple, and nobody has six.
     expect(services.filter((f) => f.required).map((f) => f.key)).toEqual(["service1", "service2"]);
+  });
+
+  // One row per job: what it is, its average ticket and the margin on it. The
+  // first row is required because the KPI targets are built from it; the
+  // funnel opens the rest one at a time.
+  it("asks for each job type with its average ticket and margin, room for five", () => {
+    expect(JOB_SLOTS).toBe(5);
+    const jobs = INTAKE_FIELDS.filter((f) => /^job(Type|Ticket|Margin)\d$/.test(f.key));
+    expect(jobs.map((f) => f.key)).toEqual(
+      Array.from({ length: JOB_SLOTS }, (_, i) => [`jobType${i + 1}`, `jobTicket${i + 1}`, `jobMargin${i + 1}`]).flat(),
+    );
+    for (const field of jobs) {
+      expect(field.step, `${field.key} belongs on the numbers step`).toBe(6);
+    }
+    expect(jobs.filter((f) => f.required).map((f) => f.key)).toEqual(["jobType1", "jobTicket1", "jobMargin1"]);
+  });
+
+  it("asks how many of 10 estimates they close, as a pick from 0 to 10", () => {
+    const field = INTAKE_FIELDS.find((f) => f.key === "closeRate");
+    expect(field?.required).toBe(true);
+    expect(field?.step).toBe(6);
+    expect(field?.options?.map((o) => o.value)).toEqual(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]);
+    expect(field?.options?.[4].label).toBe("4 out of 10");
+  });
+
+  // Every client has a best customer. Not every client has run an offer or can
+  // name their competitors, and a box they cannot fill stalls the form.
+  it("asks for their best customer, competitors and past offers, needing only the customer", () => {
+    const required = (key: string): boolean | undefined => INTAKE_FIELDS.find((f) => f.key === key)?.required;
+    expect(required("bestCustomer")).toBe(true);
+    for (const key of ["competitors", "pastOffers"]) {
+      expect(INTAKE_FIELDS.some((f) => f.key === key), `${key} should be asked`).toBe(true);
+      expect(required(key) ?? false, `${key} must stay optional`).toBe(false);
+    }
   });
 
   // The password rule is keyed to "step 3" by number in this file AND in the

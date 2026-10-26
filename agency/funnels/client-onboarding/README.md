@@ -12,7 +12,7 @@ have been handed off to a different company halfway along.
 
 | Order | File | Published at | What it does |
 |---|---|---|---|
-| 1 | `01-intake-form.html` (stub) | `/onboarding-form` | Seven-step intake form. Everything we need to stand the account up. |
+| 1 | `01-intake-form.html` (stub) | `/onboarding-form` | Eight-step intake form. Everything we need to stand the account up. |
 | 2 | `02-book-your-call.html` | `/onboarding-calendar` | The onboarding calendar, wrapped in the same card. |
 | 3 | `03-thank-you.html` | `/onboarding-thank-you` | Confirmation, what happens next, and one thing they can do now. |
 
