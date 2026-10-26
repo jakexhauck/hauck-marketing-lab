@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-26-app-texting",
+    date: "26 October 2026",
+    title: "Texting on app-linked clients",
+    items: [
+      "Texts send from the app on Above All Garage Doors, Clear Choice and Comfort Wizards once the app is reinstalled with the new send permission.",
+    ],
+  },
+  {
     id: "2026-10-24-tracking-calls",
     date: "24 October 2026",
     title: "Calls on the new snapshot",

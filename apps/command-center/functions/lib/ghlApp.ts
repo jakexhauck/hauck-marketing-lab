@@ -57,6 +57,10 @@ export const APP_SCOPES = [
   "opportunities.write",
   "conversations.readonly",
   "conversations/message.readonly",
+  // Sending texts from the app. Without these GHL answers 401 "not authorized
+  // for this scope" on every app-linked client's send.
+  "conversations.write",
+  "conversations/message.write",
   "calendars.readonly",
   "calendars.write",
   "calendars/events.readonly",
