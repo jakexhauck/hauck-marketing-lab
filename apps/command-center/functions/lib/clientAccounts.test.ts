@@ -6,6 +6,7 @@ import {
   ownerPhoneCheck,
   pipelineCheck,
   sortChecks,
+  textingCheck,
   type AccountFacts,
 } from "./clientAccounts";
 
@@ -94,8 +95,33 @@ describe("baseChecks", () => {
   it("flags an old pasted token as not on the Marketplace app", () => {
     expect(baseChecks({ ...facts, ghl: "token" })[0]).toMatchObject({ state: "missing" });
   });
+  it("flags an app install missing a permission the app now asks for", () => {
+    expect(baseChecks({ ...facts, ghl: "stale" })[0]).toMatchObject({
+      state: "missing",
+      detail: "Reinstall the app: missing permissions",
+    });
+  });
   it("sorts into page order", () => {
     const ids = sortChecks(baseChecks(facts)).map((c) => c.id);
     expect(ids).toEqual(["ghl", "meta-ads", "meta-page", "login", "push"]);
+  });
+});
+
+describe("textingCheck", () => {
+  it("is red when the key lacks the send permission", () => {
+    expect(
+      textingCheck({ status: 401, body: '{"statusCode":401,"message":"The token is not authorized for this scope."}' }),
+    ).toMatchObject({ state: "missing", detail: "Missing send permission" });
+  });
+  it("is red when GHL refuses the key outright", () => {
+    expect(textingCheck({ status: 403, body: "Forbidden" })).toMatchObject({ state: "missing", detail: "GHL refused the send" });
+  });
+  it("is green when GHL gets as far as checking the empty message", () => {
+    expect(textingCheck({ status: 422, body: '{"message":["contactId must be a string"]}' }).state).toBe("ok");
+    expect(textingCheck({ status: 400, body: "Bad Request" }).state).toBe("ok");
+  });
+  it("is unknown when GHL did not answer", () => {
+    expect(textingCheck(null).state).toBe("unknown");
+    expect(textingCheck({ status: 502, body: "" }).state).toBe("unknown");
   });
 });

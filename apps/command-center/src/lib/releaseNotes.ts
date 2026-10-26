@@ -31,6 +31,8 @@ export const RELEASES: Release[] = [
     title: "Texting on app-linked clients",
     items: [
       "Texts send from the app on Above All Garage Doors, Clear Choice and Comfort Wizards once the app is reinstalled with the new send permission.",
+      "Each client's Brief has a Texting box that tests a send against GHL, red when the key cannot text.",
+      "GHL Marketplace app goes red when the app needs a permission the install has not approved.",
     ],
   },
   {

@@ -12,6 +12,7 @@ import type { AccountCheckId } from "../../functions/lib/clientAccounts";
 // Accounts page's order, which is the order the boxes show.
 export const ACCOUNT_CHECK_SECTION: Record<AccountCheckId, BriefSectionId> = {
   ghl: "ghl",
+  texting: "ghl",
   "meta-ads": "ads",
   "meta-page": "ads",
   pipeline: "ghl",

@@ -10,6 +10,7 @@ import { pickEstimateCalendars } from "./estimateTracking";
 
 export type AccountCheckId =
   | "ghl"
+  | "texting"
   | "meta-ads"
   | "meta-page"
   | "pipeline"
@@ -95,7 +96,9 @@ export function ownerPhoneCheck(users: { phone?: unknown }[]): AccountCheck {
 
 // What the endpoint knows about the client before any GHL call.
 export interface AccountFacts {
-  ghl: "app" | "token" | "none" | "dead";
+  // stale = on the app, but the agency install was approved before the app
+  // asked for a scope it now needs (lib/ghlApp.ts missingScopes).
+  ghl: "app" | "stale" | "token" | "none" | "dead";
   metaAdAccountId: string | null;
   metaPageId: string | null;
   hasLogin: boolean;
@@ -107,11 +110,13 @@ export function baseChecks(f: AccountFacts): AccountCheck[] {
   const ghl =
     f.ghl === "app"
       ? ok("ghl")
-      : f.ghl === "token"
-        ? missing("ghl", "Old token, not the Marketplace app")
-        : f.ghl === "dead"
-          ? missing("ghl", "Linked, but GHL refused the key")
-          : missing("ghl", "Not linked");
+      : f.ghl === "stale"
+        ? missing("ghl", "Reinstall the app: missing permissions")
+        : f.ghl === "token"
+          ? missing("ghl", "Old token, not the Marketplace app")
+          : f.ghl === "dead"
+            ? missing("ghl", "Linked, but GHL refused the key")
+            : missing("ghl", "Not linked");
   return [
     ghl,
     (f.metaAdAccountId ?? "").trim() ? ok("meta-ads") : missing("meta-ads", "Not connected"),
@@ -121,9 +126,24 @@ export function baseChecks(f: AccountFacts): AccountCheck[] {
   ];
 }
 
+// Whether this client's key may send a text, from an empty send to GHL (see
+// clientAccountsRun.ts). GHL checks the key's scopes before the body, so the
+// empty message is refused on its contents only once the key is allowed to
+// send, and nothing can go out. Added 2026-10-26: every app-linked client's
+// texts 401'd while the GHL row read green, because reads worked and nothing
+// ever tried a write.
+export function textingCheck(probe: { status: number; body: string } | null): AccountCheck {
+  if (!probe || probe.status >= 500 || probe.status === 429) {
+    return { id: "texting", state: "unknown", detail: "GHL did not answer" };
+  }
+  if (probe.status === 401 && /scope/i.test(probe.body)) return missing("texting", "Missing send permission");
+  if (probe.status === 401 || probe.status === 403) return missing("texting", "GHL refused the send");
+  return ok("texting");
+}
+
 // The GHL rows when there is no working key to read them with.
 export function blockedGhlChecks(): AccountCheck[] {
-  return (["pipeline", "calendars", "owner-links", "owner-phone"] as const).map((id) => ({
+  return (["texting", "pipeline", "calendars", "owner-links", "owner-phone"] as const).map((id) => ({
     id,
     state: "blocked",
     detail: "Link GHL first",
@@ -133,6 +153,7 @@ export function blockedGhlChecks(): AccountCheck[] {
 // Display order on the page.
 export const CHECK_ORDER: AccountCheckId[] = [
   "ghl",
+  "texting",
   "meta-ads",
   "meta-page",
   "pipeline",

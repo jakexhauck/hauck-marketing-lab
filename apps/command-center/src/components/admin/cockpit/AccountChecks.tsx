@@ -23,6 +23,7 @@ import type { AdminClient } from "../../../lib/api";
 
 export const ACCOUNT_LABELS: Record<AccountCheckId, string> = {
   ghl: "GHL Marketplace app",
+  texting: "Texting",
   "meta-ads": "Meta ad account",
   "meta-page": "Facebook Page",
   pipeline: "Sales Pipeline",
@@ -189,7 +190,7 @@ function FixButton({
 }
 
 function FixPanel({ id, client }: { id: AccountCheckId; client: AdminClient }) {
-  if (id === "ghl") {
+  if (id === "ghl" || id === "texting") {
     return <SubaccountCard tenantId={client.id} clientName={client.name} isLive={client.onboardingStatus === "live"} />;
   }
   if (id === "meta-page") return <MetaPagePicker tenantId={client.id} />;

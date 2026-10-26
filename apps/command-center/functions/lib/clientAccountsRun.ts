@@ -3,6 +3,7 @@ import { getServiceClient } from "./supabase";
 import { ghlFetch, type GhlContext } from "./ghl";
 import { isPlaceholder } from "./tenantGhl";
 import { appMinter, isAppLinked, resolveTenantGhl } from "./ghlCreds";
+import { loadAgencyInstall, missingScopes } from "./ghlApp";
 import { ownerLinkValues } from "./ghlProvision";
 import {
   baseChecks,
@@ -12,6 +13,7 @@ import {
   ownerPhoneCheck,
   pipelineCheck,
   sortChecks,
+  textingCheck,
   type AccountCheck,
   type AccountCheckId,
   type AccountFacts,
@@ -40,16 +42,28 @@ async function ghlChecks(gctx: GhlContext, origin: string, secret: string): Prom
       return null;
     }
   };
-  const [pipes, cals, values, users] = await Promise.all([
+  // An empty send: GHL refuses it on scope (401) or on its missing contact
+  // (400/422), never sends it. See textingCheck.
+  const sendProbe = async () => {
+    try {
+      const res = await ghlFetch(gctx, "/conversations/messages", { method: "POST", body: "{}" });
+      return { status: res.status, body: await res.text() };
+    } catch {
+      return null;
+    }
+  };
+  const [pipes, cals, values, users, send] = await Promise.all([
     read<{ pipelines?: Parameters<typeof pipelineCheck>[0] }>(`/opportunities/pipelines?locationId=${loc}`),
     read<{ calendars?: Parameters<typeof calendarsCheck>[0] }>(`/calendars/?locationId=${loc}`),
     read<{ customValues?: { name: string; value?: string }[] }>(`/locations/${loc}/customValues`),
     read<{ users?: { phone?: unknown }[] }>(`/users/?locationId=${loc}`),
+    sendProbe(),
   ]);
   const unknown = (id: AccountCheckId): AccountCheck => ({ id, state: "unknown", detail: "GHL did not answer" });
 
   const expected = secret ? await ownerLinkValues(origin, secret, gctx.locationId) : null;
   return [
+    textingCheck(send),
     pipes ? pipelineCheck(pipes.pipelines ?? []) : unknown("pipeline"),
     cals ? calendarsCheck(cals.calendars ?? []) : unknown("calendars"),
     values && expected ? ownerLinksCheck(values.customValues ?? [], expected) : unknown("owner-links"),
@@ -97,6 +111,7 @@ export async function runChecks(env: Env, tenantId: string, origin: string) {
       gctx = null;
     }
     ghl = !gctx ? "dead" : isAppLinked(t) ? "app" : "token";
+    if (ghl === "app" && missingScopes((await loadAgencyInstall(client))?.scopes).length > 0) ghl = "stale";
   }
 
   const facts: AccountFacts = {
