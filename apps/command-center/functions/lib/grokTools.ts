@@ -23,19 +23,22 @@ import { SOP_LISTS } from "../../src/lib/sopChecklists";
 import { AGENT_SOPS } from "../../src/lib/agentSops";
 import { BuildRefused, buildCtx, pageForms } from "./grokMetaBuild";
 import { libraryVideos } from "./agentMetaOps";
-import { cleanNote, matchClient, NOTES_PER_DAY, vaultKeyFor, type ClientRef, type ToolDef } from "./grokMcp";
-import { GROK_BOTS, GROK_GUIDES, GROK_HOUSE_RULES, GROK_RULES, GROK_VAULT } from "./grokBundle.generated";
+import { botName, cleanNote, matchClient, NOTES_PER_DAY, vaultKeyFor, type ClientRef, type ToolDef } from "./grokMcp";
+import { GROK_GUIDES, GROK_VAULT } from "./grokBundle.generated";
 
 // What the Hauck Brain's tools do. Each is a thin wrapper over a lib the app
-// already uses, so a number a bot quotes is the number the app shows.
+// already uses, so a number a bot quotes is the number the app shows. Tools
+// only: how a bot behaves is Jake's, written in Grok (2026-10-26).
 //
 // Read only, all of them, except save_note (a row in grok_notes); the write
 // tools live in grokWriteTools.ts. What never
 // leaves: the intake form's stored login (this file never selects the intake
 // table; loadClientFacts reads only its answers), GHL custom values that hold
 // credentials (read.customValues hides them), leads' names, phones and emails
-// (lead results are KPIs and the per-ad breakdown), and any token. A test
-// scans this file to keep it so (grokMcp.test.ts).
+// (lead results are KPIs and the per-ad breakdown), any token, and money:
+// billing, invoices and revenue stay in the app (Jake: "no money at all";
+// ad spend and cost per lead are the ads' own numbers and stay). A test scans
+// this file to keep it so (grokMcp.test.ts).
 //
 // One accepted side effect: get_lead_results builds the same tracker a page
 // load does, and for a client on Meta form leads that refreshes the cached
@@ -64,19 +67,7 @@ async function clients(d: GrokDeps): Promise<ClientRef[]> {
 
 export const findClient = async (d: GrokDeps, a: Args) => matchClient(await clients(d), a.client);
 
-// ---------- Rules and guides ----------
-
-const getRules: ToolDef<GrokDeps> = {
-  name: "get_rules",
-  description: `Your working rules. Call at the start of every new task. bot is one of: ${GROK_BOTS.join(", ")}.`,
-  inputSchema: schema({ bot: { type: "string", enum: [...GROK_BOTS] } }, ["bot"]),
-  run: async (_d, a) => {
-    const bot = String(a.bot ?? "");
-    const rules = GROK_RULES[bot];
-    if (!rules) throw new Error(`Unknown bot "${bot}". One of: ${GROK_BOTS.join(", ")}`);
-    return `${GROK_HOUSE_RULES}\n\n---\n\n${rules}`;
-  },
-};
+// ---------- Guides ----------
 
 /** The Full Setup, Onboarding Call and Launch Call checklists, from the same code the app ticks. */
 export function fulfillmentSop(): string {
@@ -156,7 +147,7 @@ const listClients: ToolDef<GrokDeps> = {
 
 const getClient: ToolDef<GrokDeps> = {
   name: "get_client",
-  description: "Everything known about one client: facts, status, brief sections, vault profile, memory, lessons and notes the bots saved. Call before any client work.",
+  description: "Everything known about one client: facts, status, brief sections, vault profile, memory, lessons and notes the bots saved.",
   inputSchema: schema(clientArg, ["client"]),
   run: async (d, a) => {
     const c = await findClient(d, a);
@@ -165,7 +156,8 @@ const getClient: ToolDef<GrokDeps> = {
       readBrief(d.client, c.id),
       d.client
         .from("client_billing")
-        .select("status, service, date_closed, billing_date, renewal_date, last_touchpoint, churn_date, notes")
+        // Lifecycle only. Billing dates and billing notes are money (Jake, 2026-10-26).
+        .select("status, service, date_closed, last_touchpoint, churn_date")
         .eq("tenant_id", c.id)
         .maybeSingle(),
       d.client.from("tenants").select("meta_ad_account_id, ghl_location_id").eq("id", c.id).maybeSingle(),
@@ -349,9 +341,18 @@ const getAdAssets: ToolDef<GrokDeps> = {
 
 const RANGES = ["today", "yesterday", "last_7d", "last_14d", "last_30d", "this_month", "last_month", "maximum"];
 
+// What the client made from the leads. Ad spend and cost per lead stay: those
+// are the ads' own numbers, not the client's money.
+const REVENUE_KEYS = ["revenue", "roas"];
+
+/** A tracker object with revenue and ROAS taken out. */
+export function withoutRevenue<T extends object>(o: T): Partial<T> {
+  return Object.fromEntries(Object.entries(o).filter(([k]) => !REVENUE_KEYS.includes(k))) as Partial<T>;
+}
+
 const getLeadResults: ToolDef<GrokDeps> = {
   name: "get_lead_results",
-  description: "What the ads turned into: leads, pickups, booked estimates, sales and revenue, overall and per ad, from the client's tracker. Counts only, no customer details.",
+  description: "What the ads turned into: leads, pickups, booked estimates and sales, with spend and cost per result, overall and per ad, from the client's tracker. Counts only, no customer details, no revenue.",
   inputSchema: schema({ ...clientArg, range: { type: "string", enum: RANGES, description: `default ${DEFAULT_RANGE}` } }, ["client"]),
   run: async (d, a) => {
     const c = await findClient(d, a);
@@ -370,9 +371,10 @@ const getLeadResults: ToolDef<GrokDeps> = {
       manualStatus: tenant.manual_lead_status === true,
       metaToken: d.env.META_SYSTEM_USER_TOKEN,
     });
-    // leads and unattributed are lists of people; only counts leave the app.
+    // leads and unattributed are lists of people; only counts leave the app,
+    // and no revenue (Jake, 2026-10-26: no money at all).
     const { kpis, breakdown, meta, model } = body;
-    return `# Lead results: ${c.name}, ${range}\n${json({ model, kpis, breakdown, meta })}`;
+    return `# Lead results: ${c.name}, ${range}\n${json({ model, kpis: withoutRevenue(kpis), breakdown: breakdown.map(withoutRevenue), meta })}`;
   },
 };
 
@@ -486,13 +488,12 @@ const saveNote: ToolDef<GrokDeps> = {
   name: "save_note",
   description: "Save one durable new fact about a client (an offer change, a result, a preference) so every bot sees it in get_client. One fact per note, plain, under 500 characters.",
   inputSchema: schema(
-    { ...clientArg, bot: { type: "string", enum: [...GROK_BOTS] }, note: { type: "string" } },
-    ["client", "bot", "note"],
+    { ...clientArg, bot: { type: "string", description: "Your name, for the log." }, note: { type: "string" } },
+    ["client", "note"],
   ),
   run: async (d, a) => {
     const c = await findClient(d, a);
-    const bot = String(a.bot ?? "");
-    if (!GROK_BOTS.includes(bot)) throw new Error(`bot is one of: ${GROK_BOTS.join(", ")}`);
+    const bot = botName(a.bot);
     const note = cleanNote(a.note);
     const since = new Date(Date.now() - 86_400_000).toISOString();
     const { count, error: cErr } = await d.client.from("grok_notes").select("id", { count: "exact", head: true }).gte("created_at", since);
@@ -505,7 +506,6 @@ const saveNote: ToolDef<GrokDeps> = {
 };
 
 export const GROK_TOOLS: ToolDef<GrokDeps>[] = [
-  getRules,
   getGuide,
   listClients,
   getClient,

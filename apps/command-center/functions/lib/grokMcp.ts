@@ -69,8 +69,8 @@ export async function handleRpc<D>(msg: Msg, tools: ToolDef<D>[], deps: D): Prom
         protocolVersion: typeof params?.protocolVersion === "string" ? params.protocolVersion : PROTOCOL_FALLBACK,
         capabilities: { tools: {} },
         serverInfo: { name: "hauck-brain", version: "1.0.0" },
-        instructions:
-          "Hauck Marketing's business data. Call get_rules with your bot id at the start of every new task, and get_client before any client work.",
+        // Tools only, no behaviour: Jake writes each bot's instructions in Grok (2026-10-26).
+        instructions: "Hauck Marketing's Command Center: clients, ads, CRM setup, tasks and plans.",
       });
     case "ping":
       return ok({});
@@ -147,6 +147,12 @@ export function vaultKeyFor(folders: string[], clientName: string): string | nul
 
 export const NOTE_MAX = 500;
 export const NOTES_PER_DAY = 100;
+
+/** Who made a change, for the log. Bots name themselves; Jake names the bots, so any short text goes. */
+export function botName(v: unknown): string {
+  const s = typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, 40) : "";
+  return s || "grok";
+}
 
 /** A note as it will be stored, or an error the bot can act on. */
 export function cleanNote(note: unknown): string {

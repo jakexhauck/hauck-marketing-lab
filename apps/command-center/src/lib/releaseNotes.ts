@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-26-grok-tools-only",
+    date: "26 October 2026",
+    title: "Grok Bots follow your instructions",
+    items: [
+      "The bots now follow only the instructions you write for them in Grok. The rule files Claude wrote are gone.",
+      "Any bot can use any tool. Bots still cannot tick your or the client's own tasks.",
+      "No daily limit on bot changes. Every change is still logged.",
+      "Bots no longer see revenue, billing dates or billing notes. Meta builds stay paused with capped budgets.",
+    ],
+  },
+  {
     id: "2026-10-26-mission-control-brief",
     date: "26 October 2026",
     title: "Brief is the client's Mission Control doc",
@@ -65,7 +76,7 @@ export const RELEASES: Release[] = [
     items: [
       "The Ads bot builds the campaign, ad sets and ads in Meta, paused until you publish. It writes the lead form as steps for you to build.",
       "The GHL bot follows the Mission Control GHL map: it sets custom values, custom fields and calendar hours, and gives you steps for the rest.",
-      "Bots tick their own Mission Control tasks with proof, and write the Research and Ads plan pages. Every change they make is logged, capped at 60 a day.",
+      "Bots tick their own Mission Control tasks with proof, and write the Research and Ads plan pages. Every change they make is logged.",
       "The Ads map in Mission Control now shows the build step as the agent's, paused, with your publish after.",
       "Bots can make a client's Drive folder with the Client Setup docs. If a folder under another name looks like the client's, they stop and ask you.",
     ],

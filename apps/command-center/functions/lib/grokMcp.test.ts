@@ -3,11 +3,11 @@ import toolsSource from "./grokTools.ts?raw";
 import routeSource from "../api/grok/mcp/[key].ts?raw";
 import writeSource from "./grokWriteTools.ts?raw";
 import buildSource from "./grokMetaBuild.ts?raw";
-import { cleanNote, handleBody, handleRpc, isGrokMcpRequest, matchClient, vaultKeyFor, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
-import { GROK_TOOLS, LINK_HIDDEN, flowGuide, fulfillmentSop, hideLinks, leadsFrom, type GrokDeps } from "./grokTools";
-import { BOT_LANES, GROK_ALL_TOOLS, PAGE_WRITERS, lookalikeFolders, planSpendProblem, weekFrom } from "./grokWriteTools";
+import { botName, cleanNote, handleBody, handleRpc, isGrokMcpRequest, matchClient, vaultKeyFor, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
+import { GROK_TOOLS, LINK_HIDDEN, flowGuide, fulfillmentSop, hideLinks, leadsFrom, withoutRevenue, type GrokDeps } from "./grokTools";
+import { GROK_ALL_TOOLS, NOT_FOR_BOTS, lookalikeFolders, planSpendProblem, weekFrom } from "./grokWriteTools";
 import type { AdsPage } from "../../src/lib/briefPages";
-import { GROK_BOTS, GROK_HOUSE_RULES, GROK_RULES, GROK_VAULT } from "./grokBundle.generated";
+import { GROK_GUIDES, GROK_VAULT } from "./grokBundle.generated";
 
 const KEY = "k".repeat(40);
 const EM = String.fromCharCode(0x2014);
@@ -150,22 +150,18 @@ describe("leadsFrom", () => {
 });
 
 describe("the bundle", () => {
-  it("has rules for all six bots and none of them hold an em dash", () => {
-    expect(GROK_BOTS).toEqual(["executive-assistant", "success-manager", "ads", "creative", "market-research", "ghl"]);
-    for (const bot of GROK_BOTS) {
-      expect(GROK_RULES[bot]?.length).toBeGreaterThan(500);
-      expect(GROK_RULES[bot]).not.toContain(EM);
-    }
-    expect(GROK_HOUSE_RULES).not.toContain(EM);
+  it("holds guides and client notes, no em dashes, and no behaviour rules", () => {
+    expect(Object.keys(GROK_GUIDES).sort()).toEqual(
+      ["broll-prompts", "copy-editing", "copy-frameworks", "copywriting", "ogilvy", "past-scripts", "stop-slop"],
+    );
+    for (const g of Object.values(GROK_GUIDES)) expect(g).not.toContain(EM);
     for (const v of Object.values(GROK_VAULT)) expect(`${v.profile}${v.memory}${v.brain}`).not.toContain(EM);
   });
 
-  it("get_rules serves house rules plus the bot's own", async () => {
-    const tool = GROK_TOOLS.find((t) => t.name === "get_rules")!;
-    const text = await tool.run({} as GrokDeps, { bot: "creative" });
-    expect(text.startsWith(GROK_HOUSE_RULES)).toBe(true);
-    expect(text).toContain(GROK_RULES.creative);
-    await expect(tool.run({} as GrokDeps, { bot: "nope" })).rejects.toThrow(/Unknown bot/);
+  it("tells no bot how to behave: Jake writes their instructions", async () => {
+    const init = await handleRpc({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }, [], {});
+    expect(JSON.stringify(init)).not.toMatch(/get_rules|every new task|before any/i);
+    expect(GROK_ALL_TOOLS.some((t) => t.name === "get_rules")).toBe(false);
   });
 
   it("the fulfillment SOP guide comes from the app's checklists", async () => {
@@ -191,7 +187,7 @@ describe("what the connector can touch", () => {
   it("exposes exactly the planned tools", () => {
     expect(GROK_TOOLS.map((t) => t.name).sort()).toEqual(
       [
-        "get_rules", "get_guide", "list_clients", "get_client", "get_research", "get_ads_plan", "get_ad_results",
+        "get_guide", "list_clients", "get_client", "get_research", "get_ads_plan", "get_ad_results",
         "get_ad_structure", "get_ad_assets", "get_lead_results", "get_ghl_setup", "get_tasks", "places_search", "places_reviews",
         "save_note",
       ].sort(),
@@ -219,7 +215,8 @@ describe("what the connector can touch", () => {
     expect(buildSource).not.toMatch(/a\.status/);
   });
 
-  it("every write is counted and logged before it is sent", () => {
+  it("every write is logged before it is sent, with no daily cap", () => {
+    expect(writeSource).not.toMatch(/WRITES_PER_DAY|admin_audit_log"\)\s*\.select/);
     expect(writeSource).toMatch(/logAdminAction\(d\.client, admin, `grok:\$\{tool\}`/);
     expect(writeSource).toMatch(/if \(!logged\) throw/);
     // GHL writes only through the allowlisted ops and the hours writer; no raw calls, no table writes.
@@ -247,8 +244,8 @@ describe("what the connector can touch", () => {
     expect(run.indexOf("lookalikeFolders(")).toBeLessThan(run.indexOf("return write("));
   });
 
-  it("plan pages: each has one writer, and no bot raises its own budget ceiling", () => {
-    expect(PAGE_WRITERS).toEqual({ research: "market-research", ads: "ads" });
+  it("plan pages: any bot writes them, but none raises its own budget ceiling", () => {
+    expect(writeSource).not.toMatch(/PAGE_WRITERS|BOT_LANES/);
     const plan = (...spends: (number | null)[]) => ({ campaigns: spends.map((dailySpend) => ({ dailySpend })), headlines: [] }) as unknown as AdsPage;
     expect(planSpendProblem(null, plan(100))).toBeNull();
     expect(planSpendProblem(null, plan(101))).toMatch(/\$100/);
@@ -258,10 +255,22 @@ describe("what the connector can touch", () => {
     expect(planSpendProblem(plan(60), plan(null))).toBeNull();
   });
 
-  it("a bot moves only its own lane's tasks; the assistant moves none", () => {
-    expect(BOT_LANES["executive-assistant"]).toEqual([]);
-    expect(Object.keys(BOT_LANES).sort()).toEqual([...GROK_BOTS].sort());
-    for (const lanes of Object.values(BOT_LANES)) expect(lanes).not.toContain("jake");
+  it("any bot may tick any agent task, never Jake's or the client's", () => {
+    expect(NOT_FOR_BOTS).toEqual(["jake", "client"]);
+  });
+
+  it("names the bot for the log from whatever it says, or grok", () => {
+    expect(botName("  Ads   Bot ")).toBe("Ads Bot");
+    expect(botName(undefined)).toBe("grok");
+    expect(botName("x".repeat(80))).toHaveLength(40);
+  });
+
+  it("no money leaves: no revenue, billing dates or billing notes", () => {
+    expect(withoutRevenue({ leads: 4, spend: 100, costPerLead: 25, revenue: 9000, roas: 90 })).toEqual({ leads: 4, spend: 100, costPerLead: 25 });
+    expect(toolsSource).toContain("kpis: withoutRevenue(kpis), breakdown: breakdown.map(withoutRevenue)");
+    expect(toolsSource).not.toMatch(/billing_date|renewal_date|upfront_cash|remaining_cash|total_cash|payment_arrangement|from\("(invoices|payments)/);
+    expect(toolsSource).not.toMatch(/"[^"]*\bnotes\b[^"]*"\)\s*\n?\s*\.eq\("tenant_id"/);
+    expect(writeSource).not.toMatch(/from\("(client_billing|invoices|payments)/);
   });
 
   it("calendar hours: named days, closed when unlisted, bad times refused", () => {

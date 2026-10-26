@@ -14,42 +14,35 @@ import { parsePage, type AdsPage, type BriefPageId } from "../../src/lib/briefPa
 import type { TaskOwner } from "../../src/lib/clientTasks";
 import { BuildRefused, buildCtx, createAd, createAdset, createCampaign, NO_PLAN_CAP_USD, planDailySpend, type BuildCtx } from "./grokMetaBuild";
 import { findClient, GROK_TOOLS, type GrokDeps } from "./grokTools";
-import type { ClientRef, ToolDef } from "./grokMcp";
-import { GROK_BOTS } from "./grokBundle.generated";
+import { botName, type ClientRef, type ToolDef } from "./grokMcp";
 
-// The Hauck Brain's write tools (docs/build-plans/grok-build-tools.md). The
-// read tools live in grokTools.ts, which writes nothing but grok_notes.
+// The Hauck Brain's write tools. The read tools live in grokTools.ts, which
+// writes nothing but grok_notes.
 //
-// Every write here goes through `write()`:
-//   - the bot names itself (attribution only: the connector is one URL for
-//     all six bots, so lanes come from their rules, not from here);
-//   - 60 writes a day across every bot, counted from the audit log;
-//   - an admin_audit_log row `grok:<tool>` BEFORE anything is sent. No row,
-//     no write.
-// A check_only call reads and asks Meta to validate, changes nothing, and is
-// neither counted nor logged.
-//
-// Meta: create only, always PAUSED, guarded in grokMetaBuild.ts. GHL: the
-// existing GHL_OPS (credential and app-owned values refused) and the
-// read-modify-write calendar hours. Tasks: an agent's own, to doing or done.
+// Tools, not lanes (Jake, 2026-10-26): any bot may use any tool; who does
+// what is in the instructions Jake writes in Grok. No daily cap either. What
+// stays is safety, not behaviour:
+//   - every write goes through `write()`: an admin_audit_log row
+//     `grok:<tool>`, naming the bot, BEFORE anything is sent. No row, no write.
+//     A check_only call reads and asks Meta to validate, changes nothing, and
+//     is not logged;
+//   - no money: Meta objects are created only, always PAUSED, budgets capped
+//     (grokMetaBuild.ts), and nothing touches billing, invoices or payments;
+//   - GHL through the existing GHL_OPS (credential and app-owned values
+//     refused, before the audit row so a token never lands in it);
+//   - Jake's and the client's own Mission Control tasks are theirs to tick.
 
 type Row = Record<string, unknown>;
 type Args = Record<string, unknown>;
 
-export const WRITES_PER_DAY = 60;
-
 const schema = (props: Record<string, unknown>, required: string[]) => ({ type: "object", properties: props, required });
 const base = {
   client: { type: "string", description: "Client name or slug." },
-  bot: { type: "string", enum: [...GROK_BOTS], description: "You." },
+  bot: { type: "string", description: "Your name, for the change log." },
 };
-const checkOnly = { check_only: { type: "boolean", description: "true: Meta validates it, nothing is created. Do this first." } };
+const checkOnly = { check_only: { type: "boolean", description: "true: Meta validates it, nothing is created." } };
 
-function botOf(a: Args): string {
-  const bot = String(a.bot ?? "");
-  if (!GROK_BOTS.includes(bot)) throw new Error(`bot is one of: ${GROK_BOTS.join(", ")}`);
-  return bot;
-}
+const botOf = (a: Args): string => botName(a.bot);
 
 async function ownerAdmin(client: SupabaseClient): Promise<string> {
   const { data, error } = await client
@@ -65,16 +58,8 @@ async function ownerAdmin(client: SupabaseClient): Promise<string> {
   return id;
 }
 
-/** Count, log, then do. Refusals come back as plain words for the bot. */
+/** Log, then do. Refusals come back as plain words for the bot. */
 async function write(d: GrokDeps, tool: string, c: ClientRef, bot: string, args: Args, run: () => Promise<unknown>): Promise<string> {
-  const since = new Date(Date.now() - 86_400_000).toISOString();
-  const { count, error } = await d.client
-    .from("admin_audit_log")
-    .select("id", { count: "exact", head: true })
-    .like("action", "grok:%")
-    .gte("created_at", since);
-  if (error) throw new Error(`audit: ${error.message}`);
-  if ((count ?? 0) >= WRITES_PER_DAY) throw new Error(`The bots have made ${WRITES_PER_DAY} changes today, the daily cap. Tell Jake.`);
   const admin = await ownerAdmin(d.client);
   const logged = await logAdminAction(d.client, admin, `grok:${tool}`, c.id, { bot, args });
   if (!logged) throw new Error("could not record the change, so it was not made");
@@ -116,7 +101,7 @@ function metaTool(name: string, description: string, props: Record<string, unkno
   return {
     name,
     description,
-    inputSchema: schema({ ...base, ...props, ...checkOnly }, ["client", "bot", ...required]),
+    inputSchema: schema({ ...base, ...props, ...checkOnly }, ["client", ...required]),
     run: async (d, a) => {
       const bot = botOf(a);
       const c = await findClient(d, a);
@@ -180,7 +165,7 @@ function ghlTool(name: string, op: "write.customValue" | "write.customField", de
   return {
     name,
     description,
-    inputSchema: schema({ ...base, ...props }, ["client", "bot", ...required]),
+    inputSchema: schema({ ...base, ...props }, ["client", ...required]),
     run: async (d, a) => {
       const bot = botOf(a);
       const c = await findClient(d, a);
@@ -241,7 +226,7 @@ const ghlSetCalendarHours: ToolDef<GrokDeps> = {
       calendar: { type: "string", description: "The calendar's name as get_ghl_setup shows it, e.g. Home Estimate." },
       hours: { type: "array", items: { type: "object", properties: { day: { type: "string" }, open: { type: "string" }, close: { type: "string" } } } },
     },
-    ["client", "bot", "calendar", "hours"],
+    ["client", "calendar", "hours"],
   ),
   run: async (d, a) => {
     const bot = botOf(a);
@@ -289,7 +274,7 @@ const createClientFolderTool: ToolDef<GrokDeps> = {
   name: "create_client_folder",
   description:
     "The client's Google Drive folder (\"🤝 | Name\" with Finished Creatives and a copy of every Client Setup doc, the Mission Control doc among them). Links the folder if it already exists. If a folder that looks like this client's exists under another name, it stops and names it: ask Jake to link that one, and pass new_folder_ok: true only when he says to make a new one.",
-  inputSchema: schema({ ...base, new_folder_ok: { type: "boolean", description: "Only after Jake says the look-alike folder is not this client's." } }, ["client", "bot"]),
+  inputSchema: schema({ ...base, new_folder_ok: { type: "boolean", description: "Only after Jake says the look-alike folder is not this client's." } }, ["client"]),
   run: async (d, a) => {
     const bot = botOf(a);
     const c = await findClient(d, a);
@@ -316,9 +301,6 @@ const createClientFolderTool: ToolDef<GrokDeps> = {
 
 // ---------- Mission Control plan pages ----------
 
-// Who writes which page (Jake, 2026-10-26: the bots took over from Hermes).
-export const PAGE_WRITERS: Record<BriefPageId, string> = { research: "market-research", ads: "ads" };
-
 /**
  * Why a bot may not save this Ads plan, or null. The campaign budget cap reads
  * the plan, so a bot never raises its own ceiling: no daily spend above the
@@ -333,7 +315,7 @@ export function planSpendProblem(current: AdsPage | null, next: AdsPage): string
 const savePlanPage: ToolDef<GrokDeps> = {
   name: "save_plan_page",
   description:
-    "Write the client's Research page (Market Research) or Ads plan page (Ads) in Mission Control. data is the whole page as JSON in the shape get_research or get_ads_plan shows; version is the number they showed (0 for a page never written). It replaces the page.",
+    "Write the client's Research page or Ads plan page in Mission Control. data is the whole page as JSON in the shape get_research or get_ads_plan shows; version is the number they showed (0 for a page never written). It replaces the page.",
   inputSchema: schema(
     {
       ...base,
@@ -341,13 +323,12 @@ const savePlanPage: ToolDef<GrokDeps> = {
       version: { type: "number", description: "The version get_research or get_ads_plan showed." },
       data: { type: "object" },
     },
-    ["client", "bot", "page", "version", "data"],
+    ["client", "page", "version", "data"],
   ),
   run: async (d, a) => {
     const bot = botOf(a);
     const page = a.page as BriefPageId;
     if (page !== "research" && page !== "ads") throw new Error("page is research or ads");
-    if (PAGE_WRITERS[page] !== bot) throw new Error(`the ${page} page is ${PAGE_WRITERS[page]}'s to write; ask it`);
     const c = await findClient(d, a);
     const parsed = parsePage(page, a.data);
     if (!parsed.ok) throw new Error(parsed.reason);
@@ -367,24 +348,16 @@ const savePlanPage: ToolDef<GrokDeps> = {
 
 // ---------- Mission Control tasks ----------
 
-// Which task owners each bot may move. Creative's work sits on the Ads tasks.
-// The Executive Assistant routes; it moves nothing.
-export const BOT_LANES: Record<string, TaskOwner[]> = {
-  "ads": ["ads"],
-  "creative": ["ads"],
-  "ghl": ["ghl"],
-  "success-manager": ["csm"],
-  "market-research": ["research"],
-  "executive-assistant": [],
-};
+// Jake's and the client's tasks are theirs to tick; any agent task is any bot's.
+export const NOT_FOR_BOTS: TaskOwner[] = ["jake", "client"];
 
 const updateTask: ToolDef<GrokDeps> = {
   name: "update_task",
   description:
-    "Move one of your own Mission Control tasks for a client (key from get_tasks) to doing, or to done with proof (what you made or checked, with ids or names). Never Jake's or the client's tasks; never back to to-do.",
+    "Move a client's Mission Control task (key from get_tasks) to doing, or to done with proof (what was made or checked, with ids or names). Jake's and the client's own tasks are refused, and nothing goes back to to-do.",
   inputSchema: schema(
     { ...base, key: { type: "string" }, state: { type: "string", enum: ["doing", "done"] }, proof: { type: "string" }, note: { type: "string" } },
-    ["client", "bot", "key", "state"],
+    ["client", "key", "state"],
   ),
   run: async (d, a) => {
     const bot = botOf(a);
@@ -395,7 +368,7 @@ const updateTask: ToolDef<GrokDeps> = {
     if (state === "done" && !proof) throw new Error("done needs proof: what you made or checked");
     const task = (await readTasks(d.client, c.id)).find((t) => t.key === a.key);
     if (!task) throw new Error(`no task with key "${String(a.key)}" for ${c.name}; read get_tasks`);
-    if (!BOT_LANES[bot].includes(task.owner)) throw new Error(`"${task.name}" is ${task.owner}'s task, not yours; ask its owner`);
+    if (NOT_FOR_BOTS.includes(task.owner)) throw new Error(`"${task.name}" is ${task.owner === "jake" ? "Jake's" : "the client's"} to tick`);
     if (task.state === "done" || task.state === "cut") throw new Error(`"${task.name}" is already ${task.state}; only Jake reopens it`);
     return write(d, "update_task", c, bot, a, async () => {
       const patch = { state, ...(proof ? { evidence: proof } : {}), ...(typeof a.note === "string" && a.note.trim() ? { note: a.note.trim() } : {}) } as const;
