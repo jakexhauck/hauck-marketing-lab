@@ -17,6 +17,7 @@ import { ADS_CRON_HEADER, isAdsCronRequest } from "../lib/adsCron";
 import { CALENDAR_CRON_HEADER, isCalendarCronRequest } from "../lib/calendarCron";
 import { COLD_CALL_CRON_HEADER, isColdCallCronRequest } from "../lib/coldCallCron";
 import { AGENT_RUNNER_HEADER, isAgentRunnerRequest } from "../lib/agentRunner";
+import { isGrokMcpRequest } from "../lib/grokMcp";
 import { funnelOriginAllowed } from "../lib/funnelUrl";
 import { logError } from "../lib/errorLog";
 
@@ -232,6 +233,14 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       ctx.env.AGENT_RUNNER_SECRET,
     )
   ) {
+    return await runNext(ctx, origin, url);
+  }
+
+  // The Hauck Brain connector for Grok Bot. Sixth sibling: one exact path whose
+  // last segment is the key (Grok sends no auth header), no ctx.data.admin, and
+  // a miss falls through to 401. What the route behind it can touch is listed
+  // in lib/grokTools.ts: reads, plus inserts into grok_notes.
+  if (isGrokMcpRequest(ctx.request.method, url.pathname, ctx.env.GROK_MCP_KEY)) {
     return await runNext(ctx, origin, url);
   }
 
