@@ -68,11 +68,12 @@
     // thank-you over a lead that went nowhere. Willis's own website form used
     // to do the opposite and every request was silently lost.
     //
-    // CONNECTED 2026-08-05. Its own trigger on the Willis sub-account
-    // (OznT3yyuwK3dqVXDsCaD), NOT the news-channel landing page's
-    // (.../webhook-trigger/7f254ff9-...), so ad leads and news-channel leads
-    // stay tellable apart.
-    webhookUrl: "https://services.leadconnectorhq.com/hooks/OznT3yyuwK3dqVXDsCaD/webhook-trigger/DnQegzTCnElUUfG9Sqr1",
+    // Its own trigger on the Willis sub-account (OznT3yyuwK3dqVXDsCaD), NOT
+    // the news-channel landing page's (.../webhook-trigger/7f254ff9-...), so
+    // ad leads and news-channel leads stay tellable apart.
+    // 2026-10-26: repointed from the old "Landing Page Follow Ups" trigger
+    // (DnQegzTCnElUUfG9Sqr1, now a draft) to the snapshot's "LP Follow Ups".
+    webhookUrl: "https://services.leadconnectorhq.com/hooks/OznT3yyuwK3dqVXDsCaD/webhook-trigger/XkSMcOJ5T4ZFoZJbHI8Q",
 
     // Where the funnel reports its OWN conversion to Meta, server-side.
     //
