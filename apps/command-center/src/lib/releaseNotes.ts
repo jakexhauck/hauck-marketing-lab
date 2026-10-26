@@ -34,6 +34,7 @@ export const RELEASES: Release[] = [
       "The GHL bot follows the Mission Control GHL map: it sets custom values, custom fields and calendar hours, and gives you steps for the rest.",
       "Bots tick their own Mission Control tasks with proof, and write the Research and Ads plan pages. Every change they make is logged, capped at 60 a day.",
       "The Ads map in Mission Control now shows the build step as the agent's, paused, with your publish after.",
+      "Bots can make a client's Drive folder with the Client Setup docs. If a folder under another name looks like the client's, they stop and ask you.",
     ],
   },
   {

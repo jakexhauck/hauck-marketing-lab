@@ -8,6 +8,8 @@ import { getGhlContextForTenant } from "./tenantGhl";
 import { resolveMetaToken } from "./metaToken";
 import { patchTask, readTasks } from "./clientTasks";
 import { readPages, savePage } from "./briefPagesStore";
+import { CLIENT_FOLDER_PREFIX, clientDriveRoot, clientFolderName, ensureClientFolder } from "./clientDriveFolder";
+import { composioDriveConfigured, listFolders, resolveDriveAccount } from "./driveComposio";
 import { parsePage, type AdsPage, type BriefPageId } from "../../src/lib/briefPages";
 import type { TaskOwner } from "../../src/lib/clientTasks";
 import { BuildRefused, buildCtx, createAd, createAdset, createCampaign, NO_PLAN_CAP_USD, planDailySpend, type BuildCtx } from "./grokMetaBuild";
@@ -257,6 +259,59 @@ const ghlSetCalendarHours: ToolDef<GrokDeps> = {
   },
 };
 
+// ---------- Client Drive folder ----------
+
+// The brand word a business name starts with: "clear" in "Clear Choice
+// Windows". Trade words ("garage", "windows") come later and are shared by
+// clients, so they never count.
+const brandWord = (name: string): string =>
+  name
+    .replace(CLIENT_FOLDER_PREFIX.trim(), "")
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .split(/\s+/)
+    .filter((w) => w && w !== "the")[0] ?? "";
+
+/**
+ * Client folders in the root that start with this client's brand word but are
+ * not its exact folder: "🤝 | Clear Choice Owensboro" for "Clear Choice
+ * Windows". ensureClientFolder would not link those, it would make a twin, so
+ * the tool stops and names them. Refusing too often is the safe mistake.
+ */
+export function lookalikeFolders(clientName: string, folderNames: string[]): string[] {
+  const exact = clientFolderName(clientName);
+  const mine = brandWord(clientName);
+  if (mine.length < 2) return [];
+  return folderNames.filter((f) => f.startsWith(CLIENT_FOLDER_PREFIX.trim()) && f.trim() !== exact && brandWord(f) === mine);
+}
+
+const createClientFolderTool: ToolDef<GrokDeps> = {
+  name: "create_client_folder",
+  description:
+    "The client's Google Drive folder (\"🤝 | Name\" with Finished Creatives and a copy of every Client Setup doc, the Mission Control doc among them). Links the folder if it already exists. If a folder that looks like this client's exists under another name, it stops and names it: ask Jake to link that one, and pass new_folder_ok: true only when he says to make a new one.",
+  inputSchema: schema({ ...base, new_folder_ok: { type: "boolean", description: "Only after Jake says the look-alike folder is not this client's." } }, ["client", "bot"]),
+  run: async (d, a) => {
+    const bot = botOf(a);
+    const c = await findClient(d, a);
+    const { data: linked, error } = await d.client.from("client_folders").select("folder_id").eq("tenant_id", c.id).limit(1).maybeSingle();
+    if (error) throw new Error(`folders: ${error.message}`);
+    if (!linked && a.new_folder_ok !== true && composioDriveConfigured(d.env)) {
+      const names = (await said("Drive", resolveDriveAccount(d.env).then((acct) => listFolders(d.env, acct, clientDriveRoot(d.env))))).map((f) => f.name);
+      if (!names.includes(clientFolderName(c.name))) {
+        const like = lookalikeFolders(c.name, names);
+        if (like.length) {
+          throw new Error(`${c.name} has no folder linked, and ${like.join(", ")} looks like it could be theirs. Ask Jake: link that one in the app, or say to make a new folder.`);
+        }
+      }
+    }
+    return write(d, "create_client_folder", c, bot, { new_folder_ok: a.new_folder_ok === true }, async () => {
+      const out = await ensureClientFolder(d.env, d.client, c.id, c.name, null);
+      if (!out.folder) throw new Error(out.warning ?? "No Drive folder was made.");
+      return { folder: out.folder.name, link: out.folder.webViewLink, ...(out.warning ? { warning: out.warning } : {}) };
+    });
+  },
+};
+
 // ---------- Mission Control plan pages ----------
 
 // Who writes which page (Jake, 2026-10-26: the bots took over from Hermes).
@@ -358,6 +413,7 @@ export const GROK_WRITE_TOOLS: ToolDef<GrokDeps>[] = [
   ghlSetCalendarHours,
   updateTask,
   savePlanPage,
+  createClientFolderTool,
 ];
 
 /** Everything the connector lists: the reads, then the writes. */

@@ -5,7 +5,7 @@ import writeSource from "./grokWriteTools.ts?raw";
 import buildSource from "./grokMetaBuild.ts?raw";
 import { cleanNote, handleBody, handleRpc, isGrokMcpRequest, matchClient, vaultKeyFor, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
 import { GROK_TOOLS, LINK_HIDDEN, flowGuide, fulfillmentSop, hideLinks, leadsFrom, type GrokDeps } from "./grokTools";
-import { BOT_LANES, GROK_ALL_TOOLS, PAGE_WRITERS, planSpendProblem, weekFrom } from "./grokWriteTools";
+import { BOT_LANES, GROK_ALL_TOOLS, PAGE_WRITERS, lookalikeFolders, planSpendProblem, weekFrom } from "./grokWriteTools";
 import type { AdsPage } from "../../src/lib/briefPages";
 import { GROK_BOTS, GROK_HOUSE_RULES, GROK_RULES, GROK_VAULT } from "./grokBundle.generated";
 
@@ -199,6 +199,7 @@ describe("what the connector can touch", () => {
     expect(GROK_ALL_TOOLS.map((t) => t.name).slice(GROK_TOOLS.length)).toEqual([
       "meta_create_campaign", "meta_create_adset", "meta_create_ad",
       "ghl_set_custom_value", "ghl_create_custom_field", "ghl_set_calendar_hours", "update_task", "save_plan_page",
+      "create_client_folder",
     ]);
     expect(routeSource).toMatch(/handleBody\(body, GROK_ALL_TOOLS,/);
   });
@@ -229,6 +230,21 @@ describe("what the connector can touch", () => {
     const ghlRun = writeSource.slice(writeSource.indexOf("function ghlTool("));
     expect(ghlRun.indexOf("isSecretValue(")).toBeGreaterThan(0);
     expect(ghlRun.indexOf("isSecretValue(")).toBeLessThan(ghlRun.indexOf("return write("));
+  });
+
+  it("a client folder under another name stops the tool instead of making a twin", () => {
+    const root = ["🤝 | Clear Choice Owensboro", "🤝 | Willis Window Washing", "🤝 | Made Better LC", "Hauck Admin", "🤝 | Above All Garage Doors"];
+    expect(lookalikeFolders("Clear Choice Windows", root)).toEqual(["🤝 | Clear Choice Owensboro"]);
+    // The exact folder is ensureClientFolder's to link, not a look-alike.
+    expect(lookalikeFolders("Above All Garage Doors", root)).toEqual([]);
+    // Shared trade words never count: TNT is not Above All.
+    expect(lookalikeFolders("TNT Garage Doors & Openers", root)).toEqual([]);
+    expect(lookalikeFolders("Willis Windows", root)).toEqual(["🤝 | Willis Window Washing"]);
+    expect(lookalikeFolders("Made Better Landscaping Co", root)).toEqual(["🤝 | Made Better LC"]);
+    expect(lookalikeFolders("Brand New Client", root)).toEqual([]);
+    // The tool runs the check before write(), so a refusal costs nothing.
+    const run = writeSource.slice(writeSource.indexOf("const createClientFolderTool"));
+    expect(run.indexOf("lookalikeFolders(")).toBeLessThan(run.indexOf("return write("));
   });
 
   it("plan pages: each has one writer, and no bot raises its own budget ceiling", () => {
