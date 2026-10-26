@@ -421,6 +421,14 @@ Hauck Brain is gone. Bots get one connector per system Grok cannot connect itsel
 ### Your action items
 1. **Add the two connectors in Grok.** Custom, "Hauck GHL" and "Hauck Meta", URLs in `agency/grok-bots/README.md`. Delete Hauck Brain and the old test connector.
 2. **Write each bot's instructions** in Grok.
+2b. **Before giving Grok Hauck Software** (health sweep 2026-10-26, code fixes shipped `d6b5b7fe` + `daaff95d`):
+   - Reinstall the GHL app (every client reads "Reinstall the app"): Admin > any client > Management > Install app > Agency "Hauck Marketing" > Install under all locations > Proceed.
+   - Switch on the 30-minute health check: in Claude Code type `! node "<session scratchpad>/enable-health-cron.mjs"` (Claude has the exact path). It stores the secret, binds it, deploys the Worker, redeploys the app and checks one run.
+   - Above All: if its "flip Google title to Confirmed" webhooks are in use, paste a new all-scopes Private Integration Token into the Location API Token custom value (it now holds a key that lapses 2026-10-27).
+   - Drive: the old Assets hub sign-in is dead and lapses every 7 days by design (Google app in Testing). Retire the Assets hub or reconnect it.
+   - TNT: Jimmy Tobias stopped the onboarding form at step 2 on 10-16; no sub-account, no login. Chase or retire.
+   - Made Better has duplicate Home Estimate, Job and Phone Appointment calendars from the snapshot load; the originals hold the bookings. Delete the copies when convenient.
+   - Ask Made Better, Above All and Clear Choice to turn on phone notifications in the app.
 2a. **Add Hauck Software** (2026-10-26): Custom connector "Hauck Software", URL `https://app.hauckmarketing.com/api/grok/software/<GROK_MCP_KEY>`. It creates clients (held at setup), adds logins, links GHL, reads health, re-runs setup values. Write the Software bot's instructions, including how often it checks health and who it tells.
 3. **Switch the Meta app to Live.** developers.facebook.com > Hauck Marketing Lab (app 1498131278774943) > App Mode: Live. Meta refuses ad creatives from an app in Development mode.
 4. **Build each lead form yourself** (your call 2026-10-26). Meta's API cannot set close-form answers.
