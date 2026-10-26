@@ -17,7 +17,7 @@ import { ADS_CRON_HEADER, isAdsCronRequest } from "../lib/adsCron";
 import { CALENDAR_CRON_HEADER, isCalendarCronRequest } from "../lib/calendarCron";
 import { COLD_CALL_CRON_HEADER, isColdCallCronRequest } from "../lib/coldCallCron";
 import { AGENT_RUNNER_HEADER, isAgentRunnerRequest } from "../lib/agentRunner";
-import { isGrokMcpRequest } from "../lib/grokMcp";
+import { GROK_MCP_BASE, isGrokMcpRequest } from "../lib/grokMcp";
 import { funnelOriginAllowed } from "../lib/funnelUrl";
 import { logError } from "../lib/errorLog";
 
@@ -481,8 +481,10 @@ async function runNext(
     // The same detail becomes an error_log receipt (0119) so the admin errors
     // surface and the health probe can see failure patterns without log tailing.
     const message = err instanceof Error ? err.message : "unknown error";
-    console.error("[api]", url.pathname, message);
-    await logError(ctx.env, "api", message, { path: url.pathname }).catch(() => {});
+    // The Grok connector's key is its last path segment; it never reaches a log.
+    const path = url.pathname.startsWith(GROK_MCP_BASE) ? `${GROK_MCP_BASE}<key>` : url.pathname;
+    console.error("[api]", path, message);
+    await logError(ctx.env, "api", message, { path }).catch(() => {});
     return json(500, { error: "internal_error" }, origin, ctx.env);
   }
 }

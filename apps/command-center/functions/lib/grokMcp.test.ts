@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import toolsSource from "./grokTools.ts?raw";
 import routeSource from "../api/grok/mcp/[key].ts?raw";
 import { cleanNote, handleBody, handleRpc, isGrokMcpRequest, matchClient, vaultKeyFor, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
-import { GROK_TOOLS, fulfillmentSop, leadsFrom, type GrokDeps } from "./grokTools";
+import { GROK_TOOLS, LINK_HIDDEN, fulfillmentSop, hideLinks, leadsFrom, type GrokDeps } from "./grokTools";
 import { GROK_BOTS, GROK_HOUSE_RULES, GROK_RULES, GROK_VAULT } from "./grokBundle.generated";
 
 const KEY = "k".repeat(40);
@@ -70,6 +70,14 @@ describe("handleRpc", () => {
     expect(r.result.content[0].text).toContain("[Cut at");
   });
 
+  it("refuses a batch over the cap and survives junk inside one", async () => {
+    const many = Array.from({ length: 11 }, (_, i) => ({ jsonrpc: "2.0", id: i, method: "ping" }));
+    expect(((await handleBody(many, tools, null)) as any).error.message).toMatch(/at most 10/);
+    const out = (await handleBody([null, { jsonrpc: "2.0", id: 1, method: "ping" }], tools, null)) as any[];
+    expect(out[0].error.code).toBe(-32600);
+    expect(out[1].result).toEqual({});
+  });
+
   it("rejects unknown methods and bad bodies", async () => {
     const r = (await handleRpc({ jsonrpc: "2.0", id: 6, method: "resources/list" }, tools, null)) as any;
     expect(r.error.code).toBe(-32601);
@@ -110,6 +118,22 @@ describe("cleanNote", () => {
     expect(cleanNote(`  New offer ${EM} $200 off\n gutters `)).toBe("New offer, $200 off gutters");
     expect(() => cleanNote("")).toThrow();
     expect(() => cleanNote("x".repeat(501))).toThrow(/under 500/);
+  });
+});
+
+describe("hideLinks", () => {
+  it("hides every link and app-owned value, keeps plain values", () => {
+    const out = hideLinks([
+      { name: "Open Lead", value: "https://app.hauckmarketing.com/api/n?o=abc", appOwned: true },
+      { name: "Lead Outcome Link", value: "https://app.hauckmarketing.com/o?l=1&c=2&k=3", appOwned: false },
+      { name: "Webhook", value: "https://services.leadconnectorhq.com/hooks/x/webhook-trigger/uuid", appOwned: false },
+      { name: "Site", value: "www.example.com", appOwned: false },
+      { name: "Business Name", value: "Willis Windows", appOwned: false },
+      { name: "API Key", value: "(hidden)", appOwned: false },
+    ]) as any[];
+    expect(out.slice(0, 4).every((v) => v.value === LINK_HIDDEN)).toBe(true);
+    expect(out[4].value).toBe("Willis Windows");
+    expect(out[5].value).toBe("(hidden)");
   });
 });
 

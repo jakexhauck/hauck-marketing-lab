@@ -57,6 +57,9 @@ const PROTOCOL_FALLBACK = "2025-06-18";
 
 /** One JSON-RPC message in, one reply out (null for a notification). */
 export async function handleRpc<D>(msg: Msg, tools: ToolDef<D>[], deps: D): Promise<Reply | null> {
+  if (!msg || typeof msg !== "object" || Array.isArray(msg)) {
+    return { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid request" } };
+  }
   const { id, method, params } = msg;
   if (id === undefined || id === null) return null;
   const ok = (result: unknown) => ({ jsonrpc: "2.0", id, result });
@@ -90,10 +93,22 @@ export async function handleRpc<D>(msg: Msg, tools: ToolDef<D>[], deps: D): Prom
   }
 }
 
+// Grok sends one message per POST. A batch is allowed but small and run in
+// order, so one request cannot fan out into hundreds of paid Places calls,
+// a GHL rate-limit burn, or note inserts that all pass the cap check at once.
+export const MAX_BATCH = 10;
+
 /** A POST body: one message or a batch. Null means nothing to send back (202). */
 export async function handleBody<D>(body: unknown, tools: ToolDef<D>[], deps: D): Promise<Reply | Reply[] | null> {
   if (Array.isArray(body)) {
-    const out = (await Promise.all(body.map((m) => handleRpc(m as Msg, tools, deps)))).filter((r): r is Reply => r !== null);
+    if (body.length > MAX_BATCH) {
+      return { jsonrpc: "2.0", id: null, error: { code: -32600, message: `Batch of ${body.length}; at most ${MAX_BATCH}` } };
+    }
+    const out: Reply[] = [];
+    for (const m of body) {
+      const r = await handleRpc(m as Msg, tools, deps);
+      if (r) out.push(r);
+    }
     return out.length ? out : null;
   }
   if (!body || typeof body !== "object") return { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid request" } };

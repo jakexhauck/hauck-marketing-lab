@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-26-grok-bots",
+    date: "26 October 2026",
+    title: "Grok Bots connect to the app",
+    items: [
+      "Six Grok Bots (Executive Assistant, Success Manager, Ads, Creative, Market Research, GHL) read clients, tasks, research, ad results and CRM setup through one connector, the Hauck Brain.",
+      "Bots can save a fact about a client, and every bot sees it next time.",
+      "Connections lists the Hauck Brain key.",
+    ],
+  },
+  {
     id: "2026-10-26-app-texting",
     date: "26 October 2026",
     title: "Texting on app-linked clients",
