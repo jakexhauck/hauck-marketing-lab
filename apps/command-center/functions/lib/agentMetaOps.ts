@@ -110,7 +110,7 @@ const text = (v: unknown, max: number): string | null =>
 const cents = (v: unknown): number | null => (typeof v === "number" && Number.isSafeInteger(v) && v > 0 ? v : null);
 const sameName = (a: unknown, b: string) => String(a ?? "").trim() === b.trim();
 
-async function graphPost(token: string, path: string, params: Record<string, string>): Promise<Row> {
+export async function graphPost(token: string, path: string, params: Record<string, string>): Promise<Row> {
   const body = new URLSearchParams(params);
   body.set("access_token", token);
   const res = await fetch(GRAPH + path, { method: "POST", body });
@@ -325,14 +325,14 @@ const NOT_IN_LIBRARY =
 
 // One page of the account's videos, newest first. Bounded on purpose: the
 // video for a new ad is one Jake just sent from Creatives.
-async function libraryVideos(ctx: Ctx): Promise<{ id: string; name: string; ready: boolean }[]> {
+export async function libraryVideos(ctx: { token: string; account: string }): Promise<{ id: string; name: string; ready: boolean }[]> {
   const r = await graphGet(ctx.token, `/${ctx.account}/advideos`, { fields: "id,title,status", limit: "200" });
   return ((r.data as Row[]) ?? [])
     .filter((v) => typeof v.id === "string")
     .map((v) => ({ id: String(v.id), name: String(v.title ?? ""), ready: ((v.status ?? {}) as Row).video_status === "ready" }));
 }
 
-async function thumbnailOf(ctx: Ctx, videoId: string): Promise<string> {
+export async function thumbnailOf(ctx: { token: string }, videoId: string): Promise<string> {
   const t = await graphGet(ctx.token, `/${videoId}/thumbnails`, { fields: "uri,is_preferred" });
   const thumbs = ((t.data as Row[]) ?? []).filter((x) => typeof x.uri === "string");
   const pick = thumbs.find((x) => x.is_preferred === true) ?? thumbs[0];

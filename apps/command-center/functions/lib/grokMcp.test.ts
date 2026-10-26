@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import toolsSource from "./grokTools.ts?raw";
 import routeSource from "../api/grok/mcp/[key].ts?raw";
+import writeSource from "./grokWriteTools.ts?raw";
+import buildSource from "./grokMetaBuild.ts?raw";
 import { cleanNote, handleBody, handleRpc, isGrokMcpRequest, matchClient, vaultKeyFor, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
-import { GROK_TOOLS, LINK_HIDDEN, fulfillmentSop, hideLinks, leadsFrom, type GrokDeps } from "./grokTools";
+import { GROK_TOOLS, LINK_HIDDEN, flowGuide, fulfillmentSop, hideLinks, leadsFrom, type GrokDeps } from "./grokTools";
+import { BOT_LANES, GROK_ALL_TOOLS, weekFrom } from "./grokWriteTools";
 import { GROK_BOTS, GROK_HOUSE_RULES, GROK_RULES, GROK_VAULT } from "./grokBundle.generated";
 
 const KEY = "k".repeat(40);
@@ -171,6 +174,16 @@ describe("the bundle", () => {
     const text = await GROK_TOOLS.find((t) => t.name === "get_guide")!.run({} as GrokDeps, { name: "fulfillment-sop" });
     expect(text).toBe(sop);
   });
+
+  it("serves the Mission Control maps, who does each box included", async () => {
+    const ghl = flowGuide("ghl");
+    expect(ghl).toContain("sub-account to automations live");
+    expect(ghl).toMatch(/## custom values \(the bot\)/);
+    expect(ghl).toMatch(/## connect facebook \(Jake\)/);
+    const text = await GROK_TOOLS.find((t) => t.name === "get_guide")!.run({} as GrokDeps, { name: "flow-ads" });
+    expect(text).toMatch(/## build paused \(the bot\)/);
+    expect(text).not.toContain(EM);
+  });
 });
 
 describe("what the connector can touch", () => {
@@ -178,9 +191,61 @@ describe("what the connector can touch", () => {
     expect(GROK_TOOLS.map((t) => t.name).sort()).toEqual(
       [
         "get_rules", "get_guide", "list_clients", "get_client", "get_research", "get_ads_plan", "get_ad_results",
-        "get_ad_structure", "get_lead_results", "get_ghl_setup", "get_tasks", "places_search", "places_reviews", "save_note",
+        "get_ad_structure", "get_ad_assets", "get_lead_results", "get_ghl_setup", "get_tasks", "places_search", "places_reviews",
+        "save_note",
       ].sort(),
     );
+    expect(GROK_ALL_TOOLS.map((t) => t.name).slice(GROK_TOOLS.length)).toEqual([
+      "meta_create_lead_form", "meta_create_campaign", "meta_create_adset", "meta_create_ad",
+      "ghl_set_custom_value", "ghl_create_custom_field", "ghl_set_calendar_hours", "update_task",
+    ]);
+    expect(routeSource).toMatch(/handleBody\(body, GROK_ALL_TOOLS,/);
+  });
+
+  it("Meta: creates only, always paused", () => {
+    expect(buildSource).not.toMatch(/"ACTIVE"|DELETE|ARCHIVED/);
+    // Five creates and nothing else: no post to an existing object's own id.
+    const posts = (buildSource.match(/graphPost\([^,]+, `[^`]+`/g) ?? []).map((p) => p.replace(/^graphPost\([^,]+, /, ""));
+    expect(posts).toEqual([
+      "`/${p.pageId}/leadgen_forms`",
+      "`/${ctx.account}/campaigns`",
+      "`/${ctx.account}/adsets`",
+      "`/${ctx.account}/adcreatives`",
+      "`/${ctx.account}/ads`",
+    ]);
+    // Campaign, ad set and ad each say PAUSED, and nothing takes a status from the bot.
+    expect(buildSource.match(/^\s+status: "PAUSED",$/gm)?.length).toBe(3);
+    expect(buildSource).not.toMatch(/a\.status/);
+  });
+
+  it("every write is counted and logged before it is sent", () => {
+    expect(writeSource).toMatch(/logAdminAction\(d\.client, admin, `grok:\$\{tool\}`/);
+    expect(writeSource).toMatch(/if \(!logged\) throw/);
+    // GHL writes only through the allowlisted ops and the hours writer; no raw calls, no table writes.
+    expect(writeSource).not.toMatch(/ghlFetch|ghlJson|graphPost|method:\s*"(POST|PUT|DELETE)"/);
+    expect(writeSource).not.toMatch(/\.(insert|upsert|delete|rpc)\(/);
+    expect(writeSource).toMatch(/\{ handoffs: false \}/);
+    // A credential is refused before write() logs the args, so no token reaches the audit row.
+    const ghlRun = writeSource.slice(writeSource.indexOf("function ghlTool("));
+    expect(ghlRun.indexOf("isSecretValue(")).toBeGreaterThan(0);
+    expect(ghlRun.indexOf("isSecretValue(")).toBeLessThan(ghlRun.indexOf("return write("));
+  });
+
+  it("a bot moves only its own lane's tasks; the assistant moves none", () => {
+    expect(BOT_LANES["executive-assistant"]).toEqual([]);
+    expect(Object.keys(BOT_LANES).sort()).toEqual([...GROK_BOTS].sort());
+    for (const lanes of Object.values(BOT_LANES)) expect(lanes).not.toContain("jake");
+  });
+
+  it("calendar hours: named days, closed when unlisted, bad times refused", () => {
+    const week = weekFrom([
+      { day: "Mon", open: "08:00", close: "17:00" },
+      { day: "tuesday", open: "08:00", close: "17:00" },
+    ]);
+    expect(week).toEqual([{ daysOfTheWeek: [1, 2], hours: [{ openHour: 8, openMinute: 0, closeHour: 17, closeMinute: 0 }] }]);
+    expect(() => weekFrom([{ day: "Mon", open: "17:00", close: "08:00" }])).toThrow(/close is after/);
+    expect(() => weekFrom([{ day: "Someday", open: "08:00", close: "17:00" }])).toThrow(/weekday/);
+    expect(() => weekFrom([])).toThrow();
   });
 
   it("writes nothing but grok_notes", () => {

@@ -33,6 +33,7 @@ If an ask spans several lanes, split it, send each part to its owner, and say wh
 - `get_tasks(client)`: open loops, owners, what each waits on, what waits on Jake.
 - `get_ad_results(client, days, level)` and `get_lead_results(client, range)`: only for a quick glance in the digest or a one-line answer. Anything deeper goes to Ads or Success Manager.
 - `save_note`: a decision Jake makes in your chat about a client.
+- `get_guide("flow-fulfillment")`: the live Mission Control map of a client from signed to live. You tick no tasks: the owner of each does, so chase them.
 
 ## How you route
 

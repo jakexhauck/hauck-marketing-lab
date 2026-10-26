@@ -42,17 +42,17 @@ Good answer:
 - One call per ad (Kill / Watch / Scale / Refresh / Hold) with the reason
 - Short, no em dashes
 
-### 2. Setup steps
+### 2. Build the launch campaign
 
-> Comfort Wizards: give me the steps to build the launch campaign.
+> Comfort Wizards: build the launch campaign.
 
 Good answer:
-- Reads `get_ads_plan`, `get_client` and `get_ad_structure` first
-- Uses the plan's real offer and daily spend, and the client's service area
-- Numbered click-by-click steps: campaign, ad set, lead form, ads
-- Asks rather than guesses any setting the plan does not give
-- Ends with the launch QA list, including a test lead the GHL bot confirms
-- Says copy comes from Creative, and never claims to have built anything
+- Reads `get_ads_plan`, `get_client`, `get_ad_structure`, `get_ad_assets` and `get_tasks` first
+- Asks for anything missing (zips, approved copy from Creative, creatives) instead of guessing
+- Runs each campaign, ad set and ad with `check_only` first, then builds them, all PAUSED
+- Uses the plan's real offer and daily spend; refuses nothing the tool refused
+- Hands Jake the form's close-form steps, the launch QA, and "review and publish"
+- Ticks its tasks with the ids as proof
 
 ### 3. Stays in its lane
 

@@ -19,13 +19,17 @@ import { buildTrackerResponse, DEFAULT_RANGE } from "./adsTrackerResponse";
 import { metaQuery } from "../api/agent-runner/meta";
 import { BRIEF_SECTIONS } from "../../src/lib/clientBrief";
 import { SOP_LISTS } from "../../src/lib/sopChecklists";
+import { AGENT_SOPS } from "../../src/lib/agentSops";
+import { BuildRefused, buildCtx, pageForms } from "./grokMetaBuild";
+import { libraryVideos } from "./agentMetaOps";
 import { cleanNote, matchClient, NOTES_PER_DAY, vaultKeyFor, type ClientRef, type ToolDef } from "./grokMcp";
 import { GROK_BOTS, GROK_GUIDES, GROK_HOUSE_RULES, GROK_RULES, GROK_VAULT } from "./grokBundle.generated";
 
 // What the Hauck Brain's tools do. Each is a thin wrapper over a lib the app
 // already uses, so a number a bot quotes is the number the app shows.
 //
-// Read only, all of them, except save_note (a row in grok_notes). What never
+// Read only, all of them, except save_note (a row in grok_notes); the write
+// tools live in grokWriteTools.ts. What never
 // leaves: the intake form's stored login (this file never selects the intake
 // table; loadClientFacts reads only its answers), GHL custom values that hold
 // credentials (read.customValues hides them), leads' names, phones and emails
@@ -57,7 +61,7 @@ async function clients(d: GrokDeps): Promise<ClientRef[]> {
     .map((t) => ({ id: String(t.id), name: String(t.name ?? ""), slug: String(t.slug ?? "") }));
 }
 
-const findClient = async (d: GrokDeps, a: Args) => matchClient(await clients(d), a.client);
+export const findClient = async (d: GrokDeps, a: Args) => matchClient(await clients(d), a.client);
 
 // ---------- Rules and guides ----------
 
@@ -89,7 +93,29 @@ export function fulfillmentSop(): string {
   return out.join("\n");
 }
 
-const guides = (): Record<string, string> => ({ ...GROK_GUIDES, "fulfillment-sop": fulfillmentSop() });
+// Who does a box on a Mission Control map, in the bots' words.
+const DOER: Record<string, string> = { agent: "the bot", jake: "Jake", review: "Jake approves", client: "the client", edit: "fix loop", start: "start", done: "handoff" };
+
+/** One Mission Control map (Settings > SOPs), read live from the code the app draws. */
+export function flowGuide(id: string): string {
+  const sop = AGENT_SOPS.find((s) => s.id === id);
+  if (!sop) throw new Error(`no Mission Control map "${id}"`);
+  const out = [`# Mission Control: ${sop.title}`, "Each box says who does it. \"The bot\" is the agent that owns this map."];
+  for (const n of sop.nodes) {
+    const who = DOER[n.k] ?? n.k;
+    out.push("", `## ${n.t} (${who})${n.link ? `, goes to the ${n.link} map` : ""}${n.src ? `, SOP: ${n.src}` : ""}`);
+    if (n.d?.length) out.push(n.d.join(", "));
+    for (const s of n.steps ?? []) out.push(`- ${s}`);
+  }
+  out.push("", "## Order", ...sop.edges.map(([a, b, label]) => `- ${sop.nodes.find((n) => n.id === a)?.t} -> ${sop.nodes.find((n) => n.id === b)?.t}${label ? ` (${label})` : ""}`));
+  return out.join("\n");
+}
+
+const guides = (): Record<string, string> => ({
+  ...GROK_GUIDES,
+  "fulfillment-sop": fulfillmentSop(),
+  ...Object.fromEntries(AGENT_SOPS.map((s) => [`flow-${s.id}`, flowGuide(s.id)])),
+});
 
 const getGuide: ToolDef<GrokDeps> = {
   name: "get_guide",
@@ -297,6 +323,27 @@ const getAdStructure: ToolDef<GrokDeps> = {
   },
 };
 
+const getAdAssets: ToolDef<GrokDeps> = {
+  name: "get_ad_assets",
+  description: "What an ad can be built from: the client's Creatives files (file_id), the ready videos in their Meta library (video_id), and the lead forms on their Facebook Page (lead_form_id).",
+  inputSchema: schema(clientArg, ["client"]),
+  run: async (d, a) => {
+    const c = await findClient(d, a);
+    const token = await resolveMetaToken(d.env);
+    if (!token) throw new Error("Meta is not connected for the agency.");
+    const settle = <T>(p: Promise<T>) => p.catch((err: Error) => `could not read: ${err.message}`);
+    const ctx = await buildCtx(d.client, c.id, token, () => Promise.reject(new Error("read only"))).catch((err: Error) => {
+      throw new Error(err instanceof BuildRefused ? err.message : `Meta: ${err.message}`);
+    });
+    const [files, videos, forms] = await Promise.all([
+      settle(listAdCreatives(d.client, c.id).then((fs) => fs.map((f) => ({ file_id: f.id, name: f.name, kind: f.kind, width: f.width, height: f.height })))),
+      settle(libraryVideos(ctx).then((vs) => vs.filter((v) => v.ready).map((v) => ({ video_id: v.id, name: v.name })))),
+      settle(pageForms(ctx).then((fs) => fs.map((f) => ({ lead_form_id: f.id, name: f.name, status: f.status })))),
+    ]);
+    return `# Ad assets: ${c.name}\n${json({ creativesFiles: files, libraryVideos: videos, leadForms: forms })}`;
+  },
+};
+
 // ---------- Lead results (tracker) ----------
 
 const RANGES = ["today", "yesterday", "last_7d", "last_14d", "last_30d", "this_month", "last_month", "maximum"];
@@ -465,6 +512,7 @@ export const GROK_TOOLS: ToolDef<GrokDeps>[] = [
   getAdsPlan,
   getAdResults,
   getAdStructure,
+  getAdAssets,
   getLeadResults,
   getGhlSetup,
   getTasks,

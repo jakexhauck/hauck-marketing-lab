@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-26-grok-build-tools",
+    date: "26 October 2026",
+    title: "Grok Bots build campaigns and GHL setup",
+    items: [
+      "The Ads bot builds the lead form, campaign, ad sets and ads in Meta. Everything stays paused until you publish.",
+      "The GHL bot follows the Mission Control GHL map: it sets custom values, custom fields and calendar hours, and gives you steps for the rest.",
+      "Bots tick their own Mission Control tasks with proof. Every change they make is logged, capped at 60 a day.",
+      "The Ads map in Mission Control now shows the build step as the agent's, paused, with your publish after.",
+    ],
+  },
+  {
     id: "2026-10-26-grok-bots",
     date: "26 October 2026",
     title: "Grok Bots connect to the app",
