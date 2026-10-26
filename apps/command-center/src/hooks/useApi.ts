@@ -80,6 +80,8 @@ import {
   type AdTrackerRange,
   type AdCreativeFilesResponse,
   type DriveImagesResponse,
+  type ClientDriveFile,
+  type ClientDriveResponse,
   type LeadCitiesResponse,
   type LeadTrackerResponse,
   type ManualLeadStatus,
@@ -1956,6 +1958,59 @@ export function useAdminDriveImagesQuery(tenantId: string) {
     staleTime: 5 * 60_000,
     queryFn: () => api<DriveImagesResponse>(`/api/admin/clients/${tenantId}/drive-images`),
   });
+}
+
+// Client > Folder (functions/api/admin/clients/[tenantId]/drive). folderId null
+// = the client's folder itself.
+const clientDriveKey = (tenantId: string) => ["admin", "client-drive", tenantId];
+
+export function useClientDriveQuery(tenantId: string, folderId: string | null) {
+  return useQuery({
+    queryKey: [...clientDriveKey(tenantId), folderId ?? "root"],
+    enabled: !!tenantId,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<ClientDriveResponse>(
+        `/api/admin/clients/${tenantId}/drive${folderId ? `?folder=${encodeURIComponent(folderId)}` : ""}`,
+      ),
+  });
+}
+
+export function useClientDriveActions(tenantId: string) {
+  const qc = useQueryClient();
+  const base = `/api/admin/clients/${tenantId}/drive`;
+  // The Image Converter reads the same folder, so an upload or delete shows there
+  // too. Returned, so a mutation stays pending until the fresh list is in.
+  const refresh = () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: clientDriveKey(tenantId) }),
+      qc.invalidateQueries({ queryKey: ["admin", "drive-images", tenantId] }),
+    ]);
+  return {
+    refresh,
+    create: useMutation({
+      mutationFn: (v: { kind: "folder" | "doc" | "sheet" | "slides"; name: string; parent: string }) =>
+        api<{ file: ClientDriveFile }>(base, { method: "POST", body: JSON.stringify(v) }),
+      onSettled: refresh,
+    }),
+    rename: useMutation({
+      mutationFn: (v: { id: string; name: string }) =>
+        api<{ ok: true }>(`${base}/${v.id}`, { method: "PATCH", body: JSON.stringify({ name: v.name }) }),
+      onSettled: refresh,
+    }),
+    trash: useMutation({
+      mutationFn: (id: string) => api<{ ok: true }>(`${base}/${id}`, { method: "DELETE" }),
+      onSettled: refresh,
+    }),
+    upload: useMutation({
+      mutationFn: (v: { parent: string; file: File }) =>
+        api<{ file: ClientDriveFile }>(
+          `${base}/upload?${new URLSearchParams({ parent: v.parent, name: v.file.name })}`,
+          { method: "POST", headers: { "content-type": v.file.type || "application/octet-stream" }, body: v.file },
+        ),
+      onSettled: refresh,
+    }),
+  };
 }
 
 const adminCreativeFilesKey = (tenantId: string) => ["admin", "creative-files", tenantId];

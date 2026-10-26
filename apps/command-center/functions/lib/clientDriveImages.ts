@@ -92,15 +92,19 @@ export async function isUnderFolder(
 export async function clientFolderFor(
   supabase: SupabaseClient,
   tenantId: string,
-): Promise<{ folderId: string; url: string } | null> {
+): Promise<{ folderId: string; name: string; url: string } | null> {
   const { data, error } = await supabase
     .from("client_folders")
-    .select("folder_id, web_view_link")
+    .select("folder_id, name, web_view_link")
     .eq("tenant_id", tenantId)
     .limit(1)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
-  const row = data as { folder_id: string; web_view_link: string | null };
-  return { folderId: row.folder_id, url: row.web_view_link ?? `https://drive.google.com/drive/folders/${row.folder_id}` };
+  const row = data as { folder_id: string; name: string; web_view_link: string | null };
+  return {
+    folderId: row.folder_id,
+    name: row.name,
+    url: row.web_view_link ?? `https://drive.google.com/drive/folders/${row.folder_id}`,
+  };
 }

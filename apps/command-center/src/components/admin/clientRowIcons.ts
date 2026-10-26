@@ -11,6 +11,7 @@ import {
   CalendarDays,
   ClipboardList,
   Database,
+  FolderOpen,
   Image,
   LayoutDashboard,
   ListChecks,
@@ -28,6 +29,7 @@ import type { ClientNavRow } from "../../lib/clientNav";
 // so it lives beside the chrome rather than in lib/clientNav.
 const ICONS: Record<string, LucideIcon> = {
   brief: NotebookText,
+  folder: FolderOpen,
   dashboard: LayoutDashboard,
   leads: ListChecks,
   "meta-data": Database,

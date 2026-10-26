@@ -2756,6 +2756,25 @@ export interface DriveImagesResponse {
   images: DriveImage[];
 }
 
+// Client > Folder: one folder of the client's Drive at a time. root null = no
+// Drive folder linked yet. path runs from the client's folder down to this one.
+export interface ClientDriveFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  isFolder: boolean;
+  webViewLink: string | null;
+  thumbnailLink: string | null;
+  modifiedTime: string | null;
+  size: string | null;
+}
+
+export interface ClientDriveResponse {
+  root: { folderId: string; name: string; url: string } | null;
+  path: { id: string; name: string }[];
+  files: ClientDriveFile[];
+}
+
 export async function fetchDriveImage(tenantId: string, fileId: string): Promise<Blob> {
   const res = await fetch(
     `${API_BASE}/api/admin/clients/${encodeURIComponent(tenantId)}/drive-images/${encodeURIComponent(fileId)}`,

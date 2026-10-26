@@ -210,18 +210,29 @@ async function proxyPost(
   endpoint: string,
   body: unknown,
 ): Promise<unknown> {
+  return (await proxyWrite(env, accountId, endpoint, "POST", body)).data;
+}
+
+/** A write in any method, with the whole envelope back (an upload needs its headers). */
+async function proxyWrite(
+  env: Env,
+  accountId: string,
+  endpoint: string,
+  method: "POST" | "PATCH",
+  body: unknown,
+): Promise<ProxyEnvelope> {
   const envelope = await callComposio<ProxyEnvelope>(env, "/tools/execute/proxy", {
     method: "POST",
     body: JSON.stringify({
       connected_account_id: accountId,
       endpoint,
-      method: "POST",
+      method,
       body,
     }),
   });
   const status = envelope.status ?? 200;
   if (status >= 400) throw driveError(endpoint, status, stringify(envelope.data));
-  return envelope.data;
+  return envelope;
 }
 
 /** Create a folder inside `parentId`. Returns what Drive says it made. */
@@ -734,6 +745,61 @@ export async function downloadDriveFile(env: Env, accountId: string, fileId: str
   if (!res.ok || !res.body) throw new Error(`Could not fetch the file from Drive (${res.status}).`);
   return res;
 }
+
+/** A new folder, Doc, Sheet or Slides inside `parentId`, the type set by `mimeType`. */
+export async function createDriveItem(
+  env: Env,
+  accountId: string,
+  parentId: string,
+  name: string,
+  mimeType: string,
+): Promise<DriveFile> {
+  if (!isValidFileId(parentId)) throw new Error(`invalid parent folder id: ${parentId}`);
+  const params = new URLSearchParams({ fields: ITEM_FIELDS, supportsAllDrives: "true" });
+  const data = asObject(await proxyPost(env, accountId, `/files?${params}`, { name, mimeType, parents: [parentId] }), "create");
+  if (typeof data.id !== "string") throw new Error("Drive made the item but returned no id.");
+  return normalize(data as unknown as RawFile);
+}
+
+/** Rename a file, or send it to Drive's trash (30 days to restore it there). */
+export async function updateDriveFile(
+  env: Env,
+  accountId: string,
+  fileId: string,
+  patch: { name: string } | { trashed: true },
+): Promise<void> {
+  if (!isValidFileId(fileId)) throw new Error(`invalid file id: ${fileId}`);
+  const params = new URLSearchParams({ fields: "id", supportsAllDrives: "true" });
+  await proxyWrite(env, accountId, `/files/${fileId}?${params}`, "PATCH", patch);
+}
+
+/**
+ * Upload a file into `parentId`. Composio opens a resumable upload session
+ * (a metadata call, which it carries) and the bytes go straight to the session
+ * link Google sends back. That link is its own authority for the one upload, so
+ * no token leaves Composio. Verified 2026-10-26 on a small text file.
+ */
+export async function uploadDriveFile(
+  env: Env,
+  accountId: string,
+  parentId: string,
+  name: string,
+  mimeType: string,
+  bytes: ArrayBuffer,
+): Promise<DriveFile> {
+  if (!isValidFileId(parentId)) throw new Error(`invalid parent folder id: ${parentId}`);
+  const params = new URLSearchParams({ uploadType: "resumable", supportsAllDrives: "true", fields: ITEM_FIELDS });
+  const envelope = await proxyWrite(env, accountId, `${UPLOAD_API}?${params}`, "POST", { name, mimeType, parents: [parentId] });
+  const session = Object.entries(envelope.headers ?? {}).find(([k]) => k.toLowerCase() === "location")?.[1];
+  if (!session) throw new Error("Drive did not open an upload.");
+  const res = await fetch(session, { method: "PUT", headers: { "content-type": mimeType }, body: bytes });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Drive upload failed (${res.status}): ${text.slice(0, 200)}`);
+  return normalize(JSON.parse(text) as RawFile);
+}
+
+const UPLOAD_API = "https://www.googleapis.com/upload/drive/v3/files";
+const ITEM_FIELDS = "id,name,mimeType,parents,webViewLink,iconLink,thumbnailLink,modifiedTime,size";
 
 /** A file's parent folder ids, for checking where it lives. [] for a root or missing file. */
 export async function fileParents(env: Env, accountId: string, fileId: string): Promise<string[]> {

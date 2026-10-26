@@ -30,6 +30,7 @@ import { MISSION_PAGE_IDS } from "./briefPages";
 
 export type ClientPageId =
   | "brief"
+  | "folder"
   | "director"
   | "paid-ads"
   | "ghl"
@@ -82,6 +83,9 @@ const PAGE_LABELS: Record<ClientPageId, string> = {
   // section per agent, Google Docs style (components/admin/agents/BriefPanel).
   // The same document sits beside the chat on every agent page.
   brief: "Brief",
+  // Jake, 2026-10-26: the client's whole Drive folder, files opening in the page
+  // (components/admin/folder/ClientFolder.tsx).
+  folder: "Folder",
   // Jake, 2026-10-20: the client's setup tasks in swimlanes, owners by phase,
   // seeded from the Client Fulfillment map (components/admin/director).
   director: "Director",
@@ -131,7 +135,7 @@ const subRows = (c: ClientGateInfo, page: ClientPageId): ClientNavRow[] =>
 
 export function clientNavGroups(c: ClientGateInfo): ClientNavGroup[] {
   return [
-    { caption: null, rows: [single("brief"), single("director")] },
+    { caption: null, rows: [single("brief"), single("director"), single("folder")] },
     { caption: "Agents", rows: subRows(c, "agent") },
     { caption: "Paid Ads", rows: subRows(c, "paid-ads") },
     { caption: "GHL", rows: subRows(c, "ghl") },

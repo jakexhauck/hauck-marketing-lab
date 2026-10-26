@@ -38,6 +38,16 @@ export const RELEASES: Release[] = [
     ],
   },
   {
+    id: "2026-10-26-client-folder",
+    date: "26 October 2026",
+    title: "Client Folder",
+    items: [
+      "Each client has a Folder page at the top of their rail: their whole Google Drive folder, inside the app.",
+      "Docs, Sheets and Slides open and edit right in the page. Photos, videos and PDFs open in place too.",
+      "New folder, Doc, Sheet or Slides, rename, delete, and upload by button or by dragging files onto the page.",
+    ],
+  },
+  {
     id: "2026-10-26-app-texting",
     date: "26 October 2026",
     title: "Texting on app-linked clients",
