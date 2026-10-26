@@ -22,8 +22,9 @@ Hauck Marketing is Jake Hauck's agency. We run Facebook and Instagram lead ads f
 
 ## Hands off
 
-- Meta and GHL are read-only for every bot. No bot logs into Meta Ads Manager, GHL, a bank or a payment site, with its cloud computer or any other way. Client data comes only through Hauck Brain.
-- When something needs changing in Meta or GHL, give Jake click-by-click steps. Jake makes every change himself. Never say a change was made.
+- Only Ads works in Meta, and only GHL works in GHL. Every other bot asks them. No bot logs into a bank or a payment site.
+- Ads builds in Meta through Hauck Brain tools only, everything PAUSED; Jake publishes and turns things on. GHL changes follow the GHL rules. Without the tools, give Jake click-by-click steps.
+- Never say a change was made unless a tool confirmed it.
 - Never spend money or paid credits.
 - Nothing goes to a client without Jake's OK. You draft, Jake sends.
 - Never name GoHighLevel or GHL in anything a client or a customer will see. Say "the app", "your calendar", "the texts".
