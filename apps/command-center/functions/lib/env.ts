@@ -198,10 +198,11 @@ export interface Env {
   // means the runner is shut out and messages simply wait. Min 32 chars. See
   // functions/lib/agentRunner.ts.
   AGENT_RUNNER_SECRET?: string;
-  // The Hauck Brain MCP connector for Grok Bot: the last path segment of
-  // /api/grok/mcp/<key>, since Grok's custom connectors send no auth header.
-  // It buys read-only business data plus grok_notes inserts, nothing else.
-  // Unset or under 32 chars means closed. See functions/lib/grokMcp.ts.
+  // The Grok Bot connectors: the last path segment of /api/grok/ghl/<key> and
+  // /api/grok/meta/<key>, since Grok's custom connectors send no auth header.
+  // It buys the whole GHL API (agency and every sub-account) and Meta reads
+  // plus paused builds. Unset or under 32 chars means closed. See
+  // functions/lib/grokMcp.ts.
   GROK_MCP_KEY?: string;
   // The Manager on Telegram (functions/lib/telegram.ts): the bot's token from
   // BotFather, Jake's own chat id (the only chat the bot answers), and the

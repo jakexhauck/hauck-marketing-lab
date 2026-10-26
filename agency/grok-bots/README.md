@@ -1,15 +1,20 @@
 # Grok Bots
 
-Hauck's Grok Bot agents reach the Command Center through one custom connector, the Hauck Brain (`/api/grok/mcp/<key>` on the app). Jake writes each bot's instructions in Grok himself; nothing here scripts how a bot behaves.
+Hauck's Grok Bot agents get one custom connector per system Grok cannot connect itself. Jake connects the rest (Supabase, Drive, Gmail) in Grok and writes each bot's instructions there; nothing here scripts how a bot behaves.
 
-## Files
+| Connector | URL on the app | What it does |
+|---|---|---|
+| Hauck GHL | `/api/grok/ghl/<GROK_MCP_KEY>` | The whole GHL API v2 through the Marketplace app: every client sub-account, plus the agency |
+| Hauck Meta | `/api/grok/meta/<GROK_MCP_KEY>` | Each client's Meta ads: results, structure, assets, and builds (always PAUSED, budgets capped) |
 
-- `guides/`: reference guides served by `get_guide`, alongside the copy guides in `projects/agent-runner/agents/copy/`, the fulfillment SOP and the Mission Control maps (both rendered from the app's code)
-- `build.mjs`: bundles the guides and every client's vault notes into the app. Runs on every app build
+The code is in `apps/command-center/functions/lib/grokGhl.ts` and `grokMeta.ts`. Every change a bot makes is logged in the app's audit log before it is sent.
 
-The tools live in `apps/command-center/functions/lib/grokTools.ts` (reads) and `grokWriteTools.ts` (changes). Every change a bot makes is logged in the app's audit log.
+`guides/` holds reference files to upload to a bot in Grok if it needs them.
 
 ## Set up (once)
 
-1. Grok, Connectors, New Connector, Custom. URL: `https://app.hauckmarketing.com/api/grok/mcp/<GROK_MCP_KEY>` (the key is in Doppler `hauck-command-center/prd`). Name it **Hauck Brain**.
-2. Write each bot's instructions in Grok.
+The key is in Doppler `hauck-command-center/prd` as `GROK_MCP_KEY`.
+
+1. Grok, Connectors, New Connector, Custom. Name **Hauck GHL**, URL `https://app.hauckmarketing.com/api/grok/ghl/<GROK_MCP_KEY>`.
+2. Same again: **Hauck Meta**, URL `https://app.hauckmarketing.com/api/grok/meta/<GROK_MCP_KEY>`.
+3. Delete the old Hauck Brain connector.

@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-26-grok-connectors",
+    date: "26 October 2026",
+    title: "Grok Bots get a GHL and a Meta connector",
+    items: [
+      "The Hauck Brain connector is gone. Bots now get one connector per system: Hauck GHL and Hauck Meta.",
+      "Hauck GHL is the whole GHL API through the Marketplace app, for every client and the agency. Every change is logged before it is sent.",
+      "Hauck Meta keeps the results, structure and assets reads, and the builds stay paused with capped budgets.",
+      "Supabase, Drive and Gmail are connected in Grok itself.",
+    ],
+  },
+  {
     id: "2026-10-26-onboarding-numbers",
     date: "26 October 2026",
     title: "Onboarding form asks for the numbers",

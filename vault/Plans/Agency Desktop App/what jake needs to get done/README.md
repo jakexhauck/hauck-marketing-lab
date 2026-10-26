@@ -414,16 +414,16 @@ The niche playbook framework is live. Three starter playbooks ship: `dental`, `g
 - **Auto-generating playbooks from past client folders.** Manual authoring only for v1.
 - **Per-niche benchmarks auto-applied to the Ads Manager.** Wiring playbook benchmarks into the dashboard as a fallback is a small follow-up.
 
-## Grok Bots + Hauck Brain connector (shipped 2026-10-26)
+## Grok Bots connectors (shipped 2026-10-26)
 
-Grok Bots reach the Command Center through one custom connector, the Hauck Brain (`/api/grok/mcp/<GROK_MCP_KEY>`). Tools only: you write each bot's instructions in Grok (your call 2026-10-26). Bots can build in Meta (always paused, budgets capped), set GHL custom values, fields and calendar hours, write the Research and Ads plan pages, tick Mission Control tasks and make client Drive folders. No money: no revenue, billing or invoices. Every change is logged.
+Hauck Brain is gone. Bots get one connector per system Grok cannot connect itself: **Hauck GHL** (`/api/grok/ghl/<GROK_MCP_KEY>`, the whole GHL API through the Marketplace app, every client and the agency) and **Hauck Meta** (`/api/grok/meta/<GROK_MCP_KEY>`, results plus builds that stay paused with capped budgets). Supabase, Drive and Gmail you connect in Grok. You write each bot's instructions in Grok. Every change is logged.
 
 ### Your action items
-1. **Swap the connector.** Grok, Connectors: delete the old test connector, add Custom "Hauck Brain" with the URL Claude puts on your clipboard. Every bot's 404 was this.
+1. **Add the two connectors in Grok.** Custom, "Hauck GHL" and "Hauck Meta", URLs in `agency/grok-bots/README.md`. Delete Hauck Brain and the old test connector.
 2. **Write each bot's instructions** in Grok.
 3. **Switch the Meta app to Live.** developers.facebook.com > Hauck Marketing Lab (app 1498131278774943) > App Mode: Live. Meta refuses ad creatives from an app in Development mode.
 4. **Build each lead form yourself** (your call 2026-10-26). Meta's API cannot set close-form answers.
-5. **Pick the next tools** from Claude's gap list.
+5. **Rotate GROK_MCP_KEY** (it was printed in a log once), then swap both URLs in Grok.
 6. **Decide on Hermes teardown**: the app's Agents section and the VPS runner are still running, and your own task ticks in the app still wake it.
 
 ---

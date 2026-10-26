@@ -1,17 +1,18 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { handleBody, isGrokMcpRequest } from "../../../lib/grokMcp";
-import { GROK_ALL_TOOLS } from "../../../lib/grokWriteTools";
+import { connectorOf, handleBody, isGrokMcpRequest } from "../../../lib/grokMcp";
+import { CONNECTORS } from "../../../lib/grokConnectors";
 
-// The Hauck Brain MCP endpoint for Grok Bot (lib/grokMcp.ts). The middleware
-// already checked the key; checking again here means a future middleware edit
-// cannot open this route by accident.
+// The Grok Bot connectors (lib/grokMcp.ts), one per system: /api/grok/ghl/<key>
+// and /api/grok/meta/<key>. The middleware already checked the key; checking
+// again here means a future middleware edit cannot open this route by accident.
 
 const notAllowed = () => new Response("Method not allowed", { status: 405, headers: { Allow: "POST" } });
 
 export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const url = new URL(ctx.request.url);
-  if (!isGrokMcpRequest(ctx.request.method, url.pathname, ctx.env.GROK_MCP_KEY)) {
+  const name = connectorOf(url.pathname);
+  if (!name || !isGrokMcpRequest(ctx.request.method, url.pathname, ctx.env.GROK_MCP_KEY)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   if (ctx.request.method !== "POST") return notAllowed();
@@ -25,7 +26,8 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
 
-  const out = await handleBody(body, GROK_ALL_TOOLS, { client, env: ctx.env });
+  const { server, tools } = CONNECTORS[name];
+  const out = await handleBody(body, server, tools, { client, env: ctx.env });
   if (out === null) return new Response(null, { status: 202 });
   return Response.json(out);
 };

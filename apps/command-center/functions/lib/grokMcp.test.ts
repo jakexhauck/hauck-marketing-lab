@@ -1,37 +1,51 @@
-import { describe, it, expect } from "vitest";
-import toolsSource from "./grokTools.ts?raw";
-import routeSource from "../api/grok/mcp/[key].ts?raw";
-import writeSource from "./grokWriteTools.ts?raw";
+import { describe, it, expect, vi } from "vitest";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import routeSource from "../api/grok/[connector]/[key].ts?raw";
+import ghlSource from "./grokGhl.ts?raw";
+import metaSource from "./grokMeta.ts?raw";
 import buildSource from "./grokMetaBuild.ts?raw";
-import { botName, cleanNote, handleBody, handleRpc, isGrokMcpRequest, matchClient, vaultKeyFor, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
-import { GROK_TOOLS, LINK_HIDDEN, flowGuide, fulfillmentSop, hideLinks, leadsFrom, withoutRevenue, type GrokDeps } from "./grokTools";
-import { GROK_ALL_TOOLS, NOT_FOR_BOTS, lookalikeFolders, planSpendProblem, weekFrom } from "./grokWriteTools";
-import type { AdsPage } from "../../src/lib/briefPages";
-import { GROK_GUIDES, GROK_VAULT } from "./grokBundle.generated";
+import { audited, botName, connectorOf, handleBody, handleRpc, isGrokMcpRequest, loggablePath, matchClient, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
+import { CONNECTORS } from "./grokConnectors";
+import { ghlMethod, ghlUrl, GHL_ORIGIN } from "./grokGhl";
+import { leadsFrom } from "./grokMeta";
 
 const KEY = "k".repeat(40);
-const EM = String.fromCharCode(0x2014);
 
 describe("isGrokMcpRequest", () => {
-  it("opens only the exact path with the key", () => {
-    expect(isGrokMcpRequest("POST", `/api/grok/mcp/${KEY}`, KEY)).toBe(true);
-    expect(isGrokMcpRequest("GET", `/api/grok/mcp/${KEY}`, KEY)).toBe(true);
-    expect(isGrokMcpRequest("DELETE", `/api/grok/mcp/${KEY}`, KEY)).toBe(true);
-    expect(isGrokMcpRequest("POST", `/api/grok/mcp/${KEY}x`, KEY)).toBe(false);
-    expect(isGrokMcpRequest("POST", `/api/grok/mcp/${KEY}/`, KEY)).toBe(false);
-    expect(isGrokMcpRequest("POST", `/api/admin/x/${KEY}`, KEY)).toBe(false);
-    expect(isGrokMcpRequest("POST", `/api/grok/mcp/`, KEY)).toBe(false);
-    expect(isGrokMcpRequest("PUT", `/api/grok/mcp/${KEY}`, KEY)).toBe(false);
+  it("opens only a known connector's exact path with the key", () => {
+    for (const name of ["ghl", "meta"]) {
+      expect(isGrokMcpRequest("POST", `/api/grok/${name}/${KEY}`, KEY)).toBe(true);
+      expect(isGrokMcpRequest("GET", `/api/grok/${name}/${KEY}`, KEY)).toBe(true);
+      expect(isGrokMcpRequest("DELETE", `/api/grok/${name}/${KEY}`, KEY)).toBe(true);
+      expect(isGrokMcpRequest("POST", `/api/grok/${name}/${KEY}x`, KEY)).toBe(false);
+      expect(isGrokMcpRequest("POST", `/api/grok/${name}/${KEY}/`, KEY)).toBe(false);
+      expect(isGrokMcpRequest("POST", `/api/grok/${name}/`, KEY)).toBe(false);
+      expect(isGrokMcpRequest("PUT", `/api/grok/${name}/${KEY}`, KEY)).toBe(false);
+    }
+    // The Hauck Brain is gone, and no other name opens.
+    expect(isGrokMcpRequest("POST", `/api/grok/mcp/${KEY}`, KEY)).toBe(false);
+    expect(isGrokMcpRequest("POST", `/api/grok/admin/${KEY}`, KEY)).toBe(false);
+    expect(isGrokMcpRequest("POST", `/api/admin/ghl/${KEY}`, KEY)).toBe(false);
   });
 
   it("is closed when the key is unset or short", () => {
-    expect(isGrokMcpRequest("POST", "/api/grok/mcp/", undefined)).toBe(false);
-    expect(isGrokMcpRequest("POST", "/api/grok/mcp/", "")).toBe(false);
-    expect(isGrokMcpRequest("POST", "/api/grok/mcp/short", "short")).toBe(false);
+    expect(isGrokMcpRequest("POST", "/api/grok/ghl/", undefined)).toBe(false);
+    expect(isGrokMcpRequest("POST", "/api/grok/ghl/", "")).toBe(false);
+    expect(isGrokMcpRequest("POST", "/api/grok/ghl/short", "short")).toBe(false);
+  });
+
+  it("names the connector, and the key never reaches a log", () => {
+    expect(connectorOf(`/api/grok/ghl/${KEY}`)).toBe("ghl");
+    expect(connectorOf(`/api/grok/meta/${KEY}`)).toBe("meta");
+    expect(connectorOf(`/api/grok/mcp/${KEY}`)).toBeNull();
+    expect(loggablePath(`/api/grok/ghl/${KEY}`)).toBe("/api/grok/ghl/<key>");
+    expect(loggablePath(`/api/grok/anything/${KEY}`)).not.toContain(KEY);
+    expect(loggablePath("/api/admin/clients")).toBe("/api/admin/clients");
   });
 });
 
 describe("handleRpc", () => {
+  const server = { name: "test", instructions: "Test server." };
   const echo: ToolDef<null> = {
     name: "echo",
     description: "echo",
@@ -42,50 +56,52 @@ describe("handleRpc", () => {
   const big: ToolDef<null> = { ...echo, name: "big", run: async () => "x".repeat(MAX_TOOL_TEXT + 10) };
   const tools = [echo, boom, big];
 
-  it("answers initialize with the client's protocol version", async () => {
-    const r = (await handleRpc({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-11-25" } }, tools, null)) as any;
+  it("answers initialize with the client's protocol version and the server's name", async () => {
+    const r = (await handleRpc({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-11-25" } }, server, tools, null)) as any;
     expect(r.result.protocolVersion).toBe("2025-11-25");
     expect(r.result.capabilities).toEqual({ tools: {} });
+    expect(r.result.serverInfo.name).toBe("test");
+    expect(r.result.instructions).toBe("Test server.");
   });
 
   it("returns nothing for notifications", async () => {
-    expect(await handleRpc({ jsonrpc: "2.0", method: "notifications/initialized" }, tools, null)).toBeNull();
-    expect(await handleBody([{ jsonrpc: "2.0", method: "notifications/initialized" }], tools, null)).toBeNull();
+    expect(await handleRpc({ jsonrpc: "2.0", method: "notifications/initialized" }, server, tools, null)).toBeNull();
+    expect(await handleBody([{ jsonrpc: "2.0", method: "notifications/initialized" }], server, tools, null)).toBeNull();
   });
 
   it("lists tools without their run functions", async () => {
-    const r = (await handleRpc({ jsonrpc: "2.0", id: 1, method: "tools/list" }, tools, null)) as any;
+    const r = (await handleRpc({ jsonrpc: "2.0", id: 1, method: "tools/list" }, server, tools, null)) as any;
     expect(r.result.tools.map((t: any) => t.name)).toEqual(["echo", "boom", "big"]);
     expect(r.result.tools[0].run).toBeUndefined();
   });
 
   it("calls a tool, and turns a throw or an unknown tool into isError", async () => {
-    const ok = (await handleRpc({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "echo", arguments: { text: "hi" } } }, tools, null)) as any;
+    const ok = (await handleRpc({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "echo", arguments: { text: "hi" } } }, server, tools, null)) as any;
     expect(ok.result.content[0].text).toBe("hi");
-    const bad = (await handleRpc({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "boom" } }, tools, null)) as any;
+    const bad = (await handleRpc({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "boom" } }, server, tools, null)) as any;
     expect(bad.result).toEqual({ content: [{ type: "text", text: "nope" }], isError: true });
-    const none = (await handleRpc({ jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "x" } }, tools, null)) as any;
+    const none = (await handleRpc({ jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "x" } }, server, tools, null)) as any;
     expect(none.result.isError).toBe(true);
   });
 
   it("cuts an answer that is too long", async () => {
-    const r = (await handleRpc({ jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "big" } }, tools, null)) as any;
+    const r = (await handleRpc({ jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "big" } }, server, tools, null)) as any;
     expect(r.result.content[0].text.length).toBeLessThan(MAX_TOOL_TEXT + 200);
     expect(r.result.content[0].text).toContain("[Cut at");
   });
 
   it("refuses a batch over the cap and survives junk inside one", async () => {
     const many = Array.from({ length: 11 }, (_, i) => ({ jsonrpc: "2.0", id: i, method: "ping" }));
-    expect(((await handleBody(many, tools, null)) as any).error.message).toMatch(/at most 10/);
-    const out = (await handleBody([null, { jsonrpc: "2.0", id: 1, method: "ping" }], tools, null)) as any[];
+    expect(((await handleBody(many, server, tools, null)) as any).error.message).toMatch(/at most 10/);
+    const out = (await handleBody([null, { jsonrpc: "2.0", id: 1, method: "ping" }], server, tools, null)) as any[];
     expect(out[0].error.code).toBe(-32600);
     expect(out[1].result).toEqual({});
   });
 
   it("rejects unknown methods and bad bodies", async () => {
-    const r = (await handleRpc({ jsonrpc: "2.0", id: 6, method: "resources/list" }, tools, null)) as any;
+    const r = (await handleRpc({ jsonrpc: "2.0", id: 6, method: "resources/list" }, server, tools, null)) as any;
     expect(r.error.code).toBe(-32601);
-    expect(((await handleBody("nonsense", tools, null)) as any).error.code).toBe(-32600);
+    expect(((await handleBody("nonsense", server, tools, null)) as any).error.code).toBe(-32600);
   });
 });
 
@@ -108,155 +124,42 @@ describe("matchClient", () => {
   });
 });
 
-describe("vaultKeyFor", () => {
-  it("maps app names to vault folders", () => {
-    const folders = ["Comfort Wizards LLC", "Made Better LC", "Willis Windows"];
-    expect(vaultKeyFor(folders, "Willis Windows")).toBe("Willis Windows");
-    expect(vaultKeyFor(folders, "Comfort Wizards")).toBe("Comfort Wizards LLC");
-    expect(vaultKeyFor(folders, "Nobody")).toBeNull();
-  });
-});
+describe("audited", () => {
+  // A Supabase stand-in: the owner lookup chain, and audit inserts that pass or fail.
+  function fakeClient(insertOk: boolean) {
+    const inserts: Record<string, unknown>[] = [];
+    const owner = { data: [{ id: "owner-1" }], error: null };
+    const chain: any = { select: () => chain, eq: () => chain, order: () => chain, limit: () => Promise.resolve(owner) };
+    const client = {
+      from: (table: string) =>
+        table === "admin_audit_log"
+          ? { insert: (row: Record<string, unknown>) => (inserts.push(row), Promise.resolve({ error: insertOk ? null : { message: "down" } })) }
+          : chain,
+    } as unknown as SupabaseClient;
+    return { client, inserts };
+  }
 
-describe("cleanNote", () => {
-  it("keeps one plain line, no em dashes, under the cap", () => {
-    expect(cleanNote(`  New offer ${EM} $200 off\n gutters `)).toBe("New offer, $200 off gutters");
-    expect(() => cleanNote("")).toThrow();
-    expect(() => cleanNote("x".repeat(501))).toThrow(/under 500/);
-  });
-});
-
-describe("hideLinks", () => {
-  it("hides every link and app-owned value, keeps plain values", () => {
-    const out = hideLinks([
-      { name: "Open Lead", value: "https://app.hauckmarketing.com/api/n?o=abc", appOwned: true },
-      { name: "Lead Outcome Link", value: "https://app.hauckmarketing.com/o?l=1&c=2&k=3", appOwned: false },
-      { name: "Webhook", value: "https://services.leadconnectorhq.com/hooks/x/webhook-trigger/uuid", appOwned: false },
-      { name: "Site", value: "www.example.com", appOwned: false },
-      { name: "Business Name", value: "Willis Windows", appOwned: false },
-      { name: "API Key", value: "(hidden)", appOwned: false },
-    ]) as any[];
-    expect(out.slice(0, 4).every((v) => v.value === LINK_HIDDEN)).toBe(true);
-    expect(out[4].value).toBe("Willis Windows");
-    expect(out[5].value).toBe("(hidden)");
-  });
-});
-
-describe("leadsFrom", () => {
-  it("takes the first lead type present, never a sum", () => {
-    expect(leadsFrom([{ action_type: "lead", value: "3" }, { action_type: "onsite_conversion.lead_grouped", value: "3" }])).toBe(3);
-    expect(leadsFrom([{ action_type: "onsite_conversion.lead_grouped", value: "2" }])).toBe(2);
-    expect(leadsFrom(undefined)).toBe(0);
-  });
-});
-
-describe("the bundle", () => {
-  it("holds guides and client notes, no em dashes, and no behaviour rules", () => {
-    expect(Object.keys(GROK_GUIDES).sort()).toEqual(
-      ["broll-prompts", "copy-editing", "copy-frameworks", "copywriting", "ogilvy", "past-scripts", "stop-slop"],
-    );
-    for (const g of Object.values(GROK_GUIDES)) expect(g).not.toContain(EM);
-    for (const v of Object.values(GROK_VAULT)) expect(`${v.profile}${v.memory}${v.brain}`).not.toContain(EM);
+  it("logs the change, naming the bot, before it runs", async () => {
+    const { client, inserts } = fakeClient(true);
+    const run = vi.fn(async () => {
+      expect(inserts).toHaveLength(1);
+      return "done";
+    });
+    expect(await audited(client, "ghl_request", "t1", { bot: "GHL Bot", path: "/x" }, run)).toBe("done");
+    expect(inserts[0]).toMatchObject({ admin_id: "owner-1", action: "grok:ghl_request", target_tenant_id: "t1", payload: { bot: "GHL Bot" } });
   });
 
-  it("tells no bot how to behave: Jake writes their instructions", async () => {
-    const init = await handleRpc({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }, [], {});
-    expect(JSON.stringify(init)).not.toMatch(/get_rules|every new task|before any/i);
-    expect(GROK_ALL_TOOLS.some((t) => t.name === "get_rules")).toBe(false);
+  it("makes no change when the log cannot be written", async () => {
+    const { client } = fakeClient(false);
+    const run = vi.fn(async () => "done");
+    await expect(audited(client, "ghl_request", "t1", { bot: "x" }, run)).rejects.toThrow(/not made/);
+    expect(run).not.toHaveBeenCalled();
   });
 
-  it("the fulfillment SOP guide comes from the app's checklists", async () => {
-    const sop = fulfillmentSop();
-    expect(sop).toContain("Full Setup Checklist");
-    expect(sop).toContain("Launch Call");
-    const text = await GROK_TOOLS.find((t) => t.name === "get_guide")!.run({} as GrokDeps, { name: "fulfillment-sop" });
-    expect(text).toBe(sop);
-  });
-
-  it("serves the Mission Control maps, who does each box included", async () => {
-    const ghl = flowGuide("ghl");
-    expect(ghl).toContain("sub-account to automations live");
-    expect(ghl).toMatch(/## custom values \(the bot\)/);
-    expect(ghl).toMatch(/## connect facebook \(Jake\)/);
-    const text = await GROK_TOOLS.find((t) => t.name === "get_guide")!.run({} as GrokDeps, { name: "flow-ads" });
-    expect(text).toMatch(/## build paused \(the bot\)/);
-    expect(text).not.toContain(EM);
-  });
-});
-
-describe("what the connector can touch", () => {
-  it("exposes exactly the planned tools", () => {
-    expect(GROK_TOOLS.map((t) => t.name).sort()).toEqual(
-      [
-        "get_guide", "list_clients", "get_client", "get_research", "get_ads_plan", "get_ad_results",
-        "get_ad_structure", "get_ad_assets", "get_lead_results", "get_ghl_setup", "get_tasks", "places_search", "places_reviews",
-        "save_note",
-      ].sort(),
-    );
-    expect(GROK_ALL_TOOLS.map((t) => t.name).slice(GROK_TOOLS.length)).toEqual([
-      "meta_create_campaign", "meta_create_adset", "meta_create_ad",
-      "ghl_set_custom_value", "ghl_create_custom_field", "ghl_set_calendar_hours", "update_task", "save_plan_page",
-      "create_client_folder",
-    ]);
-    expect(routeSource).toMatch(/handleBody\(body, GROK_ALL_TOOLS,/);
-  });
-
-  it("Meta: creates only, always paused", () => {
-    expect(buildSource).not.toMatch(/"ACTIVE"|DELETE|ARCHIVED/);
-    // Four creates and nothing else: no lead forms (Jake builds those), no post to an existing object's own id.
-    const posts = (buildSource.match(/graphPost\([^,]+, `[^`]+`/g) ?? []).map((p) => p.replace(/^graphPost\([^,]+, /, ""));
-    expect(posts).toEqual([
-      "`/${ctx.account}/campaigns`",
-      "`/${ctx.account}/adsets`",
-      "`/${ctx.account}/adcreatives`",
-      "`/${ctx.account}/ads`",
-    ]);
-    // Campaign, ad set and ad each say PAUSED, and nothing takes a status from the bot.
-    expect(buildSource.match(/^\s+status: "PAUSED",$/gm)?.length).toBe(3);
-    expect(buildSource).not.toMatch(/a\.status/);
-  });
-
-  it("every write is logged before it is sent, with no daily cap", () => {
-    expect(writeSource).not.toMatch(/WRITES_PER_DAY|admin_audit_log"\)\s*\.select/);
-    expect(writeSource).toMatch(/logAdminAction\(d\.client, admin, `grok:\$\{tool\}`/);
-    expect(writeSource).toMatch(/if \(!logged\) throw/);
-    // GHL writes only through the allowlisted ops and the hours writer; no raw calls, no table writes.
-    expect(writeSource).not.toMatch(/ghlFetch|ghlJson|graphPost|method:\s*"(POST|PUT|DELETE)"/);
-    expect(writeSource).not.toMatch(/\.(insert|upsert|delete|rpc)\(/);
-    expect(writeSource).toMatch(/\{ handoffs: false \}/);
-    // A credential is refused before write() logs the args, so no token reaches the audit row.
-    const ghlRun = writeSource.slice(writeSource.indexOf("function ghlTool("));
-    expect(ghlRun.indexOf("isSecretValue(")).toBeGreaterThan(0);
-    expect(ghlRun.indexOf("isSecretValue(")).toBeLessThan(ghlRun.indexOf("return write("));
-  });
-
-  it("a client folder under another name stops the tool instead of making a twin", () => {
-    const root = ["🤝 | Clear Choice Owensboro", "🤝 | Willis Window Washing", "🤝 | Made Better LC", "Hauck Admin", "🤝 | Above All Garage Doors"];
-    expect(lookalikeFolders("Clear Choice Windows", root)).toEqual(["🤝 | Clear Choice Owensboro"]);
-    // The exact folder is ensureClientFolder's to link, not a look-alike.
-    expect(lookalikeFolders("Above All Garage Doors", root)).toEqual([]);
-    // Shared trade words never count: TNT is not Above All.
-    expect(lookalikeFolders("TNT Garage Doors & Openers", root)).toEqual([]);
-    expect(lookalikeFolders("Willis Windows", root)).toEqual(["🤝 | Willis Window Washing"]);
-    expect(lookalikeFolders("Made Better Landscaping Co", root)).toEqual(["🤝 | Made Better LC"]);
-    expect(lookalikeFolders("Brand New Client", root)).toEqual([]);
-    // The tool runs the check before write(), so a refusal costs nothing.
-    const run = writeSource.slice(writeSource.indexOf("const createClientFolderTool"));
-    expect(run.indexOf("lookalikeFolders(")).toBeLessThan(run.indexOf("return write("));
-  });
-
-  it("plan pages: any bot writes them, but none raises its own budget ceiling", () => {
-    expect(writeSource).not.toMatch(/PAGE_WRITERS|BOT_LANES/);
-    const plan = (...spends: (number | null)[]) => ({ campaigns: spends.map((dailySpend) => ({ dailySpend })), headlines: [] }) as unknown as AdsPage;
-    expect(planSpendProblem(null, plan(100))).toBeNull();
-    expect(planSpendProblem(null, plan(101))).toMatch(/\$100/);
-    expect(planSpendProblem(plan(60), plan(60, 40))).toBeNull();
-    expect(planSpendProblem(plan(60), plan(80))).toMatch(/Jake raises it/);
-    expect(planSpendProblem(plan(250), plan(200))).toBeNull();
-    expect(planSpendProblem(plan(60), plan(null))).toBeNull();
-  });
-
-  it("any bot may tick any agent task, never Jake's or the client's", () => {
-    expect(NOT_FOR_BOTS).toEqual(["jake", "client"]);
+  it("logs a failure too", async () => {
+    const { client, inserts } = fakeClient(true);
+    await expect(audited(client, "ghl_request", null, { bot: "x" }, () => Promise.reject(new Error("GHL 422")))).rejects.toThrow("GHL 422");
+    expect(inserts.map((r) => r.action)).toEqual(["grok:ghl_request", "grok:failed"]);
   });
 
   it("names the bot for the log from whatever it says, or grok", () => {
@@ -264,41 +167,76 @@ describe("what the connector can touch", () => {
     expect(botName(undefined)).toBe("grok");
     expect(botName("x".repeat(80))).toHaveLength(40);
   });
+});
 
-  it("no money leaves: no revenue, billing dates or billing notes", () => {
-    expect(withoutRevenue({ leads: 4, spend: 100, costPerLead: 25, revenue: 9000, roas: 90 })).toEqual({ leads: 4, spend: 100, costPerLead: 25 });
-    expect(toolsSource).toContain("kpis: withoutRevenue(kpis), breakdown: breakdown.map(withoutRevenue)");
-    expect(toolsSource).not.toMatch(/billing_date|renewal_date|upfront_cash|remaining_cash|total_cash|payment_arrangement|from\("(invoices|payments)/);
-    expect(toolsSource).not.toMatch(/"[^"]*\bnotes\b[^"]*"\)\s*\n?\s*\.eq\("tenant_id"/);
-    expect(writeSource).not.toMatch(/from\("(client_billing|invoices|payments)/);
+describe("the GHL connector", () => {
+  it("takes any API path and query, and only ever calls GHL", () => {
+    expect(ghlUrl("/contacts/abc", undefined).href).toBe(`${GHL_ORIGIN}/contacts/abc`);
+    const u = ghlUrl("/opportunities/search", { location_id: "L1", limit: 20, tags: ["a", "b"], skip: null });
+    expect(u.origin).toBe(GHL_ORIGIN);
+    expect(u.search).toBe("?location_id=L1&limit=20&tags=a&tags=b");
+    // Never a URL, a protocol-relative path, a backslash or a host trick.
+    for (const bad of ["https://evil.com/x", "//evil.com/x", "/\\evil.com", "@evil.com/x", "contacts", "/", "/a b", 5, undefined]) {
+      expect(() => ghlUrl(bad, undefined)).toThrow();
+    }
+    expect(ghlUrl("/@evil.com/x", undefined).origin).toBe(GHL_ORIGIN);
+    expect(() => ghlUrl("/x", "a=b")).toThrow(/query/);
   });
 
-  it("calendar hours: named days, closed when unlisted, bad times refused", () => {
-    const week = weekFrom([
-      { day: "Mon", open: "08:00", close: "17:00" },
-      { day: "tuesday", open: "08:00", close: "17:00" },
+  it("takes every method, GET by default", () => {
+    expect(ghlMethod(undefined)).toBe("GET");
+    expect(ghlMethod("delete")).toBe("DELETE");
+    expect(ghlMethod("PATCH")).toBe("PATCH");
+    expect(() => ghlMethod("TRACE")).toThrow(/method/);
+  });
+
+  it("logs every call that is not a GET before sending it", () => {
+    for (const tool of ["const ghlRequest", "const ghlAgencyRequest"]) {
+      const run = ghlSource.slice(ghlSource.indexOf(tool));
+      const getLine = run.indexOf('if (method === "GET") return send(');
+      const auditedLine = run.indexOf("return audited(d.client,");
+      expect(getLine).toBeGreaterThan(0);
+      expect(auditedLine).toBeGreaterThan(getLine);
+      expect(run.slice(auditedLine, run.indexOf("\n", auditedLine))).toMatch(/\(\) => send\(/);
+    }
+    // One place sends, and it only takes a URL built by ghlUrl.
+    expect(ghlSource.match(/await fetch\(/g)).toHaveLength(1);
+    expect(ghlSource).toMatch(/await fetch\(url\.href, init\)/);
+  });
+});
+
+describe("the Meta connector", () => {
+  it("leads: takes the first lead type present, never a sum", () => {
+    expect(leadsFrom([{ action_type: "lead", value: "4" }, { action_type: "onsite_conversion.lead_grouped", value: "4" }])).toBe(4);
+    expect(leadsFrom([{ action_type: "offsite_conversion.fb_pixel_lead", value: "2" }])).toBe(2);
+    expect(leadsFrom(undefined)).toBe(0);
+  });
+
+  it("creates only, always paused", () => {
+    expect(buildSource).not.toMatch(/"ACTIVE"|DELETE|ARCHIVED/);
+    // Four creates and nothing else: no lead forms (Jake builds those), no post to an existing object's own id.
+    const posts = (buildSource.match(/graphPost\([^,]+, `[^`]+`/g) ?? []).map((p) => p.replace(/^graphPost\([^,]+, /, ""));
+    expect(posts).toEqual(["`/${ctx.account}/campaigns`", "`/${ctx.account}/adsets`", "`/${ctx.account}/adcreatives`", "`/${ctx.account}/ads`"]);
+    // Campaign, ad set and ad each say PAUSED, and nothing takes a status from the bot.
+    expect(buildSource.match(/^\s+status: "PAUSED",$/gm)?.length).toBe(3);
+    expect(buildSource).not.toMatch(/a\.status/);
+    // The connector itself writes nothing to Meta directly, and every real build is logged first.
+    expect(metaSource).not.toMatch(/graphPost|method:\s*"(POST|PUT|DELETE)"/);
+    expect(metaSource).toMatch(/return json\(await audited\(d\.client, name, c\.id,/);
+  });
+});
+
+describe("the connectors", () => {
+  it("serve exactly these tools", () => {
+    expect(Object.keys(CONNECTORS).sort()).toEqual(["ghl", "meta"]);
+    expect(CONNECTORS.ghl.tools.map((t) => t.name)).toEqual(["ghl_clients", "ghl_request", "ghl_agency_request"]);
+    expect(CONNECTORS.meta.tools.map((t) => t.name)).toEqual([
+      "get_ad_results", "get_ad_structure", "get_ad_assets", "meta_create_campaign", "meta_create_adset", "meta_create_ad",
     ]);
-    expect(week).toEqual([{ daysOfTheWeek: [1, 2], hours: [{ openHour: 8, openMinute: 0, closeHour: 17, closeMinute: 0 }] }]);
-    expect(() => weekFrom([{ day: "Mon", open: "17:00", close: "08:00" }])).toThrow(/close is after/);
-    expect(() => weekFrom([{ day: "Someday", open: "08:00", close: "17:00" }])).toThrow(/weekday/);
-    expect(() => weekFrom([])).toThrow();
   });
 
-  it("writes nothing but grok_notes", () => {
-    expect(toolsSource).not.toMatch(/\.(update|upsert|delete|rpc)\(/);
-    const inserts = toolsSource.match(/\.from\("[a-z_]+"\)\.insert\(/g) ?? [];
-    expect(inserts).toEqual(['.from("grok_notes").insert(']);
-    // GHL: reads only, through the allowlisted read ops.
-    expect(toolsSource).not.toMatch(/"write\./);
-    expect(toolsSource).not.toMatch(/ghlFetch|graphPost|method:\s*"(POST|PUT|DELETE)"/);
-  });
-
-  it("never reads intake passwords or hands out people's details", () => {
-    expect(toolsSource).not.toMatch(/password|intake_submissions/);
-    expect(toolsSource).toMatch(/const \{ kpis, breakdown, meta, model \} = body;/);
-  });
-
-  it("the route re-checks the key itself", () => {
+  it("the route re-checks the key itself and serves the connector its path names", () => {
     expect(routeSource).toMatch(/isGrokMcpRequest\(ctx\.request\.method, url\.pathname, ctx\.env\.GROK_MCP_KEY\)/);
+    expect(routeSource).toMatch(/const \{ server, tools \} = CONNECTORS\[name\];/);
   });
 });

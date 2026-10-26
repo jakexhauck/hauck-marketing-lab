@@ -17,7 +17,7 @@ import { ADS_CRON_HEADER, isAdsCronRequest } from "../lib/adsCron";
 import { CALENDAR_CRON_HEADER, isCalendarCronRequest } from "../lib/calendarCron";
 import { COLD_CALL_CRON_HEADER, isColdCallCronRequest } from "../lib/coldCallCron";
 import { AGENT_RUNNER_HEADER, isAgentRunnerRequest } from "../lib/agentRunner";
-import { GROK_MCP_BASE, isGrokMcpRequest } from "../lib/grokMcp";
+import { isGrokMcpRequest, loggablePath } from "../lib/grokMcp";
 import { funnelOriginAllowed } from "../lib/funnelUrl";
 import { logError } from "../lib/errorLog";
 
@@ -236,10 +236,10 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
     return await runNext(ctx, origin, url);
   }
 
-  // The Hauck Brain connector for Grok Bot. Sixth sibling: one exact path whose
-  // last segment is the key (Grok sends no auth header), no ctx.data.admin, and
-  // a miss falls through to 401. What the route behind it can touch is listed
-  // in lib/grokTools.ts: reads, plus inserts into grok_notes.
+  // The Grok Bot connectors. Sixth sibling: exact paths /api/grok/<ghl|meta>/
+  // whose last segment is the key (Grok sends no auth header), no
+  // ctx.data.admin, and a miss falls through to 401. What each can touch is
+  // listed in lib/grokGhl.ts and lib/grokMeta.ts.
   if (isGrokMcpRequest(ctx.request.method, url.pathname, ctx.env.GROK_MCP_KEY)) {
     return await runNext(ctx, origin, url);
   }
@@ -481,8 +481,8 @@ async function runNext(
     // The same detail becomes an error_log receipt (0119) so the admin errors
     // surface and the health probe can see failure patterns without log tailing.
     const message = err instanceof Error ? err.message : "unknown error";
-    // The Grok connector's key is its last path segment; it never reaches a log.
-    const path = url.pathname.startsWith(GROK_MCP_BASE) ? `${GROK_MCP_BASE}<key>` : url.pathname;
+    // A Grok connector's key is its last path segment; it never reaches a log.
+    const path = loggablePath(url.pathname);
     console.error("[api]", path, message);
     await logError(ctx.env, "api", message, { path }).catch(() => {});
     return json(500, { error: "internal_error" }, origin, ctx.env);

@@ -496,22 +496,25 @@ export const CONNECTIONS: ConnectionDef[] = [
   },
   {
     id: "grok-mcp",
-    label: "Hauck Brain (Grok Bot connector)",
+    label: "Grok Bot connectors (GHL, Meta)",
     vendor: "self-hosted",
     scope: "agency",
     purpose:
-      "Lets the Grok Bots read each client's facts, tasks, research, Meta results, lead results and CRM setup, and save notes, through one custom connector at /api/grok/mcp/<key>. Without it every bot works blind.",
+      "Gives the Grok Bots what Grok cannot connect itself: the whole GHL API through the Marketplace app at /api/grok/ghl/<key>, and each client's Meta ads (results, paused builds) at /api/grok/meta/<key>. Supabase, Drive and Gmail are connected in Grok.",
     credentials: [
       {
         name: "GROK_MCP_KEY",
         home: "cloudflare",
         inDoppler: true,
-        note: "The last segment of the connector URL pasted into Grok (Grok sends no auth header). At least 32 chars or the gate refuses it. Opens only that one route: reads, plus inserts into grok_notes.",
+        note: "The last segment of both connector URLs pasted into Grok (Grok sends no auth header). At least 32 chars or the gate refuses it. Opens only those two routes.",
       },
     ],
-    surfaces: [{ label: "Grok Bot > Connectors > Hauck Brain", audience: "admin" }],
+    surfaces: [
+      { label: "Grok Bot > Connectors > Hauck GHL", audience: "admin" },
+      { label: "Grok Bot > Connectors > Hauck Meta", audience: "admin" },
+    ],
     remediation:
-      "Rotate in Doppler, push with cf-rebind --from-doppler, redeploy, then edit the connector URL in Grok. The old URL answers 401 from the moment the deploy lands.",
+      "Rotate in Doppler, push with cf-rebind --from-doppler, redeploy, then edit both connector URLs in Grok. The old URLs answer 401 from the moment the deploy lands.",
   },
   {
     id: "telegram-manager",
