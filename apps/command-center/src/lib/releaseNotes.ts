@@ -33,6 +33,7 @@ export const RELEASES: Release[] = [
       "Where a client also has a Conversion Asset Estimate calendar, the app now always uses Home Estimate for booking, outcome links and the Ads Dashboard estimate count.",
       "Event calendars no longer show No team member: GHL keeps them unassigned. Client > Accounts and Calendar Settings stop asking for one.",
       "Saving a calendar in Calendar Settings keeps its slot interval, availability and after-booking form setting as they were.",
+      "Link, Provision and Fix no longer overwrite the Location API Token custom value with the app's day-long key. Only a Private Integration Token is written there.",
     ],
   },
   {

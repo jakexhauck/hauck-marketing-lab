@@ -197,11 +197,15 @@ export function buildProvisionPlan(
     writes.push({ id: cv.id, name: cv.name, value });
   }
 
-  // Always push the token into the Location API Token custom value (the webhooks read it).
+  // A Private Integration Token goes into the Location API Token custom value
+  // (the title-flip webhooks read it). Only a "pit-" token: an app-linked
+  // client's key is minted per request and lapses within a day, so writing it
+  // broke the webhooks the next day and overwrote a permanent key on any Fix
+  // (2026-10-26). That value is then left as it is.
   const tokenCv = byName.get(LOCATION_TOKEN_CV.toLowerCase());
-  if (token && tokenCv) {
+  if (token.startsWith("pit-") && tokenCv) {
     writes.push({ id: tokenCv.id, name: tokenCv.name, value: token });
-  } else if (token && !tokenCv) {
+  } else if (token.startsWith("pit-") && !tokenCv) {
     notFound.push(LOCATION_TOKEN_CV);
   }
 

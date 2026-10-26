@@ -34,9 +34,19 @@ describe("buildProvisionPlan", () => {
     );
   });
 
-  it("always writes the token into the Location API Token custom value", () => {
+  it("writes a Private Integration Token into the Location API Token custom value", () => {
     const plan = buildProvisionPlan({}, CVS, "pit-xyz");
     expect(plan.writes).toContainEqual({ id: "cv3", name: "Location API Token", value: "pit-xyz" });
+  });
+
+  it("never writes the app's day-long token there, so the webhooks' own key survives", () => {
+    // An app-linked client's key is minted per request and lapses within a
+    // day; written here it broke the title-flip webhooks the next day, and it
+    // overwrote Willis's permanent key on any Fix (2026-10-26).
+    const kept = [{ id: "cv3", name: "Location API Token", value: "pit-willis" }];
+    const plan = buildProvisionPlan({}, kept, "eyJhbGciOi.payload.signature");
+    expect(plan.writes.find((w) => w.name === "Location API Token")).toBeUndefined();
+    expect(plan.notFound).not.toContain("Location API Token");
   });
 
   it("reports custom values missing from the subaccount as notFound", () => {
