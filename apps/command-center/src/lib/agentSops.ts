@@ -273,7 +273,7 @@ export const AGENT_SOPS: AgentSop[] = [
         steps: ["Only when the kickoff plan has an ad funnel page", "Build it in your site folder; the runner deploys a preview", "Jake reviews the real preview", "His Approve promotes it live", "Hand the live URL to the GHL Agent"] },
       { id: "review", c: 0, r: 2, k: "review", t: "Jake review", d: ["form, plan, copy", "creatives"], steps: ["Approve form, plan, copy and creatives"] },
       { id: "build", c: 1, r: 2, k: "agent", t: "build paused", d: ["form, campaign, ads", "Jake publishes"], src: "3. Campaign Creation",
-        steps: ["Agent creates the instant form, campaign, ad set and ads, all paused", "Jake finishes the form's close-form answers and non-lead end page", "Media Library folder: Images + Videos", "Jake reviews in Ads Manager and publishes"] },
+        steps: ["Jake builds the instant form from the agent's steps", "Agent creates the campaign, ad set and ads, all paused", "Media Library folder: Images + Videos", "Jake reviews in Ads Manager and publishes"] },
       { id: "monitor", c: 2, r: 2, k: "agent", t: "monitor", d: ["daily, read-only", "CPL + GHL outcomes"], steps: ["Pull spend, CPL, leads per ad", "Match leads to GHL outcomes"] },
       { id: "rec", c: 3, r: 2, k: "agent", t: "recommend", d: ["kill / watch", "scale / refresh"], steps: ["Card in chat with the numbers behind it", "Jake makes the change in Ads Manager"] },
       { id: "edits", c: 0.4, r: 3, k: "edit", t: "needs edits", d: ["side door", "back to review"], steps: ["Apply Jake's notes", "Back to review"] },

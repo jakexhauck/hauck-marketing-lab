@@ -3,7 +3,6 @@ import { graphGet, graphGetAll } from "./metaGraph";
 import { graphPost, libraryVideos, thumbnailOf } from "./agentMetaOps";
 import { normalizeAccount, uploadAdImage } from "./metaUpload";
 import { listReachablePages } from "./metaPages";
-import { metaUsPhone, nextFormName } from "./metaLeadForm";
 import { readPages } from "./briefPagesStore";
 import type { AdsPage } from "../../src/lib/briefPages";
 
@@ -17,12 +16,11 @@ import type { AdsPage } from "../../src/lib/briefPages";
 //   - Every parent is read back first: the campaign and ad set must sit in
 //     THIS client's ad account, the lead form on THIS client's Page, the
 //     picture or film must be this client's.
+//   - No lead forms. Meta's API cannot set an answer that closes the form or
+//     the non-lead end page, and a published form cannot be edited, so Jake
+//     builds the form from the bot's steps (his call, 2026-10-26).
 //   - A campaign's daily budget is at most the Ads plan's daily spend, or
 //     $100 a day when the plan has none, and never over $500.
-//
-// What Meta's API cannot set, so the form tool hands it back as steps for
-// Jake: an answer that closes the form, and the second (non-lead) end page.
-// A live OG Form read on 2026-10-26 carries no field for either.
 
 type Row = Record<string, unknown>;
 
@@ -35,67 +33,6 @@ export const HARD_CAP_USD = 500;
 export const MAX_ZIPS = 20;
 
 // ---------- Pure parts (tested) ----------
-
-export interface LeadFormInput {
-  company: string;
-  headline: string;
-  checks: string[];
-  phone: string;
-  privacyUrl: string;
-  endTitle: string;
-  endBody: string;
-  contactHeadline?: string;
-}
-
-export const HOMEOWNER_Q = { key: "are_you_the_homeowner", label: "Are you the homeowner?", options: ["YES", "NO"] };
-export const HOW_SOON_Q = {
-  key: "how_soon",
-  label: "How soon are you looking for our services?",
-  options: ["ASAP", "Within a week", "Within a month", "30 Days+"],
-};
-const DEFAULT_CONTACT_HEADLINE =
-  "Please provide the best contact number - we will need to reach you by phone in order to process your quote.";
-
-const optionKey = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-
-/** Steps Jake does by hand in Ads Manager after the form exists (the API has no field for them). */
-export const FORM_HAND_STEPS = [
-  `On "${HOMEOWNER_Q.label}", set "NO" to close the form`,
-  `On "${HOW_SOON_Q.label}", set "30 Days+" to close the form`,
-  "Add the end page for people who do not qualify",
-];
-
-/** Jake's OG Form, as the body of POST /{page_id}/leadgen_forms. */
-export function leadFormBody(f: LeadFormInput): Row {
-  const checks = f.checks.map((c) => c.replace(/^[\s✅•\-*]+/u, "").trim()).filter(Boolean);
-  if (checks.length !== 3) throw new BuildRefused("checks: exactly 3 checkmark lines");
-  const phone = metaUsPhone(f.phone);
-  if (!phone) throw new BuildRefused("the end page needs the client's US phone number");
-  if (!/^https?:\/\/\S{3,500}$/.test(f.privacyUrl)) throw new BuildRefused("privacy_url must be the client's privacy policy link");
-  const q = (x: typeof HOMEOWNER_Q) => ({
-    type: "CUSTOM",
-    key: x.key,
-    label: x.label,
-    options: x.options.map((v) => ({ value: v, key: optionKey(v) })),
-  });
-  return {
-    name: `${f.company.trim()} | OG Form, More Volume`,
-    locale: "en_US",
-    is_optimized_for_quality: false,
-    context_card: { title: f.headline.trim(), style: "LIST_STYLE", content: checks.map((c) => `✅ ${c}`) },
-    questions: [q(HOMEOWNER_Q), q(HOW_SOON_Q), { type: "FULL_NAME" }, { type: "PHONE" }],
-    question_page_custom_headline: (f.contactHeadline ?? "").trim() || DEFAULT_CONTACT_HEADLINE,
-    privacy_policy: { url: f.privacyUrl, link_text: "Privacy Policy" },
-    thank_you_page: {
-      title: f.endTitle.trim(),
-      body: f.endBody.trim(),
-      button_type: "CALL_BUSINESS",
-      button_text: "Call Now",
-      business_phone_number: phone,
-      country_code: "US",
-    },
-  };
-}
 
 /** The highest daily spend on the Ads plan, in dollars, or null. */
 export function planDailySpend(page: AdsPage | null): number | null {
@@ -268,19 +205,6 @@ const text = (v: unknown, what: string, max: number): string => {
   if (typeof v !== "string" || !v.trim() || v.trim().length > max) throw new BuildRefused(`${what} is text up to ${max} characters`);
   return v.trim();
 };
-
-export async function createLeadForm(ctx: BuildCtx, f: LeadFormInput): Promise<Row> {
-  const body = leadFormBody(f);
-  const p = await pageToken(ctx);
-  // Meta refuses a repeated form name: "Name" -> "Name (2)" -> "Name (3)".
-  const taken = new Set((await pageForms(ctx)).map((x) => x.name.trim()));
-  let name = String(body.name);
-  while (taken.has(name)) name = nextFormName(name);
-  const params: Record<string, string> = {};
-  for (const [k, v] of Object.entries({ ...body, name })) params[k] = typeof v === "string" ? v : JSON.stringify(v);
-  const made = await graphPost(p.token, `/${p.pageId}/leadgen_forms`, params);
-  return { created: "lead form", id: String(made.id ?? ""), name, jakeFinishes: FORM_HAND_STEPS };
-}
 
 export async function createCampaign(ctx: BuildCtx, a: Row, checkOnly: boolean): Promise<Row> {
   const name = text(a.name, "name", 200);

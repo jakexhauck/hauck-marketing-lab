@@ -5,7 +5,8 @@ import writeSource from "./grokWriteTools.ts?raw";
 import buildSource from "./grokMetaBuild.ts?raw";
 import { cleanNote, handleBody, handleRpc, isGrokMcpRequest, matchClient, vaultKeyFor, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
 import { GROK_TOOLS, LINK_HIDDEN, flowGuide, fulfillmentSop, hideLinks, leadsFrom, type GrokDeps } from "./grokTools";
-import { BOT_LANES, GROK_ALL_TOOLS, weekFrom } from "./grokWriteTools";
+import { BOT_LANES, GROK_ALL_TOOLS, PAGE_WRITERS, planSpendProblem, weekFrom } from "./grokWriteTools";
+import type { AdsPage } from "../../src/lib/briefPages";
 import { GROK_BOTS, GROK_HOUSE_RULES, GROK_RULES, GROK_VAULT } from "./grokBundle.generated";
 
 const KEY = "k".repeat(40);
@@ -196,18 +197,17 @@ describe("what the connector can touch", () => {
       ].sort(),
     );
     expect(GROK_ALL_TOOLS.map((t) => t.name).slice(GROK_TOOLS.length)).toEqual([
-      "meta_create_lead_form", "meta_create_campaign", "meta_create_adset", "meta_create_ad",
-      "ghl_set_custom_value", "ghl_create_custom_field", "ghl_set_calendar_hours", "update_task",
+      "meta_create_campaign", "meta_create_adset", "meta_create_ad",
+      "ghl_set_custom_value", "ghl_create_custom_field", "ghl_set_calendar_hours", "update_task", "save_plan_page",
     ]);
     expect(routeSource).toMatch(/handleBody\(body, GROK_ALL_TOOLS,/);
   });
 
   it("Meta: creates only, always paused", () => {
     expect(buildSource).not.toMatch(/"ACTIVE"|DELETE|ARCHIVED/);
-    // Five creates and nothing else: no post to an existing object's own id.
+    // Four creates and nothing else: no lead forms (Jake builds those), no post to an existing object's own id.
     const posts = (buildSource.match(/graphPost\([^,]+, `[^`]+`/g) ?? []).map((p) => p.replace(/^graphPost\([^,]+, /, ""));
     expect(posts).toEqual([
-      "`/${p.pageId}/leadgen_forms`",
       "`/${ctx.account}/campaigns`",
       "`/${ctx.account}/adsets`",
       "`/${ctx.account}/adcreatives`",
@@ -229,6 +229,17 @@ describe("what the connector can touch", () => {
     const ghlRun = writeSource.slice(writeSource.indexOf("function ghlTool("));
     expect(ghlRun.indexOf("isSecretValue(")).toBeGreaterThan(0);
     expect(ghlRun.indexOf("isSecretValue(")).toBeLessThan(ghlRun.indexOf("return write("));
+  });
+
+  it("plan pages: each has one writer, and no bot raises its own budget ceiling", () => {
+    expect(PAGE_WRITERS).toEqual({ research: "market-research", ads: "ads" });
+    const plan = (...spends: (number | null)[]) => ({ campaigns: spends.map((dailySpend) => ({ dailySpend })), headlines: [] }) as unknown as AdsPage;
+    expect(planSpendProblem(null, plan(100))).toBeNull();
+    expect(planSpendProblem(null, plan(101))).toMatch(/\$100/);
+    expect(planSpendProblem(plan(60), plan(60, 40))).toBeNull();
+    expect(planSpendProblem(plan(60), plan(80))).toMatch(/Jake raises it/);
+    expect(planSpendProblem(plan(250), plan(200))).toBeNull();
+    expect(planSpendProblem(plan(60), plan(null))).toBeNull();
   });
 
   it("a bot moves only its own lane's tasks; the assistant moves none", () => {

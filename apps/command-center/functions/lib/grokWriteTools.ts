@@ -5,11 +5,12 @@ import { GHL_OPS, GhlOpRefused, isSecretValue } from "./agentGhlOps";
 import { writeOpenHours } from "./ghlCalendarWrite";
 import { summariseOpenHours, toOpenHours, type DayHours, type GhlOpenHours } from "./calendarHours";
 import { getGhlContextForTenant } from "./tenantGhl";
-import { fetchGhlNumber } from "./ghlPhone";
 import { resolveMetaToken } from "./metaToken";
 import { patchTask, readTasks } from "./clientTasks";
+import { readPages, savePage } from "./briefPagesStore";
+import { parsePage, type AdsPage, type BriefPageId } from "../../src/lib/briefPages";
 import type { TaskOwner } from "../../src/lib/clientTasks";
-import { BuildRefused, buildCtx, createAd, createAdset, createCampaign, createLeadForm, type BuildCtx } from "./grokMetaBuild";
+import { BuildRefused, buildCtx, createAd, createAdset, createCampaign, NO_PLAN_CAP_USD, planDailySpend, type BuildCtx } from "./grokMetaBuild";
 import { findClient, GROK_TOOLS, type GrokDeps } from "./grokTools";
 import type { ClientRef, ToolDef } from "./grokMcp";
 import { GROK_BOTS } from "./grokBundle.generated";
@@ -124,49 +125,6 @@ function metaTool(name: string, description: string, props: Record<string, unkno
     },
   };
 }
-
-const metaCreateLeadForm: ToolDef<GrokDeps> = {
-  name: "meta_create_lead_form",
-  description:
-    "Build Jake's OG Form on the client's Facebook Page: named \"<company> | OG Form, More Volume\", your headline and 3 checkmark lines, the homeowner and how-soon questions, full name and phone, privacy link, an end page that calls the client. Goes live on the Page at once (no ad uses it until Jake publishes one). Returns the steps Jake finishes by hand: the two close-form answers and the non-lead end page.",
-  inputSchema: schema(
-    {
-      ...base,
-      company: { type: "string", description: "The client's business name as the form should show it." },
-      headline: { type: "string", description: "e.g. \"Answer 2 quick questions for your free estimate\"" },
-      checks: { type: "array", items: { type: "string" }, description: "Exactly 3 checkmark lines for the trade, without the ✅." },
-      privacy_url: { type: "string" },
-      end_title: { type: "string", description: "End page headline for leads." },
-      end_body: { type: "string", description: "End page text for leads." },
-      phone: { type: "string", description: "Optional. The number the end page calls. Default: the client's business number in the CRM." },
-      contact_headline: { type: "string", description: "Optional. The line above name and phone." },
-    },
-    ["client", "bot", "company", "headline", "checks", "privacy_url", "end_title", "end_body"],
-  ),
-  run: async (d, a) => {
-    const bot = botOf(a);
-    const c = await findClient(d, a);
-    const ctx = await meta(d, c);
-    let phone = typeof a.phone === "string" ? a.phone : "";
-    if (!phone) phone = (await fetchGhlNumber(await getGhlContextForTenant(d.env, c.id)).catch(() => null)) ?? "";
-    const str = (v: unknown) => (typeof v === "string" ? v : "");
-    return write(d, "meta_create_lead_form", c, bot, a, () =>
-      said(
-        "Meta",
-        createLeadForm(ctx, {
-          company: str(a.company),
-          headline: str(a.headline),
-          checks: Array.isArray(a.checks) ? a.checks.map(String) : [],
-          phone,
-          privacyUrl: str(a.privacy_url),
-          endTitle: str(a.end_title) || "Thanks",
-          endBody: str(a.end_body) || " ",
-          contactHeadline: str(a.contact_headline) || undefined,
-        }),
-      ),
-    );
-  },
-};
 
 const metaCreateCampaign = metaTool(
   "meta_create_campaign",
@@ -299,6 +257,57 @@ const ghlSetCalendarHours: ToolDef<GrokDeps> = {
   },
 };
 
+// ---------- Mission Control plan pages ----------
+
+// Who writes which page (Jake, 2026-10-26: the bots took over from Hermes).
+export const PAGE_WRITERS: Record<BriefPageId, string> = { research: "market-research", ads: "ads" };
+
+/**
+ * Why a bot may not save this Ads plan, or null. The campaign budget cap reads
+ * the plan, so a bot never raises its own ceiling: no daily spend above the
+ * saved plan's highest, or $100 when it has none. Raising it is Jake's.
+ */
+export function planSpendProblem(current: AdsPage | null, next: AdsPage): string | null {
+  const was = planDailySpend(current) ?? NO_PLAN_CAP_USD;
+  const now = planDailySpend(next);
+  return now !== null && now > was ? `a daily spend of $${now} is over $${was}, the most a bot may plan; Jake raises it in the app` : null;
+}
+
+const savePlanPage: ToolDef<GrokDeps> = {
+  name: "save_plan_page",
+  description:
+    "Write the client's Research page (Market Research) or Ads plan page (Ads) in Mission Control. data is the whole page as JSON in the shape get_research or get_ads_plan shows; version is the number they showed (0 for a page never written). It replaces the page.",
+  inputSchema: schema(
+    {
+      ...base,
+      page: { type: "string", enum: ["research", "ads"] },
+      version: { type: "number", description: "The version get_research or get_ads_plan showed." },
+      data: { type: "object" },
+    },
+    ["client", "bot", "page", "version", "data"],
+  ),
+  run: async (d, a) => {
+    const bot = botOf(a);
+    const page = a.page as BriefPageId;
+    if (page !== "research" && page !== "ads") throw new Error("page is research or ads");
+    if (PAGE_WRITERS[page] !== bot) throw new Error(`the ${page} page is ${PAGE_WRITERS[page]}'s to write; ask it`);
+    const c = await findClient(d, a);
+    const parsed = parsePage(page, a.data);
+    if (!parsed.ok) throw new Error(parsed.reason);
+    if (page === "ads") {
+      const current = (await readPages(d.client, c.id)).find((p) => p.page === "ads");
+      const problem = planSpendProblem(current && current.version > 0 ? (current.data as AdsPage) : null, parsed.data as AdsPage);
+      if (problem) throw new Error(problem);
+    }
+    return write(d, "save_plan_page", c, bot, { page, version: a.version }, async () => {
+      const r = await savePage(d.client, { tenantId: c.id, page, data: a.data, version: Number(a.version), by: page });
+      if ("error" in r) throw new Error(r.reason);
+      if ("conflict" in r) throw new Error(`the page changed since you read it (now version ${r.conflict.version}); read it again and redo your change`);
+      return { saved: `${page} page`, version: r.saved.version };
+    });
+  },
+};
+
 // ---------- Mission Control tasks ----------
 
 // Which task owners each bot may move. Creative's work sits on the Ads tasks.
@@ -341,7 +350,6 @@ const updateTask: ToolDef<GrokDeps> = {
 };
 
 export const GROK_WRITE_TOOLS: ToolDef<GrokDeps>[] = [
-  metaCreateLeadForm,
   metaCreateCampaign,
   metaCreateAdset,
   metaCreateAd,
@@ -349,6 +357,7 @@ export const GROK_WRITE_TOOLS: ToolDef<GrokDeps>[] = [
   ghlCreateCustomField,
   ghlSetCalendarHours,
   updateTask,
+  savePlanPage,
 ];
 
 /** Everything the connector lists: the reads, then the writes. */

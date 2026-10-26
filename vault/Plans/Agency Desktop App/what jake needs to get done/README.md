@@ -430,5 +430,5 @@ Six Grok Bots replace the Hermes agents. They read the business through one cust
 The Ads bot builds the lead form, campaign, ad sets and ads in Meta, all paused. The GHL bot follows the Mission Control GHL map and sets custom values, custom fields and calendar hours. Bots tick their own Mission Control tasks.
 1. **Switch the Meta app to Live.** developers.facebook.com > Hauck Marketing Lab (app 1498131278774943) > App Mode: Live. Meta refuses ad creatives from an app in Development mode, so ads cannot be built until this is done.
 2. **Re-paste the Ads and GHL bots' Description and Instructions** from `ads/bot.md` and `ghl/bot.md`.
-3. **Decide the lead form trade-off**: Meta's API cannot set the close-form answers, and a published form cannot be edited. Either the bot builds the form and you duplicate it to add the two close-form answers, or you build the form from the bot's steps.
+3. **Build each lead form from the Ads bot's steps** (your call 2026-10-26). Once it is built, tell the bot; it builds the ads on it.
 4. **Hermes teardown matters more now**: a bot ticking a task no longer wakes Hermes, but your own ticks in the app still do.

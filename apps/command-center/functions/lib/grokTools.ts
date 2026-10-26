@@ -18,6 +18,7 @@ import { appMinter, resolveTenantGhl } from "./ghlCreds";
 import { buildTrackerResponse, DEFAULT_RANGE } from "./adsTrackerResponse";
 import { metaQuery } from "../api/agent-runner/meta";
 import { BRIEF_SECTIONS } from "../../src/lib/clientBrief";
+import { emptyPage } from "../../src/lib/briefPages";
 import { SOP_LISTS } from "../../src/lib/sopChecklists";
 import { AGENT_SOPS } from "../../src/lib/agentSops";
 import { BuildRefused, buildCtx, pageForms } from "./grokMetaBuild";
@@ -206,8 +207,8 @@ const getResearch: ToolDef<GrokDeps> = {
   run: async (d, a) => {
     const c = await findClient(d, a);
     const page = (await readPages(d.client, c.id)).find((p) => p.page === "research");
-    if (!page || page.version === 0) return `No Market Research page yet for ${c.name}.`;
-    return `# Market Research: ${c.name} (updated ${page.updatedAt ?? "?"})\n${json(page.data)}`;
+    if (!page || page.version === 0) return `No Market Research page yet for ${c.name} (version 0). Its shape:\n${json(emptyPage("research"))}`;
+    return `# Market Research: ${c.name} (version ${page.version}, updated ${page.updatedAt ?? "?"})\n${json(page.data)}`;
   },
 };
 
@@ -220,7 +221,7 @@ const getAdsPlan: ToolDef<GrokDeps> = {
     const [pages, files] = await Promise.all([readPages(d.client, c.id), listAdCreatives(d.client, c.id)]);
     const page = pages.find((p) => p.page === "ads");
     const out = [`# Ads plan: ${c.name}`];
-    out.push(page && page.version > 0 ? json(page.data) : "No Ads page yet.");
+    out.push(page && page.version > 0 ? `Version ${page.version}\n${json(page.data)}` : `No Ads page yet (version 0). Its shape:\n${json(emptyPage("ads"))}`);
     out.push("", "## Creative files in the app", ...(files.length ? files.map((f) => `- ${f.name} (${f.kind})`) : ["None uploaded."]));
     return out.join("\n");
   },

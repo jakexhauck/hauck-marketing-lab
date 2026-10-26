@@ -30,9 +30,9 @@ export const RELEASES: Release[] = [
     date: "26 October 2026",
     title: "Grok Bots build campaigns and GHL setup",
     items: [
-      "The Ads bot builds the lead form, campaign, ad sets and ads in Meta. Everything stays paused until you publish.",
+      "The Ads bot builds the campaign, ad sets and ads in Meta, paused until you publish. It writes the lead form as steps for you to build.",
       "The GHL bot follows the Mission Control GHL map: it sets custom values, custom fields and calendar hours, and gives you steps for the rest.",
-      "Bots tick their own Mission Control tasks with proof. Every change they make is logged, capped at 60 a day.",
+      "Bots tick their own Mission Control tasks with proof, and write the Research and Ads plan pages. Every change they make is logged, capped at 60 a day.",
       "The Ads map in Mission Control now shows the build step as the agent's, paused, with your publish after.",
     ],
   },

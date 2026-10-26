@@ -1,51 +1,14 @@
 import { describe, it, expect } from "vitest";
 import {
   ENHANCEMENTS_OFF,
-  FORM_HAND_STEPS,
   adStorySpec,
   budgetProblem,
-  leadFormBody,
   nextMidnight,
   planDailySpend,
   targetingSpec,
   zipKeys,
 } from "./grokMetaBuild";
 import type { AdsPage } from "../../src/lib/briefPages";
-
-const form = {
-  company: "Willis Window Washing",
-  headline: "Answer 2 quick questions for your free estimate",
-  checks: ["✅ Licensed & insured", "Streak-free or we come back", "Same-week booking"],
-  phone: "(313) 766-2171",
-  privacyUrl: "https://example.com/privacy",
-  endTitle: "You are all set",
-  endBody: "We will call you shortly.",
-};
-
-describe("leadFormBody", () => {
-  it("is Jake's OG Form", () => {
-    const b = leadFormBody(form);
-    expect(b.name).toBe("Willis Window Washing | OG Form, More Volume");
-    expect(b.is_optimized_for_quality).toBe(false);
-    expect(b.context_card).toEqual({
-      title: form.headline,
-      style: "LIST_STYLE",
-      content: ["✅ Licensed & insured", "✅ Streak-free or we come back", "✅ Same-week booking"],
-    });
-    const qs = b.questions as Record<string, unknown>[];
-    expect(qs.map((q) => q.type)).toEqual(["CUSTOM", "CUSTOM", "FULL_NAME", "PHONE"]);
-    expect((qs[0].options as { value: string }[]).map((o) => o.value)).toEqual(["YES", "NO"]);
-    expect((qs[1].options as { value: string }[]).map((o) => o.value)).toEqual(["ASAP", "Within a week", "Within a month", "30 Days+"]);
-    expect(b.thank_you_page).toMatchObject({ button_type: "CALL_BUSINESS", business_phone_number: "+1 313-766-2171", country_code: "US" });
-    expect(FORM_HAND_STEPS).toHaveLength(3);
-  });
-
-  it("refuses what Meta would refuse", () => {
-    expect(() => leadFormBody({ ...form, checks: ["one", "two"] })).toThrow(/exactly 3/);
-    expect(() => leadFormBody({ ...form, phone: "12" })).toThrow(/phone/);
-    expect(() => leadFormBody({ ...form, privacyUrl: "privacy" })).toThrow(/privacy/);
-  });
-});
 
 describe("budget", () => {
   const plan = (spends: (number | null)[]) => ({ campaigns: spends.map((dailySpend) => ({ dailySpend })) }) as unknown as AdsPage;
