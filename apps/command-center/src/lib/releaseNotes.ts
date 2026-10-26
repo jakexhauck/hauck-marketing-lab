@@ -33,6 +33,7 @@ export const RELEASES: Release[] = [
       "Texts send from the app on Above All Garage Doors, Clear Choice and Comfort Wizards once the app is reinstalled with the new send permission.",
       "Each client's Brief has a Texting box that tests a send against GHL, red when the key cannot text.",
       "GHL Marketplace app goes red when the app needs a permission the install has not approved.",
+      "The app now asks GHL for billing, social and phone number access too, so every client works the same.",
     ],
   },
   {

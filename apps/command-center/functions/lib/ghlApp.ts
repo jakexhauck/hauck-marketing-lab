@@ -77,10 +77,50 @@ export const APP_SCOPES = [
   "locations/tags.write",
   "users.readonly",
   "workflows.readonly",
+  // Billing (payments), the Social pages, and the business number custom values
+  // read (ghlPhone.ts). Pasted-key clients had these; app-linked ones did not.
+  "payments/transactions.readonly",
+  "socialplanner/post.readonly",
+  "socialplanner/post.write",
+  "socialplanner/account.readonly",
+  "phonenumbers.read",
   // The two that make the agency-installs-once model work at all.
   "oauth.readonly",
   "oauth.write",
 ] as const;
+
+// Every GHL API area the server calls, by its first path segment, and the scopes
+// that area needs. ghlAppScopes.test.ts scans functions/ for GHL paths and fails
+// on an area missing here or a scope missing from APP_SCOPES, so new GHL code
+// cannot ship without asking the install for its permission (2026-10-26: texts
+// 401'd on every app-linked client because conversations write was never asked).
+export const GHL_AREA_SCOPES: Record<string, readonly (typeof APP_SCOPES)[number][]> = {
+  contacts: ["contacts.readonly", "contacts.write"],
+  opportunities: ["opportunities.readonly", "opportunities.write"],
+  conversations: [
+    "conversations.readonly",
+    "conversations.write",
+    "conversations/message.readonly",
+    "conversations/message.write",
+  ],
+  calendars: ["calendars.readonly", "calendars.write", "calendars/events.readonly", "calendars/events.write"],
+  forms: ["forms.readonly"],
+  invoices: ["invoices.readonly"],
+  locations: [
+    "locations.readonly",
+    "locations/customValues.readonly",
+    "locations/customValues.write",
+    "locations/customFields.readonly",
+    "locations/customFields.write",
+    "locations/tags.write",
+  ],
+  users: ["users.readonly"],
+  workflows: ["workflows.readonly"],
+  payments: ["payments/transactions.readonly"],
+  "social-media-posting": ["socialplanner/post.readonly", "socialplanner/post.write", "socialplanner/account.readonly"],
+  "phone-system": ["phonenumbers.read"],
+  oauth: ["oauth.readonly", "oauth.write"],
+};
 
 // Scopes the app asks for that the saved agency install was not granted. An
 // install keeps the scopes it was approved with, so adding one here does
