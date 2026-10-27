@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-grok-go-live",
+    date: "27 October 2026",
+    title: "Grok Bots can take a client live",
+    items: [
+      "Hauck Software has a Go Live tool, the same as the Onboarding page's button. It is logged before it is made.",
+    ],
+  },
+  {
     id: "2026-10-27-health-drive",
     date: "27 October 2026",
     title: "Connection health checks the Drive the app uses",

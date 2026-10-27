@@ -27,12 +27,14 @@ import { loadTenantById } from "./tenantResolve";
 //   - a login is the Team screen's add (lib/staffCreate.ts);
 //   - health is Client > Accounts (lib/clientAccountsRun.ts) and the control
 //     room snapshot (lib/connectionsHealth.ts);
-//   - a fix is Provision (custom values and owner links into GHL).
+//   - a fix is Provision (custom values and owner links into GHL);
+//   - Go Live is the Onboarding page's button (Jake, 2026-10-27: "the connector
+//     needs to have access to make the client software go live").
 //
 // Every change is an admin_audit_log row `grok:<tool>` before it is made. A
 // password is made inside that change, so it can never be in the log row, and
 // is handed back once for the bot to pass on. Not here, on purpose: deleting a
-// client, Go Live, and password resets.
+// client and password resets.
 
 type Row = Record<string, unknown>;
 
@@ -147,7 +149,7 @@ const softwareClients: ToolDef<GrokDeps> = {
 const softwareCreateClient: ToolDef<GrokDeps> = {
   name: "software_create_client",
   description:
-    "Create a new client in the software, held at setup until Jake presses Go Live: the client, the owner's login and the onboarding record. Pass ghl_location_id to link their GHL sub-account too. Returns the login with a new password, shown once.",
+    "Create a new client in the software, held at setup until software_go_live: the client, the owner's login and the onboarding record. Pass ghl_location_id to link their GHL sub-account too. Returns the login with a new password, shown once.",
   inputSchema: {
     type: "object",
     properties: {
@@ -341,6 +343,25 @@ const softwareFix: ToolDef<GrokDeps> = {
   },
 };
 
+const softwareGoLive: ToolDef<GrokDeps> = {
+  name: "software_go_live",
+  description:
+    "Take a client from setup to live, the Onboarding page's Go Live: it clears them off the Onboarding list. Their app already opens once GHL is linked, so this marks the setup finished.",
+  inputSchema: { type: "object", properties: { client: clientArg, bot }, required: ["client"] },
+  run: async (d, a) => {
+    const c = await findClient(d.client, a.client);
+    const { data, error } = await d.client.from("tenants").select("onboarding_status").eq("id", c.id).maybeSingle();
+    if (error) throw new Error(`client: ${error.message}`);
+    // Already live is not an error, the same as a second click on the button.
+    if ((data as Row | null)?.onboarding_status === "live") return json({ client: c.name, status: "live", alreadyLive: true });
+    return audited(d.client, "software_go_live", c.id, { bot: botName(a.bot) }, async () => {
+      const { error: upErr } = await d.client.from("tenants").update({ onboarding_status: "live" }).eq("id", c.id);
+      if (upErr) throw new Error(upErr.message);
+      return json({ client: c.name, status: "live" });
+    });
+  },
+};
+
 export const SOFTWARE_TOOLS: ToolDef<GrokDeps>[] = [
   softwareClients,
   softwareCreateClient,
@@ -349,4 +370,5 @@ export const SOFTWARE_TOOLS: ToolDef<GrokDeps>[] = [
   softwareClientHealth,
   softwareSystemHealth,
   softwareFix,
+  softwareGoLive,
 ];

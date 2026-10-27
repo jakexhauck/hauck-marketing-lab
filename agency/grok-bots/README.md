@@ -6,7 +6,7 @@ Hauck's Grok Bot agents get one custom connector per system Grok cannot connect 
 |---|---|---|
 | Hauck GHL | `/api/grok/ghl/<GROK_MCP_KEY>` | The whole GHL API v2 through the Marketplace app: every client sub-account, plus the agency |
 | Hauck Meta | `/api/grok/meta/<GROK_MCP_KEY>` | Each client's Meta ads: results, structure, assets, and builds (always PAUSED, budgets capped) |
-| Hauck Software | `/api/grok/software/<GROK_MCP_KEY>` | The Command Center itself: new clients (held at setup), logins, GHL links, client and app health, re-running setup values. No deletes, no Go Live, no password resets |
+| Hauck Software | `/api/grok/software/<GROK_MCP_KEY>` | The Command Center itself: new clients (held at setup), logins, GHL links, client and app health, re-running setup values, Go Live. No deletes, no password resets |
 
 The code is in `apps/command-center/functions/lib/grokGhl.ts`, `grokMeta.ts` and `grokSoftware.ts`. Every change a bot makes is logged in the app's audit log before it is sent.
 
