@@ -10,6 +10,7 @@ import {
   Radio,
   CalendarDays,
   Database,
+  FileUp,
   FolderOpen,
   ImagePlus,
   LayoutDashboard,
@@ -39,6 +40,7 @@ const ICONS: Record<string, LucideIcon> = {
   setter: PhoneCall,
   management: Briefcase,
   "add-creatives": ImagePlus,
+  "mission-control-upload": FileUp,
 };
 
 // Agent rows are keyed by agent id, kept apart from ICONS because "ghl" and

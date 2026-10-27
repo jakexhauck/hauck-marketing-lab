@@ -78,7 +78,8 @@ export interface ClientNavGroup {
 const PAGE_LABELS: Record<ClientPageId, string> = {
   // Jake, 2026-10-26: the client's Mission Control Google Doc, embedded
   // (components/admin/brief/MissionBrief.tsx). The doc's tabs are its pages.
-  brief: "Brief",
+  // Jake, 2026-10-27: renamed from Brief. The id stays, so old links work.
+  brief: "Mission Control",
   // Jake, 2026-10-26: the client's whole Drive folder, files opening in the page
   // (components/admin/folder/ClientFolder.tsx).
   folder: "Folder",
@@ -95,7 +96,8 @@ const PAGE_LABELS: Record<ClientPageId, string> = {
   setting: "Client Setting",
   // Jake, 2026-10-27: pages a Grok Bot works through in its own browser for
   // this client. Add Creatives copies the Drive Finished Creatives folder onto
-  // the client's Creatives page (components/admin/grokbot).
+  // the client's Creatives page; Mission Control Upload picks which doc in their
+  // folder the Mission Control page shows (components/admin/grokbot).
   "grok-bot": "Grok Bot",
 };
 
@@ -116,7 +118,10 @@ function offeredSubs(c: ClientGateInfo, page: ClientPageId): SubTabDef[] {
   return [];
 }
 
-export const GROK_BOT_SUBS: SubTabDef[] = [{ id: "add-creatives", label: "Add Creatives", ready: true }];
+export const GROK_BOT_SUBS: SubTabDef[] = [
+  { id: "add-creatives", label: "Add Creatives", ready: true },
+  { id: "mission-control-upload", label: "Mission Control Upload", ready: true },
+];
 
 const single = (page: ClientPageId): ClientNavRow => ({ page, sub: null, label: PAGE_LABELS[page] });
 const subRows = (c: ClientGateInfo, page: ClientPageId): ClientNavRow[] =>

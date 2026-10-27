@@ -16,14 +16,29 @@ const EDITORS: Record<string, string> = {
 
 export type DriveOpen = { kind: "folder" } | { kind: "embed"; url: string } | { kind: "external"; url: string };
 
-export function driveOpen(f: { id: string; mimeType: string; webViewLink: string | null }): DriveOpen {
+/**
+ * `url` opened as the Google account `email` (Jake, 2026-10-27: "I want to edit
+ * Mission Control in the app, it says Request edit access"). Google otherwise
+ * uses the browser's first signed-in account, and on a browser signed into a
+ * second Google account that one only has the agency docs' view link. Google
+ * ignores an account the browser is not signed into, so a frame never breaks.
+ */
+export function asGoogleAccount(url: string, email: string | null | undefined): string {
+  const who = (email ?? "").trim();
+  if (!who) return url;
+  const u = new URL(url);
+  u.searchParams.set("authuser", who);
+  return u.toString();
+}
+
+export function driveOpen(f: { id: string; mimeType: string; webViewLink: string | null }, account?: string | null): DriveOpen {
   if (f.mimeType === `${G}folder`) return { kind: "folder" };
   const editor = EDITORS[f.mimeType];
-  if (editor) return { kind: "embed", url: `https://docs.google.com/${editor}/d/${f.id}/edit` };
+  if (editor) return { kind: "embed", url: asGoogleAccount(`https://docs.google.com/${editor}/d/${f.id}/edit`, account) };
   if (f.mimeType.startsWith(G)) {
-    return { kind: "external", url: f.webViewLink ?? `https://drive.google.com/open?id=${f.id}` };
+    return { kind: "external", url: asGoogleAccount(f.webViewLink ?? `https://drive.google.com/open?id=${f.id}`, account) };
   }
-  return { kind: "embed", url: `https://drive.google.com/file/d/${f.id}/preview` };
+  return { kind: "embed", url: asGoogleAccount(`https://drive.google.com/file/d/${f.id}/preview`, account) };
 }
 
 export type DriveKind = "folder" | "doc" | "sheet" | "slides" | "form" | "pdf" | "image" | "video" | "audio" | "file";

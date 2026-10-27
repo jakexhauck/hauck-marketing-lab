@@ -22,7 +22,8 @@ import {
 } from "lucide-react";
 import { useAdminOnboardingDriveFolder, useClientDriveActions, useClientDriveQuery } from "../../../hooks/useApi";
 import type { ClientDriveFile } from "../../../lib/api";
-import { driveKind, driveOpen, type DriveKind } from "../../../lib/driveOpen";
+import { useAuth } from "../../../context/AuthContext";
+import { asGoogleAccount, driveKind, driveOpen, type DriveKind } from "../../../lib/driveOpen";
 import { MissionStyle } from "../brief/missionStyle";
 import { FolderStyle } from "./folderStyle";
 
@@ -53,6 +54,8 @@ export function ClientFolder({ tenantId, brandColor }: { tenantId: string; brand
   const [params, setParams] = useSearchParams();
   const q = useClientDriveQuery(tenantId, params.get("folder"));
   const acts = useClientDriveActions(tenantId);
+  // Files open as the admin's own Google account (lib/driveOpen.ts asGoogleAccount).
+  const account = useAuth().admin?.email ?? null;
   const makeFolder = useAdminOnboardingDriveFolder(tenantId);
   // A file made from New, opened before the list refetch has it.
   const [made, setMade] = useState<ClientDriveFile | null>(null);
@@ -79,7 +82,7 @@ export function ClientFolder({ tenantId, brandColor }: { tenantId: string; brand
   };
 
   const open = (f: ClientDriveFile) => {
-    const o = driveOpen(f);
+    const o = driveOpen(f, account);
     if (o.kind === "folder") go({ folder: f.id, file: null });
     else if (o.kind === "external") window.open(o.url, "_blank", "noopener,noreferrer");
     else go({ file: f.id });
@@ -141,7 +144,7 @@ export function ClientFolder({ tenantId, brandColor }: { tenantId: string; brand
   };
 
   if (opened) {
-    const o = driveOpen(opened);
+    const o = driveOpen(opened, account);
     const k = KIND[driveKind(opened.mimeType)];
     return (
       <div className="mcb cf" style={style}>
@@ -158,7 +161,7 @@ export function ClientFolder({ tenantId, brandColor }: { tenantId: string; brand
           <span className="mcb-grow" />
           <a
             className="mcb-btn"
-            href={opened.webViewLink ?? (o.kind === "embed" ? o.url : "#")}
+            href={opened.webViewLink ? asGoogleAccount(opened.webViewLink, account) : o.kind === "embed" ? o.url : "#"}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Open in Google"

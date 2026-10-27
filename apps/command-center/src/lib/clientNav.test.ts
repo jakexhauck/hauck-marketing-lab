@@ -16,12 +16,12 @@ const labels = (c: ClientGateInfo) =>
   clientNavGroups(c).map((g) => [g.caption, g.rows.map((r) => r.label)]);
 
 describe("clientNavGroups", () => {
-  it("lists every page for a fully wired client, Brief on top", () => {
+  it("lists every page for a fully wired client, Mission Control on top", () => {
     expect(labels(linked)).toEqual([
-      [null, ["Brief", "Folder", "Client Setting"]],
+      [null, ["Mission Control", "Folder", "Client Setting"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data"]],
       ["GHL", ["Business Profile", "Staff", "Custom Values", "Custom Fields", "Calendars", "Pipelines", "Media", "Workflows", "Phone Numbers"]],
-      ["Grok Bot", ["Add Creatives"]],
+      ["Grok Bot", ["Add Creatives", "Mission Control Upload"]],
       [null, ["Management", "Image Converter"]],
     ]);
   });
@@ -34,10 +34,10 @@ describe("clientNavGroups", () => {
 
   it("gates Paid Ads and GHL until they are connected", () => {
     expect(labels(bare)).toEqual([
-      [null, ["Brief", "Folder", "Client Setting"]],
+      [null, ["Mission Control", "Folder", "Client Setting"]],
       ["Paid Ads", ["Connect ads"]],
       ["GHL", ["Connect GHL"]],
-      ["Grok Bot", ["Add Creatives"]],
+      ["Grok Bot", ["Add Creatives", "Mission Control Upload"]],
       [null, ["Management", "Image Converter"]],
     ]);
   });
@@ -47,9 +47,9 @@ describe("clientNavGroups", () => {
     expect(rows[0].sub).toBe("setup");
   });
 
-  it("puts the Client Brief at the top of the rail, as its own page", () => {
+  it("puts Mission Control (the old Brief id) at the top of the rail, as its own page", () => {
     const rows = clientNavGroups(bare)[0].rows;
-    expect(rows[0]).toEqual({ page: "brief", sub: null, label: "Brief" });
+    expect(rows[0]).toEqual({ page: "brief", sub: null, label: "Mission Control" });
     expect(clientPath("t1", "brief")).toBe("/admin/client/t1/brief");
     expect(resolveClientPage(bare, "brief", "x")).toEqual({ page: "brief", sub: null });
   });
@@ -199,5 +199,13 @@ describe("Grok Bot", () => {
     expect(resolveClientPage(bare, "grok-bot", null)).toEqual({ page: "grok-bot", sub: "add-creatives" });
     expect(resolveClientPage(linked, "grok-bot", "nope")).toEqual({ page: "grok-bot", sub: "add-creatives" });
     expect(clientPath("t1", "grok-bot", "add-creatives")).toBe("/admin/client/t1/grok-bot/add-creatives");
+  });
+
+  it("keeps Mission Control Upload as its own address", () => {
+    expect(resolveClientPage(bare, "grok-bot", "mission-control-upload")).toEqual({
+      page: "grok-bot",
+      sub: "mission-control-upload",
+    });
+    expect(clientPath("t1", "grok-bot", "mission-control-upload")).toBe("/admin/client/t1/grok-bot/mission-control-upload");
   });
 });

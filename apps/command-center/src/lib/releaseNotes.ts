@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-mission-control-upload",
+    date: "27 October 2026",
+    title: "Mission Control Upload",
+    items: [
+      "Brief is now called Mission Control.",
+      "Grok Bot has a new Mission Control Upload page: link the client's Drive folder, pick their Mission Control doc (or make one from the template), and it shows on the Mission Control page.",
+      "Mission Control and files on Folder open as the Google account you sign into the app with, so they open ready to edit instead of Request edit access.",
+    ],
+  },
+  {
     id: "2026-10-27-onboarding-form-no-address",
     date: "27 October 2026",
     title: "Onboarding form no longer asks for an address",

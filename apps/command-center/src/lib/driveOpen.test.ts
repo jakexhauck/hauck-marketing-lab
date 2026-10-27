@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { driveKind, driveOpen } from "./driveOpen";
+import { asGoogleAccount, driveKind, driveOpen } from "./driveOpen";
+
+describe("asGoogleAccount", () => {
+  it("opens the doc as the given Google account", () => {
+    expect(asGoogleAccount("https://docs.google.com/document/d/abc/edit", "contact.jakehauck@gmail.com")).toBe(
+      "https://docs.google.com/document/d/abc/edit?authuser=contact.jakehauck%40gmail.com",
+    );
+  });
+
+  it("keeps a link's own query and replaces an old account", () => {
+    expect(asGoogleAccount("https://drive.google.com/open?id=abc&authuser=0", "a@b.co")).toBe(
+      "https://drive.google.com/open?id=abc&authuser=a%40b.co",
+    );
+  });
+
+  it("leaves the link alone with no account", () => {
+    expect(asGoogleAccount("https://docs.google.com/document/d/abc/edit", null)).toBe("https://docs.google.com/document/d/abc/edit");
+    expect(asGoogleAccount("https://docs.google.com/document/d/abc/edit", "  ")).toBe("https://docs.google.com/document/d/abc/edit");
+  });
+});
 
 const f = (mimeType: string, webViewLink: string | null = null) => ({ id: "abc", mimeType, webViewLink });
 
@@ -31,6 +50,17 @@ describe("driveOpen", () => {
     for (const mime of ["image/png", "video/mp4", "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]) {
       expect(driveOpen(f(mime))).toEqual({ kind: "embed", url: "https://drive.google.com/file/d/abc/preview" });
     }
+  });
+
+  it("opens every kind as the signed-in admin's Google account", () => {
+    expect(driveOpen(f("application/vnd.google-apps.document"), "a@b.co")).toEqual({
+      kind: "embed",
+      url: "https://docs.google.com/document/d/abc/edit?authuser=a%40b.co",
+    });
+    expect(driveOpen(f("image/png"), "a@b.co")).toEqual({
+      kind: "embed",
+      url: "https://drive.google.com/file/d/abc/preview?authuser=a%40b.co",
+    });
   });
 
   it("sends Google types with no in-page editor out to Google", () => {
