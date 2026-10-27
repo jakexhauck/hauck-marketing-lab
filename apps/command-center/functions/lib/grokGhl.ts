@@ -1,6 +1,6 @@
 import { agencyToken, loadAgencyInstall, locationToken } from "./ghlApp";
 import { getGhlContextForTenant, isPlaceholder } from "./tenantGhl";
-import { audited, botName, findClient, listClients, type GrokDeps, type ToolDef } from "./grokMcp";
+import { audited, botName, listClients, matchClient, type ClientRef, type GrokDeps, type ToolDef } from "./grokMcp";
 
 // The GHL connector: the whole GoHighLevel API for every sub-account, through
 // the agency's Marketplace app (Jake, 2026-10-26: "Everything"; 2026-10-27:
@@ -57,31 +57,76 @@ export function locationIdOf(v: unknown): string {
   return id;
 }
 
-// A client goes through its own connection, the same one the app uses. Any
-// other sub-account is minted from the agency install, which GHL only allows
-// for locations under this agency with the app installed.
-async function subAccountToken(d: GrokDeps, a: Row): Promise<{ token: string; tenantId: string | null }> {
-  if (typeof a.client === "string" && a.client.trim()) {
-    const c = await findClient(d.client, a.client);
-    return { token: (await getGhlContextForTenant(d.env, c.id)).token, tenantId: c.id };
-  }
-  const id = locationIdOf(a.locationId);
-  const token = await locationToken(d.client, d.env, id);
-  if (!token) throw new Error(`No GHL token for sub-account ${id}: it is not under the agency, or the app is not installed there.`);
-  return { token, tenantId: null };
+export interface SubAccount {
+  name: string;
+  locationId: string;
 }
 
-// Every sub-account under the agency, straight from GHL, so the bots see the
-// ones that are not clients in the app as well. An error here is reported in
-// place rather than hiding the client list.
-async function agencySubAccounts(d: GrokDeps, clients: { client: string; locationId: string | null }[]): Promise<Row[] | string> {
+/**
+ * A client, or a sub-account that is not a client, by name. The bots ask for
+ * the Test Account and Hauck Marketing by name as well (2026-10-27: a bot read
+ * "No client called Test Account" as "not linked" and stopped). Same rules as
+ * matchClient: exact first, then a unique part, never a guess.
+ */
+export function pickSubAccount(clients: ClientRef[], others: SubAccount[], query: unknown): { tenantId: string } | { locationId: string } {
+  // A blank name would be "part" of every query.
+  const named = others.filter((s) => /[a-z0-9]/i.test(s.name));
+  const at = new Map(named.map((s) => [{ id: s.locationId, name: s.name, slug: "" }, s.locationId]));
+  const hit = matchClient([...clients, ...at.keys()], query);
+  const locationId = at.get(hit);
+  return locationId ? { locationId } : { tenantId: hit.id };
+}
+
+async function mintedToken(d: GrokDeps, id: string): Promise<string> {
+  const token = await locationToken(d.client, d.env, id);
+  if (!token) throw new Error(`No GHL token for sub-account ${id}: it is not under the agency, or the app is not installed there.`);
+  return token;
+}
+
+// A client goes through its own connection, the same one the app uses. Any
+// other sub-account is minted from the agency install, which GHL only allows
+// for locations under this agency with the app installed. The sub-account list
+// is only fetched when no single client answers to the name.
+async function subAccountToken(d: GrokDeps, a: Row): Promise<{ token: string; tenantId: string | null; locationId: string | null }> {
+  if (typeof a.client === "string" && a.client.trim()) {
+    const clients = await listClients(d.client);
+    let target: { tenantId: string } | { locationId: string };
+    try {
+      target = { tenantId: matchClient(clients, a.client).id };
+    } catch {
+      target = pickSubAccount(clients, await otherSubAccounts(d).catch(() => []), a.client);
+    }
+    if ("locationId" in target) return { token: await mintedToken(d, target.locationId), tenantId: null, locationId: target.locationId };
+    return { token: (await getGhlContextForTenant(d.env, target.tenantId)).token, tenantId: target.tenantId, locationId: null };
+  }
+  const id = locationIdOf(a.locationId);
+  return { token: await mintedToken(d, id), tenantId: null, locationId: id };
+}
+
+/** Every sub-account under the agency, straight from GHL. */
+async function agencyLocations(d: GrokDeps): Promise<SubAccount[]> {
   const agency = await agencyToken(d.client, d.env);
-  if (!agency) return "The GHL app is not installed at the agency, or its token needs a reinstall.";
+  if (!agency) throw new Error("The GHL app is not installed at the agency, or its token needs a reinstall.");
+  const url = ghlUrl("/locations/search", { companyId: agency.companyId, limit: 100 });
+  const found = JSON.parse(await send(agency.token, "GET", url, undefined, undefined)) as { locations?: Row[] };
+  return (found.locations ?? []).map((l) => ({ name: String(l.name ?? ""), locationId: String(l.id ?? "") }));
+}
+
+/** The sub-accounts no client holds: the Test Account, Hauck Marketing. */
+async function otherSubAccounts(d: GrokDeps): Promise<SubAccount[]> {
+  const [all, rows] = await Promise.all([agencyLocations(d), d.client.from("tenants").select("ghl_location_id")]);
+  if (rows.error) throw new Error(`clients: ${rows.error.message}`);
+  const held = new Set(((rows.data ?? []) as Row[]).map((r) => r.ghl_location_id));
+  return all.filter((s) => !held.has(s.locationId));
+}
+
+// Every sub-account under the agency, so the bots see the ones that are not
+// clients in the app as well. An error here is reported in place rather than
+// hiding the client list.
+async function agencySubAccounts(d: GrokDeps, clients: { client: string; locationId: string | null }[]): Promise<Row[] | string> {
   try {
-    const url = ghlUrl("/locations/search", { companyId: agency.companyId, limit: 100 });
-    const found = JSON.parse(await send(agency.token, "GET", url, undefined, undefined)) as { locations?: Row[] };
     const clientAt = new Map(clients.map((c) => [c.locationId, c.client]));
-    return (found.locations ?? []).map((l) => ({ name: l.name ?? null, locationId: l.id ?? null, client: clientAt.get(String(l.id)) ?? null }));
+    return (await agencyLocations(d)).map((l) => ({ ...l, client: clientAt.get(l.locationId) ?? null }));
   } catch (err) {
     return err instanceof Error ? err.message : String(err);
   }
@@ -139,11 +184,11 @@ const ghlClients: ToolDef<GrokDeps> = {
 const ghlRequest: ToolDef<GrokDeps> = {
   name: "ghl_request",
   description:
-    "Any GHL API v2 call in one sub-account, with that sub-account's token: a client by name, or any sub-account in ghl_clients by locationId (the Test Account, Hauck Marketing). Anything but GET is logged before it is sent.",
+    "Any GHL API v2 call in one sub-account, with that sub-account's token: a client by name, or any other sub-account in ghl_clients (the Test Account, Hauck Marketing) by name or locationId. Anything but GET is logged before it is sent.",
   inputSchema: {
     type: "object",
     properties: {
-      client: { type: "string", description: "Client name or slug." },
+      client: { type: "string", description: "Client name or slug, or the name of any other sub-account in ghl_clients, e.g. Test Account." },
       locationId: { type: "string", description: "Any sub-account's locationId from ghl_clients subAccounts, for one that is not a client. Give client or locationId." },
       ...call,
     },
@@ -152,9 +197,9 @@ const ghlRequest: ToolDef<GrokDeps> = {
   run: async (d, a) => {
     const method = ghlMethod(a.method);
     const url = ghlUrl(a.path, a.query);
-    const { token, tenantId } = await subAccountToken(d, a);
+    const { token, tenantId, locationId } = await subAccountToken(d, a);
     if (method === "GET") return send(token, method, url, undefined, a.version);
-    const payload = { bot: botName(a.bot), method, path: a.path, locationId: a.locationId ?? null, query: a.query ?? null, body: a.body ?? null };
+    const payload = { bot: botName(a.bot), method, path: a.path, locationId, query: a.query ?? null, body: a.body ?? null };
     return audited(d.client, "ghl_request", tenantId, payload, () => send(token, method, url, a.body, a.version));
   },
 };

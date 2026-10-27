@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-grok-ghl-test-account-by-name",
+    date: "27 October 2026",
+    title: "Grok Bots open the Test Account by name",
+    items: [
+      "Hauck GHL now finds the Test Account and Hauck Marketing when a bot asks for them by name, the same way it finds a client. Before, asking by name said there was no such client.",
+    ],
+  },
+  {
     id: "2026-10-27-grok-sets-password",
     date: "27 October 2026",
     title: "Grok Bot sets a client's password",

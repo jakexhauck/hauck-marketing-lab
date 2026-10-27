@@ -7,7 +7,7 @@ import buildSource from "./grokMetaBuild.ts?raw";
 import softwareSource from "./grokSoftware.ts?raw";
 import { audited, botName, connectorOf, handleBody, handleRpc, isGrokMcpRequest, loggablePath, matchClient, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
 import { CONNECTORS } from "./grokConnectors";
-import { ghlMethod, ghlUrl, GHL_ORIGIN, locationIdOf } from "./grokGhl";
+import { ghlMethod, ghlUrl, GHL_ORIGIN, locationIdOf, pickSubAccount } from "./grokGhl";
 import { leadsFrom } from "./grokMeta";
 import { LOGIN_PAGES, loginEmail, loginRole, pageGrants, pickLogin, problemsOnly, splitConnections } from "./grokSoftware";
 
@@ -192,6 +192,25 @@ describe("the GHL connector", () => {
     for (const bad of [undefined, "", "short", "../oauth", "a b c d e f g h", 42]) {
       expect(() => locationIdOf(bad)).toThrow(/client .* or locationId/);
     }
+  });
+
+  it("finds a sub-account that is not a client by its name too, never guessing", () => {
+    const clients = [
+      { id: "t1", name: "Willis Windows", slug: "willis-windows" },
+      { id: "t2", name: "Above All Garage Doors", slug: "above-all-garage-doors" },
+      { id: "t3", name: "TNT Garage Doors & Openers", slug: "tnt-garage-doors" },
+    ];
+    const others = [
+      { name: "Test Account", locationId: "yVfX127fswQ03fydxBQg" },
+      { name: "Hauck Marketing", locationId: "wbrjjHYzznyEHx9wumSr" },
+      { name: "", locationId: "blankNamedLocation01" },
+    ];
+    expect(pickSubAccount(clients, others, "Test Account")).toEqual({ locationId: "yVfX127fswQ03fydxBQg" });
+    expect(pickSubAccount(clients, others, "the test account")).toEqual({ locationId: "yVfX127fswQ03fydxBQg" });
+    expect(pickSubAccount(clients, others, "hauck")).toEqual({ locationId: "wbrjjHYzznyEHx9wumSr" });
+    expect(pickSubAccount(clients, others, "willis")).toEqual({ tenantId: "t1" });
+    expect(() => pickSubAccount(clients, others, "garage")).toThrow(/matches Above All Garage Doors, TNT Garage Doors/);
+    expect(() => pickSubAccount(clients, others, "nobody")).toThrow(/Test Account, Hauck Marketing/);
   });
 
   it("takes every method, GET by default", () => {
