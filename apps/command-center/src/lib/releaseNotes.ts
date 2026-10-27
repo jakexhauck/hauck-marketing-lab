@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-grok-sets-password",
+    date: "27 October 2026",
+    title: "Grok Bot sets a client's password",
+    items: [
+      "Hauck Software has a new tool, software_set_password: it makes a new password for a client's login, sets it, and hands it to the bot once to pass on.",
+      "The owner's new password also shows on their Onboarding sheet under Login, so the one there is always the one that works.",
+      "A client who just sent the onboarding form has no password they know until the bot sets one. Their sheet says Not set yet.",
+    ],
+  },
+  {
     id: "2026-10-27-grok-ghl-full-access",
     date: "27 October 2026",
     title: "Grok Bots get all of GHL",
@@ -41,7 +51,7 @@ export const RELEASES: Release[] = [
     title: "Clients no longer choose a password",
     items: [
       "The onboarding form has no Login step. Clients sign in with the Email they give on Contact.",
-      "Their password is made when they send the form, like Kx7m-Pq4t-Wz9h. It is on their sheet under Login, right after Contact. Give it to them on the onboarding call.",
+      "Their password is set by the Grok Bot after the form. It is on their sheet under Login, right after Contact.",
     ],
   },
   {

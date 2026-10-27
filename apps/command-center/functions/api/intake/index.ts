@@ -1,13 +1,13 @@
 import type { Env } from "../../lib/env";
 import { getServiceClient } from "../../lib/supabase";
 import { hashPassword } from "../../lib/password";
+import { newPassword } from "../../lib/ghlSetup";
 import { normalizeEmail } from "../../lib/staff";
 import { clientIp } from "../../lib/ratelimit";
 import {
   canEdit,
   clampStep,
   isIntakeCreateLimited,
-  mintPassword,
   mintResumeToken,
   recordIntakeCreate,
   resumeView,
@@ -163,14 +163,13 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   return Response.json({ token, ...resumeView(saved as SubmissionRow) });
 };
 
-// The client's password, made the moment they send the form: clients do not
-// choose one (Jake, 2026-10-27). The plaintext is kept beside the hash so Jake
-// can read it off their sheet and hand it over on the onboarding call.
-// Deliberate, and confined: see migration 0081. The two are written together,
-// because a hash and a plaintext that disagreed would be worse than neither.
-async function issuePassword(): Promise<{ password_hash: string; password_plain: string }> {
-  const password = mintPassword();
-  return { password_hash: await hashPassword(password), password_plain: password };
+// Clients do not choose a password, and the form does not make the one they use
+// either: the Grok Bot does, with software_set_password (Jake, 2026-10-27),
+// which also puts it on their sheet. Sending the form still makes the account,
+// and an account needs a password, so it gets one nobody is ever shown: only
+// its hash is kept, and the sheet says "Not set yet" until the bot runs.
+async function issuePassword(): Promise<{ password_hash: string }> {
+  return { password_hash: await hashPassword(newPassword()) };
 }
 
 // Approve on the spot, swallowing anything that goes wrong.

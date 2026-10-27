@@ -6,9 +6,8 @@
 // the business basics needed to create an account, and a review screen.
 //
 // No login questions. The client signs in with the Email they give on Contact,
-// and their password is made for them when they send the form (Jake,
-// 2026-10-27: clients do not choose one). Jake reads it off their sheet and
-// hands it over on the onboarding call. See mintPassword in functions/lib/intake.
+// and they do not choose a password: the Grok Bot makes it with
+// software_set_password (Jake, 2026-10-27), which also puts it on their sheet.
 //
 // Where it now differs from the Google Form, it differs on purpose: no address,
 // targeting asks for zip codes rather than "areas", hours are asked a day at a

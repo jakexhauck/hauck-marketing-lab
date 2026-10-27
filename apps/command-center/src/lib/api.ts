@@ -632,9 +632,9 @@ export interface AdminOnboardingResponse {
   /** Their sign-in email: the Email they gave on the form. Null for a client added by hand. */
   loginEmail: string | null;
   /**
-   * Their password in plain text, made for them when they sent the form (older
-   * forms: the one they typed), so Jake can hand it over on the onboarding
-   * call. Admin-gated; null for anyone who signed up before 0081.
+   * Their password in plain text, as the Grok Bot last set it (older forms:
+   * the one they typed). Admin-gated; null until the bot sets one, and for
+   * anyone who signed up before 0081.
    */
   password: string | null;
   status: string;

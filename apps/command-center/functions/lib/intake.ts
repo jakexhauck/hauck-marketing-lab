@@ -59,27 +59,6 @@ export function mintResumeToken(): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-// The client's password, made for them when they send the form. Clients do not
-// choose one (Jake, 2026-10-27): Jake reads this off their sheet and says it on
-// the onboarding call, so it is three groups of four with no character that
-// reads as another out loud (no 0/O/o, 1/l/I). About 70 bits, with upper,
-// lower and a number always present, and the hyphens as symbols.
-const PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-
-export function mintPassword(): string {
-  for (;;) {
-    const bytes = new Uint8Array(12);
-    crypto.getRandomValues(bytes);
-    // 256 is not a multiple of the alphabet, so a byte past the last whole
-    // multiple is redrawn rather than wrapped, which would favour some letters.
-    const limit = 256 - (256 % PASSWORD_CHARS.length);
-    if (bytes.some((b) => b >= limit)) continue;
-    const chars = [...bytes].map((b) => PASSWORD_CHARS[b % PASSWORD_CHARS.length]).join("");
-    if (!/[a-z]/.test(chars) || !/[A-Z]/.test(chars) || !/[0-9]/.test(chars)) continue;
-    return `${chars.slice(0, 4)}-${chars.slice(4, 8)}-${chars.slice(8)}`;
-  }
-}
-
 const FIELD_BY_KEY = new Map(INTAKE_FIELDS.map((f) => [f.key, f]));
 
 export interface SanitizeResult {

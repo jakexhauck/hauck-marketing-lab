@@ -6,7 +6,6 @@ import {
   canEdit,
   clampStep,
   isIntakeCreateLimited,
-  mintPassword,
   mintResumeToken,
   recordIntakeCreate,
   resetIntakeRateLimit,
@@ -15,6 +14,7 @@ import {
   type SubmissionRow,
 } from "./intake";
 import { INTAKE_FIELDS, REVIEW_STEP } from "../../src/lib/intake";
+import intakeRoute from "../api/intake/index.ts?raw";
 
 function submission(overrides: Partial<SubmissionRow> = {}): SubmissionRow {
   return {
@@ -47,32 +47,13 @@ describe("mintResumeToken", () => {
   });
 });
 
-// The password made for a client on submit. Jake reads it off their sheet and
-// says it over the phone, so it must be strong and also unambiguous out loud.
-describe("mintPassword", () => {
-  it("is three groups of four, joined by hyphens", () => {
-    for (let i = 0; i < 50; i++) {
-      expect(mintPassword()).toMatch(/^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/);
-    }
-  });
-
-  it("always has upper case, lower case and a number", () => {
-    for (let i = 0; i < 200; i++) {
-      const p = mintPassword();
-      expect(p, p).toMatch(/[a-z]/);
-      expect(p, p).toMatch(/[A-Z]/);
-      expect(p, p).toMatch(/[0-9]/);
-    }
-  });
-
-  it("never uses a character that reads as another (0 O o 1 l I)", () => {
-    const all = Array.from({ length: 200 }, () => mintPassword()).join("");
-    expect(all).not.toMatch(/[0Oo1lI]/);
-  });
-
-  it("does not repeat itself", () => {
-    const seen = new Set(Array.from({ length: 200 }, () => mintPassword()));
-    expect(seen.size).toBe(200);
+// The Grok Bot makes the password a client signs in with (Jake, 2026-10-27,
+// software_set_password). Sending the form makes the account with a password
+// nobody is shown, so the form's endpoint must never keep a readable one.
+describe("the form's own password", () => {
+  it("is a hash only: the endpoint never stores a readable password", () => {
+    expect(intakeRoute).not.toMatch(/password_plain/);
+    expect(intakeRoute).toMatch(/password_hash: await hashPassword\(newPassword\(\)\)/);
   });
 });
 

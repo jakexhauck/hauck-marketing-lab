@@ -9,7 +9,7 @@ import { audited, botName, connectorOf, handleBody, handleRpc, isGrokMcpRequest,
 import { CONNECTORS } from "./grokConnectors";
 import { ghlMethod, ghlUrl, GHL_ORIGIN, locationIdOf } from "./grokGhl";
 import { leadsFrom } from "./grokMeta";
-import { LOGIN_PAGES, loginEmail, loginRole, pageGrants, problemsOnly, splitConnections } from "./grokSoftware";
+import { LOGIN_PAGES, loginEmail, loginRole, pageGrants, pickLogin, problemsOnly, splitConnections } from "./grokSoftware";
 
 const KEY = "k".repeat(40);
 
@@ -239,7 +239,7 @@ describe("the Meta connector", () => {
 
 describe("the Software connector", () => {
   it("logs every change before making it, and makes each password inside the change", () => {
-    for (const tool of ["software_create_client", "software_link_ghl", "software_add_login", "software_fix", "software_go_live", "software_set_script", "software_add_creatives"]) {
+    for (const tool of ["software_create_client", "software_link_ghl", "software_add_login", "software_set_password", "software_fix", "software_go_live", "software_set_script", "software_add_creatives"]) {
       const run = softwareSource.slice(softwareSource.indexOf(`name: "${tool}"`));
       const body = run.slice(0, run.search(/\r?\n\};\r?\n/));
       const auditedAt = body.indexOf(`return audited(d.client, "${tool}",`);
@@ -252,10 +252,19 @@ describe("the Software connector", () => {
       const pw = body.indexOf("newPassword()");
       if (pw >= 0) expect(pw).toBeGreaterThan(auditedAt);
     }
-    // The named tools never delete or reset a password. Anything else in the app,
-    // deletes included, goes through software_request (lib/grokSoftwareApi.ts),
-    // which logs first too. Go Live is a bot's since 2026-10-27.
-    expect(softwareSource).not.toMatch(/\.delete\(|password_hash:/);
+    // The named tools never delete. Anything else in the app, deletes included,
+    // goes through software_request (lib/grokSoftwareApi.ts), which logs first
+    // too. Go Live is a bot's since 2026-10-27.
+    expect(softwareSource).not.toMatch(/\.delete\(/);
+    // One named tool sets a password, software_set_password (Jake, 2026-10-27:
+    // the Grok Bot makes the client's password), and it makes the password
+    // itself inside the logged change; a bot never chooses one.
+    const setPw = softwareSource.slice(softwareSource.indexOf('name: "software_set_password"'));
+    const setPwBody = setPw.slice(0, setPw.search(/\r?\n\};\r?\n/));
+    const outside = softwareSource.replace(setPwBody, "");
+    expect(outside).not.toMatch(/password_hash:/);
+    expect(setPwBody).toMatch(/password_hash:/);
+    expect(setPwBody).not.toMatch(/a\.password/);
     // The only status a bot can set is live, and only through software_go_live.
     expect(softwareSource.match(/onboarding_status: "live"/g)).toHaveLength(1);
     expect(softwareSource.slice(softwareSource.indexOf('name: "software_go_live"'))).toMatch(/onboarding_status: "live"/);
@@ -277,6 +286,18 @@ describe("the Software connector", () => {
     ]);
     expect(() => pageGrants(["inbox", "billing"])).toThrow(/Unknown page billing/);
     expect(() => pageGrants("inbox")).toThrow(/pages is a list/);
+  });
+
+  // Which login software_set_password changes: the owner unless an email says
+  // otherwise. Two owners and no email is a question, never a guess.
+  it("set password: the owner by default, or the login the email names", () => {
+    const owner = { id: "s1", email: "jim@willis.com", role: "owner" };
+    const rep = { id: "s2", email: "rep@willis.com", role: "rep" };
+    expect(pickLogin([rep, owner], "")).toBe(owner);
+    expect(pickLogin([rep, owner], "REP@willis.com")).toBe(rep);
+    expect(() => pickLogin([rep], "")).toThrow(/no owner login/);
+    expect(() => pickLogin([owner], "nobody@willis.com")).toThrow(/no login nobody@willis.com/);
+    expect(() => pickLogin([owner, { ...owner, id: "s3", email: "two@willis.com" }], "")).toThrow(/2 owner logins.*email/);
   });
 
   it("emails are normalized and must look like one", () => {
@@ -308,7 +329,7 @@ describe("the connectors", () => {
   it("serve exactly these tools", () => {
     expect(Object.keys(CONNECTORS).sort()).toEqual(["ghl", "meta", "software"]);
     expect(CONNECTORS.software.tools.map((t) => t.name)).toEqual([
-      "software_clients", "software_create_client", "software_link_ghl", "software_add_login",
+      "software_clients", "software_create_client", "software_link_ghl", "software_add_login", "software_set_password",
       "software_client_health", "software_system_health", "software_fix", "software_go_live",
       "software_get_script", "software_set_script", "software_add_creatives", "software_routes", "software_request",
     ]);

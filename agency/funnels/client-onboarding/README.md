@@ -143,9 +143,9 @@ part of the copy is worse than none, because it reads as a pass.
 - **Assets are optional and say so.** The step tells a client without them to
   send the form anyway and go over it on the onboarding call.
 - **Clients do not choose a password.** They sign in with the Email they give
-  on Contact. Sending the form makes their password (three groups of four,
-  easy to say out loud), creates the account with it, and puts it on their
-  sheet for Jake to hand over on the onboarding call.
+  on Contact. Sending the form creates the account with a password nobody is
+  shown; the Grok Bot then makes the real one with `software_set_password`,
+  which also puts it on their sheet.
 - **Progress saves after every step.** The resume token goes into the URL so a
   bookmarked or forwarded link works, and into `localStorage` as a second copy,
   because some funnel builders sandbox `history.replaceState`. The stored copy

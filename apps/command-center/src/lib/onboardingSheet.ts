@@ -63,10 +63,10 @@ export function displayAnswer(
 
 /**
  * How they sign in. Not a funnel step any more (Jake, 2026-10-27: clients do
- * not choose a password, one is made for them on submit), so it is built here
- * rather than from INTAKE_STEPS: the email they sign in with, which is their
- * contact email unless an older form asked for a separate one, and the
- * password Jake hands over on the onboarding call.
+ * not choose a password; the Grok Bot makes it with software_set_password),
+ * so it is built here rather than from INTAKE_STEPS: the email they sign in
+ * with, which is their contact email unless an older form asked for a separate
+ * one, and the password the bot set.
  */
 function loginSection(answers: IntakeAnswers, password?: string | null): SheetSection {
   const text = (key: string) => {
@@ -87,9 +87,9 @@ function loginSection(answers: IntakeAnswers, password?: string | null): SheetSe
         key: "password",
         label: "Password",
         value: password?.trim() ? password : null,
-        // Not "Not answered": one was set, we just cannot show it. Only forms
-        // taken after migration 0081 kept the plaintext.
-        placeholder: "Not saved, reset it instead",
+        // Not "Not answered": the client was never asked. The bot writes it
+        // here when it sets one.
+        placeholder: "Not set yet",
         mono: true,
       },
     ],
@@ -106,9 +106,9 @@ function loginSection(answers: IntakeAnswers, password?: string | null): SheetSe
  * Pass an empty wiring list for a form that has not become a client yet: they
  * get the same sheet, minus a Wiring section there is nothing to put in.
  *
- * `password` is the one value that is not an intake answer: the server makes
- * it on submit and keeps it beside the submission, not in the answers, so it
- * arrives separately and goes in the Login section after Contact.
+ * `password` is the one value that is not an intake answer: the Grok Bot sets
+ * it after the form and keeps it beside the submission, not in the answers, so
+ * it arrives separately and goes in the Login section after Contact.
  */
 export function sheetSections(
   answers: IntakeAnswers,

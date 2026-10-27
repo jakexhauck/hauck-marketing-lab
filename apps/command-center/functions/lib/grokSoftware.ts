@@ -28,6 +28,9 @@ import { loadTenantById } from "./tenantResolve";
 //   - a new client is the Add Client form (lib/clientCreate.ts), held at setup;
 //   - a link is the Link button (lib/subaccountLinkRun.ts);
 //   - a login is the Team screen's add (lib/staffCreate.ts);
+//   - a password is the Team screen's password change, made here rather than
+//     chosen by the bot, and the owner's also goes on their sheet (Jake,
+//     2026-10-27: "the password is going to be made by grok bot automatically");
 //   - health is Client > Accounts (lib/clientAccountsRun.ts) and the control
 //     room snapshot (lib/connectionsHealth.ts);
 //   - a fix is Provision (custom values and owner links into GHL);
@@ -73,6 +76,20 @@ export function loginEmail(v: unknown): string {
   const email = normalizeEmail(text(v));
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("a valid email is required");
   return email;
+}
+
+/** The login software_set_password changes: the owner, or the one email names. Two owners and no email is a question, never a guess. */
+export function pickLogin<T extends { id: string; email: string; role: string }>(logins: T[], email: string): T {
+  if (email) {
+    const want = normalizeEmail(email);
+    const hit = logins.find((l) => normalizeEmail(l.email) === want);
+    if (!hit) throw new Error(`This client has no login ${want}.`);
+    return hit;
+  }
+  const owners = logins.filter((l) => l.role === "owner");
+  if (owners.length === 0) throw new Error("This client has no owner login. Add one with software_add_login.");
+  if (owners.length > 1) throw new Error(`This client has ${owners.length} owner logins: pass email to say which.`);
+  return owners[0];
 }
 
 /** Only what needs a look: green rows are counted, not listed. */
@@ -260,6 +277,45 @@ const softwareAddLogin: ToolDef<GrokDeps> = {
       const r = await createStaffLogin(d.client, c.id, { name, email, role, password, permissions });
       if (!r.ok) throw new Error(r.error);
       return json({ client: c.name, login: { url: `${d.origin}/login`, name, email, role, password, pages: payload.pages } });
+    });
+  },
+};
+
+// The onboarding form makes the account with a password nobody is shown; this
+// makes the one the client signs in with. Also a reset, for any login, any time.
+const softwareSetPassword: ToolDef<GrokDeps> = {
+  name: "software_set_password",
+  description:
+    "Make a new password for a client's login and set it: the owner unless email names another login. The old password stops working. The owner's also goes on their Onboarding sheet for Jake. Returns the login with the new password, shown once.",
+  inputSchema: {
+    type: "object",
+    properties: { client: clientArg, email: { type: "string", description: "Which login. Leave out for the owner." }, bot },
+    required: ["client"],
+  },
+  run: async (d, a) => {
+    const c = await findClient(d.client, a.client);
+    const { data, error } = await d.client.from("staff_accounts").select("id, email, role").eq("tenant_id", c.id);
+    if (error) throw new Error(`logins: ${error.message}`);
+    const logins = ((data ?? []) as Row[]).map((r) => ({ id: String(r.id), email: String(r.email), role: String(r.role) }));
+    const login = pickLogin(logins, text(a.email));
+    const payload = { bot: botName(a.bot), email: login.email, role: login.role };
+    return audited(d.client, "software_set_password", c.id, payload, async () => {
+      const password = newPassword();
+      const hash = await hashPassword(password);
+      const now = new Date().toISOString();
+      const { error: loginErr } = await d.client.from("staff_accounts").update({ password_hash: hash, updated_at: now }).eq("id", login.id);
+      if (loginErr) throw new Error(loginErr.message);
+      if (login.role === "owner") {
+        // The tenant keeps the owner's hash too (the older shared-password
+        // sign-in), so it moves with theirs or the old password would still work.
+        const { error: tenantErr } = await d.client.from("tenants").update({ owner_password_hash: hash }).eq("id", c.id);
+        if (tenantErr) throw new Error(tenantErr.message);
+        // Their sheet shows the newest form's plaintext (migration 0081, Jake's
+        // read-back), so the one there is always the one that works.
+        const { error: sheetErr } = await d.client.from("intake_submissions").update({ password_plain: password }).eq("tenant_id", c.id);
+        if (sheetErr) throw new Error(sheetErr.message);
+      }
+      return json({ client: c.name, login: { url: `${d.origin}/login`, email: login.email, role: login.role, password } });
     });
   },
 };
@@ -458,6 +514,7 @@ export const SOFTWARE_TOOLS: ToolDef<GrokDeps>[] = [
   softwareCreateClient,
   softwareLinkGhl,
   softwareAddLogin,
+  softwareSetPassword,
   softwareClientHealth,
   softwareSystemHealth,
   softwareFix,

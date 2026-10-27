@@ -39,12 +39,12 @@ describe("sheetSections", () => {
     expect(fieldNamed(sections, "Login email")!.value).toBe("signin@example.com");
   });
 
-  it("says the password was not saved rather than not answered", () => {
-    // A client who signed up before migration 0081 did choose one; we simply
-    // never kept it. That is a different fact from skipping a question.
+  it("says the password is not set yet rather than not answered", () => {
+    // The Grok Bot sets it after the form (software_set_password) and writes
+    // it here when it does. Until then there is nothing to show.
     const field = fieldNamed(sheetSections(ANSWERS, [], null), "Password");
     expect(field!.value).toBeNull();
-    expect(field!.placeholder).toBe("Not saved, reset it instead");
+    expect(field!.placeholder).toBe("Not set yet");
   });
 
   it("keeps the login section for a client whose only login row is the password", () => {
