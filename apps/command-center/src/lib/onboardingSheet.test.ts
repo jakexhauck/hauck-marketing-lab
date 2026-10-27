@@ -5,7 +5,6 @@ import type { ClientSecretView } from "./clientSecrets";
 const ANSWERS = {
   name: "Made Better Landscaping Co",
   niche: "Hardscaping",
-  loginEmail: "owner@example.com",
   contactName: "Sam",
   contactEmail: "owner@example.com",
   contactPhone: "3135550142",
@@ -24,11 +23,20 @@ const fieldNamed = (sections: ReturnType<typeof sheetSections>, label: string) =
   sections.flatMap((s) => s.fields).find((f) => f.label === label);
 
 describe("sheetSections", () => {
-  it("puts the password in the login section, under the email they chose", () => {
-    const section = login(sheetSections(ANSWERS, [], "Correct-Horse-9!"));
-    const labels = section!.fields.map((f) => f.label);
-    expect(labels.indexOf("Password")).toBe(labels.length - 1);
-    expect(section!.fields.at(-1)!.value).toBe("Correct-Horse-9!");
+  // The form no longer has a Login step (Jake, 2026-10-27): they sign in with
+  // their contact email and a password made for them, which Jake hands over.
+  it("shows the login straight after Contact: their email, then the password", () => {
+    const sections = sheetSections(ANSWERS, [], "Kx7m-Pq4t-Wz9h");
+    expect(sections.map((s) => s.key).slice(0, 3)).toEqual(["business", "contact", "login"]);
+    expect(login(sections)!.fields.map((f) => [f.label, f.value])).toEqual([
+      ["Login email", "owner@example.com"],
+      ["Password", "Kx7m-Pq4t-Wz9h"],
+    ]);
+  });
+
+  it("shows an older form's separate login email over the contact one", () => {
+    const sections = sheetSections({ ...ANSWERS, loginEmail: "signin@example.com" }, [], null);
+    expect(fieldNamed(sections, "Login email")!.value).toBe("signin@example.com");
   });
 
   it("says the password was not saved rather than not answered", () => {
@@ -53,7 +61,7 @@ describe("sheetSections", () => {
   });
 
   it("drops the login section when there is no email and no password", () => {
-    const { loginEmail: _dropped, ...noLogin } = ANSWERS;
+    const { contactEmail: _dropped, ...noLogin } = ANSWERS;
     expect(login(sheetSections(noLogin, []))).toBeUndefined();
   });
 

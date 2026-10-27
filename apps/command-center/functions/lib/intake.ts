@@ -13,15 +13,7 @@
 //
 // See docs/build-plans/client-onboarding-full.md.
 
-import {
-  INTAKE_FIELDS,
-  MIN_PASSWORD_LEN,
-  REVIEW_STEP,
-  passwordProblems,
-  type IntakeAnswers,
-} from "../../src/lib/intake";
-
-export { MIN_PASSWORD_LEN };
+import { INTAKE_FIELDS, REVIEW_STEP, type IntakeAnswers } from "../../src/lib/intake";
 
 // Long enough for a rambling "anything else we should know", short enough that
 // nobody is storing a novel in a jsonb column.
@@ -67,16 +59,31 @@ export function mintResumeToken(): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-const FIELD_BY_KEY = new Map(INTAKE_FIELDS.map((f) => [f.key, f]));
+// The client's password, made for them when they send the form. Clients do not
+// choose one (Jake, 2026-10-27): Jake reads this off their sheet and says it on
+// the onboarding call, so it is three groups of four with no character that
+// reads as another out loud (no 0/O/o, 1/l/I). About 70 bits, with upper,
+// lower and a number always present, and the hyphens as symbols.
+const PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
 
-// The password never lives in the answers blob. It is pulled out here, checked,
-// and handed back for the caller to hash. Only the hash is ever stored.
-const PASSWORD_KEYS = new Set(["password", "passwordConfirm"]);
+export function mintPassword(): string {
+  for (;;) {
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+    // 256 is not a multiple of the alphabet, so a byte past the last whole
+    // multiple is redrawn rather than wrapped, which would favour some letters.
+    const limit = 256 - (256 % PASSWORD_CHARS.length);
+    if (bytes.some((b) => b >= limit)) continue;
+    const chars = [...bytes].map((b) => PASSWORD_CHARS[b % PASSWORD_CHARS.length]).join("");
+    if (!/[a-z]/.test(chars) || !/[A-Z]/.test(chars) || !/[0-9]/.test(chars)) continue;
+    return `${chars.slice(0, 4)}-${chars.slice(4, 8)}-${chars.slice(8)}`;
+  }
+}
+
+const FIELD_BY_KEY = new Map(INTAKE_FIELDS.map((f) => [f.key, f]));
 
 export interface SanitizeResult {
   answers: IntakeAnswers;
-  /** Plaintext, for the caller to hash immediately. Null when absent or invalid. */
-  password: string | null;
   error: string | null;
 }
 
@@ -88,17 +95,16 @@ export function sanitizeAnswers(
   const answers: IntakeAnswers = {};
 
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return { answers, password: null, error: null };
+    return { answers, error: null };
   }
 
   const input = raw as Record<string, unknown>;
 
   for (const [key, value] of Object.entries(input)) {
-    if (PASSWORD_KEYS.has(key)) continue; // handled below, never stored here
     const field = FIELD_BY_KEY.get(key);
     // An unknown key is not an error worth failing the whole save over. It is
     // silently dropped, which is what keeps agency-only fields off the funnel
-    // no matter what a caller posts.
+    // no matter what a caller posts, and a chosen password with them.
     if (!field) continue;
 
     if (field.type === "checkbox") {
@@ -112,26 +118,10 @@ export function sanitizeAnswers(
   }
 
   if (new TextEncoder().encode(JSON.stringify(answers)).length > maxBytes) {
-    return { answers: {}, password: null, error: "That is more than we can store." };
+    return { answers: {}, error: "That is more than we can store." };
   }
 
-  const password = typeof input.password === "string" ? input.password : "";
-  const confirm = typeof input.passwordConfirm === "string" ? input.passwordConfirm : "";
-  if (!password) {
-    return { answers, password: null, error: null };
-  }
-  // The same rule the funnel states on the field. Enforced here too, because
-  // the funnel's check is client-side and anyone can post straight to this
-  // endpoint. Reported one rule at a time, matching what the form says.
-  const problems = passwordProblems(password);
-  if (problems.length > 0) {
-    return { answers, password: null, error: `${problems[0]}.` };
-  }
-  if (confirm && password !== confirm) {
-    return { answers, password: null, error: "The two passwords do not match." };
-  }
-
-  return { answers, password, error: null };
+  return { answers, error: null };
 }
 
 export function clampStep(step: unknown): number {

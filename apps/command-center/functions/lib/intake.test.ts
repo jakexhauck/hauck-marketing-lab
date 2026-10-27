@@ -6,6 +6,7 @@ import {
   canEdit,
   clampStep,
   isIntakeCreateLimited,
+  mintPassword,
   mintResumeToken,
   recordIntakeCreate,
   resetIntakeRateLimit,
@@ -46,6 +47,35 @@ describe("mintResumeToken", () => {
   });
 });
 
+// The password made for a client on submit. Jake reads it off their sheet and
+// says it over the phone, so it must be strong and also unambiguous out loud.
+describe("mintPassword", () => {
+  it("is three groups of four, joined by hyphens", () => {
+    for (let i = 0; i < 50; i++) {
+      expect(mintPassword()).toMatch(/^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/);
+    }
+  });
+
+  it("always has upper case, lower case and a number", () => {
+    for (let i = 0; i < 200; i++) {
+      const p = mintPassword();
+      expect(p, p).toMatch(/[a-z]/);
+      expect(p, p).toMatch(/[A-Z]/);
+      expect(p, p).toMatch(/[0-9]/);
+    }
+  });
+
+  it("never uses a character that reads as another (0 O o 1 l I)", () => {
+    const all = Array.from({ length: 200 }, () => mintPassword()).join("");
+    expect(all).not.toMatch(/[0Oo1lI]/);
+  });
+
+  it("does not repeat itself", () => {
+    const seen = new Set(Array.from({ length: 200 }, () => mintPassword()));
+    expect(seen.size).toBe(200);
+  });
+});
+
 describe("sanitizeAnswers", () => {
   it("keeps a known field", () => {
     expect(sanitizeAnswers({ name: "Willis" }).answers.name).toBe("Willis");
@@ -72,42 +102,19 @@ describe("sanitizeAnswers", () => {
     expect(Object.keys(result.answers)).toEqual([]);
   });
 
-  it("never returns the password fields for storage", () => {
-    const result = sanitizeAnswers({ password: "Roofing-Rules9", passwordConfirm: "Roofing-Rules9" });
-    expect(result.answers.password).toBeUndefined();
-    expect(result.answers.passwordConfirm).toBeUndefined();
-  });
-
-  it("hands the password back separately so the caller can hash it", () => {
-    const result = sanitizeAnswers({ password: "Roofing-Rules9", passwordConfirm: "Roofing-Rules9" });
-    expect(result.password).toBe("Roofing-Rules9");
-  });
-
-  it("reports no password when none was sent", () => {
-    expect(sanitizeAnswers({ name: "Willis" }).password).toBeNull();
-  });
-
-  it("refuses a password that does not match its confirmation", () => {
-    const result = sanitizeAnswers({ password: "Roofing-Rules9", passwordConfirm: "nope" });
-    expect(result.password).toBeNull();
-    expect(result.error).toBeTruthy();
-  });
-
-  // The funnel states the rule on the field and checks it in the browser. This
-  // is the check that MATTERS: anyone can post straight to /api/intake, so a
-  // password that never passed through the form still has to satisfy it.
-  it("refuses a password that breaks the rule, whatever the browser allowed", () => {
-    for (const weak of ["short7", "alllowercase99!", "NoSymbolsHere99", "No-Numbers-Here!"]) {
-      const result = sanitizeAnswers({ password: weak, passwordConfirm: weak });
-      expect(result.password, `${weak} should be refused`).toBeNull();
-      expect(result.error, `${weak} should be refused`).toBeTruthy();
-    }
-  });
-
-  it("names the rule that was broken rather than a generic refusal", () => {
-    expect(sanitizeAnswers({ password: "roofing-rules9" }).error).toMatch(/upper and lower/i);
-    expect(sanitizeAnswers({ password: "RoofingRulesNine" }).error).toMatch(/symbol and one number/i);
-    expect(sanitizeAnswers({ password: "Roof-9" }).error).toMatch(/12 characters/i);
+  // Clients do not choose a password (Jake, 2026-10-27). An old cached funnel,
+  // or anyone posting by hand, still cannot: the keys are dropped like any
+  // other key the form does not ask, and nothing is handed back to hash.
+  it("drops a posted password, so a client can never choose one", () => {
+    const result = sanitizeAnswers({
+      name: "Willis",
+      loginEmail: "other@example.com",
+      password: "Roofing-Rules9",
+      passwordConfirm: "Roofing-Rules9",
+    });
+    expect(result.answers).toEqual({ name: "Willis" });
+    expect(result.error).toBeNull();
+    expect("password" in result).toBe(false);
   });
 
   it("caps a single oversized answer", () => {

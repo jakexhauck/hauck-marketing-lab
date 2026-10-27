@@ -61,8 +61,40 @@ export function displayAnswer(
   return value;
 }
 
-/** The step key of the group the login details belong to (see INTAKE_STEPS). */
-const LOGIN_GROUP = "login";
+/**
+ * How they sign in. Not a funnel step any more (Jake, 2026-10-27: clients do
+ * not choose a password, one is made for them on submit), so it is built here
+ * rather than from INTAKE_STEPS: the email they sign in with, which is their
+ * contact email unless an older form asked for a separate one, and the
+ * password Jake hands over on the onboarding call.
+ */
+function loginSection(answers: IntakeAnswers, password?: string | null): SheetSection {
+  const text = (key: string) => {
+    const raw = answers[key];
+    return typeof raw === "string" ? raw.trim() : "";
+  };
+  return {
+    key: "login",
+    label: "Login",
+    fields: [
+      {
+        key: "loginEmail",
+        label: "Login email",
+        value: text("loginEmail") || text("contactEmail") || null,
+        placeholder: "Not answered",
+      },
+      {
+        key: "password",
+        label: "Password",
+        value: password?.trim() ? password : null,
+        // Not "Not answered": one was set, we just cannot show it. Only forms
+        // taken after migration 0081 kept the plaintext.
+        placeholder: "Not saved, reset it instead",
+        mono: true,
+      },
+    ],
+  };
+}
 
 /**
  * Every section of a client's sheet, in reading order.
@@ -74,9 +106,9 @@ const LOGIN_GROUP = "login";
  * Pass an empty wiring list for a form that has not become a client yet: they
  * get the same sheet, minus a Wiring section there is nothing to put in.
  *
- * `password` is the one value that is not an intake answer: the funnel hashes
- * it on arrival and strips it from the saved answers, so it arrives separately
- * and is put back where the client would expect to find it.
+ * `password` is the one value that is not an intake answer: the server makes
+ * it on submit and keeps it beside the submission, not in the answers, so it
+ * arrives separately and goes in the Login section after Contact.
  */
 export function sheetSections(
   answers: IntakeAnswers,
@@ -84,27 +116,15 @@ export function sheetSections(
   password?: string | null,
 ): SheetSection[] {
   const sections: SheetSection[] = intakeGroups()
-    .map((group) => {
+    .flatMap((group) => {
       const fields: SheetField[] = group.fields.map((field: IntakeField) => ({
         key: field.key,
         label: field.label,
         value: displayAnswer(field, answers[field.key]),
         placeholder: "Not answered",
       }));
-
-      if (group.key === LOGIN_GROUP) {
-        fields.push({
-          key: "password",
-          label: "Password",
-          value: password?.trim() ? password : null,
-          // Not "Not answered": they did choose one, we just cannot show it.
-          // Only forms taken after migration 0081 kept the plaintext.
-          placeholder: "Not saved, reset it instead",
-          mono: true,
-        });
-      }
-
-      return { key: group.key, label: group.label, fields };
+      const section = { key: group.key, label: group.label, fields };
+      return group.key === "contact" ? [section, loginSection(answers, password)] : [section];
     })
     // The login section survives on its own: a client whose only answered row
     // is their password still needs it shown.

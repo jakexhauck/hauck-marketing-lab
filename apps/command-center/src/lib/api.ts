@@ -629,11 +629,12 @@ export interface AdminOnboardingListResponse {
 export interface AdminOnboardingResponse {
   fields: Record<string, string>;
   intake: Record<string, string>;
-  /** The login they chose on the form. Null for a client added by hand. */
+  /** Their sign-in email: the Email they gave on the form. Null for a client added by hand. */
   loginEmail: string | null;
   /**
-   * The password they typed, as they typed it, so an owner can be signed in
-   * over the phone. Admin-gated; null for anyone who signed up before 0081.
+   * Their password in plain text, made for them when they sent the form (older
+   * forms: the one they typed), so Jake can hand it over on the onboarding
+   * call. Admin-gated; null for anyone who signed up before 0081.
    */
   password: string | null;
   status: string;

@@ -111,7 +111,6 @@ describe("intake", () => {
     expect(groups.map((g) => g.key)).toEqual([
       "business",
       "contact",
-      "login",
       "targeting",
       "hours",
       "services",

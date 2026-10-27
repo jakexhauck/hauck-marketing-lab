@@ -12,7 +12,7 @@ have been handed off to a different company halfway along.
 
 | Order | File | Published at | What it does |
 |---|---|---|---|
-| 1 | `01-intake-form.html` (stub) | `/onboarding-form` | Nine-step intake form. Everything we need to stand the account up. |
+| 1 | `01-intake-form.html` (stub) | `/onboarding-form` | Eight-step intake form. Everything we need to stand the account up. |
 | 2 | `02-book-your-call.html` | `/onboarding-calendar` | The onboarding calendar, wrapped in the same card. |
 | 3 | `03-thank-you.html` | `/onboarding-thank-you` | Confirmation, what happens next, and one thing they can do now. |
 
@@ -136,15 +136,16 @@ part of the copy is worse than none, because it reads as a pass.
   Drive or Dropbox link instead.
 - **The questions are Jake's list (2026-10-27), exactly.** Business, Contact,
   Targeting, Working hours, Services, Numbers, Story, Assets, in that order and
-  in his words. The one step his list does not have is Login: sending the form
-  creates the client's account from the password chosen there. No A2P or EIN
-  questions; those are chased on the setup checklist.
+  in his words, and nothing else. No address, no A2P or EIN questions (those
+  are chased on the setup checklist).
 - **Services and job types open one at a time.** Service 1 and job row 1 are
   required; "+ Add another" opens the next, up to 6 services and 5 job types.
 - **Assets are optional and say so.** The step tells a client without them to
   send the form anyway and go over it on the onboarding call.
-- **The login email follows the contact email** until the client edits it, so
-  step 3 is usually two keystrokes and a password.
+- **Clients do not choose a password.** They sign in with the Email they give
+  on Contact. Sending the form makes their password (three groups of four,
+  easy to say out loud), creates the account with it, and puts it on their
+  sheet for Jake to hand over on the onboarding call.
 - **Progress saves after every step.** The resume token goes into the URL so a
   bookmarked or forwarded link works, and into `localStorage` as a second copy,
   because some funnel builders sandbox `history.replaceState`. The stored copy

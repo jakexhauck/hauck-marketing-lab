@@ -4,8 +4,9 @@ import { useAuth } from "../../context/AuthContext";
 
 // What a client sees while their GoHighLevel sub-account does not exist yet.
 //
-// They chose this password themselves at the end of the intake form, so signing
-// in the same afternoon is the natural thing to try. The app behind this screen
+// Jake hands them their login on the onboarding call (the form makes their
+// password; they do not choose one), so signing in that same day is the
+// natural thing to try. The app behind this screen
 // is real but empty: no GHL sub-account, no leads, no calendar. Showing it would
 // teach them their new software is broken.
 //

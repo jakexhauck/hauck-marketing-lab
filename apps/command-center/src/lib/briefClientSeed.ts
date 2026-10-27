@@ -7,8 +7,8 @@
 //
 // The brief is in every agent's prompt and copied to Google Drive, so a secret
 // never goes in: anything whose name reads like one is "on file" instead. The
-// client's chosen password is never in the answers at all (the funnel strips
-// it); `hasPassword` says only that one is saved.
+// client's password is never in the answers at all (it is kept beside the
+// submission); `hasPassword` says only that one is saved.
 
 import { INTAKE_FIELDS, JOB_SLOTS, type IntakeField } from "./intake";
 import { displayAnswer } from "./onboardingSheet";

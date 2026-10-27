@@ -104,19 +104,12 @@ export function intakeGroups(): IntakeGroup[] {
     key: s.key,
     label: s.label,
     blurb: s.blurb,
-    fields: INTAKE_FIELDS.filter((f) => f.step === s.n && !PRIVATE_INTAKE_KEYS.has(f.key)),
+    fields: INTAKE_FIELDS.filter((f) => f.step === s.n),
   }));
 }
 
-// The login step is the client choosing how they sign in, not something they
-// told us about their business. The password is hashed on arrival and never
-// comes back at all; showing its empty boxes on the record would be noise.
-const PRIVATE_INTAKE_KEYS = new Set(["password", "passwordConfirm"]);
-
 /** Every intake answer key, flat. The saved intake object is keyed by these. */
-export const INTAKE_KEYS: string[] = INTAKE_FIELDS.filter(
-  (f) => f.step < REVIEW_STEP && !PRIVATE_INTAKE_KEYS.has(f.key),
-).map((f) => f.key);
+export const INTAKE_KEYS: string[] = INTAKE_FIELDS.filter((f) => f.step < REVIEW_STEP).map((f) => f.key);
 
 /** How many intake questions carry an answer. Blank strings do not count. */
 export function intakeAnswered(intake: Record<string, string>): number {

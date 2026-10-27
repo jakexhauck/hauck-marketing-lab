@@ -94,13 +94,6 @@
 .hm-funnel .hm-help .hm-mark-em{color:var(--hm-ink);font-weight:600;
   background:rgba(77,187,131,.18);border-radius:4px;padding:1px 4px;
   box-decoration-break:clone;-webkit-box-decoration-break:clone}
-/* The password rule, as a list. Marker drawn by ::before rather than a real
-   list-style, because GHL's page CSS resets list markers on custom blocks and
-   a rule with invisible bullets reads as one run-on sentence. */
-.hm-funnel .hm-rules{list-style:none;margin:5px 0 0;padding:0}
-.hm-funnel .hm-rules li{position:relative;padding-left:14px;line-height:1.55}
-.hm-funnel .hm-rules li::before{content:"";position:absolute;left:3px;top:7px;
-  width:4px;height:4px;border-radius:50%;background:var(--hm-green)}
 .hm-err{font-size:11.5px;line-height:1.45;color:#C2492F}
 .hm-check{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
 .hm-check input{width:17px;height:17px;margin-top:1px;flex:none;accent-color:var(--hm-green)}
@@ -238,49 +231,23 @@ a.hm-btn{display:inline-block;text-decoration:none}
   var ASSET_HELP = "A Google Drive, Dropbox or iCloud link, " +
     '<b class="hm-mark-em">set so anyone with the link can view it</b>.';
 
-  // The password rule, mirroring MIN_PASSWORD_LEN / PASSWORD_RULES /
-  // passwordProblems in src/lib/intake.ts. Stated on the field rather than
-  // sprung as an error, and checked again on the server, which is what makes it
-  // a rule rather than a suggestion.
-  var MIN_PASSWORD_LEN = 12;
-  // Written out rather than built from MIN_PASSWORD_LEN: the parity test reads
-  // this file as TEXT, so an interpolated number is invisible to it. Both the
-  // number above and these three lines are checked against src/lib/intake.ts.
-  var PASSWORD_HELP =
-    "Your password needs to:" +
-    '<ul class="hm-rules">' +
-    "<li>Include both upper and lower case characters</li>" +
-    "<li>Include at least one symbol and number</li>" +
-    "<li>Be at least 12 characters long</li>" +
-    "</ul>";
-
-  // Every rule the password breaks, in the order the list shows them. A symbol
-  // is anything that is not a letter, a number or a space.
-  function passwordProblems(p) {
-    var out = [];
-    if (!/[a-z]/.test(p) || !/[A-Z]/.test(p)) out.push("Use both upper and lower case characters");
-    if (!/[0-9]/.test(p) || !/[^a-zA-Z0-9\s]/.test(p)) out.push("Use at least one symbol and one number");
-    if (p.length < MIN_PASSWORD_LEN) out.push("Use at least " + MIN_PASSWORD_LEN + " characters");
-    return out;
-  }
-
   // Jake's headings, in his order (2026-10-27). No line under a heading except
-  // Assets, where he asked for one. Login is the one step not on his list: it
-  // is what creates the client's account when they send the form.
+  // Assets, where he asked for one. No login step: clients sign in with the
+  // Email on Contact, and the server makes their password when they send the
+  // form (they do not choose one).
   var STEPS = [
     { n: 1, label: "Business", blurb: "" },
     { n: 2, label: "Contact", blurb: "" },
-    { n: 3, label: "Login", blurb: "" },
-    { n: 4, label: "Targeting", blurb: "" },
-    { n: 5, label: "Working hours", blurb: "" },
-    { n: 6, label: "Services", blurb: "" },
-    { n: 7, label: "Numbers", blurb: "" },
-    { n: 8, label: "Story", blurb: "" },
-    { n: 9, label: "Assets", blurb: "All optional. If you do not have these ready, just submit the form and we can go over them on your onboarding call." },
-    { n: 10, label: "Review", blurb: "" }
+    { n: 3, label: "Targeting", blurb: "" },
+    { n: 4, label: "Working hours", blurb: "" },
+    { n: 5, label: "Services", blurb: "" },
+    { n: 6, label: "Numbers", blurb: "" },
+    { n: 7, label: "Story", blurb: "" },
+    { n: 8, label: "Assets", blurb: "All optional. If you do not have these ready, just submit the form and we can go over them on your onboarding call." },
+    { n: 9, label: "Review", blurb: "" }
   ];
-  var LAST_INPUT_STEP = 9;
-  var REVIEW_STEP = 10;
+  var LAST_INPUT_STEP = 8;
+  var REVIEW_STEP = 9;
 
   var FIELDS = [
     // 1 Your business
@@ -293,69 +260,64 @@ a.hm-btn{display:inline-block;text-decoration:none}
     { key: "contactEmail", label: "Email", type: "email", step: 2, required: true, placeholder: "jim@willisexteriors.com" },
     { key: "contactPhone", label: "Phone", type: "tel", step: 2, required: true, placeholder: "(313) 555 0134" },
     { key: "timezone", label: "Timezone", type: "select", step: 2, required: true, options: TIMEZONES, help: "This sets the times on your booking calendar, so please get it right." },
-    // No address (Jake, 2026-10-27).
+    // No address (Jake, 2026-10-27). The Email above is also their login.
 
-    // 3 Login
-    { key: "loginEmail", label: "Login email", type: "email", step: 3, required: true, wide: true, help: "Prefilled from the email above. Change it if you would rather sign in with another." },
-    { key: "password", label: "Choose a password", type: "password", step: 3, required: true, help: PASSWORD_HELP },
-    { key: "passwordConfirm", label: "Confirm password", type: "password", step: 3, required: true },
+    // 3 Targeting
+    { key: "targetZips", label: "Zip codes", type: "textarea", step: 3, required: true, wide: true, placeholder: "48135, 48150, 48154, 48185", help: "Zip codes only please, separated by commas. If you are not sure which ones cover your area, put the ones you work in most and we will build out from there." },
+    { key: "areaCallout", label: "Area call-out", type: "text", step: 3, required: true, wide: true, placeholder: "Metro Detroit", help: 'This is what the ad calls the people it is shown to: <b class="hm-mark-em">"Metro Detroit Homeowners..."</b>. Give us the name locals actually use.' },
 
-    // 4 Targeting
-    { key: "targetZips", label: "Zip codes", type: "textarea", step: 4, required: true, wide: true, placeholder: "48135, 48150, 48154, 48185", help: "Zip codes only please, separated by commas. If you are not sure which ones cover your area, put the ones you work in most and we will build out from there." },
-    { key: "areaCallout", label: "Area call-out", type: "text", step: 4, required: true, wide: true, placeholder: "Metro Detroit", help: 'This is what the ad calls the people it is shown to: <b class="hm-mark-em">"Metro Detroit Homeowners..."</b>. Give us the name locals actually use.' },
-
-    // 5 Working hours, a day at a time. Ideal hours, not a promise: a blank day
+    // 4 Working hours, a day at a time. Ideal hours, not a promise: a blank day
     // is a day off, which is why none of them are required.
-    { key: "hoursMonday", label: "Monday", type: "text", step: 5, placeholder: "9am - 5pm", help: "Your ideal hours, not a commitment. Leave a day blank to take it off." },
-    { key: "hoursTuesday", label: "Tuesday", type: "text", step: 5, placeholder: "9am - 5pm" },
-    { key: "hoursWednesday", label: "Wednesday", type: "text", step: 5, placeholder: "9am - 5pm" },
-    { key: "hoursThursday", label: "Thursday", type: "text", step: 5, placeholder: "9am - 5pm" },
-    { key: "hoursFriday", label: "Friday", type: "text", step: 5, placeholder: "9am - 5pm" },
-    { key: "hoursSaturday", label: "Saturday", type: "text", step: 5, placeholder: "10am - 2pm" },
-    { key: "hoursSunday", label: "Sunday", type: "text", step: 5, placeholder: "Closed" },
+    { key: "hoursMonday", label: "Monday", type: "text", step: 4, placeholder: "9am - 5pm", help: "Your ideal hours, not a commitment. Leave a day blank to take it off." },
+    { key: "hoursTuesday", label: "Tuesday", type: "text", step: 4, placeholder: "9am - 5pm" },
+    { key: "hoursWednesday", label: "Wednesday", type: "text", step: 4, placeholder: "9am - 5pm" },
+    { key: "hoursThursday", label: "Thursday", type: "text", step: 4, placeholder: "9am - 5pm" },
+    { key: "hoursFriday", label: "Friday", type: "text", step: 4, placeholder: "9am - 5pm" },
+    { key: "hoursSaturday", label: "Saturday", type: "text", step: 4, placeholder: "10am - 2pm" },
+    { key: "hoursSunday", label: "Sunday", type: "text", step: 4, placeholder: "Closed" },
 
-    // 6 Services. One box per service: a comma-separated sentence has to be
+    // 5 Services. One box per service: a comma-separated sentence has to be
     // split by hand afterwards, and the split is a guess. Service 1 is
     // required; 2 to 6 open from the "Add another service" button (see REPEATS).
-    { key: "service1", label: "Service 1", type: "text", step: 6, required: true, wide: true, placeholder: "Paver patios", help: "One service per box, named the way your customers ask for it." },
-    { key: "service2", label: "Service 2", type: "text", step: 6, wide: true, placeholder: "Retaining walls" },
-    { key: "service3", label: "Service 3", type: "text", step: 6, wide: true, placeholder: "Landscape design" },
-    { key: "service4", label: "Service 4", type: "text", step: 6, wide: true, placeholder: "Lawn maintenance" },
-    { key: "service5", label: "Service 5", type: "text", step: 6, wide: true, placeholder: "Drainage" },
-    { key: "service6", label: "Service 6", type: "text", step: 6, wide: true, placeholder: "Snow removal" },
+    { key: "service1", label: "Service 1", type: "text", step: 5, required: true, wide: true, placeholder: "Paver patios", help: "One service per box, named the way your customers ask for it." },
+    { key: "service2", label: "Service 2", type: "text", step: 5, wide: true, placeholder: "Retaining walls" },
+    { key: "service3", label: "Service 3", type: "text", step: 5, wide: true, placeholder: "Landscape design" },
+    { key: "service4", label: "Service 4", type: "text", step: 5, wide: true, placeholder: "Lawn maintenance" },
+    { key: "service5", label: "Service 5", type: "text", step: 5, wide: true, placeholder: "Drainage" },
+    { key: "service6", label: "Service 6", type: "text", step: 5, wide: true, placeholder: "Snow removal" },
 
-    // 7 Numbers. A row per job type, because a replacement and a repair do not
+    // 6 Numbers. A row per job type, because a replacement and a repair do not
     // share a price. Row 1 is required; rows 2 to 5 open from the "Add another
     // job type" button (see REPEATS).
-    { key: "jobType1", label: "Job type 1", type: "text", step: 7, required: true, wide: true, placeholder: "Roof replacement" },
-    { key: "jobTicket1", label: "Job 1 average ticket", type: "text", step: 7, required: true, placeholder: "$15,000" },
-    { key: "jobMargin1", label: "Job 1 margin", type: "text", step: 7, required: true, placeholder: "35%" },
-    { key: "jobType2", label: "Job type 2", type: "text", step: 7, wide: true, placeholder: "Roof repair" },
-    { key: "jobTicket2", label: "Job 2 average ticket", type: "text", step: 7, placeholder: "$900" },
-    { key: "jobMargin2", label: "Job 2 margin", type: "text", step: 7, placeholder: "35%" },
-    { key: "jobType3", label: "Job type 3", type: "text", step: 7, wide: true, placeholder: "Gutters" },
-    { key: "jobTicket3", label: "Job 3 average ticket", type: "text", step: 7, placeholder: "$2,500" },
-    { key: "jobMargin3", label: "Job 3 margin", type: "text", step: 7, placeholder: "35%" },
-    { key: "jobType4", label: "Job type 4", type: "text", step: 7, wide: true, placeholder: "Siding" },
-    { key: "jobTicket4", label: "Job 4 average ticket", type: "text", step: 7, placeholder: "$18,000" },
-    { key: "jobMargin4", label: "Job 4 margin", type: "text", step: 7, placeholder: "35%" },
-    { key: "jobType5", label: "Job type 5", type: "text", step: 7, wide: true, placeholder: "Windows" },
-    { key: "jobTicket5", label: "Job 5 average ticket", type: "text", step: 7, placeholder: "$9,000" },
-    { key: "jobMargin5", label: "Job 5 margin", type: "text", step: 7, placeholder: "35%" },
-    { key: "closeRate", label: "Estimated close rate", type: "select", step: 7, required: true, wide: true, options: CLOSE_RATES },
+    { key: "jobType1", label: "Job type 1", type: "text", step: 6, required: true, wide: true, placeholder: "Roof replacement" },
+    { key: "jobTicket1", label: "Job 1 average ticket", type: "text", step: 6, required: true, placeholder: "$15,000" },
+    { key: "jobMargin1", label: "Job 1 margin", type: "text", step: 6, required: true, placeholder: "35%" },
+    { key: "jobType2", label: "Job type 2", type: "text", step: 6, wide: true, placeholder: "Roof repair" },
+    { key: "jobTicket2", label: "Job 2 average ticket", type: "text", step: 6, placeholder: "$900" },
+    { key: "jobMargin2", label: "Job 2 margin", type: "text", step: 6, placeholder: "35%" },
+    { key: "jobType3", label: "Job type 3", type: "text", step: 6, wide: true, placeholder: "Gutters" },
+    { key: "jobTicket3", label: "Job 3 average ticket", type: "text", step: 6, placeholder: "$2,500" },
+    { key: "jobMargin3", label: "Job 3 margin", type: "text", step: 6, placeholder: "35%" },
+    { key: "jobType4", label: "Job type 4", type: "text", step: 6, wide: true, placeholder: "Siding" },
+    { key: "jobTicket4", label: "Job 4 average ticket", type: "text", step: 6, placeholder: "$18,000" },
+    { key: "jobMargin4", label: "Job 4 margin", type: "text", step: 6, placeholder: "35%" },
+    { key: "jobType5", label: "Job type 5", type: "text", step: 6, wide: true, placeholder: "Windows" },
+    { key: "jobTicket5", label: "Job 5 average ticket", type: "text", step: 6, placeholder: "$9,000" },
+    { key: "jobMargin5", label: "Job 5 margin", type: "text", step: 6, placeholder: "35%" },
+    { key: "closeRate", label: "Estimated close rate", type: "select", step: 6, required: true, wide: true, options: CLOSE_RATES },
 
-    // 8 Story. None required: not every business has run an offer or can name
+    // 7 Story. None required: not every business has run an offer or can name
     // its competitors.
-    { key: "competitors", label: "Local competitors", type: "textarea", step: 8, wide: true, placeholder: "Renewal by Andersen, Detroit Roofing Co, Smith & Sons" },
-    { key: "pastOffers", label: "Past offers", type: "textarea", step: 8, wide: true, placeholder: "Free gutter guards with a new roof, $500 off in the spring, 0% financing for 12 months" },
-    { key: "usp", label: "What makes your company unique?", type: "textarea", step: 8, wide: true, placeholder: "We guarantee a home sale in 30 days or pay the seller $10k" },
-    { key: "whySignedUp", label: "Why did you sign up?", type: "textarea", step: 8, wide: true },
-    { key: "notes", label: "Anything else?", type: "textarea", step: 8, wide: true },
+    { key: "competitors", label: "Local competitors", type: "textarea", step: 7, wide: true, placeholder: "Renewal by Andersen, Detroit Roofing Co, Smith & Sons" },
+    { key: "pastOffers", label: "Past offers", type: "textarea", step: 7, wide: true, placeholder: "Free gutter guards with a new roof, $500 off in the spring, 0% financing for 12 months" },
+    { key: "usp", label: "What makes your company unique?", type: "textarea", step: 7, wide: true, placeholder: "We guarantee a home sale in 30 days or pay the seller $10k" },
+    { key: "whySignedUp", label: "Why did you sign up?", type: "textarea", step: 7, wide: true },
+    { key: "notes", label: "Anything else?", type: "textarea", step: 7, wide: true },
 
-    // 9 Assets. All optional; the step's line sends them to the onboarding call.
-    { key: "logoUrl", label: "Logo", type: "url", step: 9, wide: true, help: ASSET_HELP },
-    { key: "headshotUrl", label: "Headshot", type: "url", step: 9, wide: true, help: ASSET_HELP },
-    { key: "pastWorkUrl", label: "Past work photos", type: "url", step: 9, wide: true, help: ASSET_HELP }
+    // 8 Assets. All optional; the step's line sends them to the onboarding call.
+    { key: "logoUrl", label: "Logo", type: "url", step: 8, wide: true, help: ASSET_HELP },
+    { key: "headshotUrl", label: "Headshot", type: "url", step: 8, wide: true, help: ASSET_HELP },
+    { key: "pastWorkUrl", label: "Past work photos", type: "url", step: 8, wide: true, help: ASSET_HELP }
   ];
 
   // Fields that open a row at a time: row 1 shows, the add button under the
@@ -416,13 +378,6 @@ a.hm-btn{display:inline-block;text-decoration:none}
       if (f.type === "email" && !EMAIL_RE.test(v)) errs[f.key] = "That does not look like an email address";
       if (f.type === "url" && !URL_RE.test(v)) errs[f.key] = "That does not look like a web address";
     });
-    if (step === 3) {
-      var p = txt("password"), c = txt("passwordConfirm");
-      // One rule at a time: a field listing three faults at once reads as a
-      // telling-off, fixing them one by one reads as progress.
-      if (p && passwordProblems(p).length) errs.password = passwordProblems(p)[0];
-      if (p && c && p !== c) errs.passwordConfirm = "The two passwords do not match";
-    }
     return errs;
   }
 
@@ -515,15 +470,6 @@ a.hm-btn{display:inline-block;text-decoration:none}
           return;
         }
         state.step = Math.min(data.furthestStep || 1, REVIEW_STEP);
-        if (data.hasPassword) {
-          // This used to say we do not store the password in a readable form.
-          // That stopped being true when Jake asked to be able to read it back
-          // (migration 0081), and a line about somebody's credentials is not a
-          // line to leave wrong. It now says only what the client can observe:
-          // the funnel never sends it back to them.
-          state.banner = { tone: "info", text:
-            "Welcome back. Your password is not shown back to you here, so if you go to step 3 you will need to type it twice again." };
-        }
         render();
       })
       .catch(function () { state.dead = true; render(); });
@@ -581,8 +527,7 @@ a.hm-btn{display:inline-block;text-decoration:none}
     } else {
       h += '<div class="' + cls + '"><label for="' + id + '">' + esc(f.label) + req + "</label>";
       h += '<input id="' + id + '" type="' + f.type + '" data-k="' + f.key + '" placeholder="' +
-           esc(f.placeholder || "") + '" value="' + esc(typeof val === "string" ? val : "") + '"' +
-           (f.type === "password" ? ' autocomplete="new-password"' : "") + ">";
+           esc(f.placeholder || "") + '" value="' + esc(typeof val === "string" ? val : "") + '">';
     }
 
     if (err) h += '<p class="hm-err">' + esc(err) + "</p>";
@@ -614,7 +559,6 @@ a.hm-btn{display:inline-block;text-decoration:none}
       var rows = fieldsFor(s.n).map(function (f) {
         var v = state.answers[f.key];
         if (f.type === "checkbox") return v === true ? { l: f.label, v: "Yes" } : null;
-        if (f.type === "password") return null; // never shown back
         if (typeof v !== "string" || !v.trim()) return null;
         if (f.options) {
           var hit = f.options.filter(function (o) { return o[0] === v; })[0];
@@ -706,12 +650,6 @@ a.hm-btn{display:inline-block;text-decoration:none}
       el.addEventListener(evt, function () {
         if (el.type === "checkbox") state.answers[key] = el.checked;
         else state.answers[key] = el.value;
-
-        // The login email follows the contact email until it is edited itself.
-        if (key === "contactEmail" && !state.answers.__loginTouched) {
-          state.answers.loginEmail = el.value;
-        }
-        if (key === "loginEmail") state.answers.__loginTouched = true;
 
         if (state.errors[key]) { delete state.errors[key]; render(); }
         else if (el.type === "radio" || el.type === "checkbox") render();

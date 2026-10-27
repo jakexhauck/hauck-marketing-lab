@@ -7,6 +7,7 @@ import {
   canEdit,
   clampStep,
   isIntakeCreateLimited,
+  mintPassword,
   mintResumeToken,
   recordIntakeCreate,
   resumeView,
@@ -72,10 +73,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const step = clampStep(body.step);
   const token = typeof body.token === "string" ? body.token.trim() : "";
 
-  // The login email is stored in its own column as well as the answers blob, so
-  // the queue can show it and so a clash is caught here rather than at approve.
+  // The login email is the Email they give on Contact (there is no separate
+  // login question). It is stored in its own column as well as the answers
+  // blob, so the queue can show it and so a clash is caught here rather than at
+  // approve.
   const loginEmail = normalizeEmail(
-    typeof clean.answers.loginEmail === "string" ? clean.answers.loginEmail : "",
+    typeof clean.answers.contactEmail === "string" ? clean.answers.contactEmail : "",
   );
   if (loginEmail) {
     const clash = await emailTaken(client, loginEmail, token);
@@ -86,11 +89,6 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       );
     }
   }
-
-  const passwordHash = clean.password ? await hashPassword(clean.password) : null;
-  // Kept readable alongside the hash so Jake can tell a client what they chose
-  // rather than reset it. Deliberate, and confined: see migration 0081.
-  const passwordPlain = clean.password ?? null;
 
   if (!token) {
     const ip = clientIp(ctx.request);
@@ -108,8 +106,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         furthest_step: step,
         status: body.submit ? "submitted" : "in_progress",
         login_email: loginEmail || null,
-        password_hash: passwordHash,
-        password_plain: passwordPlain,
+        ...(body.submit ? await issuePassword() : {}),
         submitted_at: body.submit ? new Date().toISOString() : null,
       })
       .select(SELECT)
@@ -142,15 +139,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     updated_at: new Date().toISOString(),
   };
   if (loginEmail) update.login_email = loginEmail;
-  // A resumed funnel sends no password, and that must not wipe what is stored.
-  // The two move together: a hash and a plaintext that disagreed would be worse
-  // than having neither, since the one Jake reads out would not be the one that
-  // signs them in.
-  if (passwordHash) {
-    update.password_hash = passwordHash;
-    update.password_plain = passwordPlain;
-  }
   if (body.submit) {
+    // A form begun before 2026-10-27 may already hold the password its client
+    // chose. They know that one, so it stays.
+    if (!row.password_hash) Object.assign(update, await issuePassword());
     update.status = "submitted";
     update.furthest_step = REVIEW_STEP;
     update.submitted_at = new Date().toISOString();
@@ -170,6 +162,16 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
   return Response.json({ token, ...resumeView(saved as SubmissionRow) });
 };
+
+// The client's password, made the moment they send the form: clients do not
+// choose one (Jake, 2026-10-27). The plaintext is kept beside the hash so Jake
+// can read it off their sheet and hand it over on the onboarding call.
+// Deliberate, and confined: see migration 0081. The two are written together,
+// because a hash and a plaintext that disagreed would be worse than neither.
+async function issuePassword(): Promise<{ password_hash: string; password_plain: string }> {
+  const password = mintPassword();
+  return { password_hash: await hashPassword(password), password_plain: password };
+}
 
 // Approve on the spot, swallowing anything that goes wrong.
 //

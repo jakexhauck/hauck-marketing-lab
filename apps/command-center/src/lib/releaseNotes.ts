@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-onboarding-form-no-password",
+    date: "27 October 2026",
+    title: "Clients no longer choose a password",
+    items: [
+      "The onboarding form has no Login step. Clients sign in with the Email they give on Contact.",
+      "Their password is made when they send the form, like Kx7m-Pq4t-Wz9h. It is on their sheet under Login, right after Contact. Give it to them on the onboarding call.",
+    ],
+  },
+  {
     id: "2026-10-27-grok-software-everything",
     date: "27 October 2026",
     title: "Grok Bots reach the whole software",

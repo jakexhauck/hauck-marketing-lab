@@ -44,17 +44,7 @@ function step2(overrides: IntakeAnswers = {}): IntakeAnswers {
   };
 }
 
-function step3(overrides: IntakeAnswers = {}): IntakeAnswers {
-  return {
-    loginEmail: "jim@willisexteriors.com",
-    // Satisfies the funnel's rule: upper, lower, number, symbol, 12+.
-    password: "Roofing-Rules9",
-    passwordConfirm: "Roofing-Rules9",
-    ...overrides,
-  };
-}
-
-function step4(overrides: IntakeAnswers = {}): IntakeAnswers {
+function targeting(overrides: IntakeAnswers = {}): IntakeAnswers {
   return {
     targetZips: "48135, 48150, 48154",
     areaCallout: "Metro Detroit",
@@ -73,7 +63,7 @@ function numbers(overrides: IntakeAnswers = {}): IntakeAnswers {
 // Everything required, across every input step. The baseline for completeness.
 // Working hours, story and assets have nothing required.
 function fullAnswers(): IntakeAnswers {
-  return { ...step1(), ...step2(), ...step3(), ...step4(), ...services(), ...numbers() };
+  return { ...step1(), ...step2(), ...targeting(), ...services(), ...numbers() };
 }
 
 describe("the schema itself", () => {
@@ -107,9 +97,7 @@ describe("the schema itself", () => {
     }
   });
 
-  // Jake's list (2026-10-27), heading by heading. The one addition is Login,
-  // which his list leaves out: sending the form creates the client's account
-  // from it (approvalBlocker refuses a submission with no password).
+  // Jake's list (2026-10-27), heading by heading, and nothing else.
   it("asks exactly Jake's questions, under his headings, in his order", () => {
     const jobs = Array.from({ length: JOB_SLOTS }, (_, i) => [
       `Job type ${i + 1}`,
@@ -119,7 +107,6 @@ describe("the schema itself", () => {
     expect(INTAKE_STEPS.map((s) => [s.label, fieldsForStep(s.n).map((f) => f.label)])).toEqual([
       ["Business", ["Business name", "What do you do?", "Website"]],
       ["Contact", ["Owner name", "Email", "Phone", "Timezone"]],
-      ["Login", ["Login email", "Choose a password", "Confirm password"]],
       ["Targeting", ["Zip codes", "Area call-out"]],
       ["Working hours", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]],
       ["Services", ["Service 1", "Service 2", "Service 3", "Service 4", "Service 5", "Service 6"]],
@@ -274,13 +261,13 @@ describe("the schema itself", () => {
     expect(missingRequired(story.n, {})).toEqual([]);
   });
 
-  // The password rule is keyed to "step 3" by number in this file AND in the
-  // funnel's own copy, so a step inserted before the login step would silently
-  // move it out from under that check.
-  it("keeps the login on step 3, which the password rule is keyed to", () => {
+  // Clients do not choose a password (Jake, 2026-10-27): one is made for them
+  // when they send the form, and they sign in with the Email on Contact.
+  it("never asks the client for a password or a separate login email", () => {
     for (const key of ["loginEmail", "password", "passwordConfirm"]) {
-      expect(INTAKE_FIELDS.find((f) => f.key === key)?.step, `${key} must stay on step 3`).toBe(3);
+      expect(clientAnswerable(key), `${key} must not be on the funnel`).toBe(false);
     }
+    expect(INTAKE_FIELDS.some((f) => f.type === "password")).toBe(false);
   });
 
   // A contractor who has never shared a Drive folder must still be able to
@@ -356,54 +343,6 @@ describe("validateStep", () => {
 
   it("leaves an empty optional url alone", () => {
     expect(validateStep(1, step1({ websiteUrl: "" })).ok).toBe(true);
-  });
-});
-
-describe("step 3, the login they choose", () => {
-  it("passes a matched pair", () => {
-    expect(validateStep(3, step3()).ok).toBe(true);
-  });
-
-  it("blocks when the confirmation does not match", () => {
-    const result = validateStep(3, step3({ passwordConfirm: "correcthorsE" }));
-    expect(result.ok).toBe(false);
-    expect(result.errors.passwordConfirm).toBeTruthy();
-  });
-
-  it("enforces the same password rule as the API", () => {
-    const weak = "short7";
-    const result = validateStep(3, step3({ password: weak, passwordConfirm: weak }));
-    expect(result.ok).toBe(false);
-    expect(result.errors.password).toBeTruthy();
-  });
-
-  it("accepts a password that satisfies every rule", () => {
-    const good = "Roofing-Rules9";
-    const result = validateStep(3, step3({ password: good, passwordConfirm: good }));
-    expect(result.ok).toBe(true);
-  });
-
-  // Each rule on its own, so a change to one is a named failing test rather
-  // than "the password test broke".
-  it("names the one rule that is broken, and only that one", () => {
-    const bad = (pw: string): string | undefined =>
-      validateStep(3, step3({ password: pw, passwordConfirm: pw })).errors.password;
-
-    expect(bad("roofing-rules9")).toMatch(/upper and lower/i);
-    expect(bad("RoofingRulesNine")).toMatch(/symbol and one number/i);
-    expect(bad("Roof-9")).toMatch(/12 characters/i);
-  });
-
-  it("rejects a malformed login email", () => {
-    const result = validateStep(3, step3({ loginEmail: "not-an-email" }));
-    expect(result.ok).toBe(false);
-    expect(result.errors.loginEmail).toBeTruthy();
-  });
-
-  it("requires the login email", () => {
-    const result = validateStep(3, step3({ loginEmail: "" }));
-    expect(result.ok).toBe(false);
-    expect(result.errors.loginEmail).toBeTruthy();
   });
 });
 

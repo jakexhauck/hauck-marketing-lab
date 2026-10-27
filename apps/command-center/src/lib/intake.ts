@@ -2,9 +2,13 @@
 //
 // This is the public form at /onboarding-form: no login, filled in by the client
 // themselves between paying and the kickoff call. It grew out of Jake's Google
-// Form and still asks most of it, plus the three things that form could not do:
-// the business basics needed to create an account, the login they choose, and a
-// review screen.
+// Form and still asks most of it, plus the two things that form could not do:
+// the business basics needed to create an account, and a review screen.
+//
+// No login questions. The client signs in with the Email they give on Contact,
+// and their password is made for them when they send the form (Jake,
+// 2026-10-27: clients do not choose one). Jake reads it off their sheet and
+// hands it over on the onboarding call. See mintPassword in functions/lib/intake.
 //
 // Where it now differs from the Google Form, it differs on purpose: no address,
 // targeting asks for zip codes rather than "areas", hours are asked a day at a
@@ -67,18 +71,13 @@ export interface IntakeStep {
 export const INTAKE_STEPS: IntakeStep[] = [
   { n: 1, key: "business", label: "Business", blurb: "" },
   { n: 2, key: "contact", label: "Contact", blurb: "" },
-  // Not on Jake's list, and kept on purpose: sending the form creates the
-  // client's account from this password (approvalBlocker refuses one without).
-  // It stays step 3 because both this file and the funnel key the password rule
-  // to "step 3" by number.
-  { n: 3, key: "login", label: "Login", blurb: "" },
-  { n: 4, key: "targeting", label: "Targeting", blurb: "" },
-  { n: 5, key: "hours", label: "Working hours", blurb: "" },
-  { n: 6, key: "services", label: "Services", blurb: "" },
-  { n: 7, key: "numbers", label: "Numbers", blurb: "" },
-  { n: 8, key: "story", label: "Story", blurb: "" },
+  { n: 3, key: "targeting", label: "Targeting", blurb: "" },
+  { n: 4, key: "hours", label: "Working hours", blurb: "" },
+  { n: 5, key: "services", label: "Services", blurb: "" },
+  { n: 6, key: "numbers", label: "Numbers", blurb: "" },
+  { n: 7, key: "story", label: "Story", blurb: "" },
   {
-    n: 9,
+    n: 8,
     key: "assets",
     label: "Assets",
     blurb: "All optional. If you do not have these ready, just submit the form and we can go over them on your onboarding call.",
@@ -120,7 +119,7 @@ function serviceField(n: number): IntakeField {
     key: `service${n}`,
     label: `Service ${n}`,
     type: "text",
-    step: 6,
+    step: 5,
     required: n === 1,
     wide: true,
     placeholder: SERVICE_PLACEHOLDERS[n - 1],
@@ -155,9 +154,9 @@ function jobFields(n: number): IntakeField[] {
   const [job, ticket] = JOB_PLACEHOLDERS[n - 1];
   const required = n === 1;
   return [
-    { key: `jobType${n}`, label: `Job type ${n}`, type: "text", step: 7, required, wide: true, placeholder: job },
-    { key: `jobTicket${n}`, label: `Job ${n} average ticket`, type: "text", step: 7, required, placeholder: ticket },
-    { key: `jobMargin${n}`, label: `Job ${n} margin`, type: "text", step: 7, required, placeholder: "35%" },
+    { key: `jobType${n}`, label: `Job type ${n}`, type: "text", step: 6, required, wide: true, placeholder: job },
+    { key: `jobTicket${n}`, label: `Job ${n} average ticket`, type: "text", step: 6, required, placeholder: ticket },
+    { key: `jobMargin${n}`, label: `Job ${n} margin`, type: "text", step: 6, required, placeholder: "35%" },
   ];
 }
 
@@ -167,53 +166,6 @@ const CLOSE_RATES: IntakeOption[] = Array.from({ length: 11 }, (_, n) => ({
   value: String(n),
   label: `${n} out of 10`,
 }));
-
-// --- The password rule -------------------------------------------------------
-//
-// This account is the client's way into their own business data, and it is
-// chosen once, on a public form, by somebody who will never think about it
-// again. So the rule is stated up front on the field rather than sprung on them
-// as an error, and it is enforced on the SERVER as well as in the funnel: a
-// rule that only lives in the browser is a suggestion.
-//
-// Deliberately STRICTER than the eight-character floor the admin-side staff and
-// owner forms use. Those are Jake typing a password for somebody he is on the
-// phone with; this is a stranger choosing their own.
-
-export const MIN_PASSWORD_LEN = 12;
-
-/** The rule as the client reads it, one line per requirement. */
-export const PASSWORD_RULES: string[] = [
-  "Include both upper and lower case characters",
-  "Include at least one symbol and number",
-  `Be at least ${MIN_PASSWORD_LEN} characters long`,
-];
-
-// A symbol is anything that is not a letter, a number or a space. Defined by
-// exclusion on purpose: an allow-list of punctuation always misses the one
-// character somebody actually typed.
-const HAS_LOWER = /[a-z]/;
-const HAS_UPPER = /[A-Z]/;
-const HAS_NUMBER = /[0-9]/;
-const HAS_SYMBOL = /[^a-zA-Z0-9\s]/;
-
-/**
- * Every rule this password breaks, in the order the form lists them. Empty
- * means it passes. The funnel shows the first one; the server rejects on any.
- */
-export function passwordProblems(password: string): string[] {
-  const problems: string[] = [];
-  if (!HAS_LOWER.test(password) || !HAS_UPPER.test(password)) {
-    problems.push("Use both upper and lower case characters");
-  }
-  if (!HAS_NUMBER.test(password) || !HAS_SYMBOL.test(password)) {
-    problems.push("Use at least one symbol and one number");
-  }
-  if (password.length < MIN_PASSWORD_LEN) {
-    problems.push(`Use at least ${MIN_PASSWORD_LEN} characters`);
-  }
-  return problems;
-}
 
 export const INTAKE_FIELDS: IntakeField[] = [
   // 1 - Your business
@@ -258,35 +210,12 @@ export const INTAKE_FIELDS: IntakeField[] = [
   // No address (Jake, 2026-10-27: "we dont need that"). Older answers still
   // carry address* keys, which the GHL setup, the client facts and the brief
   // still read, so a client who gave one keeps it.
+  //
+  // contactEmail is also the login. The server copies it to the submission's
+  // login_email, and an older form's separate loginEmail answer is no longer
+  // accepted.
 
-  // 3 - Login (new: this is what creates the account)
-  {
-    key: "loginEmail",
-    label: "Login email",
-    type: "email",
-    step: 3,
-    required: true,
-    help: "Prefilled from the email above. Change it if you would rather sign in with another.",
-  },
-  {
-    key: "password",
-    label: "Choose a password",
-    type: "password",
-    step: 3,
-    required: true,
-    // Plain text here (the admin record escapes help); the funnel's own copy
-    // renders the same three rules as a list.
-    help: `Your password needs to: ${PASSWORD_RULES.join("; ").toLowerCase()}.`,
-  },
-  {
-    key: "passwordConfirm",
-    label: "Confirm password",
-    type: "password",
-    step: 3,
-    required: true,
-  },
-
-  // 4 - Targeting (source form Q7-Q11)
+  // 3 - Targeting (source form Q7-Q11)
   //
   // Zip codes, not "areas". The old question took any mix of counties,
   // neighbourhoods and cities, and every answer then had to be turned into zip
@@ -296,7 +225,7 @@ export const INTAKE_FIELDS: IntakeField[] = [
     key: "targetZips",
     label: "Zip codes",
     type: "textarea",
-    step: 4,
+    step: 3,
     required: true,
     wide: true,
     placeholder: "48135, 48150, 48154, 48185",
@@ -306,13 +235,13 @@ export const INTAKE_FIELDS: IntakeField[] = [
     key: "areaCallout",
     label: "Area call-out",
     type: "text",
-    step: 4,
+    step: 3,
     required: true,
     wide: true,
     placeholder: "Metro Detroit",
     help: 'This is what the ad calls the people it is shown to: "Metro Detroit Homeowners...". Give us the name locals actually use.',
   },
-  // 5 - Working hours, a day at a time. Not a promise and not their real
+  // 4 - Working hours, a day at a time. Not a promise and not their real
   // calendar: it is the shape of a normal week, so the booking calendar starts
   // somewhere sensible instead of nine-to-five on a day they never work. A
   // blank day is a day off, which is why none of these are required.
@@ -320,33 +249,33 @@ export const INTAKE_FIELDS: IntakeField[] = [
     key: "hoursMonday",
     label: "Monday",
     type: "text",
-    step: 5,
+    step: 4,
     placeholder: "9am - 5pm",
     help: "Your ideal hours, not a commitment. Leave a day blank to take it off.",
   },
-  { key: "hoursTuesday", label: "Tuesday", type: "text", step: 5, placeholder: "9am - 5pm" },
-  { key: "hoursWednesday", label: "Wednesday", type: "text", step: 5, placeholder: "9am - 5pm" },
-  { key: "hoursThursday", label: "Thursday", type: "text", step: 5, placeholder: "9am - 5pm" },
-  { key: "hoursFriday", label: "Friday", type: "text", step: 5, placeholder: "9am - 5pm" },
-  { key: "hoursSaturday", label: "Saturday", type: "text", step: 5, placeholder: "10am - 2pm" },
-  { key: "hoursSunday", label: "Sunday", type: "text", step: 5, placeholder: "Closed" },
+  { key: "hoursTuesday", label: "Tuesday", type: "text", step: 4, placeholder: "9am - 5pm" },
+  { key: "hoursWednesday", label: "Wednesday", type: "text", step: 4, placeholder: "9am - 5pm" },
+  { key: "hoursThursday", label: "Thursday", type: "text", step: 4, placeholder: "9am - 5pm" },
+  { key: "hoursFriday", label: "Friday", type: "text", step: 4, placeholder: "9am - 5pm" },
+  { key: "hoursSaturday", label: "Saturday", type: "text", step: 4, placeholder: "10am - 2pm" },
+  { key: "hoursSunday", label: "Sunday", type: "text", step: 4, placeholder: "Closed" },
 
-  // 6 - Services
+  // 5 - Services
   ...Array.from({ length: SERVICE_SLOTS }, (_, i) => serviceField(i + 1)),
 
-  // 7 - Numbers (Mission Control's Target KPIs and Market Research)
+  // 6 - Numbers (Mission Control's Target KPIs and Market Research)
   ...Array.from({ length: JOB_SLOTS }, (_, i) => jobFields(i + 1)).flat(),
   {
     key: "closeRate",
     label: "Estimated close rate",
     type: "select",
-    step: 7,
+    step: 6,
     required: true,
     wide: true,
     options: CLOSE_RATES,
   },
 
-  // 8 - Story (source form Q12, Q15, Q16, plus Mission Control's Local
+  // 7 - Story (source form Q12, Q15, Q16, plus Mission Control's Local
   // Competitors and Offer). None required: not every business has run an offer
   // or can name its competitors. Best customer was asked here until Jake's
   // 2026-10-27 list left it out.
@@ -354,7 +283,7 @@ export const INTAKE_FIELDS: IntakeField[] = [
     key: "competitors",
     label: "Local competitors",
     type: "textarea",
-    step: 8,
+    step: 7,
     wide: true,
     placeholder: "Renewal by Andersen, Detroit Roofing Co, Smith & Sons",
   },
@@ -362,7 +291,7 @@ export const INTAKE_FIELDS: IntakeField[] = [
     key: "pastOffers",
     label: "Past offers",
     type: "textarea",
-    step: 8,
+    step: 7,
     wide: true,
     placeholder: "Free gutter guards with a new roof, $500 off in the spring, 0% financing for 12 months",
   },
@@ -370,7 +299,7 @@ export const INTAKE_FIELDS: IntakeField[] = [
     key: "usp",
     label: "What makes your company unique?",
     type: "textarea",
-    step: 8,
+    step: 7,
     wide: true,
     placeholder: "We guarantee a home sale in 30 days or pay the seller $10k",
   },
@@ -378,18 +307,18 @@ export const INTAKE_FIELDS: IntakeField[] = [
     key: "whySignedUp",
     label: "Why did you sign up?",
     type: "textarea",
-    step: 8,
+    step: 7,
     wide: true,
   },
   {
     key: "notes",
     label: "Anything else?",
     type: "textarea",
-    step: 8,
+    step: 7,
     wide: true,
   },
 
-  // 9 - Assets (source form Q13-Q14, plus a logo)
+  // 8 - Assets (source form Q13-Q14, plus a logo)
   // Links rather than uploads in v1: a public unauthenticated upload endpoint is
   // a storage-bombing target, and the app has no storage bucket yet.
   //
@@ -398,19 +327,14 @@ export const INTAKE_FIELDS: IntakeField[] = [
   // field they cannot fill abandons the form rather than asking. The funnel's
   // copy of ASSET_HELP renders the "anyone with the link" part as HTML so it can
   // be emphasised; this one is plain text, for the admin record.
-  { key: "logoUrl", label: "Logo", type: "url", step: 9, wide: true, help: ASSET_HELP },
-  { key: "headshotUrl", label: "Headshot", type: "url", step: 9, wide: true, help: ASSET_HELP },
-  { key: "pastWorkUrl", label: "Past work photos", type: "url", step: 9, wide: true, help: ASSET_HELP },
+  { key: "logoUrl", label: "Logo", type: "url", step: 8, wide: true, help: ASSET_HELP },
+  { key: "headshotUrl", label: "Headshot", type: "url", step: 8, wide: true, help: ASSET_HELP },
+  { key: "pastWorkUrl", label: "Past work photos", type: "url", step: 8, wide: true, help: ASSET_HELP },
 ];
 
 // Everything persistable. Files are not in this funnel at all, so unlike the
 // admin wizard there is no in-memory-only half to reconcile.
 export type IntakeAnswers = Record<string, string | boolean | undefined>;
-
-// The two fields that never come back down the wire. The password is hashed
-// server-side the moment step 3 is saved, so a resumed funnel shows the boxes
-// empty with a note saying why.
-export const NEVER_RETURNED = ["password", "passwordConfirm"] as const;
 
 export function fieldsForStep(step: number): IntakeField[] {
   return INTAKE_FIELDS.filter((f) => f.step === step);
@@ -460,23 +384,6 @@ export function validateStep(step: number, answers: IntakeAnswers): StepValidati
     }
     if (field.type === "url" && !URL_RE.test(value)) {
       errors[field.key] = "That does not look like a web address";
-    }
-  }
-
-  // The login step has rules the field types cannot express. Same rule the
-  // server enforces (passwordProblems), so a funnel that passes here is never
-  // bounced by the API afterwards.
-  if (step === 3) {
-    const password = textValue(answers, "password");
-    const confirm = textValue(answers, "passwordConfirm");
-    const problems = password ? passwordProblems(password) : [];
-    if (problems.length > 0) {
-      // One at a time. A field that lists three faults at once reads as a
-      // telling-off; fixing them one by one reads as progress.
-      errors.password = problems[0];
-    }
-    if (password && confirm && password !== confirm) {
-      errors.passwordConfirm = "The two passwords do not match";
     }
   }
 
