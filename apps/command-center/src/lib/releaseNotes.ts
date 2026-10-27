@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-grok-ghl-full-access",
+    date: "27 October 2026",
+    title: "Grok Bots get all of GHL",
+    items: [
+      "Hauck GHL now asks GHL for every permission the app has: funnels, products, invoices and estimates, tasks, custom objects, snapshots, email builder, Voice AI and Conversation AI, pipelines, and the rest.",
+      "Bots can also work in sub-accounts that are not clients, like the Test Account and Hauck Marketing.",
+      "The new permissions start after the GHL app is reinstalled at the agency. Until then each client's GHL row shows stale.",
+    ],
+  },
+  {
     id: "2026-10-27-onboarding-form-no-password",
     date: "27 October 2026",
     title: "Clients no longer choose a password",

@@ -7,7 +7,7 @@ import buildSource from "./grokMetaBuild.ts?raw";
 import softwareSource from "./grokSoftware.ts?raw";
 import { audited, botName, connectorOf, handleBody, handleRpc, isGrokMcpRequest, loggablePath, matchClient, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
 import { CONNECTORS } from "./grokConnectors";
-import { ghlMethod, ghlUrl, GHL_ORIGIN } from "./grokGhl";
+import { ghlMethod, ghlUrl, GHL_ORIGIN, locationIdOf } from "./grokGhl";
 import { leadsFrom } from "./grokMeta";
 import { LOGIN_PAGES, loginEmail, loginRole, pageGrants, problemsOnly, splitConnections } from "./grokSoftware";
 
@@ -184,6 +184,14 @@ describe("the GHL connector", () => {
     }
     expect(ghlUrl("/@evil.com/x", undefined).origin).toBe(GHL_ORIGIN);
     expect(() => ghlUrl("/x", "a=b")).toThrow(/query/);
+  });
+
+  it("reaches a sub-account that is not a client by its locationId, and nothing else", () => {
+    expect(locationIdOf("yVfX127fswQ03fydxBQg")).toBe("yVfX127fswQ03fydxBQg");
+    expect(locationIdOf(" wbrjjHYzznyEHx9wumSr ")).toBe("wbrjjHYzznyEHx9wumSr");
+    for (const bad of [undefined, "", "short", "../oauth", "a b c d e f g h", 42]) {
+      expect(() => locationIdOf(bad)).toThrow(/client .* or locationId/);
+    }
   });
 
   it("takes every method, GET by default", () => {
