@@ -27,7 +27,8 @@ const HEADINGS = [
 type Heading = (typeof HEADINGS)[number];
 
 // Form key -> heading and the label the brief uses. The address is one line,
-// built from its five parts.
+// built from its five parts; the form stopped asking for it 2026-10-27, so
+// only older answers have one.
 const PLACE: Record<string, [Heading, string]> = {
   name: ["Business", "Business name"],
   niche: ["Business", "What they do"],

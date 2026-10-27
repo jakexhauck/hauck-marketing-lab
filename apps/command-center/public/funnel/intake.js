@@ -293,13 +293,8 @@ a.hm-btn{display:inline-block;text-decoration:none}
     { key: "contactEmail", label: "Email", type: "email", step: 2, required: true, placeholder: "jim@willisexteriors.com" },
     { key: "contactPhone", label: "Phone", type: "tel", step: 2, required: true, placeholder: "(313) 555 0134" },
     { key: "timezone", label: "Timezone", type: "select", step: 2, required: true, options: TIMEZONES, help: "This sets the times on your booking calendar, so please get it right." },
-    // The address in parts. One box came back as "Garden City" as often as it
-    // came back as an address.
-    { key: "addressStreet", label: "Street address", type: "text", step: 2, required: true, wide: true, placeholder: "123 Ford Rd" },
-    { key: "addressUnit", label: "Suite, unit or floor", type: "text", step: 2, placeholder: "Suite 200", help: "Leave blank if there is not one." },
-    { key: "addressCity", label: "City", type: "text", step: 2, required: true, placeholder: "Garden City" },
-    { key: "addressState", label: "State", type: "text", step: 2, required: true, placeholder: "MI", help: "The two-letter state, like MI or TX." },
-    { key: "addressZip", label: "ZIP code", type: "text", step: 2, required: true, placeholder: "48135" },
+    // No address (Jake, 2026-10-27).
+
     // 3 Login
     { key: "loginEmail", label: "Login email", type: "email", step: 3, required: true, wide: true, help: "Prefilled from the email above. Change it if you would rather sign in with another." },
     { key: "password", label: "Choose a password", type: "password", step: 3, required: true, help: PASSWORD_HELP },

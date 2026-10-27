@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-onboarding-form-no-address",
+    date: "27 October 2026",
+    title: "Onboarding form no longer asks for an address",
+    items: [
+      "Contact is now Owner name, Email, Phone and Timezone.",
+      "Clients who already gave an address keep it on their record.",
+    ],
+  },
+  {
     id: "2026-10-27-onboarding-form-exact",
     date: "27 October 2026",
     title: "Onboarding form asks Jake's exact questions",

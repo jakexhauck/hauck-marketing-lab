@@ -6,10 +6,10 @@
 // the business basics needed to create an account, the login they choose, and a
 // review screen.
 //
-// Where it now differs from the Google Form, it differs on purpose: the address
-// is asked in parts, targeting asks for zip codes rather than "areas", hours are
-// asked a day at a time, and the notification-preference and LeadConnector
-// questions are gone. Each is noted at the question it replaced.
+// Where it now differs from the Google Form, it differs on purpose: no address,
+// targeting asks for zip codes rather than "areas", hours are asked a day at a
+// time, and the notification-preference and LeadConnector questions are gone.
+// Each is noted at the question it replaced.
 //
 // The funnel, its validation and its review screen all render from
 // INTAKE_FIELDS. Adding a question is one entry here, not a JSX edit in three
@@ -255,52 +255,9 @@ export const INTAKE_FIELDS: IntakeField[] = [
     options: TIMEZONES,
     help: "This sets the times on your booking calendar, so please get it right.",
   },
-  // The address, in parts rather than as one box. A single textarea came back as
-  // "Garden City" as often as it came back as an address, and every downstream
-  // use (the Google profile, the ad's service area) needs
-  // the pieces separately anyway.
-  {
-    key: "addressStreet",
-    label: "Street address",
-    type: "text",
-    step: 2,
-    required: true,
-    wide: true,
-    placeholder: "123 Ford Rd",
-  },
-  {
-    key: "addressUnit",
-    label: "Suite, unit or floor",
-    type: "text",
-    step: 2,
-    placeholder: "Suite 200",
-    help: "Leave blank if there is not one.",
-  },
-  {
-    key: "addressCity",
-    label: "City",
-    type: "text",
-    step: 2,
-    required: true,
-    placeholder: "Garden City",
-  },
-  {
-    key: "addressState",
-    label: "State",
-    type: "text",
-    step: 2,
-    required: true,
-    placeholder: "MI",
-    help: "The two-letter state, like MI or TX.",
-  },
-  {
-    key: "addressZip",
-    label: "ZIP code",
-    type: "text",
-    step: 2,
-    required: true,
-    placeholder: "48135",
-  },
+  // No address (Jake, 2026-10-27: "we dont need that"). Older answers still
+  // carry address* keys, which the GHL setup, the client facts and the brief
+  // still read, so a client who gave one keeps it.
 
   // 3 - Login (new: this is what creates the account)
   {

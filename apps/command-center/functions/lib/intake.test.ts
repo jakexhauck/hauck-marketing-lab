@@ -117,7 +117,7 @@ describe("sanitizeAnswers", () => {
 
   it("rejects a payload that is oversized in total", () => {
     const raw: Record<string, string> = {};
-    for (const key of ["notes", "usp", "whySignedUp", "targetZips", "addressStreet"]) {
+    for (const key of ["notes", "usp", "whySignedUp", "targetZips", "pastOffers"]) {
       raw[key] = "x".repeat(MAX_ANSWER_LEN);
     }
     const result = sanitizeAnswers(raw, { maxBytes: 1000 });

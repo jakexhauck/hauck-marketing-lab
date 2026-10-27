@@ -40,10 +40,6 @@ function step2(overrides: IntakeAnswers = {}): IntakeAnswers {
     contactEmail: "jim@willisexteriors.com",
     contactPhone: "313-555-0134",
     timezone: "America/Detroit",
-    addressStreet: "123 Ford Rd",
-    addressCity: "Garden City",
-    addressState: "MI",
-    addressZip: "48135",
     ...overrides,
   };
 }
@@ -122,10 +118,7 @@ describe("the schema itself", () => {
     ]).flat();
     expect(INTAKE_STEPS.map((s) => [s.label, fieldsForStep(s.n).map((f) => f.label)])).toEqual([
       ["Business", ["Business name", "What do you do?", "Website"]],
-      [
-        "Contact",
-        ["Owner name", "Email", "Phone", "Timezone", "Street address", "Suite, unit or floor", "City", "State", "ZIP code"],
-      ],
+      ["Contact", ["Owner name", "Email", "Phone", "Timezone"]],
       ["Login", ["Login email", "Choose a password", "Confirm password"]],
       ["Targeting", ["Zip codes", "Area call-out"]],
       ["Working hours", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]],
@@ -179,7 +172,8 @@ describe("the schema itself", () => {
   //   calendarAvailability - one free-text box became seven day fields.
   //   leadConnectorInstalled - clients do not need that app.
   //   bestCustomer - not on Jake's 2026-10-27 list of exact questions.
-  it("no longer asks the six questions that were cut", () => {
+  //   address parts - Jake, 2026-10-27: "we dont need that".
+  it("no longer asks the questions that were cut", () => {
     const keys = new Set(INTAKE_FIELDS.map((f) => f.key));
     for (const key of [
       "businessAddress",
@@ -188,20 +182,14 @@ describe("the schema itself", () => {
       "calendarAvailability",
       "leadConnectorInstalled",
       "bestCustomer",
+      "addressStreet",
+      "addressUnit",
+      "addressCity",
+      "addressState",
+      "addressZip",
     ]) {
       expect(keys.has(key), `${key} was cut and must stay off the funnel`).toBe(false);
     }
-  });
-
-  // A single address box came back as "Garden City" as often as it came back as
-  // an address.
-  it("asks for the address in parts, and needs all of them but the suite", () => {
-    const required = (key: string): boolean =>
-      INTAKE_FIELDS.find((f) => f.key === key)?.required ?? false;
-    for (const key of ["addressStreet", "addressCity", "addressState", "addressZip"]) {
-      expect(required(key), `${key} should be required`).toBe(true);
-    }
-    expect(required("addressUnit")).toBe(false);
   });
 
   it("asks for zip codes to target, and will not move on without them", () => {
