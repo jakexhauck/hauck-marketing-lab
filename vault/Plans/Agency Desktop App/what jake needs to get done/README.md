@@ -421,14 +421,13 @@ Hauck Brain is gone. Bots get one connector per system Grok cannot connect itsel
 ### Your action items
 1. **Add the two connectors in Grok.** Custom, "Hauck GHL" and "Hauck Meta", URLs in `agency/grok-bots/README.md`. Delete Hauck Brain and the old test connector.
 2. **Write each bot's instructions** in Grok.
-2b. **Before giving Grok Hauck Software** (health sweep 2026-10-26, code fixes shipped `d6b5b7fe` + `daaff95d`):
-   - Reinstall the GHL app (every client reads "Reinstall the app"): Admin > any client > Management > Install app > Agency "Hauck Marketing" > Install under all locations > Proceed.
-   - Switch on the 30-minute health check: in Claude Code type `! node "<session scratchpad>/enable-health-cron.mjs"` (Claude has the exact path). It stores the secret, binds it, deploys the Worker, redeploys the app and checks one run.
-   - Above All: if its "flip Google title to Confirmed" webhooks are in use, paste a new all-scopes Private Integration Token into the Location API Token custom value (it now holds a key that lapses 2026-10-27).
-   - Drive: the old Assets hub sign-in is dead and lapses every 7 days by design (Google app in Testing). Retire the Assets hub or reconnect it.
-   - TNT: Jimmy Tobias stopped the onboarding form at step 2 on 10-16; no sub-account, no login. Chase or retire.
-   - Made Better has duplicate Home Estimate, Job and Phone Appointment calendars from the snapshot load; the originals hold the bookings. Delete the copies when convenient.
-   - Ask Made Better, Above All and Clear Choice to turn on phone notifications in the app.
+2b. **Before giving Grok Hauck Software** (health sweep 2026-10-26/27; code fixes `d6b5b7fe`, `daaff95d`, `73d9e132`):
+   - **GHL agency account is ON HOLD: "unable to charge your card"** (seen 2026-10-27). Update the card in GHL billing first.
+   - Reinstall the GHL app: Claude got it to the last screen; the final Proceed (granting permissions) is yours. Route: app.hauckmarketing.com/api/admin/ghl-app > open installUrl > Next > Agency "Hauck Marketing" > tick Install under all locations (and automatic installation to future locations, so new sub-accounts get it) > Proceed.
+   - Switch on the 30-minute health check: in Claude Code type `! node "C:\Users\games\AppData\Local\Temp\claude\c--Users-games-Desktop-hauck-marketing-lab\e55bdecc-2bc4-435a-a80b-9a4ef702abd1\scratchpad\enable-health-cron.mjs"` (secret writes are yours; Claude is blocked).
+   - Send the 4 Gmail drafts (TNT resume link to Jimmy; notifications to Seamus, Ryan, Bill).
+   - Made Better has duplicate Home Estimate, Job and Phone Appointment calendars from the snapshot load (originals hold the bookings). Delete the copies only after checking which ones the GHL workflows trigger on; the API cannot show that.
+   - Done, no action: Above All has no workflow reading Location API Token. Drive health now checks the Composio grant the app uses.
 2a. **Add Hauck Software** (2026-10-26): Custom connector "Hauck Software", URL `https://app.hauckmarketing.com/api/grok/software/<GROK_MCP_KEY>`. It creates clients (held at setup), adds logins, links GHL, reads health, re-runs setup values. Write the Software bot's instructions, including how often it checks health and who it tells.
 3. **Switch the Meta app to Live.** developers.facebook.com > Hauck Marketing Lab (app 1498131278774943) > App Mode: Live. Meta refuses ad creatives from an app in Development mode.
 4. **Build each lead form yourself** (your call 2026-10-26). Meta's API cannot set close-form answers.
