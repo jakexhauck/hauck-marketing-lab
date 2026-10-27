@@ -10,6 +10,7 @@ import { audited, botName, findClient, listClients, type GrokDeps, type ToolDef 
 import { hashPassword } from "./password";
 import { CAPABILITIES, type GrantInput } from "./permissions";
 import { isNotAClient } from "./retiredTenant";
+import { MAX_SCRIPT_HTML, sanitizeScriptHtml, scriptColumn, textToScriptHtml } from "./setterScript";
 import { normalizeEmail, type StaffRole } from "./staff";
 import { createStaffLogin } from "./staffCreate";
 import { linkSubaccount, type LinkResult } from "./subaccountLinkRun";
@@ -362,6 +363,71 @@ const softwareGoLive: ToolDef<GrokDeps> = {
   },
 };
 
+// The dialing script and notes on Client Setting (setter_scripts, 0044 and
+// 0185; Jake 2026-10-27: "so the grok bot can upload the dialing script from the
+// mission control doc into the client setting page"). The bot reads the doc
+// with its own Drive connector and hands the script over here.
+const docArg = {
+  type: "string",
+  enum: ["script", "notes"],
+  description: "script (default) is the dialing script; notes are the client's notes shown beside it.",
+};
+const docName = (col: "html" | "notes_html") => (col === "notes_html" ? "notes" : "script");
+
+const softwareGetScript: ToolDef<GrokDeps> = {
+  name: "software_get_script",
+  description: "A client's dialing script, or their notes, as Client Setting shows them (HTML).",
+  inputSchema: { type: "object", properties: { client: clientArg, doc: docArg }, required: ["client"] },
+  run: async (d, a) => {
+    const c = await findClient(d.client, a.client);
+    const col = scriptColumn(a.doc);
+    const { data, error } = await d.client.from("setter_scripts").select(`${col}, updated_at`).eq("tenant_id", c.id).maybeSingle();
+    if (error) throw new Error(`script: ${error.message}`);
+    const row = (data ?? {}) as Record<string, string | null>;
+    return json({ client: c.name, doc: docName(col), html: row[col] ?? "", updatedAt: row.updated_at ?? null });
+  },
+};
+
+const softwareSetScript: ToolDef<GrokDeps> = {
+  name: "software_set_script",
+  description:
+    "Upload a client's dialing script (or notes) to Client Setting, e.g. the script in their Mission Control doc. Send text (blank lines between paragraphs, '# ' and '## ' headings, '- ' bullets) or html. Replaces what is there; the previous script is kept.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      client: clientArg,
+      doc: docArg,
+      text: { type: "string", description: "The script as plain text." },
+      html: { type: "string", description: "Or the script as HTML (headings, paragraphs, bold, lists)." },
+      bot,
+    },
+    required: ["client"],
+  },
+  run: async (d, a) => {
+    const raw = text(a.html) ? text(a.html) : text(a.text) ? textToScriptHtml(text(a.text)) : "";
+    if (!raw) throw new Error("Send the script as text or html.");
+    if (raw.length > MAX_SCRIPT_HTML) throw new Error("That script is too long.");
+    const c = await findClient(d.client, a.client);
+    const col = scriptColumn(a.doc);
+    // The same sanitizer as a script typed in Settings: the column only ever
+    // holds markup the page is safe to render as it is.
+    const html = await sanitizeScriptHtml(raw);
+    const payload = { bot: botName(a.bot), doc: docName(col), bytes: html.length };
+    return audited(d.client, "software_set_script", c.id, payload, async () => {
+      const now = new Date().toISOString();
+      let row: Row = { tenant_id: c.id, notes_html: html, updated_at: now, updated_by: null };
+      if (col === "html") {
+        // The script being replaced is kept, as Settings' template button does.
+        const { data: cur } = await d.client.from("setter_scripts").select("html").eq("tenant_id", c.id).maybeSingle();
+        row = { tenant_id: c.id, html, previous_html: (cur as Row | null)?.html ?? "", updated_at: now, updated_by: null };
+      }
+      const { error } = await d.client.from("setter_scripts").upsert(row, { onConflict: "tenant_id" });
+      if (error) throw new Error(error.message);
+      return json({ client: c.name, doc: docName(col), saved: true, bytes: html.length });
+    });
+  },
+};
+
 export const SOFTWARE_TOOLS: ToolDef<GrokDeps>[] = [
   softwareClients,
   softwareCreateClient,
@@ -371,4 +437,6 @@ export const SOFTWARE_TOOLS: ToolDef<GrokDeps>[] = [
   softwareSystemHealth,
   softwareFix,
   softwareGoLive,
+  softwareGetScript,
+  softwareSetScript,
 ];

@@ -231,13 +231,13 @@ describe("the Meta connector", () => {
 
 describe("the Software connector", () => {
   it("logs every change before making it, and makes each password inside the change", () => {
-    for (const tool of ["software_create_client", "software_link_ghl", "software_add_login", "software_fix", "software_go_live"]) {
+    for (const tool of ["software_create_client", "software_link_ghl", "software_add_login", "software_fix", "software_go_live", "software_set_script"]) {
       const run = softwareSource.slice(softwareSource.indexOf(`name: "${tool}"`));
       const body = run.slice(0, run.search(/\r?\n\};\r?\n/));
       const auditedAt = body.indexOf(`return audited(d.client, "${tool}",`);
       expect(auditedAt).toBeGreaterThan(0);
       // Nothing is written before the log row: every write call sits after it.
-      for (const write of ["createTenantWithOwner(", "linkSubaccount(", "createStaffLogin(", "writeCustomValues(", "provisionOwnerLinks(", ".update("]) {
+      for (const write of ["createTenantWithOwner(", "linkSubaccount(", "createStaffLogin(", "writeCustomValues(", "provisionOwnerLinks(", ".update(", ".upsert("]) {
         const at = body.indexOf(write);
         if (at >= 0) expect(at).toBeGreaterThan(auditedAt);
       }
@@ -300,7 +300,12 @@ describe("the connectors", () => {
     expect(CONNECTORS.software.tools.map((t) => t.name)).toEqual([
       "software_clients", "software_create_client", "software_link_ghl", "software_add_login",
       "software_client_health", "software_system_health", "software_fix", "software_go_live",
+      "software_get_script", "software_set_script",
     ]);
+    // A bot's script is sanitized like one typed in Settings, before the logged write.
+    const set = softwareSource.slice(softwareSource.indexOf('name: "software_set_script"'));
+    expect(set.indexOf("await sanitizeScriptHtml(raw)")).toBeGreaterThan(0);
+    expect(set.indexOf("await sanitizeScriptHtml(raw)")).toBeLessThan(set.indexOf("return audited("));
     expect(CONNECTORS.ghl.tools.map((t) => t.name)).toEqual(["ghl_clients", "ghl_request", "ghl_agency_request"]);
     expect(CONNECTORS.meta.tools.map((t) => t.name)).toEqual([
       "get_ad_results", "get_ad_structure", "get_ad_assets", "meta_create_campaign", "meta_create_adset", "meta_create_ad",

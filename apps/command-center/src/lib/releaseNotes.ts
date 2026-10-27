@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-grok-scripts",
+    date: "27 October 2026",
+    title: "Grok Bots can upload a client's dialing script",
+    items: [
+      "Hauck Software can read and set a client's dialing script and notes, the ones on Client Setting, so a bot can copy the script out of the Mission Control doc.",
+      "Uploads are cleaned like a script typed in Settings, logged first, and the previous script is kept.",
+    ],
+  },
+  {
     id: "2026-10-27-agents-online-gone",
     date: "27 October 2026",
     title: "Agents status line is gone",

@@ -77,6 +77,30 @@ export function scriptColumn(doc: unknown): "html" | "notes_html" {
   return doc === "notes" ? "notes_html" : "html";
 }
 
+const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/**
+ * A script sent as plain text (a Grok Bot reading it out of the client's
+ * Mission Control doc, Jake 2026-10-27) as the editor's own formatting: blank
+ * lines between paragraphs, "# " and "## " headings, "- " or "* " bullets, a
+ * single line break kept. Everything is escaped first, so text never becomes
+ * markup; the sanitizer still runs on the result like any other write.
+ */
+export function textToScriptHtml(text: string): string {
+  const blocks = text.replace(/\r\n?/g, "\n").split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  return blocks
+    .map((block) => {
+      const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+      if (lines.every((l) => /^[-*] /.test(l))) {
+        return `<ul>${lines.map((l) => `<li>${escapeHtml(l.slice(2).trim())}</li>`).join("")}</ul>`;
+      }
+      if (lines.length === 1 && /^## /.test(lines[0])) return `<h3>${escapeHtml(lines[0].slice(3).trim())}</h3>`;
+      if (lines.length === 1 && /^# /.test(lines[0])) return `<h2>${escapeHtml(lines[0].slice(2).trim())}</h2>`;
+      return `<p>${lines.map(escapeHtml).join("<br>")}</p>`;
+    })
+    .join("");
+}
+
 export interface ValidationResult {
   ok: boolean;
   code?: string;

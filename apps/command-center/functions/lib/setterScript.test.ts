@@ -4,12 +4,27 @@ import {
   safeHref,
   scriptColumn,
   tagDecision,
+  textToScriptHtml,
   validateScriptBody,
 } from "./setterScript";
 import scriptRoute from "../api/admin/setter/script.ts?raw";
 
 // sanitizeScriptHtml itself needs the runtime's HTMLRewriter (wrangler/prod
 // only), so the tests pin the pure decisions it applies.
+
+describe("textToScriptHtml", () => {
+  it("turns a script a bot read out of a doc into the editor's own formatting", () => {
+    const text = "# Opener\n\nHi {name}, this is Jake\nwith Clear Choice.\n\n- Ask about the windows\n- Book the estimate\n\n## Close";
+    expect(textToScriptHtml(text)).toBe(
+      "<h2>Opener</h2><p>Hi {name}, this is Jake<br>with Clear Choice.</p><ul><li>Ask about the windows</li><li>Book the estimate</li></ul><h3>Close</h3>",
+    );
+  });
+
+  it("escapes what it is given, so text can never become markup", () => {
+    expect(textToScriptHtml("Say <b>this</b> & that")).toBe("<p>Say &lt;b&gt;this&lt;/b&gt; &amp; that</p>");
+    expect(textToScriptHtml("\r\n\r\n  \n")).toBe("");
+  });
+});
 
 describe("scriptColumn", () => {
   it("is the notes only when asked for by name; anything else is the script", () => {
