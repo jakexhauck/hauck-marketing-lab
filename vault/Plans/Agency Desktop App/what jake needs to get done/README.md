@@ -423,8 +423,7 @@ Hauck Brain is gone. Bots get one connector per system Grok cannot connect itsel
 2. **Write each bot's instructions** in Grok.
 2b. **Before giving Grok Hauck Software** (health sweep 2026-10-26/27; code fixes `d6b5b7fe`, `daaff95d`, `73d9e132`):
    - **GHL agency account is ON HOLD: "unable to charge your card"** (seen 2026-10-27). Update the card in GHL billing first.
-   - Reinstall the GHL app: Claude got it to the last screen; the final Proceed (granting permissions) is yours. Route: app.hauckmarketing.com/api/admin/ghl-app > open installUrl > Next > Agency "Hauck Marketing" > tick Install under all locations (and automatic installation to future locations, so new sub-accounts get it) > Proceed.
-   - Switch on the 30-minute health check: in Claude Code type `! node "C:\Users\games\AppData\Local\Temp\claude\c--Users-games-Desktop-hauck-marketing-lab\e55bdecc-2bc4-435a-a80b-9a4ef702abd1\scratchpad\enable-health-cron.mjs"` (secret writes are yours; Claude is blocked).
+   - Done 2026-10-27: GHL app reinstalled (all linked clients green). No scheduled health Worker: the Software bot runs the routine checks (Jake's call).
    - Send the 4 Gmail drafts (TNT resume link to Jimmy; notifications to Seamus, Ryan, Bill).
    - Made Better has duplicate Home Estimate, Job and Phone Appointment calendars from the snapshot load (originals hold the bookings). Delete the copies only after checking which ones the GHL workflows trigger on; the API cannot show that.
    - Done, no action: Above All has no workflow reading Location API Token. Drive health now checks the Composio grant the app uses.
