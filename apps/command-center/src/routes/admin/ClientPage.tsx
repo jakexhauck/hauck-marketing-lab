@@ -4,7 +4,7 @@ import { Eye } from "lucide-react";
 import GhlTab from "../../components/admin/cockpit/ghl/GhlTab";
 import ManagementTab from "../../components/admin/cockpit/ManagementTab";
 import ImageConverterTab from "../../components/admin/cockpit/ImageConverterTab";
-import SettingTab from "../../components/admin/setting/SettingTab";
+import SettingTab, { SettingsButton } from "../../components/admin/setting/SettingTab";
 import { MissionBrief } from "../../components/admin/brief/MissionBrief";
 import { ClientFolder } from "../../components/admin/folder/ClientFolder";
 import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
@@ -54,7 +54,8 @@ export default function ClientPage() {
   return (
     <div className="pk-root">
       <div className="mb-5 flex justify-end">
-        <LiveAppButton tenantId={client.id} />
+        {/* Client Setting has Settings here instead (Jake, 2026-10-27). */}
+        {resolved.page === "setting" ? <SettingsButton /> : <LiveAppButton tenantId={client.id} />}
       </div>
       <div className="pk-section">
         <PageBody client={client} page={resolved.page} sub={resolved.sub} />
@@ -138,6 +139,6 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
     case "image-converter":
       return <ImageConverterTab tenantId={client.id} />;
     case "setting":
-      return <SettingTab tenantId={client.id} sub={sub} />;
+      return <SettingTab tenantId={client.id} />;
   }
 }

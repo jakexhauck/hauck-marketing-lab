@@ -1,6 +1,21 @@
 import { describe, it, expect } from "vitest";
 import { matchClientFolder } from "./clientDriveFolder";
-import { missionControlDocName, missionControlEmbedUrl } from "./missionControl";
+import { folderLinkProblem, missionControlDocName, missionControlEmbedUrl } from "./missionControl";
+
+describe("folderLinkProblem", () => {
+  const root = [{ id: "cc" }, { id: "ww" }];
+  const holders = [{ tenant_id: "willis", folder_id: "ww" }];
+
+  it("links a client folder nobody holds", () => {
+    expect(folderLinkProblem("cc", root, holders, "clear-choice")).toBeNull();
+  });
+
+  it("refuses a folder outside the client folders, one already held, or a second folder", () => {
+    expect(folderLinkProblem("elsewhere", root, holders, "clear-choice")).toMatch(/not in the client folders/);
+    expect(folderLinkProblem("ww", root, holders, "clear-choice")).toMatch(/Another client/);
+    expect(folderLinkProblem("cc", root, holders, "willis")).toMatch(/already has a folder/);
+  });
+});
 
 describe("missionControlDocName", () => {
   it("prefixes the client's initials, the way Jake named Comfort Wizards' copy", () => {

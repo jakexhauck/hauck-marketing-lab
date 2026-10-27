@@ -2,12 +2,28 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_SCRIPT_HTML,
   safeHref,
+  scriptColumn,
   tagDecision,
   validateScriptBody,
 } from "./setterScript";
+import scriptRoute from "../api/admin/setter/script.ts?raw";
 
 // sanitizeScriptHtml itself needs the runtime's HTMLRewriter (wrangler/prod
 // only), so the tests pin the pure decisions it applies.
+
+describe("scriptColumn", () => {
+  it("is the notes only when asked for by name; anything else is the script", () => {
+    expect(scriptColumn("notes")).toBe("notes_html");
+    for (const doc of [undefined, null, "", "script", "NOTES", 1]) expect(scriptColumn(doc)).toBe("html");
+  });
+
+  it("notes are sanitized on the way in exactly like the script", () => {
+    const patch = scriptRoute.slice(scriptRoute.indexOf("onRequestPatch"));
+    const sanitized = patch.indexOf("await sanitizeScriptHtml(body.html!)");
+    expect(sanitized).toBeGreaterThan(0);
+    expect(patch.indexOf("[column]: html")).toBeGreaterThan(sanitized);
+  });
+});
 
 describe("tagDecision", () => {
   it("keeps formatting tags", () => {

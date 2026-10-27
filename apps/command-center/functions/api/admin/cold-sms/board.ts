@@ -1,6 +1,6 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { agencyTimezone, getAgencyGhlContext, isAgencyGhlConfigured } from "../../../lib/agencyGhl";
+import { boardGhl } from "../../../lib/boardGhl";
 import {
   PAGES_PER_PART,
   countCardPages,
@@ -35,6 +35,9 @@ import { pickOnboardingPipeline, pickSalesPipeline } from "../../../lib/salesPip
 // booked meetings, not cold replies.
 // &board=onboarding is the agency's Onboarding pipeline the same way (Admin >
 // Onboarding, Jake 2026-10-15), read exactly like Sales.
+// &tenant=<id> (with &board=setting) is one client's own Sales Pipeline, read
+// exactly like Sales in their sub-account and zone (Client > Setting, Jake
+// 2026-10-27; lib/boardGhl.ts).
 //
 // Owner only (no role rule in adminRoles.ts, so every other role is refused).
 // Read live from the agency's "Cold SMS" pipeline. Columns are GHL's stages, so a
@@ -52,12 +55,14 @@ const SYNC_PAGES = 6;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
-  if (!isAgencyGhlConfigured(ctx.env)) return Response.json({ configured: false });
+  const scope = await boardGhl(ctx.env, ctx.request);
+  if (scope instanceof Response) return scope;
+  if (!scope) return Response.json({ configured: false });
   const db = getServiceClient(ctx.env);
   if (!db) return Response.json({ error: "no_db" }, { status: 503 });
 
-  const agency = getAgencyGhlContext(ctx.env);
-  const zone = agencyTimezone(ctx.env);
+  const ghl = scope.ghl;
+  const zone = scope.zone;
   const params = new URL(ctx.request.url).searchParams;
   const stageId = (params.get("stageId") ?? "").trim();
   const cursor = (params.get("cursor") ?? "").trim() || null;
@@ -69,7 +74,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const boardParam = params.get("board");
   const onboarding = boardParam === "onboarding";
   // Sales and Onboarding read the same way: every column, no day filter, no verdicts.
-  const sales = boardParam === "sales" || onboarding;
+  // A client board is always read this way: it has no cold outreach.
+  const sales = boardParam === "sales" || onboarding || scope.tenantId !== null;
   if (sales && day) return Response.json({ error: "bad_day" }, { status: 400 });
   if (part !== null && (!day || !Number.isInteger(part) || part < 0 || !Number.isInteger(pageCount) || pageCount < 0)) {
     return Response.json({ error: "bad_part" }, { status: 400 });
@@ -91,7 +97,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       const range = zoneDayRange(day, zone);
       const [texted, cards] = await Promise.all([
         contactsTextedBetween(db, range.start, range.end),
-        fetchCardPart(agency, partPipeline, part, pageCount),
+        fetchCardPart(ghl, partPipeline, part, pageCount),
       ]);
       const mine = cards
         .filter((c) => texted.has(c.contactId))
@@ -103,7 +109,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       });
     }
 
-    const pipelines = await listPipelines(agency);
+    const pipelines = await listPipelines(ghl);
     const board = onboarding
       ? pickOnboardingPipeline(pipelines)
       : sales
@@ -116,8 +122,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       const range = zoneDayRange(day, zone);
       const [texted, cards, replies] = await Promise.all([
         contactsTextedBetween(db, range.start, range.end),
-        fetchCardPart(agency, board.id, part, pageCount),
-        fetchLatestReplies(agency),
+        fetchCardPart(ghl, board.id, part, pageCount),
+        fetchLatestReplies(ghl),
       ]);
       const mine = cards
         .filter((c) => texted.has(c.contactId))
@@ -131,8 +137,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         return Response.json({ error: "unknown_stage" }, { status: 400 });
       }
       const [replies, page] = await Promise.all([
-        fetchLatestReplies(agency),
-        fetchStagePage(agency, board.id, stageId, cursor),
+        fetchLatestReplies(ghl),
+        fetchStagePage(ghl, board.id, stageId, cursor),
       ]);
       const stored = sales ? new Map() : await loadVerdicts(db, page.cards.map((c) => c.contactId));
       return Response.json({
@@ -144,13 +150,13 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
     if (sales) {
       const [pages, replies] = await Promise.all([
-        Promise.all(board.stages.map((s) => fetchStagePage(agency, board.id, s.id))),
-        fetchLatestReplies(agency),
+        Promise.all(board.stages.map((s) => fetchStagePage(ghl, board.id, s.id))),
+        fetchLatestReplies(ghl),
       ]);
       const follow = new Map((await withFollowUps(db, pages.flatMap((p) => p.cards))).map((c) => [c.contactId, c]));
       return Response.json({
         configured: true,
-        locationId: agency.locationId,
+        locationId: ghl.locationId,
         pipeline: { id: board.id, name: board.name },
         pipelines,
         timezone: zone,
@@ -172,18 +178,18 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     // Keep the first-text dates current before the day list (and a day's cards)
     // are read. A GHL hiccup here only means the newest texts land on the next
     // load. The board's own GHL reads run alongside.
-    const synced = syncFirstTexts(db, agency, { pages: SYNC_PAGES }).catch((e) =>
+    const synced = syncFirstTexts(db, ghl, { pages: SYNC_PAGES }).catch((e) =>
       console.warn("[cold-sms/board] first-text sync", e instanceof Error ? e.message : e),
     );
     if (day) {
       const [days, pages, replies] = await Promise.all([
         synced.then(() => firstTextDays(db, zone)),
-        countCardPages(agency, board.id),
-        fetchLatestReplies(agency),
+        countCardPages(ghl, board.id),
+        fetchLatestReplies(ghl),
       ]);
       return Response.json({
         configured: true,
-        locationId: agency.locationId,
+        locationId: ghl.locationId,
         pipeline: { id: board.id, name: board.name },
         pipelines,
         timezone: zone,
@@ -196,12 +202,12 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       });
     }
 
-    const stagePages = Promise.all(board.stages.map((s) => fetchStagePage(agency, board.id, s.id)));
-    const [days, replies] = await Promise.all([synced.then(() => firstTextDays(db, zone)), fetchLatestReplies(agency)]);
+    const stagePages = Promise.all(board.stages.map((s) => fetchStagePage(ghl, board.id, s.id)));
+    const [days, replies] = await Promise.all([synced.then(() => firstTextDays(db, zone)), fetchLatestReplies(ghl)]);
 
     const common = {
       configured: true,
-      locationId: agency.locationId,
+      locationId: ghl.locationId,
       pipeline: { id: board.id, name: board.name },
       // Every pipeline, for the card's "move to" menu (Sales > Call Booked, ...).
       pipelines,

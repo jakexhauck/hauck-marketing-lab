@@ -948,6 +948,30 @@ export function useSaveSetterScriptMutation(tenantId: string) {
   });
 }
 
+// The client's notes, written in Client Setting's Settings and read beside the
+// script while dialling. The same endpoint and sanitizer as the script.
+const clientNotesKey = (tenantId: string) => ["admin", "setter", "notes", tenantId];
+
+export function useClientNotesQuery(tenantId: string) {
+  return useQuery({
+    queryKey: clientNotesKey(tenantId),
+    enabled: !!tenantId,
+    staleTime: 60_000,
+    queryFn: () => getSetterScript(tenantId, "notes"),
+  });
+}
+
+export function useSaveClientNotesMutation(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    scope: { id: `setter-notes-${tenantId}` },
+    mutationFn: (html: string) => saveSetterScript(tenantId, html, "notes"),
+    onSuccess: (res) => {
+      qc.setQueryData(clientNotesKey(tenantId), res);
+    },
+  });
+}
+
 // Live free-slot lookup for the cockpit's booking section (GET
 // /api/admin/setter/slots). Takes a calendar ID picked from the list above,
 // NOT a name: the endpoint stopped resolving names once a real list existed,
@@ -2037,6 +2061,54 @@ export function useCreateMissionControl(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => api<MissionControlResponse>(`/api/admin/clients/${tenantId}/mission-control`, { method: "POST" }),
+    onSuccess: (data) => qc.setQueryData(missionControlKey(tenantId), data),
+  });
+}
+
+// The Brief's Mission Control wizard: link the client's folder, then pick the
+// doc in it (functions/api/admin/clients/[tenantId]/drive/link.ts and
+// mission-control.ts).
+export interface FolderLinkResponse {
+  linked: { id: string; name: string } | null;
+  suggested: string | null;
+  folders: { id: string; name: string; takenBy: string | null }[];
+}
+
+const folderLinkKey = (tenantId: string) => ["admin", "folder-link", tenantId];
+
+export function useFolderLinkQuery(tenantId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: folderLinkKey(tenantId),
+    enabled: !!tenantId && enabled,
+    staleTime: 30_000,
+    queryFn: () => api<FolderLinkResponse>(`/api/admin/clients/${tenantId}/drive/link`),
+  });
+}
+
+export function useLinkClientFolder(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (folderId: string) =>
+      api<{ linked: { id: string; name: string } }>(`/api/admin/clients/${tenantId}/drive/link`, {
+        method: "POST",
+        body: JSON.stringify({ folderId }),
+      }),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: folderLinkKey(tenantId) }),
+        qc.invalidateQueries({ queryKey: clientDriveKey(tenantId) }),
+      ]),
+  });
+}
+
+export function useChooseMissionDoc(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (docId: string) =>
+      api<MissionControlResponse>(`/api/admin/clients/${tenantId}/mission-control`, {
+        method: "POST",
+        body: JSON.stringify({ docId }),
+      }),
     onSuccess: (data) => qc.setQueryData(missionControlKey(tenantId), data),
   });
 }

@@ -1,7 +1,7 @@
 import type { Env, ApiData } from "../../../../../lib/env";
 import { getServiceClient } from "../../../../../lib/supabase";
 import { ghlJson, customFieldDefs } from "../../../../../lib/ghl";
-import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../../../lib/agencyGhl";
+import { boardGhl } from "../../../../../lib/boardGhl";
 import { fetchContactThread } from "../../../../../lib/messaging";
 import { loadVerdicts } from "../../../../../lib/coldSmsAgency";
 import { prospectZone, variationOf } from "../../../../../lib/coldSmsBoard";
@@ -40,32 +40,34 @@ interface RawContact {
 }
 
 export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (ctx) => {
-  if (!isAgencyGhlConfigured(ctx.env)) return Response.json({ error: "not_configured" }, { status: 503 });
+  const board = await boardGhl(ctx.env, ctx.request);
+  if (board instanceof Response) return board;
+  if (!board) return Response.json({ error: "not_configured" }, { status: 503 });
   const contactId = String(ctx.params.contactId ?? "").trim();
   if (!contactId) return Response.json({ error: "missing_contact_id" }, { status: 400 });
-  const agency = getAgencyGhlContext(ctx.env);
+  const ghl = board.ghl;
   const params = new URL(ctx.request.url).searchParams;
 
   if (params.get("only") === "thread") {
     const known = (params.get("conversationId") ?? "").trim() || null;
     try {
-      const thread = await fetchContactThread(agency, contactId, known);
+      const thread = await fetchContactThread(ghl, contactId, known);
       return Response.json({ conversationId: thread.conversationId, messages: thread.messages, threadFailed: false });
     } catch {
       return Response.json({ conversationId: known, messages: [], threadFailed: true });
     }
   }
 
-  const contactRead = ghlJson<{ contact?: RawContact }>(agency, `/contacts/${encodeURIComponent(contactId)}`).then(
+  const contactRead = ghlJson<{ contact?: RawContact }>(ghl, `/contacts/${encodeURIComponent(contactId)}`).then(
     (r) => ({ contact: r.contact }),
     (err: unknown) => ({ error: err instanceof Error ? err.message : "" }),
   );
   // A failed definitions read just leaves the Service line out.
-  const defsRead = customFieldDefs(agency).catch(() => []);
-  const threadRead = fetchContactThread(agency, contactId).catch(() => null);
+  const defsRead = customFieldDefs(ghl).catch(() => []);
+  const threadRead = fetchContactThread(ghl, contactId).catch(() => null);
   const apptRead =
     params.get("appointment") === "1"
-      ? fetchContactAppointments(agency, contactId)
+      ? fetchContactAppointments(ghl, contactId)
           .then((a) => pickSalesAppointment(a, Date.now()))
           .catch(() => null)
       : Promise.resolve(null);

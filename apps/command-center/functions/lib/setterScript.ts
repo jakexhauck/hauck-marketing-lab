@@ -65,6 +65,16 @@ export function safeHref(value: string | null | undefined): string | null {
 export interface ScriptBody {
   tenantId?: string;
   html?: string;
+  doc?: string;
+}
+
+/**
+ * Which of the client's two documents a call is about: the dialing script, or
+ * the notes read next to it (0185, Jake 2026-10-27). Anything but "notes" is the
+ * script, so every caller that predates notes keeps working unchanged.
+ */
+export function scriptColumn(doc: unknown): "html" | "notes_html" {
+  return doc === "notes" ? "notes_html" : "html";
 }
 
 export interface ValidationResult {

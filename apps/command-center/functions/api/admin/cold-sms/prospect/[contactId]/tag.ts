@@ -1,7 +1,7 @@
 import type { Env, ApiData } from "../../../../../lib/env";
 import { readJsonBody } from "../../../../../lib/body";
 import { ghlFetch } from "../../../../../lib/ghl";
-import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../../../lib/agencyGhl";
+import { boardGhl } from "../../../../../lib/boardGhl";
 
 // POST /api/admin/cold-sms/prospect/:contactId/tag  { tag, on }  (owner only)
 //
@@ -14,7 +14,9 @@ export const BOARD_TAGS = ["contacted"] as const;
 const ID = /^[A-Za-z0-9]{8,64}$/;
 
 export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (ctx) => {
-  if (!isAgencyGhlConfigured(ctx.env)) return Response.json({ error: "not_configured" }, { status: 503 });
+  const board = await boardGhl(ctx.env, ctx.request);
+  if (board instanceof Response) return board;
+  if (!board) return Response.json({ error: "not_configured" }, { status: 503 });
   const contactId = String(ctx.params.contactId ?? "").trim();
   const body = await readJsonBody<{ tag?: unknown; on?: unknown }>(ctx.request);
   const tag = typeof body?.tag === "string" ? body.tag.trim().toLowerCase() : "";
@@ -22,8 +24,8 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (ct
   if (!(BOARD_TAGS as readonly string[]).includes(tag)) return Response.json({ error: "bad_tag" }, { status: 400 });
   if (typeof body?.on !== "boolean") return Response.json({ error: "bad_on" }, { status: 400 });
 
-  const agency = getAgencyGhlContext(ctx.env);
-  const res = await ghlFetch(agency, `/contacts/${encodeURIComponent(contactId)}/tags`, {
+  const ghl = board.ghl;
+  const res = await ghlFetch(ghl, `/contacts/${encodeURIComponent(contactId)}/tags`, {
     method: body.on ? "POST" : "DELETE",
     body: JSON.stringify({ tags: [tag] }),
   });

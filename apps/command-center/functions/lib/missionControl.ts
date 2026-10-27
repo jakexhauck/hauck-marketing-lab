@@ -8,11 +8,31 @@ import { clientFolderFor } from "./clientDriveImages";
 // Control // TEMPLATE" (Drive > New Client Setup) in the client's Drive folder,
 // named like "CW // Mission Control". The Brief page embeds it.
 //
-// Nothing is stored in the app: the doc in the folder is the record, found by
-// name, so a copy a Grok Bot or Jake makes by hand shows up the same way.
+// The doc the CSM picks on the Brief (tenants.mission_control_doc_id, 0184,
+// Jake 2026-10-27) wins. With none picked, the doc is found by name in the
+// folder, so a copy a Grok Bot or Jake makes by hand still shows up by itself.
 
 export const MISSION_CONTROL_TEMPLATE_ID = "1NOVDwDuQg0EJ_zfL2aOqDmzDu8gE4kMfNsZTeMP8Dlc";
 export const MISSION_CONTROL_NAME_PART = "Mission Control";
+export const GOOGLE_DOC_MIME = "application/vnd.google-apps.document";
+
+/**
+ * Why a folder cannot be linked to this client, or null when it can. It must
+ * be one of the client folders in the root (so a stray id cannot point a
+ * client at someone else's files) and no other client may hold it: two clients
+ * on one folder would each see the other's Brief.
+ */
+export function folderLinkProblem(
+  folderId: string,
+  rootFolders: { id: string }[],
+  holders: { tenant_id: string; folder_id: string }[],
+  tenantId: string,
+): string | null {
+  if (!rootFolders.some((f) => f.id === folderId)) return "That folder is not in the client folders.";
+  if (holders.some((h) => h.tenant_id === tenantId)) return "This client already has a folder.";
+  if (holders.some((h) => h.folder_id === folderId)) return "Another client already uses that folder.";
+  return null;
+}
 
 /** "Comfort Wizards LLC" -> "CW // Mission Control", the name Jake gave the first copy. */
 export function missionControlDocName(clientName: string): string {

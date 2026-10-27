@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarPlus, Loader2, Pencil, Phone, Send, X } from "lucide-react";
+import { CalendarPlus, ClipboardList, Loader2, Pencil, Phone, Send, X } from "lucide-react";
 import {
   ApiError,
   callColdSmsProspect,
@@ -16,13 +16,21 @@ import {
   type ColdSmsPipelineRef,
 } from "../../../lib/api";
 import { stillPending, type PendingText } from "../../../lib/coldSmsChat";
-import { COLD_SMS_BOARD_KEY } from "../../../hooks/useColdSmsBoard";
+import { COLD_SMS_BOARD_KEY, useBoardTenant } from "../../../hooks/useColdSmsBoard";
+import { useSettingOutcomeLinkQuery } from "../../../hooks/useApi";
+import SettingBookingWizard from "../setting/SettingBookingWizard";
+import { SettingOutcomeDialog, SettingScriptAside } from "../setting/SettingLeadExtras";
 import { VerdictBadge } from "./VerdictBadge";
 import SmsBookingWizard from "./SmsBookingWizard";
 
 // The card's side panel: who they are, the variation they were sent, the whole
 // text thread with a reply box, a move-to menu for any pipeline, and the booking
 // wizard behind "Book call".
+//
+// On a client's board (Client Setting) the client's script sits beside the
+// panel, Outcome opens the lead's outcome page over the board, and Book its
+// wizard, which books the estimate on the client's calendar
+// (SettingBookingWizard). Both use the Setting tab's keyed outcome link.
 //
 // Chat speed (Jake, 2026-10-13): a sent text shows the instant Send is hit and
 // the box is free for the next one; the thread is refreshed on its own (one GHL
@@ -60,13 +68,16 @@ export default function SmsProspectPanel({
   onRemoved: (opportunityIds: string[]) => void;
 }) {
   const qc = useQueryClient();
+  const tenant = useBoardTenant();
+  const [leadView, setLeadView] = useState<"outcome" | "book" | null>(null);
+  const outcomeLink = useSettingOutcomeLinkQuery(tenant ?? "", tenant ? card.contactId : null);
   const key = ["admin", "cold-sms", "prospect", card.contactId];
   const threadKey = [...key, "thread"];
   // The full read also seeds the thread, so opening the panel is one request.
   const prospect = useQuery({
     queryKey: key,
     queryFn: async () => {
-      const d = await getColdSmsProspect(card.contactId, sales);
+      const d = await getColdSmsProspect(card.contactId, sales, tenant);
       qc.setQueryData<ColdSmsThread>(threadKey, {
         conversationId: d.conversationId,
         messages: d.messages,
@@ -81,7 +92,7 @@ export default function SmsProspectPanel({
     queryKey: threadKey,
     // A failed refresh throws so the last good thread stays on screen.
     queryFn: async () => {
-      const t = await getColdSmsThread(card.contactId, conversationId.current);
+      const t = await getColdSmsThread(card.contactId, conversationId.current, tenant);
       if (t.threadFailed) throw new Error("thread_failed");
       return t;
     },
@@ -103,7 +114,7 @@ export default function SmsProspectPanel({
   // in the panel and on the card without a re-read.
   const [phoneDraft, setPhoneDraft] = useState<string | null>(null);
   const savePhone = useMutation({
-    mutationFn: (phone: string) => setColdSmsPhone(card.contactId, phone),
+    mutationFn: (phone: string) => setColdSmsPhone(card.contactId, phone, tenant),
     onSuccess: (res) => {
       setPhoneDraft(null);
       qc.setQueryData<ColdSmsProspect>(key, (d) => (d ? { ...d, contact: { ...d.contact, phone: res.phone } } : d));
@@ -131,7 +142,7 @@ export default function SmsProspectPanel({
   });
 
   const call = useMutation({
-    mutationFn: () => callColdSmsProspect(card.contactId),
+    mutationFn: () => callColdSmsProspect(card.contactId, tenant),
     onSuccess: (res) => onToast(res.ok ? "Calling your phone" : (res.message ?? "GoHighLevel did not place the call")),
     onError: () => onToast("GoHighLevel did not place the call"),
   });
@@ -146,7 +157,7 @@ export default function SmsProspectPanel({
       ...list.filter((p) => p.tempId !== tempId),
       { tempId, body, at: new Date().toISOString(), status: "sending" },
     ]);
-    sendColdSmsText(card.contactId, body).then(
+    sendColdSmsText(card.contactId, body, tenant).then(
       (res) => {
         patch(tempId, { status: "sent", messageId: res.messageId });
         void qc.invalidateQueries({ queryKey: threadKey, exact: true });
@@ -160,11 +171,11 @@ export default function SmsProspectPanel({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !booking) onClose();
+      if (e.key === "Escape" && !booking && !leadView) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, booking]);
+  }, [onClose, booking, leadView]);
 
   // The reply box grows with the text (Jake, 2026-10-13), up to half the
   // screen, then scrolls. Back to two lines once sent.
@@ -258,6 +269,28 @@ export default function SmsProspectPanel({
             {call.isPending ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Phone size={15} aria-hidden />}
             Call
           </button>
+          {tenant && (
+            <>
+              <button
+                type="button"
+                onClick={() => setLeadView("outcome")}
+                disabled={!outcomeLink.data}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-surface-2 px-3.5 py-2 text-[13px] font-bold text-text disabled:opacity-50"
+              >
+                <ClipboardList size={15} aria-hidden />
+                Outcome
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeadView("book")}
+                disabled={!outcomeLink.data}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[var(--brand)] px-3.5 py-2 text-[13px] font-bold text-[var(--brand-fg,#fff)] disabled:opacity-50"
+              >
+                <CalendarPlus size={15} aria-hidden />
+                Book
+              </button>
+            </>
+          )}
           {!sales && (
             <button
               type="button"
@@ -431,6 +464,21 @@ export default function SmsProspectPanel({
         </form>
       </aside>
 
+      {tenant && <SettingScriptAside tenantId={tenant} />}
+      {leadView === "outcome" && outcomeLink.data && (
+        <SettingOutcomeDialog url={outcomeLink.data.url} name={card.business} onClose={() => setLeadView(null)} />
+      )}
+      {leadView === "book" && outcomeLink.data && (
+        <SettingBookingWizard
+          outcomeUrl={outcomeLink.data.url}
+          onClose={() => setLeadView(null)}
+          onBooked={(message) => {
+            setLeadView(null);
+            onToast(message);
+            void qc.invalidateQueries({ queryKey: key });
+          }}
+        />
+      )}
       {booking && prospect.data && (
         <SmsBookingWizard
           prospect={prospect.data}

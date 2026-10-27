@@ -1,7 +1,7 @@
 import type { Env, ApiData } from "../../../../../lib/env";
 import { readJsonBody } from "../../../../../lib/body";
 import { ghlFetch } from "../../../../../lib/ghl";
-import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../../../lib/agencyGhl";
+import { boardGhl } from "../../../../../lib/boardGhl";
 
 // POST /api/admin/cold-sms/prospect/:contactId/send  { body }  (owner only)
 //
@@ -10,7 +10,9 @@ import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../../../lib/a
 // Never retried: a resent POST is a second text on a stranger's phone.
 
 export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (ctx) => {
-  if (!isAgencyGhlConfigured(ctx.env)) return Response.json({ error: "not_configured" }, { status: 503 });
+  const board = await boardGhl(ctx.env, ctx.request);
+  if (board instanceof Response) return board;
+  if (!board) return Response.json({ error: "not_configured" }, { status: 503 });
   const contactId = String(ctx.params.contactId ?? "").trim();
   const body = await readJsonBody<{ body?: unknown }>(ctx.request);
   const text = typeof body?.body === "string" ? body.body.trim() : "";
@@ -18,8 +20,8 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (ct
   if (!text) return Response.json({ error: "empty_message" }, { status: 400 });
   if (text.length > 1600) return Response.json({ error: "too_long" }, { status: 400 });
 
-  const agency = getAgencyGhlContext(ctx.env);
-  const res = await ghlFetch(agency, "/conversations/messages", {
+  const ghl = board.ghl;
+  const res = await ghlFetch(ghl, "/conversations/messages", {
     method: "POST",
     body: JSON.stringify({ type: "SMS", contactId, message: text }),
   });

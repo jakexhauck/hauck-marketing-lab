@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   classifyColdSmsReplies,
@@ -23,6 +23,12 @@ import { boardRefreshInterval } from "../lib/coldSmsBoardRefresh";
 
 export const COLD_SMS_BOARD_KEY = ["admin", "cold-sms", "board"] as const;
 
+// The client a board belongs to: Client > Setting wraps the board in this, and
+// every read and write below then runs on that client's sub-account. Null is
+// the agency's own boards (Cold SMS, Sales, Onboarding).
+export const BoardTenantContext = createContext<string | null>(null);
+export const useBoardTenant = () => useContext(BoardTenantContext);
+
 // One cache entry per view: the whole board, or one day of first texts. Every
 // write below patches all of them, so a verdict or a move shows in both.
 //
@@ -30,7 +36,8 @@ export const COLD_SMS_BOARD_KEY = ["admin", "cold-sms", "board"] as const;
 // below patches it the same way, with no second set of hooks.
 export function useColdSmsBoardQuery(day: string, kind: PipelineBoardKind = "cold-sms") {
   const qc = useQueryClient();
-  const key = boardKey(day, kind);
+  const tenant = useBoardTenant();
+  const key = boardKey(day, kind, tenant);
   return useQuery({
     queryKey: key,
     // A read while a drag is still being written keeps the screen as it is: GHL
@@ -38,7 +45,7 @@ export function useColdSmsBoardQuery(day: string, kind: PipelineBoardKind = "col
     queryFn: () => {
       const shown = qc.getQueryData<ColdSmsBoard>(key);
       if (shown && qc.isMutating({ mutationKey: MOVE_KEY })) return shown;
-      return getColdSmsBoard(day || undefined, kind);
+      return getColdSmsBoard(day || undefined, kind, tenant);
     },
     placeholderData: (prev) => prev,
     staleTime: 15_000,
@@ -50,8 +57,8 @@ export function useColdSmsBoardQuery(day: string, kind: PipelineBoardKind = "col
 
 const MOVE_KEY = [...COLD_SMS_BOARD_KEY, "move"];
 
-function boardKey(day: string, kind: PipelineBoardKind) {
-  return [...COLD_SMS_BOARD_KEY, kind !== "cold-sms" ? kind : day || "all"];
+function boardKey(day: string, kind: PipelineBoardKind, tenant: string | null) {
+  return [...COLD_SMS_BOARD_KEY, kind !== "cold-sms" ? kind : day || "all", ...(tenant ? [tenant] : [])];
 }
 
 function patchCards(board: ColdSmsBoard | undefined, fn: (c: ColdSmsCard) => ColdSmsCard): ColdSmsBoard | undefined {
@@ -164,13 +171,14 @@ export function useReplyClassifier(ready: boolean) {
 
 export function useLoadMoreStage(kind: PipelineBoardKind = "cold-sms") {
   const qc = useQueryClient();
+  const tenant = useBoardTenant();
   const [loading, setLoading] = useState<string | null>(null);
   const load = async (stageId: string, cursor: string) => {
     if (loading) return;
     setLoading(stageId);
     try {
-      const page = await getColdSmsStagePage(stageId, cursor, kind);
-      qc.setQueryData<ColdSmsBoard>(boardKey("", kind), (b) => {
+      const page = await getColdSmsStagePage(stageId, cursor, kind, tenant);
+      qc.setQueryData<ColdSmsBoard>(boardKey("", kind, tenant), (b) => {
         if (!b?.stages) return b;
         return {
           ...b,
@@ -192,10 +200,11 @@ export function useLoadMoreStage(kind: PipelineBoardKind = "cold-sms") {
 // once and written to GHL; put back where it was if GHL says no.
 export function useMoveCard() {
   const qc = useQueryClient();
+  const tenant = useBoardTenant();
   return useMutation({
     mutationKey: MOVE_KEY,
     mutationFn: (v: { card: ColdSmsCard; pipelineId: string; stageId: string }) =>
-      moveColdSmsCard({ opportunityId: v.card.id, pipelineId: v.pipelineId, stageId: v.stageId }),
+      moveColdSmsCard({ opportunityId: v.card.id, pipelineId: v.pipelineId, stageId: v.stageId }, tenant),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: COLD_SMS_BOARD_KEY });
       const before = qc.getQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY });
@@ -253,8 +262,9 @@ export function hasContacted(tags: string[]): boolean {
 
 export function useContactedToggle() {
   const qc = useQueryClient();
+  const tenant = useBoardTenant();
   return useMutation({
-    mutationFn: (v: { contactId: string; on: boolean }) => setColdSmsTag(v.contactId, CONTACTED_TAG, v.on),
+    mutationFn: (v: { contactId: string; on: boolean }) => setColdSmsTag(v.contactId, CONTACTED_TAG, v.on, tenant),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: COLD_SMS_BOARD_KEY });
       const before = qc.getQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY });
@@ -277,8 +287,10 @@ export function useContactedToggle() {
 // GHL task made) by the server, put back if the save fails.
 export function useFollowUp() {
   const qc = useQueryClient();
+  const tenant = useBoardTenant();
   return useMutation({
-    mutationFn: (v: { card: ColdSmsCard; f: ColdSmsFollowUpInput }) => setColdSmsFollowUp(v.card.contactId, v.f, v.card.business),
+    mutationFn: (v: { card: ColdSmsCard; f: ColdSmsFollowUpInput }) =>
+      setColdSmsFollowUp(v.card.contactId, v.f, v.card.business, tenant),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: COLD_SMS_BOARD_KEY });
       const before = qc.getQueriesData<ColdSmsBoard>({ queryKey: COLD_SMS_BOARD_KEY });

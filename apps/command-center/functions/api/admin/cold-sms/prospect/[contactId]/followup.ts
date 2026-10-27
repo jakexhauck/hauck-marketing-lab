@@ -2,12 +2,8 @@ import type { Env, ApiData } from "../../../../../lib/env";
 import { readJsonBody } from "../../../../../lib/body";
 import { getServiceClient } from "../../../../../lib/supabase";
 import { ghlFetch } from "../../../../../lib/ghl";
-import {
-  agencyGhlUserId,
-  agencyTimezone,
-  getAgencyGhlContext,
-  isAgencyGhlConfigured,
-} from "../../../../../lib/agencyGhl";
+import { agencyGhlUserId } from "../../../../../lib/agencyGhl";
+import { boardGhl } from "../../../../../lib/boardGhl";
 import { zoneDayRange } from "../../../../../lib/coldSmsFirstTexts";
 import { FOLLOW_UP_NOTE_MAX, dueMinutes, followUpLabel, isDay, isTime } from "../../../../../lib/coldSmsFollowUp";
 
@@ -26,11 +22,17 @@ import { FOLLOW_UP_NOTE_MAX, dueMinutes, followUpLabel, isDay, isTime } from "..
 //
 // The saved day is the truth: a GHL task that will not save is reported, not
 // fatal, so the board never loses a follow-up to a GHL hiccup.
+//
+// On a client's Setting board (?tenant=) the task is made in the client's
+// sub-account, due in the client's zone, and left unassigned: the agency user
+// it goes to on Jake's own boards is not a user over there.
 
 const ID = /^[A-Za-z0-9]{8,64}$/;
 
 export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (ctx) => {
-  if (!isAgencyGhlConfigured(ctx.env)) return Response.json({ error: "not_configured" }, { status: 503 });
+  const board = await boardGhl(ctx.env, ctx.request);
+  if (board instanceof Response) return board;
+  if (!board) return Response.json({ error: "not_configured" }, { status: 503 });
   const db = getServiceClient(ctx.env);
   if (!db) return Response.json({ error: "no_db" }, { status: 503 });
   const contactId = String(ctx.params.contactId ?? "").trim();
@@ -43,7 +45,7 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (ct
   const time = isTime(body?.time) ? body!.time : null;
   const note = typeof body?.note === "string" ? body.note.trim().slice(0, FOLLOW_UP_NOTE_MAX) : "";
 
-  const agency = getAgencyGhlContext(ctx.env);
+  const ghl = board.ghl;
   const { data: had } = await db
     .from("cold_sms_followups")
     .select("ghl_task_id")
@@ -53,7 +55,7 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (ct
   // The old task goes first, whether the day is changing or being cleared.
   const oldTask = (had?.ghl_task_id as string | null) ?? null;
   if (oldTask) {
-    const del = await ghlFetch(agency, `/contacts/${encodeURIComponent(contactId)}/tasks/${encodeURIComponent(oldTask)}`, {
+    const del = await ghlFetch(ghl, `/contacts/${encodeURIComponent(contactId)}/tasks/${encodeURIComponent(oldTask)}`, {
       method: "DELETE",
     });
     if (!del.ok && del.status !== 404) console.warn("[cold-sms/followup] old task", del.status);
@@ -79,16 +81,16 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (ct
 
   let taskId: string | null = null;
   let taskFailed = false;
-  const due = new Date(+new Date(zoneDayRange(day, agencyTimezone(ctx.env)).start) + dueMinutes(time) * 60_000);
+  const due = new Date(+new Date(zoneDayRange(day, board.zone).start) + dueMinutes(time) * 60_000);
   // GHL 422s a new task without `completed` (see setter/task.ts).
-  const res = await ghlFetch(agency, `/contacts/${encodeURIComponent(contactId)}/tasks`, {
+  const res = await ghlFetch(ghl, `/contacts/${encodeURIComponent(contactId)}/tasks`, {
     method: "POST",
     body: JSON.stringify({
-      title: `Follow up${business ? `: ${business}` : ""} (Cold SMS)`,
+      title: `Follow up${business ? `: ${business}` : ""} (${board.tenantId ? "Setting" : "Cold SMS"})`,
       dueDate: due.toISOString(),
       ...(note ? { body: note } : {}),
       completed: false,
-      assignedTo: agencyGhlUserId(ctx.env),
+      ...(board.tenantId ? {} : { assignedTo: agencyGhlUserId(ctx.env) }),
     }),
   });
   if (res.ok) {

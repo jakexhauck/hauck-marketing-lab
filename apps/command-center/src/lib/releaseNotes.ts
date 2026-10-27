@@ -26,6 +26,27 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-brief-wizard",
+    date: "27 October 2026",
+    title: "Pick a client's Mission Control doc on the Brief",
+    items: [
+      "A client with no Mission Control doc gets a wizard on the Brief: link their Drive folder, then pick the doc inside it.",
+      "Change doc, next to Open in Google Docs, swaps it for another.",
+      "The dialer no longer records cold calls on its own every minute. Your sales meetings still sync.",
+    ],
+  },
+  {
+    id: "2026-10-27-setting-board",
+    date: "27 October 2026",
+    title: "Client Setting is one page on the Cold SMS board",
+    items: [
+      "Setting is now one page, Client Setting, under Folder: the client's own Sales Pipeline on the same board as Cold SMS and Sales. Drag to move, right-click menu, follow-ups.",
+      "Click a lead for their text thread and a reply box that texts from the client's number, with the client's script beside it.",
+      "Call rings you through the client's App Call workflow. Outcome and Book open over the board.",
+      "Settings, top right, has two tabs: the script, and notes for the client. Notes show next to the script while you dial.",
+    ],
+  },
+  {
     id: "2026-10-27-grok-go-live",
     date: "27 October 2026",
     title: "Grok Bots can take a client live",

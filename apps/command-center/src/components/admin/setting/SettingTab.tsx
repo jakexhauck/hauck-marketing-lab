@@ -1,272 +1,154 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { CalendarPlus, ClipboardList, Phone } from "lucide-react";
-import { ErrorNote, Spinner } from "../../../routes/paid-ads/trackerShared";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
+import { Settings, X } from "lucide-react";
 import {
+  useSaveClientNotesMutation,
   useSaveSetterScriptMutation,
+  useClientNotesQuery,
   useSetterScriptQuery,
-  useSettingBoardQuery,
-  useSettingCall,
-  useSettingOutcomeLinkQuery,
 } from "../../../hooks/useApi";
-import { clientPath } from "../../../lib/clientNav";
-import type { BoardLead, BoardPayload, BoardStage } from "../../../lib/leadBoard";
+import { BoardTenantContext } from "../../../hooks/useColdSmsBoard";
+import SmsPipelineBoard from "../coldSms/SmsPipelineBoard";
 import ScriptEditor from "../script/ScriptEditor";
-import SettingBookingWizard from "./SettingBookingWizard";
 
-// Client > Setting (Jake, 2026-10-21). Jake sets appointments for the client:
-// their GHL Sales Pipeline with a Call on every lead, the setter script, and the
-// universal outcome page for the lead he just called. Call enrols the lead in
-// the sub-account's App Call workflow, which rings Jake and bridges the lead
-// from the client's number. The chosen lead rides in ?c= so Call on the
-// Pipeline lands on that lead's Outcome; ?book=1 opens the booking wizard
-// (SettingBookingWizard, the Cold SMS wizard over the client's calendar).
+// Client > Client Setting (Jake, 2026-10-21; one page since 2026-10-27: "make it
+// one page ... keep the pipeline and instead of enter live app make it Settings,
+// the only option in there is to add a script").
+//
+// The page is the client's GHL Sales Pipeline on the Cold SMS board: drag to
+// move in GHL, the lead's thread and reply box texting from the client's number,
+// follow-ups, the right-click menu, and Call (their App Call workflow), Outcome
+// and Book on every lead (SmsProspectPanel). The board's endpoints run on this
+// client's sub-account because of the context (functions/lib/boardGhl.ts).
+// While a lead is open the script sits beside them.
+//
+// Settings, in the top right where other client pages have Enter live app
+// (SettingsButton, in routes/admin/ClientPage.tsx), holds two editors: the
+// script and the client's notes, which sit beside the script while dialling
+// when there are any. It rides in ?settings=1 so a refresh keeps it open.
 
-type Sub = "pipeline" | "script" | "outcome";
+const SETTINGS = "settings";
 
-export default function SettingTab({ tenantId, sub }: { tenantId: string; sub: string | null }) {
-  const page: Sub = sub === "script" || sub === "outcome" ? sub : "pipeline";
-  if (page === "script") return <ScriptPage tenantId={tenantId} />;
-  if (page === "outcome") return <OutcomePage tenantId={tenantId} />;
-  return <PipelinePage tenantId={tenantId} />;
-}
-
-function useCallLead(tenantId: string) {
-  const call = useSettingCall(tenantId);
-  const [state, setState] = useState<{ id: string; error: string | null } | null>(null);
-  const ring = async (contactId: string) => {
-    setState({ id: contactId, error: null });
-    try {
-      await call.mutateAsync(contactId);
-      return true;
-    } catch (err) {
-      setState({ id: contactId, error: err instanceof Error ? err.message : "Could not start the call." });
-      return false;
-    }
-  };
-  return { ring, busy: call.isPending ? state?.id ?? null : null, state };
-}
-
-function PipelinePage({ tenantId }: { tenantId: string }) {
-  const navigate = useNavigate();
-  const board = useSettingBoardQuery(tenantId);
-  const { ring, busy, state } = useCallLead(tenantId);
-
-  const open = (contactId: string, book = false) =>
-    navigate(`${clientPath(tenantId, "setting", "outcome")}?c=${encodeURIComponent(contactId)}${book ? "&book=1" : ""}`);
-
-  if (board.isLoading) return <Spinner />;
-  if (board.isError) return <ErrorNote message={(board.error as Error).message} />;
-  const data = board.data as BoardPayload;
-  if (data.configError) return <Empty text="No Sales Pipeline in this sub-account." />;
+export default function SettingTab({ tenantId }: { tenantId: string }) {
+  const [params, setParams] = useSearchParams();
+  const close = () =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete(SETTINGS);
+        return next;
+      },
+      { replace: true },
+    );
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="font-display text-[22px] font-semibold text-text">Pipeline</h1>
-      {state?.error && (
-        <div className="rounded-[var(--radius)] border border-danger/30 bg-danger-tint px-4 py-2.5 text-[13px] text-danger">
-          {state.error}
-        </div>
-      )}
-      <div className="flex gap-3 overflow-x-auto pb-3">
-        {data.stages.map((stage) => (
-          <Column
-            key={stage.id}
-            stage={stage}
-            leads={data.leads.filter((l) => l.stageId === stage.id)}
-            busy={busy}
-            calledId={state && !state.error && !busy ? state.id : null}
-            onCall={(id) => void ring(id).then((ok) => ok && open(id))}
-            onOutcome={open}
-            onBook={(id) => open(id, true)}
-          />
-        ))}
-      </div>
+      <h1 className="font-display text-[22px] font-semibold text-text">Client Setting</h1>
+      <BoardTenantContext.Provider value={tenantId}>
+        <SmsPipelineBoard kind="setting" />
+      </BoardTenantContext.Provider>
+      {params.get(SETTINGS) === "1" && <SettingsDialog tenantId={tenantId} onClose={close} />}
     </div>
   );
 }
 
-function Column({
-  stage,
-  leads,
-  busy,
-  calledId,
-  onCall,
-  onOutcome,
-  onBook,
-}: {
-  stage: BoardStage;
-  leads: BoardLead[];
-  busy: string | null;
-  calledId: string | null;
-  onCall: (contactId: string) => void;
-  onOutcome: (contactId: string) => void;
-  onBook: (contactId: string) => void;
-}) {
+export function SettingsButton() {
+  const [, setParams] = useSearchParams();
   return (
-    <section className="flex w-[260px] shrink-0 flex-col rounded-[var(--radius-lg)] border border-border bg-[var(--surface-2)]">
-      <header className="flex items-center gap-2 px-3 py-2.5">
-        <span className="h-2 w-2 rounded-full" style={{ background: stage.color ?? "var(--text-faint)" }} />
-        <span className="truncate text-[13px] font-semibold text-text">{stage.name}</span>
-        <span className="tnum ml-auto text-[12px] text-[var(--text-faint)]">{leads.length}</span>
-      </header>
-      <ul className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto px-2 pb-2">
-        {leads.map((lead) => (
-          <li key={lead.id} className="rounded-[var(--radius)] border border-border bg-surface px-3 py-2.5">
-            <div className="truncate text-[13.5px] font-semibold text-text">{lead.name}</div>
-            <div className="tnum mt-0.5 flex items-center gap-2 text-[12px] text-[var(--text-muted)]">
-              <span className="truncate">{lead.phone || "No phone"}</span>
-              <span className="ml-auto shrink-0">{age(lead.createdAt)}</span>
-            </div>
-            {lead.contactId && (
-              <div className="mt-2 flex gap-1.5">
-                <button
-                  type="button"
-                  disabled={!lead.phone || busy !== null}
-                  onClick={() => onCall(lead.contactId!)}
-                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius)] bg-brand px-2 py-1.5 text-[12.5px] font-semibold text-white disabled:opacity-50"
-                >
-                  <Phone size={13} />
-                  {busy === lead.contactId ? "Ringing..." : calledId === lead.contactId ? "Called" : "Call"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onOutcome(lead.contactId!)}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-[var(--radius)] border border-border px-2 py-1.5 text-[12.5px] font-semibold text-text hover:border-brand"
-                >
-                  <ClipboardList size={13} /> Outcome
-                </button>
-                <button
-                  type="button"
-                  aria-label="Book"
-                  title="Book"
-                  onClick={() => onBook(lead.contactId!)}
-                  className="inline-flex items-center justify-center rounded-[var(--radius)] border border-border px-2 py-1.5 text-text hover:border-brand"
-                >
-                  <CalendarPlus size={13} />
-                </button>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
+    <button
+      type="button"
+      onClick={() =>
+        setParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set(SETTINGS, "1");
+          return next;
+        })
+      }
+      className="inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-surface px-3 py-2 text-[12.5px] font-semibold text-text transition-colors hover:border-brand"
+    >
+      <Settings size={15} /> Settings
+    </button>
   );
 }
 
-function ScriptPage({ tenantId }: { tenantId: string }) {
+const TABS = [
+  { id: "script", label: "Script" },
+  { id: "notes", label: "Notes" },
+] as const;
+
+function SettingsDialog({ tenantId, onClose }: { tenantId: string; onClose: () => void }) {
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("script");
   const script = useSetterScriptQuery(tenantId);
   const save = useSaveSetterScriptMutation(tenantId);
-  return (
-    <div className="flex flex-col gap-4">
-      <ScriptEditor
-        key={tenantId}
-        title="Script"
-        html={script.data?.html ?? ""}
-        isLoading={script.isLoading}
-        isError={script.isError}
-        save={(html) => save.mutateAsync({ tenantId, html })}
-      />
-    </div>
-  );
-}
+  const notes = useClientNotesQuery(tenantId);
+  const saveNotes = useSaveClientNotesMutation(tenantId);
 
-function OutcomePage({ tenantId }: { tenantId: string }) {
-  const [params, setParams] = useSearchParams();
-  const contactId = params.get("c");
-  const board = useSettingBoardQuery(tenantId);
-  const link = useSettingOutcomeLinkQuery(tenantId, contactId);
-  const [booking, setBooking] = useState(params.get("book") === "1");
-  const [booked, setBooked] = useState<string | null>(null);
-  // Bumped after a wizard booking so the framed page reloads with it.
-  const [frame, setFrame] = useState(0);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
-  // Every lead with a contact, newest first, for the picker.
-  const leads = useMemo(
-    () => (board.data?.leads ?? []).filter((l): l is BoardLead & { contactId: string } => !!l.contactId),
-    [board.data],
-  );
-  const stageName = useMemo(
-    () => new Map((board.data?.stages ?? []).map((s) => [s.id, s.name])),
-    [board.data],
-  );
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="font-display text-[22px] font-semibold text-text">Outcome</h1>
-        <select
-          value={contactId ?? ""}
-          onChange={(e) => {
-            setBooked(null);
-            setParams(e.target.value ? { c: e.target.value } : {});
-          }}
-          className="ml-auto min-w-[260px] rounded-[var(--radius)] border border-border bg-surface px-3 py-2 text-[13px] text-text"
-        >
-          <option value="">Pick a lead</option>
-          {leads.map((l) => (
-            <option key={l.id} value={l.contactId}>
-              {l.name}
-              {l.phone ? ` · ${l.phone}` : ""}
-              {stageName.get(l.stageId) ? ` · ${stageName.get(l.stageId)}` : ""}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          disabled={!link.data}
-          onClick={() => setBooking(true)}
-          className="inline-flex items-center gap-1.5 rounded-[var(--radius)] bg-brand px-3.5 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
-        >
-          <CalendarPlus size={15} /> Book
-        </button>
-      </div>
-      {booked && (
-        <div className="rounded-[var(--radius)] border border-[var(--positive)]/30 bg-[var(--positive-tint)] px-4 py-2.5 text-[13px] font-semibold text-[var(--positive)]">
-          {booked}
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[70] bg-black/50" onClick={onClose} aria-hidden />
+      <section
+        role="dialog"
+        aria-label="Settings"
+        className="fixed left-1/2 top-[5vh] z-[71] flex max-h-[90vh] w-[min(900px,96vw)] -translate-x-1/2 flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-surface shadow-2xl"
+      >
+        <header className="flex items-center gap-3 border-b border-[var(--border)] px-6 py-4">
+          <h2 className="font-display text-[18px] font-semibold text-text">Settings</h2>
+          <div role="tablist" aria-label="Settings" className="ml-3 flex gap-1 rounded-xl bg-surface-2 p-1">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.id}
+                onClick={() => setTab(t.id)}
+                className={`rounded-lg px-3.5 py-1.5 text-[13px] font-semibold ${
+                  tab === t.id ? "bg-surface text-text shadow-sm" : "text-muted hover:text-text"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <span className="flex-1" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="grid h-9 w-9 place-items-center rounded-xl bg-surface-2 text-muted hover:text-text"
+          >
+            <X size={16} />
+          </button>
+        </header>
+        <div className="overflow-y-auto px-6 py-5">
+          {tab === "script" ? (
+            <ScriptEditor
+              key={`${tenantId}:script`}
+              title="Script"
+              html={script.data?.html ?? ""}
+              isLoading={script.isLoading}
+              isError={script.isError}
+              save={(html) => save.mutateAsync({ tenantId, html })}
+            />
+          ) : (
+            <ScriptEditor
+              key={`${tenantId}:notes`}
+              title="Notes"
+              html={notes.data?.html ?? ""}
+              isLoading={notes.isLoading}
+              isError={notes.isError}
+              save={(html) => saveNotes.mutateAsync(html)}
+            />
+          )}
         </div>
-      )}
-      {booking && link.data && (
-        <SettingBookingWizard
-          outcomeUrl={link.data.url}
-          onClose={() => setBooking(false)}
-          onBooked={(message) => {
-            setBooking(false);
-            setBooked(message);
-            setFrame((n) => n + 1);
-          }}
-        />
-      )}
-      {!contactId ? (
-        <Empty text="No lead picked." />
-      ) : link.isLoading ? (
-        <Spinner />
-      ) : link.isError || !link.data ? (
-        <ErrorNote message={(link.error as Error | null)?.message} />
-      ) : (
-        <iframe
-          key={`${link.data.url}#${frame}`}
-          src={link.data.url}
-          title="Outcome"
-          className="h-[80vh] w-full max-w-[560px] self-center rounded-[var(--radius-lg)] border border-border bg-white"
-        />
-      )}
-    </div>
+      </section>
+    </>,
+    document.body,
   );
-}
-
-function Empty({ text }: { text: string }) {
-  return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface px-4 py-10 text-center text-[13px] text-[var(--text-muted)]">
-      {text}
-    </div>
-  );
-}
-
-function age(iso: string): string {
-  const mins = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 48) return `${hrs}h`;
-  return `${Math.round(hrs / 24)}d`;
 }

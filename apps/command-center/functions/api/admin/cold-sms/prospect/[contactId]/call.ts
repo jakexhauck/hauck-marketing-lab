@@ -1,6 +1,8 @@
 import type { Env, ApiData } from "../../../../../lib/env";
 import { ghlJson } from "../../../../../lib/ghl";
-import { agencyGhlUserId, getAgencyGhlContext, isAgencyGhlConfigured } from "../../../../../lib/agencyGhl";
+import { agencyGhlUserId } from "../../../../../lib/agencyGhl";
+import { boardGhl } from "../../../../../lib/boardGhl";
+import { startAppCall } from "../../../../../lib/appCall";
 import { CALL_NOW_TAG } from "../../../../../lib/callNow";
 import { fireCallTag } from "../../../../../lib/callNowHandler";
 
@@ -13,15 +15,26 @@ import { fireCallTag } from "../../../../../lib/callNowHandler";
 //
 // The contact is assigned to Jake first: GHL's Call action rings the ASSIGNED
 // user, and the company line when nobody is. A failed assign still calls.
+//
+// On a client's Setting board (?tenant=) it is the Setting tab's Call instead:
+// the lead is enrolled in the sub-account's App Call workflow, which rings Jake
+// and bridges the lead from the client's number (lib/appCall.ts).
 
 const ID = /^[A-Za-z0-9]{8,64}$/;
 
 export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (ctx) => {
-  if (!isAgencyGhlConfigured(ctx.env)) return Response.json({ ok: false, message: "GoHighLevel is not connected." });
+  const board = await boardGhl(ctx.env, ctx.request);
+  if (board instanceof Response) return board;
+  if (!board) return Response.json({ ok: false, message: "GoHighLevel is not connected." });
   const contactId = String(ctx.params.contactId ?? "").trim();
   if (!ID.test(contactId)) return Response.json({ error: "bad_contact_id" }, { status: 400 });
 
-  const agency = getAgencyGhlContext(ctx.env);
+  if (board.tenantId) {
+    const res = await startAppCall(board.ghl, contactId);
+    return Response.json(res.ok ? { ok: true } : { ok: false, message: res.message });
+  }
+
+  const agency = board.ghl;
   try {
     await ghlJson(agency, `/contacts/${encodeURIComponent(contactId)}`, {
       method: "PUT",

@@ -1311,19 +1311,24 @@ export interface SetterScriptResponse {
   updatedAt: string | null;
 }
 
-export async function getSetterScript(tenantId: string): Promise<SetterScriptResponse> {
+// doc "notes" is the client's notes, the second document beside the script
+// (Client Setting, 2026-10-27). Omitted is the script, as it always was.
+export type SetterDoc = "script" | "notes";
+
+export async function getSetterScript(tenantId: string, doc: SetterDoc = "script"): Promise<SetterScriptResponse> {
   return api<SetterScriptResponse>(
-    `/api/admin/setter/script?tenantId=${encodeURIComponent(tenantId)}`,
+    `/api/admin/setter/script?tenantId=${encodeURIComponent(tenantId)}${doc === "notes" ? "&doc=notes" : ""}`,
   );
 }
 
 export async function saveSetterScript(
   tenantId: string,
   html: string,
+  doc: SetterDoc = "script",
 ): Promise<SetterScriptResponse> {
   return api<SetterScriptResponse>("/api/admin/setter/script", {
     method: "PATCH",
-    body: JSON.stringify({ tenantId, html }),
+    body: JSON.stringify(doc === "notes" ? { tenantId, html, doc } : { tenantId, html }),
   });
 }
 
@@ -2509,8 +2514,16 @@ export interface ColdSmsCard {
 }
 
 // Which GHL pipeline the board reads: Cold SMS, the agency's Sales pipeline
-// (Sales > Sales Pipeline, same board), or its Onboarding pipeline.
-export type PipelineBoardKind = "cold-sms" | "sales" | "onboarding";
+// (Sales > Sales Pipeline, same board), its Onboarding pipeline, or a client's
+// own Sales Pipeline (Client > Setting, read like Sales on their sub-account).
+export type PipelineBoardKind = "cold-sms" | "sales" | "onboarding" | "setting";
+
+// Every board call takes an optional client: &tenant= runs it on that client's
+// sub-account instead of the agency's (functions/lib/boardGhl.ts).
+function onTenant(url: string, tenant?: string | null): string {
+  if (!tenant) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}tenant=${encodeURIComponent(tenant)}`;
+}
 
 export interface ColdSmsStage {
   id: string;
@@ -2547,8 +2560,12 @@ export interface ColdSmsBoard {
 // request for the whole pipeline hit Cloudflare's per-request cap, 2026-10-13;
 // all parts at once, each re-reading the replies, hit GHL's 100 calls per 10
 // seconds and showed "GoHighLevel did not answer", 2026-10-20).
-export async function getColdSmsBoard(day?: string, kind: PipelineBoardKind = "cold-sms"): Promise<ColdSmsBoard> {
-  if (kind !== "cold-sms") return api(`/api/admin/cold-sms/board?board=${kind}`);
+export async function getColdSmsBoard(
+  day?: string,
+  kind: PipelineBoardKind = "cold-sms",
+  tenant?: string | null,
+): Promise<ColdSmsBoard> {
+  if (kind !== "cold-sms") return api(onTenant(`/api/admin/cold-sms/board?board=${kind}`, tenant));
   if (!day) return api("/api/admin/cold-sms/board");
   const q = `?day=${encodeURIComponent(day)}`;
   const head = await api<ColdSmsBoard & { parts?: number; pages?: number; replies?: [string, ReplyInfo][] }>(
@@ -2584,10 +2601,14 @@ export function getColdSmsStagePage(
   stageId: string,
   cursor: string,
   kind: PipelineBoardKind = "cold-sms",
+  tenant?: string | null,
 ): Promise<{ cards: ColdSmsCard[]; cursor: string | null; total: number }> {
   return api(
-    `/api/admin/cold-sms/board?stageId=${encodeURIComponent(stageId)}&cursor=${encodeURIComponent(cursor)}` +
-      (kind !== "cold-sms" ? `&board=${kind}` : ""),
+    onTenant(
+      `/api/admin/cold-sms/board?stageId=${encodeURIComponent(stageId)}&cursor=${encodeURIComponent(cursor)}` +
+        (kind !== "cold-sms" ? `&board=${kind}` : ""),
+      tenant,
+    ),
   );
 }
 
@@ -2600,12 +2621,11 @@ export function classifyColdSmsReplies(): Promise<{
   return api("/api/admin/cold-sms/classify", { method: "POST" });
 }
 
-export function moveColdSmsCard(input: {
-  opportunityId: string;
-  pipelineId: string;
-  stageId: string;
-}): Promise<{ ok: true }> {
-  return api("/api/admin/cold-sms/move", { method: "POST", body: JSON.stringify(input) });
+export function moveColdSmsCard(
+  input: { opportunityId: string; pipelineId: string; stageId: string },
+  tenant?: string | null,
+): Promise<{ ok: true }> {
+  return api(onTenant("/api/admin/cold-sms/move", tenant), { method: "POST", body: JSON.stringify(input) });
 }
 
 export interface ColdSmsProspect {
@@ -2634,22 +2654,26 @@ export interface ColdSmsProspect {
 
 export type ColdSmsThread = Pick<ColdSmsProspect, "conversationId" | "messages" | "threadFailed">;
 
-export function getColdSmsProspect(contactId: string, withAppointment = false): Promise<ColdSmsProspect> {
+export function getColdSmsProspect(contactId: string, withAppointment = false, tenant?: string | null): Promise<ColdSmsProspect> {
   return api(
-    `/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}${withAppointment ? "?appointment=1" : ""}`,
+    onTenant(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}${withAppointment ? "?appointment=1" : ""}`, tenant),
   );
 }
 
 // The thread alone: one GHL call when the conversation id is already known.
-export function getColdSmsThread(contactId: string, conversationId: string | null): Promise<ColdSmsThread> {
+export function getColdSmsThread(
+  contactId: string,
+  conversationId: string | null,
+  tenant?: string | null,
+): Promise<ColdSmsThread> {
   const qs = new URLSearchParams({ only: "thread" });
   if (conversationId) qs.set("conversationId", conversationId);
-  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}?${qs}`);
+  return api(onTenant(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}?${qs}`, tenant));
 }
 
 // Replaces the prospect's phone on the GHL contact; answers the saved +1 number.
-export function setColdSmsPhone(contactId: string, phone: string): Promise<{ ok: true; phone: string }> {
-  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/phone`, {
+export function setColdSmsPhone(contactId: string, phone: string, tenant?: string | null): Promise<{ ok: true; phone: string }> {
+  return api(onTenant(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/phone`, tenant), {
     method: "POST",
     body: JSON.stringify({ phone }),
   });
@@ -2671,28 +2695,34 @@ export function setColdSmsFollowUp(
   contactId: string,
   f: ColdSmsFollowUpInput,
   business: string,
+  tenant?: string | null,
 ): Promise<{ ok: true; day: string | null; taskFailed?: boolean }> {
-  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/followup`, {
+  return api(onTenant(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/followup`, tenant), {
     method: "POST",
     body: JSON.stringify({ ...f, business }),
   });
 }
 
 // A board tag on the prospect (right-click menu): only "contacted" today.
-export function setColdSmsTag(contactId: string, tag: "contacted", on: boolean): Promise<{ ok: true }> {
-  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/tag`, {
+export function setColdSmsTag(contactId: string, tag: "contacted", on: boolean, tenant?: string | null): Promise<{ ok: true }> {
+  return api(onTenant(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/tag`, tenant), {
     method: "POST",
     body: JSON.stringify({ tag, on }),
   });
 }
 
-// Rings Jake's phone, then bridges the prospect from the agency number.
-export function callColdSmsProspect(contactId: string): Promise<{ ok: boolean; message?: string }> {
-  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/call`, { method: "POST" });
+// Rings Jake's phone, then bridges the prospect from the agency number (on a
+// client's board, from the client's number through their App Call workflow).
+export function callColdSmsProspect(contactId: string, tenant?: string | null): Promise<{ ok: boolean; message?: string }> {
+  return api(onTenant(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/call`, tenant), { method: "POST" });
 }
 
-export function sendColdSmsText(contactId: string, body: string): Promise<{ ok: true; messageId: string | null }> {
-  return api(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/send`, {
+export function sendColdSmsText(
+  contactId: string,
+  body: string,
+  tenant?: string | null,
+): Promise<{ ok: true; messageId: string | null }> {
+  return api(onTenant(`/api/admin/cold-sms/prospect/${encodeURIComponent(contactId)}/send`, tenant), {
     method: "POST",
     body: JSON.stringify({ body }),
   });

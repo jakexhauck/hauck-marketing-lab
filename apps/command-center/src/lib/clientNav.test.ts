@@ -18,20 +18,24 @@ const labels = (c: ClientGateInfo) =>
 describe("clientNavGroups", () => {
   it("lists every page for a fully wired client, Brief on top", () => {
     expect(labels(linked)).toEqual([
-      [null, ["Brief", "Folder"]],
+      [null, ["Brief", "Folder", "Client Setting"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Business Profile", "Staff", "Custom Values", "Custom Fields", "Calendars", "Pipelines", "Media", "Workflows", "Phone Numbers"]],
-      ["Setting", ["Pipeline", "Script", "Outcome"]],
       [null, ["Management", "Image Converter"]],
     ]);
   });
 
+  it("sends the old Setting pages to the one Client Setting page", () => {
+    for (const sub of ["pipeline", "script", "outcome"]) {
+      expect(resolveClientPage(linked, "setting", sub)).toEqual({ page: "setting", sub: null });
+    }
+  });
+
   it("gates Paid Ads and GHL until they are connected", () => {
     expect(labels(bare)).toEqual([
-      [null, ["Brief", "Folder"]],
+      [null, ["Brief", "Folder", "Client Setting"]],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Connect GHL"]],
-      ["Setting", ["Pipeline", "Script", "Outcome"]],
       [null, ["Management", "Image Converter"]],
     ]);
   });

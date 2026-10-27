@@ -50,6 +50,10 @@ import {
 // sales pipeline"): the agency's Sales pipeline on this same board, panel and
 // menu. It drops what only cold outreach has: the day filter, Claude's reply
 // verdicts and auto-sort, the booked sweep and the Book call button.
+//
+// kind="setting" is Client > Setting > Pipeline (Jake, 2026-10-27): a client's
+// own Sales Pipeline read like Sales, inside BoardTenantContext so every call
+// runs on their sub-account. The panel books estimates instead of sales calls.
 
 type Filter = "all" | ColdSmsVerdict;
 
@@ -123,7 +127,9 @@ export default function SmsPipelineBoard({ kind = "cold-sms" }: { kind?: Pipelin
   const followUp = useFollowUp();
   const [menu, setMenu] = useState<{ card: ColdSmsCard; x: number; y: number } | null>(null);
   const [editing, setEditing] = useState<ColdSmsCard | null>(null);
-  const collapsedKey = sales ? `${kind === "sales" ? "salesBoard" : "onboardingBoard"}.collapsedStages` : COLLAPSED_KEY;
+  const collapsedKey = sales
+    ? `${kind === "sales" ? "salesBoard" : kind === "setting" ? "settingBoard" : "onboardingBoard"}.collapsedStages`
+    : COLLAPSED_KEY;
   const [collapsed, setCollapsed] = useState<Set<string>>(() => readCollapsed(collapsedKey));
   const toggleCollapsed = (stageId: string) =>
     setCollapsed((prev) => {
@@ -223,8 +229,15 @@ export default function SmsPipelineBoard({ kind = "cold-sms" }: { kind?: Pipelin
     const upstream = board.error instanceof ApiError && board.error.status === 502;
     return <div className="pk-empty">{upstream ? "GoHighLevel did not answer. Try again in a minute." : "The board did not load."}</div>;
   }
-  if (!board.data?.configured) return <div className="pk-empty">The agency GoHighLevel account is not connected.</div>;
+  if (!board.data?.configured) {
+    return (
+      <div className="pk-empty">
+        {kind === "setting" ? "This client is not linked to GoHighLevel." : "The agency GoHighLevel account is not connected."}
+      </div>
+    );
+  }
   if (board.data.missing) {
+    if (kind === "setting") return <div className="pk-empty">No Sales Pipeline in this sub-account.</div>;
     return <div className="pk-empty">No pipeline named "{kind === "onboarding" ? "Onboarding" : sales ? "Sales" : "Cold SMS"}" in GoHighLevel.</div>;
   }
 

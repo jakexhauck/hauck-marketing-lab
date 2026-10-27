@@ -1,7 +1,7 @@
 import type { Env, ApiData } from "../../../../../lib/env";
 import { readJsonBody } from "../../../../../lib/body";
 import { ghlFetch } from "../../../../../lib/ghl";
-import { getAgencyGhlContext, isAgencyGhlConfigured } from "../../../../../lib/agencyGhl";
+import { boardGhl } from "../../../../../lib/boardGhl";
 import { toE164 } from "../../../../../lib/agencyCrm";
 
 // POST /api/admin/cold-sms/prospect/:contactId/phone  { phone }  (owner only)
@@ -14,14 +14,16 @@ import { toE164 } from "../../../../../lib/agencyCrm";
 const ID = /^[A-Za-z0-9]{8,64}$/;
 
 export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (ctx) => {
-  if (!isAgencyGhlConfigured(ctx.env)) return Response.json({ error: "not_configured" }, { status: 503 });
+  const board = await boardGhl(ctx.env, ctx.request);
+  if (board instanceof Response) return board;
+  if (!board) return Response.json({ error: "not_configured" }, { status: 503 });
   const contactId = String(ctx.params.contactId ?? "").trim();
   if (!ID.test(contactId)) return Response.json({ error: "bad_contact_id" }, { status: 400 });
   const body = await readJsonBody<{ phone?: unknown }>(ctx.request);
   const phone = toE164(typeof body?.phone === "string" ? body.phone : "");
   if (!phone) return Response.json({ error: "bad_phone" }, { status: 400 });
 
-  const res = await ghlFetch(getAgencyGhlContext(ctx.env), `/contacts/${encodeURIComponent(contactId)}`, {
+  const res = await ghlFetch(board.ghl, `/contacts/${encodeURIComponent(contactId)}`, {
     method: "PUT",
     body: JSON.stringify({ phone }),
   });
