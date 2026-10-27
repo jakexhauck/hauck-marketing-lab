@@ -9,13 +9,14 @@ vi.mock("../lib/supabase", () => ({
   getServiceClient: () => ({}),
   resolveTenantId: () => Promise.resolve(null),
 }));
-vi.mock("../lib/tenantResolve", () => ({
+vi.mock("../lib/tenantResolve", async () => ({
+  ...(await vi.importActual<typeof import("../lib/tenantResolve")>("../lib/tenantResolve")),
   clientLabelFromHost: () => null,
   loadLiveTenantForHost: () => Promise.resolve(null),
-  loadTenantById: () => Promise.resolve(null),
+  loadTenantById: () => Promise.resolve(tenantRow),
   tenantHasGhlCreds: () => false,
 }));
-vi.mock("../lib/identity", () => ({ resolveCaller: () => Promise.resolve({ isOwner: true }) }));
+vi.mock("../lib/identity", () => ({ resolveCaller: () => Promise.resolve(caller) }));
 // The real AdminLookupError comes through untouched: the middleware decides
 // 503-vs-401 with an instanceof against it, so a stub class here would make the
 // gate look like it works while proving nothing.
@@ -37,12 +38,17 @@ let session: unknown = null;
 let admin: unknown = null;
 let adminLookupFails = false;
 let reached = false;
+// A client's tenant row (a pasted GHL token, so no app mint) and who the caller resolves to.
+let tenantRow: unknown = null;
+let caller: unknown = { isOwner: true };
 
 beforeEach(() => {
   session = null;
   admin = null;
   adminLookupFails = false;
   reached = false;
+  tenantRow = null;
+  caller = { isOwner: true };
 });
 
 function call(
@@ -197,6 +203,46 @@ describe("api middleware: the admin gate", () => {
     const res = await call("/api/admin/cold-call/live", { header: null });
     expect(res.status).toBe(200);
     expect(reached).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Letter case. Pages matches a route ignoring case (wrangler's template runs
+// path-to-regexp with no `sensitive`), so /api/Admin/clients runs the
+// /api/admin/clients handler. The gates must read the path the same way, or a
+// client login reaches admin handlers and a staff login skips its page rules.
+
+describe("api middleware: letter case", () => {
+  const CLIENT = { id: "t1", slug: "willis", ghl_location_id: "loc_1", ghl_token: "pit-123" };
+
+  it("keeps a client login out of an admin route spelled with capitals", async () => {
+    session = { tenantId: "t1", mode: "live" };
+    tenantRow = CLIENT;
+    for (const path of ["/api/Admin/clients", "/API/ADMIN/secrets/agency", "/api/aDmin/audit"]) {
+      reached = false;
+      const res = await call(path, { header: null });
+      expect(res.status, path).toBe(403);
+      expect(reached, `${path} handler must never run`).toBe(false);
+    }
+  });
+
+  it("still serves an admin a capitalised admin path", async () => {
+    session = { adminId: "admin-1", mode: "live" };
+    admin = { id: "admin-1", status: "active", role: "owner" };
+    const res = await call("/api/Admin/audit", { header: null });
+    expect(res.status).toBe(200);
+  });
+
+  it("holds a staff login to its page rules whatever the case", async () => {
+    session = { tenantId: "t1", staffId: "s1", mode: "live" };
+    tenantRow = CLIENT;
+    caller = { isOwner: false, staff: { id: "s1" }, permissions: {}, revoked: false };
+    for (const path of ["/api/Invoices", "/api/PAYMENTS/list", "/api/Leads"]) {
+      reached = false;
+      const res = await call(path, { header: null });
+      expect(res.status, path).toBe(403);
+      expect(reached).toBe(false);
+    }
   });
 });
 

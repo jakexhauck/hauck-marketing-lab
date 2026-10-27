@@ -147,6 +147,13 @@ function json(status: number, body: unknown, origin: string | null, env: Env) {
 export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const origin = ctx.request.headers.get("origin");
   const url = new URL(ctx.request.url);
+  // Pages matches a route ignoring letter case (wrangler's template runs
+  // path-to-regexp without `sensitive`), so /api/Admin/clients runs the
+  // /api/admin/clients handler. The admin, role and staff gates below read this
+  // lowercased path so they decide on the route that will actually run. The
+  // exact-match gates (crons, Grok, public paths) stay on the raw path: a
+  // capitalised spelling only fails them, which is the closed direction.
+  const gatePath = url.pathname.toLowerCase();
 
   if (ctx.request.method === "OPTIONS") {
     return new Response(null, {
@@ -261,7 +268,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
     // no GHL/tenant context is set up, and only a signed admin session reaches
     // them. A non-admin session (owner or staff) is forbidden outright; this is
     // the single gate for every /api/admin/* handler.
-    if (url.pathname.startsWith("/api/admin/")) {
+    if (gatePath.startsWith("/api/admin/")) {
       // A preview session carries an adminId too, but it is a read-only client
       // impersonation, not admin authority: keep it out of the admin surface.
       if (!session.adminId || session.preview) {
@@ -290,7 +297,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       // Role gate (0047). Owners pass everything. A hired role reaches only the
       // paths its role names, so a new admin route is invisible to them until
       // it is added to the allowlist in lib/adminRoles.
-      if (!canAdminAccess(url.pathname, ctx.request.method, admin.role)) {
+      if (!canAdminAccess(gatePath, ctx.request.method, admin.role)) {
         return json(403, { error: "forbidden" }, origin, ctx.env);
       }
       ctx.data.session = session;
@@ -437,7 +444,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
 
       if (!caller.isOwner) {
         const decision = checkStaffAccess(
-          url.pathname,
+          gatePath,
           ctx.request.method,
           caller.permissions,
         );
