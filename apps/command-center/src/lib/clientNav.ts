@@ -34,6 +34,7 @@ export type ClientPageId =
   | "management"
   | "image-converter"
   | "setting"
+  | "launch-kpis"
   | "grok-bot";
 
 // What the gates read off a client. AdminClient satisfies it.
@@ -94,6 +95,9 @@ const PAGE_LABELS: Record<ClientPageId, string> = {
   // the Cold SMS board, the script beside the lead while dialling, and Settings
   // (the script editor) in the top right (components/admin/setting).
   setting: "Client Setting",
+  // Jake, 2026-10-27: the ROI Calculator sheet, renamed and put under Client
+  // Setting (components/admin/cockpit/LaunchKpisTab.tsx).
+  "launch-kpis": "Launch KPIs",
   // Jake, 2026-10-27: pages a Grok Bot works through in its own browser for
   // this client. Add Creatives copies the Drive Finished Creatives folder onto
   // the client's Creatives page; Mission Control Upload picks which doc in their
@@ -129,8 +133,8 @@ const subRows = (c: ClientGateInfo, page: ClientPageId): ClientNavRow[] =>
 
 export function clientNavGroups(c: ClientGateInfo): ClientNavGroup[] {
   return [
-    // Client Setting under Folder (Jake, 2026-10-27).
-    { caption: null, rows: [single("brief"), single("folder"), single("setting")] },
+    // Client Setting under Folder, Launch KPIs under that (Jake, 2026-10-27).
+    { caption: null, rows: [single("brief"), single("folder"), single("setting"), single("launch-kpis")] },
     { caption: "Paid Ads", rows: subRows(c, "paid-ads") },
     { caption: "GHL", rows: subRows(c, "ghl") },
     { caption: "Grok Bot", rows: subRows(c, "grok-bot") },

@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-launch-kpis",
+    date: "27 October 2026",
+    title: "Launch KPIs",
+    items: [
+      "Each client has a Launch KPIs page right under Client Setting: type their ad spend, job size and profit margin, and read the leads, appointments, clients signed, revenue, profit and ROI for the best, average and worst case.",
+    ],
+  },
+  {
     id: "2026-10-27-grok-ghl-test-account-by-name",
     date: "27 October 2026",
     title: "Grok Bots open the Test Account by name",

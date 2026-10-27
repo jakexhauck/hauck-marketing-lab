@@ -4,6 +4,7 @@ import { Eye } from "lucide-react";
 import GhlTab from "../../components/admin/cockpit/ghl/GhlTab";
 import ManagementTab from "../../components/admin/cockpit/ManagementTab";
 import ImageConverterTab from "../../components/admin/cockpit/ImageConverterTab";
+import LaunchKpisTab from "../../components/admin/cockpit/LaunchKpisTab";
 import SettingTab, { SettingsButton } from "../../components/admin/setting/SettingTab";
 import { MissionBrief } from "../../components/admin/brief/MissionBrief";
 import { ClientFolder } from "../../components/admin/folder/ClientFolder";
@@ -142,6 +143,8 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
       return <ImageConverterTab tenantId={client.id} />;
     case "setting":
       return <SettingTab tenantId={client.id} />;
+    case "launch-kpis":
+      return <LaunchKpisTab tenantId={client.id} />;
     case "grok-bot":
       if (sub === "mission-control-upload") {
         return <MissionControlUpload tenantId={client.id} brandColor={client.brandColor} />;

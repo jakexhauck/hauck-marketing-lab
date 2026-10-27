@@ -6,6 +6,7 @@ import {
   Telescope,
   Workflow,
   Briefcase,
+  Calculator,
   MessageSquareText,
   Radio,
   CalendarDays,
@@ -39,6 +40,7 @@ const ICONS: Record<string, LucideIcon> = {
   capi: Radio,
   setter: PhoneCall,
   management: Briefcase,
+  "launch-kpis": Calculator,
   "add-creatives": ImagePlus,
   "mission-control-upload": FileUp,
 };

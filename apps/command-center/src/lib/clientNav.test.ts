@@ -18,7 +18,7 @@ const labels = (c: ClientGateInfo) =>
 describe("clientNavGroups", () => {
   it("lists every page for a fully wired client, Mission Control on top", () => {
     expect(labels(linked)).toEqual([
-      [null, ["Mission Control", "Folder", "Client Setting"]],
+      [null, ["Mission Control", "Folder", "Client Setting", "Launch KPIs"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data"]],
       ["GHL", ["Business Profile", "Staff", "Custom Values", "Custom Fields", "Calendars", "Pipelines", "Media", "Workflows", "Phone Numbers"]],
       ["Grok Bot", ["Add Creatives", "Mission Control Upload"]],
@@ -34,12 +34,18 @@ describe("clientNavGroups", () => {
 
   it("gates Paid Ads and GHL until they are connected", () => {
     expect(labels(bare)).toEqual([
-      [null, ["Mission Control", "Folder", "Client Setting"]],
+      [null, ["Mission Control", "Folder", "Client Setting", "Launch KPIs"]],
       ["Paid Ads", ["Connect ads"]],
       ["GHL", ["Connect GHL"]],
       ["Grok Bot", ["Add Creatives", "Mission Control Upload"]],
       [null, ["Management", "Image Converter"]],
     ]);
+  });
+
+  it("opens Launch KPIs as its own page, right under Client Setting", () => {
+    const rows = clientNavGroups(bare)[0].rows;
+    expect(rows[3]).toEqual({ page: "launch-kpis", sub: null, label: "Launch KPIs" });
+    expect(resolveClientPage(bare, "launch-kpis", "x")).toEqual({ page: "launch-kpis", sub: null });
   });
 
   it("treats a blank ad account id as not linked", () => {
