@@ -11,3 +11,4 @@ agent: ghl
 - [2026-10-23] (ghl, Willis Windows, chat b7317228) Startup "New" stage checks repeat on Willis Windows every few days; reply from the known Lead-stage lesson without re-reading pipelines. ^l-697c8b5f
 - [2026-10-23] (ghl, Clear Choice Windows, chat d02875bd) Clear Choice Windows still has the default Marketing Pipeline (stage "New Lead") next to Sales Pipeline (entry stage "Lead"). The SOP says to delete it, and the API can't. ^l-d697ed9a
 - [2026-10-24] (ghl, Clear Choice Windows, chat 6766f63e) Startup "New" stage checks on Clear Choice Windows map to the Lead stage in Sales Pipeline; count can't be verified without opportunity ids. ^l-917cb30b
+- [2026-10-27] (ghl, Willis Windows, chat 0c38c6d9) Willis Windows "New" stage startup check repeated again on 27 Oct 2026; answered from the known Lead-stage lesson without re-reading pipelines. ^l-46012967
