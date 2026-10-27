@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-grok-software-everything",
+    date: "27 October 2026",
+    title: "Grok Bots reach the whole software",
+    items: [
+      "Hauck Software can now do anything the Command Center does: every admin page as you, and every client's own app as that client.",
+      "It can add a client's Finished Creatives to their Creatives page itself, no browser needed. Big videos and .mov files still go through the Add Creatives page.",
+      "It can set a client's Mission Control doc.",
+      "Every change a bot makes is logged before it is made.",
+    ],
+  },
+  {
     id: "2026-10-27-mission-control-upload",
     date: "27 October 2026",
     title: "Mission Control Upload",

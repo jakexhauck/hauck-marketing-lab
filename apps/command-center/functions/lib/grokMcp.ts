@@ -193,7 +193,8 @@ export function botName(v: unknown): string {
   return s || "grok";
 }
 
-async function ownerAdmin(client: SupabaseClient): Promise<string> {
+/** The owner account a bot's change is filed under, and the admin software_request acts as. */
+export async function ownerAdmin(client: SupabaseClient): Promise<string> {
   const { data, error } = await client
     .from("admin_accounts")
     .select("id")

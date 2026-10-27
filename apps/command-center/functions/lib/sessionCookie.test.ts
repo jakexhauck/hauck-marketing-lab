@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPlainHttpLocalRequest, mintSessionToken, verifySession } from "./session";
+import { isPlainHttpLocalRequest, mintAdminSessionToken, mintSessionToken, verifySession } from "./session";
 
 // The one exception to the Secure flag on session cookies. Production must never
 // match this, so the negative cases matter more than the positive ones.
@@ -77,6 +77,19 @@ describe("session version claim", () => {
     const token = await mintSessionToken(SECRET_ENV, "live", { tenantId: "tenant-1" });
     const data = await verifySession(bearer(token), SECRET_ENV);
     expect(data?.version).toBeUndefined();
+  });
+
+  it("mints a short-lived token when asked, for the Grok connector's own calls", async () => {
+    const claims = (token: string) => JSON.parse(atob(token.split(".")[0].replace(/-/g, "+").replace(/_/g, "/")));
+    const now = Math.floor(Date.now() / 1000);
+    const admin = await mintAdminSessionToken(SECRET_ENV, "admin-1", 60);
+    expect(claims(admin).e - now).toBeLessThanOrEqual(61);
+    expect((await verifySession(bearer(admin), SECRET_ENV))?.adminId).toBe("admin-1");
+    const owner = await mintSessionToken(SECRET_ENV, "live", { tenantId: "tenant-1" }, 60);
+    expect(claims(owner).e - now).toBeLessThanOrEqual(61);
+    expect((await verifySession(bearer(owner), SECRET_ENV))?.tenantId).toBe("tenant-1");
+    // Every other caller keeps the 30-day login.
+    expect(claims(await mintAdminSessionToken(SECRET_ENV, "admin-1")).e - now).toBeGreaterThan(29 * 24 * 3600);
   });
 
   it("does not mint a v claim for admin or preview tokens", async () => {

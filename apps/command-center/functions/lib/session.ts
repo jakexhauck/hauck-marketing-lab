@@ -121,14 +121,18 @@ function encodeInner(fields: Record<string, unknown>): string {
 // is the bearer-equivalent secret used by non-cookie clients (desktop). The
 // cookie minting below wraps the very same value, so cookie and bearer sessions
 // are byte-for-byte the same format and verify through the same path.
+//
+// maxAgeSeconds: the Grok Software connector mints a one-minute token per call,
+// server side, and never hands it out (lib/grokSoftwareApi.ts).
 export async function mintSessionToken(
   env: Env,
   mode: SessionMode = "live",
   claims: SessionClaims = {},
+  maxAgeSeconds: number = MAX_AGE_SECONDS,
 ): Promise<string> {
   const secret = sessionSecret(env);
   if (!secret) throw new Error("SESSION_SECRET not configured");
-  const exp = Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS;
+  const exp = Math.floor(Date.now() / 1000) + maxAgeSeconds;
   const inner = encodeInner({
     e: exp,
     m: mode,
@@ -198,10 +202,11 @@ export async function mintSessionCookie(
 export async function mintAdminSessionToken(
   env: Env,
   adminId: string,
+  maxAgeSeconds: number = MAX_AGE_SECONDS,
 ): Promise<string> {
   const secret = sessionSecret(env);
   if (!secret) throw new Error("SESSION_SECRET not configured");
-  const exp = Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS;
+  const exp = Math.floor(Date.now() / 1000) + maxAgeSeconds;
   const inner = encodeInner({ e: exp, m: "admin", a: adminId });
   const payload = b64urlEncode(new TextEncoder().encode(inner));
   const sig = await hmac(secret, payload);

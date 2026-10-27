@@ -14,7 +14,10 @@ export const CONNECTORS: Record<GrokConnector, { server: ServerInfo; tools: Tool
     tools: META_TOOLS,
   },
   software: {
-    server: { name: "hauck-software", instructions: "Hauck Marketing's client software (the Command Center app): new clients, logins, GHL links, and health." },
+    server: {
+      name: "hauck-software",
+      instructions: "Hauck Marketing's client software (the Command Center app), all of it: every page and button through software_request, mapped by software_routes.",
+    },
     tools: SOFTWARE_TOOLS,
   },
 };

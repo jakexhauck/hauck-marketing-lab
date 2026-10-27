@@ -1,5 +1,6 @@
 import { CHECKLIST_TASKS } from "../../src/lib/onboarding";
 import { createTenantWithOwner, seedOnboardingRecord } from "./clientCreate";
+import { copyFinishedCreatives, MAX_COPY_PER_CALL } from "./finishedCreativesCopy";
 import { runChecks } from "./clientAccountsRun";
 import { agencyHealth, clientHealth } from "./connectionsHealth";
 import { writeCustomValues } from "./customValuesProvision";
@@ -7,6 +8,7 @@ import { appMinter, resolveTenantGhl } from "./ghlCreds";
 import { provisionOwnerLinks } from "./ghlProvision";
 import { newPassword } from "./ghlSetup";
 import { audited, botName, findClient, listClients, type GrokDeps, type ToolDef } from "./grokMcp";
+import { SOFTWARE_API_TOOLS } from "./grokSoftwareApi";
 import { hashPassword } from "./password";
 import { CAPABILITIES, type GrantInput } from "./permissions";
 import { isNotAClient } from "./retiredTenant";
@@ -30,12 +32,17 @@ import { loadTenantById } from "./tenantResolve";
 //     room snapshot (lib/connectionsHealth.ts);
 //   - a fix is Provision (custom values and owner links into GHL);
 //   - Go Live is the Onboarding page's button (Jake, 2026-10-27: "the connector
-//     needs to have access to make the client software go live").
+//     needs to have access to make the client software go live");
+//   - adding creatives is Client > Grok Bot > Add Creatives, done on the server
+//     (lib/finishedCreativesCopy.ts) because the bot has no browser.
+//
+// Everything else in the app is software_request and software_routes
+// (lib/grokSoftwareApi.ts): every route, as Jake (Jake, 2026-10-27: "literally
+// the whole software").
 //
 // Every change is an admin_audit_log row `grok:<tool>` before it is made. A
 // password is made inside that change, so it can never be in the log row, and
-// is handed back once for the bot to pass on. Not here, on purpose: deleting a
-// client and password resets.
+// is handed back once for the bot to pass on.
 
 type Row = Record<string, unknown>;
 
@@ -112,7 +119,7 @@ const clientArg = { type: "string", description: "Client name or slug." };
 
 const softwareClients: ToolDef<GrokDeps> = {
   name: "software_clients",
-  description: "Every client in the software: setup or live, GHL linked, Meta ad account, and each login (email, role).",
+  description: "Every client in the software: id (the :tenantId in app paths), setup or live, GHL linked, Meta ad account, and each login (email, role).",
   inputSchema: { type: "object", properties: {}, required: [] },
   run: async (d) => {
     const [clients, tenants, staff] = await Promise.all([
@@ -135,6 +142,7 @@ const softwareClients: ToolDef<GrokDeps> = {
         const loc = t.ghl_location_id as string | null;
         return {
           client: c.name,
+          id: c.id,
           slug: c.slug,
           status: t.onboarding_status === "setup" ? "setup" : "live",
           ghlLinked: !isPlaceholder(loc) && !isPlaceholder(t.ghl_token as string | null),
@@ -428,6 +436,23 @@ const softwareSetScript: ToolDef<GrokDeps> = {
   },
 };
 
+const softwareAddCreatives: ToolDef<GrokDeps> = {
+  name: "software_add_creatives",
+  description: `Copy a client's Drive "Finished Creatives" folder (subfolders too) onto their Creatives page, the same as Client > Grok Bot > Add Creatives. Leave files out for everything not in the app yet, or name files by Drive name or id. ${MAX_COPY_PER_CALL} per call; left says how many remain, so call again. A .mov or anything over 50 MB is skipped with the reason: the page converts those in a browser.`,
+  inputSchema: {
+    type: "object",
+    properties: { client: clientArg, files: { type: "array", items: { type: "string" }, description: "Drive file names or ids." }, bot },
+    required: ["client"],
+  },
+  run: async (d, a) => {
+    const c = await findClient(d.client, a.client);
+    const payload = { bot: botName(a.bot), files: Array.isArray(a.files) ? a.files : "all new" };
+    return audited(d.client, "software_add_creatives", c.id, payload, async () => {
+      return json({ client: c.name, ...(await copyFinishedCreatives(d.env, d.client, c.id, a.files)) });
+    });
+  },
+};
+
 export const SOFTWARE_TOOLS: ToolDef<GrokDeps>[] = [
   softwareClients,
   softwareCreateClient,
@@ -439,4 +464,6 @@ export const SOFTWARE_TOOLS: ToolDef<GrokDeps>[] = [
   softwareGoLive,
   softwareGetScript,
   softwareSetScript,
+  softwareAddCreatives,
+  ...SOFTWARE_API_TOOLS,
 ];

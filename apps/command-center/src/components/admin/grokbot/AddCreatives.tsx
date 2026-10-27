@@ -8,6 +8,7 @@ import { fetchDriveImage, type DriveCreative } from "../../../lib/api";
 import { clientPath } from "../../../lib/clientNav";
 import { probeFile } from "../../../lib/creativeProbe";
 import { shrinkCreative, UPLOAD_CAP_BYTES } from "../../../lib/shrinkCreative";
+import { HEIC, PLAYABLE } from "../../../../functions/lib/creativePlayable";
 
 // Client > Grok Bot > Add Creatives (Jake, 2026-10-27). A wizard a Grok Bot
 // works through in its own browser, and Jake can too: pick files from the
@@ -29,10 +30,8 @@ type Job = {
   error: string | null;
 };
 
-// What plays in the app as it is. Anything else (a .mov, a HEIC, a TIFF) goes
-// through shrinkCreative, which turns it into an MP4 or a JPG or says why not.
-const PLAYABLE = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm"]);
-const HEIC = /^image\/hei[cf]/i;
+// Anything not PLAYABLE goes through shrinkCreative, which turns it into an MP4
+// or a JPG or says why not.
 
 // drive-images/:id serves Drive's own JPEG preview for a HEIC (Chrome cannot
 // decode HEIC), so the copy is named and typed as the JPEG it is.
