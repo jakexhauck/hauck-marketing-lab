@@ -4,17 +4,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // thing worth proving is that one dead vendor cannot take down the whole
 // response, which is exactly what a status page must never do.
 vi.mock("../../../lib/supabase", () => ({ getServiceClient: (env: never) => fakeClient(env) }));
-vi.mock("../../../lib/driveDirect", () => ({
-  isConnected: () => Promise.resolve(driveState),
-  getAccessToken: () => (driveTokenValid ? Promise.resolve("tok") : Promise.reject(new Error("invalid_grant"))),
-  DriveNotConnectedError: class extends Error {},
+vi.mock("../../../lib/driveComposio", () => ({
+  composioDriveConfigured: () => true,
+  resolveDriveAccount: () => (driveAccount instanceof Error ? Promise.reject(driveAccount) : Promise.resolve(driveAccount)),
+  getFileMeta: () => (driveRoot instanceof Error ? Promise.reject(driveRoot) : Promise.resolve(driveRoot)),
 }));
 
 import { onRequestGet } from "./health";
 import type { HealthResponse } from "../../../../src/lib/connectionHealth";
 
-let driveState = { connected: false, email: null as string | null };
-let driveTokenValid = true;
+const ROOT = { id: "195VBhcEi4ZHMUxr7yeyWeCIJo8WZC_7Y", name: "🌟 Hauck Marketing", mimeType: "application/vnd.google-apps.folder" };
+let driveAccount: string | Error = new Error("Google Drive is not connected yet.");
+let driveRoot: typeof ROOT | null | Error = ROOT;
 let tenantRows: Record<string, unknown>[] = [];
 let supabaseUp = true;
 
@@ -63,8 +64,8 @@ function entry(json: HealthResponse, id: string) {
 }
 
 beforeEach(() => {
-  driveState = { connected: false, email: null };
-  driveTokenValid = true;
+  driveAccount = new Error("Google Drive is not connected yet.");
+  driveRoot = ROOT;
   tenantRows = [];
   supabaseUp = true;
 });
@@ -95,24 +96,34 @@ describe("connection health endpoint", () => {
     });
   });
 
-  it("marks Drive down when consent was never given, and ok once the grant spends", async () => {
+  // Drive is probed through Composio, the grant the app reads Drive with, by
+  // reading the folder every client folder is created inside.
+  it("marks Drive down with no Composio grant, and ok once it reads the client folders root", async () => {
     let json = await body(await call(baseEnv()));
     expect(entry(json, "google-drive").probe.state).toBe("failed");
-    expect(entry(json, "google-drive").probe.detail).toMatch(/never consented/i);
+    expect(entry(json, "google-drive").probe.detail).toMatch(/not connected/i);
 
-    driveState = { connected: true, email: "contact.jakehauck@gmail.com" };
+    driveAccount = "ca_agency";
     json = await body(await call(baseEnv()));
     const probe = entry(json, "google-drive").probe;
     expect(probe.state).toBe("ok");
-    expect(probe.detail).toContain("contact.jakehauck@gmail.com");
+    expect(probe.detail).toContain("🌟 Hauck Marketing");
   });
 
-  it("catches a revoked Drive grant that still has a stored token", async () => {
-    // The failure mode a presence check alone would call healthy.
-    driveState = { connected: true, email: "x@y.com" };
-    driveTokenValid = false;
+  it("catches a grant Composio holds but Google refuses", async () => {
+    // The failure mode a connected-account lookup alone would call healthy.
+    driveAccount = "ca_agency";
+    driveRoot = new Error("Composio proxy GET /files returned 401");
     const json = await body(await call(baseEnv()));
     expect(entry(json, "google-drive").probe.state).toBe("failed");
+  });
+
+  it("fails when the client folders root is gone", async () => {
+    driveAccount = "ca_agency";
+    driveRoot = null;
+    const json = await body(await call(baseEnv()));
+    expect(entry(json, "google-drive").probe).toMatchObject({ state: "failed" });
+    expect(entry(json, "google-drive").probe.detail).toMatch(/client folders/i);
   });
 
   it("fails GA4 loudly when the service-account JSON is mangled", async () => {

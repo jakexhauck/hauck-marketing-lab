@@ -127,7 +127,13 @@ export const CONNECTIONS: ConnectionDef[] = [
         inDoppler: true,
         note: "Single-tenant fallback for the client app only, not for admin write paths.",
       },
-      { name: "GHL_LOCATION_ID", home: "cloudflare", inDoppler: true },
+      {
+        name: "GHL_LOCATION_ID",
+        home: "cloudflare",
+        inDoppler: true,
+        optional: true,
+        note: "Legacy single-tenant fallback (webhook.ts). Every client is app-linked, so unset is normal.",
+      },
       {
         name: "GHL_COMPANY_ID",
         home: "cloudflare",
@@ -345,10 +351,20 @@ export const CONNECTIONS: ConnectionDef[] = [
     label: "Google Drive",
     vendor: "Google",
     scope: "agency",
-    purpose: "The Assets hub file browser and the SOP Hub, both reading one agency Google account.",
+    purpose:
+      "Client > Folder, the SOP Hub and every new client's Drive folder, all reading the agency Google account through Composio's grant. The probe reads the client folders root through it.",
     credentials: [
-      { name: "GOOGLE_OAUTH_CLIENT_ID", home: "cloudflare", inDoppler: true },
-      { name: "GOOGLE_OAUTH_CLIENT_SECRET", home: "cloudflare", inDoppler: true },
+      {
+        name: "COMPOSIO_API_KEY",
+        home: "cloudflare",
+        inDoppler: true,
+        note: "Composio holds the agency account's Drive grant (verified app: no tester list, no 7-day expiry).",
+      },
+      // The direct grant (driveDirect.ts). No screen uses it since the Assets
+      // hub went, and its Google app is in Testing, so it lapses every 7 days.
+      // Kept optional so its keys still read as known, never as a fault.
+      { name: "GOOGLE_OAUTH_CLIENT_ID", home: "cloudflare", inDoppler: true, optional: true },
+      { name: "GOOGLE_OAUTH_CLIENT_SECRET", home: "cloudflare", inDoppler: true, optional: true },
       {
         name: "GOOGLE_OAUTH_REDIRECT",
         home: "cloudflare",
@@ -359,7 +375,8 @@ export const CONNECTIONS: ConnectionDef[] = [
       {
         name: "drive_connection.refresh_token",
         home: "supabase-table",
-        note: "Captured by the OAuth callback. This is the one credential we hold ourselves rather than mirror from Doppler.",
+        optional: true,
+        note: "The old direct grant. No screen reads Drive with it any more.",
       },
       {
         // Optional: the Assets file browser works without it. Only the SOP Hub
@@ -383,12 +400,12 @@ export const CONNECTIONS: ConnectionDef[] = [
       },
     ],
     surfaces: [
-      { label: "Assets hub", audience: "admin" },
+      { label: "Client > Folder", audience: "admin" },
       { label: "SOP Hub", audience: "admin" },
       { label: "New client > Create", to: "/admin/clients/new", audience: "admin" },
     ],
     remediation:
-      "No connect button exists in the UI yet. Re-consent by opening /api/admin/assets/oauth/start and signing in as the agency Google account. A refresh token dies if consent is revoked or the account password changes.",
+      "Reconnect the agency Google account through Composio from the SOP Hub's Connect button (/api/admin/sops/connect). If the probe says the root folder is gone, check CLIENT_DRIVE_ROOT_FOLDER_ID and that the folder is shared with the agency account.",
   },
   {
     id: "composio-calendar",

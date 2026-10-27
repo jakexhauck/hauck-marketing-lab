@@ -1,7 +1,8 @@
 import type { Env } from "./env";
 import { getServiceClient } from "./supabase";
 import { ghlFetch } from "./ghl";
-import { isConnected, getAccessToken, DriveNotConnectedError } from "./driveDirect";
+import { composioDriveConfigured, getFileMeta, resolveDriveAccount } from "./driveComposio";
+import { clientDriveRoot } from "./clientDriveFolder";
 import { parseServiceAccount } from "./ga4";
 import { isPlaceholder } from "./tenantGhl";
 import { appMinter, resolveTenantGhl } from "./ghlCreds";
@@ -78,19 +79,20 @@ async function probeGithub(env: Env): Promise<Probe> {
   };
 }
 
+// Drive is read through Composio's grant (driveComposio.ts): Client > Folder,
+// the SOP Hub and every new client's folder. This used to spend the direct
+// grant (driveDirect.ts), which no screen uses any more and whose Google app is
+// in Testing, so it lapses every 7 days: an outage nobody would feel, reported
+// forever (2026-10-27). The real test reads the folder new client folders are
+// created inside.
 async function probeDrive(env: Env): Promise<Probe> {
-  const client = getServiceClient(env);
-  if (!client) return { state: "skipped", detail: "Supabase not configured" };
-  const { connected, email } = await isConnected(client);
-  if (!connected) return { state: "failed", detail: "No refresh token stored. Never consented." };
+  if (!composioDriveConfigured(env)) return { state: "skipped", detail: "Composio is not configured" };
   try {
-    // The real test: spend the refresh token. A revoked grant only shows up here.
-    await getAccessToken(env, client);
-    return { state: "ok", detail: `Refresh token still valid${email ? ` (${email})` : ""}` };
+    const account = await resolveDriveAccount(env);
+    const root = await getFileMeta(env, account, clientDriveRoot(env), "id,name");
+    if (!root) return { state: "failed", detail: "The client folders root folder is gone or not shared with the agency account" };
+    return { state: "ok", detail: `Composio grant reads ${root.name}` };
   } catch (e) {
-    if (e instanceof DriveNotConnectedError) {
-      return { state: "failed", detail: "Stored grant was rejected. Re-consent needed." };
-    }
     return failure(e);
   }
 }

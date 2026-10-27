@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-health-drive",
+    date: "27 October 2026",
+    title: "Connection health checks the Drive the app uses",
+    items: [
+      "The Google Drive row now checks the Composio connection behind Client > Folder, the SOP Hub and new client folders, instead of the old sign-in no screen uses.",
+      "GHL no longer reads as missing a key: the old single-account location id is optional.",
+    ],
+  },
+  {
     id: "2026-10-26-calendar-fixes",
     date: "26 October 2026",
     title: "Estimates book into Home Estimate again",
