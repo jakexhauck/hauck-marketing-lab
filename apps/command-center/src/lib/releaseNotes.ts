@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-agents-online-gone",
+    date: "27 October 2026",
+    title: "Agents status line is gone",
+    items: [
+      "The \"Agents online on Jake's PC\" line at the bottom of the sidebar is gone.",
+    ],
+  },
+  {
     id: "2026-10-27-paid-ads-trim",
     date: "27 October 2026",
     title: "Paid Ads is down to three pages",

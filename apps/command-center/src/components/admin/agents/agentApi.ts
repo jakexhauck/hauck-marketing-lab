@@ -178,15 +178,6 @@ export function useLessonEdit() {
   });
 }
 
-export function useRunnerStatus() {
-  return useQuery({
-    queryKey: keys.status,
-    queryFn: agentApi.status,
-    refetchInterval: 30_000,
-    staleTime: 15_000,
-  });
-}
-
 // The Client Brief: one read per client, shared by the side panel on every
 // agent page and the Brief page. 15s so an agent's edit shows up on its own.
 export function useClientBrief(tenantId: string) {

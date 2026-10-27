@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { AgentItem, AgentMessage, ChatSummary } from "./agentWire";
-import { chatCards, clientRowView, groupChats, itemPayload, messageView, needsOkCounts, onlineLabel, pollMs } from "./agentView";
+import { chatCards, clientRowView, groupChats, itemPayload, messageView, needsOkCounts, pollMs } from "./agentView";
 
 const chat = (id: string, updatedAt: string): ChatSummary => ({
   id,
@@ -101,21 +101,6 @@ describe("messageView", () => {
     expect(messageView(msg({ status: "queued" })).pending).toBe(true);
     expect(messageView(msg({ status: "running" })).pending).toBe(true);
     expect(messageView(msg({ status: "done" })).pending).toBe(false);
-  });
-});
-
-describe("onlineLabel", () => {
-  const now = new Date("2026-10-17T12:00:00Z");
-  const at = (s: number) => ({ online: true, lastSeenAt: new Date(now.getTime() - s * 1000).toISOString() });
-
-  it("is online at 89s and offline at 91s", () => {
-    expect(onlineLabel(at(89), now)).toEqual({ online: true, label: "Agents online on Jake's PC" });
-    expect(onlineLabel(at(91), now)).toEqual({ online: false, label: "Agents offline" });
-  });
-
-  it("is offline with no heartbeat or no status", () => {
-    expect(onlineLabel({ online: false, lastSeenAt: null }, now).online).toBe(false);
-    expect(onlineLabel(undefined, now).online).toBe(false);
   });
 });
 

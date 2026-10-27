@@ -32,9 +32,7 @@ import { PillarStyle } from "../../components/pillars/PillarKit";
 import { effectiveAdminRole, type AdminRole } from "../../lib/adminRoles";
 import UpdateDialog from "../../components/admin/UpdateDialog";
 import ClientMark from "../../components/ClientMark";
-import { useRunnerStatus } from "../../components/admin/agents/agentApi";
 import ManagerBubble from "../../components/admin/agents/ManagerBubble";
-import { onlineLabel } from "../../lib/agentView";
 
 // The admin console chrome: a sidebar (the same shape and row treatment as the
 // client app's rail, so the two consoles read as one product) plus each page's
@@ -434,32 +432,6 @@ function ClientRowLink({
   );
 }
 
-// The rail footer's runner line: is the PC that answers agent chats up.
-function AgentsStatusLine() {
-  const collapsed = useRailCollapsed();
-  const status = useRunnerStatus();
-  const { online, label } = onlineLabel(status.data, new Date());
-  return (
-    <div
-      className={[
-        "mb-1 flex items-center gap-2 py-2 text-[12px] text-[var(--text-muted)]",
-        collapsed ? "justify-center px-0" : "px-3",
-      ].join(" ")}
-      title={collapsed ? label : undefined}
-    >
-      <i
-        aria-hidden
-        className={`h-2 w-2 shrink-0 rounded-full ${
-          online
-            ? "bg-[var(--positive)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--positive)_22%,transparent)]"
-            : "bg-[var(--text-faint)]"
-        }`}
-      />
-      {collapsed ? <span className="sr-only">{label}</span> : label}
-    </div>
-  );
-}
-
 // Inside a client the rail wears that client's colour, the way their chip on
 // the strip does. The derived tokens are re-declared here because a custom
 // property built from var(--brand) is computed where it is declared, not where
@@ -623,7 +595,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
         {/* Footer controls */}
         <div className="border-t border-[var(--border)] px-3 py-3">
-          {isOwnerAdmin && <AgentsStatusLine />}
           {/* Team sits with Settings rather than in the org chart: it is account
               administration, not a pillar of the business. Owners only. */}
           {isOwnerAdmin && <FooterLink to="/admin/team" icon={Users} label="Team" />}

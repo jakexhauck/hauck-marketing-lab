@@ -1,11 +1,11 @@
 // Pure view helpers for the Agents page (docs/build-plans/agents.md, Task 7).
 // Everything here is a function of wire data and a clock, so the page's rules
-// (chat grouping, chip mapping, the online footer, poll speed, badges) are
+// (chat grouping, chip mapping, poll speed, badges) are
 // tested without rendering anything.
 
 import type { AgentId } from "./agents";
 import { ownerLabel, parseTaskOps } from "./clientTasks";
-import type { AgentItem, AgentMessage, ChatSummary, RunnerStatus } from "./agentWire";
+import type { AgentItem, AgentMessage, ChatSummary } from "./agentWire";
 import { formatBudget, isCurrencyCode } from "./metaCurrency";
 
 export type ChatGroupLabel = "Today" | "This week" | "Earlier";
@@ -43,14 +43,6 @@ export function messageView(msg: AgentMessage): { chips: Chip[]; tools: string[]
     ...msg.learned.map((text) => ({ kind: "learned" as const, text: /^learned:/i.test(text) ? text : `Learned: ${text}` })),
   ];
   return { chips, tools: msg.tools, pending: msg.status === "queued" || msg.status === "running" };
-}
-
-// Same 90s window the status endpoint uses, re-checked against the clock here
-// so a cached "online" goes stale on its own when the PC drops off.
-export function onlineLabel(status: RunnerStatus | undefined, now: Date): { online: boolean; label: string } {
-  const seen = status?.lastSeenAt ? Date.parse(status.lastSeenAt) : NaN;
-  const online = Number.isFinite(seen) && now.getTime() - seen < 90_000;
-  return { online, label: online ? "Agents online on Jake's PC" : "Agents offline" };
 }
 
 // 2s while the PC owes a reply, 15s otherwise.
