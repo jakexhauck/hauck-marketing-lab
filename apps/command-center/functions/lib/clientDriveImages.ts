@@ -27,8 +27,17 @@ export const MAX_FOLDERS = 200;
 
 export type ListChildrenOfMany = (folderIds: string[]) => Promise<Map<string, DriveFile[]>>;
 
-/** Every image under `rootId`, one Drive call per level. */
-export async function walkImages(rootId: string, listChildrenOfMany: ListChildrenOfMany): Promise<DriveImage[]> {
+const isImage = (mimeType: string) => mimeType.startsWith("image/");
+
+/**
+ * Every image under `rootId`, one Drive call per level. `keep` widens what
+ * counts (Add Creatives takes videos too).
+ */
+export async function walkImages(
+  rootId: string,
+  listChildrenOfMany: ListChildrenOfMany,
+  keep: (mimeType: string) => boolean = isImage,
+): Promise<DriveImage[]> {
   const images: DriveImage[] = [];
   const seen = new Set<string>([rootId]);
   let level = new Map<string, string>([[rootId, ""]]);
@@ -41,7 +50,7 @@ export async function walkImages(rootId: string, listChildrenOfMany: ListChildre
           if (seen.has(f.id) || seen.size >= MAX_FOLDERS) continue;
           seen.add(f.id);
           next.set(f.id, path ? `${path} / ${f.name}` : f.name);
-        } else if (f.mimeType.startsWith("image/")) {
+        } else if (keep(f.mimeType)) {
           images.push({
             id: f.id,
             name: f.name,

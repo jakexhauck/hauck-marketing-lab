@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-grok-bot-add-creatives",
+    date: "27 October 2026",
+    title: "Grok Bot: Add Creatives",
+    items: [
+      "Each client has a Grok Bot group in their rail with an Add Creatives page.",
+      "It shows every image and video in the client's Drive Finished Creatives folder, subfolders included, with the ones already in the app ticked off.",
+      "Pick, then Add to client software: each file lands on the client's own Creatives page. Big videos and .mov files are shrunk to MP4 on the way.",
+      "Open Creatives at the end opens the client's app on that page to check what landed.",
+    ],
+  },
+  {
     id: "2026-10-27-brief-wizard",
     date: "27 October 2026",
     title: "Pick a client's Mission Control doc on the Brief",

@@ -33,7 +33,8 @@ export type ClientPageId =
   | "ghl"
   | "management"
   | "image-converter"
-  | "setting";
+  | "setting"
+  | "grok-bot";
 
 // What the gates read off a client. AdminClient satisfies it.
 export interface ClientGateInfo {
@@ -92,6 +93,10 @@ const PAGE_LABELS: Record<ClientPageId, string> = {
   // the Cold SMS board, the script beside the lead while dialling, and Settings
   // (the script editor) in the top right (components/admin/setting).
   setting: "Client Setting",
+  // Jake, 2026-10-27: pages a Grok Bot works through in its own browser for
+  // this client. Add Creatives copies the Drive Finished Creatives folder onto
+  // the client's Creatives page (components/admin/grokbot).
+  "grok-bot": "Grok Bot",
 };
 
 const CLIENT_PAGES = Object.keys(PAGE_LABELS) as ClientPageId[];
@@ -107,8 +112,11 @@ const adsLinked = (c: ClientGateInfo) => Boolean((c.metaAdAccountId ?? "").trim(
 function offeredSubs(c: ClientGateInfo, page: ClientPageId): SubTabDef[] {
   if (page === "paid-ads") return paidAdsSubTabs(subTabsFor("paid-ads"), adsLinked(c));
   if (page === "ghl") return ghlSubTabs(subTabsFor("ghl"), c.ghlConnected);
+  if (page === "grok-bot") return GROK_BOT_SUBS;
   return [];
 }
+
+export const GROK_BOT_SUBS: SubTabDef[] = [{ id: "add-creatives", label: "Add Creatives", ready: true }];
 
 const single = (page: ClientPageId): ClientNavRow => ({ page, sub: null, label: PAGE_LABELS[page] });
 const subRows = (c: ClientGateInfo, page: ClientPageId): ClientNavRow[] =>
@@ -120,6 +128,7 @@ export function clientNavGroups(c: ClientGateInfo): ClientNavGroup[] {
     { caption: null, rows: [single("brief"), single("folder"), single("setting")] },
     { caption: "Paid Ads", rows: subRows(c, "paid-ads") },
     { caption: "GHL", rows: subRows(c, "ghl") },
+    { caption: "Grok Bot", rows: subRows(c, "grok-bot") },
     { caption: null, rule: true, rows: [single("management"), single("image-converter")] },
   ];
 }

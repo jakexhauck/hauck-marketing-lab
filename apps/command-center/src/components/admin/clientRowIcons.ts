@@ -13,6 +13,7 @@ import {
   Database,
   FolderOpen,
   Image,
+  ImagePlus,
   LayoutDashboard,
   ListChecks,
   PenLine,
@@ -43,6 +44,7 @@ const ICONS: Record<string, LucideIcon> = {
   capi: Radio,
   setter: PhoneCall,
   management: Briefcase,
+  "add-creatives": ImagePlus,
 };
 
 // Agent rows are keyed by agent id, kept apart from ICONS because "ghl" and

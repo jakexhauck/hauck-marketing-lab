@@ -2786,6 +2786,19 @@ export interface DriveImagesResponse {
   images: DriveImage[];
 }
 
+// Client > Grok Bot > Add Creatives: what is in the client's Drive Finished
+// Creatives folder. folder is relative to Finished Creatives, "" at its top.
+export interface DriveCreative extends DriveImage {
+  kind: "image" | "video";
+  inApp: boolean;
+}
+
+export interface DriveCreativesResponse {
+  folderUrl: string | null;
+  finishedUrl: string | null;
+  files: DriveCreative[];
+}
+
 // Client > Folder: one folder of the client's Drive at a time. root null = no
 // Drive folder linked yet. path runs from the client's folder down to this one.
 export interface ClientDriveFile {

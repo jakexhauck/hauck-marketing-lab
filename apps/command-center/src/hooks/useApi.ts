@@ -80,6 +80,7 @@ import {
   type AdTrackerRange,
   type AdCreativeFilesResponse,
   type DriveImagesResponse,
+  type DriveCreativesResponse,
   type ClientDriveFile,
   type ClientDriveResponse,
   type LeadCitiesResponse,
@@ -2143,11 +2144,13 @@ function putWithProgress(url: string, file: File, onProgress: (fraction: number)
 
 // One creative, two hops: the Worker signs, the browser PUTs straight to the
 // bucket, then the Worker files the row and returns the fresh list.
+// driveFileId marks a copy from Drive Finished Creatives (Grok Bot > Add Creatives).
 export async function uploadAdCreativeFile(
   tenantId: string,
   file: File,
   dims: { width: number; height: number },
   onProgress: (fraction: number) => void,
+  driveFileId?: string,
 ): Promise<AdCreativeFilesResponse> {
   const base = `/api/admin/clients/${tenantId}/ads/creative-files`;
   const signed = await api<{ uploadUrl: string; path: string }>(`${base}/upload-url`, {
@@ -2157,7 +2160,16 @@ export async function uploadAdCreativeFile(
   await putWithProgress(signed.uploadUrl, file, onProgress);
   return api<AdCreativeFilesResponse>(base, {
     method: "POST",
-    body: JSON.stringify({ path: signed.path, name: file.name, type: file.type, size: file.size, ...dims }),
+    body: JSON.stringify({ path: signed.path, name: file.name, type: file.type, size: file.size, ...dims, driveFileId }),
+  });
+}
+
+export function useAdminDriveCreativesQuery(tenantId: string) {
+  return useQuery({
+    queryKey: ["admin", "drive-creatives", tenantId],
+    enabled: !!tenantId,
+    staleTime: 60_000,
+    queryFn: () => api<DriveCreativesResponse>(`/api/admin/clients/${tenantId}/ads/drive-creatives`),
   });
 }
 

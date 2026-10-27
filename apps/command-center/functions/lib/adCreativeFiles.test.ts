@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AD_CREATIVE_MAX_BYTES, checkUpload, newPath, pathBelongsTo } from "./adCreativeFiles";
+import { AD_CREATIVE_MAX_BYTES, checkUpload, cleanDriveFileId, newPath, pathBelongsTo } from "./adCreativeFiles";
 
 const TENANT = "11111111-2222-3333-4444-555555555555";
 const OTHER = "99999999-2222-3333-4444-555555555555";
@@ -37,5 +37,17 @@ describe("pathBelongsTo", () => {
     expect(pathBelongsTo(`${TENANT}/${crypto.randomUUID()}.exe`, TENANT)).toBe(false);
     expect(pathBelongsTo(`${TENANT}/${crypto.randomUUID()}.jpg/extra`, TENANT)).toBe(false);
     expect(pathBelongsTo("", TENANT)).toBe(false);
+  });
+});
+
+describe("cleanDriveFileId", () => {
+  it("keeps a real Drive id", () => {
+    expect(cleanDriveFileId("1AbC_d-EfGhIjKlMnOpQrStUv")).toBe("1AbC_d-EfGhIjKlMnOpQrStUv");
+  });
+
+  it("drops anything else to null, so a drop-zone upload stays unmarked", () => {
+    for (const v of [undefined, null, "", "short", "has space in it", "../../etc/passwd", 123]) {
+      expect(cleanDriveFileId(v)).toBeNull();
+    }
   });
 });

@@ -8,6 +8,7 @@ import SettingTab, { SettingsButton } from "../../components/admin/setting/Setti
 import { MissionBrief } from "../../components/admin/brief/MissionBrief";
 import { ClientFolder } from "../../components/admin/folder/ClientFolder";
 import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
+import AddCreatives from "../../components/admin/grokbot/AddCreatives";
 import { adminHomeFor } from "./AdminLayout";
 import { useAuth } from "../../context/AuthContext";
 import { useAdminClientsQuery } from "../../hooks/useApi";
@@ -140,5 +141,8 @@ function PageBody({ client, page, sub }: { client: AdminClient; page: ClientPage
       return <ImageConverterTab tenantId={client.id} />;
     case "setting":
       return <SettingTab tenantId={client.id} />;
+    case "grok-bot":
+      // One page so far, Add Creatives. The next one switches on `sub`.
+      return <AddCreatives tenantId={client.id} />;
   }
 }

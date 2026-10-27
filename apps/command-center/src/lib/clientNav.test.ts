@@ -21,6 +21,7 @@ describe("clientNavGroups", () => {
       [null, ["Brief", "Folder", "Client Setting"]],
       ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Business Profile", "Staff", "Custom Values", "Custom Fields", "Calendars", "Pipelines", "Media", "Workflows", "Phone Numbers"]],
+      ["Grok Bot", ["Add Creatives"]],
       [null, ["Management", "Image Converter"]],
     ]);
   });
@@ -36,6 +37,7 @@ describe("clientNavGroups", () => {
       [null, ["Brief", "Folder", "Client Setting"]],
       ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
       ["GHL", ["Connect GHL"]],
+      ["Grok Bot", ["Add Creatives"]],
       [null, ["Management", "Image Converter"]],
     ]);
   });
@@ -182,5 +184,13 @@ describe("legacyClientPath", () => {
     expect(legacyClientPath("setter", null, "t1")).toBe("/admin/client/t1/brief");
     expect(legacyClientPath(null, null, "t1")).toBe("/admin/client/t1/brief");
     expect(legacyClientPath("nonsense", "x", "t1")).toBe("/admin/client/t1/brief");
+  });
+});
+
+describe("Grok Bot", () => {
+  it("opens Add Creatives for every client, wired or not", () => {
+    expect(resolveClientPage(bare, "grok-bot", null)).toEqual({ page: "grok-bot", sub: "add-creatives" });
+    expect(resolveClientPage(linked, "grok-bot", "nope")).toEqual({ page: "grok-bot", sub: "add-creatives" });
+    expect(clientPath("t1", "grok-bot", "add-creatives")).toBe("/admin/client/t1/grok-bot/add-creatives");
   });
 });

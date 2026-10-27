@@ -117,6 +117,26 @@ export interface RecordInput {
   size?: unknown;
   width?: unknown;
   height?: unknown;
+  // Set when the file came from the client's Drive Finished Creatives folder
+  // (Client > Grok Bot > Add Creatives, mig 0186).
+  driveFileId?: unknown;
+}
+
+// A Drive file id as Drive hands them out, else null. Only ever a marker of
+// where a creative came from, so a bad one is dropped rather than refused.
+export function cleanDriveFileId(v: unknown): string | null {
+  return typeof v === "string" && /^[A-Za-z0-9_-]{10,200}$/.test(v) ? v : null;
+}
+
+/** Drive ids of this client's creatives that came from Finished Creatives. */
+export async function driveFileIdsInApp(client: SupabaseClient, tenantId: string): Promise<Set<string>> {
+  const { data, error } = await client
+    .from("ad_creative_files")
+    .select("drive_file_id")
+    .eq("tenant_id", tenantId)
+    .not("drive_file_id", "is", null);
+  if (error) throw new Error(error.message);
+  return new Set((data ?? []).map((r) => (r as { drive_file_id: string }).drive_file_id));
 }
 
 // File the row once the browser's PUT has landed. The object must really be
@@ -139,6 +159,7 @@ export async function recordAdCreative(
   if (!found?.some((o) => o.name === file)) return { ok: false, status: 400, error: "The upload did not arrive." };
 
   const name = String(input.name ?? "").trim().slice(0, 200) || file;
+  const driveFileId = cleanDriveFileId(input.driveFileId);
   const { error } = await client.from("ad_creative_files").insert({
     tenant_id: tenantId,
     path,
@@ -148,7 +169,14 @@ export async function recordAdCreative(
     size_bytes: Number(input.size),
     width: dimension(input.width),
     height: dimension(input.height),
+    drive_file_id: driveFileId,
   });
+  // That Drive file is already in the app (a bot and Jake adding it at once):
+  // the copy just uploaded is a spare, so it goes and the add counts as done.
+  if (error?.code === "23505" && driveFileId) {
+    await client.storage.from(AD_CREATIVES_BUCKET).remove([path]);
+    return { ok: true };
+  }
   if (error) return { ok: false, status: 500, error: error.message };
   return { ok: true };
 }
