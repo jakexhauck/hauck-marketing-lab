@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-paid-ads-trim",
+    date: "27 October 2026",
+    title: "Paid Ads is down to three pages",
+    items: [
+      "Creatives, Copy & Angles and Lead Form are gone from each client's Paid Ads. Dashboard, Lead Tracker and Meta Data stay.",
+      "A client without an ad account shows only Connect ads.",
+    ],
+  },
+  {
     id: "2026-10-27-grok-bot-add-creatives",
     date: "27 October 2026",
     title: "Grok Bot: Add Creatives",

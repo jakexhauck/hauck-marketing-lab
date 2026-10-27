@@ -44,23 +44,15 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
     id: "paid-ads",
     label: "Paid Ads",
     ready: true,
-    // The first four are the client's own Paid Ads pages, rendered for the
-    // client in the picker, in the order the client's sidebar lists them.
-    // Creatives carries one operator-only control: setting the Drive folder.
+    // The client's own Paid Ads pages, rendered for the client in the picker,
+    // in the order the client's sidebar lists them.
     //
-    // Copy & Angles and Lead Form sit last on purpose. They are not client
-    // pages rendered for an operator, they are the operator's own workbench:
-    // where the angles, copy, headlines and Instant Forms get written before
-    // anything is launched. The client has no route to either. They were one
-    // Ad Builder page with an inner switch until 2026-10-06 (Jake), when each
-    // became its own page and the Ads view was dropped.
+    // Jake, 2026-10-27: Creatives, Copy & Angles and Lead Form left the rail.
+    // Their old addresses land on the first page on offer.
     subTabs: [
       { id: "dashboard", label: "Dashboard", ready: true },
       { id: "leads", label: "Lead Tracker", ready: true },
       { id: "meta-data", label: "Meta Data", ready: true },
-      { id: "creatives", label: "Creatives", ready: true },
-      { id: "copy-angles", label: "Copy & Angles", ready: true },
-      { id: "lead-form", label: "Lead Form", ready: true },
     ],
   },
   // GHL is the operator's workbench for everything that gets pasted INTO the
@@ -144,17 +136,11 @@ export const ADS_SETUP_SUB = "setup";
 //
 // Dashboard, Lead Tracker and Meta Data all read Meta through the client's own
 // ad account. Without one they are three pages of zeroes that look like a quiet
-// month rather than an unfinished setup, so they are not offered at all until
-// the account exists. What survives is the work that does not need Meta:
-// Creatives (whose files live in Drive), Copy & Angles and Lead Form (where the
-// ads get written in the first place). Ahead of both sits the wizard that links the account,
-// which is where the page opens.
-export const ADS_WITHOUT_META = new Set(["creatives", "copy-angles", "lead-form"]);
-
+// month rather than an unfinished setup, so an unlinked client sees only the
+// wizard that links the account.
 export function paidAdsSubTabs(subs: SubTabDef[], adsLinked: boolean): SubTabDef[] {
   if (adsLinked) return subs;
-  const kept = subs.filter((s) => ADS_WITHOUT_META.has(s.id));
-  return [{ id: ADS_SETUP_SUB, label: "Connect ads", ready: true }, ...kept];
+  return [{ id: ADS_SETUP_SUB, label: "Connect ads", ready: true }];
 }
 
 // The setup step a client lands on while their GoHighLevel sub-account is not

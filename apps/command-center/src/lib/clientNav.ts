@@ -13,7 +13,7 @@
 //
 // Paid Ads and GHL keep their connect gates (lib/fulfillmentPages.ts), applied
 // to sidebar rows rather than tabs: until a client's ad account is linked their
-// Paid Ads group is Connect ads, Creatives and Ad Builder, and GHL likewise.
+// Paid Ads group is just Connect ads, and GHL likewise.
 
 import {
   ADS_SETUP_SUB,

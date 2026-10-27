@@ -1,32 +1,22 @@
-import AdBuilderPanel from "./AdBuilderPanel";
-import LeadFormsPanel from "./LeadFormsPanel";
 import AdsDashboardPanel from "./AdsDashboardPanel";
 import AdsLeadTrackerPanel from "./AdsLeadTrackerPanel";
 import AdsMetaDataPanel from "./AdsMetaDataPanel";
 import AdsSetupWizard from "./AdsSetupWizard";
-import CreativesPanel from "./CreativesPanel";
-import { ADS_SETUP_SUB, ADS_WITHOUT_META } from "../../../../lib/fulfillmentPages";
+import { ADS_SETUP_SUB } from "../../../../lib/fulfillmentPages";
 
 // Paid Ads service tab inside the Fulfillment cockpit
 // (/admin/fulfillment/paid-ads). Routes the sub-tabs for the client in the
 // picker.
 //
-// The first four are the client's OWN Paid Ads pages, rendered for a named
-// tenant: Dashboard, Lead Tracker, Meta Data and Creatives all mount the same
-// components as /marketing/paid-ads. The operator and the client read one set
-// of pages.
-//
-// Ad Builder is not one of those. It is agency-only, has no client route, and
-// is where the ads are written before any of the other four have anything to
-// report.
+// Every sub-tab is one of the client's OWN Paid Ads pages, rendered for a named
+// tenant: Dashboard, Lead Tracker and Meta Data mount the same components as
+// /marketing/paid-ads. The operator and the client read one set of pages.
 //
 // This replaced Campaigns, Ad Library, Ad Tracking and Data & Leads. Ad Tracking
 // and Data & Leads were the same numbers as the client's Dashboard and Lead
 // Tracker drawn a second way, and Campaigns was a tree the Breakdown's "View by:
-// Campaign" already covers. Ad Library became Creatives: it tried to mirror the
-// Meta media library and hold a hand-typed creatives tracker. Creatives now holds
-// files uploaded here for the client to view, and is the one tab that carries
-// operator-only controls (upload and delete).
+// Campaign" already covers. Creatives, Copy & Angles and Lead Form went
+// 2026-10-27 (Jake).
 
 export default function PaidAdsTab({
   tenantId,
@@ -36,9 +26,7 @@ export default function PaidAdsTab({
   onSelectSub,
 }: {
   tenantId: string;
-  // Only the Ad Builder wants it, for the lead form preview: an instant form is
-  // drawn under the advertiser's name and a preview without one is a preview of
-  // somebody else's form.
+  // The setup wizard names the client while it looks for their ad account.
   clientName: string;
   activeSub: string;
   // The client's Meta ad account, or null while their ads are unwired. The tab
@@ -50,7 +38,7 @@ export default function PaidAdsTab({
   // a Meta-backed page for an unlinked client renders the wizard rather than a
   // month of zeroes.
   const linked = Boolean((adAccountId ?? "").trim());
-  if (!linked && !ADS_WITHOUT_META.has(activeSub)) {
+  if (!linked || activeSub === ADS_SETUP_SUB) {
     return (
       <AdsSetupWizard
         tenantId={tenantId}
@@ -62,27 +50,12 @@ export default function PaidAdsTab({
   }
 
   switch (activeSub) {
-    case ADS_SETUP_SUB:
-      return (
-        <AdsSetupWizard
-          tenantId={tenantId}
-          clientName={clientName}
-          currentAccountId={adAccountId}
-          onFinished={onSelectSub}
-        />
-      );
     case "dashboard":
       return <AdsDashboardPanel tenantId={tenantId} />;
     case "leads":
       return <AdsLeadTrackerPanel tenantId={tenantId} />;
     case "meta-data":
       return <AdsMetaDataPanel tenantId={tenantId} />;
-    case "creatives":
-      return <CreativesPanel tenantId={tenantId} adAccountId={adAccountId} />;
-    case "copy-angles":
-      return <AdBuilderPanel tenantId={tenantId} />;
-    case "lead-form":
-      return <LeadFormsPanel tenantId={tenantId} clientName={clientName} />;
     default:
       return <div className="pk-empty">We are still building this view.</div>;
   }

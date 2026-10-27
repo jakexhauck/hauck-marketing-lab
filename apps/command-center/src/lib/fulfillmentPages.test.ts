@@ -100,13 +100,8 @@ describe("paidAdsSubTabs", () => {
 
   // The three Meta-backed pages are the whole point of the gate: without an ad
   // account they can only draw zeroes, which reads as a quiet month.
-  it("hides the Meta pages and opens on the wizard when it is not", () => {
-    expect(paidAdsSubTabs(subs, false).map((s) => s.id)).toEqual([
-      ADS_SETUP_SUB,
-      "creatives",
-      "copy-angles",
-      "lead-form",
-    ]);
+  it("offers only the wizard when it is not", () => {
+    expect(paidAdsSubTabs(subs, false).map((s) => s.id)).toEqual([ADS_SETUP_SUB]);
   });
 
   it("puts the wizard first, so that is where the page lands", () => {

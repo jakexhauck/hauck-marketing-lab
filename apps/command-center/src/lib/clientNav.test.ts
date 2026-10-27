@@ -19,7 +19,7 @@ describe("clientNavGroups", () => {
   it("lists every page for a fully wired client, Brief on top", () => {
     expect(labels(linked)).toEqual([
       [null, ["Brief", "Folder", "Client Setting"]],
-      ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data", "Creatives", "Copy & Angles", "Lead Form"]],
+      ["Paid Ads", ["Dashboard", "Lead Tracker", "Meta Data"]],
       ["GHL", ["Business Profile", "Staff", "Custom Values", "Custom Fields", "Calendars", "Pipelines", "Media", "Workflows", "Phone Numbers"]],
       ["Grok Bot", ["Add Creatives"]],
       [null, ["Management", "Image Converter"]],
@@ -35,7 +35,7 @@ describe("clientNavGroups", () => {
   it("gates Paid Ads and GHL until they are connected", () => {
     expect(labels(bare)).toEqual([
       [null, ["Brief", "Folder", "Client Setting"]],
-      ["Paid Ads", ["Connect ads", "Creatives", "Copy & Angles", "Lead Form"]],
+      ["Paid Ads", ["Connect ads"]],
       ["GHL", ["Connect GHL"]],
       ["Grok Bot", ["Add Creatives"]],
       [null, ["Management", "Image Converter"]],
@@ -118,7 +118,14 @@ describe("resolveClientPage", () => {
   });
 
   it("keeps an offered sub-page", () => {
-    expect(resolveClientPage(bare, "paid-ads", "creatives")).toEqual({ page: "paid-ads", sub: "creatives" });
+    expect(resolveClientPage(linked, "paid-ads", "leads")).toEqual({ page: "paid-ads", sub: "leads" });
+  });
+
+  it("sends the retired Paid Ads pages to the first one on offer", () => {
+    for (const old of ["creatives", "copy-angles", "lead-form"]) {
+      expect(resolveClientPage(linked, "paid-ads", old)).toEqual({ page: "paid-ads", sub: "dashboard" });
+      expect(resolveClientPage(bare, "paid-ads", old)).toEqual({ page: "paid-ads", sub: "setup" });
+    }
   });
 
   it("drops a sub-page on a page that has none", () => {
