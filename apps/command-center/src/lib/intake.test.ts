@@ -5,6 +5,7 @@ import {
   JOB_SLOTS,
   LAST_INPUT_STEP,
   REVIEW_STEP,
+  SERVICE_SLOTS,
   clientAnswerable,
   completeness,
   fieldsForStep,
@@ -65,21 +66,18 @@ function step4(overrides: IntakeAnswers = {}): IntakeAnswers {
   };
 }
 
-function step5(overrides: IntakeAnswers = {}): IntakeAnswers {
-  return { service1: "Paver patios", service2: "Retaining walls", ...overrides };
+function services(overrides: IntakeAnswers = {}): IntakeAnswers {
+  return { service1: "Paver patios", ...overrides };
 }
 
-function step6(overrides: IntakeAnswers = {}): IntakeAnswers {
+function numbers(overrides: IntakeAnswers = {}): IntakeAnswers {
   return { jobType1: "Paver patio", jobTicket1: "$18,000", jobMargin1: "35%", closeRate: "4", ...overrides };
 }
 
-function step7(overrides: IntakeAnswers = {}): IntakeAnswers {
-  return { bestCustomer: "Homeowners 45 to 65 with older homes in Livonia", ...overrides };
-}
-
 // Everything required, across every input step. The baseline for completeness.
+// Working hours, story and assets have nothing required.
 function fullAnswers(): IntakeAnswers {
-  return { ...step1(), ...step2(), ...step3(), ...step4(), ...step5(), ...step6(), ...step7() };
+  return { ...step1(), ...step2(), ...step3(), ...step4(), ...services(), ...numbers() };
 }
 
 describe("the schema itself", () => {
@@ -113,6 +111,44 @@ describe("the schema itself", () => {
     }
   });
 
+  // Jake's list (2026-10-27), heading by heading. The one addition is Login,
+  // which his list leaves out: sending the form creates the client's account
+  // from it (approvalBlocker refuses a submission with no password).
+  it("asks exactly Jake's questions, under his headings, in his order", () => {
+    const jobs = Array.from({ length: JOB_SLOTS }, (_, i) => [
+      `Job type ${i + 1}`,
+      `Job ${i + 1} average ticket`,
+      `Job ${i + 1} margin`,
+    ]).flat();
+    expect(INTAKE_STEPS.map((s) => [s.label, fieldsForStep(s.n).map((f) => f.label)])).toEqual([
+      ["Business", ["Business name", "What do you do?", "Website"]],
+      [
+        "Contact",
+        ["Owner name", "Email", "Phone", "Timezone", "Street address", "Suite, unit or floor", "City", "State", "ZIP code"],
+      ],
+      ["Login", ["Login email", "Choose a password", "Confirm password"]],
+      ["Targeting", ["Zip codes", "Area call-out"]],
+      ["Working hours", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]],
+      ["Services", ["Service 1", "Service 2", "Service 3", "Service 4", "Service 5", "Service 6"]],
+      ["Numbers", [...jobs, "Estimated close rate"]],
+      [
+        "Story",
+        ["Local competitors", "Past offers", "What makes your company unique?", "Why did you sign up?", "Anything else?"],
+      ],
+      ["Assets", ["Logo", "Headshot", "Past work photos"]],
+    ]);
+  });
+
+  // No sub-text under a heading (Jake's rule). Assets is the exception he
+  // asked for: a client without their photos to hand should send the form
+  // anyway rather than stall on it.
+  it("puts no line under any step heading except Assets, which points to the onboarding call", () => {
+    for (const step of INTAKE_STEPS.filter((s) => s.key !== "assets")) {
+      expect(step.blurb, `${step.label} should have no sub-text`).toBe("");
+    }
+    expect(INTAKE_STEPS.find((s) => s.key === "assets")?.blurb).toMatch(/submit the form.*onboarding call/i);
+  });
+
   it("keeps every question from the source form that still earns its place", () => {
     const keys = new Set(INTAKE_FIELDS.map((f) => f.key));
     const fromSourceForm = [
@@ -142,7 +178,8 @@ describe("the schema itself", () => {
   //     no other setting to honour, so there is no question to ask.
   //   calendarAvailability - one free-text box became seven day fields.
   //   leadConnectorInstalled - clients do not need that app.
-  it("no longer asks the five questions that were cut", () => {
+  //   bestCustomer - not on Jake's 2026-10-27 list of exact questions.
+  it("no longer asks the six questions that were cut", () => {
     const keys = new Set(INTAKE_FIELDS.map((f) => f.key));
     for (const key of [
       "businessAddress",
@@ -150,6 +187,7 @@ describe("the schema itself", () => {
       "notifyPreference",
       "calendarAvailability",
       "leadConnectorInstalled",
+      "bestCustomer",
     ]) {
       expect(keys.has(key), `${key} was cut and must stay off the funnel`).toBe(false);
     }
@@ -193,10 +231,13 @@ describe("the schema itself", () => {
   });
 
   // One box per service, not one box listing them all: a comma-separated
-  // sentence has to be split by hand and the split is a guess.
-  it("asks for services one at a time, with room for six", () => {
+  // sentence has to be split by hand and the split is a guess. Only the first
+  // is required; the funnel opens the rest one at a time ("Add another
+  // service"), up to SERVICE_SLOTS.
+  it("asks for services one at a time, with room for six, needing only the first", () => {
+    expect(SERVICE_SLOTS).toBe(6);
     const services = INTAKE_FIELDS.filter((f) => f.key.startsWith("service"));
-    expect(services).toHaveLength(6);
+    expect(services).toHaveLength(SERVICE_SLOTS);
     expect(services.map((f) => f.label)).toEqual([
       "Service 1",
       "Service 2",
@@ -208,8 +249,7 @@ describe("the schema itself", () => {
     for (const field of services) {
       expect(field.type, `${field.key} should be a single text box`).toBe("text");
     }
-    // Two required: every business has at least a couple, and nobody has six.
-    expect(services.filter((f) => f.required).map((f) => f.key)).toEqual(["service1", "service2"]);
+    expect(services.filter((f) => f.required).map((f) => f.key)).toEqual(["service1"]);
   });
 
   // One row per job: what it is, its average ticket and the margin on it. The
@@ -221,29 +261,29 @@ describe("the schema itself", () => {
     expect(jobs.map((f) => f.key)).toEqual(
       Array.from({ length: JOB_SLOTS }, (_, i) => [`jobType${i + 1}`, `jobTicket${i + 1}`, `jobMargin${i + 1}`]).flat(),
     );
+    const numbersStep = INTAKE_STEPS.find((s) => s.key === "numbers")?.n;
     for (const field of jobs) {
-      expect(field.step, `${field.key} belongs on the numbers step`).toBe(6);
+      expect(field.step, `${field.key} belongs on the numbers step`).toBe(numbersStep);
     }
     expect(jobs.filter((f) => f.required).map((f) => f.key)).toEqual(["jobType1", "jobTicket1", "jobMargin1"]);
   });
 
-  it("asks how many of 10 estimates they close, as a pick from 0 to 10", () => {
+  it("asks their estimated close rate, as a pick from 0 to 10 out of 10", () => {
     const field = INTAKE_FIELDS.find((f) => f.key === "closeRate");
     expect(field?.required).toBe(true);
-    expect(field?.step).toBe(6);
+    expect(field?.step).toBe(INTAKE_STEPS.find((s) => s.key === "numbers")?.n);
     expect(field?.options?.map((o) => o.value)).toEqual(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]);
     expect(field?.options?.[4].label).toBe("4 out of 10");
   });
 
-  // Every client has a best customer. Not every client has run an offer or can
-  // name their competitors, and a box they cannot fill stalls the form.
-  it("asks for their best customer, competitors and past offers, needing only the customer", () => {
-    const required = (key: string): boolean | undefined => INTAKE_FIELDS.find((f) => f.key === key)?.required;
-    expect(required("bestCustomer")).toBe(true);
-    for (const key of ["competitors", "pastOffers"]) {
-      expect(INTAKE_FIELDS.some((f) => f.key === key), `${key} should be asked`).toBe(true);
-      expect(required(key) ?? false, `${key} must stay optional`).toBe(false);
-    }
+  // Not every client has run an offer or can name their competitors, and a box
+  // they cannot fill stalls the form. So nothing on the story step is required.
+  it("never blocks the form on the story step", () => {
+    const story = INTAKE_STEPS.find((s) => s.key === "story")!;
+    expect(fieldsForStep(story.n).map((f) => f.key)).toEqual(
+      expect.arrayContaining(["competitors", "pastOffers", "usp", "whySignedUp", "notes"]),
+    );
+    expect(missingRequired(story.n, {})).toEqual([]);
   });
 
   // The password rule is keyed to "step 3" by number in this file AND in the

@@ -54,6 +54,7 @@ const PLACE: Record<string, [Heading, string]> = {
   areaCallout: ["Service area", "Area call-out"],
   usp: ["Offer", "Unique selling point"],
   pastOffers: ["Offer", "Offers run before"],
+  // No longer asked (2026-10-27); kept so older answers still land under Market.
   bestCustomer: ["Market", "Best customer"],
   competitors: ["Market", "Top local competitors"],
   logoUrl: ["Branding", "Logo"],

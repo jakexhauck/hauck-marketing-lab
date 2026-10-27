@@ -227,15 +227,16 @@ a.hm-btn{display:inline-block;text-decoration:none}
     return [String(k), k + " out of 10"];
   });
 
-  // Job rows open one at a time, up to this many. Must match JOB_SLOTS in
-  // intake.ts (the parity test checks this exact line).
+  // Service boxes and job rows open one at a time, up to these many. Must match
+  // SERVICE_SLOTS and JOB_SLOTS in intake.ts (the parity test checks these
+  // exact lines).
+  var SERVICE_SLOTS = 6;
   var JOB_SLOTS = 5;
 
   // help renders as HTML (see fieldHtml), so the one instruction people get
   // wrong is emphasised rather than buried in the middle of a sentence.
-  var ASSET_HELP = "Optional. Paste a Google Drive, Dropbox or iCloud link, and " +
-    '<b class="hm-mark-em">set it so anyone with the link can view it</b>. ' +
-    "If you are not sure how, leave it blank and message Jake, who will sort it out with you.";
+  var ASSET_HELP = "A Google Drive, Dropbox or iCloud link, " +
+    '<b class="hm-mark-em">set so anyone with the link can view it</b>.';
 
   // The password rule, mirroring MIN_PASSWORD_LEN / PASSWORD_RULES /
   // passwordProblems in src/lib/intake.ts. Stated on the field rather than
@@ -263,19 +264,23 @@ a.hm-btn{display:inline-block;text-decoration:none}
     return out;
   }
 
+  // Jake's headings, in his order (2026-10-27). No line under a heading except
+  // Assets, where he asked for one. Login is the one step not on his list: it
+  // is what creates the client's account when they send the form.
   var STEPS = [
-    { n: 1, label: "Your business", blurb: "The basics, so we know who we are building for." },
-    { n: 2, label: "Contact details", blurb: "How we reach you." },
-    { n: 3, label: "Your login", blurb: "Choose how you will sign in once your account is ready." },
-    { n: 4, label: "Targeting", blurb: "Where your ads run, and the hours you would like to be booked in." },
-    { n: 5, label: "Your services", blurb: "One service per box, in the words your customers use for them." },
-    { n: 6, label: "Your numbers", blurb: "" },
-    { n: 7, label: "Your story", blurb: "What makes you different. This is the raw material for your ads." },
-    { n: 8, label: "Assets", blurb: "Photos and a logo we can use in your marketing. All three are optional." },
-    { n: 9, label: "Review", blurb: "Check it over, then send it to us." }
+    { n: 1, label: "Business", blurb: "" },
+    { n: 2, label: "Contact", blurb: "" },
+    { n: 3, label: "Login", blurb: "" },
+    { n: 4, label: "Targeting", blurb: "" },
+    { n: 5, label: "Working hours", blurb: "" },
+    { n: 6, label: "Services", blurb: "" },
+    { n: 7, label: "Numbers", blurb: "" },
+    { n: 8, label: "Story", blurb: "" },
+    { n: 9, label: "Assets", blurb: "All optional. If you do not have these ready, just submit the form and we can go over them on your onboarding call." },
+    { n: 10, label: "Review", blurb: "" }
   ];
-  var LAST_INPUT_STEP = 8;
-  var REVIEW_STEP = 9;
+  var LAST_INPUT_STEP = 9;
+  var REVIEW_STEP = 10;
 
   var FIELDS = [
     // 1 Your business
@@ -283,8 +288,8 @@ a.hm-btn{display:inline-block;text-decoration:none}
     { key: "niche", label: "What do you do?", type: "text", step: 1, required: true, placeholder: "Roofing & Exteriors" },
     { key: "websiteUrl", label: "Website", type: "url", step: 1, placeholder: "https://willisexteriors.com", help: "Leave blank if you do not have one yet." },
 
-    // 2 Contact details
-    { key: "contactName", label: "Your name", type: "text", step: 2, required: true, placeholder: "Jim Willis" },
+    // 2 Contact
+    { key: "contactName", label: "Owner name", type: "text", step: 2, required: true, placeholder: "Jim Willis" },
     { key: "contactEmail", label: "Email", type: "email", step: 2, required: true, placeholder: "jim@willisexteriors.com" },
     { key: "contactPhone", label: "Phone", type: "tel", step: 2, required: true, placeholder: "(313) 555 0134" },
     { key: "timezone", label: "Timezone", type: "select", step: 2, required: true, options: TIMEZONES, help: "This sets the times on your booking calendar, so please get it right." },
@@ -295,71 +300,81 @@ a.hm-btn{display:inline-block;text-decoration:none}
     { key: "addressCity", label: "City", type: "text", step: 2, required: true, placeholder: "Garden City" },
     { key: "addressState", label: "State", type: "text", step: 2, required: true, placeholder: "MI", help: "The two-letter state, like MI or TX." },
     { key: "addressZip", label: "ZIP code", type: "text", step: 2, required: true, placeholder: "48135" },
-    // 3 Your login
+    // 3 Login
     { key: "loginEmail", label: "Login email", type: "email", step: 3, required: true, wide: true, help: "Prefilled from the email above. Change it if you would rather sign in with another." },
     { key: "password", label: "Choose a password", type: "password", step: 3, required: true, help: PASSWORD_HELP },
     { key: "passwordConfirm", label: "Confirm password", type: "password", step: 3, required: true },
 
     // 4 Targeting
-    { key: "targetZips", label: "Zip codes to target for your ads", type: "textarea", step: 4, required: true, wide: true, placeholder: "48135, 48150, 48154, 48185", help: "Zip codes only please, separated by commas. If you are not sure which ones cover your area, put the ones you work in most and we will build out from there." },
-    { key: "areaCallout", label: "What should the call-out name of your area for the ads be?", type: "text", step: 4, required: true, wide: true, placeholder: "Metro Detroit", help: 'This is what the ad calls the people it is shown to: <b class="hm-mark-em">"Metro Detroit Homeowners..."</b>. Give us the name locals actually use.' },
-    // Their hours, a day at a time. Ideal hours, not a promise: a blank day is a
-    // day off, which is why none of them are required.
-    { key: "hoursMonday", label: "Monday", type: "text", step: 4, placeholder: "9am - 5pm", help: "Your ideal hours, not a commitment. Leave a day blank to take it off." },
-    { key: "hoursTuesday", label: "Tuesday", type: "text", step: 4, placeholder: "9am - 5pm" },
-    { key: "hoursWednesday", label: "Wednesday", type: "text", step: 4, placeholder: "9am - 5pm" },
-    { key: "hoursThursday", label: "Thursday", type: "text", step: 4, placeholder: "9am - 5pm" },
-    { key: "hoursFriday", label: "Friday", type: "text", step: 4, placeholder: "9am - 5pm" },
-    { key: "hoursSaturday", label: "Saturday", type: "text", step: 4, placeholder: "10am - 2pm" },
-    { key: "hoursSunday", label: "Sunday", type: "text", step: 4, placeholder: "Closed" },
+    { key: "targetZips", label: "Zip codes", type: "textarea", step: 4, required: true, wide: true, placeholder: "48135, 48150, 48154, 48185", help: "Zip codes only please, separated by commas. If you are not sure which ones cover your area, put the ones you work in most and we will build out from there." },
+    { key: "areaCallout", label: "Area call-out", type: "text", step: 4, required: true, wide: true, placeholder: "Metro Detroit", help: 'This is what the ad calls the people it is shown to: <b class="hm-mark-em">"Metro Detroit Homeowners..."</b>. Give us the name locals actually use.' },
 
-    // 5 Your services. One box per service: a comma-separated sentence has to be
-    // split by hand afterwards, and the split is a guess.
-    { key: "service1", label: "Service 1", type: "text", step: 5, required: true, placeholder: "Paver patios", help: "One service per box, named the way your customers ask for it. Leave the rest blank if you offer fewer." },
-    { key: "service2", label: "Service 2", type: "text", step: 5, required: true, placeholder: "Retaining walls" },
-    { key: "service3", label: "Service 3", type: "text", step: 5, placeholder: "Landscape design" },
-    { key: "service4", label: "Service 4", type: "text", step: 5, placeholder: "Lawn maintenance" },
-    { key: "service5", label: "Service 5", type: "text", step: 5, placeholder: "Drainage" },
-    { key: "service6", label: "Service 6", type: "text", step: 5, placeholder: "Snow removal" },
+    // 5 Working hours, a day at a time. Ideal hours, not a promise: a blank day
+    // is a day off, which is why none of them are required.
+    { key: "hoursMonday", label: "Monday", type: "text", step: 5, placeholder: "9am - 5pm", help: "Your ideal hours, not a commitment. Leave a day blank to take it off." },
+    { key: "hoursTuesday", label: "Tuesday", type: "text", step: 5, placeholder: "9am - 5pm" },
+    { key: "hoursWednesday", label: "Wednesday", type: "text", step: 5, placeholder: "9am - 5pm" },
+    { key: "hoursThursday", label: "Thursday", type: "text", step: 5, placeholder: "9am - 5pm" },
+    { key: "hoursFriday", label: "Friday", type: "text", step: 5, placeholder: "9am - 5pm" },
+    { key: "hoursSaturday", label: "Saturday", type: "text", step: 5, placeholder: "10am - 2pm" },
+    { key: "hoursSunday", label: "Sunday", type: "text", step: 5, placeholder: "Closed" },
 
-    // 6 Your numbers. A row per job type, because a replacement and a repair do
-    // not share a price. Row 1 is required; rows 2 to 5 open from the "Add
-    // another job type" button (see jobsShown).
-    { key: "jobType1", label: "Job type 1", type: "text", step: 6, required: true, wide: true, placeholder: "Roof replacement" },
-    { key: "jobTicket1", label: "Job 1 average ticket", type: "text", step: 6, required: true, placeholder: "$15,000" },
-    { key: "jobMargin1", label: "Job 1 margin", type: "text", step: 6, required: true, placeholder: "35%" },
-    { key: "jobType2", label: "Job type 2", type: "text", step: 6, wide: true, placeholder: "Roof repair" },
-    { key: "jobTicket2", label: "Job 2 average ticket", type: "text", step: 6, placeholder: "$900" },
-    { key: "jobMargin2", label: "Job 2 margin", type: "text", step: 6, placeholder: "35%" },
-    { key: "jobType3", label: "Job type 3", type: "text", step: 6, wide: true, placeholder: "Gutters" },
-    { key: "jobTicket3", label: "Job 3 average ticket", type: "text", step: 6, placeholder: "$2,500" },
-    { key: "jobMargin3", label: "Job 3 margin", type: "text", step: 6, placeholder: "35%" },
-    { key: "jobType4", label: "Job type 4", type: "text", step: 6, wide: true, placeholder: "Siding" },
-    { key: "jobTicket4", label: "Job 4 average ticket", type: "text", step: 6, placeholder: "$18,000" },
-    { key: "jobMargin4", label: "Job 4 margin", type: "text", step: 6, placeholder: "35%" },
-    { key: "jobType5", label: "Job type 5", type: "text", step: 6, wide: true, placeholder: "Windows" },
-    { key: "jobTicket5", label: "Job 5 average ticket", type: "text", step: 6, placeholder: "$9,000" },
-    { key: "jobMargin5", label: "Job 5 margin", type: "text", step: 6, placeholder: "35%" },
-    { key: "closeRate", label: "Out of 10 estimates, how many do you close?", type: "select", step: 6, required: true, wide: true, options: CLOSE_RATES },
+    // 6 Services. One box per service: a comma-separated sentence has to be
+    // split by hand afterwards, and the split is a guess. Service 1 is
+    // required; 2 to 6 open from the "Add another service" button (see REPEATS).
+    { key: "service1", label: "Service 1", type: "text", step: 6, required: true, wide: true, placeholder: "Paver patios", help: "One service per box, named the way your customers ask for it." },
+    { key: "service2", label: "Service 2", type: "text", step: 6, wide: true, placeholder: "Retaining walls" },
+    { key: "service3", label: "Service 3", type: "text", step: 6, wide: true, placeholder: "Landscape design" },
+    { key: "service4", label: "Service 4", type: "text", step: 6, wide: true, placeholder: "Lawn maintenance" },
+    { key: "service5", label: "Service 5", type: "text", step: 6, wide: true, placeholder: "Drainage" },
+    { key: "service6", label: "Service 6", type: "text", step: 6, wide: true, placeholder: "Snow removal" },
 
-    // 7 Your story. Only the best customer is required: not every business has
-    // run an offer or can name its competitors.
-    { key: "bestCustomer", label: "Who is your best customer?", type: "textarea", step: 7, required: true, wide: true, placeholder: "Homeowners 45 to 65 with older homes in Livonia and Northville who want it done right, not cheap" },
-    { key: "competitors", label: "Who are your top local competitors?", type: "textarea", step: 7, wide: true, placeholder: "Renewal by Andersen, Detroit Roofing Co, Smith & Sons" },
-    { key: "pastOffers", label: "What offers have you run before?", type: "textarea", step: 7, wide: true, placeholder: "Free gutter guards with a new roof, $500 off in the spring, 0% financing for 12 months" },
-    { key: "usp", label: "Do you have a unique selling proposition?", type: "textarea", step: 7, wide: true, placeholder: "We guarantee a home sale in 30 days or pay the seller $10k" },
-    { key: "whySignedUp", label: "What made you want to work with Hauck Marketing?", type: "textarea", step: 7, wide: true },
-    { key: "notes", label: "Anything else we should know?", type: "textarea", step: 7, wide: true },
+    // 7 Numbers. A row per job type, because a replacement and a repair do not
+    // share a price. Row 1 is required; rows 2 to 5 open from the "Add another
+    // job type" button (see REPEATS).
+    { key: "jobType1", label: "Job type 1", type: "text", step: 7, required: true, wide: true, placeholder: "Roof replacement" },
+    { key: "jobTicket1", label: "Job 1 average ticket", type: "text", step: 7, required: true, placeholder: "$15,000" },
+    { key: "jobMargin1", label: "Job 1 margin", type: "text", step: 7, required: true, placeholder: "35%" },
+    { key: "jobType2", label: "Job type 2", type: "text", step: 7, wide: true, placeholder: "Roof repair" },
+    { key: "jobTicket2", label: "Job 2 average ticket", type: "text", step: 7, placeholder: "$900" },
+    { key: "jobMargin2", label: "Job 2 margin", type: "text", step: 7, placeholder: "35%" },
+    { key: "jobType3", label: "Job type 3", type: "text", step: 7, wide: true, placeholder: "Gutters" },
+    { key: "jobTicket3", label: "Job 3 average ticket", type: "text", step: 7, placeholder: "$2,500" },
+    { key: "jobMargin3", label: "Job 3 margin", type: "text", step: 7, placeholder: "35%" },
+    { key: "jobType4", label: "Job type 4", type: "text", step: 7, wide: true, placeholder: "Siding" },
+    { key: "jobTicket4", label: "Job 4 average ticket", type: "text", step: 7, placeholder: "$18,000" },
+    { key: "jobMargin4", label: "Job 4 margin", type: "text", step: 7, placeholder: "35%" },
+    { key: "jobType5", label: "Job type 5", type: "text", step: 7, wide: true, placeholder: "Windows" },
+    { key: "jobTicket5", label: "Job 5 average ticket", type: "text", step: 7, placeholder: "$9,000" },
+    { key: "jobMargin5", label: "Job 5 margin", type: "text", step: 7, placeholder: "35%" },
+    { key: "closeRate", label: "Estimated close rate", type: "select", step: 7, required: true, wide: true, options: CLOSE_RATES },
 
-    // 8 Assets
-    { key: "logoUrl", label: "Your logo", type: "url", step: 8, wide: true, help: ASSET_HELP },
-    { key: "headshotUrl", label: "A clear headshot of yourself", type: "url", step: 8, wide: true, help: ASSET_HELP },
-    { key: "pastWorkUrl", label: "Photos of your past work", type: "url", step: 8, wide: true, help: ASSET_HELP }
+    // 8 Story. None required: not every business has run an offer or can name
+    // its competitors.
+    { key: "competitors", label: "Local competitors", type: "textarea", step: 8, wide: true, placeholder: "Renewal by Andersen, Detroit Roofing Co, Smith & Sons" },
+    { key: "pastOffers", label: "Past offers", type: "textarea", step: 8, wide: true, placeholder: "Free gutter guards with a new roof, $500 off in the spring, 0% financing for 12 months" },
+    { key: "usp", label: "What makes your company unique?", type: "textarea", step: 8, wide: true, placeholder: "We guarantee a home sale in 30 days or pay the seller $10k" },
+    { key: "whySignedUp", label: "Why did you sign up?", type: "textarea", step: 8, wide: true },
+    { key: "notes", label: "Anything else?", type: "textarea", step: 8, wide: true },
+
+    // 9 Assets. All optional; the step's line sends them to the onboarding call.
+    { key: "logoUrl", label: "Logo", type: "url", step: 9, wide: true, help: ASSET_HELP },
+    { key: "headshotUrl", label: "Headshot", type: "url", step: 9, wide: true, help: ASSET_HELP },
+    { key: "pastWorkUrl", label: "Past work photos", type: "url", step: 9, wide: true, help: ASSET_HELP }
+  ];
+
+  // Fields that open a row at a time: row 1 shows, the add button under the
+  // last open row opens the next, up to the cap. A row is every field sharing
+  // a number (a job row is three fields, a service row one).
+  var REPEATS = [
+    { name: "service", re: /^service(\d)$/, slots: SERVICE_SLOTS, first: "service", last: "service", add: "+ Add another service" },
+    { name: "job", re: /^job(?:Type|Ticket|Margin)(\d)$/, slots: JOB_SLOTS, first: "jobType", last: "jobMargin", add: "+ Add another job type" }
   ];
 
   // ------------------------------------------------------------------ state
   var state = { step: 1, answers: {}, errors: {}, token: null, saving: false,
-                savedAt: null, banner: null, done: false, dead: false, jobsShown: 1 };
+                savedAt: null, banner: null, done: false, dead: false,
+                shown: { service: 1, job: 1 } };
 
   // Assigned in boot(), not here: GHL sometimes runs a block's script before it
   // has finished injecting that block's markup.
@@ -378,18 +393,22 @@ a.hm-btn{display:inline-block;text-decoration:none}
     return FIELDS.filter(function (f) { return f.step === step; });
   }
 
-  // Which job row a key belongs to (jobTicket3 -> 3), or 0 for any other field.
-  function jobRow(key) {
-    var m = /^job(?:Type|Ticket|Margin)(\d)$/.exec(key);
-    return m ? Number(m[1]) : 0;
+  // Which repeat a key belongs to and its row (jobTicket3 -> job, 3), or null
+  // for any other field.
+  function repeatOf(key) {
+    for (var i = 0; i < REPEATS.length; i++) {
+      var m = REPEATS[i].re.exec(key);
+      if (m) return { rep: REPEATS[i], row: Number(m[1]) };
+    }
+    return null;
   }
-  // Job rows on show: as many as the button has opened, or as far as the
-  // answers already go, so a resumed form reopens every row it filled.
-  function jobsShown() {
-    var shown = state.jobsShown;
+  // Rows on show: as many as the button has opened, or as far as the answers
+  // already go, so a resumed form reopens every row it filled.
+  function rowsShown(rep) {
+    var shown = state.shown[rep.name];
     FIELDS.forEach(function (f) {
-      var row = jobRow(f.key);
-      if (row > shown && txt(f.key)) shown = row;
+      var hit = repeatOf(f.key);
+      if (hit && hit.rep === rep && hit.row > shown && txt(f.key)) shown = hit.row;
     });
     return shown;
   }
@@ -577,16 +596,18 @@ a.hm-btn{display:inline-block;text-decoration:none}
     return h + "</div>";
   }
 
-  // A step's fields, less the job rows not opened yet. The add button sits under
-  // the last open row until all JOB_SLOTS are open.
+  // A step's fields, less the rows not opened yet. The add button sits under
+  // the last open row until every slot is open.
   function bodyHtml(step) {
-    var shown = jobsShown();
     return fieldsFor(step).map(function (f) {
-      var row = jobRow(f.key);
-      if (row > shown) return "";
+      var hit = repeatOf(f.key);
+      if (!hit) return fieldHtml(f);
+      var shown = rowsShown(hit.rep);
+      if (hit.row > shown) return "";
       var h = fieldHtml(f);
-      if (row === shown && f.key === "jobMargin" + row && shown < JOB_SLOTS) {
-        h += '<button type="button" class="hm-btn hm-btn-ghost hm-add hm-wide" data-act="add-job">+ Add another job type</button>';
+      if (hit.row === shown && f.key === hit.rep.last + hit.row && shown < hit.rep.slots) {
+        h += '<button type="button" class="hm-btn hm-btn-ghost hm-add hm-wide" data-add="' +
+             hit.rep.name + '">' + esc(hit.rep.add) + "</button>";
       }
       return h;
     }).join("");
@@ -710,12 +731,14 @@ a.hm-btn{display:inline-block;text-decoration:none}
       });
     });
 
-    var addJob = slot.querySelector('[data-act="add-job"]');
-    if (addJob) addJob.addEventListener("click", function () {
-      state.jobsShown = jobsShown() + 1;
-      render();
-      var opened = document.getElementById("hm-jobType" + state.jobsShown);
-      if (opened) opened.focus();
+    slot.querySelectorAll("[data-add]").forEach(function (b) {
+      var rep = REPEATS.filter(function (r) { return r.name === b.getAttribute("data-add"); })[0];
+      b.addEventListener("click", function () {
+        state.shown[rep.name] = rowsShown(rep) + 1;
+        render();
+        var opened = document.getElementById("hm-" + rep.first + state.shown[rep.name]);
+        if (opened) opened.focus();
+      });
     });
 
     var back = slot.querySelector('[data-act="back"]');

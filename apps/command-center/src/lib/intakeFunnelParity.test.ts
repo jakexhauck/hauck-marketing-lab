@@ -5,6 +5,7 @@ import {
   JOB_SLOTS,
   MIN_PASSWORD_LEN,
   PASSWORD_RULES,
+  SERVICE_SLOTS,
   passwordProblems,
 } from "./intake";
 // ?raw pulls both files in as source text. Vite resolves them, so this needs no
@@ -93,6 +94,11 @@ describe("the funnel script and the shared schema", () => {
   // server drops.
   it("opens as many job rows as the schema has", () => {
     expect(FUNNEL).toContain(`var JOB_SLOTS = ${JOB_SLOTS};`);
+  });
+
+  // Same for services, which open one box at a time.
+  it("opens as many service rows as the schema has", () => {
+    expect(FUNNEL).toContain(`var SERVICE_SLOTS = ${SERVICE_SLOTS};`);
   });
 
   // The password rule is stated in the funnel's own words and enforced by the

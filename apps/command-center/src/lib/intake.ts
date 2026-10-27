@@ -61,59 +61,27 @@ export interface IntakeStep {
   blurb: string;
 }
 
+// Headings, order and questions are Jake's list (2026-10-27). No sub-text under
+// a heading (his rule), except Assets, where he asked for the line: a client
+// without their photos to hand should send the form anyway, not stall on it.
 export const INTAKE_STEPS: IntakeStep[] = [
+  { n: 1, key: "business", label: "Business", blurb: "" },
+  { n: 2, key: "contact", label: "Contact", blurb: "" },
+  // Not on Jake's list, and kept on purpose: sending the form creates the
+  // client's account from this password (approvalBlocker refuses one without).
+  // It stays step 3 because both this file and the funnel key the password rule
+  // to "step 3" by number.
+  { n: 3, key: "login", label: "Login", blurb: "" },
+  { n: 4, key: "targeting", label: "Targeting", blurb: "" },
+  { n: 5, key: "hours", label: "Working hours", blurb: "" },
+  { n: 6, key: "services", label: "Services", blurb: "" },
+  { n: 7, key: "numbers", label: "Numbers", blurb: "" },
+  { n: 8, key: "story", label: "Story", blurb: "" },
   {
-    n: 1,
-    key: "business",
-    label: "Your business",
-    blurb: "The basics, so we know who we are building for.",
-  },
-  {
-    n: 2,
-    key: "contact",
-    label: "Contact details",
-    blurb: "How we reach you.",
-  },
-  {
-    n: 3,
-    key: "login",
-    label: "Your login",
-    blurb: "Choose how you will sign in once your account is ready.",
-  },
-  {
-    n: 4,
-    key: "targeting",
-    label: "Targeting",
-    blurb: "Where your ads run, and the hours you would like to be booked in.",
-  },
-  // Services sits here, not up with "Your business", because inserting a step
-  // before the login step would move it out from under the password rule, which
-  // both this file and the funnel key to "step 3" by number.
-  {
-    n: 5,
-    key: "services",
-    label: "Your services",
-    blurb: "One service per box, in the words your customers use for them.",
-  },
-  // No blurb: new screens carry a heading and the questions, nothing under the
-  // heading (Jake's rule).
-  {
-    n: 6,
-    key: "numbers",
-    label: "Your numbers",
-    blurb: "",
-  },
-  {
-    n: 7,
-    key: "story",
-    label: "Your story",
-    blurb: "What makes you different. This is the raw material for your ads.",
-  },
-  {
-    n: 8,
+    n: 9,
     key: "assets",
     label: "Assets",
-    blurb: "Photos and a logo we can use in your marketing. All three are optional.",
+    blurb: "All optional. If you do not have these ready, just submit the form and we can go over them on your onboarding call.",
   },
 ];
 
@@ -125,8 +93,40 @@ export const REVIEW_STEP = LAST_INPUT_STEP + 1;
 // asking a question whose answer changes nothing invites an answer we cannot
 // honour.
 
-const ASSET_HELP =
-  "Optional. Paste a Google Drive, Dropbox or iCloud link, and set it so anyone with the link can view it. If you are not sure how, leave it blank and message Jake, who will sort it out with you.";
+const ASSET_HELP = "A Google Drive, Dropbox or iCloud link, set so anyone with the link can view it.";
+
+// --- Services -----------------------------------------------------------------
+//
+// One box per service rather than one box listing them all. A comma-separated
+// sentence has to be split by hand before anything can be built from it, and
+// the split is a guess: "landscaping, design and build" is either two services
+// or three. The first is required; the funnel opens the rest one at a time
+// ("Add another service"), up to SERVICE_SLOTS, which the funnel's own
+// SERVICE_SLOTS must match (intakeFunnelParity.test.ts).
+
+export const SERVICE_SLOTS = 6;
+
+const SERVICE_PLACEHOLDERS = [
+  "Paver patios",
+  "Retaining walls",
+  "Landscape design",
+  "Lawn maintenance",
+  "Drainage",
+  "Snow removal",
+];
+
+function serviceField(n: number): IntakeField {
+  return {
+    key: `service${n}`,
+    label: `Service ${n}`,
+    type: "text",
+    step: 6,
+    required: n === 1,
+    wide: true,
+    placeholder: SERVICE_PLACEHOLDERS[n - 1],
+    ...(n === 1 ? { help: "One service per box, named the way your customers ask for it." } : {}),
+  };
+}
 
 // --- Jobs and their numbers ---------------------------------------------------
 //
@@ -155,9 +155,9 @@ function jobFields(n: number): IntakeField[] {
   const [job, ticket] = JOB_PLACEHOLDERS[n - 1];
   const required = n === 1;
   return [
-    { key: `jobType${n}`, label: `Job type ${n}`, type: "text", step: 6, required, wide: true, placeholder: job },
-    { key: `jobTicket${n}`, label: `Job ${n} average ticket`, type: "text", step: 6, required, placeholder: ticket },
-    { key: `jobMargin${n}`, label: `Job ${n} margin`, type: "text", step: 6, required, placeholder: "35%" },
+    { key: `jobType${n}`, label: `Job type ${n}`, type: "text", step: 7, required, wide: true, placeholder: job },
+    { key: `jobTicket${n}`, label: `Job ${n} average ticket`, type: "text", step: 7, required, placeholder: ticket },
+    { key: `jobMargin${n}`, label: `Job ${n} margin`, type: "text", step: 7, required, placeholder: "35%" },
   ];
 }
 
@@ -242,8 +242,8 @@ export const INTAKE_FIELDS: IntakeField[] = [
     help: "Leave blank if you do not have one yet.",
   },
 
-  // 2 - Contact details (source form Q1-Q6)
-  { key: "contactName", label: "Your name", type: "text", step: 2, required: true },
+  // 2 - Contact (source form Q1-Q6)
+  { key: "contactName", label: "Owner name", type: "text", step: 2, required: true },
   { key: "contactEmail", label: "Email", type: "email", step: 2, required: true },
   { key: "contactPhone", label: "Phone", type: "tel", step: 2, required: true },
   {
@@ -302,7 +302,7 @@ export const INTAKE_FIELDS: IntakeField[] = [
     placeholder: "48135",
   },
 
-  // 3 - Your login (new: this is what creates the account)
+  // 3 - Login (new: this is what creates the account)
   {
     key: "loginEmail",
     label: "Login email",
@@ -337,7 +337,7 @@ export const INTAKE_FIELDS: IntakeField[] = [
   // actually type in saves that round trip and the guesswork in it.
   {
     key: "targetZips",
-    label: "Zip codes to target for your ads",
+    label: "Zip codes",
     type: "textarea",
     step: 4,
     required: true,
@@ -347,7 +347,7 @@ export const INTAKE_FIELDS: IntakeField[] = [
   },
   {
     key: "areaCallout",
-    label: "What should the call-out name of your area for the ads be?",
+    label: "Area call-out",
     type: "text",
     step: 4,
     required: true,
@@ -355,144 +355,95 @@ export const INTAKE_FIELDS: IntakeField[] = [
     placeholder: "Metro Detroit",
     help: 'This is what the ad calls the people it is shown to: "Metro Detroit Homeowners...". Give us the name locals actually use.',
   },
-  // Their hours, a day at a time. Not a promise and not their real calendar:
-  // it is the shape of a normal week, so the booking calendar starts somewhere
-  // sensible instead of nine-to-five on a day they never work. A blank day is
-  // a day off, which is why none of these are required.
+  // 5 - Working hours, a day at a time. Not a promise and not their real
+  // calendar: it is the shape of a normal week, so the booking calendar starts
+  // somewhere sensible instead of nine-to-five on a day they never work. A
+  // blank day is a day off, which is why none of these are required.
   {
     key: "hoursMonday",
     label: "Monday",
     type: "text",
-    step: 4,
+    step: 5,
     placeholder: "9am - 5pm",
     help: "Your ideal hours, not a commitment. Leave a day blank to take it off.",
   },
-  { key: "hoursTuesday", label: "Tuesday", type: "text", step: 4, placeholder: "9am - 5pm" },
-  { key: "hoursWednesday", label: "Wednesday", type: "text", step: 4, placeholder: "9am - 5pm" },
-  { key: "hoursThursday", label: "Thursday", type: "text", step: 4, placeholder: "9am - 5pm" },
-  { key: "hoursFriday", label: "Friday", type: "text", step: 4, placeholder: "9am - 5pm" },
-  { key: "hoursSaturday", label: "Saturday", type: "text", step: 4, placeholder: "10am - 2pm" },
-  { key: "hoursSunday", label: "Sunday", type: "text", step: 4, placeholder: "Closed" },
+  { key: "hoursTuesday", label: "Tuesday", type: "text", step: 5, placeholder: "9am - 5pm" },
+  { key: "hoursWednesday", label: "Wednesday", type: "text", step: 5, placeholder: "9am - 5pm" },
+  { key: "hoursThursday", label: "Thursday", type: "text", step: 5, placeholder: "9am - 5pm" },
+  { key: "hoursFriday", label: "Friday", type: "text", step: 5, placeholder: "9am - 5pm" },
+  { key: "hoursSaturday", label: "Saturday", type: "text", step: 5, placeholder: "10am - 2pm" },
+  { key: "hoursSunday", label: "Sunday", type: "text", step: 5, placeholder: "Closed" },
 
-  // 5 - Your services
-  //
-  // One box per service rather than one box listing them all. A comma-separated
-  // sentence has to be split by hand before anything can be built from it, and
-  // the split is a guess: "landscaping, design and build" is either two services
-  // or three. Six slots because that is what a contractor's list runs to; the
-  // first two are required and the rest are for whoever has more.
-  {
-    key: "service1",
-    label: "Service 1",
-    type: "text",
-    step: 5,
-    required: true,
-    placeholder: "Paver patios",
-    help: "One service per box, named the way your customers ask for it. Leave the rest blank if you offer fewer.",
-  },
-  {
-    key: "service2",
-    label: "Service 2",
-    type: "text",
-    step: 5,
-    required: true,
-    placeholder: "Retaining walls",
-  },
-  { key: "service3", label: "Service 3", type: "text", step: 5, placeholder: "Landscape design" },
-  { key: "service4", label: "Service 4", type: "text", step: 5, placeholder: "Lawn maintenance" },
-  { key: "service5", label: "Service 5", type: "text", step: 5, placeholder: "Drainage" },
-  { key: "service6", label: "Service 6", type: "text", step: 5, placeholder: "Snow removal" },
+  // 6 - Services
+  ...Array.from({ length: SERVICE_SLOTS }, (_, i) => serviceField(i + 1)),
 
-  // 6 - Your numbers (Mission Control's Target KPIs and Market Research)
+  // 7 - Numbers (Mission Control's Target KPIs and Market Research)
   ...Array.from({ length: JOB_SLOTS }, (_, i) => jobFields(i + 1)).flat(),
   {
     key: "closeRate",
-    label: "Out of 10 estimates, how many do you close?",
+    label: "Estimated close rate",
     type: "select",
-    step: 6,
+    step: 7,
     required: true,
     wide: true,
     options: CLOSE_RATES,
   },
 
-  // 7 - Your story (source form Q12, Q15, Q16, plus Mission Control's Main ICP,
-  // Local Competitors and Offer). Only the best customer is required: every
-  // business has one, but not every business has run an offer or can name its
-  // competitors.
-  {
-    key: "bestCustomer",
-    label: "Who is your best customer?",
-    type: "textarea",
-    step: 7,
-    required: true,
-    wide: true,
-    placeholder: "Homeowners 45 to 65 with older homes in Livonia and Northville who want it done right, not cheap",
-  },
+  // 8 - Story (source form Q12, Q15, Q16, plus Mission Control's Local
+  // Competitors and Offer). None required: not every business has run an offer
+  // or can name its competitors. Best customer was asked here until Jake's
+  // 2026-10-27 list left it out.
   {
     key: "competitors",
-    label: "Who are your top local competitors?",
+    label: "Local competitors",
     type: "textarea",
-    step: 7,
+    step: 8,
     wide: true,
     placeholder: "Renewal by Andersen, Detroit Roofing Co, Smith & Sons",
   },
   {
     key: "pastOffers",
-    label: "What offers have you run before?",
+    label: "Past offers",
     type: "textarea",
-    step: 7,
+    step: 8,
     wide: true,
     placeholder: "Free gutter guards with a new roof, $500 off in the spring, 0% financing for 12 months",
   },
   {
     key: "usp",
-    label: "Do you have a unique selling proposition?",
+    label: "What makes your company unique?",
     type: "textarea",
-    step: 7,
+    step: 8,
     wide: true,
     placeholder: "We guarantee a home sale in 30 days or pay the seller $10k",
   },
   {
     key: "whySignedUp",
-    label: "What made you want to work with Hauck Marketing?",
+    label: "Why did you sign up?",
     type: "textarea",
-    step: 7,
+    step: 8,
     wide: true,
   },
   {
     key: "notes",
-    label: "Anything else we should know?",
+    label: "Anything else?",
     type: "textarea",
-    step: 7,
+    step: 8,
     wide: true,
   },
 
-  // 8 - Assets (source form Q13-Q14, plus a logo)
+  // 9 - Assets (source form Q13-Q14, plus a logo)
   // Links rather than uploads in v1: a public unauthenticated upload endpoint is
   // a storage-bombing target, and the app has no storage bucket yet.
   //
-  // All three optional, and the help says so. Sharing a Drive folder is not
-  // obvious if you have never done it, and a client stuck on a required field
-  // they cannot fill abandons the form rather than asking. The funnel's copy of
-  // ASSET_HELP renders the "anyone with the link" sentence as HTML so it can be
-  // emphasised; this one is plain text, for the admin record.
-  { key: "logoUrl", label: "Your logo", type: "url", step: 8, wide: true, help: ASSET_HELP },
-  {
-    key: "headshotUrl",
-    label: "A clear headshot of yourself",
-    type: "url",
-    step: 8,
-    wide: true,
-    help: ASSET_HELP,
-  },
-  {
-    key: "pastWorkUrl",
-    label: "Photos of your past work",
-    type: "url",
-    step: 8,
-    wide: true,
-    help: ASSET_HELP,
-  },
+  // All three optional, and the step's line says so. Sharing a Drive folder is
+  // not obvious if you have never done it, and a client stuck on a required
+  // field they cannot fill abandons the form rather than asking. The funnel's
+  // copy of ASSET_HELP renders the "anyone with the link" part as HTML so it can
+  // be emphasised; this one is plain text, for the admin record.
+  { key: "logoUrl", label: "Logo", type: "url", step: 9, wide: true, help: ASSET_HELP },
+  { key: "headshotUrl", label: "Headshot", type: "url", step: 9, wide: true, help: ASSET_HELP },
+  { key: "pastWorkUrl", label: "Past work photos", type: "url", step: 9, wide: true, help: ASSET_HELP },
 ];
 
 // Everything persistable. Files are not in this funnel at all, so unlike the

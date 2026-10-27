@@ -113,6 +113,7 @@ describe("intake", () => {
       "contact",
       "login",
       "targeting",
+      "hours",
       "services",
       "numbers",
       "story",

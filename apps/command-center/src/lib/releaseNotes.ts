@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-27-onboarding-form-exact",
+    date: "27 October 2026",
+    title: "Onboarding form asks Jake's exact questions",
+    items: [
+      "The onboarding form now runs Business, Contact, Login, Targeting, Working hours, Services, Numbers, Story, Assets, then Review.",
+      "Only Service 1 is required; clients add more services one at a time, like job types.",
+      "Best customer is no longer asked. Older answers still show on the client's record.",
+      "Assets are optional and tell the client to send the form anyway and go over them on the onboarding call.",
+    ],
+  },
+  {
     id: "2026-10-27-grok-scripts",
     date: "27 October 2026",
     title: "Grok Bots can upload a client's dialing script",

@@ -12,7 +12,7 @@ have been handed off to a different company halfway along.
 
 | Order | File | Published at | What it does |
 |---|---|---|---|
-| 1 | `01-intake-form.html` (stub) | `/onboarding-form` | Eight-step intake form. Everything we need to stand the account up. |
+| 1 | `01-intake-form.html` (stub) | `/onboarding-form` | Nine-step intake form. Everything we need to stand the account up. |
 | 2 | `02-book-your-call.html` | `/onboarding-calendar` | The onboarding calendar, wrapped in the same card. |
 | 3 | `03-thank-you.html` | `/onboarding-thank-you` | Confirmation, what happens next, and one thing they can do now. |
 
@@ -134,17 +134,15 @@ part of the copy is worse than none, because it reads as a pass.
 - **Assets are links, not uploads.** A public unauthenticated upload endpoint is
   a storage-bombing target and the app has no storage bucket. Clients paste a
   Drive or Dropbox link instead.
-- **The A2P block is back, and it is optional.** Step 2 asks for legal business
-  name, EIN, business structure and job title. These were cut once, on the
-  reasoning that a brand-new client should not be asked for legal details, and
-  chasing them by email afterwards is what held texting up. A carrier will not
-  register a business texting number without all four. They are optional, so a
-  client who does not know their EIN off-hand still reaches the end of the form
-  and the gap is caught by the A2P item on their setup checklist instead.
-- **The EIN says why it is being asked.** Its help text names the sensitivity
-  out loud, explains that the carriers check a business is real before letting
-  it text, and links to an explainer. An unexplained request for a tax ID on a
-  web form reads as a scam, and a client who thinks that abandons the form.
+- **The questions are Jake's list (2026-10-27), exactly.** Business, Contact,
+  Targeting, Working hours, Services, Numbers, Story, Assets, in that order and
+  in his words. The one step his list does not have is Login: sending the form
+  creates the client's account from the password chosen there. No A2P or EIN
+  questions; those are chased on the setup checklist.
+- **Services and job types open one at a time.** Service 1 and job row 1 are
+  required; "+ Add another" opens the next, up to 6 services and 5 job types.
+- **Assets are optional and say so.** The step tells a client without them to
+  send the form anyway and go over it on the onboarding call.
 - **The login email follows the contact email** until the client edits it, so
   step 3 is usually two keystrokes and a password.
 - **Progress saves after every step.** The resume token goes into the URL so a
