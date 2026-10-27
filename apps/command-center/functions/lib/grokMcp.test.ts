@@ -7,7 +7,7 @@ import buildSource from "./grokMetaBuild.ts?raw";
 import softwareSource from "./grokSoftware.ts?raw";
 import { audited, botName, connectorOf, handleBody, handleRpc, isGrokMcpRequest, loggablePath, matchClient, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
 import { CONNECTORS } from "./grokConnectors";
-import { ghlMethod, ghlUrl, GHL_ORIGIN, locationIdOf, pickSubAccount } from "./grokGhl";
+import { ghlMethod, ghlUrl, GHL_ORIGIN, locationIdOf, notClientSubAccounts, pickSubAccount } from "./grokGhl";
 import { leadsFrom } from "./grokMeta";
 import { LOGIN_PAGES, loginEmail, loginRole, pageGrants, pickLogin, problemsOnly, splitConnections } from "./grokSoftware";
 
@@ -211,6 +211,20 @@ describe("the GHL connector", () => {
     expect(pickSubAccount(clients, others, "willis")).toEqual({ tenantId: "t1" });
     expect(() => pickSubAccount(clients, others, "garage")).toThrow(/matches Above All Garage Doors, TNT Garage Doors/);
     expect(() => pickSubAccount(clients, others, "nobody")).toThrow(/Test Account, Hauck Marketing/);
+  });
+
+  it("counts a sub-account as a client's only when a client holds it, not the agency's own tenant row", () => {
+    const clients = [{ id: "t1", name: "Willis Windows", slug: "willis-windows" }];
+    const all = [
+      { name: "Willis Windows", locationId: "OznT3yyuwK3dqVXDsCaD" },
+      { name: "Hauck Marketing", locationId: "wbrjjHYzznyEHx9wumSr" },
+      { name: "Test Account", locationId: "yVfX127fswQ03fydxBQg" },
+    ];
+    const tenants = [
+      { id: "t1", ghl_location_id: "OznT3yyuwK3dqVXDsCaD" },
+      { id: "agency", ghl_location_id: "wbrjjHYzznyEHx9wumSr" },
+    ];
+    expect(notClientSubAccounts(all, tenants, clients).map((s) => s.name)).toEqual(["Hauck Marketing", "Test Account"]);
   });
 
   it("takes every method, GET by default", () => {

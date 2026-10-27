@@ -94,7 +94,7 @@ async function subAccountToken(d: GrokDeps, a: Row): Promise<{ token: string; te
     try {
       target = { tenantId: matchClient(clients, a.client).id };
     } catch {
-      target = pickSubAccount(clients, await otherSubAccounts(d).catch(() => []), a.client);
+      target = pickSubAccount(clients, await otherSubAccounts(d, clients).catch(() => []), a.client);
     }
     if ("locationId" in target) return { token: await mintedToken(d, target.locationId), tenantId: null, locationId: target.locationId };
     return { token: (await getGhlContextForTenant(d.env, target.tenantId)).token, tenantId: target.tenantId, locationId: null };
@@ -112,12 +112,21 @@ async function agencyLocations(d: GrokDeps): Promise<SubAccount[]> {
   return (found.locations ?? []).map((l) => ({ name: String(l.name ?? ""), locationId: String(l.id ?? "") }));
 }
 
-/** The sub-accounts no client holds: the Test Account, Hauck Marketing. */
-async function otherSubAccounts(d: GrokDeps): Promise<SubAccount[]> {
-  const [all, rows] = await Promise.all([agencyLocations(d), d.client.from("tenants").select("ghl_location_id")]);
-  if (rows.error) throw new Error(`clients: ${rows.error.message}`);
-  const held = new Set(((rows.data ?? []) as Row[]).map((r) => r.ghl_location_id));
+/**
+ * The sub-accounts no client holds: the Test Account, Hauck Marketing. Only a
+ * client's row counts; the agency's own tenant row holds Hauck Marketing's
+ * location but is not a client.
+ */
+export function notClientSubAccounts(all: SubAccount[], tenants: Row[], clients: ClientRef[]): SubAccount[] {
+  const ids = new Set(clients.map((c) => c.id));
+  const held = new Set(tenants.filter((t) => ids.has(String(t.id))).map((t) => t.ghl_location_id));
   return all.filter((s) => !held.has(s.locationId));
+}
+
+async function otherSubAccounts(d: GrokDeps, clients: ClientRef[]): Promise<SubAccount[]> {
+  const [all, rows] = await Promise.all([agencyLocations(d), d.client.from("tenants").select("id, ghl_location_id")]);
+  if (rows.error) throw new Error(`clients: ${rows.error.message}`);
+  return notClientSubAccounts(all, (rows.data ?? []) as Row[], clients);
 }
 
 // Every sub-account under the agency, so the bots see the ones that are not
