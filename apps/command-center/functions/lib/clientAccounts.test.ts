@@ -7,6 +7,7 @@ import {
   pipelineCheck,
   sortChecks,
   textingCheck,
+  timezoneCheck,
   type AccountFacts,
 } from "./clientAccounts";
 
@@ -134,5 +135,28 @@ describe("textingCheck", () => {
   it("is unknown when GHL did not answer", () => {
     expect(textingCheck(null).state).toBe("unknown");
     expect(textingCheck({ status: 502, body: "" }).state).toBe("unknown");
+  });
+});
+
+describe("timezoneCheck", () => {
+  // 2026-01-15 noon UTC: Detroit and Cancun are both UTC-5 that day.
+  const WINTER = Date.UTC(2026, 0, 15, 12);
+  it("is red when GHL keeps another clock (Clear Choice, 2026-10-28)", () => {
+    // Booked 1pm Central, GHL texted the homeowner "2:00 PM".
+    expect(timezoneCheck("America/Detroit", "America/Chicago")).toMatchObject({
+      state: "missing",
+      detail: "GHL America/Detroit, client America/Chicago",
+    });
+  });
+  it("is red for a zone that matches only half the year", () => {
+    expect(timezoneCheck("America/Cancun", "America/Detroit", WINTER).state).toBe("missing");
+  });
+  it("is green for different names on the same clock all year", () => {
+    expect(timezoneCheck("US/Central", "America/Chicago").state).toBe("ok");
+    expect(timezoneCheck("America/Detroit", "America/New_York").state).toBe("ok");
+  });
+  it("is red when GHL has no timezone or one nobody knows", () => {
+    expect(timezoneCheck("", "America/Chicago").detail).toBe("GHL has no timezone");
+    expect(timezoneCheck("Nowhere/Land", "America/Chicago").state).toBe("missing");
   });
 });

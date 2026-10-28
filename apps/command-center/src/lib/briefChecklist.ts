@@ -17,6 +17,7 @@ export const ACCOUNT_CHECK_SECTION: Record<AccountCheckId, BriefSectionId> = {
   "meta-page": "ads",
   pipeline: "ghl",
   calendars: "ghl",
+  timezone: "ghl",
   "owner-links": "ghl",
   "owner-phone": "ghl",
   login: "csm",

@@ -28,6 +28,7 @@ export const ACCOUNT_LABELS: Record<AccountCheckId, string> = {
   "meta-page": "Facebook Page",
   pipeline: "Sales Pipeline",
   calendars: "Calendars",
+  timezone: "Timezone",
   "owner-links": "Open Lead link",
   "owner-phone": "Owner phone",
   login: "Client app login",
@@ -151,6 +152,8 @@ function FixButton({
       return ghlLink("/opportunities/pipeline");
     case "calendars":
       return ghlLink("/settings/calendars");
+    case "timezone":
+      return go("Fix", clientPath(client.id, "ghl", "business-profile"));
     case "owner-phone":
       return ghlLink("/settings/staff/team");
     case "owner-links":

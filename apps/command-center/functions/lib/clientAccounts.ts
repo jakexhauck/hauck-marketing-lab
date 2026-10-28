@@ -1,5 +1,6 @@
 import { resolveBoardPipeline } from "./leadBoard";
 import { pickEstimateCalendars } from "./estimateTracking";
+import { zoneOffsetMs } from "./tz";
 
 // Client > Accounts: one row per thing a client needs connected, each green or
 // red. Pure, so every rule is tested without GHL or Supabase; the endpoint in
@@ -15,6 +16,7 @@ export type AccountCheckId =
   | "meta-page"
   | "pipeline"
   | "calendars"
+  | "timezone"
   | "owner-links"
   | "owner-phone"
   | "login"
@@ -82,6 +84,24 @@ export function calendarsCheck(calendars: RawCalendar[]): AccountCheck {
     .map(([n]) => n);
   if (empty.length) return missing("calendars", `No team member: ${empty.join(", ")}`);
   return ok("calendars");
+}
+
+// GHL's clock against the one the app books in (the client's zone, through
+// tz.ts clockZone). With no timezone on the contact, GHL writes an appointment
+// time in a text in the sub-account's zone, so a mismatch books the right
+// moment and tells the homeowner the wrong hour (Clear Choice, 2026-10-28:
+// booked 1pm Central, texted "2:00 PM" off a Detroit sub-account). Compared by
+// UTC offset now and half a year on, so EST and America/Detroit are one clock
+// and Cancun (no daylight saving) and Detroit are not.
+export function timezoneCheck(ghlZone: string, appZone: string, at = Date.now()): AccountCheck {
+  if (!ghlZone.trim()) return missing("timezone", "GHL has no timezone");
+  const halfYear = 182 * 86_400_000;
+  try {
+    if ([at, at + halfYear].every((t) => zoneOffsetMs(ghlZone, t) === zoneOffsetMs(appZone, t))) return ok("timezone");
+  } catch {
+    // An unknown zone name throws, and it is not the app's clock either way.
+  }
+  return missing("timezone", `GHL ${ghlZone}, client ${appZone}`);
 }
 
 export function ownerLinksCheck(
@@ -153,7 +173,7 @@ export function textingCheck(probe: { status: number; body: string } | null): Ac
 
 // The GHL rows when there is no working key to read them with.
 export function blockedGhlChecks(): AccountCheck[] {
-  return (["texting", "pipeline", "calendars", "owner-links", "owner-phone"] as const).map((id) => ({
+  return (["texting", "pipeline", "calendars", "timezone", "owner-links", "owner-phone"] as const).map((id) => ({
     id,
     state: "blocked",
     detail: "Link GHL first",
@@ -168,6 +188,7 @@ export const CHECK_ORDER: AccountCheckId[] = [
   "meta-page",
   "pipeline",
   "calendars",
+  "timezone",
   "owner-links",
   "owner-phone",
   "login",

@@ -1,5 +1,6 @@
-import type { Env } from "./env";
+import { tenantTimezone, type Env } from "./env";
 import { getServiceClient } from "./supabase";
+import { clockZone } from "./tz";
 import { ghlFetch, type GhlContext } from "./ghl";
 import { isPlaceholder } from "./tenantGhl";
 import { appMinter, isAppLinked, resolveTenantGhl } from "./ghlCreds";
@@ -14,6 +15,7 @@ import {
   pipelineCheck,
   sortChecks,
   textingCheck,
+  timezoneCheck,
   type AccountCheck,
   type AccountCheckId,
   type AccountFacts,
@@ -29,10 +31,18 @@ interface TenantFacts {
   ghl_token: string | null;
   meta_ad_account_id: string | null;
   meta_page_id: string | null;
+  meta_timezone: string | null;
   owner_password_hash: string | null;
 }
 
-async function ghlChecks(gctx: GhlContext, origin: string, secret: string): Promise<AccountCheck[]> {
+// zones: the sub-account's, off the location read that proved the key, and
+// the one the app books in.
+async function ghlChecks(
+  gctx: GhlContext,
+  origin: string,
+  secret: string,
+  zones: { ghl: string; app: string },
+): Promise<AccountCheck[]> {
   const loc = encodeURIComponent(gctx.locationId);
   const read = async <T>(path: string): Promise<T | null> => {
     try {
@@ -66,6 +76,7 @@ async function ghlChecks(gctx: GhlContext, origin: string, secret: string): Prom
     textingCheck(send),
     pipes ? pipelineCheck(pipes.pipelines ?? []) : unknown("pipeline"),
     cals ? calendarsCheck(cals.calendars ?? []) : unknown("calendars"),
+    timezoneCheck(zones.ghl, zones.app),
     values && expected ? ownerLinksCheck(values.customValues ?? [], expected) : unknown("owner-links"),
     users ? ownerPhoneCheck(users.users ?? []) : unknown("owner-phone"),
   ];
@@ -78,7 +89,7 @@ export async function runChecks(env: Env, tenantId: string, origin: string) {
   const [tenantRes, ownerRes, pushRes] = await Promise.all([
     client
       .from("tenants")
-      .select("ghl_location_id, ghl_token, meta_ad_account_id, meta_page_id, owner_password_hash")
+      .select("ghl_location_id, ghl_token, meta_ad_account_id, meta_page_id, meta_timezone, owner_password_hash")
       .eq("id", tenantId)
       .maybeSingle(),
     client
@@ -96,6 +107,7 @@ export async function runChecks(env: Env, tenantId: string, origin: string) {
   const hasGhl = !isPlaceholder(t.ghl_location_id) && !isPlaceholder(t.ghl_token);
 
   let gctx: GhlContext | null = null;
+  let ghlZone = "";
   let ghl: AccountFacts["ghl"] = "none";
   if (hasGhl) {
     try {
@@ -105,7 +117,11 @@ export async function runChecks(env: Env, tenantId: string, origin: string) {
       );
       if (creds) {
         const probe = await ghlFetch(creds, `/locations/${encodeURIComponent(creds.locationId)}`);
-        if (probe.ok) gctx = creds;
+        if (probe.ok) {
+          gctx = creds;
+          const body = (await probe.json().catch(() => null)) as { location?: { timezone?: unknown } } | null;
+          ghlZone = String(body?.location?.timezone ?? "");
+        }
       }
     } catch {
       gctx = null;
@@ -123,7 +139,8 @@ export async function runChecks(env: Env, tenantId: string, origin: string) {
   };
 
   const secret = (env.SESSION_SECRET ?? "").trim();
-  const ghlRows = gctx ? await ghlChecks(gctx, origin, secret) : blockedGhlChecks();
+  const zones = { ghl: ghlZone, app: clockZone(t.meta_timezone, tenantTimezone(env)) };
+  const ghlRows = gctx ? await ghlChecks(gctx, origin, secret, zones) : blockedGhlChecks();
   return {
     gctx,
     body: {

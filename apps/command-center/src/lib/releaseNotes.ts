@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-28-ghl-timezone-check",
+    date: "28 October 2026",
+    title: "GHL timezone check",
+    items: [
+      "Each client's GHL checks have a new Timezone row. It goes red when the GHL sub-account keeps a different clock from the client, because then GHL texts the homeowner the wrong appointment time.",
+      "Fix opens the client's GHL Business Profile page, where the timezone is set.",
+    ],
+  },
+  {
     id: "2026-10-27-launch-kpis",
     date: "27 October 2026",
     title: "Launch KPIs",

@@ -19,7 +19,7 @@ function partsInZone(zone: string, utcMs: number): Record<string, string> {
 }
 
 // Offset (ms) of the zone from UTC at the given instant.
-function zoneOffsetMs(zone: string, utcMs: number): number {
+export function zoneOffsetMs(zone: string, utcMs: number): number {
   const p = partsInZone(zone, utcMs);
   const hour = p.hour === "24" ? 0 : Number(p.hour);
   const asUtc = Date.UTC(
