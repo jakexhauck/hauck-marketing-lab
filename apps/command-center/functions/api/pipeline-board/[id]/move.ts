@@ -8,6 +8,7 @@ import { planMove, type MoveInput } from "../../../lib/leadBoard";
 import { copyBookingToContact, loadBoardPipeline } from "../../../lib/leadBoardGhl";
 import { applyPlanWrites, loadTenantForBoard } from "../../../lib/leadBoardStore";
 import { bookOnCalendar } from "../../../lib/boardBooking";
+import { composioUserId, mirrorAppointment } from "../../../lib/googleCalendar";
 
 // POST /api/pipeline-board/:id/move  { stageId, at?, note?, value?, lostReason? }
 //
@@ -15,7 +16,10 @@ import { bookOnCalendar } from "../../../lib/boardBooking";
 // between desktop drag and phone tap. Order matters:
 //   1. plan (lib/leadBoard.ts): refuses a move missing what its stage needs
 //   2. a booking goes on the GHL calendar (lib/boardBooking.ts): a taken time
-//      or a missing calendar stops here, before the card moves
+//      or a missing calendar stops here, before the card moves. Once it is
+//      there it is also copied to the owner's Google Calendar, if linked
+//      (Jake, 2026-10-28), straight away rather than waiting on GHL's webhook,
+//      which went quiet for 11 days in October
 //   3. GHL stage move: if GHL refuses, nothing is written and the card snaps back
 //   4. app rows (0150): bookings, follow-up, lost reason, won amount
 //   5. copy a booking's date to the contact's fields (best effort, reminders)
@@ -59,6 +63,13 @@ export const onRequestPost: PagesFunction<Env, "id", ApiData> = async (ctx) => {
       slot: plan.booking.startsAt,
     });
     if (!booked.ok) return Response.json({ error: booked.error }, { status: booked.status });
+    // Keyed by the GHL appointment id, so the webhook's copy of the same
+    // booking updates this event rather than adding a second one.
+    ctx.waitUntil(
+      mirrorAppointment(ctx.env, composioUserId(t), booked).catch((e) =>
+        console.error("[pipeline-board] google calendar mirror failed", e),
+      ),
+    );
   }
 
   const moved = await putOpportunity(gctx, id, plan.ghl);

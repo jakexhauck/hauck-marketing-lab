@@ -2649,7 +2649,7 @@ export const ROUTES: RouteDoc[] = [
   "methods": [
    "POST"
   ],
-  "about": "POST /api/pipeline-board/:id/move { stageId, at?, note?, value?, lostReason? } One endpoint for every drop and every tap, so the rules cannot differ between desktop drag and phone tap. Order matters: 1. plan (lib/leadBoard.ts): refuses a move missing what its stage needs 2. a booking goes on the GHL calendar (lib/boardBooking.ts): a taken time or a missing calendar stops here, before the card moves 3. GHL stage move: if GHL refuses, nothing is written and the card snaps back 4. app rows (0150): bookings, follow-up, lost reason, won amount 5. copy a booking's date to the contact's fields (best effort, reminders)"
+  "about": "POST /api/pipeline-board/:id/move { stageId, at?, note?, value?, lostReason? } One endpoint for every drop and every tap, so the rules cannot differ between desktop drag and phone tap. Order matters: 1. plan (lib/leadBoard.ts): refuses a move missing what its stage needs 2. a booking goes on the GHL calendar (lib/boardBooking.ts): a taken time or a missing calendar stops here, before the card moves. Once it is there it is also copied to the owner's Google Calendar, if linked (Jake, 2026-10-28), straight away rather than waiting on GHL's webhook, which went quiet for 11 days in October 3. GHL stage move: if GHL refuses, nothing is written and the card snaps back 4. app rows (0150): bookings, follow-up, lost reason, won amount 5. copy a booking's date to the contact's fields (best effort, reminders)"
  },
  {
   "path": "/api/pipeline-board/:id/no-answer",

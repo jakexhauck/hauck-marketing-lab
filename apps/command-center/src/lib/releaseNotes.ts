@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-28-bookings-to-google-calendar",
+    date: "28 October 2026",
+    title: "Bookings go straight to the owner's Google Calendar",
+    items: [
+      "An estimate or job booked on the Leads board or the Outcome page lands on the client's own Google Calendar the moment it is booked, when they have one linked.",
+      "Moving a booking moves it there too, and cancelling a job from the Outcome page takes it off.",
+    ],
+  },
+  {
     id: "2026-10-28-ghl-timezone-check",
     date: "28 October 2026",
     title: "GHL timezone check",

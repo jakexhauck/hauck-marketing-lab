@@ -28,7 +28,11 @@ export function openAppointment(appts: ContactAppointment[], calendarId: string)
   return best;
 }
 
-export type BookResult = { ok: true; appointmentId: string } | { ok: false; status: number; error: string };
+// A booking carries what the owner's Google Calendar copy is written from
+// (appointmentMirror / googleCalendar.mirrorAppointment).
+export type BookResult =
+  | { ok: true; appointmentId: string; title: string; startIso: string; endIso: string }
+  | { ok: false; status: number; error: string };
 
 export async function calendarFor(gctx: GhlContext, kind: BookingKind) {
   const cals = await loadEstimateCalendars(gctx).catch(() => null);
@@ -47,11 +51,13 @@ export async function bookOnCalendar(
   const end = slotEnd(input.slot, meta?.slotDuration, meta?.slotDurationUnit);
   const appts = await fetchContactAppointments(gctx, input.contactId).catch(() => []);
   const open = openAppointment(appts, cal.id);
+  const title = `${label}: ${input.name}`;
+  const booked = (appointmentId: string): BookResult => ({ ok: true, appointmentId, title, startIso: input.slot, endIso: end });
 
   if (open) {
     const moved = await rescheduleAppointment(gctx, open.id, input.slot, end);
     if (!moved.ok) return { ok: false, status: 409, error: "That time is not free any more. Pick another." };
-    return { ok: true, appointmentId: open.id };
+    return booked(open.id);
   }
 
   const made = await createAppointment(gctx, {
@@ -59,7 +65,7 @@ export async function bookOnCalendar(
     contactId: input.contactId,
     startTime: input.slot,
     endTime: end,
-    title: `${label}: ${input.name}`,
+    title,
   });
   if (!made.ok) {
     return {
@@ -68,5 +74,5 @@ export async function bookOnCalendar(
       error: made.needsStaff ? `The ${label} calendar has no team member on it.` : "That time is not free any more. Pick another.",
     };
   }
-  return { ok: true, appointmentId: made.id };
+  return booked(made.id);
 }

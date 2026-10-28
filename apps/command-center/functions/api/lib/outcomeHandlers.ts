@@ -3,6 +3,7 @@ import { fetchContact, type GhlContext } from "../../lib/ghl";
 import { logErrorBestEffort } from "../../lib/errorLog";
 import { dateStringInZone, zonedTimeToUtcMs } from "../../lib/tz";
 import { cancelAppointment, createAppointment, getCalendar, getFreeSlots, listCalendarEvents, rescheduleAppointment } from "./appointments";
+import { composioUserId, mirrorAppointment, unmirrorAppointment } from "../../lib/googleCalendar";
 import { outcomeMessagePage, slotDate, slotEnd } from "../../lib/estimateOutcome";
 import { fetchContactAppointments, reportSaleToMeta } from "../../lib/estimateOutcomeGhl";
 import { formatWhen, resolveOutcomeLink, type OutcomeLink } from "../../lib/estimateOutcomeLink";
@@ -276,6 +277,12 @@ export function outcomeHandlers(purpose: string, opts: { call?: CallStarter; goo
 
     const { client, gctx, tenantId, contactId, calendars, zone } = link;
     const now = Date.now();
+    // The owner's Google Calendar follows each booking, move and cancel (Jake,
+    // 2026-10-28), straight away rather than waiting on GHL's webhook. Keyed by
+    // the GHL appointment id, so the webhook's copy lands on the same event.
+    const calendarUser = composioUserId({ slug: link.slug, mode: "live" });
+    const toCalendar = (job: Promise<unknown>) =>
+      ctx.waitUntil(job.catch((err) => console.error("[outcome] google calendar copy failed", err)));
     const [contact, prev] = await Promise.all([fetchContact(gctx, contactId), loadRow(link)]);
     if (!contact) return fail("This lead is not in the account any more.", 404);
     const name = contactName(contact);
@@ -316,6 +323,16 @@ export function outcomeHandlers(purpose: string, opts: { call?: CallStarter; goo
         }
         appointmentId = made.id || null;
       }
+      if (appointmentId) {
+        toCalendar(
+          mirrorAppointment(ctx.env, calendarUser, {
+            appointmentId,
+            title: `${input.outcome === "estimate_booked" ? "Estimate" : "Job"}: ${name}`,
+            startIso: input.slot,
+            endIso: end,
+          }),
+        );
+      }
       if (input.outcome === "job_closed") jobAppointmentId = appointmentId;
       await saveAnswers(gctx, contactId, input.form, await formFieldIds(gctx)).catch((err) =>
         logErrorBestEffort(ctx.env, "outcome", `form fields: ${String(err).slice(0, 200)}`, { contactId }),
@@ -333,13 +350,17 @@ export function outcomeHandlers(purpose: string, opts: { call?: CallStarter; goo
     if (input.outcome === "job_rescheduled") {
       if (!jobAppointmentId || !calendars.job) return fail("No job booked for this lead.");
       const meta = await getCalendar(gctx, calendars.job.id);
-      const moved = await rescheduleAppointment(
-        gctx,
-        jobAppointmentId,
-        input.slot,
-        slotEnd(input.slot, meta?.slotDuration, meta?.slotDurationUnit),
-      );
+      const end = slotEnd(input.slot, meta?.slotDuration, meta?.slotDurationUnit);
+      const moved = await rescheduleAppointment(gctx, jobAppointmentId, input.slot, end);
       if (!moved.ok) return fail("That time is not free any more. Pick another.");
+      toCalendar(
+        mirrorAppointment(ctx.env, calendarUser, {
+          appointmentId: jobAppointmentId,
+          title: `Job: ${name}`,
+          startIso: input.slot,
+          endIso: end,
+        }),
+      );
       detail = ` Job moved to ${formatWhen(input.slot, zone)}.`;
     }
     if (input.outcome === "job_done") detail = ` ${money(input.amountCents)}.`;
@@ -351,7 +372,10 @@ export function outcomeHandlers(purpose: string, opts: { call?: CallStarter; goo
     // appointment cancelled, the job off Revenue.
     if (!KEEPS_JOB.includes(input.outcome) && (prevKeptJob || input.outcome === "job_cancelled")) {
       if (customerJobId) await client.from("customer_jobs").delete().eq("id", customerJobId);
-      if (jobAppointmentId) await cancelAppointment(gctx, jobAppointmentId);
+      if (jobAppointmentId) {
+        await cancelAppointment(gctx, jobAppointmentId);
+        toCalendar(unmirrorAppointment(ctx.env, calendarUser, jobAppointmentId));
+      }
       customerJobId = null;
       jobAppointmentId = null;
     }

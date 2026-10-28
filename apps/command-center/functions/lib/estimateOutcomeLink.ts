@@ -19,6 +19,8 @@ const FALLBACK_ZONE = "America/New_York";
 export interface OutcomeLink {
   client: SupabaseClient;
   tenantId: string;
+  // For the owner's Google Calendar copy (googleCalendar.composioUserId).
+  slug: string;
   gctx: GhlContext;
   contactId: string;
   appointmentId: string | null;
@@ -48,7 +50,7 @@ export async function resolveOutcomeLink(
 
   const { data: tenant } = await client
     .from("tenants")
-    .select("id, ghl_location_id, ghl_token, meta_timezone")
+    .select("id, slug, ghl_location_id, ghl_token, meta_timezone")
     .eq("ghl_location_id", params.locationId)
     .maybeSingle();
   if (!tenant) return bad;
@@ -63,6 +65,7 @@ export async function resolveOutcomeLink(
   return {
     client,
     tenantId: String(tenant.id),
+    slug: String(tenant.slug),
     gctx,
     contactId: params.contactId,
     appointmentId: /^[A-Za-z0-9]{8,64}$/.test(a) ? a : null,
