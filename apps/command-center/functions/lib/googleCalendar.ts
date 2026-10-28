@@ -274,17 +274,7 @@ export async function unmirrorAppointment(
   const conn = await getConnection(env, tenantUserId);
   if (!conn.connected || !conn.accountId) return { removed: false };
   try {
-    const found = await executeTool<{ items?: { id?: string }[] }>(
-      env,
-      "GOOGLECALENDAR_EVENTS_LIST",
-      tenantUserId,
-      {
-        calendarId: "primary",
-        privateExtendedProperty: `${APPT_KEY}=${appointmentId}`,
-        maxResults: 1,
-      },
-    );
-    const id = found?.items?.[0]?.id ?? "";
+    const id = await findMirroredEvent(env, conn.accountId, appointmentId);
     if (!id) return { removed: false };
     await proxyCall(env, {
       connectedAccountId: conn.accountId,
@@ -307,6 +297,22 @@ export async function unmirrorAppointment(
 // write tool exposes extendedProperties, though EVENTS_LIST can filter on it.
 // The alternative would be storing a mapping table, which this build avoids.
 const APPT_KEY = "hmlAppointmentId";
+
+// The Google event mirrored from a GHL appointment, by our private marker, or
+// "" when there is none. Straight to Google through the proxy: Composio's
+// GOOGLECALENDAR_EVENTS_LIST tool takes privateExtendedProperty and drops it,
+// returning nothing for an event that carries the marker (Clear Choice,
+// 2026-10-28), so every reschedule and webhook replay used to add a duplicate
+// and a cancel never found the event to remove.
+async function findMirroredEvent(env: Env, connectedAccountId: string, appointmentId: string): Promise<string> {
+  const q = new URLSearchParams({ privateExtendedProperty: `${APPT_KEY}=${appointmentId}`, maxResults: "1" });
+  const found = await proxyCall<{ items?: { id?: string }[] }>(env, {
+    connectedAccountId,
+    endpoint: `/calendars/primary/events?${q}`,
+    method: "GET",
+  });
+  return found?.items?.[0]?.id ?? "";
+}
 
 export interface MirrorInput {
   appointmentId: string;
@@ -337,17 +343,7 @@ export async function mirrorAppointment(
 
   let existingId = "";
   try {
-    const found = await executeTool<{ items?: { id?: string }[] }>(
-      env,
-      "GOOGLECALENDAR_EVENTS_LIST",
-      tenantUserId,
-      {
-        calendarId: "primary",
-        privateExtendedProperty: `${APPT_KEY}=${appt.appointmentId}`,
-        maxResults: 1,
-      },
-    );
-    existingId = found?.items?.[0]?.id ?? "";
+    existingId = await findMirroredEvent(env, conn.accountId, appt.appointmentId);
   } catch {
     // Lookup failure falls through to create. A duplicate event is a much
     // smaller problem than a booking that never reaches the client's calendar.

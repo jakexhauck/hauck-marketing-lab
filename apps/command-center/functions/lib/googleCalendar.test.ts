@@ -9,6 +9,7 @@ import {
   composioUserId,
   mirrorAppointment,
   parseSyncableBusy,
+  unmirrorAppointment,
 } from "./googleCalendar";
 
 // Mock the transport wholesale rather than spying: the domain layer imports
@@ -246,6 +247,19 @@ describe("mirrorAppointment", () => {
     endIso: "2026-07-20T11:00:00-04:00",
     location: "Rochester Hills, 48307",
   };
+  const linked = () =>
+    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([{ id: "ca_1", status: "ACTIVE" }]);
+  // The lookup and the write both go through the proxy; answer each by method.
+  const google = (found: { id: string }[] | Error, write: unknown = {}) =>
+    vi.mocked(composio.proxyCall).mockImplementation(async (_env, opts) => {
+      if (opts.method === "GET") {
+        if (found instanceof Error) throw found;
+        return { items: found } as never;
+      }
+      if (write instanceof Error) throw write;
+      return write as never;
+    });
+  const writes = () => vi.mocked(composio.proxyCall).mock.calls.map((c) => c[1]).filter((o) => o.method !== "GET");
 
   it("does nothing when the client has not linked a calendar", async () => {
     vi.mocked(composio.listConnectedAccounts).mockResolvedValue([]);
@@ -254,15 +268,10 @@ describe("mirrorAppointment", () => {
   });
 
   it("creates a new event stamped with the appointment id", async () => {
-    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([
-      { id: "ca_1", status: "ACTIVE" },
-    ]);
-    vi.mocked(composio.executeTool).mockResolvedValue({ items: [] } as never);
-    vi.mocked(composio.proxyCall).mockResolvedValue({} as never);
-
+    linked();
+    google([]);
     expect(await mirrorAppointment(env, "live:willis", appt)).toEqual({ mirrored: true });
-
-    const call = vi.mocked(composio.proxyCall).mock.calls[0][1];
+    const [call] = writes();
     expect(call.method).toBe("POST");
     expect(call.endpoint).toBe("/calendars/primary/events");
     expect((call.body as Record<string, unknown>).extendedProperties).toEqual({
@@ -271,59 +280,58 @@ describe("mirrorAppointment", () => {
   });
 
   it("moves the existing event on reschedule instead of creating a duplicate", async () => {
-    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([
-      { id: "ca_1", status: "ACTIVE" },
-    ]);
-    vi.mocked(composio.executeTool).mockResolvedValue({
-      items: [{ id: "gcal-event-1" }],
-    } as never);
-    vi.mocked(composio.proxyCall).mockResolvedValue({} as never);
-
+    linked();
+    google([{ id: "gcal-event-1" }]);
     await mirrorAppointment(env, "live:willis", appt);
-
-    const call = vi.mocked(composio.proxyCall).mock.calls[0][1];
+    const [call] = writes();
     expect(call.method).toBe("PATCH");
     expect(call.endpoint).toContain("gcal-event-1");
   });
 
-  it("looks the event up by our private marker, not by title", async () => {
-    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([
-      { id: "ca_1", status: "ACTIVE" },
-    ]);
-    vi.mocked(composio.executeTool).mockResolvedValue({ items: [] } as never);
-    vi.mocked(composio.proxyCall).mockResolvedValue({} as never);
-
+  // Composio's GOOGLECALENDAR_EVENTS_LIST tool takes privateExtendedProperty
+  // and drops it: it returned nothing for an event carrying the marker, while
+  // the same filter straight to Google found it (Clear Choice, 2026-10-28). So
+  // no mirrored event was ever found again, and every update made a duplicate.
+  it("looks the event up by our private marker straight against Google", async () => {
+    linked();
+    google([]);
     await mirrorAppointment(env, "live:willis", appt);
-
-    expect(composio.executeTool).toHaveBeenCalledWith(
-      env,
-      "GOOGLECALENDAR_EVENTS_LIST",
-      "live:willis",
-      expect.objectContaining({
-        privateExtendedProperty: "hmlAppointmentId=appt-1",
-      }),
-    );
+    const lookup = vi.mocked(composio.proxyCall).mock.calls[0][1];
+    expect(lookup).toMatchObject({ connectedAccountId: "ca_1", method: "GET" });
+    expect(lookup.endpoint).toBe("/calendars/primary/events?privateExtendedProperty=hmlAppointmentId%3Dappt-1&maxResults=1");
+    expect(composio.executeTool).not.toHaveBeenCalled();
   });
 
   it("still creates the event when the lookup fails", async () => {
-    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([
-      { id: "ca_1", status: "ACTIVE" },
-    ]);
-    vi.mocked(composio.executeTool).mockRejectedValue(new Error("throttled"));
-    vi.mocked(composio.proxyCall).mockResolvedValue({} as never);
-
+    linked();
+    google(new Error("throttled"));
     expect(await mirrorAppointment(env, "live:willis", appt)).toEqual({ mirrored: true });
-    expect(vi.mocked(composio.proxyCall).mock.calls[0][1].method).toBe("POST");
+    expect(writes()[0].method).toBe("POST");
   });
 
   it("reports failure rather than throwing when the write fails", async () => {
-    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([
-      { id: "ca_1", status: "ACTIVE" },
-    ]);
-    vi.mocked(composio.executeTool).mockResolvedValue({ items: [] } as never);
-    vi.mocked(composio.proxyCall).mockRejectedValue(new Error("denied"));
-
+    linked();
+    google([], new Error("denied"));
     expect(await mirrorAppointment(env, "live:willis", appt)).toEqual({ mirrored: false });
+  });
+});
+
+describe("unmirrorAppointment", () => {
+  it("deletes the event carrying the appointment's marker", async () => {
+    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([{ id: "ca_1", status: "ACTIVE" }]);
+    vi.mocked(composio.proxyCall).mockImplementation(async (_env, opts) =>
+      (opts.method === "GET" ? { items: [{ id: "gcal-event-1" }] } : {}) as never,
+    );
+    expect(await unmirrorAppointment(env, "live:willis", "appt-1")).toEqual({ removed: true });
+    const del = vi.mocked(composio.proxyCall).mock.calls[1][1];
+    expect(del).toMatchObject({ method: "DELETE", endpoint: "/calendars/primary/events/gcal-event-1" });
+  });
+
+  it("removes nothing when no event carries the marker", async () => {
+    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([{ id: "ca_1", status: "ACTIVE" }]);
+    vi.mocked(composio.proxyCall).mockResolvedValue({ items: [] } as never);
+    expect(await unmirrorAppointment(env, "live:willis", "appt-1")).toEqual({ removed: false });
+    expect(composio.proxyCall).toHaveBeenCalledTimes(1);
   });
 });
 
