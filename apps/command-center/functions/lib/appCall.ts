@@ -39,6 +39,18 @@ async function keyedWorkflows(gctx: GhlContext): Promise<GhlWorkflowSummary[]> {
   return (res.workflows ?? []).map((w) => ({ ...w, name: workflowKey(w.name ?? "") }));
 }
 
+// Comfort Wizards (2026-10-29) has neither a Dialer App Call nor a Tracking
+// workflow, yet its sub-account has the `dialer app call` tag: the dialer was
+// set up as a Tag Added trigger in a workflow named for something else. The tag
+// existing in the sub-account is taken as the sign that something listens.
+async function hasDialerTag(gctx: GhlContext): Promise<boolean> {
+  const res = await ghlJson<{ tags?: { name?: string }[] }>(
+    gctx,
+    `/locations/${encodeURIComponent(gctx.locationId)}/tags`,
+  );
+  return (res.tags ?? []).some((t) => workflowKey(t.name ?? "") === workflowKey(DIALER_CALL_TAG));
+}
+
 export async function startAppCall(gctx: GhlContext, contactId: string): Promise<AppCallResult> {
   let keyed: GhlWorkflowSummary[];
   try {
@@ -53,16 +65,24 @@ export async function startAppCall(gctx: GhlContext, contactId: string): Promise
   }
   if (!pick.ok && pick.error === "workflow_missing") {
     const tracking = pickBridgeWorkflow(keyed, workflowKey(TRACKING_WORKFLOW));
-    if (tracking.ok) {
+    if (!tracking.ok && tracking.error === "workflow_draft") {
+      return { ok: false, message: `"${TRACKING_WORKFLOW}" is in draft in this sub-account. Publish it.` };
+    }
+    let tagged = tracking.ok;
+    if (!tagged) {
+      try {
+        tagged = await hasDialerTag(gctx);
+      } catch (err) {
+        return { ok: false, message: `Could not read the tags: ${readableError(err)}` };
+      }
+    }
+    if (tagged) {
       try {
         await fireCallTag(gctx, contactId, DIALER_CALL_TAG);
       } catch (err) {
         return { ok: false, message: `Could not start the call: ${readableError(err)}` };
       }
       return { ok: true };
-    }
-    if (tracking.error === "workflow_draft") {
-      return { ok: false, message: `"${TRACKING_WORKFLOW}" is in draft in this sub-account. Publish it.` };
     }
   }
   if (!pick.ok) {

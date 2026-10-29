@@ -26,6 +26,14 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-29-comfort-wizards-dialer-call",
+    date: "29 October 2026",
+    title: "Call works on Comfort Wizards",
+    items: [
+      "Call in Client > Setting rings you on Comfort Wizards. It adds the dialer app call tag wherever the sub-account has that tag set up, not only where a Tracking workflow exists.",
+    ],
+  },
+  {
     id: "2026-10-29-leads-count-people",
     date: "29 October 2026",
     title: "Leads count people, not Meta echoes",

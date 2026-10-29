@@ -28,6 +28,15 @@ describe("startAppCall", () => {
     expect(fireCallTag).not.toHaveBeenCalled();
   });
 
+  it("tags dialer app call where a workflow listens for the tag but none is named for it (Comfort Wizards)", async () => {
+    ghlJson
+      .mockResolvedValueOnce({ workflows: [{ id: "wfClient01", name: "\u{1F4BB} Client App Call", status: "published" }] })
+      .mockResolvedValueOnce({ tags: [{ name: "call now" }, { name: "client app call" }, { name: "dialer app call" }] });
+    expect(await startAppCall(gctx, "contact001")).toEqual({ ok: true });
+    expect(ghlJson.mock.calls[1][1]).toBe("/locations/loc12345/tags");
+    expect(fireCallTag).toHaveBeenCalledWith(gctx, "contact001", "dialer app call");
+  });
+
   it("enrols the lead in the published App Call workflow", async () => {
     ghlJson
       .mockResolvedValueOnce({
@@ -65,17 +74,28 @@ describe("startAppCall", () => {
   });
 
   it("never rings the owner through Client App Call", async () => {
-    ghlJson.mockResolvedValueOnce({ workflows: [{ id: "wfClient01", name: "Client App Call", status: "published" }] });
+    ghlJson
+      .mockResolvedValueOnce({ workflows: [{ id: "wfClient01", name: "Client App Call", status: "published" }] })
+      .mockResolvedValueOnce({ tags: [{ name: "client app call" }] });
     expect(await startAppCall(gctx, "contact001")).toEqual({ ok: false, message: 'No "Dialer App Call" workflow in this sub-account.' });
+    expect(fireCallTag).not.toHaveBeenCalled();
   });
 
   it("says so when the workflow is missing or in draft", async () => {
-    ghlJson.mockResolvedValueOnce({ workflows: [] });
+    ghlJson.mockResolvedValueOnce({ workflows: [] }).mockResolvedValueOnce({ tags: [] });
     expect(await startAppCall(gctx, "contact001")).toEqual({ ok: false, message: 'No "Dialer App Call" workflow in this sub-account.' });
     ghlJson.mockResolvedValueOnce({ workflows: [{ id: "wfDraft01", name: "App Call", status: "draft" }] });
     const res = await startAppCall(gctx, "contact001");
     expect(res.ok).toBe(false);
-    expect(ghlJson).toHaveBeenCalledTimes(2);
+    expect(ghlJson).toHaveBeenCalledTimes(3);
+    expect(fireCallTag).not.toHaveBeenCalled();
+  });
+
+  it("says so when the tags cannot be read", async () => {
+    ghlJson.mockResolvedValueOnce({ workflows: [] }).mockRejectedValueOnce(new Error("GHL 401"));
+    const res = await startAppCall(gctx, "contact001");
+    expect(res.ok).toBe(false);
+    expect(res.ok === false && res.message).toMatch(/^Could not read the tags/);
   });
 });
 
