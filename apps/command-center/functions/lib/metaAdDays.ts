@@ -15,8 +15,8 @@ import { actionsValue, scheduleValue, UNIFIED_ATTRIBUTION } from "./metaActions"
 import { dateStringInZone } from "./tz";
 import type { TrackerSpendRow } from "./adTrackerMetrics";
 
-// The 11 fields we ask Meta for. Same set the Make scenario used, minus cpm,
-// plus `actions`.
+// The fields we ask Meta for. Same set the Make scenario used, minus cpm, plus
+// `actions` and `optimization_goal`.
 //
 // adset_id is the reason this table is worth having: GHL has no ad set id, so
 // this snapshot is what resolves ad -> ad set -> campaign.
@@ -24,6 +24,10 @@ import type { TrackerSpendRow } from "./adTrackerMetrics";
 // `actions` was added 2026-08-13 and is the whole point of the rebuild. Without
 // it the snapshot carried spend and no conversions, so the dashboard's Leads
 // figure had to be invented from the CRM, and Willis read 6 against Meta's 51.
+//
+// `optimization_goal` (2026-10-29) is what tells an Instant Form ad's pixel
+// Leads apart from a landing page ad's. Without it Comfort Wizards stored 7
+// leads for 5 people. See ON_FACEBOOK_LEAD_GOALS in lib/metaActions.ts.
 export const INSIGHT_FIELDS = [
   "ad_id",
   "ad_name",
@@ -31,6 +35,7 @@ export const INSIGHT_FIELDS = [
   "adset_name",
   "campaign_id",
   "campaign_name",
+  "optimization_goal",
   "spend",
   "impressions",
   "reach",
@@ -64,6 +69,7 @@ export interface MetaInsightRow {
   adset_name?: string;
   campaign_id?: string;
   campaign_name?: string;
+  optimization_goal?: string;
   spend?: string;
   impressions?: string;
   reach?: string;

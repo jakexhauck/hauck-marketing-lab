@@ -8,7 +8,7 @@ import softwareSource from "./grokSoftware.ts?raw";
 import { audited, botName, connectorOf, handleBody, handleRpc, isGrokMcpRequest, loggablePath, matchClient, MAX_TOOL_TEXT, type ToolDef } from "./grokMcp";
 import { CONNECTORS } from "./grokConnectors";
 import { ghlMethod, ghlUrl, GHL_ORIGIN, locationIdOf, notClientSubAccounts, pickSubAccount } from "./grokGhl";
-import { leadsFrom } from "./grokMeta";
+import { leadsFor } from "./grokMeta";
 import { LOGIN_PAGES, loginEmail, loginRole, pageGrants, pickLogin, problemsOnly, splitConnections } from "./grokSoftware";
 
 const KEY = "k".repeat(40);
@@ -250,10 +250,22 @@ describe("the GHL connector", () => {
 });
 
 describe("the Meta connector", () => {
-  it("leads: takes the first lead type present, never a sum", () => {
-    expect(leadsFrom([{ action_type: "lead", value: "4" }, { action_type: "onsite_conversion.lead_grouped", value: "4" }])).toBe(4);
-    expect(leadsFrom([{ action_type: "offsite_conversion.fb_pixel_lead", value: "2" }])).toBe(2);
-    expect(leadsFrom(undefined)).toBe(0);
+  it("leads: the shared rule, so the bot and the dashboard agree", () => {
+    const echo = (form: number, pixel: number) => [
+      { action_type: "lead", value: String(form + pixel) },
+      { action_type: "onsite_conversion.lead_grouped", value: String(form) },
+      { action_type: "offsite_conversion.fb_pixel_lead", value: String(pixel) },
+    ];
+    const sets = [
+      { campaign_id: "c1", optimization_goal: "LEAD_GENERATION", actions: echo(5, 2) },
+      { campaign_id: "c2", optimization_goal: "OFFSITE_CONVERSIONS", actions: [{ action_type: "lead", value: "3" }] },
+    ];
+    // Ad rows carry their own goal; account and campaign rows are summed from
+    // the ad sets, since their own line still holds the CAPI echo.
+    expect(leadsFor("ad", { optimization_goal: "LEAD_GENERATION", actions: echo(5, 2) }, [])).toBe(5);
+    expect(leadsFor("account", { actions: echo(5, 5) }, sets)).toBe(8);
+    expect(leadsFor("campaign", { campaign_id: "c1", actions: echo(5, 2) }, sets)).toBe(5);
+    expect(leadsFor("campaign", { campaign_id: "c3" }, sets)).toBe(0);
   });
 
   it("creates only, always paused", () => {

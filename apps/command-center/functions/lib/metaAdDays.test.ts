@@ -3,6 +3,7 @@ import {
   buildAdDayUpserts,
   toSpendRows,
   AD_DAY_COLUMNS,
+  INSIGHT_FIELDS,
   type MetaInsightRow,
 } from "./metaAdDays";
 
@@ -62,6 +63,29 @@ describe("buildAdDayUpserts", () => {
     // it in the database, where it would outlive the fix.
     const [row] = buildAdDayUpserts([insight()], TENANT);
     expect(row.leads).toBe(4);
+  });
+
+  // Clear Choice, Billboard - Local Trust, 2026-10-28: one Instant Form lead,
+  // echoed back to Meta as a server Lead by the client's GHL CAPI workflow.
+  it("stores an Instant Form ad's form leads, never the CAPI echo", () => {
+    const [row] = buildAdDayUpserts(
+      [
+        insight({
+          optimization_goal: "LEAD_GENERATION",
+          actions: [
+            { action_type: "lead", value: "2" },
+            { action_type: "onsite_conversion.lead_grouped", value: "1" },
+            { action_type: "offsite_conversion.fb_pixel_lead", value: "1" },
+          ],
+        }),
+      ],
+      TENANT,
+    );
+    expect(row.leads).toBe(1);
+  });
+
+  it("asks Meta for each ad's goal, which decides how its leads count", () => {
+    expect(INSIGHT_FIELDS.split(",")).toContain("optimization_goal");
   });
 
   it("records no leads for an ad Meta reported no conversions on", () => {

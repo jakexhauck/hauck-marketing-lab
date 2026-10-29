@@ -2,7 +2,7 @@ import type { Env } from "./env";
 import type { GhlContext } from "./ghl";
 import { adRevenueThisMonth } from "./adsRevenue";
 import { graphGet, graphGetAll } from "./metaGraph";
-import { actionsValue, UNIFIED_ATTRIBUTION } from "./metaActions";
+import { actionsValue, sumLeads, UNIFIED_ATTRIBUTION } from "./metaActions";
 import { resolveMetaToken } from "./metaToken";
 
 // The conversion-counting rollup moved to lib/metaActions.ts on 2026-08-13, so
@@ -121,7 +121,7 @@ export const EMPTY_TOTALS = {
   impressions: 0, reach: 0, frequency: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0,
 };
 
-// Bucket daily insights rows into up-to-5 "Week N" leads totals for the month.
+// Bucket daily ad set rows into up-to-5 "Week N" leads totals for the month.
 function bucketWeekly(daily: Record<string, unknown>[]): { label: string; value: number }[] {
   const weeks = new Map<number, number>();
   for (const row of daily) {
@@ -249,7 +249,9 @@ export async function buildAdsInsights(
   // cache at each month boundary (spend + revenue are both this-month). Skipped
   // gracefully when no KV binding is present.
   const monthKey = new Date().toISOString().slice(0, 7);
-  const cacheKey = `ads:insights:v2:${account}:${ctx.ghlLocationId}:${monthKey}`;
+  // v3 (2026-10-29): leads stopped counting the CAPI echo of Instant Form
+  // leads, so a cached v2 payload holds the inflated figure.
+  const cacheKey = `ads:insights:v3:${account}:${ctx.ghlLocationId}:${monthKey}`;
   const kv = env.KV_CACHE;
   if (kv) {
     const cached = await kv.get(cacheKey);
@@ -260,12 +262,15 @@ export async function buildAdsInsights(
     const totalsResp = await graphGet(token, `/${account}/insights`, {
       level: "account",
       date_preset: "this_month",
-      fields: "spend,impressions,clicks,ctr,cpc,cpm,reach,frequency,actions",
+      fields: "spend,impressions,clicks,ctr,cpc,cpm,reach,frequency",
       ...UNIFIED_ATTRIBUTION,
     });
+    // Spend, reach and the rates off the account line. Leads are NOT read off
+    // it: the account line carries the CAPI echo of Instant Form leads, so the
+    // total is summed from the ad rows below, each counted by its own goal
+    // (lib/metaActions.ts, ON_FACEBOOK_LEAD_GOALS).
     const trow = (((totalsResp.data as unknown[]) ?? [])[0] ?? {}) as Record<string, unknown>;
     const spend = num(trow.spend);
-    const leads = actionsValue(trow, "actions");
 
     // The GHL join: this month's ad-won customers + revenue. A GHL failure must
     // never sink the Meta numbers, so degrade to honest zeros on any error.
@@ -285,12 +290,15 @@ export async function buildAdsInsights(
     // Every insights call carries the account's own attribution setting, as the
     // snapshot does, and the per-ad lists are read to the last page (strict):
     // a single `limit: 200` page quietly dropped every ad past the 200th.
-    const [lastResp, dailyResp, adInsRows, adMetaRows] = await Promise.all([
-      graphGet(token, `/${account}/insights`, { level: "account", date_preset: "last_month", fields: "actions", ...UNIFIED_ATTRIBUTION }),
-      graphGet(token, `/${account}/insights`, { level: "account", date_preset: "this_month", time_increment: "1", fields: "actions,date_start", ...UNIFIED_ATTRIBUTION }),
-      graphGetAll(token, `/${account}/insights`, { level: "ad", date_preset: "this_month", fields: "ad_id,ad_name,spend,reach,actions", limit: "200", ...UNIFIED_ATTRIBUTION }, 25, { strict: true }),
+    // Every lead figure is read per ad or ad set with its optimization_goal, for
+    // the reason above.
+    const [lastRows, dailyRows, adInsRows, adMetaRows] = await Promise.all([
+      graphGetAll(token, `/${account}/insights`, { level: "adset", date_preset: "last_month", fields: "optimization_goal,actions", limit: "200", ...UNIFIED_ATTRIBUTION }, 25, { strict: true }),
+      graphGetAll(token, `/${account}/insights`, { level: "adset", date_preset: "this_month", time_increment: "1", fields: "optimization_goal,actions,date_start", limit: "500", ...UNIFIED_ATTRIBUTION }, 25, { strict: true }),
+      graphGetAll(token, `/${account}/insights`, { level: "ad", date_preset: "this_month", fields: "ad_id,ad_name,optimization_goal,spend,reach,actions", limit: "200", ...UNIFIED_ATTRIBUTION }, 25, { strict: true }),
       graphGetAll(token, `/${account}/ads`, { fields: "id,name,effective_status,creative{title,body,object_story_spec,image_url,thumbnail_url},campaign{name},adset{name}", limit: "200" }, 25, { strict: true }),
     ]);
+    const leads = sumLeads(adInsRows);
 
     // Campaign phase from ad-set learning status (best-effort; never sinks the call).
     let phase: "learning" | "scaling" | null = null;
@@ -308,14 +316,21 @@ export async function buildAdsInsights(
     let fb = 0;
     let ig = 0;
     try {
-      const platResp = await graphGet(token, `/${account}/insights`, {
-        level: "account",
-        date_preset: "this_month",
-        breakdowns: "publisher_platform",
-        fields: "actions",
-        ...UNIFIED_ATTRIBUTION,
-      });
-      for (const row of ((platResp.data as Record<string, unknown>[]) ?? [])) {
+      const platRows = await graphGetAll(
+        token,
+        `/${account}/insights`,
+        {
+          level: "adset",
+          date_preset: "this_month",
+          breakdowns: "publisher_platform",
+          fields: "optimization_goal,actions",
+          limit: "200",
+          ...UNIFIED_ATTRIBUTION,
+        },
+        25,
+        { strict: true },
+      );
+      for (const row of platRows) {
         const v = actionsValue(row, "actions");
         if (row.publisher_platform === "instagram") ig += v;
         else if (row.publisher_platform === "facebook") fb += v;
@@ -324,10 +339,7 @@ export async function buildAdsInsights(
       // leave fb/ig at 0
     }
 
-    const lastMonthLeads = actionsValue(
-      (((lastResp.data as unknown[]) ?? [])[0] ?? {}) as Record<string, unknown>,
-      "actions",
-    );
+    const lastMonthLeads = sumLeads(lastRows);
 
     const payload: AdsInsightsResponse = {
       configured: true,
@@ -349,7 +361,7 @@ export async function buildAdsInsights(
         cpm: round2(num(trow.cpm)),
       },
       lastMonthLeads: Math.round(lastMonthLeads),
-      weekly: bucketWeekly((dailyResp.data as Record<string, unknown>[]) ?? []),
+      weekly: bucketWeekly(dailyRows),
       sources: { fb: Math.round(fb), ig: Math.round(ig) },
       ads: buildAds(adInsRows, adMetaRows),
       phase,

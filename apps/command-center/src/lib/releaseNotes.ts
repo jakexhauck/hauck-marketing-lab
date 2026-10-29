@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-29-leads-count-people",
+    date: "29 October 2026",
+    title: "Leads count people, not Meta echoes",
+    items: [
+      "Leads on every Paid Ads page now match Ads Manager's Results and the people in the Lead Tracker. When a client's GHL sends a new Instant Form lead back to Meta, Meta was counting that person twice: Comfort Wizards read 7 for 5 people, Clear Choice 9 for 8.",
+      "Past days are corrected too, so Willis's July Lead Form numbers drop by 5.",
+    ],
+  },
+  {
     id: "2026-10-28-grok-meta-full-access",
     date: "28 October 2026",
     title: "Grok Bots get all of Meta",

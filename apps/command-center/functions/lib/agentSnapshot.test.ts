@@ -2,26 +2,42 @@ import { describe, it, expect } from "vitest";
 import { checklistCounts, metaWeek, redCount, stuckInNew } from "./agentSnapshot";
 
 describe("metaWeek", () => {
+  const account = { spend: "120.50", frequency: "2.4" };
+
   it("cost per lead from spend and Meta's lead roll-up", () => {
-    const row = {
-      spend: "120.50",
-      frequency: "2.4",
-      actions: [
-        { action_type: "lead", value: "10" },
-        { action_type: "offsite_conversion.fb_pixel_lead", value: "7" },
-        { action_type: "onsite_conversion.lead_grouped", value: "3" },
-      ],
-    };
+    const sets = [
+      {
+        actions: [
+          { action_type: "lead", value: "10" },
+          { action_type: "offsite_conversion.fb_pixel_lead", value: "7" },
+          { action_type: "onsite_conversion.lead_grouped", value: "3" },
+        ],
+      },
+    ];
     // 10 leads, not 20: the roll-up is taken, not the sum of its parts.
-    expect(metaWeek(row)).toEqual({ cpl: 12.05, frequency: 2.4, leads7d: 10 });
+    expect(metaWeek(account, sets)).toEqual({ cpl: 12.05, frequency: 2.4, leads7d: 10 });
+  });
+
+  it("an Instant Form ad set counts its form leads, not the CAPI echo", () => {
+    const sets = [
+      {
+        optimization_goal: "LEAD_GENERATION",
+        actions: [
+          { action_type: "lead", value: "7" },
+          { action_type: "onsite_conversion.lead_grouped", value: "5" },
+          { action_type: "offsite_conversion.fb_pixel_lead", value: "2" },
+        ],
+      },
+    ];
+    expect(metaWeek(account, sets)).toEqual({ cpl: 24.1, frequency: 2.4, leads7d: 5 });
   });
 
   it("no leads means no cost per lead, never a divide by zero", () => {
-    expect(metaWeek({ spend: "40", frequency: "1.1", actions: [] })).toEqual({ cpl: null, frequency: 1.1, leads7d: 0 });
+    expect(metaWeek({ spend: "40", frequency: "1.1" }, [])).toEqual({ cpl: null, frequency: 1.1, leads7d: 0 });
   });
 
   it("no delivery at all reads as unknown", () => {
-    expect(metaWeek(null)).toEqual({ cpl: null, frequency: null, leads7d: 0 });
+    expect(metaWeek(null, [])).toEqual({ cpl: null, frequency: null, leads7d: 0 });
   });
 });
 

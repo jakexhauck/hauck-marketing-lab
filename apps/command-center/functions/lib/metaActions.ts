@@ -97,11 +97,42 @@ function num(v: unknown): number {
   return 0;
 }
 
+// The Instant Form goals. An ad set on one of these never sends anybody to a
+// website, so every person it produced is an on-Facebook lead, and a pixel Lead
+// Meta pins on it is somebody it already counted.
+//
+// Where those pixel Leads come from: the client's GHL CAPI workflow sends every
+// new lead back to Meta as a server Lead, and Meta matches it to the ad that
+// produced the form fill and adds it to the `lead` roll-up. Comfort Wizards,
+// last 30 days to 2026-10-29: roll-up 7, form leads 5, five people in GHL.
+// Clear Choice: 9, 8, 8. Ads Manager's Results column says 5 and 8.
+//
+// Meta's `results` field would settle it, but it is still empty for every
+// Instant Form ad set (v23, 2026-10-29), so the goal decides instead.
+export const ON_FACEBOOK_LEAD_GOALS = new Set(["LEAD_GENERATION", "QUALITY_LEAD"]);
+
+const FORM_GROUPS: { rollup: string; parts: string[] }[] = [
+  { rollup: "onsite_conversion.lead_grouped", parts: [] },
+];
+
 // Sum the values of the conversion action types in an insights row's `actions`
 // (count) or `action_values` (revenue) array, counting each conversion once.
 // See ACTION_GROUPS for why "once" needs saying.
+//
+// Only a row that names its `optimization_goal` (ad or ad set level) can be
+// counted right on an Instant Form account. An account or campaign row mixes
+// goals and still carries the echo, so totals are summed from ad set rows with
+// sumLeads, never read off the account line.
 export function actionsValue(row: Record<string, unknown>, key: string): number {
-  return groupedValue(row, key, ACTION_GROUPS);
+  const goal = typeof row.optimization_goal === "string" ? row.optimization_goal : "";
+  return groupedValue(row, key, ON_FACEBOOK_LEAD_GOALS.has(goal) ? FORM_GROUPS : ACTION_GROUPS);
+}
+
+// Leads across ad or ad set rows, each counted by its own goal.
+export function sumLeads(rows: Record<string, unknown>[]): number {
+  let total = 0;
+  for (const row of rows) total += actionsValue(row, "actions");
+  return total;
 }
 
 // Booked appointments Meta reported for this row. Zero for a client whose

@@ -19,12 +19,18 @@ import { selectAllPages } from "./pagedSelect";
 // disagree, compare again, and record the verdict. A day still wrong after the
 // repair is a real problem and goes to error_log, which alarms.
 //
-// Compared: spend (to the cent, allowing only for per-ad rounding),
+// Compared: spend (to the cent, allowing only for per-row rounding),
 // impressions, link clicks and leads (exact). Reach is not additive across ads
 // or days, so no sum of ours can be held to Meta's.
+//
+// Meta's side is its per-AD-SET daily rows, not the account line, since
+// 2026-10-29. The account line carries the CAPI echo of Instant Form leads
+// (lib/metaActions.ts, ON_FACEBOOK_LEAD_GOALS) and cannot say which of its
+// leads are echoes; an ad set row names its goal. Still Meta's arithmetic,
+// still independent of our ad rows.
 
 // How far back the check reaches. Meta keeps 37 months; a year and a bit covers
-// every Hauck client's whole ad history, in one or two Graph pages.
+// every Hauck client's whole ad history, in a few Graph pages.
 export const HISTORY_DAYS = 400;
 // Most days one check will re-pull. Past this the account is broken in a way a
 // re-pull will not fix, and the error says so rather than hammering Meta.
@@ -71,33 +77,32 @@ export function sumStoredByDay(
   return out;
 }
 
-// Meta's account-level daily rows -> per-day totals. Leads go through the same
+// Meta's daily ad set rows -> per-day totals. Leads go through the same
 // actionsValue the ad rows do, so the two sides count a lead the same way.
 export function metaTotalsByDay(rows: Record<string, unknown>[]): Map<string, DayTotals> {
   const out = new Map<string, DayTotals>();
   for (const r of rows) {
     const date = String(r.date_start ?? "");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
-    out.set(date, {
-      spend: n(r.spend),
-      impressions: n(r.impressions),
-      linkClicks: n(r.inline_link_clicks),
-      leads: Math.round(actionsValue(r, "actions")),
-      rows: 1,
-    });
+    const d = out.get(date) ?? { ...ZERO };
+    d.spend += n(r.spend);
+    d.impressions += n(r.impressions);
+    d.linkClicks += n(r.inline_link_clicks);
+    d.leads += Math.round(actionsValue(r, "actions"));
+    d.rows += 1;
+    out.set(date, d);
   }
   return out;
 }
 
-// Every day on which our stored copy and Meta's account total disagree.
+// Every day on which our stored copy and Meta's total disagree.
 //
 // Spend is allowed exactly the rounding Meta itself introduces and not a cent
-// more. Meta rounds each ad's spend to the cent and the account figure
-// separately, so n ads can sum to strictly less than half a cent per ad plus
-// half a cent off the account line. That bound is 0 for one ad (one number,
-// rounded once, both sides), 1 cent for two or three, 5 cents for ten. Anything
-// beyond it is a real difference. Everything else is a count and must match
-// exactly.
+// more. Meta rounds each ad's spend to the cent and each ad set's separately,
+// so the two sums can drift by strictly less than half a cent per row on each
+// side: 1 cent for one ad against one ad set, 5.5 cents for ten ads against
+// one. Anything beyond it is a real difference. Everything else is a count and
+// must match exactly.
 export function diffDays(
   ours: Map<string, DayTotals>,
   meta: Map<string, DayTotals>,
@@ -107,7 +112,7 @@ export function diffDays(
   for (const date of dates) {
     const o = ours.get(date) ?? ZERO;
     const m = meta.get(date) ?? ZERO;
-    const spendTolerance = 0.005 * (Math.max(o.rows, 1) + 1) - 1e-6;
+    const spendTolerance = 0.005 * (Math.max(o.rows, 1) + Math.max(m.rows, 1)) - 1e-6;
     if (
       Math.abs(o.spend - m.spend) > spendTolerance ||
       o.impressions !== m.impressions ||
@@ -154,18 +159,20 @@ export async function fetchAccountDays(
   since: string,
   until: string,
 ): Promise<Map<string, DayTotals>> {
+  // Ad set rows, not the account line: see the header. One row per ad set per
+  // day, so the page cap is higher than the account line ever needed.
   const rows = await graphGetAll(
     token,
     `/${account}/insights`,
     {
-      level: "account",
-      fields: "spend,impressions,inline_link_clicks,actions",
+      level: "adset",
+      fields: "optimization_goal,spend,impressions,inline_link_clicks,actions",
       time_range: JSON.stringify({ since, until }),
       time_increment: "1",
       ...UNIFIED_ATTRIBUTION,
       limit: "500",
     },
-    10,
+    20,
     { strict: true },
   );
   return metaTotalsByDay(rows);

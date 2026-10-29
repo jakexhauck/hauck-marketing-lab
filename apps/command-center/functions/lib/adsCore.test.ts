@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { buildAdsInsights, buildAds, derivePhase, actionsValue, type AdsContext } from "./adsCore";
+import { sumLeads } from "./metaActions";
 import type { Env } from "./env";
 
 // Pins the exact shaping/join behavior extracted out of
@@ -189,7 +190,51 @@ describe("buildAdsInsights", () => {
     expect(result.totals.spend).toBe(100);
   });
 
-  it("caches the payload in KV under the ads:insights:v2 key and serves a cache hit without refetching Meta", async () => {
+  // Comfort Wizards' shape: one Instant Form ad set, and every form lead echoed
+  // back to Meta by the client's GHL CAPI workflow. The account line says 3;
+  // 2 people filled in the form. Every figure on the page must say 2.
+  it("counts an Instant Form account's form leads everywhere, never the CAPI echo", async () => {
+    const form = {
+      optimization_goal: "LEAD_GENERATION",
+      actions: [
+        { action_type: "lead", value: "3" },
+        { action_type: "onsite_conversion.lead_grouped", value: "2" },
+        { action_type: "offsite_conversion.fb_pixel_lead", value: "1" },
+      ],
+    };
+    const base = stubFetch().getMockImplementation()!;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string) => {
+        const url = new URL(input);
+        const fields = url.searchParams.get("fields") ?? "";
+        if (url.pathname.endsWith("/insights") && fields.includes("actions")) {
+          if (url.searchParams.get("level") === "account") {
+            return jsonRes({ data: [{ spend: "100", impressions: "1000", reach: "800", ...form }] });
+          }
+          if (url.searchParams.get("breakdowns") === "publisher_platform") {
+            return jsonRes({ data: [{ publisher_platform: "facebook", ...form }, { publisher_platform: "instagram", ...form }] });
+          }
+          if (url.searchParams.get("time_increment") === "1") {
+            return jsonRes({ data: [{ date_start: "2026-10-01", ...form }] });
+          }
+          return jsonRes({ data: [{ ad_id: "ad1", spend: "100", reach: "800", ...form }] });
+        }
+        return base(input);
+      }),
+    );
+
+    const result = await buildAdsInsights(baseEnv(), CTX);
+
+    expect(result.totals.leads).toBe(2);
+    expect(result.totals.costPerLead).toBe(50);
+    expect(result.lastMonthLeads).toBe(2);
+    expect(result.weekly).toEqual([{ label: "Week 1", value: 2 }]);
+    expect(result.sources).toEqual({ fb: 2, ig: 2 });
+    expect(result.ads[0].leads).toBe(2);
+  });
+
+  it("caches the payload in KV under the ads:insights:v3 key and serves a cache hit without refetching Meta", async () => {
     const fetchMock = stubFetch();
     const store = new Map<string, string>();
     const kv = {
@@ -203,7 +248,7 @@ describe("buildAdsInsights", () => {
     const first = await buildAdsInsights(env, CTX);
 
     const monthKey = new Date().toISOString().slice(0, 7);
-    const expectedKey = `ads:insights:v2:${CTX.metaAccount}:${CTX.ghlLocationId}:${monthKey}`;
+    const expectedKey = `ads:insights:v3:${CTX.metaAccount}:${CTX.ghlLocationId}:${monthKey}`;
     expect(store.has(expectedKey)).toBe(true);
 
     const callsAfterFirst = fetchMock.mock.calls.length;
@@ -400,5 +445,57 @@ describe("actionsValue", () => {
 
   it("adds duplicate entries of one type rather than letting the last win", () => {
     expect(actionsValue({ actions: [a("lead", "3"), a("lead", "4")] }, "actions")).toBe(7);
+  });
+
+  // Comfort Wizards, New Furnace, 2026-10-26: two people filled in the Instant
+  // Form, and the client's GHL CAPI workflow sent each of them back to Meta as a
+  // server Lead. Meta's `lead` roll-up said 4. Two people.
+  it("counts an Instant Form ad's form leads, not the CAPI echo of them", () => {
+    const row = {
+      optimization_goal: "LEAD_GENERATION",
+      actions: [
+        a("lead", "4"),
+        a("onsite_conversion.lead_grouped", "2"),
+        a("offsite_conversion.fb_pixel_lead", "2"),
+        a("onsite_web_lead", "2"),
+      ],
+    };
+    expect(actionsValue(row, "actions")).toBe(2);
+    expect(actionsValue({ ...row, optimization_goal: "QUALITY_LEAD" }, "actions")).toBe(2);
+  });
+
+  it("an Instant Form ad with only an echo on the day has no lead", () => {
+    const row = {
+      optimization_goal: "LEAD_GENERATION",
+      actions: [a("lead", "1"), a("offsite_conversion.fb_pixel_lead", "1")],
+    };
+    expect(actionsValue(row, "actions")).toBe(0);
+  });
+
+  // Willis, 8/5/26 Images & Videos: a landing page ad. Its pixel leads ARE the
+  // people, so the roll-up stays the count.
+  it("a website ad still counts its pixel leads", () => {
+    const row = {
+      optimization_goal: "OFFSITE_CONVERSIONS",
+      actions: [a("lead", "21"), a("offsite_conversion.fb_pixel_lead", "21")],
+    };
+    expect(actionsValue(row, "actions")).toBe(21);
+  });
+});
+
+describe("sumLeads", () => {
+  const a = (action_type: string, value: string) => ({ action_type, value });
+
+  it("adds each ad set by its own goal, so a mixed account counts each kind once", () => {
+    const rows = [
+      {
+        optimization_goal: "LEAD_GENERATION",
+        actions: [a("lead", "3"), a("onsite_conversion.lead_grouped", "2"), a("offsite_conversion.fb_pixel_lead", "1")],
+      },
+      { optimization_goal: "OFFSITE_CONVERSIONS", actions: [a("lead", "5"), a("offsite_conversion.fb_pixel_lead", "5")] },
+      { optimization_goal: "LINK_CLICKS", actions: [a("link_click", "40")] },
+    ];
+    expect(sumLeads(rows)).toBe(7);
+    expect(sumLeads([])).toBe(0);
   });
 });

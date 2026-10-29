@@ -3,8 +3,8 @@ import type { Env } from "./env";
 import type { Snapshot } from "../../src/lib/agentWire";
 import { ensureTasks } from "./clientTasks";
 import { fetchAllOpportunities, type GhlOpportunity } from "./ghl";
-import { graphGet } from "./metaGraph";
-import { actionsValue, UNIFIED_ATTRIBUTION } from "./metaActions";
+import { graphGet, graphGetAll } from "./metaGraph";
+import { sumLeads, UNIFIED_ATTRIBUTION } from "./metaActions";
 import { resolveMetaToken } from "./metaToken";
 import { loadBoardPipeline } from "./leadBoardGhl";
 import { runChecks } from "./clientAccountsRun";
@@ -14,8 +14,9 @@ import type { AccountCheck } from "./clientAccounts";
 // these and wakes an agent only where something moved). Every figure comes
 // from the code that already owns it, so the check reads what the pages read:
 //
-//   cpl, frequency, leads7d  Meta, last 7 days, one account-level insights
-//                            read; leads by the shared roll-up rule.
+//   cpl, frequency, leads7d  Meta, last 7 days: spend and frequency off the
+//                            account line, leads summed from ad set rows by
+//                            the shared rule (lib/metaActions.ts sumLeads).
 //   stuckNewOver48h          open opportunities in the Leads board's Lead
 //                            stage for over 48h (lib/leadBoard.ts finds it).
 //   checklistDone/Total      the Full Setup Checklist ticks (sopChecklists).
@@ -33,10 +34,10 @@ function num(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** The three Meta figures from one account-level insights row (or none). */
-export function metaWeek(row: Row | null): Pick<Snapshot, "cpl" | "frequency" | "leads7d"> {
+/** The three Meta figures from the account line (or none) and its ad set rows. */
+export function metaWeek(row: Row | null, adsets: Row[]): Pick<Snapshot, "cpl" | "frequency" | "leads7d"> {
   if (!row) return { cpl: null, frequency: null, leads7d: 0 };
-  const leads = Math.round(actionsValue(row, "actions"));
+  const leads = Math.round(sumLeads(adsets));
   const spend = num(row.spend) ?? 0;
   return {
     cpl: leads > 0 ? Math.round((spend / leads) * 100) / 100 : null,
@@ -76,22 +77,32 @@ export function redCount(checks: AccountCheck[]): number {
   return checks.filter((c) => c.state === "missing").length;
 }
 
-async function metaRow(env: Env, account: string | null): Promise<Row | null> {
+async function metaRows(env: Env, account: string | null): Promise<{ row: Row | null; adsets: Row[] }> {
+  const none = { row: null, adsets: [] };
   const raw = (account ?? "").trim();
-  if (!raw) return null;
+  if (!raw) return none;
   const token = await resolveMetaToken(env);
-  if (!token) return null;
+  if (!token) return none;
   const act = raw.startsWith("act_") ? raw : `act_${raw}`;
   try {
-    const resp = await graphGet(token, `/${act}/insights`, {
-      level: "account",
-      date_preset: "last_7d",
-      fields: "spend,frequency,actions",
-      ...UNIFIED_ATTRIBUTION,
-    });
-    return ((resp.data as Row[] | undefined) ?? [])[0] ?? null;
+    const [resp, adsets] = await Promise.all([
+      graphGet(token, `/${act}/insights`, {
+        level: "account",
+        date_preset: "last_7d",
+        fields: "spend,frequency",
+        ...UNIFIED_ATTRIBUTION,
+      }),
+      graphGetAll(
+        token,
+        `/${act}/insights`,
+        { level: "adset", date_preset: "last_7d", fields: "optimization_goal,actions", limit: "200", ...UNIFIED_ATTRIBUTION },
+        5,
+        { strict: true },
+      ),
+    ]);
+    return { row: ((resp.data as Row[] | undefined) ?? [])[0] ?? null, adsets: adsets as Row[] };
   } catch {
-    return null;
+    return none;
   }
 }
 
@@ -110,7 +121,8 @@ export async function buildSnapshot(
   ]);
   if (!tenantRes.data) return null;
 
-  const meta = metaWeek(await metaRow(env, (tenantRes.data as Row).meta_ad_account_id as string | null));
+  const week = await metaRows(env, (tenantRes.data as Row).meta_ad_account_id as string | null);
+  const meta = metaWeek(week.row, week.adsets);
 
   let stuck = 0;
   const gctx = "error" in accounts ? null : accounts.gctx;

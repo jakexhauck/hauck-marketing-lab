@@ -1,6 +1,7 @@
 import { AD_CREATIVES_BUCKET, listAdCreatives } from "./adCreativeFiles";
 import { libraryVideos } from "./agentMetaOps";
 import { graphGetAll } from "./metaGraph";
+import { actionsValue, sumLeads } from "./metaActions";
 import { resolveMetaToken } from "./metaToken";
 import { metaQuery } from "../api/agent-runner/meta";
 import { BuildRefused, buildCtx, createAd, createAdset, createCampaign, pageForms, type BuildCtx } from "./grokMetaBuild";
@@ -54,22 +55,21 @@ async function ctxFor(d: GrokDeps, c: ClientRef): Promise<BuildCtx> {
 
 // ---------- Reads ----------
 
-const LEAD_ACTIONS = ["lead", "onsite_conversion.lead_grouped", "offsite_conversion.fb_pixel_lead"];
-
-/** Meta reports the same lead under several action types; take the first present, never a sum. */
-export function leadsFrom(actions: unknown): number {
-  const list = Array.isArray(actions) ? (actions as Row[]) : [];
-  for (const type of LEAD_ACTIONS) {
-    const hit = list.find((x) => x.action_type === type);
-    if (hit) return Number(hit.value) || 0;
-  }
-  return 0;
+/**
+ * Leads on one results row, by the rule every page uses (lib/metaActions.ts).
+ * An ad row names its own goal. An account or campaign row does not, and its
+ * own lead figure still holds the CAPI echo of Instant Form leads, so it is
+ * summed from the ad sets under it.
+ */
+export function leadsFor(level: string, row: Row, adsets: Row[]): number {
+  if (level === "ad") return actionsValue(row, "actions");
+  return sumLeads(level === "campaign" ? adsets.filter((s) => s.campaign_id === row.campaign_id) : adsets);
 }
 
 const INSIGHT_FIELDS: Record<string, string> = {
   account: "spend,impressions,reach,frequency,clicks,ctr,cpm,actions",
-  campaign: "campaign_name,spend,impressions,reach,frequency,clicks,ctr,cpm,actions",
-  ad: "ad_name,adset_name,campaign_name,spend,impressions,reach,frequency,clicks,ctr,cpm,actions",
+  campaign: "campaign_id,campaign_name,spend,impressions,reach,frequency,clicks,ctr,cpm,actions",
+  ad: "ad_name,adset_name,campaign_name,optimization_goal,spend,impressions,reach,frequency,clicks,ctr,cpm,actions",
 };
 
 const getAdResults: ToolDef<GrokDeps> = {
@@ -84,15 +84,20 @@ const getAdResults: ToolDef<GrokDeps> = {
     const q = metaQuery(typeof a.level === "string" ? a.level : "ad", a.days === undefined ? null : String(a.days));
     if (!q) throw new Error("level is account, campaign or ad; days 1 to 90.");
     const { account, token } = await metaAccount(d, c);
-    const rows = await graphGetAll(
-      token,
-      `/${account}/insights`,
-      { level: q.level, date_preset: q.preset, fields: INSIGHT_FIELDS[q.level], limit: "200", use_unified_attribution_setting: "true" },
-      5,
-      { strict: true },
-    );
+    const insights = (level: string, fields: string) =>
+      graphGetAll(
+        token,
+        `/${account}/insights`,
+        { level, date_preset: q.preset, fields, limit: "200", use_unified_attribution_setting: "true" },
+        5,
+        { strict: true },
+      );
+    const [rows, adsets] = await Promise.all([
+      insights(q.level, INSIGHT_FIELDS[q.level]),
+      q.level === "ad" ? Promise.resolve([]) : insights("adset", "campaign_id,optimization_goal,actions"),
+    ]);
     const shaped = (rows as Row[]).map((r) => {
-      const leads = leadsFrom(r.actions);
+      const leads = leadsFor(q.level, r, adsets as Row[]);
       const spend = Number(r.spend) || 0;
       const { actions: _actions, date_start: _ds, date_stop: _de, ...rest } = r;
       return { ...rest, leads, cpl: leads ? Math.round((spend / leads) * 100) / 100 : null };

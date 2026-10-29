@@ -89,6 +89,45 @@ describe("metaTotalsByDay", () => {
     ]);
     expect(out.get("2026-08-10")).toEqual(day(12.5, 300, 9, 26));
   });
+
+  // Meta's side is read per ad set, because only an ad set row says whether its
+  // pixel leads are people or the CAPI echo of form leads already counted.
+  it("adds every ad set on a day, each counted by its own goal", () => {
+    const out = metaTotalsByDay([
+      {
+        date_start: "2026-10-26",
+        optimization_goal: "LEAD_GENERATION",
+        spend: "40.22",
+        impressions: "1000",
+        inline_link_clicks: "20",
+        actions: [
+          { action_type: "lead", value: "4" },
+          { action_type: "onsite_conversion.lead_grouped", value: "2" },
+          { action_type: "offsite_conversion.fb_pixel_lead", value: "2" },
+        ],
+      },
+      {
+        date_start: "2026-10-26",
+        optimization_goal: "OFFSITE_CONVERSIONS",
+        spend: "10.00",
+        impressions: "500",
+        inline_link_clicks: "5",
+        actions: [{ action_type: "lead", value: "3" }],
+      },
+    ]);
+    const d = out.get("2026-10-26")!;
+    expect(d.spend).toBeCloseTo(50.22, 10);
+    expect({ ...d, spend: 0 }).toEqual(day(0, 1500, 25, 5, 2));
+  });
+});
+
+describe("diffDays across ad sets", () => {
+  it("allows the rounding on both sides, and no more", () => {
+    // Three ads against three ad sets: each side can drift half a cent a row.
+    const meta = new Map([["d", day(30.0, 100, 5, 1, 3)]]);
+    expect(diffDays(new Map([["d", day(30.025, 100, 5, 1, 3)]]), meta)).toEqual([]);
+    expect(diffDays(new Map([["d", day(30.035, 100, 5, 1, 3)]]), meta)).toHaveLength(1);
+  });
 });
 
 describe("sumStoredByDay", () => {
@@ -197,22 +236,29 @@ function fakeMeta(adRows: Row[]) {
     const range = JSON.parse(u.searchParams.get("time_range") ?? "{}") as { since: string; until: string };
     const inRange = adRows.filter((r) => String(r.date_start) >= range.since && String(r.date_start) <= range.until);
     if (u.searchParams.get("level") === "ad") return json({ data: inRange });
-    const byDay = new Map<string, { spend: number; impressions: number; clicks: number; leads: number }>();
+    // Ad set level: one row per ad set per day, its actions merged by type.
+    const bySet = new Map<string, { date: string; goal: unknown; spend: number; impressions: number; clicks: number; actions: Map<string, number> }>();
     for (const r of inRange) {
-      const d = byDay.get(String(r.date_start)) ?? { spend: 0, impressions: 0, clicks: 0, leads: 0 };
+      const key = `${String(r.date_start)}|${String(r.adset_id)}`;
+      const d = bySet.get(key) ?? { date: String(r.date_start), goal: r.optimization_goal, spend: 0, impressions: 0, clicks: 0, actions: new Map<string, number>() };
       d.spend += Number(r.spend);
       d.impressions += Number(r.impressions);
       d.clicks += Number(r.inline_link_clicks);
-      d.leads += Number((r.actions as { value: string }[] | undefined)?.[0]?.value ?? 0);
-      byDay.set(String(r.date_start), d);
+      for (const a of (r.actions as { action_type: string; value: string }[] | undefined) ?? []) {
+        d.actions.set(a.action_type, (d.actions.get(a.action_type) ?? 0) + Number(a.value));
+      }
+      bySet.set(key, d);
     }
     return json({
-      data: [...byDay].map(([date, d]) => ({
-        date_start: date,
+      data: [...bySet.values()].map((d) => ({
+        date_start: d.date,
+        optimization_goal: d.goal,
         spend: d.spend.toFixed(2),
         impressions: String(d.impressions),
         inline_link_clicks: String(d.clicks),
-        actions: d.leads ? [{ action_type: "lead", value: String(d.leads) }] : undefined,
+        actions: d.actions.size
+          ? [...d.actions].map(([action_type, v]) => ({ action_type, value: String(v) }))
+          : undefined,
       })),
     });
   });
@@ -294,6 +340,45 @@ describe("syncAndVerifyTenant (end to end)", () => {
       expect(status.meta_spend).toBe(75.48);
       expect(status.stored_spend).toBe(75.48);
       expect(status.first_spend_date).toBe("2026-08-18");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // The day stored before the echo fix (Comfort Wizards 2026-10-26 read 4
+  // leads for 2 people) is older than the trailing sync, so only the check can
+  // reach it. It must re-count it, not alarm on it forever.
+  it("re-counts an old day stored with the CAPI echo, then proves the match", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-30T20:00:00Z"));
+    try {
+      const form = (date: string): Row => ({
+        ...metaAd(date, "a", "40.22"),
+        optimization_goal: "LEAD_GENERATION",
+        actions: [
+          { action_type: "lead", value: "4" },
+          { action_type: "onsite_conversion.lead_grouped", value: "2" },
+          { action_type: "offsite_conversion.fb_pixel_lead", value: "2" },
+        ],
+      });
+      vi.stubGlobal("fetch", fakeMeta([form("2026-10-26")]));
+
+      const tables: Record<string, Row[]> = {
+        tenants: [{ id: "t1", meta_timezone: "America/Chicago" }],
+        meta_ad_days: [storedAd("1", "2026-10-26", "a", 40.22, 4)],
+      };
+      const r = await syncAndVerifyTenant(
+        fakeDb(tables),
+        "tok",
+        { id: "t1", name: "Test", meta_ad_account_id: "act_1", meta_timezone: "America/Chicago" },
+        7,
+      );
+
+      expect(r.error).toBeUndefined();
+      expect(r.verified).toBe(true);
+      expect(r.repairedDays).toBe(1);
+      expect(tables.meta_ad_days.map((row) => row.leads)).toEqual([2]);
+      expect(tables.meta_sync_status[0].meta_leads).toBe(2);
     } finally {
       vi.useRealTimers();
     }
