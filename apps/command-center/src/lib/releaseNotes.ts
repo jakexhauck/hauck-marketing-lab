@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-10-28-grok-meta-full-access",
+    date: "28 October 2026",
+    title: "Grok Bots get all of Meta",
+    items: [
+      "Hauck Meta can now make any Meta call on every client's ad account and Facebook Page: campaigns, ad sets, ads, creatives, audiences, pixels, results, posts, lead forms and leads.",
+      "Budgets, bids and spend caps stay yours, and so does switching a campaign, ad set or ad on or off. Anything a bot creates or copies is made paused.",
+    ],
+  },
+  {
     id: "2026-10-28-bookings-to-google-calendar",
     date: "28 October 2026",
     title: "Bookings go straight to the owner's Google Calendar",

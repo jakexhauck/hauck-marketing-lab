@@ -373,6 +373,7 @@ describe("the connectors", () => {
     expect(CONNECTORS.ghl.tools.map((t) => t.name)).toEqual(["ghl_clients", "ghl_request", "ghl_agency_request"]);
     expect(CONNECTORS.meta.tools.map((t) => t.name)).toEqual([
       "get_ad_results", "get_ad_structure", "get_ad_assets", "meta_create_campaign", "meta_create_adset", "meta_create_ad",
+      "meta_accounts", "meta_request",
     ]);
   });
 

@@ -4,13 +4,15 @@ import { graphGetAll } from "./metaGraph";
 import { resolveMetaToken } from "./metaToken";
 import { metaQuery } from "../api/agent-runner/meta";
 import { BuildRefused, buildCtx, createAd, createAdset, createCampaign, pageForms, type BuildCtx } from "./grokMetaBuild";
+import { META_REQUEST_TOOLS } from "./grokMetaRequest";
 import { audited, botName, findClient, type ClientRef, type GrokDeps, type ToolDef } from "./grokMcp";
 
 // The Meta connector: each client's ad account through the agency's System
 // User token, which Grok cannot connect itself. Reads are results, structure
 // and what an ad can be built from. Builds are create only, always PAUSED,
-// budgets capped (lib/grokMetaBuild.ts); nothing here pauses, resumes,
-// re-budgets or deletes. Every build is logged before it is sent.
+// budgets capped (lib/grokMetaBuild.ts). Every build is logged before it is
+// sent. Everything else in Meta, short of budgets and on or off, is
+// meta_request (lib/grokMetaRequest.ts).
 
 type Row = Record<string, unknown>;
 type Args = Record<string, unknown>;
@@ -195,4 +197,12 @@ const metaCreateAd = metaTool(
   createAd,
 );
 
-export const META_TOOLS: ToolDef<GrokDeps>[] = [getAdResults, getAdStructure, getAdAssets, metaCreateCampaign, metaCreateAdset, metaCreateAd];
+export const META_TOOLS: ToolDef<GrokDeps>[] = [
+  getAdResults,
+  getAdStructure,
+  getAdAssets,
+  metaCreateCampaign,
+  metaCreateAdset,
+  metaCreateAd,
+  ...META_REQUEST_TOOLS,
+];

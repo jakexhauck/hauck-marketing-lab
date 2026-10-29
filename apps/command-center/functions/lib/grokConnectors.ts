@@ -10,7 +10,10 @@ export const CONNECTORS: Record<GrokConnector, { server: ServerInfo; tools: Tool
     tools: GHL_TOOLS,
   },
   meta: {
-    server: { name: "hauck-meta", instructions: "Meta Ads for Hauck Marketing's clients: results, structure, and paused builds." },
+    server: {
+      name: "hauck-meta",
+      instructions: "Meta for Hauck Marketing's clients: every ad account and Facebook Page through meta_request, mapped by meta_accounts. Budgets, bids, spend caps and switching things on or off are refused.",
+    },
     tools: META_TOOLS,
   },
   software: {

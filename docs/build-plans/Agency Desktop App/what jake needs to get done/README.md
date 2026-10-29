@@ -849,3 +849,17 @@ Your action items:
 
 Still parked:
 - Meta Ad Library / Foreplay on the research page, off until you want it.
+
+## Grok Bots get all of Meta (2026-10-28)
+
+What's in the app now: Hauck Meta has `meta_request` (any Meta call on every client ad account and Facebook Page) and `meta_accounts` (every ad account and Page with its client). Refused: budgets, bids, spend caps, ad rules, and switching a campaign, ad set or ad on or off. Anything a bot creates or copies is made paused; it can delete one only while it is off.
+
+Calls Claude made (overrule any): bids count as spend; a schedule change counts as on/off; ad rules are refused entirely; a paused campaign, ad set or ad can be deleted, a running one cannot.
+
+Your action items:
+1. Publish the Made Better campaign in Ads Manager with its toggle off. A draft is invisible to Meta's API, which is why the bot could not see it.
+2. In Grok, check the bot has the **Hauck Meta** connector added (`https://app.hauckmarketing.com/api/grok/meta/<GROK_MCP_KEY>`), then refresh it so it picks up the two new tools.
+3. Ask the bot: "List Made Better's campaigns." It should show the new one.
+
+Still parked:
+- Page posts, comments, Messenger and Instagram need more permissions on the Meta key (today: ads, leads, basic Pages). Say go and Claude lists the boxes to tick in Business Settings for a new key.
